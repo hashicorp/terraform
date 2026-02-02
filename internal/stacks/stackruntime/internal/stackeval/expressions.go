@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -228,7 +228,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	return hclCtx, diags
 }
 
-func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.Variable, wantTy cty.Type, defs *typeexpr.Defaults, decl *stackconfig.Component, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+func EvalComponentInputVariables(ctx context.Context, decls map[string]*definitions.Variable, wantTy cty.Type, defs *typeexpr.Defaults, decl *stackconfig.Component, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	v := cty.EmptyObjectVal

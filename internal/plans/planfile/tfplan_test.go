@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -323,7 +323,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
 					ActionTrigger: &plans.LifecycleActionTrigger{
-						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerEvent:      definitions.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        0,
 						TriggeringResourceAddr: addrs.Resource{
@@ -337,7 +337,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					Addr:         addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
 					ActionTrigger: &plans.LifecycleActionTrigger{
-						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerEvent:      definitions.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
 						TriggeringResourceAddr: addrs.Resource{
@@ -354,7 +354,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 					Addr:         addrs.Action{Type: "example", Name: "baz"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
 					ActionTrigger: &plans.LifecycleActionTrigger{
-						ActionTriggerEvent:      configs.BeforeCreate,
+						ActionTriggerEvent:      definitions.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
 						TriggeringResourceAddr: addrs.Resource{
@@ -466,7 +466,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 						ActionTriggerBlockIndex: 1,
 						ActionsListIndex:        2,
-						ActionTriggerEvent:      configs.AfterCreate,
+						ActionTriggerEvent:      definitions.AfterCreate,
 					},
 					ProviderAddr: provider,
 					ConfigValue: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{

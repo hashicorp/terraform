@@ -8,7 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -303,7 +303,7 @@ func (vv InputValues) Identical(other InputValues) bool {
 // The set of values is considered valid only if the returned diagnostics
 // does not contain errors. A valid set of values may still produce warnings,
 // which should be returned to the user.
-func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdiags.Diagnostics {
+func checkInputVariables(vcs map[string]*definitions.Variable, vs InputValues) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for name := range vcs {

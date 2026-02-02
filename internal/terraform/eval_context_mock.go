@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -199,7 +199,7 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(addr addrs.AbsProviderConfig, _ *configs.Provider) (providers.Interface, error) {
+func (c *MockEvalContext) InitProvider(addr addrs.AbsProviderConfig, _ *definitions.Provider) (providers.Interface, error) {
 	c.InitProviderCalled = true
 	c.InitProviderType = addr.String()
 	c.InitProviderAddr = addr

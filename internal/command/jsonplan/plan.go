@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -354,7 +355,7 @@ func Marshal(
 	return json.Marshal(output)
 }
 
-func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
+func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*definitions.Variable) error {
 	p.Variables = make(variables, len(vars))
 
 	for k, v := range vars {

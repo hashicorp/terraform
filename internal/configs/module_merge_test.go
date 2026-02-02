@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestModuleOverrideVariable(t *testing.T) {
@@ -22,7 +23,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 	}
 
 	got := mod.Variables
-	want := map[string]*Variable{
+	want := map[string]*definitions.Variable{
 		"fully_overridden": {
 			Name:           "fully_overridden",
 			Description:    "b_override description",
@@ -32,7 +33,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			NullableSet:    true,
 			Type:           cty.String,
 			ConstraintType: cty.String,
-			ParsingMode:    VariableParseLiteral,
+			ParsingMode:    definitions.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "testdata/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
@@ -56,7 +57,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			NullableSet:    false,
 			Type:           cty.String,
 			ConstraintType: cty.String,
-			ParsingMode:    VariableParseLiteral,
+			ParsingMode:    definitions.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "testdata/valid-modules/override-variable/primary.tf",
 				Start: hcl.Pos{
@@ -90,7 +91,7 @@ func TestModuleOverrideModule(t *testing.T) {
 	}
 
 	got := mod.ModuleCalls["example"]
-	want := &ModuleCall{
+	want := &definitions.ModuleCall{
 		Name:          "example",
 		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
 		SourceAddrRaw: "./example2-a_override",
@@ -141,9 +142,9 @@ func TestModuleOverrideModule(t *testing.T) {
 				},
 			},
 		},
-		Providers: []PassedProviderConfig{
+		Providers: []definitions.PassedProviderConfig{
 			{
-				InChild: &ProviderConfigRef{
+				InChild: &definitions.ProviderConfigRef{
 					Name: "test",
 					NameRange: hcl.Range{
 						Filename: "testdata/valid-modules/override-module/b_override.tf",
@@ -151,7 +152,7 @@ func TestModuleOverrideModule(t *testing.T) {
 						End:      hcl.Pos{Line: 7, Column: 9, Byte: 101},
 					},
 				},
-				InParent: &ProviderConfigRef{
+				InParent: &definitions.ProviderConfigRef{
 					Name: "test",
 					NameRange: hcl.Range{
 						Filename: "testdata/valid-modules/override-module/b_override.tf",
@@ -320,7 +321,7 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 
 	got := mod.ManagedResources["test_instance.explicit"]
 	wantProvider := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
-	wantProviderCfg := &ProviderConfigRef{
+	wantProviderCfg := &definitions.ProviderConfigRef{
 		Name: "bar-test",
 		NameRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
@@ -366,7 +367,7 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 
 	// verify that the action has attr foo = baz (override)
 	got := mod.Actions["action.test_action.test"]
-	want := &Action{
+	want := &definitions.Action{
 		Name:              "test",
 		Type:              "test_action",
 		Config:            nil,
@@ -418,5 +419,5 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 
 	// verify the resource action trigger event changed
 	at := mod.ManagedResources["test_instance.test"].Managed.ActionTriggers[0]
-	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{BeforeCreate})
+	assertResultDeepEqual(t, at.Events, []definitions.ActionTriggerEvent{definitions.BeforeCreate})
 }

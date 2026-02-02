@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -78,7 +79,7 @@ func TestImportBlock_decode(t *testing.T) {
 
 	tests := map[string]struct {
 		input *hcl.Block
-		want  *Import
+		want  *definitions.Import
 		err   string
 	}{
 		"success": {
@@ -98,7 +99,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
 				ID:         foo_str_expr,
 				DeclRange:  blockRange,
@@ -122,7 +123,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar[\"one\"]").ConfigResource(),
 				ID:         foo_str_expr,
 				DeclRange:  blockRange,
@@ -146,7 +147,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ToResource: mustAbsResourceInstanceAddr("module.bar.test_instance.bar").ConfigResource(),
 				ID:         foo_str_expr,
 				DeclRange:  blockRange,
@@ -166,7 +167,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
 				DeclRange:  blockRange,
 			},
@@ -193,7 +194,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
 				DeclRange:  blockRange,
 			},
@@ -212,7 +213,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
@@ -235,7 +236,7 @@ func TestImportBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Import{
+			&definitions.Import{
 				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},

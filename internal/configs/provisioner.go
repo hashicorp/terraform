@@ -11,31 +11,13 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	Provisioner          = definitions.Provisioner
-	Connection           = definitions.Connection
-	ProvisionerWhen      = definitions.ProvisionerWhen
-	ProvisionerOnFailure = definitions.ProvisionerOnFailure
-)
-
-// Re-export enum constants for backwards compatibility.
-const (
-	ProvisionerWhenInvalid    = definitions.ProvisionerWhenInvalid
-	ProvisionerWhenCreate     = definitions.ProvisionerWhenCreate
-	ProvisionerWhenDestroy    = definitions.ProvisionerWhenDestroy
-	ProvisionerOnFailureInvalid  = definitions.ProvisionerOnFailureInvalid
-	ProvisionerOnFailureContinue = definitions.ProvisionerOnFailureContinue
-	ProvisionerOnFailureFail     = definitions.ProvisionerOnFailureFail
-)
-
-func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
-	pv := &Provisioner{
+func decodeProvisionerBlock(block *hcl.Block) (*definitions.Provisioner, hcl.Diagnostics) {
+	pv := &definitions.Provisioner{
 		Type:      block.Labels[0],
 		TypeRange: block.LabelRanges[0],
 		DeclRange: block.DefRange,
-		When:      ProvisionerWhenCreate,
-		OnFailure: ProvisionerOnFailureFail,
+		When:      definitions.ProvisionerWhenCreate,
+		OnFailure: definitions.ProvisionerOnFailureFail,
 	}
 
 	content, config, diags := block.Body.PartialContent(provisionerBlockSchema)
@@ -58,9 +40,9 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 
 		switch hcl.ExprAsKeyword(expr) {
 		case "create":
-			pv.When = ProvisionerWhenCreate
+			pv.When = definitions.ProvisionerWhenCreate
 		case "destroy":
-			pv.When = ProvisionerWhenDestroy
+			pv.When = definitions.ProvisionerWhenDestroy
 		default:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -72,7 +54,7 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 	}
 
 	// destroy provisioners can only refer to self
-	if pv.When == ProvisionerWhenDestroy {
+	if pv.When == definitions.ProvisionerWhenDestroy {
 		diags = append(diags, onlySelfRefs(config)...)
 	}
 
@@ -82,9 +64,9 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 
 		switch hcl.ExprAsKeyword(expr) {
 		case "continue":
-			pv.OnFailure = ProvisionerOnFailureContinue
+			pv.OnFailure = definitions.ProvisionerOnFailureContinue
 		case "fail":
-			pv.OnFailure = ProvisionerOnFailureFail
+			pv.OnFailure = definitions.ProvisionerOnFailureFail
 		default:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -132,11 +114,11 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 			seenConnection = block
 
 			// destroy provisioners can only refer to self
-			if pv.When == ProvisionerWhenDestroy {
+			if pv.When == definitions.ProvisionerWhenDestroy {
 				diags = append(diags, onlySelfRefs(block.Body)...)
 			}
 
-			pv.Connection = &Connection{
+			pv.Connection = &definitions.Connection{
 				Config:    block.Body,
 				DeclRange: block.DefRange,
 			}

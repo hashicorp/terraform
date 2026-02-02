@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -30,10 +31,10 @@ func TestNodeValidatableResource_ValidateProvisioner_valid(t *testing.T) {
 	ctx.ProvisionerSchemaSchema = ps
 	ctx.ProvisionerProvisioner = mp
 
-	pc := &configs.Provisioner{
+	pc := &definitions.Provisioner{
 		Type:   "baz",
 		Config: hcl.EmptyBody(),
-		Connection: &configs.Connection{
+		Connection: &definitions.Connection{
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"host": cty.StringVal("localhost"),
 				"type": cty.StringVal("ssh"),
@@ -42,7 +43,7 @@ func TestNodeValidatableResource_ValidateProvisioner_valid(t *testing.T) {
 		},
 	}
 
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_foo",
 		Name:   "bar",
@@ -73,17 +74,17 @@ func TestNodeValidatableResource_ValidateProvisioner__warning(t *testing.T) {
 	ctx.ProvisionerSchemaSchema = ps
 	ctx.ProvisionerProvisioner = mp
 
-	pc := &configs.Provisioner{
+	pc := &definitions.Provisioner{
 		Type:   "baz",
 		Config: hcl.EmptyBody(),
 	}
 
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:    addrs.ManagedResourceMode,
 		Type:    "test_foo",
 		Name:    "bar",
 		Config:  configs.SynthBody("", map[string]cty.Value{}),
-		Managed: &configs.ManagedResource{},
+		Managed: &definitions.ManagedResource{},
 	}
 
 	node := NodeValidatableResource{
@@ -119,10 +120,10 @@ func TestNodeValidatableResource_ValidateProvisioner__connectionInvalid(t *testi
 	ctx.ProvisionerSchemaSchema = ps
 	ctx.ProvisionerProvisioner = mp
 
-	pc := &configs.Provisioner{
+	pc := &definitions.Provisioner{
 		Type:   "baz",
 		Config: hcl.EmptyBody(),
-		Connection: &configs.Connection{
+		Connection: &definitions.Connection{
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"type":             cty.StringVal("ssh"),
 				"bananananananana": cty.StringVal("foo"),
@@ -131,12 +132,12 @@ func TestNodeValidatableResource_ValidateProvisioner__connectionInvalid(t *testi
 		},
 	}
 
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:    addrs.ManagedResourceMode,
 		Type:    "test_foo",
 		Name:    "bar",
 		Config:  configs.SynthBody("", map[string]cty.Value{}),
-		Managed: &configs.ManagedResource{},
+		Managed: &definitions.ManagedResource{},
 	}
 
 	node := NodeValidatableResource{
@@ -168,12 +169,12 @@ func TestNodeValidatableResource_ValidateProvisioner_baseConnInvalid(t *testing.
 	ctx.ProvisionerSchemaSchema = ps
 	ctx.ProvisionerProvisioner = mp
 
-	pc := &configs.Provisioner{
+	pc := &definitions.Provisioner{
 		Type:   "baz",
 		Config: hcl.EmptyBody(),
 	}
 
-	baseConn := &configs.Connection{
+	baseConn := &definitions.Connection{
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"type":             cty.StringVal("ssh"),
 			"bananananananana": cty.StringVal("foo"),
@@ -181,12 +182,12 @@ func TestNodeValidatableResource_ValidateProvisioner_baseConnInvalid(t *testing.
 		}),
 	}
 
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:    addrs.ManagedResourceMode,
 		Type:    "test_foo",
 		Name:    "bar",
 		Config:  configs.SynthBody("", map[string]cty.Value{}),
-		Managed: &configs.ManagedResource{},
+		Managed: &definitions.ManagedResource{},
 	}
 
 	node := NodeValidatableResource{
@@ -226,7 +227,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_object",
 		Name: "foo",
@@ -294,7 +295,7 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			rc := &configs.Resource{
+			rc := &definitions.Resource{
 				Mode:  addrs.ManagedResourceMode,
 				Type:  "test_object",
 				Name:  "foo",
@@ -339,7 +340,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode: addrs.DataResourceMode,
 		Type: "test_object",
 		Name: "foo",
@@ -379,7 +380,7 @@ func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
 		Name:   "foo",
@@ -416,7 +417,7 @@ func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
 		Name:   "foo",
@@ -461,7 +462,7 @@ func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T)
 	// We'll check a _valid_ config first, to make sure we're not failing
 	// for some other reason, and then make it invalid.
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
 		Name:   "foo",
@@ -553,12 +554,12 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesNonexisten
 	// We'll check a _valid_ config first, to make sure we're not failing
 	// for some other reason, and then make it invalid.
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
-		Managed: &configs.ManagedResource{
+		Managed: &definitions.ManagedResource{
 			IgnoreChanges: []hcl.Traversal{
 				{
 					hcl.TraverseAttr{
@@ -636,12 +637,12 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t
 	// We'll check a _valid_ config first, to make sure we're not failing
 	// for some other reason, and then make it invalid.
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode:   addrs.ManagedResourceMode,
 		Type:   "test_object",
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
-		Managed: &configs.ManagedResource{
+		Managed: &definitions.ManagedResource{
 			IgnoreChanges: []hcl.Traversal{
 				{
 					hcl.TraverseAttr{

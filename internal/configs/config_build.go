@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its
@@ -329,7 +330,7 @@ type ModuleRequest struct {
 	// the constraint, which can and should be used to generate diagnostics
 	// about constraint-related issues, such as constraints that eliminate all
 	// available versions of a module whose source is otherwise valid.
-	VersionConstraint VersionConstraint
+	VersionConstraint definitions.VersionConstraint
 
 	// Parent is the partially-constructed module tree node that the loaded
 	// module will be added to. Callers may refer to any field of this
@@ -372,14 +373,14 @@ type MockDataLoader interface {
 	// LoadMockData accepts a path to a local directory that should contain a
 	// set of .tfmock.hcl files that contain mock data that can be consumed by
 	// a mock provider within the tewting framework.
-	LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics)
+	LoadMockData(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics)
 }
 
 // MockDataLoaderFunc is an implementation of MockDataLoader that wraps a
 // callback function, for more convenient use of that interface.
-type MockDataLoaderFunc func(provider *Provider) (*MockData, hcl.Diagnostics)
+type MockDataLoaderFunc func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics)
 
 // LoadMockData implements MockDataLoader.
-func (f MockDataLoaderFunc) LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics) {
+func (f MockDataLoaderFunc) LoadMockData(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 	return f(provider)
 }

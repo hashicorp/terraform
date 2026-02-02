@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -21,7 +22,7 @@ import (
 )
 
 func TestNodeApplyableProviderExecute(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"user": cty.StringVal("hello"),
@@ -82,7 +83,7 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 }
 
 func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.UnknownVal(cty.String),
@@ -117,7 +118,7 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 }
 
 func TestNodeApplyableProviderExecute_unknownApply(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.UnknownVal(cty.String),
@@ -153,7 +154,7 @@ func TestNodeApplyableProviderExecute_unknownApply(t *testing.T) {
 }
 
 func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
@@ -190,7 +191,7 @@ func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
 }
 
 func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
@@ -227,7 +228,7 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 }
 
 func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
-	config := &configs.Provider{
+	config := &definitions.Provider{
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
@@ -273,7 +274,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 	ctx.installSimpleEval()
 
 	t.Run("valid", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name: "test",
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"region": cty.StringVal("mars"),
@@ -294,7 +295,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name: "test",
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"region": cty.MapValEmpty(cty.String),
@@ -368,7 +369,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	ctx.installSimpleEval()
 
 	t.Run("valid", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name: "test",
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"region": cty.StringVal("mars"),
@@ -405,7 +406,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	})
 
 	t.Run("missing required config", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name:   "test",
 			Config: hcl.EmptyBody(),
 		}
@@ -442,7 +443,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	})
 
 	t.Run("missing schema-required config", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name:   "test",
 			Config: hcl.EmptyBody(),
 		}
@@ -494,7 +495,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	}
 
 	t.Run("valid", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name: "test",
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"region": cty.StringVal("mars"),
@@ -531,7 +532,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	})
 
 	t.Run("missing required config", func(t *testing.T) {
-		config := &configs.Provider{
+		config := &definitions.Provider{
 			Name:   "test",
 			Config: hcl.EmptyBody(),
 		}

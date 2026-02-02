@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 type ActionInvokePlanTransformer struct {
@@ -26,7 +27,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 	// Then we're invoking and we're just going to include the actions that
 	// have been specifically asked for.
 	for _, target := range t.ActionTargets {
-		var config *configs.Action
+		var config *definitions.Action
 		switch target := target.(type) {
 		case addrs.AbsAction:
 			module := t.Config.DescendantForInstance(target.Module)

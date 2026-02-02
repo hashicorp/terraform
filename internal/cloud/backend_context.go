@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -184,7 +184,7 @@ func (b *Cloud) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName str
 	return remoteWorkspace.ID, nil
 }
 
-func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
+func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[string]*definitions.Variable) terraform.InputValues {
 	ret := make(terraform.InputValues, len(decls))
 
 	for name, cfg := range decls {
@@ -220,7 +220,7 @@ type remoteStoredVariableValue struct {
 
 var _ backendrun.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
 
-func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v *remoteStoredVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var val cty.Value
 

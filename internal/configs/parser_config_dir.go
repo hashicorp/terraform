@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 const (
@@ -93,7 +95,7 @@ func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Mod
 	return p.LoadConfigDir(path, MatchTestFiles(testDirectory))
 }
 
-func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*MockData, hcl.Diagnostics) {
+func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*definitions.MockData, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	infos, err := p.fs.ReadDir(dir)
@@ -126,7 +128,7 @@ func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.
 		files = append(files, filepath.Join(dir, name))
 	}
 
-	var data *MockData
+	var data *definitions.MockData
 	for _, file := range files {
 		current, currentDiags := p.LoadMockDataFile(file, useForPlanDefault)
 		diags = append(diags, currentDiags...)
@@ -158,12 +160,12 @@ func (p *Parser) IsConfigDir(path string, opts ...Option) bool {
 	return (len(pathSet.Primary) + len(pathSet.Override)) > 0
 }
 
-func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnostics) {
-	var files []*File
+func (p *Parser) loadFiles(paths []string, override bool) ([]*definitions.File, hcl.Diagnostics) {
+	var files []*definitions.File
 	var diags hcl.Diagnostics
 
 	for _, path := range paths {
-		var f *File
+		var f *definitions.File
 		var fDiags hcl.Diagnostics
 		if override {
 			f, fDiags = p.LoadConfigFileOverride(path)
@@ -205,8 +207,8 @@ func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*Tes
 	return tfs, diags
 }
 
-func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, hcl.Diagnostics) {
-	files := make([]*QueryFile, 0, len(paths))
+func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*definitions.QueryFile, hcl.Diagnostics) {
+	files := make([]*definitions.QueryFile, 0, len(paths))
 	var diags hcl.Diagnostics
 
 	for _, path := range paths {

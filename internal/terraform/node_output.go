@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -28,7 +28,7 @@ import (
 type nodeExpandOutput struct {
 	Addr        addrs.OutputValue
 	Module      addrs.Module
-	Config      *configs.Output
+	Config      *definitions.Output
 	Destroying  bool
 	RefreshOnly bool
 
@@ -267,7 +267,7 @@ func (n *nodeExpandOutput) getOverrideValue(inst addrs.ModuleInstance) cty.Value
 // it is ready to be applied.
 type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
-	Config *configs.Output // Config is the output in the config
+	Config *definitions.Output // Config is the output in the config
 	// If this is being evaluated during apply, we may have a change recorded already
 	Change *plans.OutputChange
 
@@ -365,7 +365,7 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 	return referenceableAddrsForOutput(n.Addr)
 }
 
-func referencesForOutput(c *configs.Output) []*addrs.Reference {
+func referencesForOutput(c *definitions.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
 	impRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Expr)
@@ -551,7 +551,7 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 // totally-unknown value of unknown type in the worst case.
 type nodeOutputInPartialModule struct {
 	Addr   addrs.InPartialExpandedModule[addrs.OutputValue]
-	Config *configs.Output
+	Config *definitions.Output
 
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors

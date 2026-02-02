@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -25,7 +25,7 @@ import (
 // they each depend on the node that will register the final variable value.
 type nodeVariableValidation struct {
 	configAddr addrs.ConfigInputVariable
-	rules      []*configs.CheckRule
+	rules      []*definitions.CheckRule
 
 	// defnRange is whatever source range we consider to best represent
 	// the definition of the variable, which should ideally cover the

@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -56,11 +57,11 @@ import (
 type BackendOpts struct {
 	// BackendConfig is a representation of the backend configuration block given in
 	// the root module, or nil if no such block is present.
-	BackendConfig *configs.Backend
+	BackendConfig *definitions.Backend
 
 	// StateStoreConfig is a representation of the state_store configuration block given in
 	// the root module, or nil if no such block is present.
-	StateStoreConfig *configs.StateStore
+	StateStoreConfig *definitions.StateStore
 
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
@@ -691,7 +692,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 }
 
 // backendConfig returns the local configuration for the backend
-func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.Diagnostics) {
+func (m *Meta) backendConfig(opts *BackendOpts) (*definitions.Backend, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.BackendConfig == nil {
@@ -759,7 +760,7 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 // > Ensures that that state store type exists in the linked provider.
 // > Returns config that is the combination of config and any config overrides originally supplied via the CLI.
 // > Returns a hash of the config in the configuration files, i.e. excluding overrides
-func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreConfig(opts *BackendOpts) (*definitions.StateStore, int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	c := opts.StateStoreConfig
@@ -867,8 +868,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	var diags tfdiags.Diagnostics
 
 	// Get the local 'backend' or 'state_store' configuration.
-	var backendConfig *configs.Backend
-	var stateStoreConfig *configs.StateStore
+	var backendConfig *definitions.Backend
+	var stateStoreConfig *definitions.StateStore
 	var cHash int
 	if opts.StateStoreConfig != nil {
 		// state store has been parsed from config and is included in opts
@@ -1386,7 +1387,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 
 // Unconfiguring a backend (moving from backend => local).
 func (m *Meta) backend_c_r_S(
-	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts,
+	c *definitions.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts,
 ) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -1462,7 +1463,7 @@ func (m *Meta) backend_c_r_S(
 }
 
 // Configuring a backend for the first time.
-func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_s(c *definitions.Backend, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1631,7 +1632,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 }
 
 // Changing a previously saved backend.
-func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_changed(c *definitions.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -1918,7 +1919,7 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 //-------------------------------------------------------------------
 
 // Configuring a state_store for the first time.
-func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_C_s(c *definitions.StateStore, stateStoreHash int, backendSMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	vt := arguments.ViewJSON
@@ -2182,7 +2183,7 @@ func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType
 //
 // This function assumes that calling code has checked whether the provider is fully managed by Terraform,
 // or is built-in, before using this method and is prepared to receive a nil Version.
-func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
+func getStateStorageProviderVersion(c *definitions.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
 
@@ -2220,7 +2221,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 // createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
 // and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
 // workspace is created and usable by Terraform in later operations.
-func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) tfdiags.Diagnostics {
+func (m *Meta) createDefaultWorkspace(c *definitions.StateStore, b backend.Backend) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
@@ -2386,14 +2387,14 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 // backendConfigNeedsMigration returns true if migration might be required to
 // move from the configured backend to the given cached backend config.
 //
-// This must be called with the synthetic *configs.Backend that results from
+// This must be called with the synthetic *definitions.Backend that results from
 // merging in any command-line options for correct behavior.
 //
 // If either the given configuration or cached configuration are invalid then
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendConfigState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *definitions.Backend, s *workdir.BackendConfigState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -2443,7 +2444,7 @@ func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.Backen
 // > The backend config is validated
 // > The backend is configured
 // > Service discovery is handled for operations backends (only relevant to `cloud` and `remote`)
-func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) backendInitFromConfig(c *definitions.Backend) (backend.Backend, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Get the backend
@@ -2515,7 +2516,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 //
 // NOTE: the backend version of this method, `backendInitFromConfig`, prompts users for input if any required fields
 // are missing from the backend config. In `stateStoreInitFromConfig` we don't do this, and instead users will see an error.
-func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreInitFromConfig(c *definitions.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	factory, pDiags := m.StateStoreProviderFactoryFromConfig(c, locks)
@@ -2719,7 +2720,7 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 	return diags
 }
 
-func (m *Meta) StateStoreProviderFactoryFromConfig(config *configs.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) StateStoreProviderFactoryFromConfig(config *definitions.StateStore, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if config == nil || locks == nil {

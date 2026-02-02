@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -20,7 +21,7 @@ type GraphNodeAttachResourceConfig interface {
 	// a "removed" block commemorating a resource that has since been
 	// removed. Callers should always leave at least one of these
 	// arguments set to nil.
-	AttachResourceConfig(*configs.Resource, *configs.Removed)
+	AttachResourceConfig(*definitions.Resource, *definitions.Removed)
 }
 
 // AttachResourceConfigTransformer goes through the graph and attaches
@@ -37,7 +38,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 	// Collect removed blocks to attach to any resources. These are collected
 	// independently because removed blocks may live in a parent module of the
 	// resource referenced.
-	removed := addrs.MakeMap[addrs.ConfigResource, *configs.Removed]()
+	removed := addrs.MakeMap[addrs.ConfigResource, *definitions.Removed]()
 
 	t.Config.DeepEach(func(c *configs.Config) {
 		for _, rem := range c.Module.Removed {

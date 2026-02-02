@@ -6,11 +6,12 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // The methods in this file are used by Module.mergeFile to apply overrides
@@ -26,7 +27,7 @@ import (
 // features, if it is possible to unambiguously correlate the nested elements
 // and their behaviors are orthogonal to each other.
 
-func mergeProvider(p *Provider, op *Provider) hcl.Diagnostics {
+func mergeProvider(p *definitions.Provider, op *definitions.Provider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if op.Version.Required != nil {
@@ -38,7 +39,7 @@ func mergeProvider(p *Provider, op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeVariable(v *Variable, ov *Variable) hcl.Diagnostics {
+func mergeVariable(v *definitions.Variable, ov *definitions.Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if ov.DescriptionSet {
@@ -126,7 +127,7 @@ func mergeVariable(v *Variable, ov *Variable) hcl.Diagnostics {
 	return diags
 }
 
-func mergeLocal(l *Local, ol *Local) hcl.Diagnostics {
+func mergeLocal(l *definitions.Local, ol *definitions.Local) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Since a local is just a single expression in configuration, the
@@ -139,7 +140,7 @@ func mergeLocal(l *Local, ol *Local) hcl.Diagnostics {
 	return diags
 }
 
-func mergeOutput(o *Output, oo *Output) hcl.Diagnostics {
+func mergeOutput(o *definitions.Output, oo *definitions.Output) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if oo.Description != "" {
@@ -171,7 +172,7 @@ func mergeOutput(o *Output, oo *Output) hcl.Diagnostics {
 	return diags
 }
 
-func mergeModuleCall(mc *ModuleCall, omc *ModuleCall) hcl.Diagnostics {
+func mergeModuleCall(mc *definitions.ModuleCall, omc *definitions.ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if omc.SourceSet {
@@ -213,7 +214,7 @@ func mergeModuleCall(mc *ModuleCall, omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func mergeResource(r *Resource, or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
+func mergeResource(r *definitions.Resource, or *definitions.Resource, rps map[string]*definitions.RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -285,7 +286,7 @@ func mergeResource(r *Resource, or *Resource, rps map[string]*RequiredProvider) 
 }
 
 // mergeAction merges override action oa into base action a.
-func mergeAction(a *Action, oa *Action, rps map[string]*RequiredProvider) hcl.Diagnostics {
+func mergeAction(a *definitions.Action, oa *definitions.Action, rps map[string]*definitions.RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if oa.Count != nil {

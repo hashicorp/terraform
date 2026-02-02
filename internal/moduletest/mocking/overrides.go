@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -19,19 +20,19 @@ import (
 // This requires us to deduplicate between run blocks and test files, and mock
 // providers.
 type Overrides struct {
-	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]
-	localOverrides    addrs.Map[addrs.Targetable, *configs.Override]
+	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *definitions.Override]
+	localOverrides    addrs.Map[addrs.Targetable, *definitions.Override]
 }
 
-func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) (*Overrides, tfdiags.Diagnostics) {
+func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*definitions.MockData) (*Overrides, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	overrides := &Overrides{
-		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
-		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
+		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *definitions.Override]),
+		localOverrides:    addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
 
 	// helper function to evaluate each override values, returning any error encountered.
-	evalAndPut := func(container addrs.Map[addrs.Targetable, *configs.Override], target addrs.Targetable, override *configs.Override) tfdiags.Diagnostics {
+	evalAndPut := func(container addrs.Map[addrs.Targetable, *definitions.Override], target addrs.Targetable, override *definitions.Override) tfdiags.Diagnostics {
 
 		override.Values = cty.NilVal
 		if override.RawExpr != nil {
@@ -89,7 +90,7 @@ func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.
 			}
 
 			if _, exists := overrides.providerOverrides[key]; !exists {
-				overrides.providerOverrides[key] = addrs.MakeMap[addrs.Targetable, *configs.Override]()
+				overrides.providerOverrides[key] = addrs.MakeMap[addrs.Targetable, *definitions.Override]()
 			}
 
 			if diags := evalAndPut(overrides.providerOverrides[key], elem.Key, elem.Value); diags.HasErrors() {
@@ -140,7 +141,7 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 // If the resource is being supplied by a mock provider, then we need to check
 // the overrides for that provider as well, as such the provider config is
 // required so we know which mock provider to check.
-func (overrides *Overrides) GetResourceOverride(inst addrs.AbsResourceInstance, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
+func (overrides *Overrides) GetResourceOverride(inst addrs.AbsResourceInstance, provider addrs.AbsProviderConfig) (*definitions.Override, bool) {
 	if overrides.Empty() {
 		// Short circuit any lookups if we have no overrides.
 		return nil, false
@@ -156,7 +157,7 @@ func (overrides *Overrides) GetResourceOverride(inst addrs.AbsResourceInstance, 
 	return overrides.getResourceOverride(inst.ContainingResource(), provider)
 }
 
-func (overrides *Overrides) getResourceOverride(target addrs.Targetable, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
+func (overrides *Overrides) getResourceOverride(target addrs.Targetable, provider addrs.AbsProviderConfig) (*definitions.Override, bool) {
 	// If we have a local override, then apply that first.
 	if override, ok := overrides.localOverrides.GetOk(target); ok {
 		return override, true
@@ -185,7 +186,7 @@ func (overrides *Overrides) getResourceOverride(target addrs.Targetable, provide
 // Modules cannot be overridden by mock providers directly, so we don't need
 // to know anything about providers for this function (in contrast to
 // GetResourceOverride).
-func (overrides *Overrides) GetModuleOverride(inst addrs.ModuleInstance) (*configs.Override, bool) {
+func (overrides *Overrides) GetModuleOverride(inst addrs.ModuleInstance) (*definitions.Override, bool) {
 	if len(inst) == 0 || overrides.Empty() {
 		// The root module is never overridden, so let's just short circuit
 		// this.
@@ -217,10 +218,10 @@ func (overrides *Overrides) GetModuleOverride(inst addrs.ModuleInstance) (*confi
 //
 // This is so that we can selectively apply overrides to resources that are
 // being supplied by a given provider.
-func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (addrs.Map[addrs.Targetable, *configs.Override], bool) {
+func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (addrs.Map[addrs.Targetable, *definitions.Override], bool) {
 	if !provider.Module.IsRoot() {
 		// We can only set mock providers within the root module.
-		return addrs.Map[addrs.Targetable, *configs.Override]{}, false
+		return addrs.Map[addrs.Targetable, *definitions.Override]{}, false
 	}
 
 	data, exists := overrides.providerOverrides[addrs.RootProviderConfig{

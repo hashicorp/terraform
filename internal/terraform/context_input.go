@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -71,7 +72,7 @@ func (c *Context) Input(config *configs.Config, mode InputMode) tfdiags.Diagnost
 		// yet done "expansion" and so we don't know whether the modules are
 		// using count or for_each.
 
-		pcs := make(map[string]*configs.Provider)
+		pcs := make(map[string]*definitions.Provider)
 		pas := make(map[string]addrs.LocalProviderConfig)
 		for _, pc := range config.Module.ProviderConfigs {
 			addr := pc.Addr()
@@ -80,7 +81,7 @@ func (c *Context) Input(config *configs.Config, mode InputMode) tfdiags.Diagnost
 			log.Printf("[TRACE] Context.Input: Provider %s declared at %s", addr, pc.DeclRange)
 		}
 		// We also need to detect _implied_ provider configs from resources.
-		// These won't have *configs.Provider objects, but they will still
+		// These won't have *definitions.Provider objects, but they will still
 		// exist in the map and we'll just treat them as empty below.
 		for _, rc := range config.Module.ManagedResources {
 			pa := rc.ProviderConfigAddr()

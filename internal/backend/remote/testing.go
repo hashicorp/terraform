@@ -24,8 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -308,7 +308,7 @@ type unparsedVariableValue struct {
 	source terraform.ValueSourceType
 }
 
-func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v *unparsedVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      cty.StringVal(v.value),
 		SourceType: v.source,

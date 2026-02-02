@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -409,7 +410,7 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 	return ret
 }
 
-func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
+func marshalModuleCall(c *configs.Config, mc *definitions.ModuleCall, schemas *terraform.Schemas) moduleCall {
 	// It is possible to have a module call with a nil config.
 	if c == nil {
 		return moduleCall{}
@@ -467,7 +468,7 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	return ret
 }
 
-func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
+func marshalResources(resources map[string]*definitions.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
 		providerConfigKey := opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr)
@@ -545,7 +546,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 	return rs, nil
 }
 
-func marshalActions(actions map[string]*configs.Action, moduleAddr string) []action {
+func marshalActions(actions map[string]*definitions.Action, moduleAddr string) []action {
 	var as []action
 
 	for _, v := range actions {

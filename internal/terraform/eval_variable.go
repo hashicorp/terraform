@@ -15,13 +15,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func PrepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
+func PrepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *definitions.Variable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	convertTy := cfg.ConstraintType
@@ -228,7 +228,7 @@ func PrepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
 // EvalModuleCallArgument for variables in descendant modules.
-func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
+func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*definitions.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
 		return nil
@@ -326,7 +326,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, validateWalk bool) (checkResult, tfdiags.Diagnostics) {
+func evalVariableValidation(validation *definitions.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, validateWalk bool) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics

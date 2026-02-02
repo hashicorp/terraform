@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // validateProviderConfigsForTests performs the same role as
@@ -157,7 +158,7 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 					// to use, we'll build our own. This is so that we can fit
 					// into the schema expected by validateProviderConfigs.
 
-					matchedProviders := make(map[string]PassedProviderConfig)
+					matchedProviders := make(map[string]definitions.PassedProviderConfig)
 
 					// We'll go over all the requirements in the module first
 					// and see if we have defined any providers for that
@@ -166,13 +167,13 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 					for _, requirement := range cfg.Module.ProviderRequirements.RequiredProviders {
 
 						if provider, exists := test.Providers[requirement.Name]; exists {
-							matchedProviders[requirement.Name] = PassedProviderConfig{
-								InChild: &ProviderConfigRef{
+							matchedProviders[requirement.Name] = definitions.PassedProviderConfig{
+								InChild: &definitions.ProviderConfigRef{
 									Name:         requirement.Name,
 									NameRange:    requirement.DeclRange,
 									ProviderType: requirement.Type,
 								},
-								InParent: &ProviderConfigRef{
+								InParent: &definitions.ProviderConfigRef{
 									Name:         provider.Name,
 									NameRange:    provider.NameRange,
 									Alias:        provider.Alias,
@@ -189,15 +190,15 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 							key := alias.StringCompact()
 
 							if provider, exists := test.Providers[key]; exists {
-								matchedProviders[key] = PassedProviderConfig{
-									InChild: &ProviderConfigRef{
+								matchedProviders[key] = definitions.PassedProviderConfig{
+									InChild: &definitions.ProviderConfigRef{
 										Name:         requirement.Name,
 										NameRange:    requirement.DeclRange,
 										Alias:        alias.Alias,
 										AliasRange:   requirement.DeclRange.Ptr(),
 										ProviderType: requirement.Type,
 									},
-									InParent: &ProviderConfigRef{
+									InParent: &definitions.ProviderConfigRef{
 										Name:         provider.Name,
 										NameRange:    provider.NameRange,
 										Alias:        provider.Alias,
@@ -224,15 +225,15 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 						key := provider.ModuleUniqueKey()
 
 						if testProvider, exists := test.Providers[key]; exists {
-							matchedProviders[key] = PassedProviderConfig{
-								InChild: &ProviderConfigRef{
+							matchedProviders[key] = definitions.PassedProviderConfig{
+								InChild: &definitions.ProviderConfigRef{
 									Name:         provider.Name,
 									NameRange:    provider.DeclRange,
 									Alias:        provider.Alias,
 									AliasRange:   provider.DeclRange.Ptr(),
 									ProviderType: provider.ProviderType,
 								},
-								InParent: &ProviderConfigRef{
+								InParent: &definitions.ProviderConfigRef{
 									Name:         testProvider.Name,
 									NameRange:    testProvider.NameRange,
 									Alias:        testProvider.Alias,
@@ -253,7 +254,7 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 
 				// Let's make a little fake module call that we can use to call
 				// into validateProviderConfigs.
-				mc := &ModuleCall{
+				mc := &definitions.ModuleCall{
 					Name:            run.Name,
 					SourceAddr:      run.Module.Source,
 					SourceAddrRange: run.Module.SourceDeclRange,
@@ -293,7 +294,7 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 // without that being an error at this layer, although Terraform Core itself
 // will raise an error if asked to plan such a configuration without the caller
 // passing in suitable pre-configured providers to use.
-func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfigRange *hcl.Range) (diags hcl.Diagnostics) {
+func validateProviderConfigs(parentCall *definitions.ModuleCall, cfg *Config, noProviderConfigRange *hcl.Range) (diags hcl.Diagnostics) {
 	mod := cfg.Module
 	analyzingRootModule := (parentCall == nil)
 
@@ -321,7 +322,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 	// the set of provider configuration names passed into the module, with the
 	// source range of the provider assignment in the module call.
-	passedIn := map[string]PassedProviderConfig{}
+	passedIn := map[string]definitions.PassedProviderConfig{}
 
 	// the set of empty configurations that could be proxy configurations, with
 	// the source range of the empty configuration block.
@@ -411,7 +412,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		}
 	}
 
-	checkImpliedProviderNames := func(resourceConfigs map[string]*Resource) {
+	checkImpliedProviderNames := func(resourceConfigs map[string]*definitions.Resource) {
 		// Now that we have all the provider configs and requirements validated,
 		// check for any resources which use an implied localname which doesn't
 		// match that of required_providers

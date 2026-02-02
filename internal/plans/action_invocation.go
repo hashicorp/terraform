@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -36,7 +36,7 @@ func (ai *ActionInvocationInstance) Equals(other *ActionInvocationInstance) bool
 type ActionTrigger interface {
 	actionTriggerSigil()
 
-	TriggerEvent() configs.ActionTriggerEvent
+	TriggerEvent() definitions.ActionTriggerEvent
 
 	String() string
 
@@ -54,14 +54,14 @@ type LifecycleActionTrigger struct {
 	TriggeringResourceAddr addrs.AbsResourceInstance
 	// Information about the trigger
 	// The event that triggered this action invocation.
-	ActionTriggerEvent configs.ActionTriggerEvent
+	ActionTriggerEvent definitions.ActionTriggerEvent
 	// The index of the action_trigger block that triggered this invocation.
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
 	ActionsListIndex int
 }
 
-func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+func (t *LifecycleActionTrigger) TriggerEvent() definitions.ActionTriggerEvent {
 	return t.ActionTriggerEvent
 }
 
@@ -106,8 +106,8 @@ func (t *InvokeActionTrigger) String() string {
 	return "CLI"
 }
 
-func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
-	return configs.Invoke
+func (t *InvokeActionTrigger) TriggerEvent() definitions.ActionTriggerEvent {
+	return definitions.Invoke
 }
 
 func (t *InvokeActionTrigger) Equals(other ActionTrigger) bool {

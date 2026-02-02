@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
@@ -30,7 +31,7 @@ func TestLoadModuleCall(t *testing.T) {
 	})
 
 	gotModules := file.ModuleCalls
-	wantModules := []*ModuleCall{
+	wantModules := []*definitions.ModuleCall{
 		{
 			Name:          "foo",
 			SourceAddr:    addrs.ModuleSourceLocal("./foo"),
@@ -102,9 +103,9 @@ func TestLoadModuleCall(t *testing.T) {
 					},
 				},
 			},
-			Providers: []PassedProviderConfig{
+			Providers: []definitions.PassedProviderConfig{
 				{
-					InChild: &ProviderConfigRef{
+					InChild: &definitions.ProviderConfigRef{
 						Name: "aws",
 						NameRange: hcl.Range{
 							Filename: "module-calls.tf",
@@ -112,7 +113,7 @@ func TestLoadModuleCall(t *testing.T) {
 							End:      hcl.Pos{Line: 27, Column: 8, Byte: 335},
 						},
 					},
-					InParent: &ProviderConfigRef{
+					InParent: &definitions.ProviderConfigRef{
 						Name: "aws",
 						NameRange: hcl.Range{
 							Filename: "module-calls.tf",

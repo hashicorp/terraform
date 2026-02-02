@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -112,7 +112,7 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 		for _, p := range c.Managed.Provisioners {
 			schema := n.ProvisionerSchemas[p.Type]
 
-			if p.When == configs.ProvisionerWhenDestroy {
+			if p.When == definitions.ProvisionerWhenDestroy {
 				if p.Connection != nil {
 					result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
 				}
@@ -191,7 +191,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 
 	// Run destroy provisioners if not tainted
 	if state.Status != states.ObjectTainted {
-		applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy)
+		applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, false, definitions.ProvisionerWhenDestroy)
 		diags = diags.Append(applyProvisionersDiags)
 		// keep the diags separate from the main set until we handle the cleanup
 

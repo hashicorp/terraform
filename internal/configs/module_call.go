@@ -15,16 +15,10 @@ import (
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
-// PassedProviderConfig is a type alias for the definition in the definitions package.
-type PassedProviderConfig = definitions.PassedProviderConfig
-
-// ModuleCall is a type alias for the definition in the definitions package.
-type ModuleCall = definitions.ModuleCall
-
-func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
+func decodeModuleBlock(block *hcl.Block, override bool) (*definitions.ModuleCall, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	mc := &ModuleCall{
+	mc := &definitions.ModuleCall{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}
@@ -184,9 +178,9 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	return mc, diags
 }
 
-func decodePassedProviderConfigs(attr *hcl.Attribute) ([]PassedProviderConfig, hcl.Diagnostics) {
+func decodePassedProviderConfigs(attr *hcl.Attribute) ([]definitions.PassedProviderConfig, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	var providers []PassedProviderConfig
+	var providers []definitions.PassedProviderConfig
 
 	seen := make(map[string]hcl.Range)
 	pairs, pDiags := hcl.ExprMap(attr.Expr)
@@ -213,7 +207,7 @@ func decodePassedProviderConfigs(attr *hcl.Attribute) ([]PassedProviderConfig, h
 
 		rng := hcl.RangeBetween(pair.Key.Range(), pair.Value.Range())
 		seen[matchKey] = rng
-		providers = append(providers, PassedProviderConfig{
+		providers = append(providers, definitions.PassedProviderConfig{
 			InChild:  key,
 			InParent: value,
 		})

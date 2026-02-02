@@ -15,8 +15,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -381,7 +381,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 // messages that variables are not set rather than reporting that input failed:
 // the primary resolution to missing variables is to provide them by some other
 // means.
-func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backendrun.UnparsedVariableValue {
+func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*definitions.Variable, uiInput terraform.UIInput) map[string]backendrun.UnparsedVariableValue {
 	var needed []string
 	if b.OpInput && uiInput != nil {
 		for name, vc := range vcs {
@@ -455,7 +455,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 // the given map unchanged if no additions are required. If additions are
 // required then the result will be a new map containing everything in the
 // given map plus additional elements.
-func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]backendrun.UnparsedVariableValue {
+func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*definitions.Variable) map[string]backendrun.UnparsedVariableValue {
 	var missing bool // Do we need to add anything?
 	for name, vc := range vcs {
 		if !vc.Required() {
@@ -490,7 +490,7 @@ type unparsedInteractiveVariableValue struct {
 
 var _ backendrun.UnparsedVariableValue = unparsedInteractiveVariableValue{}
 
-func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedInteractiveVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val, valDiags := mode.Parse(v.Name, v.RawValue)
 	diags = diags.Append(valDiags)
@@ -510,7 +510,7 @@ type unparsedUnknownVariableValue struct {
 
 var _ backendrun.UnparsedVariableValue = unparsedUnknownVariableValue{}
 
-func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedUnknownVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      cty.UnknownVal(v.WantType),
 		SourceType: terraform.ValueFromInput,
@@ -523,7 +523,7 @@ type unparsedTestVariableValue struct {
 
 var _ backendrun.UnparsedVariableValue = unparsedTestVariableValue{}
 
-func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedTestVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	value, valueDiags := v.Expr.Value(&hcl.EvalContext{

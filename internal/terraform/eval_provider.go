@@ -11,10 +11,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *configs.Provider) hcl.Body {
+func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *definitions.Provider) hcl.Body {
 	var configBody hcl.Body
 	if config != nil {
 		configBody = config.Config

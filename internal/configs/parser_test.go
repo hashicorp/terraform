@@ -16,6 +16,8 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/afero"
+
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // testParser returns a parser that reads files from the given map, which
@@ -46,7 +48,7 @@ func testParser(files map[string]string) *Parser {
 func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := NewModule([]*File{f}, nil)
+	mod, modDiags := NewModule([]*definitions.File{f}, nil)
 	diags = append(diags, modDiags...)
 	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
@@ -58,7 +60,7 @@ func testModuleFromFileWithExperiments(filename string) (*Config, hcl.Diagnostic
 	parser := NewParser(nil)
 	parser.AllowLanguageExperiments(true)
 	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := NewModule([]*File{f}, nil)
+	mod, modDiags := NewModule([]*definitions.File{f}, nil)
 	diags = append(diags, modDiags...)
 	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
@@ -147,7 +149,7 @@ func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config,
 			versionI++
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)

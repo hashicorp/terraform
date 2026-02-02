@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -28,14 +28,14 @@ var (
 type nodeActionTriggerPlanInstance struct {
 	actionAddress    addrs.AbsActionInstance
 	resolvedProvider addrs.AbsProviderConfig
-	actionConfig     *configs.Action
+	actionConfig     *definitions.Action
 
 	lifecycleActionTrigger *lifecycleActionTriggerInstance
 }
 
 type lifecycleActionTriggerInstance struct {
 	resourceAddress         addrs.AbsResourceInstance
-	events                  []configs.ActionTriggerEvent
+	events                  []definitions.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
@@ -46,7 +46,7 @@ func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.LifecycleActionTrigger {
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent definitions.ActionTriggerEvent) *plans.LifecycleActionTrigger {
 	return &plans.LifecycleActionTrigger{
 		TriggeringResourceAddr:  at.resourceAddress,
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
@@ -78,7 +78,7 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 	// We need the action invocation early to check if we need to
 	ai := plans.ActionInvocationInstance{
 		Addr:          n.actionAddress,
-		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(configs.Unknown),
+		ActionTrigger: n.lifecycleActionTrigger.ActionTrigger(definitions.Unknown),
 	}
 	change := ctx.Changes().GetResourceInstanceChange(n.lifecycleActionTrigger.resourceAddress, n.lifecycleActionTrigger.resourceAddress.CurrentObject().DeposedKey)
 
@@ -212,7 +212,7 @@ func (n *nodeActionTriggerPlanInstance) Path() addrs.ModuleInstance {
 }
 
 type actionConditionContext struct {
-	events          []configs.ActionTriggerEvent
+	events          []definitions.ActionTriggerEvent
 	conditionExpr   hcl.Expression
 	resourceAddress addrs.AbsResourceInstance
 }
@@ -293,10 +293,10 @@ func evaluateActionCondition(ctx EvalContext, at actionConditionContext) (bool, 
 	return val.True(), nil
 }
 
-func containsBeforeEvent(events []configs.ActionTriggerEvent) bool {
+func containsBeforeEvent(events []definitions.ActionTriggerEvent) bool {
 	for _, event := range events {
 		switch event {
-		case configs.BeforeCreate, configs.BeforeUpdate:
+		case definitions.BeforeCreate, definitions.BeforeUpdate:
 			return true
 		default:
 			continue

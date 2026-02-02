@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
@@ -24,7 +24,7 @@ import (
 func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 	tests := []struct {
 		Addr                 addrs.AbsResourceInstance
-		Config               *configs.Resource
+		Config               *definitions.Resource
 		StoredProviderConfig addrs.AbsProviderConfig
 		Want                 addrs.Provider
 	}{
@@ -60,7 +60,7 @@ func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 				Type: "null_resource",
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			Config: &configs.Resource{
+			Config: &definitions.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
@@ -82,7 +82,7 @@ func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 				Type: "terraform_remote_state",
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			Config: &configs.Resource{
+			Config: &definitions.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
@@ -300,7 +300,7 @@ func TestNodeAbstractResourceInstance_apply_with_unknown_values(t *testing.T) {
 	}
 
 	// Not needed for this test
-	applyConfig := &configs.Resource{}
+	applyConfig := &definitions.Resource{}
 	keyData := instances.RepetitionData{}
 
 	newState, diags := node.apply(evalCtx, priorState, change, applyConfig, keyData, false)

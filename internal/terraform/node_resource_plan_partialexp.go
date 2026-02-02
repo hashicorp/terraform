@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -31,7 +31,7 @@ import (
 // This is the partial-expanded equivalent of NodePlannableResourceInstance.
 type nodePlannablePartialExpandedResource struct {
 	addr              addrs.PartialExpandedResource
-	config            *configs.Resource
+	config            *definitions.Resource
 	resolvedProvider  addrs.AbsProviderConfig
 	skipPlanChanges   bool
 	preDestroyRefresh bool

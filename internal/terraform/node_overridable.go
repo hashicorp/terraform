@@ -5,7 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // GraphNodeOverridable represents a node in the graph that can be overridden
@@ -14,5 +14,5 @@ type GraphNodeOverridable interface {
 	GraphNodeResourceInstance
 
 	ConfigProvider() addrs.AbsProviderConfig
-	SetOverride(override *configs.Override)
+	SetOverride(override *definitions.Override)
 }

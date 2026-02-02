@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -46,7 +46,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			// For applying the triggering event is sufficient, if the condition could not have
 			// been evaluated due to in invalid mix of events we would have caught it durin planning.
-			events:          []configs.ActionTriggerEvent{at.ActionTriggerEvent},
+			events:          []definitions.ActionTriggerEvent{at.ActionTriggerEvent},
 			conditionExpr:   n.ConditionExpr,
 			resourceAddress: at.TriggeringResourceAddr,
 		})

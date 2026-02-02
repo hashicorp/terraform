@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1342,20 +1342,20 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 				at.LifecycleActionTrigger.TriggeringResourceAddr, diags.Err())
 		}
 
-		var ate configs.ActionTriggerEvent
+		var ate definitions.ActionTriggerEvent
 		switch at.LifecycleActionTrigger.TriggerEvent {
 		case planproto.ActionTriggerEvent_BEFORE_CERATE:
-			ate = configs.BeforeCreate
+			ate = definitions.BeforeCreate
 		case planproto.ActionTriggerEvent_AFTER_CREATE:
-			ate = configs.AfterCreate
+			ate = definitions.AfterCreate
 		case planproto.ActionTriggerEvent_BEFORE_UPDATE:
-			ate = configs.BeforeUpdate
+			ate = definitions.BeforeUpdate
 		case planproto.ActionTriggerEvent_AFTER_UPDATE:
-			ate = configs.AfterUpdate
+			ate = definitions.AfterUpdate
 		case planproto.ActionTriggerEvent_BEFORE_DESTROY:
-			ate = configs.BeforeDestroy
+			ate = definitions.BeforeDestroy
 		case planproto.ActionTriggerEvent_AFTER_DESTROY:
-			ate = configs.AfterDestroy
+			ate = definitions.AfterDestroy
 
 		default:
 			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
@@ -1409,17 +1409,17 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	case *plans.LifecycleActionTrigger:
 		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
 		switch at.ActionTriggerEvent {
-		case configs.BeforeCreate:
+		case definitions.BeforeCreate:
 			triggerEvent = planproto.ActionTriggerEvent_BEFORE_CERATE
-		case configs.AfterCreate:
+		case definitions.AfterCreate:
 			triggerEvent = planproto.ActionTriggerEvent_AFTER_CREATE
-		case configs.BeforeUpdate:
+		case definitions.BeforeUpdate:
 			triggerEvent = planproto.ActionTriggerEvent_BEFORE_UPDATE
-		case configs.AfterUpdate:
+		case definitions.AfterUpdate:
 			triggerEvent = planproto.ActionTriggerEvent_AFTER_UPDATE
-		case configs.BeforeDestroy:
+		case definitions.BeforeDestroy:
 			triggerEvent = planproto.ActionTriggerEvent_BEFORE_DESTROY
-		case configs.AfterDestroy:
+		case definitions.AfterDestroy:
 			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
 		}
 		ret.ActionTrigger = &planproto.ActionInvocationInstance_LifecycleActionTrigger{

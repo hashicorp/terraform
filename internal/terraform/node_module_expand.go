@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -21,7 +22,7 @@ type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
 type nodeExpandModule struct {
 	Addr       addrs.Module
 	Config     *configs.Module
-	ModuleCall *configs.ModuleCall
+	ModuleCall *definitions.ModuleCall
 }
 
 var (

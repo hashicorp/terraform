@@ -12,13 +12,10 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// QueryFile is a type alias for the definition in the definitions package.
-type QueryFile = definitions.QueryFile
-
-func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
+func loadQueryFile(body hcl.Body) (*definitions.QueryFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	file := &QueryFile{
-		Providers: make(map[string]*Provider),
+	file := &definitions.QueryFile{
+		Providers: make(map[string]*definitions.Provider),
 	}
 
 	content, contentDiags := body.Content(queryFileSchema)
@@ -79,20 +76,20 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 	return file, diags
 }
 
-func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+func decodeQueryListBlock(block *hcl.Block) (*definitions.Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, remain, contentDiags := block.Body.PartialContent(QueryListResourceBlockSchema)
 	diags = append(diags, contentDiags...)
 
-	r := Resource{
+	r := definitions.Resource{
 		Mode:      addrs.ListResourceMode,
 		Type:      block.Labels[0],
 		TypeRange: block.LabelRanges[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		Config:    remain,
-		List:      &ListResource{},
+		List:      &definitions.ListResource{},
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {

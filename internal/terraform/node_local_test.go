@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -49,7 +49,7 @@ func TestNodeLocalExecute(t *testing.T) {
 			localAddr := addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
 			n := &NodeLocal{
 				Addr: localAddr,
-				Config: &configs.Local{
+				Config: &definitions.Local{
 					Expr: expr,
 				},
 			}

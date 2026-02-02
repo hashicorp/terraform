@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // SourceBundleParser is the main interface to read configuration files and
@@ -184,8 +185,8 @@ func (p *SourceBundleParser) dirSources(source sourceaddrs.FinalSource) (primary
 	return
 }
 
-func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, override bool) ([]*File, hcl.Diagnostics) {
-	var files []*File
+func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, override bool) ([]*definitions.File, hcl.Diagnostics) {
+	var files []*definitions.File
 	var diags hcl.Diagnostics
 
 	for _, path := range sources {
@@ -199,7 +200,7 @@ func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, over
 	return files, diags
 }
 
-func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, override bool) (*File, hcl.Diagnostics) {
+func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, override bool) (*definitions.File, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	path, err := p.sources.LocalPathForSource(source)
 	if err != nil {

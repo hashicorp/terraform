@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -91,7 +92,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 				continue
 			}
 
-			if _, ok := resource.Container.(*configs.Check); ok {
+			if _, ok := resource.Container.(*definitions.Check); ok {
 				// Then this is a data source within a check block, so let's
 				// make a note of it.
 				nested = append(nested, vertex)

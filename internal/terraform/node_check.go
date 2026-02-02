@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -70,9 +70,9 @@ var (
 // first, while nodeExpandCheck must execute after any referenced blocks.
 type nodeExpandCheck struct {
 	addr   addrs.ConfigCheck
-	config *configs.Check
+	config *definitions.Check
 
-	makeInstance func(addrs.AbsCheck, *configs.Check) dag.Vertex
+	makeInstance func(addrs.AbsCheck, *definitions.Check) dag.Vertex
 }
 
 func (n *nodeExpandCheck) ModulePath() addrs.Module {
@@ -135,7 +135,7 @@ var (
 
 type nodeCheckAssert struct {
 	addr   addrs.AbsCheck
-	config *configs.Check
+	config *definitions.Check
 
 	// We only want to actually execute the checks during the plan and apply
 	// operations, but we still want to validate our config during

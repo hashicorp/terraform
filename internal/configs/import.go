@@ -13,12 +13,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Import is a type alias for the definition in the definitions package.
-type Import = definitions.Import
-
-func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
+func decodeImportBlock(block *hcl.Block) (*definitions.Import, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	imp := &Import{
+	imp := &definitions.Import{
 		DeclRange: block.DefRange,
 	}
 

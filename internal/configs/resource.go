@@ -16,23 +16,15 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	ProviderConfigRef = definitions.ProviderConfigRef
-	ManagedResource   = definitions.ManagedResource
-	ListResource      = definitions.ListResource
-	Resource          = definitions.Resource
-)
-
-func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool) (*Resource, hcl.Diagnostics) {
+func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool) (*definitions.Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	r := &Resource{
+	r := &definitions.Resource{
 		Mode:      addrs.ManagedResourceMode,
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
-		Managed:   &ManagedResource{},
+		Managed:   &definitions.ManagedResource{},
 	}
 
 	content, remain, moreDiags := block.Body.PartialContent(ResourceBlockSchema)
@@ -228,7 +220,7 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 			}
 			seenConnection = block
 
-			r.Managed.Connection = &Connection{
+			r.Managed.Connection = &definitions.Connection{
 				Config:    block.Body,
 				DeclRange: block.DefRange,
 			}
@@ -276,7 +268,7 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 	// TODO: should we eliminate standalone connection blocks?
 	if r.Managed.Connection != nil {
 		for _, p := range r.Managed.Provisioners {
-			if p.When == ProvisionerWhenDestroy {
+			if p.When == definitions.ProvisionerWhenDestroy {
 				diags = append(diags, onlySelfRefs(r.Managed.Connection.Config)...)
 				break
 			}
@@ -286,9 +278,9 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 	return r, diags
 }
 
-func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
+func decodeEphemeralBlock(block *hcl.Block, override bool) (*definitions.Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	r := &Resource{
+	r := &definitions.Resource{
 		Mode:      addrs.EphemeralResourceMode,
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
@@ -435,9 +427,9 @@ func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagn
 	return r, diags
 }
 
-func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Diagnostics) {
+func decodeDataBlock(block *hcl.Block, override, nested bool) (*definitions.Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	r := &Resource{
+	r := &definitions.Resource{
 		Mode:      addrs.DataResourceMode,
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
@@ -712,7 +704,7 @@ func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagno
 }
 
 
-func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConfigRef, hcl.Diagnostics) {
+func decodeProviderConfigRef(expr hcl.Expression, argName string) (*definitions.ProviderConfigRef, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	var shimDiags hcl.Diagnostics
@@ -761,7 +753,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 		return nil, diags
 	}
 
-	ret := &ProviderConfigRef{
+	ret := &definitions.ProviderConfigRef{
 		Name:      name,
 		NameRange: traversal[0].SourceRange(),
 	}

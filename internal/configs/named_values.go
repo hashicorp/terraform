@@ -18,26 +18,12 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	Local               = definitions.Local
-	Variable            = definitions.Variable
-	Output              = definitions.Output
-	VariableParsingMode = definitions.VariableParsingMode
-)
-
-// Re-export constants for backwards compatibility.
-const (
-	VariableParseLiteral = definitions.VariableParseLiteral
-	VariableParseHCL     = definitions.VariableParseHCL
-)
-
 // A consistent detail message for all "not a valid identifier" diagnostics.
 const badIdentifierDetail = "A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes."
 
 
-func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagnostics) {
-	v := &Variable{
+func decodeVariableBlock(block *hcl.Block, override bool) (*definitions.Variable, hcl.Diagnostics) {
+	v := &definitions.Variable{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}
@@ -49,7 +35,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	if !override {
 		v.Type = cty.DynamicPseudoType
 		v.ConstraintType = cty.DynamicPseudoType
-		v.ParsingMode = VariableParseLiteral
+		v.ParsingMode = definitions.VariableParseLiteral
 	}
 
 	content, diags := block.Body.Content(variableBlockSchema)
@@ -190,7 +176,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	return v, diags
 }
 
-func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, VariableParsingMode, hcl.Diagnostics) {
+func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, definitions.VariableParsingMode, hcl.Diagnostics) {
 	if exprIsNativeQuotedString(expr) {
 		// If a user provides the pre-0.12 form of variable type argument where
 		// the string values "string", "list" and "map" are accepted, we
@@ -201,7 +187,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 		// in the normal codepath below.
 		val, diags := expr.Value(nil)
 		if diags.HasErrors() {
-			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, definitions.VariableParseHCL, diags
 		}
 		str := val.AsString()
 		switch str {
@@ -212,7 +198,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"string\".",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, nil, VariableParseLiteral, diags
+			return cty.DynamicPseudoType, nil, definitions.VariableParseLiteral, diags
 		case "list":
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -220,7 +206,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"list\" and write list(string) instead to explicitly indicate that the list elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, definitions.VariableParseHCL, diags
 		case "map":
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -228,9 +214,9 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"map\" and write map(string) instead to explicitly indicate that the map elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, definitions.VariableParseHCL, diags
 		default:
-			return cty.DynamicPseudoType, nil, VariableParseHCL, hcl.Diagnostics{{
+			return cty.DynamicPseudoType, nil, definitions.VariableParseHCL, hcl.Diagnostics{{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid legacy variable type hint",
 				Detail:   `To provide a full type expression, remove the surrounding quotes and give the type expression directly.`,
@@ -245,30 +231,30 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 	// elements are consistent. This is the same as list(any) or map(any).
 	switch hcl.ExprAsKeyword(expr) {
 	case "list":
-		return cty.List(cty.DynamicPseudoType), nil, VariableParseHCL, nil
+		return cty.List(cty.DynamicPseudoType), nil, definitions.VariableParseHCL, nil
 	case "map":
-		return cty.Map(cty.DynamicPseudoType), nil, VariableParseHCL, nil
+		return cty.Map(cty.DynamicPseudoType), nil, definitions.VariableParseHCL, nil
 	}
 
 	ty, typeDefaults, diags := typeexpr.TypeConstraintWithDefaults(expr)
 	if diags.HasErrors() {
-		return cty.DynamicPseudoType, nil, VariableParseHCL, diags
+		return cty.DynamicPseudoType, nil, definitions.VariableParseHCL, diags
 	}
 
 	switch {
 	case ty.IsPrimitiveType():
 		// Primitive types use literal parsing.
-		return ty, typeDefaults, VariableParseLiteral, diags
+		return ty, typeDefaults, definitions.VariableParseLiteral, diags
 	default:
 		// Everything else uses HCL parsing
-		return ty, typeDefaults, VariableParseHCL, diags
+		return ty, typeDefaults, definitions.VariableParseHCL, diags
 	}
 }
 
-func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostics) {
+func decodeOutputBlock(block *hcl.Block, override bool) (*definitions.Output, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	o := &Output{
+	o := &definitions.Output{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}
@@ -341,13 +327,13 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	return o, diags
 }
 
-func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
+func decodeLocalsBlock(block *hcl.Block) ([]*definitions.Local, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if len(attrs) == 0 {
 		return nil, diags
 	}
 
-	locals := make([]*Local, 0, len(attrs))
+	locals := make([]*definitions.Local, 0, len(attrs))
 	for name, attr := range attrs {
 		if !hclsyntax.ValidIdentifier(name) {
 			diags = append(diags, &hcl.Diagnostic{
@@ -358,7 +344,7 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 			})
 		}
 
-		locals = append(locals, &Local{
+		locals = append(locals, &definitions.Local{
 			Name:      name,
 			Expr:      attr.Expr,
 			DeclRange: attr.Range,
@@ -421,7 +407,7 @@ var outputBlockSchema = &hcl.BodySchema{
 	},
 }
 
-func checkVariableValidationBlock(varName string, vv *CheckRule) hcl.Diagnostics {
+func checkVariableValidationBlock(varName string, vv *definitions.CheckRule) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if vv.Condition != nil {

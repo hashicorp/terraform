@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -2557,8 +2558,8 @@ resource "test_object" "foo" {
 
 	// Manually mark the provider config as being mocked.
 	m.Module.ProviderConfigs["test"].Mock = true
-	m.Module.ProviderConfigs["test"].MockData = &configs.MockData{
-		MockDataSources: map[string]*configs.MockResource{
+	m.Module.ProviderConfigs["test"].MockData = &definitions.MockData{
+		MockDataSources: map[string]*definitions.MockResource{
 			"test_object": {
 				Mode: addrs.DataResourceMode,
 				Type: "test_object",
@@ -2567,7 +2568,7 @@ resource "test_object" "foo" {
 				}),
 			},
 		},
-		MockResources: map[string]*configs.MockResource{
+		MockResources: map[string]*definitions.MockResource{
 			"test_object": {
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_object",
@@ -2688,8 +2689,8 @@ resource "test_object" "foo" {
 
 	// Manually mark the provider config as being mocked.
 	m.Module.ProviderConfigs["test"].Mock = true
-	m.Module.ProviderConfigs["test"].MockData = &configs.MockData{
-		MockDataSources: map[string]*configs.MockResource{
+	m.Module.ProviderConfigs["test"].MockData = &definitions.MockData{
+		MockDataSources: map[string]*definitions.MockResource{
 			"test_object": {
 				Mode: addrs.DataResourceMode,
 				Type: "test_object",
@@ -2698,7 +2699,7 @@ resource "test_object" "foo" {
 				}),
 			},
 		},
-		MockResources: map[string]*configs.MockResource{
+		MockResources: map[string]*definitions.MockResource{
 			"test_object": {
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_object",

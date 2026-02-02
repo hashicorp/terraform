@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestVariableValidationTransformer(t *testing.T) {
@@ -34,7 +34,7 @@ func TestVariableValidationTransformer(t *testing.T) {
 	g := &Graph{}
 	fooNode := &nodeTestOnlyInputVariable{
 		configAddr: addrs.InputVariable{Name: "foo"}.InModule(addrs.RootModule),
-		rules: []*configs.CheckRule{
+		rules: []*definitions.CheckRule{
 			{
 				// The condition contains a self-reference, which is required
 				// for a realistic input variable validation because otherwise
@@ -49,7 +49,7 @@ func TestVariableValidationTransformer(t *testing.T) {
 	}
 	barNode := &nodeTestOnlyInputVariable{
 		configAddr: addrs.InputVariable{Name: "bar"}.InModule(addrs.RootModule),
-		rules: []*configs.CheckRule{
+		rules: []*definitions.CheckRule{
 			{
 				// The condition of this one refers to var.foo
 				Condition:    hcltest.MockExprTraversalSrc("var.foo"),
@@ -59,7 +59,7 @@ func TestVariableValidationTransformer(t *testing.T) {
 	}
 	bazNode := &nodeTestOnlyInputVariable{
 		configAddr: addrs.InputVariable{Name: "baz"}.InModule(addrs.RootModule),
-		rules: []*configs.CheckRule{
+		rules: []*definitions.CheckRule{
 			{
 				// The error message of this one refers to var.foo
 				Condition:    hcltest.MockExprLiteral(cty.False),
@@ -128,7 +128,7 @@ var.foo (validation)
 
 type nodeTestOnlyInputVariable struct {
 	configAddr addrs.ConfigInputVariable
-	rules      []*configs.CheckRule
+	rules      []*definitions.CheckRule
 }
 
 var _ graphNodeValidatableVariable = (*nodeTestOnlyInputVariable)(nil)
@@ -138,7 +138,7 @@ func (n *nodeTestOnlyInputVariable) Name() string {
 }
 
 // variableValidationRules implements [graphNodeValidatableVariable].
-func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule, hcl.Range) {
+func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInputVariable, []*definitions.CheckRule, hcl.Range) {
 	return n.configAddr, n.rules, hcl.Range{
 		Filename: "test",
 		Start:    hcl.InitialPos,

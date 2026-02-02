@@ -12,12 +12,13 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/zclconf/go-cty/cty"
 )
 
 var (
 	ignoreUnexported = cmpopts.IgnoreUnexported(version.Constraint{})
-	comparer         = cmp.Comparer(func(x, y RequiredProvider) bool {
+	comparer         = cmp.Comparer(func(x, y definitions.RequiredProvider) bool {
 		if x.Name != y.Name {
 			return false
 		}
@@ -48,7 +49,7 @@ var (
 func TestDecodeRequiredProvidersBlock(t *testing.T) {
 	tests := map[string]struct {
 		Block *hcl.Block
-		Want  *RequiredProviders
+		Want  *definitions.RequiredProviders
 		Error string
 	}{
 		"legacy": {
@@ -64,8 +65,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{
 					"default": {
 						Name:        "default",
 						Type:        addrs.NewDefaultProvider("default"),
@@ -92,8 +93,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{
 					"my-test": {
 						Name:        "my-test",
 						Source:      "mycloud/test",
@@ -125,8 +126,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{
 					"legacy": {
 						Name:        "legacy",
 						Type:        addrs.NewDefaultProvider("legacy"),
@@ -159,8 +160,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{
 					"test": {
 						Name:        "test",
 						Type:        addrs.NewDefaultProvider("test"),
@@ -187,8 +188,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider source string",
@@ -208,8 +209,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider local name",
@@ -229,8 +230,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider local name",
@@ -251,8 +252,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid version constraint",
@@ -270,8 +271,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid required_providers object",
@@ -291,8 +292,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid source",
@@ -314,8 +315,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
+			Want: &definitions.RequiredProviders{
+				RequiredProviders: map[string]*definitions.RequiredProvider{},
 				DeclRange:         blockRange,
 			},
 			Error: "Invalid required_providers object",
@@ -343,9 +344,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 	}
 }
 
-func testVC(ver string) VersionConstraint {
+func testVC(ver string) definitions.VersionConstraint {
 	constraint, _ := version.NewConstraint(ver)
-	return VersionConstraint{
+	return definitions.VersionConstraint{
 		Required:  constraint,
 		DeclRange: hcl.Range{},
 	}

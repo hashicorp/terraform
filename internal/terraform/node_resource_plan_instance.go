@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
@@ -884,12 +885,12 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			return instanceRefreshState, nil, diags
 		}
 
-		n.Config = &configs.Resource{
+		n.Config = &definitions.Resource{
 			Mode:     addrs.ManagedResourceMode,
 			Type:     n.Addr.Resource.Resource.Type,
 			Name:     n.Addr.Resource.Resource.Name,
 			Config:   remain,
-			Managed:  &configs.ManagedResource{},
+			Managed:  &definitions.ManagedResource{},
 			Provider: n.ResolvedProvider.Provider,
 		}
 	}
@@ -1090,23 +1091,23 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
-	triggeredEvents := []configs.ActionTriggerEvent{}
+func actionIsTriggeredByEvent(events []definitions.ActionTriggerEvent, action plans.Action) []definitions.ActionTriggerEvent {
+	triggeredEvents := []definitions.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {
-		case configs.BeforeCreate, configs.AfterCreate:
+		case definitions.BeforeCreate, definitions.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
 				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
-		case configs.BeforeUpdate, configs.AfterUpdate:
+		case definitions.BeforeUpdate, definitions.AfterUpdate:
 			if action == plans.Update {
 				triggeredEvents = append(triggeredEvents, event)
 			} else {
 				continue
 			}
-		case configs.BeforeDestroy, configs.AfterDestroy:
+		case definitions.BeforeDestroy, definitions.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
 				triggeredEvents = append(triggeredEvents, event)
 			} else {

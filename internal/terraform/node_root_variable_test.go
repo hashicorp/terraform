@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/namedvals"
 )
@@ -23,7 +24,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 
 		n := &NodeRootVariable{
 			Addr: addrs.InputVariable{Name: "foo"},
-			Config: &configs.Variable{
+			Config: &definitions.Variable{
 				Name:           "foo",
 				Type:           cty.String,
 				ConstraintType: cty.String,
@@ -78,11 +79,11 @@ func TestNodeRootVariableExecute(t *testing.T) {
 
 		n := &NodeRootVariable{
 			Addr: varAddr,
-			Config: &configs.Variable{
+			Config: &definitions.Variable{
 				Name:           varAddr.Name,
 				Type:           cty.Number,
 				ConstraintType: cty.Number,
-				Validations: []*configs.CheckRule{
+				Validations: []*definitions.CheckRule{
 					{
 						Condition: fakeHCLExpression(
 							[]hcl.Traversal{
@@ -133,7 +134,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 
 		ctx.ChecksState = checks.NewState(&configs.Config{
 			Module: &configs.Module{
-				Variables: map[string]*configs.Variable{
+				Variables: map[string]*definitions.Variable{
 					varAddr.Name: n.Config,
 				},
 			},

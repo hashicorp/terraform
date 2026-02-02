@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -97,7 +98,7 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		t.Fatalf("error initializing provider test.foo: %s", err)
 	}
 
-	_, err = ctx.InitProvider(providerAddrMock, &configs.Provider{
+	_, err = ctx.InitProvider(providerAddrMock, &definitions.Provider{
 		Mock: true,
 	})
 	if err != nil {

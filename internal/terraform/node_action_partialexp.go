@@ -5,7 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -23,7 +23,7 @@ import (
 // This is the partial-expanded equivalent of NodeActionDeclarationInstance.
 type NodeActionDeclarationPartialExpanded struct {
 	addr             addrs.PartialExpandedAction
-	config           configs.Action
+	config           definitions.Action
 	Schema           *providers.ActionSchema
 	resolvedProvider addrs.AbsProviderConfig
 }

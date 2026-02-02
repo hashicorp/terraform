@@ -13,12 +13,9 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 )
 
-// Removed is a type alias for the definition in the definitions package.
-type Removed = definitions.Removed
-
-func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
+func decodeRemovedBlock(block *hcl.Block) (*definitions.Removed, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	removed := &Removed{
+	removed := &definitions.Removed{
 		DeclRange: block.DefRange,
 	}
 
@@ -45,7 +42,7 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
 
 	removed.Destroy = true
 	if resourceMode == addrs.ManagedResourceMode {
-		removed.Managed = &ManagedResource{}
+		removed.Managed = &definitions.ManagedResource{}
 	}
 
 	var seenConnection *hcl.Block
@@ -83,7 +80,7 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
 			}
 			seenConnection = block
 
-			removed.Managed.Connection = &Connection{
+			removed.Managed.Connection = &definitions.Connection{
 				Config:    block.Body,
 				DeclRange: block.DefRange,
 			}
@@ -105,7 +102,7 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
 			if pv != nil {
 				removed.Managed.Provisioners = append(removed.Managed.Provisioners, pv)
 
-				if pv.When != ProvisionerWhenDestroy {
+				if pv.When != definitions.ProvisionerWhenDestroy {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid provisioner block",

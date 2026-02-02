@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -667,7 +668,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 	}
 
 	callName := callAddr.Name
-	var parentCfg *configs.ModuleCall
+	var parentCfg *definitions.ModuleCall
 	for name, mod := range parent.Module.ModuleCalls {
 		if name == callName {
 			parentCfg = mod

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
@@ -74,7 +75,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 // validateProvisioner validates the configuration of a provisioner belonging to
 // a resource. The provisioner config is expected to contain the merged
 // connection configurations.
-func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner, baseConn *configs.Connection) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *definitions.Provisioner, baseConn *definitions.Connection) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provisioner, err := ctx.Provisioner(p.Type)
@@ -574,7 +575,7 @@ func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) 
 	return keyData, selfAddr
 }
 
-func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *definitions.Resource) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
@@ -705,7 +706,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 }
 
 // validateImportTargetExpansion ensures that the To address key and resource expansion mode both agree.
-func validateImportTargetExpansion(cfg *configs.Resource, to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
+func validateImportTargetExpansion(cfg *definitions.Resource, to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	forEach := cfg != nil && cfg.ForEach != nil

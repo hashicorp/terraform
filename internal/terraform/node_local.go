@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,7 +22,7 @@ import (
 type nodeExpandLocal struct {
 	Addr   addrs.LocalValue
 	Module addrs.Module
-	Config *configs.Local
+	Config *definitions.Local
 }
 
 var (
@@ -91,7 +91,7 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 // evaluate the result and place it in state.
 type NodeLocal struct {
 	Addr   addrs.AbsLocalValue
-	Config *configs.Local
+	Config *definitions.Local
 }
 
 var (
@@ -165,7 +165,7 @@ func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 // totally-unknown value of unknown type in the worst case.
 type nodeLocalInPartialModule struct {
 	Addr   addrs.InPartialExpandedModule[addrs.LocalValue]
-	Config *configs.Local
+	Config *definitions.Local
 }
 
 // Path implements [GraphNodePartialExpandedModule], meaning that the
@@ -207,7 +207,7 @@ func (n *nodeLocalInPartialModule) Execute(ctx EvalContext, op walkOperation) tf
 // localAddr should match the local portion of the address that was stringified
 // for addrStr, describing the local value relative to the module it's declared
 // inside.
-func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrStr string, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+func evaluateLocalValue(config *definitions.Local, localAddr addrs.LocalValue, addrStr string, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	expr := config.Expr
 

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestBuildProviderConfig(t *testing.T) {
@@ -31,7 +32,7 @@ func TestBuildProviderConfig(t *testing.T) {
 			"set_by_input": cty.StringVal("input"),
 		},
 	}
-	gotBody := buildProviderConfig(ctx, providerAddr, &configs.Provider{
+	gotBody := buildProviderConfig(ctx, providerAddr, &definitions.Provider{
 		Name:   "foo",
 		Config: configBody,
 	})

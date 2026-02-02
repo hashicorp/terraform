@@ -6,6 +6,7 @@ package checks
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func initialStatuses(cfg *configs.Config) addrs.Map[addrs.ConfigCheckable, *configCheckableState] {
@@ -94,7 +95,7 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 	}
 }
 
-func collectInitialStatusForResource(into addrs.Map[addrs.ConfigCheckable, *configCheckableState], addr addrs.ConfigResource, rc *configs.Resource) {
+func collectInitialStatusForResource(into addrs.Map[addrs.ConfigCheckable, *configCheckableState], addr addrs.ConfigResource, rc *definitions.Resource) {
 	if (len(rc.Preconditions) + len(rc.Postconditions)) == 0 {
 		// Don't bother with any resource that doesn't have at least
 		// one condition.

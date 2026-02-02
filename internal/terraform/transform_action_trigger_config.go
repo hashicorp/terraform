@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
@@ -52,7 +53,7 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 	createNodesAsAfter := t.Operation == walkPlan
 	// During apply we want all after trigger to also connect to the resource instance nodes
 	connectToResourceInstanceNodes := t.Operation == walkApply
-	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
+	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *definitions.Action]()
 	for _, a := range config.Module.Actions {
 		actionConfigs.Put(a.Addr().InModule(config.Path), a)
 	}
@@ -86,9 +87,9 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 			containsAfterEvent := false
 			for _, event := range at.Events {
 				switch event {
-				case configs.BeforeCreate, configs.BeforeUpdate:
+				case definitions.BeforeCreate, definitions.BeforeUpdate:
 					containsBeforeEvent = true
-				case configs.AfterCreate, configs.AfterUpdate:
+				case definitions.AfterCreate, definitions.AfterUpdate:
 					containsAfterEvent = true
 				}
 			}

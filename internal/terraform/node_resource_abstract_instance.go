@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
@@ -51,7 +52,7 @@ type NodeAbstractResourceInstance struct {
 	generatedConfigHCL string
 
 	// override is set by the graph itself, just before this node executes.
-	override *configs.Override
+	override *definitions.Override
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -157,7 +158,7 @@ func (n *NodeAbstractResourceInstance) ConfigProvider() addrs.AbsProviderConfig 
 }
 
 // GraphNodeOverridable
-func (n *NodeAbstractResourceInstance) SetOverride(override *configs.Override) {
+func (n *NodeAbstractResourceInstance) SetOverride(override *definitions.Override) {
 	n.override = override
 }
 
@@ -2078,9 +2079,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 // nestedInCheckBlock determines if this resource is nested in a Check config
 // block. If so, this resource will be loaded during both plan and apply
 // operations to make sure the check is always giving the latest information.
-func (n *NodeAbstractResourceInstance) nestedInCheckBlock() (*configs.Check, bool) {
+func (n *NodeAbstractResourceInstance) nestedInCheckBlock() (*definitions.Check, bool) {
 	if n.Config.Container != nil {
-		check, ok := n.Config.Container.(*configs.Check)
+		check, ok := n.Config.Container.(*definitions.Check)
 		return check, ok
 	}
 	return nil, false
@@ -2250,14 +2251,14 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 // evalApplyProvisioners determines if provisioners need to be run, and if so
 // executes the provisioners for a resource and returns an updated error if
 // provisioning fails.
-func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when definitions.ProvisionerWhen) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if state == nil {
 		log.Printf("[TRACE] evalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
 		return nil
 	}
-	if when == configs.ProvisionerWhenCreate && !createNew {
+	if when == definitions.ProvisionerWhenCreate && !createNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
 		return nil
@@ -2269,7 +2270,7 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return nil
 	}
 
-	var allProvs []*configs.Provisioner
+	var allProvs []*definitions.Provisioner
 	switch {
 	case n.Config != nil && n.Config.Managed != nil:
 		allProvs = n.Config.Managed.Provisioners
@@ -2307,12 +2308,12 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 
 // filterProvisioners filters the provisioners on the resource to only
 // the provisioners specified by the "when" option.
-func filterProvisioners(configured []*configs.Provisioner, when configs.ProvisionerWhen) []*configs.Provisioner {
+func filterProvisioners(configured []*definitions.Provisioner, when definitions.ProvisionerWhen) []*definitions.Provisioner {
 	if len(configured) == 0 {
 		return nil
 	}
 
-	result := make([]*configs.Provisioner, 0, len(configured))
+	result := make([]*definitions.Provisioner, 0, len(configured))
 	for _, p := range configured {
 		if p.When == when {
 			result = append(result, p)
@@ -2323,7 +2324,7 @@ func filterProvisioners(configured []*configs.Provisioner, when configs.Provisio
 }
 
 // applyProvisioners executes the provisioners for a resource.
-func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, when configs.ProvisionerWhen, provs []*configs.Provisioner) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, when definitions.ProvisionerWhen, provs []*definitions.Provisioner) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// this self is only used for destroy provisioner evaluation, and must
@@ -2332,7 +2333,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 
 	var evalScope func(EvalContext, hcl.Body, cty.Value, *configschema.Block) (cty.Value, tfdiags.Diagnostics)
 	switch when {
-	case configs.ProvisionerWhenDestroy:
+	case definitions.ProvisionerWhenDestroy:
 		evalScope = n.evalDestroyProvisionerConfig
 	default:
 		evalScope = n.evalProvisionerConfig
@@ -2476,7 +2477,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		})
 
 		switch prov.OnFailure {
-		case configs.ProvisionerOnFailureContinue:
+		case definitions.ProvisionerOnFailureContinue:
 			if applyDiags.HasErrors() {
 				log.Printf("[WARN] Errors while provisioning %s with %q, but continuing as requested in configuration", n.Addr, prov.Type)
 			} else {
@@ -2538,7 +2539,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	ctx EvalContext,
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
-	applyConfig *configs.Resource,
+	applyConfig *definitions.Resource,
 	keyData instances.RepetitionData,
 	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 

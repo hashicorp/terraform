@@ -15,7 +15,7 @@ import (
 	hcljson "github.com/hashicorp/hcl/v2/json"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -294,7 +294,7 @@ type unparsedVariableValueExpression struct {
 	sourceType terraform.ValueSourceType
 }
 
-func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedVariableValueExpression) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val, hclDiags := v.expr.Value(nil) // nil because no function calls or variable references are allowed here
 	diags = diags.Append(hclDiags)
@@ -318,7 +318,7 @@ type unparsedVariableValueString struct {
 	sourceType terraform.ValueSourceType
 }
 
-func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedVariableValueString) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	val, hclDiags := mode.Parse(v.name, v.str)

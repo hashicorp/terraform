@@ -10,12 +10,9 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// Moved is a type alias for the definition in the definitions package.
-type Moved = definitions.Moved
-
-func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
+func decodeMovedBlock(block *hcl.Block) (*definitions.Moved, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	moved := &Moved{
+	moved := &definitions.Moved{
 		DeclRange: block.DefRange,
 	}
 

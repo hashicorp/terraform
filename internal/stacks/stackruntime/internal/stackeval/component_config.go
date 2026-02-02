@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -189,7 +190,7 @@ func validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tf
 	return diags
 }
 
-func (c *ComponentConfig) RootModuleVariableDecls(ctx context.Context) map[string]*configs.Variable {
+func (c *ComponentConfig) RootModuleVariableDecls(ctx context.Context) map[string]*definitions.Variable {
 	moduleTree := c.ModuleTree(ctx)
 	if moduleTree == nil {
 		// If the module tree is invalid then we'll just assume there aren't

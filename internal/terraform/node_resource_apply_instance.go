@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -332,7 +332,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Run Provisioners
 	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
-	applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate)
+	applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, definitions.ProvisionerWhenCreate)
 	// the provisioner errors count as port of the apply error, so we can bundle the diags
 	diags = diags.Append(applyProvisionersDiags)
 

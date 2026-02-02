@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
@@ -24,7 +24,7 @@ func TestNodeExpandModuleExecute(t *testing.T) {
 
 	node := nodeExpandModule{
 		Addr: addrs.Module{"child"},
-		ModuleCall: &configs.ModuleCall{
+		ModuleCall: &definitions.ModuleCall{
 			Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
 		},
 	}
@@ -100,7 +100,7 @@ func TestNodeValidateModuleExecute(t *testing.T) {
 		node := nodeValidateModule{
 			nodeExpandModule{
 				Addr: addrs.Module{"child"},
-				ModuleCall: &configs.ModuleCall{
+				ModuleCall: &definitions.ModuleCall{
 					Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
 				},
 			},
@@ -120,7 +120,7 @@ func TestNodeValidateModuleExecute(t *testing.T) {
 		node := nodeValidateModule{
 			nodeExpandModule{
 				Addr: addrs.Module{"child"},
-				ModuleCall: &configs.ModuleCall{
+				ModuleCall: &definitions.ModuleCall{
 					Count: hcltest.MockExprLiteral(cty.StringVal("invalid")),
 				},
 			},

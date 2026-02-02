@@ -5,16 +5,16 @@ package mocking
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-type InitProviderOverrides func(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override])
-type InitLocalOverrides func(addrs.Map[addrs.Targetable, *configs.Override])
+type InitProviderOverrides func(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *definitions.Override])
+type InitLocalOverrides func(addrs.Map[addrs.Targetable, *definitions.Override])
 
 func OverridesForTesting(providers InitProviderOverrides, locals InitLocalOverrides) *Overrides {
 	overrides := &Overrides{
-		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
-		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
+		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *definitions.Override]),
+		localOverrides:    addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
 
 	if providers != nil {

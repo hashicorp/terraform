@@ -8,17 +8,13 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
-
-	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// VersionConstraint is a type alias for the definition in the definitions package.
-type VersionConstraint = definitions.VersionConstraint
-
-func decodeVersionConstraint(attr *hcl.Attribute) (VersionConstraint, hcl.Diagnostics) {
-	ret := VersionConstraint{
+func decodeVersionConstraint(attr *hcl.Attribute) (definitions.VersionConstraint, hcl.Diagnostics) {
+	ret := definitions.VersionConstraint{
 		DeclRange: attr.Range,
 	}
 

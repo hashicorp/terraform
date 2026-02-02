@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -53,7 +53,7 @@ type EvalContext interface {
 	// It is an error to initialize the same provider more than once. This
 	// method will panic if the module instance address of the given provider
 	// configuration does not match the Path() of the EvalContext.
-	InitProvider(addr addrs.AbsProviderConfig, configs *configs.Provider) (providers.Interface, error)
+	InitProvider(addr addrs.AbsProviderConfig, configs *definitions.Provider) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.

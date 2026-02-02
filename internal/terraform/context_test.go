@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -97,7 +98,7 @@ func TestNewContextRequiredVersion(t *testing.T) {
 				if err != nil {
 					t.Fatalf("can't parse %q as version constraint", tc.Value)
 				}
-				mod.Module.CoreVersionConstraints = append(mod.Module.CoreVersionConstraints, configs.VersionConstraint{
+				mod.Module.CoreVersionConstraints = append(mod.Module.CoreVersionConstraints, definitions.VersionConstraint{
 					Required: constraint,
 				})
 			}
@@ -156,7 +157,7 @@ terraform {}
 					t.Fatalf("can't parse %q as version constraint", tc.Constraint)
 				}
 				child := mod.Children["child"]
-				child.Module.CoreVersionConstraints = append(child.Module.CoreVersionConstraints, configs.VersionConstraint{
+				child.Module.CoreVersionConstraints = append(child.Module.CoreVersionConstraints, definitions.VersionConstraint{
 					Required: constraint,
 				})
 			}

@@ -15,9 +15,6 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-// File is a type alias for the definition in the definitions package.
-type File = definitions.File
-
 // Module is a container for a set of configuration constructs that are
 // evaluated within a common namespace.
 type Module struct {
@@ -33,42 +30,42 @@ type Module struct {
 	// values.
 	SourceDir string
 
-	CoreVersionConstraints []VersionConstraint
+	CoreVersionConstraints []definitions.VersionConstraint
 
 	ActiveExperiments experiments.Set
 
-	Backend              *Backend
-	StateStore           *StateStore
-	CloudConfig          *CloudConfig
-	ProviderConfigs      map[string]*Provider
-	ProviderRequirements *RequiredProviders
+	Backend              *definitions.Backend
+	StateStore           *definitions.StateStore
+	CloudConfig          *definitions.CloudConfig
+	ProviderConfigs      map[string]*definitions.Provider
+	ProviderRequirements *definitions.RequiredProviders
 	ProviderLocalNames   map[addrs.Provider]string
-	ProviderMetas        map[addrs.Provider]*ProviderMeta
+	ProviderMetas        map[addrs.Provider]*definitions.ProviderMeta
 
-	Variables map[string]*Variable
-	Locals    map[string]*Local
-	Outputs   map[string]*Output
+	Variables map[string]*definitions.Variable
+	Locals    map[string]*definitions.Local
+	Outputs   map[string]*definitions.Output
 
-	ModuleCalls map[string]*ModuleCall
+	ModuleCalls map[string]*definitions.ModuleCall
 
-	ManagedResources   map[string]*Resource
-	DataResources      map[string]*Resource
-	EphemeralResources map[string]*Resource
-	ListResources      map[string]*Resource
-	Actions            map[string]*Action
+	ManagedResources   map[string]*definitions.Resource
+	DataResources      map[string]*definitions.Resource
+	EphemeralResources map[string]*definitions.Resource
+	ListResources      map[string]*definitions.Resource
+	Actions            map[string]*definitions.Action
 
-	Moved   []*Moved
-	Removed []*Removed
-	Import  []*Import
+	Moved   []*definitions.Moved
+	Removed []*definitions.Removed
+	Import  []*definitions.Import
 
-	Checks map[string]*Check
+	Checks map[string]*definitions.Check
 
 	Tests map[string]*TestFile
 }
 
 // NewModuleWithTests matches NewModule except it will also load in the provided
 // test files.
-func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[string]*TestFile) (*Module, hcl.Diagnostics) {
+func NewModuleWithTests(primaryFiles, overrideFiles []*definitions.File, testFiles map[string]*TestFile) (*Module, hcl.Diagnostics) {
 	mod, diags := NewModule(primaryFiles, overrideFiles)
 	if mod != nil {
 		mod.Tests = testFiles
@@ -84,23 +81,23 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 // will be incomplete and error diagnostics will be returned. Careful static
 // analysis of the returned Module is still possible in this case, but the
 // module will probably not be semantically valid.
-func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
+func NewModule(primaryFiles, overrideFiles []*definitions.File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
-		ProviderConfigs:    map[string]*Provider{},
+		ProviderConfigs:    map[string]*definitions.Provider{},
 		ProviderLocalNames: map[addrs.Provider]string{},
-		Variables:          map[string]*Variable{},
-		Locals:             map[string]*Local{},
-		Outputs:            map[string]*Output{},
-		ModuleCalls:        map[string]*ModuleCall{},
-		ManagedResources:   map[string]*Resource{},
-		EphemeralResources: map[string]*Resource{},
-		DataResources:      map[string]*Resource{},
-		ListResources:      map[string]*Resource{},
-		Checks:             map[string]*Check{},
-		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Variables:          map[string]*definitions.Variable{},
+		Locals:             map[string]*definitions.Local{},
+		Outputs:            map[string]*definitions.Output{},
+		ModuleCalls:        map[string]*definitions.ModuleCall{},
+		ManagedResources:   map[string]*definitions.Resource{},
+		EphemeralResources: map[string]*definitions.Resource{},
+		DataResources:      map[string]*definitions.Resource{},
+		ListResources:      map[string]*definitions.Resource{},
+		Checks:             map[string]*definitions.Check{},
+		ProviderMetas:      map[addrs.Provider]*definitions.ProviderMeta{},
 		Tests:              map[string]*TestFile{},
-		Actions:            map[string]*Action{},
+		Actions:            map[string]*definitions.Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -123,8 +120,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	// If no required_providers block is configured, create a useful empty
 	// state to reduce nil checks elsewhere
 	if mod.ProviderRequirements == nil {
-		mod.ProviderRequirements = &RequiredProviders{
-			RequiredProviders: make(map[string]*RequiredProvider),
+		mod.ProviderRequirements = &definitions.RequiredProviders{
+			RequiredProviders: make(map[string]*definitions.RequiredProvider),
 		}
 	}
 
@@ -162,7 +159,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 
 // ResourceByAddr returns the configuration for the resource with the given
 // address, or nil if there is no such resource.
-func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
+func (m *Module) ResourceByAddr(addr addrs.Resource) *definitions.Resource {
 	key := addr.String()
 	switch addr.Mode {
 	case addrs.ManagedResourceMode:
@@ -178,7 +175,7 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 	}
 }
 
-func (m *Module) appendFile(file *File) hcl.Diagnostics {
+func (m *Module) appendFile(file *definitions.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// If there are any conflicting requirements then we'll catch them
@@ -545,7 +542,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
+func (m *Module) appendQueryFile(file *definitions.QueryFile) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	for _, pc := range file.ProviderConfigs {
@@ -614,7 +611,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 	return diags
 }
 
-func (m *Module) mergeFile(file *File) hcl.Diagnostics {
+func (m *Module) mergeFile(file *definitions.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if len(file.CoreVersionConstraints) != 0 {

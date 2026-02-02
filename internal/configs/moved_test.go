@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestMovedBlock_decode(t *testing.T) {
@@ -30,7 +31,7 @@ func TestMovedBlock_decode(t *testing.T) {
 
 	tests := map[string]struct {
 		input *hcl.Block
-		want  *Moved
+		want  *definitions.Moved
 		err   string
 	}{
 		"success": {
@@ -50,7 +51,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
+			&definitions.Moved{
 				From:      mustMoveEndpointFromExpr(foo_expr),
 				To:        mustMoveEndpointFromExpr(bar_expr),
 				DeclRange: blockRange,
@@ -74,7 +75,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
+			&definitions.Moved{
 				From:      mustMoveEndpointFromExpr(foo_index_expr),
 				To:        mustMoveEndpointFromExpr(bar_index_expr),
 				DeclRange: blockRange,
@@ -98,7 +99,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
+			&definitions.Moved{
 				From:      mustMoveEndpointFromExpr(mod_foo_expr),
 				To:        mustMoveEndpointFromExpr(mod_bar_expr),
 				DeclRange: blockRange,
@@ -118,7 +119,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
+			&definitions.Moved{
 				From:      mustMoveEndpointFromExpr(foo_expr),
 				DeclRange: blockRange,
 			},
@@ -141,7 +142,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
+			&definitions.Moved{
 				To:        mustMoveEndpointFromExpr(foo_expr),
 				From:      mustMoveEndpointFromExpr(mod_foo_expr),
 				DeclRange: blockRange,

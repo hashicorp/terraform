@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -32,8 +33,8 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
-		isBefore := lat.ActionTriggerEvent == configs.BeforeCreate || lat.ActionTriggerEvent == configs.BeforeUpdate
-		isAfter := lat.ActionTriggerEvent == configs.AfterCreate || lat.ActionTriggerEvent == configs.AfterUpdate
+		isBefore := lat.ActionTriggerEvent == definitions.BeforeCreate || lat.ActionTriggerEvent == definitions.BeforeUpdate
+		isAfter := lat.ActionTriggerEvent == definitions.AfterCreate || lat.ActionTriggerEvent == definitions.AfterUpdate
 
 		atns, ok := actionTriggerNodes.GetOk(lat.TriggeringResourceAddr.ConfigResource())
 		if !ok {

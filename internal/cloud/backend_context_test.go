@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -135,7 +135,7 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 			// This ParseVariableValue implementation ignores the parsing mode,
 			// so we'll just always parse literal here. (The parsing mode is
 			// selected by the remote server, not by our local configuration.)
-			gotIV, diags := v.ParseVariableValue(configs.VariableParseLiteral)
+			gotIV, diags := v.ParseVariableValue(definitions.VariableParseLiteral)
 			if test.WantError != "" {
 				if !diags.HasErrors() {
 					t.Fatalf("missing expected error\ngot:  <no error>\nwant: %s", test.WantError)

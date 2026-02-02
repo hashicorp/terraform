@@ -14,16 +14,10 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
-// CheckRule is a type alias for the definition in the definitions package.
-type CheckRule = definitions.CheckRule
-
-// Check is a type alias for the definition in the definitions package.
-type Check = definitions.Check
-
 // validateCheckRuleSelfReferences looks for references in the check rule matching the
 // specified resource address, returning error diagnostics if such a reference
 // is found.
-func validateCheckRuleSelfReferences(cr *CheckRule, checkType string, addr addrs.Resource) hcl.Diagnostics {
+func validateCheckRuleSelfReferences(cr *definitions.CheckRule, checkType string, addr addrs.Resource) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 	exprs := []hcl.Expression{
 		cr.Condition,
@@ -67,9 +61,9 @@ func validateCheckRuleSelfReferences(cr *CheckRule, checkType string, addr addrs
 // function takes the containing block only because some error messages will
 // refer to its location, and the returned object's DeclRange will be the
 // block's header.
-func decodeCheckRuleBlock(block *hcl.Block, override bool) (*CheckRule, hcl.Diagnostics) {
+func decodeCheckRuleBlock(block *hcl.Block, override bool) (*definitions.CheckRule, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	cr := &CheckRule{
+	cr := &definitions.CheckRule{
 		DeclRange: block.DefRange,
 	}
 
@@ -125,10 +119,10 @@ var checkRuleBlockSchema = &hcl.BodySchema{
 	},
 }
 
-func decodeCheckBlock(block *hcl.Block, override bool) (*Check, hcl.Diagnostics) {
+func decodeCheckBlock(block *hcl.Block, override bool) (*definitions.Check, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	check := &Check{
+	check := &definitions.Check{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
 	}

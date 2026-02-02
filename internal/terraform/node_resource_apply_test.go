@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -46,7 +46,7 @@ func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 		node := &nodeExpandApplyableResource{
 			NodeAbstractResource: &NodeAbstractResource{
 				Addr: mustConfigResourceAddr("test_instance.foo"),
-				Config: &configs.Resource{
+				Config: &definitions.Resource{
 					Mode: addrs.ManagedResourceMode,
 					Type: "test_instance",
 					Name: "foo",

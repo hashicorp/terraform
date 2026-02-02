@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -51,7 +52,7 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 		expand := &nodeExpandCheck{
 			addr:   configAddr,
 			config: check,
-			makeInstance: func(addr addrs.AbsCheck, cfg *configs.Check) dag.Vertex {
+			makeInstance: func(addr addrs.AbsCheck, cfg *definitions.Check) dag.Vertex {
 				return &nodeCheckAssert{
 					addr:          addr,
 					config:        cfg,

@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -18,7 +18,7 @@ import (
 // NodeRootVariable represents a root variable input.
 type NodeRootVariable struct {
 	Addr   addrs.InputVariable
-	Config *configs.Variable
+	Config *definitions.Variable
 
 	// RawValue is the value for the variable set from outside Terraform
 	// Core, such as on the command line, or from an environment variable,
@@ -132,7 +132,7 @@ func (n *NodeRootVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode 
 }
 
 // variableValidationRules implements [graphNodeValidatableVariable].
-func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule, hcl.Range) {
+func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable, []*definitions.CheckRule, hcl.Range) {
 	var defnRange hcl.Range
 	if n.RawValue != nil && n.RawValue.SourceType.HasSourceRange() {
 		defnRange = n.RawValue.SourceRange.ToHCL()
@@ -151,7 +151,7 @@ func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable,
 		return n.Addr.InModule(addrs.RootModule), nil, defnRange
 	}
 
-	var rules []*configs.CheckRule
+	var rules []*definitions.CheckRule
 	if n.Config != nil { // always in normal code, but sometimes not in unit tests
 		rules = n.Config.Validations
 	}

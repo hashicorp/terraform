@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -159,7 +160,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 
 	view.Output(views.InitializingBackendMessage)
 
-	var backendConfig *configs.Backend
+	var backendConfig *definitions.Backend
 	var backendConfigOverride hcl.Body
 	if root.Backend != nil {
 		backendType := root.Backend.Type

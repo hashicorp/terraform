@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -427,7 +428,7 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 // and checks if we have external unparsed variables that match the given
 // configuration. If no variable was provided, we'll return a nil
 // input value.
-func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *configs.Variable) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (ec *EvalContext) EvaluateUnparsedVariable(name string, config *definitions.Variable) (*terraform.InputValue, tfdiags.Diagnostics) {
 	variable, exists := ec.unparsedVariables[name]
 	if !exists {
 		return nil, nil
@@ -472,7 +473,7 @@ func (ec *EvalContext) EvaluateUnparsedVariableDeprecated(name string, ref *addr
 	// Otherwise, we have no configuration so we're going to try both parsing
 	// modes.
 
-	value, moreDiags := variable.ParseVariableValue(configs.VariableParseHCL)
+	value, moreDiags := variable.ParseVariableValue(definitions.VariableParseHCL)
 	diags = diags.Append(moreDiags)
 	if !moreDiags.HasErrors() {
 		// then good! we can just return these values directly.
@@ -481,7 +482,7 @@ func (ec *EvalContext) EvaluateUnparsedVariableDeprecated(name string, ref *addr
 
 	// otherwise, we'll try the other one.
 
-	value, moreDiags = variable.ParseVariableValue(configs.VariableParseLiteral)
+	value, moreDiags = variable.ParseVariableValue(definitions.VariableParseLiteral)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		// as usual make sure we still provide something for this value.

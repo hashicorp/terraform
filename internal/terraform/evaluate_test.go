@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -110,7 +111,7 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 		},
 		Config: &configs.Config{
 			Module: &configs.Module{
-				Outputs: map[string]*configs.Output{
+				Outputs: map[string]*definitions.Output{
 					"some_output": {
 						Name:      "some_output",
 						Sensitive: true,
@@ -188,7 +189,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 		},
 		Config: &configs.Config{
 			Module: &configs.Module{
-				Variables: map[string]*configs.Variable{
+				Variables: map[string]*definitions.Variable{
 					"some_var": {
 						Name:           "some_var",
 						Sensitive:      true,
@@ -269,7 +270,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 		)
 	}).SyncWrapper()
 
-	rc := &configs.Resource{
+	rc := &definitions.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_resource",
 		Name: "foo",
@@ -290,7 +291,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 		Changes: plans.NewChanges().SyncWrapper(),
 		Config: &configs.Config{
 			Module: &configs.Module{
-				ManagedResources: map[string]*configs.Resource{
+				ManagedResources: map[string]*definitions.Resource{
 					"test_resource.foo": rc,
 				},
 			},
@@ -520,7 +521,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Changes: changesSync,
 		Config: &configs.Config{
 			Module: &configs.Module{
-				ManagedResources: map[string]*configs.Resource{
+				ManagedResources: map[string]*definitions.Resource{
 					"test_resource.foo": {
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_resource",
@@ -600,7 +601,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		},
 		Config: &configs.Config{
 			Module: &configs.Module{
-				ModuleCalls: map[string]*configs.ModuleCall{
+				ModuleCalls: map[string]*definitions.ModuleCall{
 					"mod": {
 						Name: "mod",
 					},
@@ -610,7 +611,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 				"mod": {
 					Path: addrs.Module{"module.mod"},
 					Module: &configs.Module{
-						Outputs: map[string]*configs.Output{
+						Outputs: map[string]*definitions.Output{
 							"out": {
 								Name:      "out",
 								Sensitive: true,

@@ -15,10 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Provider is a type alias for the definition in the definitions package.
-type Provider = definitions.Provider
-
-func decodeProviderBlock(block *hcl.Block, testFile bool) (*Provider, hcl.Diagnostics) {
+func decodeProviderBlock(block *hcl.Block, testFile bool) (*definitions.Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, config, moreDiags := block.Body.PartialContent(providerBlockSchema)
@@ -36,7 +33,7 @@ func decodeProviderBlock(block *hcl.Block, testFile bool) (*Provider, hcl.Diagno
 		return nil, diags
 	}
 
-	provider := &Provider{
+	provider := &definitions.Provider{
 		Name:      name,
 		NameRange: block.LabelRanges[0],
 		Config:    config,

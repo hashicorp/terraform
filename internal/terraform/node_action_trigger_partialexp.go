@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -25,14 +25,14 @@ import (
 // This is the partial-expanded equivalent of NodeActionTriggerInstance.
 type NodeActionTriggerPartialExpanded struct {
 	addr                   addrs.PartialExpandedAction
-	config                 *configs.Action
+	config                 *definitions.Action
 	resolvedProvider       addrs.AbsProviderConfig
 	lifecycleActionTrigger *lifecycleActionTriggerPartialExpanded
 }
 
 type lifecycleActionTriggerPartialExpanded struct {
 	resourceAddress         addrs.PartialExpandedResource
-	events                  []configs.ActionTriggerEvent
+	events                  []definitions.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range

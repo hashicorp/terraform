@@ -5,13 +5,15 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // LoadConfigFile reads the file at the given path and parses it as a config
 // file.
 //
 // If the file cannot be read -- for example, if it does not exist -- then
-// a nil *File will be returned along with error diagnostics. Callers may wish
+// a nil *definitions.File will be returned along with error diagnostics. Callers may wish
 // to disregard the returned diagnostics in this case and instead generate
 // their own error message(s) with additional context.
 //
@@ -21,14 +23,14 @@ import (
 //
 // This method wraps LoadHCLFile, and so it inherits the syntax selection
 // behaviors documented for that method.
-func (p *Parser) LoadConfigFile(path string) (*File, hcl.Diagnostics) {
+func (p *Parser) LoadConfigFile(path string) (*definitions.File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, false)
 }
 
 // LoadConfigFileOverride is the same as LoadConfigFile except that it relaxes
 // certain required attribute constraints in order to interpret the given
 // file as an overrides file.
-func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
+func (p *Parser) LoadConfigFileOverride(path string) (*definitions.File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, true)
 }
 
@@ -48,7 +50,7 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	return test, diags
 }
 
-func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+func (p *Parser) LoadQueryFile(path string) (*definitions.QueryFile, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -64,18 +66,18 @@ func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
 //
 // It references the same LoadHCLFile as LoadConfigFile, so inherits the same
 // syntax selection behaviours.
-func (p *Parser) LoadMockDataFile(path string, useForPlanDefault bool) (*MockData, hcl.Diagnostics) {
+func (p *Parser) LoadMockDataFile(path string, useForPlanDefault bool) (*definitions.MockData, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
 	}
 
-	data, dataDiags := decodeMockDataBody(body, useForPlanDefault, MockDataFileOverrideSource)
+	data, dataDiags := decodeMockDataBody(body, useForPlanDefault, definitions.MockDataFileOverrideSource)
 	diags = append(diags, dataDiags...)
 	return data, diags
 }
 
-func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
+func (p *Parser) loadConfigFile(path string, override bool) (*definitions.File, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -84,8 +86,8 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	return parseConfigFile(body, diags, override, p.allowExperiments)
 }
 
-func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperiments bool) (*File, hcl.Diagnostics) {
-	file := &File{}
+func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperiments bool) (*definitions.File, hcl.Diagnostics) {
+	file := &definitions.File{}
 
 	var reqDiags hcl.Diagnostics
 	file.CoreVersionConstraints, reqDiags = sniffCoreVersionRequirements(body)
@@ -286,10 +288,10 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 // This is a "best effort" sort of method which will return constraints it is
 // able to find, but may return no constraints at all if the given body is
 // so invalid that it cannot be decoded at all.
-func sniffCoreVersionRequirements(body hcl.Body) ([]VersionConstraint, hcl.Diagnostics) {
+func sniffCoreVersionRequirements(body hcl.Body) ([]definitions.VersionConstraint, hcl.Diagnostics) {
 	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
 
-	var constraints []VersionConstraint
+	var constraints []definitions.VersionConstraint
 
 	for _, block := range rootContent.Blocks {
 		content, _, blockDiags := block.Body.PartialContent(configFileVersionSniffBlockSchema)

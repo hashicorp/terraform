@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -23,7 +23,7 @@ import (
 type nodeExpandModuleVariable struct {
 	Addr   addrs.InputVariable
 	Module addrs.Module
-	Config *configs.Variable
+	Config *definitions.Variable
 	Expr   hcl.Expression
 
 	// Planning must be set to true when building a planning graph, and must be
@@ -145,7 +145,7 @@ func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // variableValidationRules implements [graphNodeValidatableVariable].
-func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule, hcl.Range) {
+func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputVariable, []*definitions.CheckRule, hcl.Range) {
 	var defnRange hcl.Range
 	if n.Expr != nil { // should always be set in real calls, but not always in tests
 		defnRange = n.Expr.Range()
@@ -156,7 +156,7 @@ func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputV
 		// for dealing with things already having been destroyed.
 		return n.Addr.InModule(n.Module), nil, defnRange
 	}
-	var rules []*configs.CheckRule
+	var rules []*definitions.CheckRule
 	if n.Config != nil { // always in normal code, but sometimes not in unit tests
 		rules = n.Config.Validations
 	}
@@ -167,7 +167,7 @@ func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputV
 // the apply step.
 type nodeModuleVariable struct {
 	Addr   addrs.AbsInputVariableInstance
-	Config *configs.Variable // Config is the var in the config
+	Config *definitions.Variable // Config is the var in the config
 	Expr   hcl.Expression    // Expr is the value expression given in the call
 	// ModuleInstance in order to create the appropriate context for evaluating
 	// ModuleCallArguments, ex. so count.index and each.key can resolve
@@ -176,7 +176,7 @@ type nodeModuleVariable struct {
 	// ModuleCallConfig is the module call that the expression in field Expr
 	// came from, which helps decide what [instances.RepetitionData] we should
 	// use when evaluating Expr.
-	ModuleCallConfig *configs.ModuleCall
+	ModuleCallConfig *definitions.ModuleCall
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -319,7 +319,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 // totally-unknown value of unknown type in the worst case.
 type nodeModuleVariableInPartialModule struct {
 	Addr   addrs.InPartialExpandedModule[addrs.InputVariable]
-	Config *configs.Variable // Config is the var in the config
+	Config *definitions.Variable // Config is the var in the config
 	Expr   hcl.Expression    // Expr is the value expression given in the call
 	// ModuleInstance in order to create the appropriate context for evaluating
 	// ModuleCallArguments, ex. so count.index and each.key can resolve

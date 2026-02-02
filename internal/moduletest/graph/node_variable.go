@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -28,7 +28,7 @@ var (
 
 type NodeVariableDefinition struct {
 	Address string
-	Config  *configs.Variable
+	Config  *definitions.Variable
 	File    *moduletest.File
 }
 

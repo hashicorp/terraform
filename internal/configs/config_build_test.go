@@ -17,6 +17,7 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestBuildConfig(t *testing.T) {
@@ -41,7 +42,7 @@ func TestBuildConfig(t *testing.T) {
 			versionI++
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -100,7 +101,7 @@ func TestBuildConfigDiags(t *testing.T) {
 			versionI++
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -146,7 +147,7 @@ func TestBuildConfigChildModule_Backend(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -189,7 +190,7 @@ func TestBuildConfigChildModule_CloudBlock(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -273,7 +274,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
 				}),
-				MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+				MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 					return nil, nil
 				}),
 			)
@@ -354,7 +355,7 @@ func TestBuildConfig_WithMockDataSources(t *testing.T) {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
-	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", provider.MockDataExternalSource)
 		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
 	}))
@@ -385,7 +386,7 @@ func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
-	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources-inline", provider.MockDataExternalSource)
 		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
 	}))
@@ -422,7 +423,7 @@ func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -498,7 +499,7 @@ func TestBuildConfig_WithTestModule(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		MockDataLoaderFunc(func(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)

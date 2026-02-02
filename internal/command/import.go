@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -129,7 +129,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 	targetMod := targetConfig.Module
 	rcs := targetMod.ManagedResources
-	var rc *configs.Resource
+	var rc *definitions.Resource
 	resourceRelAddr := addr.Resource.Resource
 	for _, thisRc := range rcs {
 		if resourceRelAddr.Type == thisRc.Type && resourceRelAddr.Name == thisRc.Name {

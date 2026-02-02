@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -403,7 +403,7 @@ func (b *Local) opApply(
 			}
 
 		}
-		_, undeclaredDiags := backendrun.ParseUndeclaredVariableValues(undeclaredVariables, map[string]*configs.Variable{})
+		_, undeclaredDiags := backendrun.ParseUndeclaredVariableValues(undeclaredVariables, map[string]*definitions.Variable{})
 		// always add hard errors here, and add warnings if we're not in a
 		// combined op which just emitted those same warnings already.
 		if undeclaredDiags.HasErrors() || !combinedPlanApply {

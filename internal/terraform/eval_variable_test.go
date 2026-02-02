@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -1379,7 +1379,7 @@ variable "bar" {
 
 func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
 	t.Run("known condition, unknown error_message", func(t *testing.T) {
-		rule := &configs.CheckRule{
+		rule := &definitions.CheckRule{
 			Condition:    hcltest.MockExprLiteral(cty.False),
 			ErrorMessage: hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
 		}

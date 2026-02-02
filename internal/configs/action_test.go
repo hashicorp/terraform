@@ -8,13 +8,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestDecodeActionBlock(t *testing.T) {
 	tests := map[string]struct {
 		input       *hcl.Block
-		want        *Action
+		want        *definitions.Action
 		expectDiags []string
 	}{
 		"valid": {
@@ -25,7 +26,7 @@ func TestDecodeActionBlock(t *testing.T) {
 				DefRange:    blockRange,
 				LabelRanges: []hcl.Range{{}},
 			},
-			&Action{
+			&definitions.Action{
 				Type:      "an_action",
 				Name:      "foo",
 				DeclRange: blockRange,
@@ -45,7 +46,7 @@ func TestDecodeActionBlock(t *testing.T) {
 				DefRange:    blockRange,
 				LabelRanges: []hcl.Range{{}},
 			},
-			&Action{
+			&definitions.Action{
 				Type:      "an_action",
 				Name:      "foo",
 				DeclRange: blockRange,
@@ -79,7 +80,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 
 	tests := map[string]struct {
 		input       *hcl.Block
-		want        *ActionTrigger
+		want        *definitions.ActionTrigger
 		expectDiags []string
 	}{
 		"simple example": {
@@ -93,10 +94,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					}),
 				}),
 			},
-			&ActionTrigger{
+			&definitions.ActionTrigger{
 				Condition: conditionExpr,
-				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
-				Actions: []ActionRef{
+				Events:    []definitions.ActionTriggerEvent{definitions.AfterCreate, definitions.AfterUpdate},
+				Actions: []definitions.ActionRef{
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),
@@ -120,10 +121,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					}),
 				}),
 			},
-			&ActionTrigger{
+			&definitions.ActionTrigger{
 				Condition: conditionExpr,
-				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
-				Actions: []ActionRef{
+				Events:    []definitions.ActionTriggerEvent{definitions.AfterCreate, definitions.AfterUpdate},
+				Actions: []definitions.ActionRef{
 					{
 						Expr:  moduleActionExpr,
 						Range: moduleActionExpr.Range(),
@@ -146,10 +147,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					}),
 				}),
 			},
-			&ActionTrigger{
+			&definitions.ActionTrigger{
 				Condition: conditionExpr,
-				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
-				Actions: []ActionRef{
+				Events:    []definitions.ActionTriggerEvent{definitions.AfterCreate, definitions.AfterUpdate},
+				Actions: []definitions.ActionRef{
 					{
 						Expr:  fooDataSourceExpr,
 						Range: fooDataSourceExpr.Range(),
@@ -172,10 +173,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					}),
 				}),
 			},
-			&ActionTrigger{
+			&definitions.ActionTrigger{
 				Condition: conditionExpr,
-				Events:    []ActionTriggerEvent{},
-				Actions: []ActionRef{
+				Events:    []definitions.ActionTriggerEvent{},
+				Actions: []definitions.ActionRef{
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),
@@ -199,10 +200,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					}),
 				}),
 			},
-			&ActionTrigger{
+			&definitions.ActionTrigger{
 				Condition: conditionExpr,
-				Events:    []ActionTriggerEvent{BeforeCreate},
-				Actions: []ActionRef{
+				Events:    []definitions.ActionTriggerEvent{definitions.BeforeCreate},
+				Actions: []definitions.ActionRef{
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),

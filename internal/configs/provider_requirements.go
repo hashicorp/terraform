@@ -14,25 +14,19 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	RequiredProvider  = definitions.RequiredProvider
-	RequiredProviders = definitions.RequiredProviders
-)
-
-func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
+func decodeRequiredProvidersBlock(block *hcl.Block) (*definitions.RequiredProviders, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	ret := &RequiredProviders{
-		RequiredProviders: make(map[string]*RequiredProvider),
+	ret := &definitions.RequiredProviders{
+		RequiredProviders: make(map[string]*definitions.RequiredProvider),
 		DeclRange:         block.DefRange,
 	}
 
 	for name, attr := range attrs {
-		rp := &RequiredProvider{
+		rp := &definitions.RequiredProvider{
 			Name:      name,
 			DeclRange: attr.Expr.Range(),
 		}
@@ -99,7 +93,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 			switch key.AsString() {
 			case "version":
-				vc := VersionConstraint{
+				vc := definitions.VersionConstraint{
 					DeclRange: attr.Range,
 				}
 

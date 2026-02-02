@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -28,7 +28,7 @@ type NodeProviderConfigure struct {
 
 	Addr     addrs.RootProviderConfig
 	File     *moduletest.File
-	Config   *configs.Provider
+	Config   *definitions.Provider
 	Provider providers.Interface
 	Schema   providers.GetProviderSchemaResponse
 }
@@ -138,7 +138,7 @@ type NodeProviderClose struct {
 
 	Addr     addrs.RootProviderConfig
 	File     *moduletest.File
-	Config   *configs.Provider
+	Config   *definitions.Provider
 	Provider providers.Interface
 }
 

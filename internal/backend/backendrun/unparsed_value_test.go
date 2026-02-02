@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -25,12 +25,12 @@ func TestUnparsedValue(t *testing.T) {
 		"undeclared4": testUnparsedVariableValue("4"),
 		"declared1":   testUnparsedVariableValue("5"),
 	}
-	decls := map[string]*configs.Variable{
+	decls := map[string]*definitions.Variable{
 		"declared1": {
 			Name:           "declared1",
 			Type:           cty.String,
 			ConstraintType: cty.String,
-			ParsingMode:    configs.VariableParseLiteral,
+			ParsingMode:    definitions.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
 				Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -41,7 +41,7 @@ func TestUnparsedValue(t *testing.T) {
 			Name:           "missing1",
 			Type:           cty.String,
 			ConstraintType: cty.String,
-			ParsingMode:    configs.VariableParseLiteral,
+			ParsingMode:    definitions.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
 				Start:    hcl.Pos{Line: 3, Column: 1, Byte: 0},
@@ -52,7 +52,7 @@ func TestUnparsedValue(t *testing.T) {
 			Name:           "missing1",
 			Type:           cty.String,
 			ConstraintType: cty.String,
-			ParsingMode:    configs.VariableParseLiteral,
+			ParsingMode:    definitions.VariableParseLiteral,
 			Default:        cty.StringVal("default for missing2"),
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
@@ -224,7 +224,7 @@ func TestUnparsedValue(t *testing.T) {
 
 type testUnparsedVariableValue string
 
-func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v testUnparsedVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      cty.StringVal(string(v)),
 		SourceType: terraform.ValueFromNamedFile,

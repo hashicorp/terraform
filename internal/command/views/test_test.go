@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -2711,7 +2712,7 @@ func TestTestJSON_Run(t *testing.T) {
 					State: states.NewState(), // empty state
 					Config: &configs.Config{
 						Module: &configs.Module{
-							ProviderRequirements: &configs.RequiredProviders{},
+							ProviderRequirements: &definitions.RequiredProviders{},
 						},
 					},
 					Providers: map[addrs.Provider]providers.ProviderSchema{

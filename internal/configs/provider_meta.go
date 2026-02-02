@@ -9,10 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// ProviderMeta is a type alias for the definition in the definitions package.
-type ProviderMeta = definitions.ProviderMeta
-
-func decodeProviderMetaBlock(block *hcl.Block) (*ProviderMeta, hcl.Diagnostics) {
+func decodeProviderMetaBlock(block *hcl.Block) (*definitions.ProviderMeta, hcl.Diagnostics) {
 	// provider_meta must be a static map. We can verify this by attempting to
 	// evaluate the values.
 	attrs, diags := block.Body.JustAttributes()
@@ -32,7 +29,7 @@ func decodeProviderMetaBlock(block *hcl.Block) (*ProviderMeta, hcl.Diagnostics) 
 		return nil, diags
 	}
 
-	return &ProviderMeta{
+	return &definitions.ProviderMeta{
 		Provider:      block.Labels[0],
 		ProviderRange: block.LabelRanges[0],
 		Config:        block.Body,

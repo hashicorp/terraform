@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -57,7 +58,7 @@ type TestFile struct {
 	//
 	// This conflicts with the Variables block. Variables specified in the
 	// VariableDefinitions cannot also be specified within the Variables block.
-	VariableDefinitions map[string]*Variable
+	VariableDefinitions map[string]*definitions.Variable
 
 	// Variables defines a set of global variable definitions that should be set
 	// for every run block within the test file.
@@ -70,7 +71,7 @@ type TestFile struct {
 	//
 	// If empty, tests should use the default providers for the module under
 	// test.
-	Providers map[string]*Provider
+	Providers map[string]*definitions.Provider
 
 	// BackendConfigs is a map of state keys to structs that contain backend
 	// configuration. This should be used to set the state for a given state key
@@ -79,7 +80,7 @@ type TestFile struct {
 
 	// Overrides contains any specific overrides that should be applied for this
 	// test outside any mock providers.
-	Overrides addrs.Map[addrs.Targetable, *Override]
+	Overrides addrs.Map[addrs.Targetable, *definitions.Override]
 
 	// Runs defines the sequential list of run blocks that should be executed in
 	// order.
@@ -129,7 +130,7 @@ type TestRun struct {
 
 	// Overrides contains any specific overrides that should be applied for this
 	// run block only outside any mock providers or overrides from the file.
-	Overrides addrs.Map[addrs.Targetable, *Override]
+	Overrides addrs.Map[addrs.Targetable, *definitions.Override]
 
 	// Providers specifies the set of providers that should be loaded into the
 	// module for this run block.
@@ -137,11 +138,11 @@ type TestRun struct {
 	// Providers specified here must be configured in one of the provider blocks
 	// for this file. If empty, the run block will load the default providers
 	// for the module under test.
-	Providers []PassedProviderConfig
+	Providers []definitions.PassedProviderConfig
 
 	// CheckRules defines the list of assertions/validations that should be
 	// checked by this run block.
-	CheckRules []*CheckRule
+	CheckRules []*definitions.CheckRule
 
 	// Module defines an address of another module that should be loaded and
 	// executed as part of this run block instead of the module under test.
@@ -178,7 +179,7 @@ type TestRun struct {
 	// will be executed in parallel with other test runs.
 	Parallel bool
 
-	Backend *Backend
+	Backend *definitions.Backend
 
 	// SkipCleanup: Indicates if the test run should skip the cleanup phase.
 	SkipCleanup      bool
@@ -204,7 +205,7 @@ func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 		}
 
 		for _, elem := range provider.MockData.Overrides.Elems {
-			if elem.Value.Source != MockProviderOverrideSource {
+			if elem.Value.Source != definitions.MockProviderOverrideSource {
 				// Only check overrides that are defined directly within the
 				// mock provider block of this file. This is a safety check
 				// against any override blocks loaded from a dedicated data
@@ -329,7 +330,7 @@ type TestRunModuleCall struct {
 	Source addrs.ModuleSource
 
 	// Version is the version of the module to load from the registry.
-	Version VersionConstraint
+	Version definitions.VersionConstraint
 
 	DeclRange       hcl.Range
 	SourceDeclRange hcl.Range
@@ -355,7 +356,7 @@ type TestRunOptions struct {
 // RunBlockBackend records a backend block and which run block it was parsed
 // from.
 type RunBlockBackend struct {
-	Backend *Backend
+	Backend *definitions.Backend
 
 	// Run is the TestRun containing the backend block for this Backend.
 	// This is used in diagnostics to help avoid duplicate backends for a given
@@ -367,10 +368,10 @@ type RunBlockBackend struct {
 func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
-		VariableDefinitions: make(map[string]*Variable),
-		Providers:           make(map[string]*Provider),
+		VariableDefinitions: make(map[string]*definitions.Variable),
+		Providers:           make(map[string]*definitions.Provider),
 		BackendConfigs:      make(map[string]RunBlockBackend),
-		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
+		Overrides:           addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -561,7 +562,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 				tf.Providers[key] = provider
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block, false, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, definitions.TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -578,7 +579,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block, false, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideDataBlock(block, false, definitions.TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -595,7 +596,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block, false, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, definitions.TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -675,7 +676,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
-		Overrides:     addrs.MakeMap[addrs.Targetable, *Override](),
+		Overrides:     addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 		File:          file,
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
@@ -753,7 +754,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 				r.Module = module
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block, false, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, definitions.RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -770,7 +771,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 				r.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block, false, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideDataBlock(block, false, definitions.RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -787,7 +788,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 				r.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block, false, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, definitions.RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {

@@ -7,7 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -20,7 +20,7 @@ import (
 // when they are referenced we can get the configuration for the action directly.
 type NodeActionDeclarationInstance struct {
 	Addr             addrs.AbsActionInstance
-	Config           *configs.Action
+	Config           *definitions.Action
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig
 	Dependencies     []addrs.ConfigResource

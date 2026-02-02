@@ -6,7 +6,7 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -135,7 +135,7 @@ func TestCheckInputVariables(t *testing.T) {
 //
 // In other words, this constructs an InputValues with one entry per given
 // input variable declaration where all of them are declared as unset.
-func testInputValuesUnset(decls map[string]*configs.Variable) InputValues {
+func testInputValuesUnset(decls map[string]*definitions.Variable) InputValues {
 	if len(decls) == 0 {
 		return nil
 	}

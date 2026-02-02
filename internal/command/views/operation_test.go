@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -575,7 +575,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		Addr: addrs.Action{Type: "test_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
-			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerEvent:      definitions.AfterCreate,
 			ActionTriggerBlockIndex: 0,
 			ActionsListIndex:        0,
 		},
@@ -584,7 +584,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		Addr: addrs.Action{Type: "test_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  boop,
-			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerEvent:      definitions.AfterCreate,
 			ActionTriggerBlockIndex: 0,
 			ActionsListIndex:        1,
 		},
@@ -593,7 +593,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 		Addr: addrs.Action{Type: "test_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
 		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  beep,
-			ActionTriggerEvent:      configs.BeforeUpdate,
+			ActionTriggerEvent:      definitions.BeforeUpdate,
 			ActionTriggerBlockIndex: 1,
 			ActionsListIndex:        0,
 		},

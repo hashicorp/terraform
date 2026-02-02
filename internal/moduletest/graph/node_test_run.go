@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -222,7 +223,7 @@ func (n *NodeTestRun) testValidate(providers map[addrs.RootProviderConfig]provid
 	}
 }
 
-func getProviders(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config) (map[addrs.RootProviderConfig]providers.Interface, map[addrs.RootProviderConfig]*configs.MockData, tfdiags.Diagnostics) {
+func getProviders(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun, module *configs.Config) (map[addrs.RootProviderConfig]providers.Interface, map[addrs.RootProviderConfig]*definitions.MockData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if len(run.Providers) > 0 {
@@ -230,7 +231,7 @@ func getProviders(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun
 		// block.
 
 		providers := make(map[addrs.RootProviderConfig]providers.Interface, len(run.Providers))
-		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
+		mocks := make(map[addrs.RootProviderConfig]*definitions.MockData)
 
 		for _, ref := range run.Providers {
 
@@ -278,7 +279,7 @@ func getProviders(ctx *EvalContext, file *configs.TestFile, run *configs.TestRun
 		// Otherwise, let's copy over all the relevant providers.
 
 		providers := make(map[addrs.RootProviderConfig]providers.Interface)
-		mocks := make(map[addrs.RootProviderConfig]*configs.MockData)
+		mocks := make(map[addrs.RootProviderConfig]*definitions.MockData)
 
 		for addr := range requiredProviders(module) {
 			if provider, ok := ctx.GetProvider(addr); ok {

@@ -13,23 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	MockData       = definitions.MockData
-	MockResource   = definitions.MockResource
-	Override       = definitions.Override
-	OverrideSource = definitions.OverrideSource
-)
-
-// Re-export OverrideSource constants for backwards compatibility.
-const (
-	UnknownOverrideSource      = definitions.UnknownOverrideSource
-	RunBlockOverrideSource     = definitions.RunBlockOverrideSource
-	TestFileOverrideSource     = definitions.TestFileOverrideSource
-	MockProviderOverrideSource = definitions.MockProviderOverrideSource
-	MockDataFileOverrideSource = definitions.MockDataFileOverrideSource
-)
-
 var (
 	// When this attribute is set to plan, the values specified in the override
 	// block will be used for computed attributes even when planning. It defaults
@@ -37,7 +20,7 @@ var (
 	overrideDuringCommand = "override_during"
 )
 
-func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
+func decodeMockProviderBlock(block *hcl.Block) (*definitions.Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, config, moreDiags := block.Body.PartialContent(mockProviderSchema)
@@ -52,7 +35,7 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	provider := &Provider{
+	provider := &definitions.Provider{
 		Name:      name,
 		NameRange: block.LabelRanges[0],
 		DeclRange: block.DefRange,
@@ -83,7 +66,7 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	provider.MockDataDuringPlan = useForPlan
 
 	var dataDiags hcl.Diagnostics
-	provider.MockData, dataDiags = decodeMockDataBody(config, useForPlan, MockProviderOverrideSource)
+	provider.MockData, dataDiags = decodeMockDataBody(config, useForPlan, definitions.MockProviderOverrideSource)
 	diags = append(diags, dataDiags...)
 
 	if attr, exists := content.Attributes["source"]; exists {
@@ -115,16 +98,16 @@ func useForPlan(content *hcl.BodyContent, def bool) (bool, hcl.Diagnostics) {
 	return def, diags
 }
 
-func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSource) (*MockData, hcl.Diagnostics) {
+func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source definitions.OverrideSource) (*definitions.MockData, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := body.Content(mockDataSchema)
 	diags = append(diags, contentDiags...)
 
-	data := &MockData{
-		MockResources:   make(map[string]*MockResource),
-		MockDataSources: make(map[string]*MockResource),
-		Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+	data := &definitions.MockData{
+		MockResources:   make(map[string]*definitions.MockResource),
+		MockDataSources: make(map[string]*definitions.MockResource),
+		Overrides:       addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
 
 	for _, block := range content.Blocks {
@@ -199,13 +182,13 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 	return data, diags
 }
 
-func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*MockResource, hcl.Diagnostics) {
+func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*definitions.MockResource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(mockResourceSchema)
 	diags = append(diags, contentDiags...)
 
-	resource := &MockResource{
+	resource := &definitions.MockResource{
 		Type:      block.Labels[0],
 		Range:     block.DefRange,
 		TypeRange: block.LabelRanges[0],
@@ -234,7 +217,7 @@ func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*MockRes
 	return resource, diags
 }
 
-func decodeOverrideModuleBlock(block *hcl.Block, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
+func decodeOverrideModuleBlock(block *hcl.Block, useForPlanDefault bool, source definitions.OverrideSource) (*definitions.Override, hcl.Diagnostics) {
 	override, diags := decodeOverrideBlock(block, "outputs", "override_module", useForPlanDefault, source)
 
 	if override.Target != nil {
@@ -255,7 +238,7 @@ func decodeOverrideModuleBlock(block *hcl.Block, useForPlanDefault bool, source 
 	return override, diags
 }
 
-func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
+func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, source definitions.OverrideSource) (*definitions.Override, hcl.Diagnostics) {
 	override, diags := decodeOverrideBlock(block, "values", "override_resource", useForPlanDefault, source)
 
 	if override.Target != nil {
@@ -292,7 +275,7 @@ func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, sourc
 	return override, diags
 }
 
-func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
+func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source definitions.OverrideSource) (*definitions.Override, hcl.Diagnostics) {
 	override, diags := decodeOverrideBlock(block, "values", "override_data", useForPlanDefault, source)
 
 	if override.Target != nil {
@@ -329,7 +312,7 @@ func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source Ov
 	return override, diags
 }
 
-func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
+func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, useForPlanDefault bool, source definitions.OverrideSource) (*definitions.Override, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
@@ -341,7 +324,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	})
 	diags = append(diags, contentDiags...)
 
-	override := &Override{
+	override := &definitions.Override{
 		Source:    source,
 		Range:     block.DefRange,
 		TypeRange: block.TypeRange,

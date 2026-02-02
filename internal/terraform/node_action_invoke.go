@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -24,7 +24,7 @@ var (
 
 type nodeActionInvokeExpand struct {
 	Target addrs.Targetable
-	Config *configs.Action
+	Config *definitions.Action
 
 	resolvedProvider addrs.AbsProviderConfig // set during the graph walk
 }
@@ -131,7 +131,7 @@ var (
 
 type nodeActionInvokeInstance struct {
 	Target addrs.AbsActionInstance
-	Config *configs.Action
+	Config *definitions.Action
 }
 
 func (n *nodeActionInvokeInstance) Path() addrs.ModuleInstance {

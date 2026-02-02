@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -103,7 +104,7 @@ resource "test_object" "a" {
 					t.Error("expected 2 complete action hooks")
 				}
 
-				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent configs.ActionTriggerEvent) {
+				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent definitions.ActionTriggerEvent) {
 					trigger := got.ActionTrigger.(*plans.LifecycleActionTrigger)
 
 					if trigger.ActionTriggerEvent != wantEvent {
@@ -119,13 +120,13 @@ resource "test_object" "a" {
 
 				beforeStart := capture.startActionHooks[0]
 				beforeComplete := capture.completeActionHooks[0]
-				evaluateHook(beforeStart, "action.action_example.hello", configs.BeforeCreate)
-				evaluateHook(beforeComplete, "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(beforeStart, "action.action_example.hello", definitions.BeforeCreate)
+				evaluateHook(beforeComplete, "action.action_example.hello", definitions.BeforeCreate)
 
 				afterStart := capture.startActionHooks[1]
 				afterComplete := capture.completeActionHooks[1]
-				evaluateHook(afterStart, "action.action_example.hello", configs.AfterCreate)
-				evaluateHook(afterComplete, "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(afterStart, "action.action_example.hello", definitions.AfterCreate)
+				evaluateHook(afterComplete, "action.action_example.hello", definitions.AfterCreate)
 			},
 		},
 

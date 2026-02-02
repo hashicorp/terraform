@@ -13,13 +13,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestNodeModuleVariablePath(t *testing.T) {
 	n := &nodeModuleVariable{
 		Addr: addrs.RootModuleInstance.InputVariable("foo"),
-		Config: &configs.Variable{
+		Config: &definitions.Variable{
 			Name:           "foo",
 			Type:           cty.String,
 			ConstraintType: cty.String,
@@ -36,7 +36,7 @@ func TestNodeModuleVariablePath(t *testing.T) {
 func TestNodeModuleVariableReferenceableName(t *testing.T) {
 	n := &nodeExpandModuleVariable{
 		Addr: addrs.InputVariable{Name: "foo"},
-		Config: &configs.Variable{
+		Config: &definitions.Variable{
 			Name:           "foo",
 			Type:           cty.String,
 			ConstraintType: cty.String,
@@ -71,7 +71,7 @@ func TestNodeModuleVariableReference(t *testing.T) {
 	n := &nodeExpandModuleVariable{
 		Addr:   addrs.InputVariable{Name: "foo"},
 		Module: addrs.RootModule.Child("bar"),
-		Config: &configs.Variable{
+		Config: &definitions.Variable{
 			Name:           "foo",
 			Type:           cty.String,
 			ConstraintType: cty.String,
@@ -99,7 +99,7 @@ func TestNodeModuleVariableReference_grandchild(t *testing.T) {
 	n := &nodeExpandModuleVariable{
 		Addr:   addrs.InputVariable{Name: "foo"},
 		Module: addrs.RootModule.Child("bar"),
-		Config: &configs.Variable{
+		Config: &definitions.Variable{
 			Name:           "foo",
 			Type:           cty.String,
 			ConstraintType: cty.String,

@@ -12,12 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// StateStore is a type alias for the definition in the definitions package.
-type StateStore = definitions.StateStore
-
-func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
+func decodeStateStoreBlock(block *hcl.Block) (*definitions.StateStore, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	ss := &StateStore{
+	ss := &definitions.StateStore{
 		Type:      block.Labels[0],
 		TypeRange: block.LabelRanges[0],
 		Config:    block.Body,
@@ -80,7 +77,7 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 // resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
 // The only exception is the builtin terraform provider, which we return source data for without using required_providers.
 // This code is reused in code for parsing config and modules.
-func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvider, stateStore StateStore) (tfaddr.Provider, hcl.Diagnostics) {
+func resolveStateStoreProviderType(requiredProviders map[string]*definitions.RequiredProvider, stateStore definitions.StateStore) (tfaddr.Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// We intentionally don't look for entries in required_providers under different local names and match them

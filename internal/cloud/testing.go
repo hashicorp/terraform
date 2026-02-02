@@ -25,8 +25,8 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -612,7 +612,7 @@ type unparsedVariableValue struct {
 	source terraform.ValueSourceType
 }
 
-func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v *unparsedVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      cty.StringVal(v.value),
 		SourceType: v.source,

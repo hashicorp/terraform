@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -808,7 +809,7 @@ func testBackendState(t *testing.T, s *states.State, c int) (*workdir.BackendSta
 
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 
-	backendConfig := &configs.Backend{
+	backendConfig := &definitions.Backend{
 		Type:   "http",
 		Config: configs.SynthBody("<testBackendState>", map[string]cty.Value{}),
 	}

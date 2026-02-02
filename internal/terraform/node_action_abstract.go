@@ -5,7 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -15,7 +15,7 @@ import (
 // operations.
 type NodeAbstractAction struct {
 	Addr   addrs.ConfigAction
-	Config configs.Action
+	Config definitions.Action
 
 	// The fields below will be automatically set using the Attach interfaces if
 	// you're running those transforms, but also can be explicitly set if you

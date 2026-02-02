@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestPackageOverrides(t *testing.T) {
@@ -29,9 +30,9 @@ func TestPackageOverrides(t *testing.T) {
 
 	// Add a single override to the test run.
 	run := &configs.TestRun{
-		Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](),
+		Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
-	run.Overrides.Put(primary, &configs.Override{
+	run.Overrides.Put(primary, &definitions.Override{
 		Target: &addrs.Target{
 			Subject: testrun,
 		},
@@ -39,35 +40,35 @@ func TestPackageOverrides(t *testing.T) {
 
 	// Add a unique item to the test file, and duplicate the test run data.
 	file := &configs.TestFile{
-		Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](),
+		Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 	}
-	file.Overrides.Put(primary, &configs.Override{
+	file.Overrides.Put(primary, &definitions.Override{
 		Target: &addrs.Target{
 			Subject: testfile,
 		},
 	})
-	file.Overrides.Put(secondary, &configs.Override{
+	file.Overrides.Put(secondary, &definitions.Override{
 		Target: &addrs.Target{
 			Subject: testfile,
 		},
 	})
 
-	mocks := map[addrs.RootProviderConfig]*configs.MockData{
+	mocks := map[addrs.RootProviderConfig]*definitions.MockData{
 		addrs.RootProviderConfig{
 			Provider: addrs.NewDefaultProvider("mock"),
 		}: {
-			Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](
-				addrs.MakeMapElem[addrs.Targetable, *configs.Override](primary, &configs.Override{
+			Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
+				addrs.MakeMapElem[addrs.Targetable, *definitions.Override](primary, &definitions.Override{
 					Target: &addrs.Target{
 						Subject: provider,
 					},
 				}),
-				addrs.MakeMapElem[addrs.Targetable, *configs.Override](secondary, &configs.Override{
+				addrs.MakeMapElem[addrs.Targetable, *definitions.Override](secondary, &definitions.Override{
 					Target: &addrs.Target{
 						Subject: provider,
 					},
 				}),
-				addrs.MakeMapElem[addrs.Targetable, *configs.Override](tertiary, &configs.Override{
+				addrs.MakeMapElem[addrs.Targetable, *definitions.Override](tertiary, &definitions.Override{
 					Target: &addrs.Target{
 						Subject: provider,
 					},

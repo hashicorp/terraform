@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
@@ -604,7 +605,7 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 	return diags
 }
 
-func (c *Config) addProviderRequirementsFromProviderBlock(reqs providerreqs.Requirements, provider *Provider) hcl.Diagnostics {
+func (c *Config) addProviderRequirementsFromProviderBlock(reqs providerreqs.Requirements, provider *definitions.Provider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
@@ -719,7 +720,7 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 		// and the values are a slice of provider configurations which contains
 		// all the definitions of a named provider of which there can be
 		// multiple because of aliases.
-		testProviders := make(map[string][]*Provider)
+		testProviders := make(map[string][]*definitions.Provider)
 		for _, provider := range test.Providers {
 			testProviders[provider.Name] = append(testProviders[provider.Name], provider)
 		}

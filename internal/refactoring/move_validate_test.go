@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/registry"
@@ -611,7 +612,7 @@ func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleA
 
 }
 
-func staticPopulateExpanderResource(t *testing.T, moduleAddr addrs.ModuleInstance, rCfg *configs.Resource, expander *instances.Expander) {
+func staticPopulateExpanderResource(t *testing.T, moduleAddr addrs.ModuleInstance, rCfg *definitions.Resource, expander *instances.Expander) {
 	t.Helper()
 
 	addr := rCfg.Addr()

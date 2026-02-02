@@ -8,201 +8,202 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestMockData_Merge(t *testing.T) {
 
 	tcs := map[string]struct {
-		current *MockData
-		target  *MockData
-		result  *MockData
+		current *definitions.MockData
+		target  *definitions.MockData
+		result  *definitions.MockData
 	}{
 		"empty_target": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources:   map[string]*MockResource{},
-				MockDataSources: map[string]*MockResource{},
-				Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+			target: &definitions.MockData{
+				MockResources:   map[string]*definitions.MockResource{},
+				MockDataSources: map[string]*definitions.MockResource{},
+				Overrides:       addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 		},
 		"nil_target": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 			target: nil,
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 		},
 		"all_collisions": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources: map[string]*MockResource{
+			target: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("target")),
 				),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 		},
 		"no_collisions": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources: map[string]*MockResource{
+			target: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource_two": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource_two",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source_two": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source_two",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
@@ -214,7 +215,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
@@ -226,7 +227,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
@@ -254,152 +255,152 @@ func TestMockData_Merge(t *testing.T) {
 func TestMockData_MergeWithCollisions(t *testing.T) {
 
 	tcs := map[string]struct {
-		current *MockData
-		target  *MockData
-		result  *MockData
+		current *definitions.MockData
+		target  *definitions.MockData
+		result  *definitions.MockData
 		diags   []string
 	}{
 		"empty_target": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources:   map[string]*MockResource{},
-				MockDataSources: map[string]*MockResource{},
-				Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+			target: &definitions.MockData{
+				MockResources:   map[string]*definitions.MockResource{},
+				MockDataSources: map[string]*definitions.MockResource{},
+				Overrides:       addrs.MakeMap[addrs.Targetable, *definitions.Override](),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 		},
 		"nil_target": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 			target: nil,
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 		},
 		"all_collisions": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources: map[string]*MockResource{
+			target: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("target")),
 				),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -410,46 +411,46 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 			},
 		},
 		"no_collisions": {
-			current: &MockData{
-				MockResources: map[string]*MockResource{
+			current: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
-			target: &MockData{
-				MockResources: map[string]*MockResource{
+			target: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource_two": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource_two",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source_two": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source_two",
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
 			},
-			result: &MockData{
-				MockResources: map[string]*MockResource{
+			result: &definitions.MockData{
+				MockResources: map[string]*definitions.MockResource{
 					"test_resource": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_resource",
@@ -461,7 +462,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				MockDataSources: map[string]*MockResource{
+				MockDataSources: map[string]*definitions.MockResource{
 					"test_data_source": {
 						Mode:     addrs.ManagedResourceMode,
 						Type:     "test_data_source",
@@ -473,7 +474,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.Targetable, *definitions.Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
@@ -498,7 +499,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 	}
 }
 
-func validateMockData(t *testing.T, actual, expected *MockData) {
+func validateMockData(t *testing.T, actual, expected *definitions.MockData) {
 
 	// Validate mock resources.
 
@@ -569,15 +570,15 @@ func validateValues(t *testing.T, key string, actual, expected cty.Value) {
 	}
 }
 
-func makeOverride(t *testing.T, target string, values cty.Value) addrs.MapElem[addrs.Targetable, *Override] {
+func makeOverride(t *testing.T, target string, values cty.Value) addrs.MapElem[addrs.Targetable, *definitions.Override] {
 	addr, diags := addrs.ParseTargetStr(target)
 	if diags.HasErrors() {
 		t.Fatalf("failed to parse target: %s", diags)
 	}
 
-	return addrs.MapElem[addrs.Targetable, *Override]{
+	return addrs.MapElem[addrs.Targetable, *definitions.Override]{
 		Key: addr.Subject,
-		Value: &Override{
+		Value: &definitions.Override{
 			Target: addr,
 			Values: values,
 		},

@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -25,7 +25,7 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 	ctx.ChecksState = checks.NewState(nil)
 	ctx.DeferralsState = deferring.NewDeferred(false)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &definitions.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
@@ -55,7 +55,7 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 func TestNodeApplyableOutputExecute_noState(t *testing.T) {
 	ctx := new(MockEvalContext)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &definitions.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
@@ -74,7 +74,7 @@ func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.ChecksState = checks.NewState(nil)
 
-	config := &configs.Output{
+	config := &definitions.Output{
 		Name: "map-output",
 		DependsOn: []hcl.Traversal{
 			{
@@ -105,7 +105,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.ChecksState = checks.NewState(nil)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &definitions.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
@@ -128,7 +128,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
 	ctx.ChecksState = checks.NewState(nil)
 	ctx.DeferralsState = deferring.NewDeferred(false)
 
-	config := &configs.Output{
+	config := &definitions.Output{
 		Name:      "map-output",
 		Sensitive: true,
 	}

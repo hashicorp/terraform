@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -27,7 +28,7 @@ type ImportOpts struct {
 type ImportTarget struct {
 	// Config is the original import block for this import. This might be null
 	// if the import did not originate in config.
-	Config *configs.Import
+	Config *definitions.Import
 
 	// LegacyAddr is the import address set from the command line arguments
 	// when using the import command.

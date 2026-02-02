@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/workdir"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 func TestDetectConfigChangeType(t *testing.T) {
@@ -102,7 +102,7 @@ func TestDetectConfigChangeType(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var state *workdir.BackendConfigState
-			var config *configs.Backend
+			var config *definitions.Backend
 			if test.stateType != "" {
 				state = &workdir.BackendConfigState{
 					Type: test.stateType,
@@ -110,7 +110,7 @@ func TestDetectConfigChangeType(t *testing.T) {
 				}
 			}
 			if test.configType != "" {
-				config = &configs.Backend{
+				config = &definitions.Backend{
 					Type: test.configType,
 					// everything else is irrelevant for our purposes here
 				}

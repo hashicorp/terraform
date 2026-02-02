@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -32,7 +32,7 @@ type graphNodeValidatableVariable interface {
 	// to produce the variable's value, but if there is no such expression --
 	// for example, if the value came from an environment variable -- then
 	// the location of the variable declaration is a plausible substitute.
-	variableValidationRules() (configAddr addrs.ConfigInputVariable, rules []*configs.CheckRule, defnRange hcl.Range)
+	variableValidationRules() (configAddr addrs.ConfigInputVariable, rules []*definitions.CheckRule, defnRange hcl.Range)
 }
 
 // Correct behavior requires both of the input variable node types to

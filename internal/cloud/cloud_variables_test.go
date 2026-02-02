@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -31,12 +31,12 @@ func TestParseCloudRunVariables(t *testing.T) {
 			"declaredFromEnvVar":              testUnparsedVariableValue{source: terraform.ValueFromEnvVar, value: cty.StringVal("4")},
 		}
 
-		decls := map[string]*configs.Variable{
+		decls := map[string]*definitions.Variable{
 			"declaredFromConfig": {
 				Name:           "declaredFromConfig",
 				Type:           cty.String,
 				ConstraintType: cty.String,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -47,7 +47,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedFileMapString",
 				Type:           cty.Map(cty.String),
 				ConstraintType: cty.Map(cty.String),
-				ParsingMode:    configs.VariableParseHCL,
+				ParsingMode:    definitions.VariableParseHCL,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -58,7 +58,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedFileBool",
 				Type:           cty.Bool,
 				ConstraintType: cty.Bool,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -69,7 +69,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedFileNumber",
 				Type:           cty.Number,
 				ConstraintType: cty.Number,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -80,7 +80,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedFileListString",
 				Type:           cty.List(cty.String),
 				ConstraintType: cty.List(cty.String),
-				ParsingMode:    configs.VariableParseHCL,
+				ParsingMode:    definitions.VariableParseHCL,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -91,7 +91,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedFileNull",
 				Type:           cty.String,
 				ConstraintType: cty.String,
-				ParsingMode:    configs.VariableParseHCL,
+				ParsingMode:    definitions.VariableParseHCL,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -102,7 +102,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromNamedMapComplex",
 				Type:           cty.DynamicPseudoType,
 				ConstraintType: cty.DynamicPseudoType,
-				ParsingMode:    configs.VariableParseHCL,
+				ParsingMode:    definitions.VariableParseHCL,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -113,7 +113,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromCLIArg",
 				Type:           cty.String,
 				ConstraintType: cty.String,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -124,7 +124,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Name:           "declaredFromEnvVar",
 				Type:           cty.String,
 				ConstraintType: cty.String,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -136,7 +136,7 @@ func TestParseCloudRunVariables(t *testing.T) {
 				Type:           cty.String,
 				ConstraintType: cty.String,
 				Default:        cty.StringVal("2"),
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    definitions.VariableParseLiteral,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -174,7 +174,7 @@ type testUnparsedVariableValue struct {
 	value  cty.Value
 }
 
-func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v testUnparsedVariableValue) ParseVariableValue(mode definitions.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
 		Value:      v.value,
 		SourceType: v.source,

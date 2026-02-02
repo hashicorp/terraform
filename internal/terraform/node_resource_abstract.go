@@ -8,8 +8,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -58,11 +58,11 @@ type NodeAbstractResource struct {
 
 	// Config and RemovedConfig are mutally-exclusive, because a
 	// resource can't be both declared and removed at the same time.
-	Config        *configs.Resource // Config is the resource in the config, if any
-	RemovedConfig *configs.Removed  // RemovedConfig is the "removed" block for this resource, if any
+	Config        *definitions.Resource // Config is the resource in the config, if any
+	RemovedConfig *definitions.Removed  // RemovedConfig is the "removed" block for this resource, if any
 
 	// ProviderMetas is the provider_meta configs for the module this resource belongs to
-	ProviderMetas map[addrs.Provider]*configs.ProviderMeta
+	ProviderMetas map[addrs.Provider]*definitions.ProviderMeta
 
 	ProvisionerSchemas map[string]*configschema.Block
 
@@ -205,7 +205,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			}
 
 			for _, p := range c.Managed.Provisioners {
-				if p.When != configs.ProvisionerWhenCreate {
+				if p.When != definitions.ProvisionerWhenCreate {
 					continue
 				}
 				if p.Connection != nil {
@@ -400,7 +400,7 @@ func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigRe
 }
 
 // GraphNodeAttachResourceConfig
-func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource, rc *configs.Removed) {
+func (n *NodeAbstractResource) AttachResourceConfig(c *definitions.Resource, rc *definitions.Removed) {
 	n.Config = c
 	n.RemovedConfig = rc
 }
@@ -411,7 +411,7 @@ func (n *NodeAbstractResource) AttachResourceSchema(schema *providers.Schema) {
 }
 
 // GraphNodeAttachProviderMetaConfigs impl
-func (n *NodeAbstractResource) AttachProviderMetaConfigs(c map[addrs.Provider]*configs.ProviderMeta) {
+func (n *NodeAbstractResource) AttachProviderMetaConfigs(c map[addrs.Provider]*definitions.ProviderMeta) {
 	n.ProviderMetas = c
 }
 

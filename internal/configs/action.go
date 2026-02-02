@@ -16,26 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Type aliases for types moved to the definitions package.
-type (
-	ActionRef          = definitions.ActionRef
-	ActionTriggerEvent = definitions.ActionTriggerEvent
-	ActionTrigger      = definitions.ActionTrigger
-	Action             = definitions.Action
-)
-
-// Re-export enum constants for backwards compatibility.
-const (
-	Unknown       = definitions.Unknown
-	BeforeCreate  = definitions.BeforeCreate
-	AfterCreate   = definitions.AfterCreate
-	BeforeUpdate  = definitions.BeforeUpdate
-	AfterUpdate   = definitions.AfterUpdate
-	BeforeDestroy = definitions.BeforeDestroy
-	AfterDestroy  = definitions.AfterDestroy
-	Invoke        = definitions.Invoke
-)
-
 func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -46,11 +26,11 @@ func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 }
 
 
-func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
+func decodeActionTriggerBlock(block *hcl.Block) (*definitions.ActionTrigger, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	a := &ActionTrigger{
-		Events:    []ActionTriggerEvent{},
-		Actions:   []ActionRef{},
+	a := &definitions.ActionTrigger{
+		Events:    []definitions.ActionTriggerEvent{},
+		Actions:   []definitions.ActionRef{},
 		Condition: nil,
 	}
 
@@ -65,19 +45,19 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		exprs, ediags := hcl.ExprList(attr.Expr)
 		diags = append(diags, ediags...)
 
-		events := []ActionTriggerEvent{}
+		events := []definitions.ActionTriggerEvent{}
 
 		for _, expr := range exprs {
-			var event ActionTriggerEvent
+			var event definitions.ActionTriggerEvent
 			switch hcl.ExprAsKeyword(expr) {
 			case "before_create":
-				event = BeforeCreate
+				event = definitions.BeforeCreate
 			case "after_create":
-				event = AfterCreate
+				event = definitions.AfterCreate
 			case "before_update":
-				event = BeforeUpdate
+				event = definitions.BeforeUpdate
 			case "after_update":
-				event = AfterUpdate
+				event = definitions.AfterUpdate
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -131,9 +111,9 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	return a, diags
 }
 
-func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
+func decodeActionBlock(block *hcl.Block) (*definitions.Action, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	a := &Action{
+	a := &definitions.Action{
 		Type:      block.Labels[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
@@ -248,12 +228,12 @@ var actionTriggerSchema = &hcl.BodySchema{
 // reference a single action. This function was largely copied from
 // decodeReplaceTriggeredBy, but is much more permissive in what References are
 // allowed.
-func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) {
+func decodeActionTriggerRef(expr hcl.Expression) ([]definitions.ActionRef, hcl.Diagnostics) {
 	exprs, diags := hcl.ExprList(expr)
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	actionRefs := make([]ActionRef, len(exprs))
+	actionRefs := make([]definitions.ActionRef, len(exprs))
 
 	for i, expr := range exprs {
 		// Since we are manually parsing the action_trigger.Actions argument, we
@@ -267,7 +247,7 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 		if diags.HasErrors() {
 			continue
 		}
-		actionRefs[i] = ActionRef{
+		actionRefs[i] = definitions.ActionRef{
 			Expr:  expr,
 			Range: expr.Range(),
 		}

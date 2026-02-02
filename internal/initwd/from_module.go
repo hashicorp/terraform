@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
@@ -138,7 +139,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		))
 	}
 	fakeRootModule := &configs.Module{
-		ModuleCalls: map[string]*configs.ModuleCall{
+		ModuleCalls: map[string]*definitions.ModuleCall{
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
 				SourceAddr: sourceAddr,
@@ -149,7 +150,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 				},
 			},
 		},
-		ProviderRequirements: &configs.RequiredProviders{},
+		ProviderRequirements: &definitions.RequiredProviders{},
 	}
 
 	// wrapHooks filters hook notifications to only include Download calls

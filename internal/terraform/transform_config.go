@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -98,7 +99,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
-	var allResources []*configs.Resource
+	var allResources []*definitions.Resource
 	if !t.destroy {
 		for _, r := range module.ManagedResources {
 			allResources = append(allResources, r)
@@ -136,7 +137,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// collect all the Action Declarations (configs.Actions) in this module so
 	// we can validate that actions referenced in a resource's ActionTriggers
 	// exist in this module.
-	allConfigActions := make(map[string]*configs.Action)
+	allConfigActions := make(map[string]*definitions.Action)
 	for _, a := range module.Actions {
 		if a != nil {
 			addr := a.Addr().InModule(path)

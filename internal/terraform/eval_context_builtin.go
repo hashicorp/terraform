@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -137,7 +137,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config *configs.Provider) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config *definitions.Provider) (providers.Interface, error) {
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)

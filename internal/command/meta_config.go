@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
@@ -141,7 +142,7 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // change in future, so callers must not rely on it. (That is, they must expect
 // that a call to loadSingleModule or loadConfig could fail on the same
 // directory even if loadBackendConfig succeeded.)
-func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
+func (m *Meta) loadBackendConfig(rootDir string) (*definitions.Backend, tfdiags.Diagnostics) {
 	mod, diags := m.loadSingleModule(rootDir)
 
 	// Only return error diagnostics at this point. Any warnings will be caught

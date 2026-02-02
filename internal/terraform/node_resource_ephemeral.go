@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -22,7 +22,7 @@ import (
 
 type ephemeralResourceInput struct {
 	addr           addrs.AbsResourceInstance
-	config         *configs.Resource
+	config         *definitions.Resource
 	providerConfig addrs.AbsProviderConfig
 }
 

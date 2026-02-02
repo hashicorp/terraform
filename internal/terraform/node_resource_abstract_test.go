@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
@@ -18,7 +18,7 @@ import (
 func TestNodeAbstractResourceProvider(t *testing.T) {
 	tests := []struct {
 		Addr   addrs.ConfigResource
-		Config *configs.Resource
+		Config *definitions.Resource
 		Want   addrs.Provider
 	}{
 		{
@@ -53,7 +53,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Type: "null_resource",
 				Name: "baz",
 			}.InModule(addrs.RootModule),
-			Config: &configs.Resource{
+			Config: &definitions.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
@@ -75,7 +75,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Type: "terraform_remote_state",
 				Name: "baz",
 			}.InModule(addrs.RootModule),
-			Config: &configs.Resource{
+			Config: &definitions.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
@@ -126,7 +126,7 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 			Type: "terraform_remote_state",
 			Name: "baz",
 		}.InModule(addrs.RootModule),
-		Config: &configs.Resource{
+		Config: &definitions.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "terraform_remote_state",
 			Name: "baz",

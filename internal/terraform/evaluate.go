@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -852,7 +853,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	return ret, diags
 }
 
-func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) getListResource(config *definitions.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	switch d.Operation {
 	case walkValidate:

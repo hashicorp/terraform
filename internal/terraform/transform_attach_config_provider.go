@@ -5,7 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // GraphNodeAttachProvider is an interface that must be implemented by nodes
@@ -15,5 +15,5 @@ type GraphNodeAttachProvider interface {
 	ProviderAddr() addrs.AbsProviderConfig
 
 	// Sets the configuration
-	AttachProvider(*configs.Provider)
+	AttachProvider(*definitions.Provider)
 }

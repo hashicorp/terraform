@@ -5,8 +5,8 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 
 	"github.com/hashicorp/terraform/internal/dag"
 )
@@ -24,7 +24,7 @@ type NodeAbstractProvider struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 
-	Config *configs.Provider
+	Config *definitions.Provider
 	Schema *configschema.Block
 }
 
@@ -68,7 +68,7 @@ func (n *NodeAbstractProvider) ProviderAddr() addrs.AbsProviderConfig {
 }
 
 // GraphNodeProvider
-func (n *NodeAbstractProvider) ProviderConfig() *configs.Provider {
+func (n *NodeAbstractProvider) ProviderConfig() *definitions.Provider {
 	if n.Config == nil {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (n *NodeAbstractProvider) ProviderConfig() *configs.Provider {
 }
 
 // GraphNodeAttachProvider
-func (n *NodeAbstractProvider) AttachProvider(c *configs.Provider) {
+func (n *NodeAbstractProvider) AttachProvider(c *definitions.Provider) {
 	n.Config = c
 }
 

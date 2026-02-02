@@ -9,11 +9,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
-// Backend is a type alias for the definition in the definitions package.
-type Backend = definitions.Backend
-
-func decodeBackendBlock(block *hcl.Block) (*Backend, hcl.Diagnostics) {
-	return &Backend{
+func decodeBackendBlock(block *hcl.Block) (*definitions.Backend, hcl.Diagnostics) {
+	return &definitions.Backend{
 		Type:      block.Labels[0],
 		TypeRange: block.LabelRanges[0],
 		Config:    block.Body,

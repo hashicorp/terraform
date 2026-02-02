@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -527,7 +528,7 @@ func (manifest *TestManifest) StateFilePath(id string) string {
 
 // getBackendInstance uses the config for a given run block's backend block to create and return a configured
 // instance of that backend type.
-func getBackendInstance(stateKey string, config *configs.Backend, f backend.InitFn) (backend.Backend, error) {
+func getBackendInstance(stateKey string, config *definitions.Backend, f backend.InitFn) (backend.Backend, error) {
 	b := f()
 	log.Printf("[TRACE] TestConfigTransformer.Transform: instantiated backend of type %T", b)
 

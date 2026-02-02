@@ -8,13 +8,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/modsdir"
 )
 
 func TestResolver_Resolve(t *testing.T) {
 	cfg := configs.NewEmptyConfig()
 	cfg.Module = &configs.Module{
-		ModuleCalls: map[string]*configs.ModuleCall{
+		ModuleCalls: map[string]*definitions.ModuleCall{
 			"foo": {Name: "foo"},
 		},
 	}
@@ -26,7 +27,7 @@ func TestResolver_Resolve(t *testing.T) {
 			Children:   make(map[string]*configs.Config),
 			SourceAddr: addrs.ModuleSourceLocal("./foo"),
 			Module: &configs.Module{
-				ModuleCalls: map[string]*configs.ModuleCall{},
+				ModuleCalls: map[string]*definitions.ModuleCall{},
 			},
 		},
 	}
@@ -59,7 +60,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 	cfg := configs.NewEmptyConfig()
 	cfg.Children = make(map[string]*configs.Config)
 	cfg.Module = &configs.Module{
-		ModuleCalls: map[string]*configs.ModuleCall{
+		ModuleCalls: map[string]*definitions.ModuleCall{
 			"foo":        {Name: "foo"},
 			"fellowship": {Name: "fellowship"},
 		},
@@ -71,7 +72,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 		SourceAddr: addrs.ModuleSourceLocal("./foo"),
 		Children:   make(map[string]*configs.Config),
 		Module: &configs.Module{
-			ModuleCalls: map[string]*configs.ModuleCall{},
+			ModuleCalls: map[string]*definitions.ModuleCall{},
 		},
 	}
 
@@ -83,7 +84,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 		},
 		Children: make(map[string]*configs.Config),
 		Module: &configs.Module{
-			ModuleCalls: map[string]*configs.ModuleCall{
+			ModuleCalls: map[string]*definitions.ModuleCall{
 				"frodo": {Name: "frodo"},
 			},
 		},
@@ -98,7 +99,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 		},
 		Children: make(map[string]*configs.Config),
 		Module: &configs.Module{
-			ModuleCalls: map[string]*configs.ModuleCall{},
+			ModuleCalls: map[string]*definitions.ModuleCall{},
 		},
 	}
 
@@ -110,7 +111,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 		},
 		Children: make(map[string]*configs.Config),
 		Module: &configs.Module{
-			ModuleCalls: map[string]*configs.ModuleCall{
+			ModuleCalls: map[string]*definitions.ModuleCall{
 				"sting": {Name: "sting"},
 			},
 		},
@@ -125,7 +126,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 		},
 		Children: make(map[string]*configs.Config),
 		Module: &configs.Module{
-			ModuleCalls: map[string]*configs.ModuleCall{},
+			ModuleCalls: map[string]*definitions.ModuleCall{},
 		},
 	}
 

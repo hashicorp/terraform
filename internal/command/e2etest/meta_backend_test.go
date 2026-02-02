@@ -13,7 +13,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -60,7 +60,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		// 3. Move the binary into the cache folder created above.
 		os.Rename(simple6ProviderExe, fmt.Sprintf("%s/%s/terraform-provider-simple", td, providerPath))
 
-		config := &configs.StateStore{
+		config := &definitions.StateStore{
 			ProviderAddr: tfaddr.MustParseProviderSource("registry.terraform.io/hashicorp/simple"),
 			// No other fields necessary for test.
 		}

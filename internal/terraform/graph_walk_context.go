@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -44,7 +45,7 @@ type ContextGraphWalker struct {
 	InstanceExpander        *instances.Expander  // Tracks our gradual expansion of module and resource instances
 	Deferrals               *deferring.Deferred  // Tracks any deferred actions
 	EphemeralResources      *ephemeral.Resources // Tracks active instances of ephemeral resources
-	Imports                 []configs.Import
+	Imports                 []definitions.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
 	StopContext             context.Context

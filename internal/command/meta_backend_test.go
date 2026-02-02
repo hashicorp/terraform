@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -2064,7 +2065,7 @@ func Test_determineInitReason(t *testing.T) {
 	cases := map[string]struct {
 		cloudMode     cloud.ConfigChangeMode
 		backendState  workdir.BackendStateFile
-		backendConfig configs.Backend
+		backendConfig definitions.Backend
 
 		wantErr string
 	}{
@@ -2077,7 +2078,7 @@ func Test_determineInitReason(t *testing.T) {
 					// Other fields unnecessary
 				},
 			},
-			backendConfig: configs.Backend{
+			backendConfig: definitions.Backend{
 				Type: "cloud",
 				// Other fields unnecessary
 			},
@@ -2091,7 +2092,7 @@ func Test_determineInitReason(t *testing.T) {
 					// Other fields unnecessary
 				},
 			},
-			backendConfig: configs.Backend{
+			backendConfig: definitions.Backend{
 				Type: "cloud",
 				// Other fields unnecessary
 			},
@@ -2105,7 +2106,7 @@ func Test_determineInitReason(t *testing.T) {
 					// Other fields unnecessary
 				},
 			},
-			backendConfig: configs.Backend{
+			backendConfig: definitions.Backend{
 				Type: "foobar",
 				// Other fields unnecessary
 			},
@@ -2121,7 +2122,7 @@ func Test_determineInitReason(t *testing.T) {
 					// Other fields unnecessary
 				},
 			},
-			backendConfig: configs.Backend{
+			backendConfig: definitions.Backend{
 				Type: "foobar2",
 				// Other fields unnecessary
 			},
@@ -2139,7 +2140,7 @@ func Test_determineInitReason(t *testing.T) {
 					// Other fields unnecessary
 				},
 			},
-			backendConfig: configs.Backend{
+			backendConfig: definitions.Backend{
 				Type: "foobar",
 				// Other fields unnecessary
 			},
@@ -2477,9 +2478,9 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 			[]providerreqs.Hash{""},
 		)
 
-		config := &configs.StateStore{
+		config := &definitions.StateStore{
 			ProviderAddr: tfaddr.MustParseProviderSource("registry.terraform.io/hashicorp/simple"),
-			Provider: &configs.Provider{
+			Provider: &definitions.Provider{
 				Name: "foobar",
 			},
 			Type: "store",
@@ -2511,7 +2512,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		// Only minimal locks needed
 		locks := depsfile.NewLocks()
 
-		config := &configs.StateStore{
+		config := &definitions.StateStore{
 			ProviderAddr: tfaddr.Provider{}, // Empty
 		}
 
@@ -2536,10 +2537,10 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 	expectedRegionAttr := "foobar"
 	expectedValueAttr := "foobar"
-	config := &configs.StateStore{
+	config := &definitions.StateStore{
 		Type:   "test_store",
 		Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, expectedValueAttr)),
-		Provider: &configs.Provider{
+		Provider: &definitions.Provider{
 			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, expectedRegionAttr)),
 		},
 		ProviderAddr: addrs.NewDefaultProvider("test"),
@@ -2694,10 +2695,10 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 
 func TestMetaBackend_stateStoreConfig(t *testing.T) {
 	// Reused in tests
-	config := &configs.StateStore{
+	config := &definitions.StateStore{
 		Type:   "test_store",
 		Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, "foobar")),
-		Provider: &configs.Provider{
+		Provider: &definitions.Provider{
 			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, "foobar")),
 		},
 		ProviderAddr: addrs.NewDefaultProvider("test"),
@@ -2853,8 +2854,8 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 	)
 
 	t.Run("returns the version of the provider represented in the locks", func(t *testing.T) {
-		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
+		c := &definitions.StateStore{
+			Provider:     &definitions.Provider{},
 			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
@@ -2872,8 +2873,8 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 	})
 
 	t.Run("returns a nil version when using a builtin provider", func(t *testing.T) {
-		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
+		c := &definitions.StateStore{
+			Provider:     &definitions.Provider{},
 			ProviderAddr: tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
@@ -2900,8 +2901,8 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 				}
 			}
 		}`)
-		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
+		c := &definitions.StateStore{
+			Provider:     &definitions.Provider{},
 			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
@@ -2916,9 +2917,9 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 	})
 
 	t.Run("returns an error diagnostic when version info cannot be obtained from locks", func(t *testing.T) {
-		c := &configs.StateStore{
+		c := &definitions.StateStore{
 			Type: "missing-provider_foobar",
-			Provider: &configs.Provider{
+			Provider: &definitions.Provider{
 				Name: "missing-provider",
 			},
 			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),

@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -36,7 +36,7 @@ var _ Interface = (*Mock)(nil)
 // that is used by the Terraform core itself to test it's own behavior.
 type Mock struct {
 	Provider Interface
-	Data     *configs.MockData
+	Data     *definitions.MockData
 
 	schema         *GetProviderSchemaResponse
 	identitySchema *GetResourceIdentitySchemasResponse

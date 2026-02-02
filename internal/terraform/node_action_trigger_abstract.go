@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
@@ -28,14 +28,14 @@ type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand, Relati
 type nodeAbstractActionTriggerExpand struct {
 	Addr             addrs.ConfigAction
 	resolvedProvider addrs.AbsProviderConfig
-	Config           *configs.Action
+	Config           *definitions.Action
 
 	lifecycleActionTrigger *lifecycleActionTrigger
 }
 
 type lifecycleActionTrigger struct {
 	resourceAddress         addrs.ConfigResource
-	events                  []configs.ActionTriggerEvent
+	events                  []definitions.ActionTriggerEvent
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range

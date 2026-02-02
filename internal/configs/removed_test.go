@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
@@ -28,7 +29,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 
 	tests := map[string]struct {
 		input *hcl.Block
-		want  *Removed
+		want  *definitions.Removed
 		err   string
 	}{
 		"destroy true": {
@@ -57,10 +58,10 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
-				Managed:   &ManagedResource{},
+				Managed:   &definitions.ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
@@ -91,10 +92,10 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   false,
-				Managed:   &ManagedResource{},
+				Managed:   &definitions.ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
@@ -127,19 +128,19 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:    mustRemoveEndpointFromExpr(foo_expr),
 				Destroy: true,
-				Managed: &ManagedResource{
-					Provisioners: []*Provisioner{
+				Managed: &definitions.ManagedResource{
+					Provisioners: []*definitions.Provisioner{
 						{
 							Type: "remote-exec",
 							Config: hcltest.MockBody(&hcl.BodyContent{
 								Attributes: hcl.Attributes{},
 								Blocks:     hcl.Blocks{},
 							}),
-							When:      ProvisionerWhenDestroy,
-							OnFailure: ProvisionerOnFailureFail,
+							When:      definitions.ProvisionerWhenDestroy,
+							OnFailure: definitions.ProvisionerOnFailureFail,
 						},
 					},
 				},
@@ -175,19 +176,19 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:    mustRemoveEndpointFromExpr(foo_expr),
 				Destroy: true,
-				Managed: &ManagedResource{
-					Provisioners: []*Provisioner{
+				Managed: &definitions.ManagedResource{
+					Provisioners: []*definitions.Provisioner{
 						{
 							Type: "local-exec",
 							Config: hcltest.MockBody(&hcl.BodyContent{
 								Attributes: hcl.Attributes{},
 								Blocks:     hcl.Blocks{},
 							}),
-							When:      ProvisionerWhenCreate,
-							OnFailure: ProvisionerOnFailureFail,
+							When:      definitions.ProvisionerWhenCreate,
+							OnFailure: definitions.ProvisionerOnFailureFail,
 						},
 					},
 				},
@@ -220,22 +221,22 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:    mustRemoveEndpointFromExpr(foo_expr),
 				Destroy: true,
-				Managed: &ManagedResource{
-					Connection: &Connection{
+				Managed: &definitions.ManagedResource{
+					Connection: &definitions.Connection{
 						Config: hcltest.MockBody(&hcl.BodyContent{}),
 					},
-					Provisioners: []*Provisioner{
+					Provisioners: []*definitions.Provisioner{
 						{
 							Type: "local-exec",
 							Config: hcltest.MockBody(&hcl.BodyContent{
 								Attributes: hcl.Attributes{},
 								Blocks:     hcl.Blocks{},
 							}),
-							When:      ProvisionerWhenCreate,
-							OnFailure: ProvisionerOnFailureFail,
+							When:      definitions.ProvisionerWhenCreate,
+							OnFailure: definitions.ProvisionerOnFailureFail,
 						},
 					},
 				},
@@ -269,7 +270,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
@@ -304,7 +305,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
@@ -330,7 +331,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
@@ -351,10 +352,10 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
-				Managed:   &ManagedResource{},
+				Managed:   &definitions.ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
@@ -379,7 +380,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
@@ -411,7 +412,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      nil,
 				Destroy:   true,
 				DeclRange: blockRange,
@@ -444,7 +445,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Removed{
+			&definitions.Removed{
 				From:      nil,
 				Destroy:   true,
 				DeclRange: blockRange,

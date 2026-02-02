@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 )
 
 // LoadConfig reads the Terraform module in the given directory and uses it as the
@@ -51,7 +52,7 @@ func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*co
 
 // LoadExternalMockData reads the external mock data files for the given
 // provider, if they are present.
-func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+func (l *Loader) LoadExternalMockData(provider *definitions.Provider) (*definitions.MockData, hcl.Diagnostics) {
 	if len(provider.MockDataExternalSource) == 0 {
 		// We have no external mock data, so don't do anything.
 		return nil, nil

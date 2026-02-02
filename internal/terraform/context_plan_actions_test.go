@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/definitions"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -427,7 +428,7 @@ resource "test_object" "a" {
 					if at.ActionTriggerBlockIndex != 0 {
 						t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 					}
-					if at.TriggerEvent() != configs.BeforeCreate {
+					if at.TriggerEvent() != definitions.BeforeCreate {
 						t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
 					}
 					if at.ActionsListIndex != 0 {
@@ -767,7 +768,7 @@ resource "test_object" "a" {
 						t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
 					}
 
-					triggeredEvents := []configs.ActionTriggerEvent{}
+					triggeredEvents := []definitions.ActionTriggerEvent{}
 					for _, action := range p.Changes.ActionInvocations {
 						at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
 						if !ok {
@@ -776,7 +777,7 @@ resource "test_object" "a" {
 						triggeredEvents = append(triggeredEvents, at.ActionTriggerEvent)
 					}
 					slices.Sort(triggeredEvents)
-					if diff := cmp.Diff([]configs.ActionTriggerEvent{configs.BeforeCreate, configs.AfterCreate}, triggeredEvents); diff != "" {
+					if diff := cmp.Diff([]definitions.ActionTriggerEvent{definitions.BeforeCreate, definitions.AfterCreate}, triggeredEvents); diff != "" {
 						t.Errorf("wrong result\n%s", diff)
 					}
 				},
@@ -832,7 +833,7 @@ resource "test_object" "a" {
 						t.Fatalf("expected 2 action in plan, got %d", len(p.Changes.ActionInvocations))
 					}
 
-					triggeredEvents := []configs.ActionTriggerEvent{}
+					triggeredEvents := []definitions.ActionTriggerEvent{}
 					for _, action := range p.Changes.ActionInvocations {
 						at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
 						if !ok {
@@ -841,7 +842,7 @@ resource "test_object" "a" {
 						triggeredEvents = append(triggeredEvents, at.ActionTriggerEvent)
 					}
 					slices.Sort(triggeredEvents)
-					if diff := cmp.Diff([]configs.ActionTriggerEvent{configs.BeforeCreate, configs.AfterCreate}, triggeredEvents); diff != "" {
+					if diff := cmp.Diff([]definitions.ActionTriggerEvent{definitions.BeforeCreate, definitions.AfterCreate}, triggeredEvents); diff != "" {
 						t.Errorf("wrong result\n%s", diff)
 					}
 				},
@@ -1291,7 +1292,7 @@ resource "test_object" "a" {
 						t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
 					}
 
-					if p.Changes.ActionInvocations[0].ActionTrigger.TriggerEvent() != configs.AfterCreate {
+					if p.Changes.ActionInvocations[0].ActionTrigger.TriggerEvent() != definitions.AfterCreate {
 						t.Fatalf("expected trigger event to be of type AfterCreate, got: %v", p.Changes.ActionInvocations[0].ActionTrigger)
 					}
 
@@ -1654,7 +1655,7 @@ resource "other_object" "a" {
 					if at.ActionTriggerBlockIndex != 0 {
 						t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 					}
-					if at.TriggerEvent() != configs.BeforeCreate {
+					if at.TriggerEvent() != definitions.BeforeCreate {
 						t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
 					}
 					if at.ActionsListIndex != 0 {
@@ -1725,7 +1726,7 @@ resource "other_object" "a" {
 					if at.ActionTriggerBlockIndex != 0 {
 						t.Fatalf("expected action to have a triggering block index of 0, got %d", at.ActionTriggerBlockIndex)
 					}
-					if at.TriggerEvent() != configs.BeforeCreate {
+					if at.TriggerEvent() != definitions.BeforeCreate {
 						t.Fatalf("expected action to have a triggering event of 'before_create', got '%s'", at.TriggerEvent())
 					}
 					if at.ActionsListIndex != 0 {
