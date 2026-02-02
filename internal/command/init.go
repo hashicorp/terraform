@@ -434,7 +434,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					),
 				))
 			}
-
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
 			displayWarnings := make([]string, len(warnings))
@@ -694,7 +693,15 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 // The method downloads any missing providers that aren't already downloaded and then returns
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(
+	ctx context.Context,
+	config *configs.Config,
+	upgrade bool,
+	pluginDirs []string,
+	flagLockfile string,
+	safeInit bool,
+	view views.Init,
+) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
@@ -746,7 +753,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
+	evts := c.prepareInstallerEvents(ctx, reqs, config, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo, safeInit)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -795,7 +802,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // The calling code is assumed to have already called getProvidersFromConfig, which is used to
 // supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, safeInit bool, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
 
@@ -863,7 +870,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
+	evts := c.prepareInstallerEvents(ctx, reqs, nil, diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig, safeInit)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -898,7 +905,6 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
 func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
-
 	// Get the combination of config and state locks
 	newLocks := c.mergeLockedDependencies(configLocks, stateLocks)
 
@@ -967,8 +973,7 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 // prepareInstallerEvents returns an instance of *providercache.InstallerEvents. This struct defines callback functions that will be executed
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
-func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
-
+func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, config *configs.Config, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode, safeInit bool) *providercache.InstallerEvents {
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -1007,6 +1012,35 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 		},
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+			view.Log("location = " + location.String())
+		},
+		FetchPackageCheckPSS: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) error {
+			if config != nil && config.Module.StateStore != nil {
+				if config.Module.StateStore.ProviderAddr.Equals(provider) {
+					switch location.(type) {
+					case getproviders.PackageLocalDir:
+						// Ok, as providers sourced from the local directory are considered trusted.
+						return nil
+					case getproviders.PackageLocalArchive:
+						// Ok, as providers sourced from a local archive are considered trusted.
+						return nil
+					case getproviders.PackageHTTPURL:
+						if safeInit {
+							// Safe - allow
+							return nil
+						} else {
+							// Unsafe - block
+							return getproviders.ErrUnsafeStateStorageProviderDownload{
+								Provider: provider,
+								Version:  version,
+							}
+						}
+					default:
+						panic(fmt.Sprintf("unexpected location for provider %s %s: %s", provider, version, location))
+					}
+				}
+			}
+			return nil
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			switch errorTy := err.(type) {
@@ -1095,7 +1129,6 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					),
 				))
 			}
-
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
 			displayWarnings := make([]string, len(warnings))
@@ -1180,6 +1213,16 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				// We don't attribute cancellation to any particular operation,
 				// but rather just emit a single general message about it at
 				// the end, by checking ctx.Err().
+
+			case getproviders.ErrUnsafeStateStorageProviderDownload:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsafe init - TODO",
+					fmt.Sprintf(
+						"TODO - blocked download of provider %s v%s.",
+						err.Provider, err.Version,
+					),
+				))
 
 			default:
 				// We can potentially end up in here under cancellation too,

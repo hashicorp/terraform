@@ -556,6 +556,21 @@ NeedProvider:
 		// Step 3c: Retrieve the package indicated by the metadata we received,
 		// either directly into our target directory or via the global cache
 		// directory.
+
+		// Stop download if it's for PSS and -safe-init isn't set.
+		if cb := evts.FetchPackageCheckPSS; cb != nil {
+			err := cb(provider, version, meta.Location)
+			// A returned error means we're blocking download of the provider
+			// until -safe-init is added.
+			if err != nil {
+				errs[provider] = err
+				if cb := evts.FetchPackageFailure; cb != nil {
+					cb(provider, version, err)
+				}
+				continue
+			}
+		}
+
 		if cb := evts.FetchPackageBegin; cb != nil {
 			cb(provider, version, meta.Location)
 		}
