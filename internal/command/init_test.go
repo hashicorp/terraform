@@ -3703,6 +3703,74 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
+	//
+	// When input is enabled Terraform prompts the user to select an alternative.
+	t.Run("init: prompts user to select a workspace if the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{
+				"foobar1",
+				"foobar2",
+				// Force provider to report workspaces exist
+				// But default workspace doesn't exist
+			},
+		}
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+		defer close()
+
+		// Allow the test to respond to the prompt to pick an
+		// existing workspace, given the selected one doesn't exist.
+		defer testInputMap(t, map[string]string{
+			"select-workspace": "1", // foobar1 in numbered list
+		})()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// The init command should have caused the selected workspace to change, based on the input
+		// provided by the user.
+		currentWorkspace, err := c.Meta.Workspace()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if currentWorkspace != "foobar1" {
+			t.Fatalf("expected init command to alter the selected workspace from 'default' to 'foobar1', but got: %s", currentWorkspace)
+		}
+	})
+
 	// TODO(SarahFrench/radeksimko): Add test cases below:
 	// 1) "during a non-init command, the command ends in with an error telling the user to run an init command"
 	// >>> Currently this is handled at a lower level in `internal/command/meta_backend_test.go`
