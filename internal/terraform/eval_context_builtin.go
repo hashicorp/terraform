@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -93,6 +95,7 @@ type BuiltinEvalContext struct {
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
+	InstanceProvider        *InstanceProvider
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -323,10 +326,72 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 	var diags tfdiags.Diagnostics
 	scope := ctx.EvaluationScope(self, nil, keyData)
 	body, evalDiags := scope.ExpandBlock(body, schema)
+
+	// If the body contains references to instances, we retrieve the traversals,
+	// and then traverse them until they are all resolved.
+	// This might involve evaluating the nodes responsible for providing the
+	// needed values.
+	instanceTraversals := blocktoattr.InstanceTraversals(body, schema)
+	for _, traversal := range instanceTraversals {
+		diags = diags.Append(ctx.EvaluateInstanceTraversal(traversal, keyData))
+	}
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	return val, body, diags
+}
+
+func (ctx *BuiltinEvalContext) EvaluateInstanceTraversal(tr *blocktoattr.InstanceTraversal, keyData InstanceKeyEvalData) tfdiags.Diagnostics {
+	if tr == nil {
+		return nil
+	}
+	var diags tfdiags.Diagnostics
+	if tr.KeyAsInstanceTraversal != nil {
+		diags = diags.Append(ctx.EvaluateInstanceTraversal(tr.KeyAsInstanceTraversal, keyData))
+	}
+
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+
+	//special case for splat
+	if tr.AllKeys {
+		ctx.InstanceProvider.Keys.Put(tr.Reference.Subject, addrs.WildcardKey)
+		return diags
+	}
+
+	val, diag := scope.EvalExpr(tr.Key, cty.DynamicPseudoType)
+	if diag != nil {
+		diags = diags.Append(diag)
+	}
+
+	var instanceKey addrs.InstanceKey
+	switch val.Type() {
+	case cty.String:
+		instanceKey = addrs.StringKey(val.AsString())
+	case cty.Number:
+		var idxInt int
+		err := gocty.FromCtyValue(val, &idxInt)
+		if err == nil {
+			instanceKey = addrs.IntKey(idxInt)
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address operator",
+				Detail:   fmt.Sprintf("Invalid index: %s.", err),
+				Subject:  tr.Key.Range().Ptr(),
+			})
+		}
+	default:
+		// Should never happen, because no other types are allowed in traversal indices.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address operator",
+			Detail:   "Invalid key: must be either a string or an integer.",
+			Subject:  tr.Key.Range().Ptr(),
+		})
+	}
+
+	ctx.InstanceProvider.Keys.Put(tr.Reference.Subject, instanceKey)
+	return diags
 }
 
 // EvaluateBlockForProvider is a workaround to allow providers to access a more
@@ -347,7 +412,16 @@ func (ctx *BuiltinEvalContext) EvaluateBlockForProvider(body hcl.Body, schema *c
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
+	instanceTraversals := blocktoattr.ExprInstanceTraversals(expr)
+	for _, traversal := range instanceTraversals {
+		diags = diags.Append(ctx.EvaluateInstanceTraversal(traversal, EvalDataForNoInstanceKey))
+	}
+	if diags.HasErrors() {
+		return cty.NilVal, diags
+	}
+
 	return scope.EvalExpr(expr, wantType)
 }
 
@@ -469,9 +543,10 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 				Evaluator: ctx.Evaluator,
 				Module:    scope.Addr.Module(),
 			},
-			ModulePath:      scope.Addr,
-			InstanceKeyData: keyData,
-			Operation:       ctx.Evaluator.Operation,
+			ModulePath:       scope.Addr,
+			InstanceKeyData:  keyData,
+			Operation:        ctx.Evaluator.Operation,
+			InstanceProvider: ctx.InstanceProvider,
 		}
 		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 

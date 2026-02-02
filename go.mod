@@ -2,6 +2,10 @@ module github.com/hashicorp/terraform
 
 go 1.25
 
+replace github.com/hashicorp/hcl/v2 => ../hcl
+
+replace github.com/hashicorp/hcl/v2/hclsyntax => ../hcl/hclsyntax
+
 godebug winsymlink=0
 
 require (

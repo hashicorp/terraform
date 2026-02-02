@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -12,14 +13,27 @@ import (
 func TestContextApply_TargetInstance(t *testing.T) {
 	testConfig := testModuleInline(t, map[string]string{
 		"main.tf": `
+		
+	locals {
+		numbers = {
+			a = resource.test_object.baz[*].test_number
+			b = 0
+		}
+	}
+	
 	resource "test_object" "foo" {
 		count = 2
 		test_string = join("_", ["foo", count.index])
 	}	
+	
+	resource "test_object" "baz" {
+		count = 2
+		test_number = 0
+	}	
 
 	resource "test_object" "bar" {
 		count = 2
-    	test_string = resource.test_object.foo[count.index].test_string
+    	test_string = resource.test_object.foo[local.numbers.a[local.numbers.b]].test_string
 	}
 `,
 	})
@@ -43,6 +57,13 @@ func TestContextApply_TargetInstance(t *testing.T) {
 	pr, diags := ctx.Plan(testConfig, states.NewState(), planOptions)
 	tfdiags.AssertNoErrors(t, diags)
 
-	_ = pr.Changes.Resources
+	rs := pr.Changes.Resources
+	for _, r := range rs {
+		fmt.Printf("Resource: %s\n", r.Addr.String())
+	}
+	if len(rs) != 4 {
+		t.Fatalf("expected 4 resources, got %d", len(rs))
+	}
+
 	t.Log("test")
 }

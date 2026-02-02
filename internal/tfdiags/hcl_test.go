@@ -100,3 +100,7 @@ func (e *fakeHCLExpression) Variables() []hcl.Traversal {
 func (e *fakeHCLExpression) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	return cty.DynamicVal, nil
 }
+
+func (e *fakeHCLExpression) Children() []hcl.Expression {
+	return nil
+}

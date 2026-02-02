@@ -123,6 +123,9 @@ type evaluationStateData struct {
 	// Operation records the type of walk the evaluationStateData is being used
 	// for.
 	Operation walkOperation
+
+	InstanceProvider *InstanceProvider
+	EvalContext      EvalContext
 }
 
 // InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
@@ -542,6 +545,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Type, addr.Name, moduleDisplayAddr(moduleAddr)),
 			Subject:  rng.ToHCL().Ptr(),
 		})
+		return cty.DynamicVal, diags
+	}
+
+	// We need this resource. Check if we have it already
+	// Otherwise we need to evaluate its node.
+	diags = d.InstanceProvider.ExecuteResource(moduleAddr, addr)
+	if diags.HasErrors() {
 		return cty.DynamicVal, diags
 	}
 

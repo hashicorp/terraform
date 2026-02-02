@@ -57,6 +57,8 @@ type ContextGraphWalker struct {
 	Forget  bool
 	Actions *actions.Actions
 
+	Targets []addrs.Targetable
+
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
@@ -72,6 +74,9 @@ type ContextGraphWalker struct {
 	provisionerCache   map[string]provisioners.Interface
 	provisionerSchemas map[string]*configschema.Block
 	provisionerLock    sync.Mutex
+
+	depMap   *addrs.Map[addrs.Referenceable, *NodePlannableResourceInstance]
+	depCache map[addrs.Referenceable]*NodePlannableResourceInstance
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -144,7 +149,16 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
 		ActionsValue:            w.Actions,
+		InstanceProvider: &InstanceProvider{
+			Nodes:         w.depMap,
+			walkOperation: w.Operation,
+			Targets:       w.Targets,
+			Keys:          addrs.MakeMap[addrs.Referenceable, addrs.InstanceKey](),
+			cache:         w.depCache,
+		},
 	}
+
+	ctx.InstanceProvider.EvalContext = ctx
 
 	return ctx
 }
@@ -156,6 +170,9 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
+	tmp := addrs.MakeMap[addrs.Referenceable, *NodePlannableResourceInstance]()
+	w.depMap = &tmp
+	w.depCache = make(map[addrs.Referenceable]*NodePlannableResourceInstance)
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

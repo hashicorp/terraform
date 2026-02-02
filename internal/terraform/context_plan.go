@@ -804,6 +804,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
+		Targets:                    opts.Targets,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

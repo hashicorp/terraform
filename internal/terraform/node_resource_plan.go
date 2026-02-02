@@ -139,8 +139,52 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 	g, expandDiags := n.dynamicExpand(ctx, moduleInstances, imports)
 	diags = diags.Append(expandDiags)
+
+	ctxx := ctx.(*BuiltinEvalContext)
+	// If we are targeting the graph, but not this node, then we don't evaluate the instances
+	// // until we reach it from the targeted nodes.
+	if ctxx.InstanceProvider.Targets != nil && !n.IsTargeted() {
+		// if ctxx.InstanceProvider.Targets != nil {
+		for v := range dag.SelectSeq[*NodePlannableResourceInstance](g.VerticesSeq()) {
+			ctxx.InstanceProvider.Nodes.Put(v.Addr.Resource, v)
+		}
+		g = nil
+	}
 	return g, diags
 }
+
+func (n *nodeExpandPlannableResource) IsTargeted() bool {
+	var vertexAddr addrs.Targetable
+	vertexAddr = n.ResourceAddr()
+	for _, targetAddr := range n.Targets {
+		switch vertexAddr.(type) {
+		case addrs.ConfigResource:
+			// Before expansion happens, we only have nodes that know their
+			// ConfigResource address.  We need to take the more specific
+			// target addresses and generalize them in order to compare with a
+			// ConfigResource.
+			switch target := targetAddr.(type) {
+			case addrs.AbsResourceInstance:
+				targetAddr = target.ContainingResource().Config()
+			case addrs.AbsResource:
+				targetAddr = target.Config()
+			case addrs.ModuleInstance:
+				targetAddr = target.Module()
+			}
+		}
+
+		if targetAddr.TargetContains(vertexAddr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// func (n *nodeExpandPlannableResource) ExprReferenceValue(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+// 	g, diags := n.DynamicExpand(ctx)
+// 	g.Walk()
+// }
 
 // Import blocks are expanded in conjunction with their associated resource block.
 func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, allowUnknown bool) (addrs.Map[addrs.AbsResourceInstance, cty.Value], addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], tfdiags.Diagnostics) {

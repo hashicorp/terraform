@@ -196,6 +196,10 @@ func (f fakeHCLExpressionFunc) Variables() []hcl.Traversal {
 	return nil
 }
 
+func (f fakeHCLExpressionFunc) Children() []hcl.Expression {
+	return nil
+}
+
 func (f fakeHCLExpressionFunc) Range() hcl.Range {
 	return hcl.Range{
 		Filename: "fake",
@@ -235,4 +239,7 @@ func fakeHCLExpression(required []hcl.Traversal, eval fakeHCLExpressionFunc) fak
 
 func (f fakeHCLExpressionFuncWithTraversals) Variables() []hcl.Traversal {
 	return f.traversals
+}
+func (f fakeHCLExpressionFuncWithTraversals) Children() []hcl.Expression {
+	return nil
 }

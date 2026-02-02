@@ -247,6 +247,11 @@ func (e *fixupBlocksExpr) Variables() []hcl.Traversal {
 	return ret
 }
 
+func (e *fixupBlocksExpr) Children() []hcl.Expression {
+	var ret []hcl.Expression
+	return ret
+}
+
 func (e *fixupBlocksExpr) Range() hcl.Range {
 	// This is not really an appropriate range for the expression but it's
 	// the best we can do from here.
