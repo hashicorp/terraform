@@ -3596,7 +3596,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3608,6 +3608,12 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 		defer close()
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3625,7 +3631,11 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			},
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-create-default-workspace=false",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3645,7 +3655,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3657,6 +3667,12 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 		defer close()
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3675,7 +3691,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 
 		t.Setenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE", "1") // any value
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3696,7 +3715,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	})
 
 	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
-	t.Run("if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
+	t.Run("init: if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3712,6 +3731,12 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 		defer close()
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3730,7 +3755,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 1 {
