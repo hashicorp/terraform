@@ -49,11 +49,11 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	})
 	_, diags := b.PrepareConfig(config)
 	if !diags.HasErrors() {
-		t.Fatalf("expected a warning from PrepareConfig but got none")
+		t.Fatalf("expected an error from PrepareConfig but got none")
 	}
 	expectedErr := `The "path" attribute value must not be empty`
 	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected a warning containing %q, got: %q", expectedErr, diags.Err())
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
 	}
 
 	// PrepareConfig doesn't enforce the path value has .tfstate extension
@@ -74,11 +74,11 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	})
 	_, diags = b.PrepareConfig(config)
 	if !diags.HasErrors() {
-		t.Fatalf("expected a warning from PrepareConfig but got none")
+		t.Fatalf("expected an error from PrepareConfig but got none")
 	}
 	expectedErr = `The "workspace_dir" attribute value must not be empty`
 	if !strings.Contains(diags.Err().Error(), expectedErr) {
-		t.Fatalf("expected a warning containing %q, got: %q", expectedErr, diags.Err())
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
 	}
 
 	// Existence of directory isn't checked during PrepareConfig
