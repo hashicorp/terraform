@@ -3790,8 +3790,129 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	// Tests outcome when input enabled and disabled
-	t.Run("if the default workspace is selected and doesn't exist, but other custom workspaces do exist and input is disabled, an error is returned", func(t *testing.T) {
+	// We expect the init process to require 2 separate init commands when Terraform is run in automation
+	t.Run("init: can safely install a provider for state storage while in automation", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-input=false", // in automation
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := cleanString(testOutput.All())
+		expectedOutputs := []string{
+			"Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Terraform has created a lock file .terraform.lock.hcl",
+			"Terraform downloaded provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, to use for state storage.",
+			"Inspect the provider's details above and in the dependency lockfile to confirm it's the provider you intend to use for managing state. Once completed, run \"terraform init\" again to complete initialisation of the working directory.",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+		unexpectedOutput := "Initializing the state store..."
+		if strings.Contains(output, unexpectedOutput) {
+			t.Fatalf("didn't expect the state store to be initialized at the same time as downloading the state storage provider, but it was:\n %s", output)
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+
+		// Assert the default workspace and backend states haven't been created yet
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected the default workspace to not be created yet, but it is present")
+		}
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err = os.Stat(statePath)
+		if !os.IsNotExist(err) {
+			t.Fatal("expected backend state file to not exist, but it does")
+		}
+
+		// Second init is required to fully initialize the working directory
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.Ui = ui
+		c.Meta.View = view
+
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-input=false", // in automation
+		}
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output = cleanString(testOutput.All())
+		expectedOutputs = []string{
+			"Reusing previous version of hashicorp/test from the dependency lock file",
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the default workspace and backend states have now been created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to created, but it is missing")
+		}
+		_, err = os.Stat(statePath)
+		if os.IsNotExist(err) {
+			t.Fatal("expected backend state file to exist, but it is missing")
+		}
+	})
+
+	// Test what happens when the selected workspace doesn't exist, but there are other workspaces so Terraform prompts the user to select an alternative.
+	//
+	// Scenario in context of input being disabled: an error occurs
+	t.Run("init: return error if input is disabled when the selected workspace doesn't exist and other custom workspaces do exist", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3830,16 +3951,39 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		// If input is disabled users receive an error about the missing workspace
+		// First init will stop early due to protections around downloading state
+		// storage providers when Terraform is run in automation.
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
 			"-input=false",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Second init is when the backend/state store will be used
+		// and is where the edge case scenario arises.
+		//
+		// If input is disabled users receive an error about the missing workspace
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.Ui = ui
+		c.Meta.View = view
+
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-input=false",
+		}
+		code = c.Run(args)
+		testOutput = done(t)
 		if code != 1 {
 			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
+
 		output := testOutput.All()
 		expectedOutput := "Failed to select a workspace: Currently selected workspace \"default\" does not exist"
 		if !strings.Contains(cleanString(output), expectedOutput) {

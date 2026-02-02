@@ -255,6 +255,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: partnerAndCommunityProvidersInfo,
 		JSONValue:  partnerAndCommunityProvidersInfo,
 	},
+	"state_store_provider_download_complete": {
+		HumanValue: stateStoreProviderDownloadComplete,
+		JSONValue:  stateStoreProviderDownloadComplete,
+	},
 	"init_config_error": {
 		HumanValue: errInitConfigError,
 		JSONValue:  errInitConfigErrorJSON,
@@ -482,6 +486,15 @@ version control system if they represent changes you intended to make.`
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
 	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
+
+const stateStoreProviderDownloadComplete = `
+Terraform downloaded provider %q (%s),
+version %s, to use for state storage.
+
+Inspect the provider's details above and in the dependency lockfile to confirm
+it's the provider you intend to use for managing state. Once completed, run
+"terraform init" again to complete initialisation of the working directory.
+`
 
 const errInitConfigError = `
 [reset]Terraform encountered problems during initialisation, including problems
