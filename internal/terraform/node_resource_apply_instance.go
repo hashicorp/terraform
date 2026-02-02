@@ -45,6 +45,9 @@ type NodeApplyableResourceInstance struct {
 	// currently the string here is the action type
 	// terrible copy paste from provisioners? maybe.
 	// what's better? actionTypeName interface for string? actual addr?
+
+	// we can get the schema from GetProvider, so maybe do away with this?
+	// It's helpful in places we don't have access to the context (aren't calling GetProvider)
 	ActionSchemas map[string]*providers.ActionSchema
 }
 
@@ -565,9 +568,18 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			}
 			aiSrc := actions[keys[i]][j]
 
-			// @mildwonkey SWAP THIS OUT FOR A REAL TYPE
-			actionSchema := n.ActionSchemas[aiSrc.Addr.ConfigAction().Action.Type]
-			ai, err := aiSrc.Decode(actionSchema)
+			provider, schema, err := getProvider(ctx, aiSrc.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Failed to get action provider",
+					Detail:   fmt.Sprintf("Failed to get action provider: %s", err),
+					//Subject:  n.ActionTriggerRange,
+				})
+				return diags
+			}
+			actionSchema := schema.Actions[aiSrc.Addr.ConfigAction().Action.Type]
+			ai, err := aiSrc.Decode(&actionSchema)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a planned action invocation: %v\n\nThis is a bug in Terraform; please report it!", err)))
 				return diags
@@ -595,17 +607,6 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 						Subject:  triggerConfig.Condition.Range().Ptr(),
 					})
 				}
-			}
-
-			provider, _, err := getProvider(ctx, ai.ProviderAddr)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Failed to get action provider",
-					Detail:   fmt.Sprintf("Failed to get action provider: %s", err),
-					//Subject:  n.ActionTriggerRange,
-				})
-				return diags
 			}
 
 			// get the action expansion and config for evaluation
@@ -845,5 +846,7 @@ func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
 		}
 	}
 
-	return result
+	// remove any *direct* references to this resource from the embedded action config.
+	// Note that this DOES NOT CATCH indirect references, which are likely to cause confusing cycle errors for users. This is, alas, as designed.
+	return filterSelfRefs(n.Addr.Resource.Resource, result)
 }

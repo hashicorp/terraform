@@ -47,19 +47,6 @@ func (a *Actions) AddActionInstance(addr addrs.AbsActionInstance, configValue ct
 	})
 }
 
-func (a *Actions) GetActionInstance(addr addrs.AbsActionInstance) (*ActionData, bool) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	data, ok := a.actionInstances.GetOk(addr)
-
-	if !ok {
-		return nil, false
-	}
-
-	return &data, true
-}
-
 func (a *Actions) GetActionInstanceKeys(addr addrs.AbsAction) []addrs.AbsActionInstance {
 	a.mu.Lock()
 	defer a.mu.Unlock()

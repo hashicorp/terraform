@@ -1100,3 +1100,18 @@ func (e *Expander) ActionInstanceKeys(addr addrs.AbsAction) (keyType addrs.Insta
 	}
 	return exp.instanceKeys()
 }
+
+// I DUNNO
+// // ActionInstanceExpanded checks if the specified actopms has been visited
+// // and expanded previously.
+// func (e *Expander) ActionInstanceExpanded(addr addrs.AbsAction) bool {
+// 	e.mu.RLock()
+// 	defer e.mu.RUnlock()
+
+// 	parentMod, known := e.findModule(addr.Module)
+// 	if !known {
+// 		return false
+// 	}
+// 	_, ok := parentMod.actions[addr.Action]
+// 	return ok
+// }

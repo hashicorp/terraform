@@ -166,8 +166,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ConcreteAction: b.ConcreteAction,
 			Config:         b.Config,
 			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
-
-			importTargets: b.ImportTargets,
+			Planning:       true,
+			importTargets:  b.ImportTargets,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
@@ -402,7 +402,7 @@ func (b *PlanGraphBuilder) initValidate() {
 		}
 	}
 
-	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+	b.ConcreteAction = func(a *NodeAbstractAction, _ bool) dag.Vertex {
 		return &NodeValidatableAction{
 			NodeAbstractAction: a,
 		}

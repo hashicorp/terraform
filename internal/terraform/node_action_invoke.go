@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -153,22 +154,13 @@ func (n *nodeActionInvokeExpand) DynamicExpand(context EvalContext) (*Graph, tfd
 	var g Graph
 	switch addr := n.Target.(type) {
 	case addrs.AbsActionInstance:
-		if _, ok := context.Actions().GetActionInstance(addr); !ok {
-			return nil, diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid action",
-				Detail:   fmt.Sprintf("Targeted action does not exist after expansion: %s.", addr),
-				Subject:  n.Config.DeclRange.Ptr(),
-			})
-		} else {
-			g.Add(&nodeActionInvokePlanInstance{
-				nodeActionInvokeAbstract: n.nodeActionInvokeAbstract,
-				ActionTarget:             addr,
-			})
-		}
-
+		g.Add(&nodeActionInvokePlanInstance{
+			nodeActionInvokeAbstract: n.nodeActionInvokeAbstract,
+			ActionTarget:             addr,
+		})
 	case addrs.AbsAction:
-		for _, target := range context.Actions().GetActionInstanceKeys(addr) {
+		instances := context.InstanceExpander().ExpandAction(addr)
+		for _, target := range instances {
 			g.Add(&nodeActionInvokePlanInstance{
 				nodeActionInvokeAbstract: n.nodeActionInvokeAbstract,
 				ActionTarget:             target,
@@ -205,20 +197,41 @@ func (n *nodeActionInvokePlanInstance) Path() addrs.ModuleInstance {
 func (n *nodeActionInvokePlanInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	actionInstance, ok := ctx.Actions().GetActionInstance(n.ActionTarget)
-	if !ok {
-		// shouldn't happen, we checked these things exist in the expand node
-		panic("tried to trigger non-existent action")
+	// actionInstance, ok := ctx.Actions().GetActionInstance(n.ActionTarget)
+	// if !ok {
+	// 	// shouldn't happen, we checked these things exist in the expand node
+	// 	panic("tried to trigger non-existent action")
+	// }
+
+	allInsts := ctx.InstanceExpander()
+	keyData := allInsts.GetActionInstanceRepetitionData(n.ActionTarget)
+
+	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
+	if n.Config.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, nil, keyData)
+
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return diags
+		}
+
+		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.ActionTarget.String()))
+
+		if valDiags.HasErrors() {
+			return diags
+		}
 	}
 
 	ai := plans.ActionInvocationInstance{
 		Addr:          n.ActionTarget,
 		ActionTrigger: new(plans.InvokeActionTrigger),
-		ProviderAddr:  actionInstance.ProviderAddr,
-		ConfigValue:   ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue),
+		ProviderAddr:  n.resolvedProvider,
+		ConfigValue:   ephemeral.RemoveEphemeralValues(configVal),
 	}
 
-	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+	provider, _, err := getProvider(ctx, n.resolvedProvider)
 	if err != nil {
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -228,7 +241,7 @@ func (n *nodeActionInvokePlanInstance) Execute(ctx EvalContext, _ walkOperation)
 		})
 	}
 
-	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+	unmarkedConfig, _ := configVal.UnmarkDeepWithPaths()
 
 	if !unmarkedConfig.IsWhollyKnown() {
 		// we're not actually planning or applying changes from the
@@ -296,16 +309,7 @@ func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, wo walkOperatio
 		})
 		return diags
 	}
-	actionData, ok := ctx.Actions().GetActionInstance(ai.Addr)
-	if !ok {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Action instance not found",
-			Detail:   "Could not find action instance for address " + ai.Addr.String(),
-		})
-		return diags
-	}
-	provider, schema, err := getProvider(ctx, actionData.ProviderAddr)
+	provider, schema, err := getProvider(ctx, n.resolvedProvider)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -321,15 +325,33 @@ func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, wo walkOperatio
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("Action %s not found in provider schema", ai.Addr),
-			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, actionData.ProviderAddr),
+			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", ai.Addr.Action.Action.Type, n.resolvedProvider),
 		})
 		return diags
 	}
 
-	configValue := actionData.ConfigValue
+	allInsts := ctx.InstanceExpander()
+	keyData := allInsts.GetActionInstanceRepetitionData(n.ActionInvocation.Addr)
+	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
+	if n.Config.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, nil, keyData)
+
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return diags
+		}
+
+		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.ActionAddr().String()))
+
+		if valDiags.HasErrors() {
+			return diags
+		}
+	}
 
 	// Validate that what we planned matches the action data we have.
-	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configValue))
+	errs := objchange.AssertObjectCompatible(actionSchema.ConfigSchema, ai.ConfigValue, ephemeral.RemoveEphemeralValues(configVal))
 	for _, err := range errs {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -339,7 +361,7 @@ func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, wo walkOperatio
 		})
 	}
 
-	if !configValue.IsWhollyKnown() {
+	if !configVal.IsWhollyKnown() {
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Action configuration unknown during apply",
@@ -362,7 +384,7 @@ func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, wo walkOperatio
 	// We don't want to send the marks, but all marks are okay in the context
 	// of an action invocation. We can't reuse our ephemeral free value from
 	// above because we want the ephemeral values to be included.
-	unmarkedConfigValue, _ := configValue.UnmarkDeep()
+	unmarkedConfigValue, _ := configVal.UnmarkDeep()
 	resp := provider.InvokeAction(providers.InvokeActionRequest{
 		ActionType:         ai.Addr.Action.Action.Type,
 		PlannedActionData:  unmarkedConfigValue,

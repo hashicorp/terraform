@@ -24,6 +24,7 @@ type NodeAbstractActionInstance struct {
 	Schema           *providers.ActionSchema
 	ResolvedProvider addrs.AbsProviderConfig
 	Dependencies     []addrs.ConfigResource
+	Planning         bool
 }
 
 var (
@@ -59,6 +60,10 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
 
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
+
+	// // @mildwonkey yeah I don't remember why i did this only during plan
+	// // trying to get rid of ctx.Actions during apply?
+	// if n.Planning {
 	if n.Config.Config != nil {
 		var configDiags tfdiags.Diagnostics
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, nil, keyData)
@@ -79,7 +84,8 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 			return diags
 		}
 	}
-
+	//}
+	// maybe this should just be raw config?
 	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
 	return diags
 }
@@ -98,9 +104,11 @@ func (n *NodeAbstractActionInstance) References() []*addrs.Reference {
 	forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 	result = append(result, forEachRefs...)
 
-	if n.Schema != nil {
-		configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
-		result = append(result, configRefs...)
+	if n.Planning {
+		if n.Schema != nil {
+			configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+			result = append(result, configRefs...)
+		}
 	}
 
 	return result

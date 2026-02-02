@@ -91,22 +91,57 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		return diags
 	}
 
-	actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
-	if !ok {
+	provider, schema, err := getProvider(ctx, n.resolvedProvider)
+	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Reference to non-existent action instance",
-			Detail:   "Action instance was not found in the current context.",
+			Summary:  "Failed to get provider",
+			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
 			Subject:  n.actionTriggerConfig.invokingSubject,
 		})
+
 		return diags
 	}
+	actionSchema := schema.Actions[n.actionConfig.Type]
 
-	ai.ProviderAddr = actionInstance.ProviderAddr
+	// actionInstance, ok := ctx.Actions().GetActionInstance(n.actionAddress)
+	// if !ok {
+	// 	diags = diags.Append(&hcl.Diagnostic{
+	// 		Severity: hcl.DiagError,
+	// 		Summary:  "Reference to non-existent action instance",
+	// 		Detail:   "Action instance was not found in the current context.",
+	// 		Subject:  n.actionTriggerConfig.invokingSubject,
+	// 	})
+	// 	return diags
+	// }
+
+	ai.ProviderAddr = n.resolvedProvider
+
+	// get the action expansion and config for evaluation
+	allInsts := ctx.InstanceExpander()
+	keyData := allInsts.GetActionInstanceRepetitionData(n.actionAddress)
+
+	configVal := cty.NullVal(actionSchema.ConfigSchema.ImpliedType())
+	if n.actionConfig.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.actionConfig.Config, actionSchema.ConfigSchema, nil, keyData)
+
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return diags
+		}
+
+		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, actionSchema.ConfigSchema)
+		diags = diags.Append(valDiags.InConfigBody(n.actionConfig.Config, n.actionAddress.String()))
+
+		if valDiags.HasErrors() {
+			return diags
+		}
+	}
 	// with resources, the provider would be expected to strip the ephemeral
 	// values out. with actions, we don't get the value back from the
 	// provider so we'll do that ourselves now.
-	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionInstance.ConfigValue)
+	ai.ConfigValue = ephemeral.RemoveEphemeralValues(configVal)
 
 	triggeredEvents := actionIsTriggeredByEvent(n.actionTriggerConfig.events, change.Action)
 	if len(triggeredEvents) == 0 {
@@ -131,20 +166,8 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		}
 	}
 
-	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
-	if err != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to get provider",
-			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-			Subject:  n.actionTriggerConfig.invokingSubject,
-		})
-
-		return diags
-	}
-
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
-	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+	unmarkedConfig, _ := configVal.UnmarkDeepWithPaths()
 
 	cc := ctx.ClientCapabilities()
 	cc.DeferralAllowed = false // for now, deferrals in actions are always disabled

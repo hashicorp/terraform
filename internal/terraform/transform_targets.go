@@ -221,4 +221,21 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 			}
 		}
 	}
+
+	// // An applyable resources might have an associated after_* triggered action.
+	// // We need to add that action to the targeted nodes as well, together with all its dependencies.
+	// if _, ok := v.(*nodeExpandApplyableResource); ok {
+	// 	for _, f := range g.UpEdges(v) {
+	// 		if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
+	// 			t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
+	// 		}
+	// 	}
+	// }
+	// if _, ok := v.(*NodeApplyableResourceInstance); ok {
+	// 	for _, f := range g.UpEdges(v) {
+	// 		if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
+	// 			t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
+	// 		}
+	// 	}
+	// }
 }

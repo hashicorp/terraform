@@ -98,10 +98,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			}
 			if schema.Body == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
-				continue
+			} else {
+				log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
+				tv.AttachResourceSchema(&schema)
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
-			tv.AttachResourceSchema(&schema)
 		}
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
@@ -112,10 +112,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			}
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
-				continue
+			} else {
+				log.Printf("[TRACE] AttachSchemaTransformer: attaching provider config schema to %s", dag.VertexName(v))
+				tv.AttachProviderConfigSchema(schema)
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching provider config schema to %s", dag.VertexName(v))
-			tv.AttachProviderConfigSchema(schema)
 		}
 
 		if tv, ok := v.(GraphNodeAttachProvisionerSchema); ok {
@@ -127,10 +127,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				}
 				if schema == nil {
 					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, dag.VertexName(v))
-					continue
+				} else {
+					log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q config schema to %s", name, dag.VertexName(v))
+					tv.AttachProvisionerSchema(name, schema)
 				}
-				log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q config schema to %s", name, dag.VertexName(v))
-				tv.AttachProvisionerSchema(name, schema)
 			}
 		}
 
@@ -143,10 +143,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			}
 			if schema.ConfigSchema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No action schema available for %s", addr)
-				continue
+			} else {
+				log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", dag.VertexName(v))
+				tv.AttachActionSchema(schema)
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", dag.VertexName(v))
-			tv.AttachActionSchema(schema)
 		}
 
 		if tv, ok := v.(GraphNodeAttachResourceActionSchema); ok {
@@ -157,10 +157,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				}
 				if schema.ConfigSchema == nil {
 					log.Printf("[ERROR] AttachSchemaTransformer: No action schema available for %s", actionType)
-					continue
+				} else {
+					log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", dag.VertexName(v))
+					tv.AttachActionSchema(actionType, schema)
 				}
-				log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", dag.VertexName(v))
-				tv.AttachActionSchema(actionType, schema)
 			}
 		}
 	}

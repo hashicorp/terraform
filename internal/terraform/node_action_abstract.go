@@ -42,7 +42,7 @@ func (n NodeAbstractAction) Name() string {
 
 // ConcreteActionNodeFunc is a callback type used to convert an
 // abstract action to a concrete one of some type.
-type ConcreteActionNodeFunc func(*NodeAbstractAction) dag.Vertex
+type ConcreteActionNodeFunc func(*NodeAbstractAction, bool) dag.Vertex
 
 // DefaultConcreteActionNodeFunc is the default ConcreteActionNodeFunc used by
 // everything except validate.

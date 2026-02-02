@@ -78,33 +78,34 @@ func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			return nil, diags
 		}
 
-		_, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
-		if haveUnknownKeys {
-			// this should never happen, n.recordActionData explicitly sets
-			// allowUnknown to be false, so we should pick up diagnostics
-			// during that call instance reaching this branch.
-			panic("found unknown keys in action instance")
-		}
+		// _, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
+		// if haveUnknownKeys {
+		// 	// this should never happen, n.recordActionData explicitly sets
+		// 	// allowUnknown to be false, so we should pick up diagnostics
+		// 	// during that call instance reaching this branch.
+		// 	panic("found unknown keys in action instance")
+		// }
 
-		// Expand the action instances for this module.
-		for _, knownInstKey := range knownInstKeys {
-			node := NodeAbstractActionInstance{
-				Addr:             absActAddr.Instance(knownInstKey),
-				Config:           &n.Config,
-				Schema:           n.Schema,
-				ResolvedProvider: n.ResolvedProvider,
-				Dependencies:     n.Dependencies,
-			}
+		// // Expand the action instances for this module.
+		// for _, knownInstKey := range knownInstKeys {
+		// 	node := NodeAbstractActionInstance{
+		// 		Addr:             absActAddr.Instance(knownInstKey),
+		// 		Config:           &n.Config,
+		// 		Schema:           n.Schema,
+		// 		ResolvedProvider: n.ResolvedProvider,
+		// 		Dependencies:     n.Dependencies,
+		// 		Planning:         n.Planning,
+		// 	}
 
-			if n.Planning {
-				g.Add(&node)
-			} else {
-				n := NodeApplyableActionInstance{
-					&node,
-				}
-				g.Add(&n)
-			}
-		}
+		// 	if n.Planning {
+		// 		g.Add(&node)
+		// 	} else {
+		// 		n := NodeApplyableActionInstance{
+		// 			&node,
+		// 		}
+		// 		g.Add(&n)
+		// 	}
+		// }
 	}
 	addRootNodeToGraph(&g)
 
@@ -112,7 +113,6 @@ func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 }
 
 func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
-
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
 	// can refer to it. Since this node represents the abstract module, we need
@@ -181,6 +181,5 @@ func (n *nodeExpandAction) References() []*addrs.Reference {
 			result = append(result, configRefs...)
 		}
 	}
-
 	return result
 }
