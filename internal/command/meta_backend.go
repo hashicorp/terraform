@@ -194,7 +194,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
-		return enhanced, nil
+		return enhanced, diags
 	}
 
 	// We either have a non-operations backend configured for state storage
