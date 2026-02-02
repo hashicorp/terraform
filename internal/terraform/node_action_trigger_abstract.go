@@ -36,6 +36,7 @@ type nodeAbstractActionTriggerExpand struct {
 type lifecycleActionTrigger struct {
 	resourceAddress         addrs.ConfigResource
 	events                  []configs.ActionTriggerEvent
+	onFailure               configs.ActionTriggerOnFailure
 	actionTriggerBlockIndex int
 	actionListIndex         int
 	invokingSubject         *hcl.Range
