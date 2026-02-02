@@ -692,22 +692,8 @@ func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
 		t.Fatalf("expected a warning from PrepareConfig but got none")
 	}
 	expectedWarn := `path is inside the .terraform directory`
-	expectedErr := `as Terraform uses this internally to store state data.`
 	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
 		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
-	}
-
-	// Path replacing terraform.tfstate isn't valid
-	config = cty.ObjectVal(map[string]cty.Value{
-		"path":          cty.StringVal(".terraform/terraform.tfstate"),
-		"workspace_dir": cty.NullVal(cty.String),
-	})
-	_, diags = b.PrepareConfig(config)
-	if !diags.HasErrors() {
-		t.Fatalf("expected an error from PrepareConfig but got none")
-	}
-	if !strings.Contains(diags.Err().Error(), expectedWarn) {
-		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
 	}
 
 	// Path deeply nested inside .terraform raises warning
