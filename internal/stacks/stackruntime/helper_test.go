@@ -441,6 +441,8 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		// There should only be a single timestamp in a plan, so we can just
 		// return a simple string.
 		return "function-results"
+	case *stackplan.PlannedChangeActionInvocationInstancePlanned:
+		return change.ActionInvocationAddr.String()
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
