@@ -3431,6 +3431,67 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	t.Run("init: user rejecting a downloaded provider binary for state storage (-safe-init checks) results in an error", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+		defer close()
+
+		// DECLINE to use the provider for a state store during the init command.
+		defer testInputMap(t, map[string]string{
+			"approve": "no",
+		})()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutput := "Error: State storage provider \"test\" (registry.terraform.io/hashicorp/test) was not approved"
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+		}
+
+		// Dependency lock file is not created in the process
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if !os.IsNotExist(err) {
+			t.Fatalf("expected %s to not exist", lockFile)
+		}
+	})
 
 	t.Run("init: can safely use a new provider, create backend state, and create the default workspace", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
