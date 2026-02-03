@@ -3394,7 +3394,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3444,12 +3444,14 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		// DECLINE to use the provider for a state store during the init command.
-		defer testInputMap(t, map[string]string{
-			"approve": "no",
-		})()
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "no",
+			}),
+		)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3506,13 +3508,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		defer testInputMap(t, map[string]string{
-			"approve": "yes",
-		})()
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "yes",
+			}),
+		)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3607,13 +3611,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		defer testInputMap(t, map[string]string{
-			"approve": "yes",
-		})()
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "yes",
+			}),
+		)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3666,13 +3672,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		defer testInputMap(t, map[string]string{
-			"approve": "yes",
-		})()
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "yes",
+			}),
+		)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3730,13 +3738,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		defer testInputMap(t, map[string]string{
-			"approve": "yes",
-		})()
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "yes",
+			}),
+		)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3804,7 +3814,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3932,7 +3942,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
