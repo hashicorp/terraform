@@ -5,13 +5,11 @@ package terraform
 
 import (
 	"fmt"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -39,7 +37,7 @@ func TestContextApply_actions(t *testing.T) {
 		expectInvokeActionCalled            bool
 		expectInvokeActionCalls             []providers.InvokeActionRequest
 		expectInvokeActionCallsAreUnordered bool
-		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
+		expectDiagnostics                   tfdiags.Diagnostics
 		ignoreWarnings                      bool
 
 		assertHooks func(*testing.T, actionHookCapture)
@@ -100,10 +98,8 @@ resource "test_object" "a" {
 				if len(capture.completeActionHooks) != 2 {
 					t.Error("expected 2 complete action hooks")
 				}
-
 				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent configs.ActionTriggerEvent) {
 					trigger := got.ActionTrigger.(*plans.LifecycleActionTrigger)
-
 					if trigger.ActionTriggerEvent != wantEvent {
 						t.Errorf("wrong event, got %s, want %s", trigger.ActionTriggerEvent, wantEvent)
 					}
@@ -111,7 +107,6 @@ resource "test_object" "a" {
 						t.Errorf("wrong address: %s", diff)
 					}
 				}
-
 				// the before should have happened first, and the order should
 				// be correct.
 				evaluateHook(capture.startActionHooks[0], "action.action_example.hello", configs.BeforeCreate)
@@ -193,23 +188,11 @@ resource "test_object" "a" {
 			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
 				return []providers.InvokeActionEvent{
 					providers.InvokeActionEvent_Completed{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(
-								tfdiags.Error,
-								"test case for failing",
-								"this simulates a provider failing",
-							),
-						},
+						Diagnostics: testActionError(),
 					},
 				}
 			},
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "test case for failing",
-					Detail:   "this simulates a provider failing",
-				})
-			},
+			expectDiagnostics: testActionError(),
 		},
 
 		"before_create failing with successfully completed actions": {
@@ -237,13 +220,7 @@ resource "test_object" "a" {
 				if !req.PlannedActionData.IsNull() && req.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					return []providers.InvokeActionEvent{
 						providers.InvokeActionEvent_Completed{
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(
-									tfdiags.Error,
-									"test case for failing",
-									"this simulates a provider failing",
-								),
-							},
+							Diagnostics: testActionError(),
 						},
 					}
 				} else {
@@ -252,13 +229,7 @@ resource "test_object" "a" {
 					}
 				}
 			},
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "test case for failing",
-					Detail:   "this simulates a provider failing",
-				})
-			},
+			expectDiagnostics: testActionError(),
 		},
 
 		"before_create failing when calling invoke": {
@@ -277,28 +248,9 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(
-						tfdiags.Error,
-						"test case for failing",
-						"this simulates a provider failing before the action is invoked",
-					),
-				}
+				return testActionError()
 			},
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-							End:      hcl.Pos{Line: 7, Column: 47, Byte: 175},
-						},
-					},
-				)
-			},
+			expectDiagnostics: testActionError(),
 		},
 
 		"failing an action by action event stops next actions in list": {
@@ -326,7 +278,7 @@ resource "test_object" "a" {
 				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					return []providers.InvokeActionEvent{
 						providers.InvokeActionEvent_Completed{
-							Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(tfdiags.Error, "test case for failing", "this simulates a provider failing")),
+							Diagnostics: testActionError(),
 						},
 					}
 				}
@@ -336,20 +288,7 @@ resource "test_object" "a" {
 				}
 
 			},
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
-						},
-					},
-				)
-			},
+			expectDiagnostics: testActionError(),
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "action_example",
@@ -388,30 +327,11 @@ resource "test_object" "a" {
 			callingInvokeReturnsDiagnostics: func(r providers.InvokeActionRequest) tfdiags.Diagnostics {
 				if !r.PlannedActionData.IsNull() && r.PlannedActionData.GetAttr("attr").AsString() == "failure" {
 					// Simulate a failure for the second action
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"test case for failing",
-							"this simulates a provider failing",
-						),
-					}
+					return testActionError()
 				}
 				return tfdiags.Diagnostics{}
 			},
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
-						},
-					},
-				)
-			},
+			expectDiagnostics: testActionError(),
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "action_example",
@@ -484,13 +404,11 @@ resource "test_object" "b" {
 				},
 			}),
 			expectInvokeActionCalled: false,
-			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Action configuration unknown during apply",
-					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
-				})
-			},
+			expectDiagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(
+				tfdiags.Error,
+				"Action configuration unknown during apply",
+				"The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
+			)},
 		},
 
 		"action with secrets in configuration": {
@@ -1691,7 +1609,7 @@ resource "test_object" "a" {
 
 			_, diags = ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
-				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
 			} else {
 				if tc.ignoreWarnings {
 					tfdiags.AssertNoErrors(t, diags)
@@ -2963,5 +2881,15 @@ func testContextActionProvider(invokeActionFn func(req providers.InvokeActionReq
 				},
 			},
 		},
+	}
+}
+
+func testActionError() tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Error,
+			"test case for failing",
+			"this simulates a provider failing",
+		),
 	}
 }
