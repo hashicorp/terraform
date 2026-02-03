@@ -3838,6 +3838,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			"-safe-init",
 			"-input=false", // in automation
 		}
+		// First init downloads the state storage provider for vetting.
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
