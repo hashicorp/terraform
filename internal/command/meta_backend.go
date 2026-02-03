@@ -1161,8 +1161,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		)
 
 		if !opts.Init {
-			initReason := fmt.Sprintf("Migrating from backend %q to state store %q",
-				s.Backend.Type, stateStoreConfig.Type)
+			initReason := fmt.Sprintf("Migrating from backend %q to state store %q in provider %s (%q)",
+				s.Backend.Type, stateStoreConfig.Type,
+				stateStoreConfig.Provider.Name, stateStoreConfig.ProviderAddr)
 			diags = diags.Append(errBackendInitDiag(initReason))
 			return nil, diags
 		}
@@ -2014,9 +2015,6 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		return nil, diags
 	}
 
-	// Update the stored metadata
-	s.Backend = nil
-
 	if m.stateLock {
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
@@ -2030,7 +2028,7 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 	// Store the state_store metadata in our saved state location
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
-	if c.ProviderAddr.Hostname == addrs.BuiltInProviderHost {
+	if c.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State storage is using a builtin provider",
@@ -2060,6 +2058,7 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		}
 	}
 
+	// Update the stored metadata
 	s.Backend = nil
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,

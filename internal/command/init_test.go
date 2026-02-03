@@ -4900,7 +4900,6 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
-			"-migrate-state",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
@@ -4943,6 +4942,131 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 		}
 		if diff := cmp.Diff(expectedOutputs, data.State.RootOutputValues); diff != "" {
 			t.Fatalf("unexpected data: %s", diff)
+		}
+	}
+}
+
+// TestInit_backend_to_stateStore_noState tests that given no state
+// in the source backend, no state is created in the destination state store
+// as a result of the migration.
+func TestInit_backend_to_stateStore_noState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+
+	testBackend := new(httpBackend.TestHTTPBackend)
+	ts := httptest.NewServer(http.HandlerFunc(testBackend.Handle))
+	t.Cleanup(ts.Close)
+
+	cfg := fmt.Sprintf(`terraform {
+  backend "http" {
+    address = %q
+  }
+}
+`, ts.URL)
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	tOverrides := &testingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			mockProviderAddress: providers.FactoryFixed(mockProvider),
+		},
+	}
+	{
+		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
+		// Init
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("first init exited with non-zero code %d:\n%s", code, testOutput.Stderr())
+		}
+		log.Printf("[TRACE] %s: first init complete", t.Name())
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		if testBackend.CallCount("POST") != 0 {
+			t.Fatalf("expected 0 POST calls after init, got %d", testBackend.CallCount("POST"))
+		}
+		if testBackend.CallCount("GET") != 2 {
+			t.Fatalf("expected 2 GET calls after init, got %d", testBackend.CallCount("GET"))
+		}
+	}
+	{
+		log.Printf("[TRACE] %s: beginning second init with state store", t.Name())
+
+		ssCfg := `terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {}
+    value = "foobar"
+  }
+}
+`
+		if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(ssCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("second init exited with non-zero code %d:\n%s", code, testOutput.Stderr())
+		}
+		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
+		t.Logf("Second run output:\n%s", testOutput.Stdout())
+		t.Logf("Second run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if s.StateStore.Empty() {
+			t.Fatal("should have StateStore config")
+		}
+		if !s.Backend.Empty() {
+			t.Fatalf("expected backend to be empty")
+		}
+
+		if len(mockProvider.MockStates) != 0 {
+			t.Fatalf("expected no state to exist in %s: %#v",
+				mockProviderAddress,
+				mockProvider.MockStates)
 		}
 	}
 }
