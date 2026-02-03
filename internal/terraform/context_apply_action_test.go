@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
