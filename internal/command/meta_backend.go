@@ -353,13 +353,7 @@ func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBacke
 		plannedWorkspace = plan.Backend.Workspace
 		isCloud = plan.Backend.Type == "cloud"
 	default:
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Workspace data missing from plan file",
-			Detail: fmt.Sprintf("The plan file does not contain a named workspace, so Terraform cannot determine if it was intended to be used with current workspace %q. This is a bug in Terraform and should be reported.",
-				currentWorkspace,
-			),
-		})
+		panic(fmt.Sprintf("Workspace data missing from plan file. Current workspace is %q. This is a bug in Terraform and should be reported.", currentWorkspace))
 	}
 	if currentWorkspace != plannedWorkspace {
 		return nil, diags.Append(&errWrongWorkspaceForPlan{
