@@ -185,7 +185,7 @@ above, resolve it, and try again.`, innerError)
 
 	return tfdiags.Sourceless(
 		tfdiags.Error,
-		"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+		"Backend initialization failed",
 		msg,
 	)
 }
