@@ -786,7 +786,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 		case opts.Locks == nil:
 			// If we get here then it suggests that there's a caller that we
 			// didn't yet update to populate DependencyLocks, which is a bug.
-			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+			panic("This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!")
 		case opts.Locks.Empty():
 			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
 		default:
