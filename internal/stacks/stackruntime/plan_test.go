@@ -6520,3 +6520,73 @@ func TestPlanWithActionInvocationHooks(t *testing.T) {
 
 	testCtx.Plan(t, ctx, stackstate.NewState(), cycle)
 }
+
+func TestPlanWithDeferredActionInvocation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "deferred-action")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "id"}: {
+				Value: cty.StringVal("test-id-123"),
+			},
+			{Name: "defer"}: {
+				Value: cty.BoolVal(true),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow() // We reported the diags above
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	// Find the deferred action invocation in the changes
+	var foundDeferredAction bool
+	for _, change := range gotChanges {
+		if _, ok := change.(*stackplan.PlannedChangeDeferredActionInvocation); ok {
+			foundDeferredAction = true
+			break
+		}
+	}
+
+	if !foundDeferredAction {
+		t.Error("Expected to find a deferred action invocation in the plan changes, but none was found")
+		t.Logf("Got %d changes:", len(gotChanges))
+		for i, change := range gotChanges {
+			t.Logf("  [%d] %T", i, change)
+		}
+	}
+}

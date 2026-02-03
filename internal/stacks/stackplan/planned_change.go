@@ -996,3 +996,60 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*s
 		Descriptions: descs,
 	}, nil
 }
+
+// PlannedChangeDeferredActionInvocation represents an action invocation
+// that was deferred due to incomplete information.
+type PlannedChangeDeferredActionInvocation struct {
+	// ActionInvocationPlanned is the planned action invocation that is being deferred.
+	ActionInvocationPlanned PlannedChangeActionInvocationInstancePlanned
+
+	// DeferredReason is the reason why the action invocation is being deferred.
+	DeferredReason providers.DeferredReason
+}
+
+var _ PlannedChange = (*PlannedChangeDeferredActionInvocation)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (dpc *PlannedChangeDeferredActionInvocation) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	action, err := dpc.ActionInvocationPlanned.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the deferred reason to proto format
+	deferredReason, _ := planfile.DeferredReasonToProto(dpc.DeferredReason)
+
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredActionInvocation{
+		Invocation: action,
+		Deferred: &planproto.Deferred{
+			Reason: deferredReason,
+		},
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the change description
+	aicd, err := dpc.ActionInvocationPlanned.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	if aicd != nil {
+		descs = append(descs, &stacks.PlannedChange_ChangeDescription{
+			Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationDeferred{
+				ActionInvocationDeferred: &stacks.PlannedChange_ActionInvocationDeferred{
+					ActionInvocation: aicd.GetActionInvocationPlanned(),
+					Deferred:         EncodeDeferred(dpc.DeferredReason),
+				},
+			},
+		})
+	}
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
+	}, nil
+}
