@@ -6890,16 +6890,17 @@ type StackChangeProgress_ComponentInstanceChanges struct {
 	// difference should be treated as an "other change types" category,
 	// for forward-compatibility when the Terraform Core RPC server is
 	// using a newer version of this protocol than the client.
-	Total         int32 `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
-	Add           int32 `protobuf:"varint,3,opt,name=add,proto3" json:"add,omitempty"`
-	Change        int32 `protobuf:"varint,4,opt,name=change,proto3" json:"change,omitempty"`
-	Import        int32 `protobuf:"varint,5,opt,name=import,proto3" json:"import,omitempty"`
-	Remove        int32 `protobuf:"varint,6,opt,name=remove,proto3" json:"remove,omitempty"`
-	Defer         int32 `protobuf:"varint,7,opt,name=defer,proto3" json:"defer,omitempty"`
-	Move          int32 `protobuf:"varint,8,opt,name=move,proto3" json:"move,omitempty"`
-	Forget        int32 `protobuf:"varint,9,opt,name=forget,proto3" json:"forget,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Total            int32 `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Add              int32 `protobuf:"varint,3,opt,name=add,proto3" json:"add,omitempty"`
+	Change           int32 `protobuf:"varint,4,opt,name=change,proto3" json:"change,omitempty"`
+	Import           int32 `protobuf:"varint,5,opt,name=import,proto3" json:"import,omitempty"`
+	Remove           int32 `protobuf:"varint,6,opt,name=remove,proto3" json:"remove,omitempty"`
+	Defer            int32 `protobuf:"varint,7,opt,name=defer,proto3" json:"defer,omitempty"`
+	Move             int32 `protobuf:"varint,8,opt,name=move,proto3" json:"move,omitempty"`
+	Forget           int32 `protobuf:"varint,9,opt,name=forget,proto3" json:"forget,omitempty"`
+	ActionInvocation int32 `protobuf:"varint,10,opt,name=action_invocation,json=actionInvocation,proto3" json:"action_invocation,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *StackChangeProgress_ComponentInstanceChanges) Reset() {
@@ -6991,6 +6992,13 @@ func (x *StackChangeProgress_ComponentInstanceChanges) GetMove() int32 {
 func (x *StackChangeProgress_ComponentInstanceChanges) GetForget() int32 {
 	if x != nil {
 		return x.Forget
+	}
+	return 0
+}
+
+func (x *StackChangeProgress_ComponentInstanceChanges) GetActionInvocation() int32 {
+	if x != nil {
+		return x.ActionInvocation
 	}
 	return 0
 }
@@ -7696,7 +7704,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\rInputVariable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\tnew_value\x18\x02 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\bnewValue\x1a\t\n" +
-	"\aNothing\"\xb8'\n" +
+	"\aNothing\"\xe5'\n" +
 	"\x13StackChangeProgress\x12|\n" +
 	"\x19component_instance_status\x18\x01 \x01(\v2>.terraform1.stacks.StackChangeProgress.ComponentInstanceStatusH\x00R\x17componentInstanceStatus\x12y\n" +
 	"\x18resource_instance_status\x18\x02 \x01(\v2=.terraform1.stacks.StackChangeProgress.ResourceInstanceStatusH\x00R\x16resourceInstanceStatus\x12\x8f\x01\n" +
@@ -7789,7 +7797,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x11ProvisionerOutput\x12H\n" +
 	"\x04addr\x18\x01 \x01(\v24.terraform1.stacks.ResourceInstanceObjectInStackAddrR\x04addr\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
-	"\x06output\x18\x03 \x01(\tR\x06output\x1a\x91\x02\n" +
+	"\x06output\x18\x03 \x01(\tR\x06output\x1a\xbe\x02\n" +
 	"\x18ComponentInstanceChanges\x12C\n" +
 	"\x04addr\x18\x01 \x01(\v2/.terraform1.stacks.ComponentInstanceInStackAddrR\x04addr\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\x12\x10\n" +
@@ -7799,7 +7807,9 @@ const file_stacks_proto_rawDesc = "" +
 	"\x06remove\x18\x06 \x01(\x05R\x06remove\x12\x14\n" +
 	"\x05defer\x18\a \x01(\x05R\x05defer\x12\x12\n" +
 	"\x04move\x18\b \x01(\x05R\x04move\x12\x16\n" +
-	"\x06forget\x18\t \x01(\x05R\x06forget\x1ab\n" +
+	"\x06forget\x18\t \x01(\x05R\x06forget\x12+\n" +
+	"\x11action_invocation\x18\n" +
+	" \x01(\x05R\x10actionInvocation\x1ab\n" +
 	"\x12ComponentInstances\x12%\n" +
 	"\x0ecomponent_addr\x18\x01 \x01(\tR\rcomponentAddr\x12%\n" +
 	"\x0einstance_addrs\x18\x02 \x03(\tR\rinstanceAddrs\"\xa4\x01\n" +

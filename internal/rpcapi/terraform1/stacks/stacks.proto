@@ -1033,6 +1033,7 @@ message StackChangeProgress {
     int32 defer = 7;
     int32 move = 8;
     int32 forget = 9;
+    int32 action_invocation = 10;
   }
 
   // ComponentInstances represents the result of expanding a component into zero
