@@ -24,8 +24,7 @@ type errWrongWorkspaceForPlan struct {
 func (e *errWrongWorkspaceForPlan) Error() string {
 	msg := fmt.Sprintf(`The plan file describes changes to the %q workspace, but the %q workspace is currently in use.
 
-Applying this plan with the incorrect workspace selected could result in state being stored in an unexpected location, or a downstream error
-when Terraform attempts apply a plan using the other workspace's state.`,
+Applying this plan with the incorrect workspace selected could result in state being stored in an unexpected location, or a downstream error when Terraform attempts apply a plan using the other workspace's state.`,
 		e.plannedWorkspace,
 		e.currentWorkspace,
 	)
@@ -34,12 +33,12 @@ when Terraform attempts apply a plan using the other workspace's state.`,
 	// but that guidance depends on whether a cloud backend is in use or not.
 	if e.isCloud {
 		// When using the cloud backend the solution is to focus on the cloud block and running init
-		msg = msg + fmt.Sprintf(` If you\'d like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q.
+		msg = msg + fmt.Sprintf(` If you'd like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q.
 In future, make sure your cloud block is correct and unchanged since the last time you performed "terraform init" before creating a plan.`, e.plannedWorkspace)
 	} else {
 		// When using the backend block the solution is to not select a different workspace
 		// between plan and apply operations.
-		msg = msg + fmt.Sprintf(` If you\'d like to continue to use the plan file, you must run "terraform workspace select %s" to select the matching workspace.
+		msg = msg + fmt.Sprintf(` If you'd like to continue to use the plan file, you must run "terraform workspace select %s" to select the matching workspace.
 In future make sure the selected workspace is not changed between creating and applying a plan file.
 `, e.plannedWorkspace)
 	}
