@@ -2001,7 +2001,7 @@ func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
 				planWorkspace,
 				otherWorkspace,
 			),
-			fmt.Sprintf(`If you\'d like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q`, planWorkspace),
+			fmt.Sprintf(`If you'd like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q`, planWorkspace),
 		}
 		for _, msg := range expectedMsgs {
 			if !strings.Contains(diags.Err().Error(), msg) {
