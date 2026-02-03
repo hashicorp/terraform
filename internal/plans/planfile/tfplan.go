@@ -1403,7 +1403,7 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 
 	ret := &planproto.ActionInvocationInstance{
 		Addr:     action.Addr.String(),
-		Provider: action.ProviderAddr.Provider.String(),
+		Provider: action.ProviderAddr.String(),
 	}
 
 	switch at := action.ActionTrigger.(type) {
