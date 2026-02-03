@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -2018,7 +2017,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	}
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
-	if c.ProviderAddr.Hostname == addrs.BuiltInProviderHost {
+	if c.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State storage is using a builtin provider",
@@ -2186,13 +2185,12 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
 
-	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
 	isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while determining the version in use. This is a bug in Terraform and should be reported: %w", err))
 		return nil, diags
 	}
-	if isBuiltin || isReattached {
+	if c.ProviderAddr.IsBuiltIn() || isReattached {
 		return nil, nil // nil Version returned
 	}
 
