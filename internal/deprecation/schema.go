@@ -5,8 +5,10 @@ package deprecation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -38,12 +40,12 @@ func MarkDeprecatedValues(val cty.Value, schema *configschema.Block, origin stri
 
 			attr := schema.AttributeByPath(p)
 			if attr != nil && attr.Deprecated {
-				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource attribute %q used", p), fmt.Sprintf("%s.%s", origin, p)))
+				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource attribute %q used", strings.TrimPrefix(format.CtyPath(p), ".")), fmt.Sprintf("%s%s", origin, format.CtyPath(p))))
 			}
 
 			block := schema.BlockByPath(p)
 			if block != nil && block.Deprecated {
-				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource block %q used", p), fmt.Sprintf("%s.%s", origin, p)))
+				v = v.Mark(marks.NewDeprecation(fmt.Sprintf("Deprecated resource block %q used", strings.TrimPrefix(format.CtyPath(p), ".")), fmt.Sprintf("%s%s", origin, format.CtyPath(p))))
 			}
 
 			return v, nil
