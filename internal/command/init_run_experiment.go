@@ -190,6 +190,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Prepare for safe use of providers if the configuration uses pluggable state storage.
 	var installingStateStorageProvider bool
+	var maybeUpgradingStateStorageProvider bool
 	if config.Module.StateStore != nil {
 		_, alreadyInstalled := previousLocks.AllProviders()[config.Module.StateStore.ProviderAddr]
 		if !alreadyInstalled {
@@ -206,6 +207,10 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 			// We're installing the state storage provider for the first time during this init
 			installingStateStorageProvider = true
+		} else {
+			// Provider in the states_store block has already been installed.
+			// If we're upgrading providers during this command then it _might_ impact the state storage provider.
+			maybeUpgradingStateStorageProvider = initArgs.Upgrade
 		}
 	}
 
@@ -280,6 +285,85 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 				)
 				view.Diagnostics(diags)
 				return 1
+			}
+		}
+	case maybeUpgradingStateStorageProvider:
+		// We've _maybe_ upgraded the provider used for state storage,
+		// we only know if a new version has been pulled until after
+		// the installer has finished its work.
+		prev, prevOk := previousLocks.AllProviders()[config.Module.StateStore.ProviderAddr]
+		now, nowOk := configLocks.AllProviders()[config.Module.StateStore.ProviderAddr]
+		if !(prevOk && nowOk) {
+			// If we've hit this block then something's gone wrong.
+			panic(fmt.Sprintf("Error processing upgrade of state storage provider. Previous PSS provider lock %#v, current %#v. This is a bug in Terraform and should be reported.",
+				prev,
+				now,
+			))
+		}
+
+		if !prev.Version().Same(now.Version()) {
+			// An upgrade has happened
+			if !initArgs.SafeInitWithPluggableStateStore {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "State storage providers must be upgraded using the -safe-init flag",
+					Detail:   "During provider upgrade Terraform attempted to upgrade the provider used for state storage. To allow that upgrade to be performed safely, please re-run the \"init\" command with both the -safe-init and -upgrade flags.",
+				})
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			if !c.input {
+				// If we're in automation we need to write the upgraded, config-derived providers to lock file
+				lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, nil, initArgs.Lockfile, view)
+				diags = diags.Append(lockFileDiags)
+				if lockFileDiags.HasErrors() {
+					view.Diagnostics(diags)
+					return 1
+				}
+				if lockFileOutput {
+					// If we outputted information, then we need to output a newline
+					// so that our success message is nicely spaced out from prior text.
+					view.Output(views.EmptyMessage)
+				}
+
+				// ... and prompt the user to look at the values.
+				lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+				view.Output("state_store_provider_download_complete",
+					lock.Provider().Type,
+					lock.Provider(),
+					lock.Version(),
+				)
+				return 0
+			} else {
+				// If we can receive input then we prompt for ok from the user
+				lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+
+				v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+					Id: "approve",
+					Query: fmt.Sprintf("Do you want to use provider %q (%s), version %s, for managing state?",
+						lock.Provider().Type,
+						lock.Provider(),
+						lock.Version(),
+					),
+					Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
+Only 'yes' will be accepted to confirm.`, lock.Provider()),
+				})
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
+					view.Diagnostics(diags)
+					return 1
+				}
+				if v != "yes" {
+					diags = diags.Append(
+						fmt.Errorf("State storage provider %q (%s) was not approved",
+							lock.Provider().Type,
+							lock.Provider(),
+						),
+					)
+					view.Diagnostics(diags)
+					return 1
+				}
 			}
 		}
 	}
@@ -601,7 +685,6 @@ However, if you intended to override a defined backend, please verify that
 the backend configuration is present and valid.
 `,
 			))
-
 		}
 
 		opts = &BackendOpts{

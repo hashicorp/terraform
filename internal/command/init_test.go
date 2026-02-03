@@ -4487,7 +4487,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 // TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
 // changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+	t.Run("return error if -safe-init isn't set when upgrading the state storage provider", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4530,6 +4530,144 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
+		expectedMsg := "Error: State storage providers must be upgraded using the -safe-init flag"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
+	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
+		})
+		defer close()
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-upgrade",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Changing a state store configuration is not implemented yet"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+	})
+
+	t.Run("when input is disabled, upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// First init should upgrade the state storage provider and
+		// return early for users to vet the newly downloaded binary.
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false",
+			"-safe-init",
+			"-upgrade",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := cleanString(testOutput.All())
+		expectedOutput := []string{
+			"Terraform downloaded provider \"test\" (registry.terraform.io/hashicorp/test), version 9.9.9, to use for state storage.",
+			"Inspect the provider's details above and in the dependency lockfile to confirm it's the provider you intend to use for managing state. Once completed, run \"terraform init\" again to complete initialisation of the working directory.",
+		}
+		for _, msg := range expectedOutput {
+			if !strings.Contains(output, msg) {
+				t.Fatalf("expected output to include %q, but got':\n %s", msg, output)
+			}
+		}
+
+		// Second init is when Terraform fully initialises the working directory,
+		// which is where features aren't fully implemented.
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.Ui = ui
+		c.Meta.View = view
+
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false",
+		}
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output = testOutput.All()
 		expectedMsg := "Changing a state store configuration is not implemented yet"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
