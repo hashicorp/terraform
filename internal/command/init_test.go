@@ -4701,7 +4701,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	}
 }
 
-func TestInit_unitialized_stateStore(t *testing.T) {
+func TestInit_uninitialized_stateStore(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	cfg := `terraform {
@@ -4739,6 +4739,88 @@ func TestInit_unitialized_stateStore(t *testing.T) {
 	expectedErr := `provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected`
 	if !strings.Contains(testOutput.Stderr(), expectedErr) {
 		t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
+	}
+}
+
+// Test that config-parsing errors that prevent initialising the pluggable state store are identified and returned
+// before Terraform attempts to initialise the store.
+//
+// These errors include omitting the necessary entry in required_providers, or causing an issue with how require_providers
+// is parsed. This test uses the latter scenario.
+func TestInit_configErrorsImpactingStateStore(t *testing.T) {
+	// Create a temporary directory of config containing an error affecting PSS:
+	// - file-B.tf contains a required_providers block and a state_store block referencing the required provider "test".
+	// - file-A.tf contains a second required_providers block.
+	// - "file-A" will be parsed before "file-B".
+	//
+	// When these files are parsed and merged to create the root module the required_providers blocks are not merged.
+	// Only the first required_providers block that's encountered is used, and any subsequent required_providers blocks
+	// are ignored and an error is raised due to the repeated block type.
+	//
+	// In this test's scenario the state_store block can be parsed and in use but the required_providers block from the
+	// same file will be ignored and raise an error, as it's the second required_providers block encountered during parsing.
+	// This causes that provider to not be downloaded and in the past Terraform would proceed attempting to initialise the
+	// state store while the necessary provider isn't downloaded.
+	td := t.TempDir()
+	t.Chdir(td)
+	cfg1 := `terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {}
+    value = "foobar"
+  }
+}
+	`
+	if err := os.WriteFile(filepath.Join(td, "file-B.tf"), []byte(cfg1), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	cfg2 := `terraform {
+  required_providers {
+    test2 = {
+      source = "hashicorp/test2"
+    }
+  }
+}
+	`
+	if err := os.WriteFile(filepath.Join(td, "file-A.tf"), []byte(cfg2), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init start")
+	args := []string{"-enable-pluggable-state-storage-experiment"}
+	code := initCmd.Run(args)
+	testOutput := done(t)
+	if code == 0 {
+		t.Fatalf("expected apply to fail with code 1, got code %d: \n%s", code, testOutput.All())
+	}
+	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init complete")
+	t.Logf("init output:\n%s", testOutput.Stdout())
+	t.Logf("init errors:\n%s", testOutput.Stderr())
+
+	expectedErrs := []string{
+		// These are the two config parsing errors that previously wouldn't be reported before
+		// Terraform attempted to use a state store in the missing provider.
+		"Error: Duplicate required providers configuration",
+		"Error: Missing entry in required_providers",
+	}
+	for _, e := range expectedErrs {
+		if !strings.Contains(testOutput.Stderr(), e) {
+			t.Fatalf("unexpected error, expected %q, given: %s", e, testOutput.Stderr())
+		}
 	}
 }
 

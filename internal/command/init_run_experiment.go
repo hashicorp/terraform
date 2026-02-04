@@ -181,6 +181,16 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		return 1
 	}
 
+	// There could be configuration errors that impact launching a pluggable state store.
+	// If so have to return diagnostics now, before Terraform encounters a downstream error when initialising a state store.
+	if earlyConfDiags.HasErrors() && config.Module.StateStore != nil {
+		if c.hasMissingStateStorageProvider(earlyConfDiags, config.Module.StateStore.Provider.Name, &config.Module.StateStore.DeclRange) {
+			diags = diags.Append(earlyConfDiags)
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+
 	// Now the full configuration is loaded, we can download the providers specified in the configuration.
 	// This is step one of a two-step provider download process
 	// Providers may be downloaded by this code, but the dependency lock file is only updated later in `init`
@@ -348,6 +358,28 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		view.Output(output)
 	}
 	return 0
+}
+
+// hasMissingStateStorageProvider checks whether a collection of diagnostics contains a specific diagnostic that's raised when the
+// provider used for pluggable state storage has been identified as missing.
+func (c *InitCommand) hasMissingStateStorageProvider(diags tfdiags.Diagnostics, providerName string, stateStoreRange *hcl.Range) bool {
+	// Creating a tfdiags.Diagnostics collection that contains a single diagnostic
+	// is necessary to obtain a comparable version of the hcl.Diagnostic returned from the
+	// MissingStateStoreProviderErr function below.
+	ds := tfdiags.Diagnostics{}.Append(
+		configs.MissingStateStoreProviderErr(providerName, stateStoreRange),
+	)
+	for _, d := range ds {
+		cd, ok := d.(tfdiags.ComparableDiagnostic)
+		if !ok {
+			continue
+		}
+		if diags.ContainsDiagnostic(cd) {
+			// earlyConfDiags includes a warning about missing the provider for pluggable state storage.
+			return true
+		}
+	}
+	return false
 }
 
 func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
@@ -522,7 +554,6 @@ However, if you intended to override a defined backend, please verify that
 the backend configuration is present and valid.
 `,
 			))
-
 		}
 
 		opts = &BackendOpts{
