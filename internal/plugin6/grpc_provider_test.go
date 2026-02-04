@@ -2622,7 +2622,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunks[0])),
+						End:   int64(len(chunks[0])) - 1,
 					},
 				},
 				err: nil,
@@ -2633,7 +2633,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: int64(len(chunks[0])),
-						End:   int64(len(chunks[1])),
+						End:   int64(len(chunks[1])) - 1,
 					},
 				},
 				err: nil,
@@ -2703,7 +2703,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunks[0])),
+						End:   int64(len(chunks[0])) - 1,
 					},
 				},
 				err: nil,
@@ -2714,7 +2714,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
 						Start: int64(len(chunks[0])),
-						End:   int64(len(chunks[1])),
+						End:   int64(len(chunks[1])) - 1,
 					},
 				},
 				err: nil,
@@ -2868,7 +2868,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunk)),
+						End:   int64(len(chunk)) - 1,
 					},
 					Diagnostics: []*proto.Diagnostic{
 						{
@@ -3039,7 +3039,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   4,
+						End:   3,
 					},
 					Diagnostics: []*proto.Diagnostic{},
 				},
@@ -3051,7 +3051,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 4,
-						End:   10,
+						End:   9,
 					},
 					Diagnostics: []*proto.Diagnostic{},
 				},
@@ -3133,7 +3133,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.Eq(expectedReq)).Times(1).Return(nil)
@@ -3193,7 +3193,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(chunkSize),
+				End:   int64(chunkSize) - 1,
 			},
 		}
 		req2 := &proto.WriteStateBytes_RequestChunk{
@@ -3202,7 +3202,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: int64(chunkSize),
-				End:   int64(chunkSize + 10),
+				End:   int64(chunkSize+10) - 1,
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.AnyOf(req1, req2)).Times(2).Return(nil)
@@ -3281,7 +3281,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockResp := &proto.WriteStateBytes_Response{
@@ -3337,7 +3337,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockResp := &proto.WriteStateBytes_Response{
