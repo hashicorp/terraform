@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -336,6 +335,32 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 // and produce error diagnostics if not.
 func (m *Meta) BackendForLocalPlan(plan *plans.Plan) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	// Check the workspace name in the plan matches the current workspace
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error determining current workspace when initializing a backend from the plan file: %w", err))
+		return nil, diags
+	}
+	var plannedWorkspace string
+	var isCloud bool
+	switch {
+	case plan.StateStore != nil:
+		plannedWorkspace = plan.StateStore.Workspace
+		isCloud = false
+	case plan.Backend != nil:
+		plannedWorkspace = plan.Backend.Workspace
+		isCloud = plan.Backend.Type == "cloud"
+	default:
+		panic(fmt.Sprintf("Workspace data missing from plan file. Current workspace is %q. This is a bug in Terraform and should be reported.", currentWorkspace))
+	}
+	if currentWorkspace != plannedWorkspace {
+		return nil, diags.Append(&errWrongWorkspaceForPlan{
+			currentWorkspace: currentWorkspace,
+			plannedWorkspace: plannedWorkspace,
+			isCloud:          isCloud,
+		})
+	}
 
 	var b backend.Backend
 	switch {
@@ -2018,7 +2043,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	}
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
-	if c.ProviderAddr.Hostname == addrs.BuiltInProviderHost {
+	if c.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State storage is using a builtin provider",
@@ -2056,13 +2081,21 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 			Version: pVersion,
 		},
 	}
-	s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	err := s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
+		return nil, diags
+	}
 
 	// We need to briefly convert away from backend.Backend interface to use the method
 	// for accessing the provider schema. In this method we _always_ expect the concrete value
 	// to be backendPluggable.Pluggable.
 	plug := b.(*backendPluggable.Pluggable)
-	s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
+		return nil, diags
+	}
 
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {
@@ -2186,13 +2219,12 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
 
-	isBuiltin := c.ProviderAddr.Hostname == addrs.BuiltInProviderHost
 	isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while determining the version in use. This is a bug in Terraform and should be reported: %w", err))
 		return nil, diags
 	}
-	if isBuiltin || isReattached {
+	if c.ProviderAddr.IsBuiltIn() || isReattached {
 		return nil, nil // nil Version returned
 	}
 

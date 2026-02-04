@@ -102,6 +102,9 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		})
 	}
 
+	countVal, deprecationDiags := ctx.Deprecations().Validate(countVal, ctx.Path().Module(), expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	// Sensitive values are allowed in count but not for_each. This is a
 	// somewhat-dubious decision because the number of instances planned
 	// will disclose exactly what the value was, but in practice it's rare

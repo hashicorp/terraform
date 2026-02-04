@@ -5,7 +5,6 @@ package lang
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -22,13 +21,13 @@ import (
 // It will either return a non-empty message string or it'll return diagnostics
 // with either errors or warnings that explain why the given expression isn't
 // acceptable.
-func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext, ruleAddr *addrs.CheckRule) (string, tfdiags.Diagnostics) {
+func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext, ruleAddr *addrs.CheckRule) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	val, hclDiags := expr.Value(hclCtx)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 
 	val, err := convert.Convert(val, cty.String)
@@ -41,10 +40,10 @@ func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext, ruleAdd
 			Expression:  expr,
 			EvalContext: hclCtx,
 		})
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 	if !val.IsKnown() {
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 	if val.IsNull() {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -55,10 +54,10 @@ func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext, ruleAdd
 			Expression:  expr,
 			EvalContext: hclCtx,
 		})
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 
-	val, valMarks := val.Unmark()
+	_, valMarks := val.Unmark()
 	if _, sensitive := valMarks[marks.Sensitive]; sensitive {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
@@ -70,7 +69,7 @@ You can correct this by removing references to sensitive values, or by carefully
 			Expression:  expr,
 			EvalContext: hclCtx,
 		})
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 
 	if _, ephemeral := valMarks[marks.Ephemeral]; ephemeral {
@@ -90,11 +89,8 @@ You can correct this by removing references to ephemeral values, or by using the
 			Subject: expr.Range().Ptr(),
 			Extra:   extra,
 		})
-		return "", diags
+		return cty.StringVal(""), diags
 	}
 
-	// NOTE: We've discarded any other marks the string might have been carrying,
-	// aside from the sensitive mark.
-
-	return strings.TrimSpace(val.AsString()), diags
+	return val, diags
 }

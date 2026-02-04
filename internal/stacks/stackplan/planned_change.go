@@ -499,6 +499,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
 	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
+	_, withOtherMarks = marks.PathsWithMark(withOtherMarks, marks.Sensitive)
 	if len(withOtherMarks) != 0 {
 		return nil, withOtherMarks[0].Path.NewErrorf(
 			"can't serialize value marked with %#v (this is a bug in Terraform)",

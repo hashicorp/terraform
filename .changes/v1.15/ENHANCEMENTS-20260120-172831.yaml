@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: improve detection of deprecated resource attributes / blocks
+time: 2026-01-20T17:28:31.861321+01:00
+custom:
+    Issue: "38077"

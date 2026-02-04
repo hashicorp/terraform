@@ -261,6 +261,22 @@ func mustModuleInstance(s string) addrs.ModuleInstance {
 	return p
 }
 
+func mustActionInstanceAddr(s string) addrs.AbsActionInstance {
+	addr, diags := addrs.ParseAbsActionInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func mustActionAddr(s string) addrs.AbsAction {
+	addr, diags := addrs.ParseAbsActionStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {

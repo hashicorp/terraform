@@ -2505,7 +2505,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2569,7 +2569,7 @@ module "mod" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod.action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("module.mod.action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2634,7 +2634,7 @@ module "mod" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod[1].action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("module.mod[1].action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2697,7 +2697,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
@@ -2718,7 +2718,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[1]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[1]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2780,7 +2780,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2840,7 +2840,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2900,7 +2900,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2968,7 +2968,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -3072,7 +3072,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
@@ -4379,12 +4379,4 @@ resource "test_object" "a" {
 	if diags.Err().Error() != expectedErr {
 		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}
-}
-
-func mustActionInstanceAddr(t *testing.T, address string) addrs.AbsActionInstance {
-	action, diags := addrs.ParseAbsActionInstanceStr(address)
-	if len(diags) > 0 {
-		t.Fatalf("invalid action %s", diags.Err())
-	}
-	return action
 }
