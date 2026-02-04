@@ -4675,6 +4675,168 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 	})
 }
 
+// A user's experience of upgrading a provider shouldn't be changed based on whether their configuration uses state_store,
+// unless the provider used for pluggable state storage itself is upgraded.
+//
+// TestInit_stateStore_providerUpgrade tests scenarios where the state storage provider is upgraded.
+// This test below asserts that upgrading non-state storage providers only doesn't require new flags like -safe-init.
+func TestInit_stateStore_providerUpgradeNotImpactingStateStore(t *testing.T) {
+	// Empty temp directory; all config is made in this test.
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// Add a file that describes providers "test" and "foobar".
+	// We're going to upgrade "foobar" later in the test.
+	cfg := []byte(`terraform {
+  required_providers {
+    test = {
+      source  = "hashicorp/test"
+      version = "1.2.3" # Only 1.2.3 usable
+    }
+    foobar = {
+      source  = "hashicorp/foobar"
+      version = "~>1.0" # Any version under 2.0
+    }
+  }
+  state_store "test_store" {
+    provider "test" {}
+
+    value = "foobar"
+  }
+}
+`)
+	if err := os.WriteFile("main.tf", cfg, 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mockStateStorageProvider := mockPluggableStateStorageProvider()
+	mockStateStorageProviderAddress := addrs.NewDefaultProvider("test")
+	otherMockProvider := &testing_provider.MockProvider{}
+	otherMockProviderAddress := addrs.NewDefaultProvider("foobar")
+	// provider sources are set up differently for each individual step, using the vars above.
+
+	tOverrides := &testingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			mockStateStorageProviderAddress: providers.FactoryFixed(mockStateStorageProvider), // hashicorp/test
+			otherMockProviderAddress:        providers.FactoryFixed(otherMockProvider),        // hashicorp/foobar
+		},
+	}
+
+	// Init #1 : initialise the directory, including use of PSS, and download version 1.2.3 of hashicorp/foobar
+	{
+		log.Printf("[TRACE] TestInit_stateStore_providerUpgradeNotImpactingStateStore: beginning first init")
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+
+		// Initial provider source provides the required version of hashicorp/test for state storage,
+		// and has a version of hashicorp/foobar that meets the version constraints.
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {
+				"1.2.3",
+			},
+			"hashicorp/foobar": {
+				"1.2.3",
+			},
+		})
+		t.Cleanup(close)
+
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		t.Cleanup(
+			testInputMap(t, map[string]string{
+				"approve": "yes",
+			}),
+		)
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_providerUpgradeNotImpactingStateStore: first init complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		expectedOutput := []string{
+			"Installed hashicorp/test v1.2.3",
+			"Installed hashicorp/foobar v1.2.3",
+		}
+		for _, msg := range expectedOutput {
+			if !strings.Contains(testOutput.Stdout(), msg) {
+				t.Fatalf("expected first init to include %q, but it was missing.", msg)
+			}
+		}
+	}
+
+	// Init #2 : use -upgrade flag to upgrade the hashicorp/foobar provider. State storage provider isn't upgraded, so no
+	// special flags are needed like -safe-init.
+	{
+		log.Printf("[TRACE] TestInit_stateStore_providerUpgradeNotImpactingStateStore: beginning second init with -upgrade")
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+
+		// This provider source for the init -upgrade step is the same as before
+		// except there's now a newer version of hashicorp/foobar that still
+		// meets the config's version constraints.
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {
+				"1.2.3",
+			},
+			"hashicorp/foobar": {
+				"1.2.3",
+				"1.9.9", // New version that'll be downloaded during provider upgrade
+			},
+		})
+		t.Cleanup(close)
+
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides:          tOverrides,
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-upgrade",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_providerUpgradeNotImpactingStateStore: second init complete")
+		t.Logf("Second run output:\n%s", testOutput.Stdout())
+		t.Logf("Second run errors:\n%s", testOutput.Stderr())
+
+		expectedOutput := []string{
+			"Using previously-installed hashicorp/test v1.2.3",
+			"Installed hashicorp/foobar v1.9.9",
+		}
+		for _, msg := range expectedOutput {
+			if !strings.Contains(testOutput.Stdout(), msg) {
+				t.Fatalf("expected second init with -upgrade flag to include %q, but it was missing.", msg)
+			}
+		}
+	}
+}
+
 func TestInit_stateStore_unset(t *testing.T) {
 	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()
