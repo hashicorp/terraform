@@ -443,6 +443,8 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		return "function-results"
 	case *stackplan.PlannedChangeActionInvocationInstancePlanned:
 		return change.ActionInvocationAddr.String()
+	case *stackplan.PlannedChangeDeferredActionInvocation:
+		return "deferred:" + change.ActionInvocationPlanned.ActionInvocationAddr.String()
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))

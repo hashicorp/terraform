@@ -18,7 +18,7 @@ variable "defer" {
   type = bool
 }
 
-# Action that should be invoked when resource is created
+# Simple action
 action "testing_action" "notify" {
   config {
     message = "resource created with id ${var.id}"

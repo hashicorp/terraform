@@ -6573,13 +6573,31 @@ func TestPlanWithDeferredActionInvocation(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	// Find the deferred action invocation in the changes
+	// First, let's verify the resource was actually deferred
+	var foundDeferredResource bool
+	var foundNormalActionInvocation bool
 	var foundDeferredAction bool
+	
 	for _, change := range gotChanges {
-		if _, ok := change.(*stackplan.PlannedChangeDeferredActionInvocation); ok {
+		switch c := change.(type) {
+		case *stackplan.PlannedChangeDeferredResourceInstancePlanned:
+			foundDeferredResource = true
+			t.Logf("Found deferred resource: %s", c.ResourceInstancePlanned.ResourceInstanceObjectAddr)
+		case *stackplan.PlannedChangeActionInvocationInstancePlanned:
+			foundNormalActionInvocation = true
+			t.Logf("Found normal action invocation: %s", c.ActionInvocationAddr)
+		case *stackplan.PlannedChangeDeferredActionInvocation:
 			foundDeferredAction = true
-			break
+			t.Logf("Found deferred action invocation: %s", c.ActionInvocationPlanned.ActionInvocationAddr)
 		}
+	}
+
+	if !foundDeferredResource {
+		t.Error("Expected to find a deferred resource, but none was found")
+	}
+
+	if foundNormalActionInvocation {
+		t.Error("Action invocation should be deferred, not appearing as a normal invocation")
 	}
 
 	if !foundDeferredAction {

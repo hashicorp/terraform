@@ -207,6 +207,32 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		})
 	}
 
+	// Handle deferred action invocations from the plan
+	for _, deferredAction := range plan.DeferredActionInvocations {
+		invocation := deferredAction.ActionInvocationInstanceSrc
+		
+		if invocation == nil {
+			continue
+		}
+
+		// For deferred actions, the provider address is typically empty because
+		// actions are deferred before being fully evaluated. We create the planned
+		// change without schema since we can't fetch it without a provider address.
+		plannedActionInvocation := PlannedChangeActionInvocationInstancePlanned{
+			ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
+				Component: producer.Addr(),
+				Item:      invocation.Addr,
+			},
+			Invocation:         invocation,
+			Schema:             providers.ActionSchema{}, // Empty schema for deferred actions
+			ProviderConfigAddr: invocation.ProviderAddr,  // Will be empty, that's expected
+		}
+		changes = append(changes, &PlannedChangeDeferredActionInvocation{
+			DeferredReason:          deferredAction.DeferredReason,
+			ActionInvocationPlanned: plannedActionInvocation,
+		})
+	}
+
 	// We also need to catch any objects that exist in the "prior state"
 	// but don't have any actions planned, since we still need to capture
 	// the prior state part in case it was updated by refreshing during
