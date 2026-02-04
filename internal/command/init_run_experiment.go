@@ -167,9 +167,9 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
 	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
+	// configDiags will be handled after:
+	// - the version constraint check has happened
+	// - and, the backend/state_store is initialised
 
 	// Before we go further, we'll check to make sure none of the modules in
 	// the configuration declare that they don't support this Terraform
@@ -181,14 +181,12 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		return 1
 	}
 
-	// There could be configuration errors that impact launching a pluggable state store.
-	// If so have to return diagnostics now, before Terraform encounters a downstream error when initialising a state store.
-	if earlyConfDiags.HasErrors() && config.Module.StateStore != nil {
-		if c.hasMissingStateStorageProvider(earlyConfDiags, config.Module.StateStore.Provider.Name, &config.Module.StateStore.DeclRange) {
-			diags = diags.Append(earlyConfDiags)
-			view.Diagnostics(diags)
-			return 1
-		}
+	// We've passed the core version check, now we can show errors from the early configuration.
+	// This prevents trying to initialise the backend with faulty configuration.
+	if earlyConfDiags.HasErrors() {
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Now the full configuration is loaded, we can download the providers specified in the configuration.
@@ -234,6 +232,24 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
+	}
+
+	// Show any errors from initializing the backend.
+	// No preamble using `InitConfigError` is present, as we expect
+	// any errors to from configuring the backend itself.
+	diags = diags.Append(backDiags)
+	if backDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// If everything is ok with the core version check and backend/state_store initialization,
+	// show other errors from loading the full configuration tree.
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	var state *states.State
@@ -298,33 +314,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		view.Output(views.EmptyMessage)
 	}
 
-	// As Terraform version-related diagnostics are handled above, we can now
-	// check the diagnostics from the early configuration and the backend.
-	diags = diags.Append(earlyConfDiags)
-	diags = diags.Append(backDiags)
-	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// Now, we can show any errors from initializing the backend, but we won't
-	// show the InitConfigError preamble as we didn't detect problems with
-	// the early configuration.
-	if backDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// If everything is ok with the core version check and backend initialization,
-	// show other errors from loading the full configuration tree.
-	diags = diags.Append(confDiags)
-	if confDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
-		view.Diagnostics(diags)
-		return 1
-	}
-
 	if cb, ok := back.(*cloud.Cloud); ok {
 		if c.RunningInAutomation {
 			if err := cb.AssertImportCompatible(config); err != nil {
@@ -358,28 +347,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		view.Output(output)
 	}
 	return 0
-}
-
-// hasMissingStateStorageProvider checks whether a collection of diagnostics contains a specific diagnostic that's raised when the
-// provider used for pluggable state storage has been identified as missing.
-func (c *InitCommand) hasMissingStateStorageProvider(diags tfdiags.Diagnostics, providerName string, stateStoreRange *hcl.Range) bool {
-	// Creating a tfdiags.Diagnostics collection that contains a single diagnostic
-	// is necessary to obtain a comparable version of the hcl.Diagnostic returned from the
-	// MissingStateStoreProviderErr function below.
-	ds := tfdiags.Diagnostics{}.Append(
-		configs.MissingStateStoreProviderErr(providerName, stateStoreRange),
-	)
-	for _, d := range ds {
-		cd, ok := d.(tfdiags.ComparableDiagnostic)
-		if !ok {
-			continue
-		}
-		if diags.ContainsDiagnostic(cd) {
-			// earlyConfDiags includes a warning about missing the provider for pluggable state storage.
-			return true
-		}
-	}
-	return false
 }
 
 func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, initArgs *arguments.Init, configLocks *depsfile.Locks, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {

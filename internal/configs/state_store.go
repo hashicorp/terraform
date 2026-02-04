@@ -121,7 +121,14 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		return addrs.NewBuiltInProvider("terraform"), nil
 	case !foundReqProviderEntry:
 		diags = diags.Append(
-			MissingStateStoreProviderErr(stateStore.Provider.Name, &stateStore.DeclRange),
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing entry in required_providers",
+				Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
+					stateStore.Provider.Name,
+				),
+				Subject: &stateStore.DeclRange,
+			},
 		)
 		return tfaddr.Provider{}, diags
 	default:
@@ -129,22 +136,6 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// This code path is used for both re-attached providers
 		// providers that are fully managed by Terraform.
 		return addr.Type, nil
-	}
-}
-
-// MissingStateStoreProviderErr returns an error diagnostic stating that the provider referenced in the state_store block
-// isn't present in a required_providers block. This could happen if a user forgets to include the provider in required_providers,
-// or is there has been an upstream error parsing the required_providers block(s) in the configuration.
-//
-// This function is exported so it can be used to check if a collection of diagnostics contains this type of error diagnostic.
-func MissingStateStoreProviderErr(providerName string, stateStoreRange *hcl.Range) *hcl.Diagnostic {
-	return &hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  "Missing entry in required_providers",
-		Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
-			providerName,
-		),
-		Subject: stateStoreRange,
 	}
 }
 
