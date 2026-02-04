@@ -2298,9 +2298,10 @@ func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
 		[]providerreqs.Hash{""},
 	)
 	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		Locks:            locks,
+		Init:                 true,
+		StateStoreConfig:     mod.StateStore,
+		ProviderRequirements: mod.ProviderRequirements,
+		Locks:                locks,
 	})
 	if !beDiags.HasErrors() {
 		t.Fatal("expected an error to be returned during partial implementation of PSS")
@@ -2364,9 +2365,10 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 			// Get the operations backend
 			_, err := m.Backend(&BackendOpts{
-				Init:             true,
-				StateStoreConfig: mod.StateStore,
-				Locks:            locks,
+				Init:                 true,
+				StateStoreConfig:     mod.StateStore,
+				ProviderRequirements: mod.ProviderRequirements,
+				Locks:                locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2823,10 +2825,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			ConfigOverride:       configOverride,
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2882,9 +2885,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2910,9 +2914,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		m := testMetaBackend(t, nil)
