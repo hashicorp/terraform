@@ -41,6 +41,8 @@ jobs:
                   filters: |
                       changes:
                           - '.changes/*/*.yaml'
+                      changes_added:
+                          - added: '.changes/*/*.yaml'
                       changelog:
                         - 'CHANGELOG.md'
                       version:
@@ -110,8 +112,12 @@ jobs:
 
                       const changesPresent = ${{steps.changelog.outputs.changes}};
                       const changedChangesFiles = ${{steps.changelog.outputs.changes_files}};
+                      const addedChangesFiles = ${{steps.changelog.outputs.changes_added_files}};
                       const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
                       const versionChangesPresent = ${{steps.changelog.outputs.version}};
+
+                      const prNumber = context.issue.number.toString();
+                      const prHeadSha = context.payload.pull_request.head.sha;
 
                       const prLabels = await github.rest.issues.listLabelsOnIssue({
                           issue_number: context.issue.number,
@@ -183,6 +189,54 @@ jobs:
                       if (unexpectedChangelogEntry.length > 0) {
                           await createOrUpdateChangelogComment(`Please remove the changelog entry for the following paths: ${unexpectedChangelogEntry.join(", ")}. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
                           return;
+                      }
+
+                      // Validate that newly added changelog entries have Issue number matching the PR number
+                      if (addedChangesFiles && addedChangesFiles.length > 0) {
+                          const mismatchedFiles = [];
+
+                          for (const filePath of addedChangesFiles) {
+                              try {
+                                  // Fetch file content from the PR head using GitHub API
+                                  const { data: fileContent } = await github.rest.repos.getContent({
+                                      owner: context.repo.owner,
+                                      repo: context.repo.repo,
+                                      path: filePath,
+                                      ref: prHeadSha,
+                                  });
+                              
+                                  // Decode base64 content
+                                  const content = Buffer.from(fileContent.content, 'base64').toString('utf-8');
+                              
+                                  // Parse the Issue number from the YAML content
+                                  // Looking for pattern: Issue: "12345" or Issue: 12345
+                                  const issueMatch = content.match(/^\s*Issue:\s*["']?(\d+)["']?\s*$/m);
+                              
+                                  if (issueMatch) {
+                                      const issueNumber = issueMatch[1];
+                                      if (issueNumber !== prNumber) {
+                                          mismatchedFiles.push({
+                                              file: filePath,
+                                              found: issueNumber,
+                                              expected: prNumber,
+                                          });
+                                      }
+                                  }
+                              } catch (error) {
+                                  core.warning(`Could not read changelog file ${filePath}: ${error.message}`);
+                              }
+                          }
+
+                          if (mismatchedFiles.length > 0) {
+                              const details = mismatchedFiles.map(f => 
+                                  `- \`${f.file}\`: Issue number is \`${f.found}\`, but should be \`${f.expected}\` (this PR's number)`
+                              ).join('\n');
+                          
+                              await createOrUpdateChangelogComment(
+                                  `The following changelog entries have an Issue number that doesn't match this PR's number:\n\n${details}\n\nPlease update the \`Issue\` field in the changelog entry to match this PR's number (\`${prNumber}\`).`
+                              );
+                              return;
+                          }
                       }
 
                       // Nothing to complain about, so delete any existing comment
