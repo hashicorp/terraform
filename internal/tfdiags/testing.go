@@ -34,6 +34,32 @@ func assertDiagnosticsMatch(got, want Diagnostics) string {
 	return cmp.Diff(want, got, DiagnosticComparer)
 }
 
+// AssertDiagnosticsAndExtrasMatch fails the test in progress (using t.Fatal) if the
+// two sets of diagnostics don't match, including their ExtraInfo fields.
+//
+// Unlike AssertDiagnosticsMatch, this function does NOT normalize diagnostics
+// using the "ForRPC" processing step, which means it preserves and compares
+// the ExtraInfo field of each diagnostic.
+//
+// AssertDiagnosticsAndExtrasMatch sorts the two sets of diagnostics in the usual way
+// before comparing them, though diagnostics only have a partial order so that
+// will not totally normalize the ordering of all diagnostics sets.
+func AssertDiagnosticsAndExtrasMatch(t *testing.T, got, want Diagnostics) {
+	t.Helper()
+
+	if diff := assertDiagnosticsAndExtrasMatch(got, want); diff != "" {
+		t.Fatalf("unexpected diagnostics difference:\n%s", diff)
+	}
+}
+
+func assertDiagnosticsAndExtrasMatch(got, want Diagnostics) string {
+	// Don't call ForRPC() so we preserve ExtraInfo
+	got.Sort()
+	want.Sort()
+
+	return cmp.Diff(want, got, DiagnosticComparerWithExtras)
+}
+
 // AssertDiagnosticMatch fails the test in progress (using t.Fatal) if the
 // two (singular) diagnostics don't match after being normalized to an
 // "RPC-friendly" diagnostic, which eliminates the specific type information
