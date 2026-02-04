@@ -200,6 +200,13 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 		return &change, diags
 	}
 
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
+	if diags.HasErrors() {
+		return &change, diags
+	}
+
 	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 	log.Printf("[TRACE] Validating partially expanded config for %q", n.addr)
 	validateResp := provider.ValidateResourceConfig(
@@ -351,6 +358,13 @@ func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalConte
 	configVal, _, configDiags := ctx.EvaluateBlock(n.config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
+		return &change, diags
+	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
+	if diags.HasErrors() {
 		return &change, diags
 	}
 

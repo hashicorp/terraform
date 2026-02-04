@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: You can set a `deprecated` attribute on variable and output blocks to indicate that they are deprecated. This will produce warnings when passing in a value for a deprecated variable or when referencing a deprecated output.
+time: 2025-12-05T17:14:18.623477+01:00
+custom:
+    Issue: "38001"

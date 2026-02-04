@@ -743,6 +743,7 @@ type Change struct {
 func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	// We can't serialize value marks directly so we'll need to extract the
 	// sensitive marks and store them in a separate field.
+	// We ignore Deprecation marks.
 	//
 	// We don't accept any other marks here. The caller should have dealt
 	// with those somehow and replaced them with unmarked placeholders before
@@ -751,6 +752,10 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
 	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
 	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+
+	_, unsupportedMarksesBefore = marks.PathsWithMark(unsupportedMarksesBefore, marks.Deprecation)
+	_, unsupportedMarksesAfter = marks.PathsWithMark(unsupportedMarksesAfter, marks.Deprecation)
+
 	if len(unsupportedMarksesBefore) != 0 {
 		return nil, fmt.Errorf(
 			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",

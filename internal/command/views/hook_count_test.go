@@ -46,7 +46,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -77,7 +77,7 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -119,7 +119,7 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Create, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Create, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -164,7 +164,7 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -195,7 +195,7 @@ func TestCountHookPostDiff_Mixed(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -227,7 +227,7 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.NoOp, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.NoOp, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)
@@ -259,7 +259,7 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal, nil)
 	}
 
 	expected := new(countHook)

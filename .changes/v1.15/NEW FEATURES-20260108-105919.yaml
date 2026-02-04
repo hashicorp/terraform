@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'backend/s3: Support authentication via `aws login`'
+time: 2026-01-08T10:59:19.249387-05:00
+custom:
+    Issue: "37967"

@@ -165,6 +165,92 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 }
 
+// Test how the workspace list command behaves when zero workspaces are present.
+//
+// Historically, the backends built into the Terraform binary would always report that the default workspace exists,
+// even when there were no artefacts representing that workspace. All backends were implemented to do this, therefore
+// it was impossible for the `workspace list` command to report that no workspaces existed.
+//
+// After the introduction of pluggable state storage we can't rely on all implementations to include that behaviour.
+// Instead, we only report workspaces as existing based on the existence of state files/artefacts. Similarly, we've
+// changed how new workspace artefacts are created. Previously the "default" workspace's state file was only created
+// after the first apply, and custom workspaces' state files were created as a side-effect of obtaining a state manager
+// during `workspace new`. Now the `workspace new` command explicitly writes an empty state file as part of creating a
+// new workspace. The "default" workspace is a special case, and now an empty state file is created during init when
+// that workspace is selected. These changes together allow Terraform to only report a workspace's existence based on
+// the existence of artefacts.
+//
+// Users will only experience `workspace list` returning no workspaces if they either:
+//  1. Have "default" selected and run `workspace list` before running `init`
+//     the necessary `workspace new` command to make that workspace.
+//  2. Have a custom workspace selected that isn't created yet. This could happen if a user sets `TF_WORKSPACE`
+//     (or manually edits .terraform/environment) before they run `workspace new`.
+func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
+	// Create a temporary working directory with pluggable state storage in the config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+
+	// Assumes the mocked provider is hashicorp/test
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	meta := Meta{
+		AllowExperimentalFeatures: true,
+		Ui:                        ui,
+		View:                      view,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+			},
+		},
+		ProviderSource: providerSource,
+	}
+
+	// What happens if no workspaces are returned from a pluggable state storage implementation?
+	// (and there are no error diagnostics)
+	mock.GetStatesResponse = &providers.GetStatesResponse{
+		States:      []string{},
+		Diagnostics: nil,
+	}
+
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args := []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	// Users see a warning that the selected workspace doesn't exist yet
+	expectedWarningMessages := []string{
+		"Warning: Terraform cannot find any existing workspaces.",
+		"The \"default\" workspace is selected in your working directory.",
+		"init",
+	}
+	for _, msg := range expectedWarningMessages {
+		if !strings.Contains(ui.ErrorWriter.String(), msg) {
+			t.Fatalf("expected stderr output to include: %s\ngot: %s",
+				msg,
+				ui.ErrorWriter,
+			)
+		}
+	}
+
+	// No other output is present
+	if ui.OutputWriter.String() != "" {
+		t.Fatalf("unexpected stdout: %s",
+			ui.OutputWriter,
+		)
+	}
+}
+
 func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -203,7 +289,6 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
-
 }
 
 func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
@@ -779,7 +864,106 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	if current != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
+}
 
+// Test that the old `env` subcommands raise a deprecation warning
+//
+// Test covers:
+// - `terraform env new`
+// - `terraform env select`
+// - `terraform env list`
+// - `terraform env delete`
+//
+// Note: there is no `env` equivalent of `terraform workspace show`.
+func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
+	// We're asserting the warning below is returned whenever a legacy `env` command
+	// is executed. Commands are made to be legacy via LegacyName: true
+	expectedWarning := `Warning: the "terraform env" family of commands is deprecated`
+
+	// Create a temporary working directory to make workspaces in
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	t.Chdir(td)
+
+	newCmd := &WorkspaceNewCommand{}
+	current, _ := newCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	// Assert `terraform env new "foobar"` returns expected deprecation warning
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	newCmd = &WorkspaceNewCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	newWorkspace := "foobar"
+	args := []string{newWorkspace}
+	if code := newCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env select "default"` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	selectCmd := &WorkspaceSelectCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	defaultWorkspace := "default"
+	args = []string{defaultWorkspace}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env list` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	listCmd := &WorkspaceListCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	args = []string{}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env delete` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta:       Meta{Ui: ui, View: view},
+		LegacyName: true,
+	}
+	args = []string{newWorkspace}
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarning,
+			ui.ErrorWriter.String(),
+		)
+	}
 }
 
 func TestValidWorkspaceName(t *testing.T) {

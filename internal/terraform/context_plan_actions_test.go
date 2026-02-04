@@ -893,7 +893,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[\"a\"]' and 'action.test_action.hello[\"b\"]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -938,7 +947,16 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("test_object.a")) {
+							t.Fatalf("expected action to have triggering resource address 'test_object.a', but it is %s", at.TriggeringResourceAddr)
+						}
+					}
 				},
 			},
 
@@ -1048,7 +1066,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello' and 'action.test_action.hello', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 			"expanded resource - expanded action": {
@@ -1093,7 +1127,23 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					// TODO: Test that action the triggering resource address is set correctly
+					actionTriggers := []plans.LifecycleActionTrigger{}
+					for _, ai := range p.Changes.ActionInvocations {
+						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						if !ok {
+							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
+						}
+
+						actionTriggers = append(actionTriggers, *at)
+					}
+
+					if !actionTriggers[0].TriggeringResourceAddr.Resource.Resource.Equal(actionTriggers[1].TriggeringResourceAddr.Resource.Resource) {
+						t.Fatalf("expected both actions to have the same triggering resource address, but got %s and %s", actionTriggers[0].TriggeringResourceAddr, actionTriggers[1].TriggeringResourceAddr)
+					}
+
+					if actionTriggers[0].TriggeringResourceAddr.Resource.Key == actionTriggers[1].TriggeringResourceAddr.Resource.Key {
+						t.Fatalf("expected both actions to have different triggering resource instance keys, but got the same %s", actionTriggers[0].TriggeringResourceAddr.Resource.Key)
+					}
 				},
 			},
 
@@ -1697,6 +1747,82 @@ resource "other_object" "a" {
 						t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", a2t.TriggeringResourceAddr)
 					}
 				},
+			},
+
+			"not triggered if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"not triggered if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if module is count=0": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
+			},
+
+			"action declaration in module if for_each is empty": {
+				module: map[string]string{
+					"main.tf": `
+module "mod" {
+    for_each = toset([])
+    source = "./mod"
+}
+`,
+					"mod/mod.tf": `
+action "test_action" "hello" {}
+`,
+				},
+				expectPlanActionCalled: false,
 			},
 
 			"provider is within module": {
@@ -2379,7 +2505,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2443,7 +2569,7 @@ module "mod" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod.action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("module.mod.action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2508,7 +2634,7 @@ module "mod" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "module.mod[1].action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("module.mod[1].action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2571,7 +2697,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
@@ -2592,7 +2718,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[1]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[1]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2654,7 +2780,7 @@ action "test_action" "two" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one[0]")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one[0]")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2714,7 +2840,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2774,7 +2900,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2842,7 +2968,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 				},
@@ -2946,7 +3072,7 @@ action "test_action" "one" {
 						t.Fatalf("wrong value in plan: %s", diff)
 					}
 
-					if !ai.Addr.Equal(mustActionInstanceAddr(t, "action.test_action.one")) {
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
 					}
 
@@ -4253,12 +4379,4 @@ resource "test_object" "a" {
 	if diags.Err().Error() != expectedErr {
 		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}
-}
-
-func mustActionInstanceAddr(t *testing.T, address string) addrs.AbsActionInstance {
-	action, diags := addrs.ParseAbsActionInstanceStr(address)
-	if len(diags) > 0 {
-		t.Fatalf("invalid action %s", diags.Err())
-	}
-	return action
 }

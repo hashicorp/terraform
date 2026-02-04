@@ -115,3 +115,8 @@ func (c CheckRuleType) Description() string {
 		return "Condition"
 	}
 }
+
+// ModuleInstance returns the module instance address containing this check rule.
+func (c CheckRule) ModuleInstance() ModuleInstance {
+	return c.Container.ModuleInstance()
+}

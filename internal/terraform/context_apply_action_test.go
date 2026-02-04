@@ -26,10 +26,8 @@ import (
 )
 
 func TestContextApply_actions(t *testing.T) {
-	for name, tc := range map[string]struct {
-		toBeImplemented                 bool
+	tests := map[string]struct {
 		module                          map[string]string
-		mode                            plans.Mode
 		prevRunState                    *states.State
 		events                          func(req providers.InvokeActionRequest) []providers.InvokeActionEvent
 		readResourceFn                  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
@@ -116,16 +114,10 @@ resource "test_object" "a" {
 
 				// the before should have happened first, and the order should
 				// be correct.
-
-				beforeStart := capture.startActionHooks[0]
-				beforeComplete := capture.completeActionHooks[0]
-				evaluateHook(beforeStart, "action.action_example.hello", configs.BeforeCreate)
-				evaluateHook(beforeComplete, "action.action_example.hello", configs.BeforeCreate)
-
-				afterStart := capture.startActionHooks[1]
-				afterComplete := capture.completeActionHooks[1]
-				evaluateHook(afterStart, "action.action_example.hello", configs.AfterCreate)
-				evaluateHook(afterComplete, "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(capture.startActionHooks[0], "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(capture.completeActionHooks[0], "action.action_example.hello", configs.BeforeCreate)
+				evaluateHook(capture.startActionHooks[1], "action.action_example.hello", configs.AfterCreate)
+				evaluateHook(capture.completeActionHooks[1], "action.action_example.hello", configs.AfterCreate)
 			},
 		},
 
@@ -134,7 +126,7 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
-  name = "new name"
+  test_string = "new name"
   lifecycle {
     action_trigger {
       events = [before_update]
@@ -145,20 +137,12 @@ resource "test_object" "a" {
 `,
 			},
 			prevRunState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
-						AttrsJSON: []byte(`{"name":"old name"}`),
+						AttrsJSON: []byte(`{"test_string":"old name"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: true,
@@ -169,7 +153,7 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
-  name = "new name"
+  test_string = "new name"
   lifecycle {
     action_trigger {
       events = [after_update]
@@ -180,20 +164,12 @@ resource "test_object" "a" {
 `,
 			},
 			prevRunState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
-						AttrsJSON: []byte(`{"name":"old"}`),
+						AttrsJSON: []byte(`{"test_string":"old"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: true,
@@ -227,7 +203,6 @@ resource "test_object" "a" {
 					},
 				}
 			},
-
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -282,7 +257,6 @@ resource "test_object" "a" {
 					}
 				}
 			},
-
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
@@ -389,7 +363,6 @@ resource "test_object" "a" {
 					},
 				)
 			},
-
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "action_example",
@@ -452,7 +425,6 @@ resource "test_object" "a" {
 					},
 				)
 			},
-
 			// We expect two calls but not the third one, because the second action fails
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "action_example",
@@ -541,11 +513,11 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "a" {
-  name = "foo"
+  test_string = "foo"
 }
 action "action_example" "hello" {
   config {
-    attr = resource.test_object.a.name
+    attr = resource.test_object.a.test_string
   }
 }
 resource "test_object" "b" {
@@ -594,7 +566,6 @@ resource "test_object" "b" {
 					Value: cty.UnknownVal(cty.String),
 				},
 			}),
-
 			expectInvokeActionCalled: false,
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
@@ -637,7 +608,6 @@ resource "test_object" "b" {
 					Value: cty.StringVal("psst, I'm secret").Mark(marks.Sensitive), // Not sure if we need the mark here, but it doesn't hurt
 				},
 			}),
-
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{{
 				ActionType: "action_example",
@@ -698,11 +668,11 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = test_object.a.name
+    attr = test_object.a.test_string
   }
 }
 resource "test_object" "a" {
-  name = "test_object_a"
+  test_string = "test_object_a"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -781,6 +751,32 @@ resource "test_object" "a" {
 					"attr": cty.String,
 				})),
 			}},
+		},
+
+		"not triggered with no module instances": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+    count = 0
+    source = "./mod"
+}
+
+// an empty plan is not applyable so we have this extra resource here
+resource "test_object" "a" {} 
+`,
+				"mod/mod.tf": `
+action "action_example" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: false,
 		},
 
 		"provider is within module": {
@@ -934,20 +930,12 @@ resource "test_object" "a" {
 			},
 
 			prevRunState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectTainted,
-						AttrsJSON: []byte(`{"name":"previous_run"}`),
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: false,
@@ -967,22 +955,13 @@ resource "test_object" "a" {
 }
 `,
 			},
-
 			prevRunState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectTainted,
-						AttrsJSON: []byte(`{"name":"previous_run"}`),
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 			expectInvokeActionCalled: false,
@@ -994,7 +973,7 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 2
-  name = "test-${count.index}"
+  test_string = "test-${count.index}"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1022,15 +1001,15 @@ resource "test_object" "a" {
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "a" {
-  name = "a"
+  test_string = "a"
 }
 action "action_example" "hello" {
   config {
-    attr = test_object.a.name
+    attr = test_object.a.test_string
   }
 }
 resource "test_object" "b" {
-  name = "b"
+  test_string = "b"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1053,23 +1032,23 @@ resource "test_object" "b" {
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "a" {
-  name = "a"
+  test_string = "a"
 }
 resource "test_object" "b" {
-  name = "b"
+  test_string = "b"
 }
 action "action_example" "hello_a" {
   config {
-    attr = test_object.a.name
+    attr = test_object.a.test_string
   }
 }
 action "action_example" "hello_b" {
   config {
-    attr = test_object.a.name
+    attr = test_object.a.test_string
   }
 }
 resource "test_object" "c" {
-  name = "c"
+  test_string = "c"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1078,7 +1057,7 @@ resource "test_object" "c" {
   }
 }
 resource "test_object" "d" {
-  name = "d"
+  test_string = "d"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1087,7 +1066,7 @@ resource "test_object" "d" {
   }
 }
 resource "test_object" "e" {
-  name = "e"
+  test_string = "e"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1138,20 +1117,12 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: false,
 			planOpts:                 SimplePlanOpts(plans.DestroyMode, InputValues{}),
 			prevRunState: states.BuildState(func(state *states.SyncState) {
-				state.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
-						AttrsJSON: []byte(`{"name":"previous_run"}`),
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 		},
@@ -1172,54 +1143,27 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: false,
-
 			prevRunState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
-
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
-
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_object",
-						Name: "a",
-					}.Instance(addrs.IntKey(2)).Absolute(addrs.RootModuleInstance),
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[2]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 				)
 			}),
 		},
@@ -1229,11 +1173,11 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = test_object.a.name
+    attr = test_object.a.test_string
   }
 }
 resource "test_object" "a" {
-  name = "test_name"
+  test_string = "test_name"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1262,7 +1206,7 @@ module "action_mod" {
 				"action_mod/main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "trigger" {
-  name = "trigger_resource"
+  test_string = "trigger_resource"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1300,7 +1244,7 @@ action "action_example" "nested_action" {
   }
 }
 resource "test_object" "nested_resource" {
-  name = "nested"
+  test_string = "nested"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1339,7 +1283,7 @@ action "action_example" "hello" {
   }
 }
 resource "test_object" "resource" {
-  name = "resource-${var.instance_name}"
+  test_string = "resource-${var.instance_name}"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1373,7 +1317,7 @@ variable "attr" {
 }
 
 resource "test_object" "resource" {
-  name = "hello"
+  test_string = "hello"
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -1399,384 +1343,11 @@ action "action_example_wo" "hello" {
 				},
 			},
 			planOpts: SimplePlanOpts(plans.NormalMode, InputValues{
-				"attr": {
-					Value: cty.StringVal("wo-plan"),
-				},
+				"attr": {Value: cty.StringVal("wo-plan")},
 			}),
 			applyOpts: &ApplyOpts{
-				SetVariables: InputValues{
-					"attr": {
-						Value: cty.StringVal("wo-apply"),
-					},
-				},
+				SetVariables: InputValues{"attr": {Value: cty.StringVal("wo-apply")}},
 			},
-		},
-		"simple action invoke": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "one" {
-  config {
-    attr = "one"
-  }
-}
-action "action_example" "two" {
-  config {
-    attr = "two"
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("one"),
-					}),
-				},
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsActionInstance{
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "action_example",
-								Name: "one",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-				},
-			},
-		},
-
-		"action invoke in module": {
-			module: map[string]string{
-				"mod/main.tf": `
-action "action_example" "one" {
-  config {
-    attr = "one"
-  }
-}
-action "action_example" "two" {
-  config {
-    attr = "two"
-  }
-}
-`,
-
-				"main.tf": `
-module "mod" {
-  source = "./mod"
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("one"),
-					}),
-				},
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsActionInstance{
-						Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "action_example",
-								Name: "one",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-				},
-			},
-		},
-
-		"action invoke in expanded module": {
-			module: map[string]string{
-				"mod/main.tf": `
-action "action_example" "one" {
-  config {
-    attr = "one"
-  }
-}
-action "action_example" "two" {
-  config {
-    attr = "two"
-  }
-}
-`,
-
-				"main.tf": `
-module "mod" {
-  count = 2
-  source = "./mod"
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("one"),
-					}),
-				},
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsActionInstance{
-						Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "action_example",
-								Name: "one",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-				},
-			},
-		},
-
-		"action invoke with count (all)": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "one" {
-  count = 2
-
-  config {
-    attr = "${count.index}"
-  }
-}
-action "action_example" "two" {
-  count = 2
-
-  config {
-    attr = "two"
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("0"),
-					}),
-				},
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("1"),
-					}),
-				},
-			},
-			expectInvokeActionCallsAreUnordered: true,
-		},
-
-		"action invoke with count (instance)": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "one" {
-  count = 2
-
-  config {
-    attr = "${count.index}"
-  }
-}
-action "action_example" "two" {
-  count = 2
-
-  config {
-    attr = "two"
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsActionInstance{
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "action_example",
-								Name: "one",
-							},
-							Key: addrs.IntKey(0),
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("0"),
-					}),
-				},
-			},
-		},
-
-		"invoke action with reference": {
-			module: map[string]string{
-				"main.tf": `
-resource "test_object" "a" {
-  name = "hello"
-}
-
-action "action_example" "one" {
-  config {
-    attr = test_object.a.name
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
-			prevRunState: states.BuildState(func(state *states.SyncState) {
-				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"name":"hello"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			}),
-		},
-
-		"invoke action with reference (drift)": {
-			module: map[string]string{
-				"main.tf": `
-resource "test_object" "a" {
-  name = "hello"
-}
-
-action "action_example" "one" {
-  config {
-    attr = test_object.a.name
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode: plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("drifted value"),
-					}),
-				},
-			},
-			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
-				return providers.ReadResourceResponse{
-					NewState: cty.ObjectVal(map[string]cty.Value{
-						"name": cty.StringVal("drifted value"),
-					}),
-				}
-			},
-			prevRunState: states.BuildState(func(state *states.SyncState) {
-				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"name":"hello"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			}),
-		},
-
-		"invoke action with reference (drift, skip refresh)": {
-			module: map[string]string{
-				"main.tf": `
-resource "test_object" "a" {
-  name = "hello"
-}
-
-action "action_example" "one" {
-  config {
-    attr = test_object.a.name
-  }
-}
-`,
-			},
-			planOpts: &PlanOpts{
-				Mode:        plans.RefreshOnlyMode,
-				SkipRefresh: true,
-				ActionTargets: []addrs.Targetable{
-					addrs.AbsAction{
-						Action: addrs.Action{
-							Type: "action_example",
-							Name: "one",
-						},
-					},
-				},
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
-			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
-				return providers.ReadResourceResponse{
-					NewState: cty.ObjectVal(map[string]cty.Value{
-						"name": cty.StringVal("drifted value"),
-					}),
-				}
-			},
-			prevRunState: states.BuildState(func(state *states.SyncState) {
-				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"name":"hello"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			}),
 		},
 
 		"nested action config single + list blocks applies": {
@@ -1793,7 +1364,7 @@ action "action_nested" "with_blocks" {
   }
 }
 resource "test_object" "a" {
-  name = "object"
+  test_string = "object"
   lifecycle {
     action_trigger {
       events  = [before_create]
@@ -1843,52 +1414,51 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_nested",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"top_attr": cty.NullVal(cty.String),
-						"settings": cty.NullVal(cty.Object(map[string]cty.Type{
-							"name": cty.String,
-							"rule": cty.List(cty.Object(map[string]cty.Type{
-								"value": cty.String,
-							})),
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "action_nested",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"top_attr": cty.NullVal(cty.String),
+					"settings": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+						"rule": cty.List(cty.Object(map[string]cty.Type{
+							"value": cty.String,
 						})),
-						"settings_list": cty.ListVal([]cty.Value{
-							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
-							cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("two")}),
-						}),
+					})),
+					"settings_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
+						cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("two")}),
 					}),
-				},
-			},
+				}),
+			}},
 		},
+
 		"conditions": {
 			module: map[string]string{
 				"main.tf": `
 action "action_example" "hello" {
-count = 3
-config {
-  attr = "value-${count.index}"
-}
+    count = 3
+    config {
+        attr = "value-${count.index}"
+    }
 }
 resource "test_object" "foo" {
-name = "foo"
+    test_string = "foo"
 }
 resource "test_object" "resource" {
-name = "resource"
-lifecycle {
-  action_trigger {
-    events = [before_create]
-    condition = test_object.foo.name == "bar"
-    actions = [action.action_example.hello[0]]
-  }
+    test_string = "resource"
+    lifecycle {
+        action_trigger {
+            events = [before_create]
+            condition = test_object.foo.test_string == "bar"
+            actions = [action.action_example.hello[0]]
+        }
   
-  action_trigger {
-    events = [before_create]
-    condition = test_object.foo.name == "foo"
-    actions = [action.action_example.hello[1], action.action_example.hello[2]]
-  }
-  }
+        action_trigger {
+            events = [before_create]
+            condition = test_object.foo.test_string == "foo"
+            actions = [action.action_example.hello[1], action.action_example.hello[2]]
+        }
+    }
 }
 `,
 			},
@@ -1911,7 +1481,7 @@ lifecycle {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
-  name = "foo"
+  test_string = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1930,7 +1500,7 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {}
 resource "test_object" "a" {
-  name = "foo"
+  test_string = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1950,7 +1520,7 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   count = 3
-  name = "item-${count.index}"
+  test_string = "item-${count.index}"
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1970,7 +1540,7 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   for_each = toset(["foo", "bar"])
-  name = each.key
+  test_string = each.key
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -1990,7 +1560,7 @@ resource "test_object" "a" {
 action "action_example" "hello" {}
 resource "test_object" "a" {
   for_each = {"foo" = "value1", "bar" = "value2"}
-  name = each.value
+  test_string = each.value
   lifecycle {
     action_trigger {
       events = [after_create]
@@ -2017,16 +1587,16 @@ action "action_example" "world" {
   }
 }
 resource "test_object" "a" {
-  name = "foo"
+  test_string = "foo"
   lifecycle {
     action_trigger {
       events = [after_create]
-      condition = test_object.a.name == "foo"
+      condition = test_object.a.test_string == "foo"
       actions = [action.action_example.hello]
     }
     action_trigger {
       events = [after_update]
-      condition = test_object.a.name == "bar"
+      condition = test_object.a.test_string == "bar"
       actions = [action.action_example.world]
     }
   }
@@ -2119,7 +1689,155 @@ resource "test_object" "a" {
 				},
 			},
 		},
+	}
 
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.module)
+
+			testProvider := simpleMockProvider()
+			if tc.readResourceFn != nil {
+				testProvider.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+					return tc.readResourceFn(t, r)
+				}
+			}
+
+			invokeActionCalls := []providers.InvokeActionRequest{}
+			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
+				invokeActionCalls = append(invokeActionCalls, req)
+				if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
+					return providers.InvokeActionResponse{
+						Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
+					}
+				}
+
+				events := []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Progress{Message: "Hello world!"},
+					providers.InvokeActionEvent_Completed{},
+				}
+
+				if tc.events != nil {
+					events = tc.events(req)
+				}
+
+				return providers.InvokeActionResponse{
+					Events: func(yield func(providers.InvokeActionEvent) bool) {
+						for _, event := range events {
+							if !yield(event) {
+								return
+							}
+						}
+					},
+				}
+			}
+
+			actionProvider := testContextActionProvider(invokeActionFn)
+
+			ecosystem := &testing_provider.MockProvider{}
+			ecosystem.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"ecosystem": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			}
+			ecosystem.InvokeActionFn = invokeActionFn
+
+			hookCapture := newActionHookCapture()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"):                                testProviderFuncFixed(testProvider),
+					addrs.NewDefaultProvider("action"):                              testProviderFuncFixed(actionProvider),
+					addrs.MustParseProviderSourceString("danielmschmidt/ecosystem"): testProviderFuncFixed(ecosystem),
+				},
+				Hooks: []Hook{&hookCapture},
+			})
+
+			// Just a sanity check that the module is valid
+			diags := ctx.Validate(m, &ValidateOpts{})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			planOpts := SimplePlanOpts(plans.NormalMode, InputValues{})
+			if tc.planOpts != nil {
+				planOpts = tc.planOpts
+			}
+
+			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
+			if tc.ignoreWarnings {
+				tfdiags.AssertNoErrors(t, diags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if !plan.Applyable {
+				t.Fatalf("plan is not applyable but should be")
+			}
+
+			_, diags = ctx.Apply(plan, m, tc.applyOpts)
+			if tc.expectDiagnostics != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
+			} else {
+				if tc.ignoreWarnings {
+					tfdiags.AssertNoErrors(t, diags)
+				} else {
+					tfdiags.AssertNoDiagnostics(t, diags)
+				}
+			}
+
+			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
+				t.Fatalf("expected invoke action to be called, but it was not")
+			}
+
+			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
+				t.Fatalf("expected %d invoke action calls, got %d (%#v)", len(tc.expectInvokeActionCalls), len(invokeActionCalls), invokeActionCalls)
+			}
+
+			for i, expectedCall := range tc.expectInvokeActionCalls {
+				if tc.expectInvokeActionCallsAreUnordered {
+					// We established the length is correct, so we just need to find one call that matches for each
+					found := false
+					for _, actualCall := range invokeActionCalls {
+						if actualCall.ActionType == expectedCall.ActionType && actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Fatalf("expected invoke action call with ActionType %s and PlannedActionData %s was not found in actual calls", expectedCall.ActionType, expectedCall.PlannedActionData.GoString())
+					}
+				} else {
+					// Expect correct order
+					actualCall := invokeActionCalls[i]
+
+					if actualCall.ActionType != expectedCall.ActionType {
+						t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
+					}
+					if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+						t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+					}
+				}
+			}
+
+			if tc.assertHooks != nil {
+				tc.assertHooks(t, hookCapture)
+			}
+		})
+	}
+}
+
+func TestContextApply_targeted_resource_actions(t *testing.T) {
+	tests := map[string]struct {
+		module                   map[string]string
+		planOpts                 *PlanOpts
+		expectInvokeActionCalled bool
+		expectInvokeActionCalls  []providers.InvokeActionRequest
+		ignoreWarnings           bool
+		assertHooks              func(*testing.T, actionHookCapture)
+	}{
 		"targeted run": {
 			module: map[string]string{
 				"main.tf": `
@@ -2203,7 +1921,7 @@ action "action_example" "there" {
   }
 }
 resource "test_object" "origin" {
-  name = "origin"
+  test_string = "origin"
   lifecycle {
     action_trigger {
       events  = [before_create]
@@ -2212,7 +1930,7 @@ resource "test_object" "origin" {
   }
 }
 resource "test_object" "a" {
-  name = test_object.origin.name
+  test_string = test_object.origin.test_string
   lifecycle {
     action_trigger {
       events  = [after_create]
@@ -2249,10 +1967,8 @@ resource "test_object" "b" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
 			},
 		},
 
@@ -2315,12 +2031,8 @@ resource "test_object" "b" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.
-						Resource(addrs.ManagedResourceMode, "test_object", "a").
-						Instance(addrs.IntKey(2)),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[2]")},
 			},
 		},
 
@@ -2328,11 +2040,11 @@ resource "test_object" "b" {
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "source" {
-  name = "src"
+  test_string = "src"
 }
 action "action_example" "hello" {
   config {
-    attr = test_object.source.name
+    attr = test_object.source.test_string
   }
 }
 action "action_example" "there" {
@@ -2368,7 +2080,7 @@ resource "test_object" "b" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					// action_example.hello before_create with config (attr = test_object.source.name -> "src")
+					// action_example.hello before_create with config (attr = test_object.source.test_string -> "src")
 					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("src"),
@@ -2383,10 +2095,8 @@ resource "test_object" "b" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
 			},
 		},
 
@@ -2394,18 +2104,18 @@ resource "test_object" "b" {
 			module: map[string]string{
 				"main.tf": `
 resource "test_object" "source" {
-  name = "source"
+  test_string = "source"
 }
 action "action_example" "hello" {
   config {
-    attr = test_object.source.name
+    attr = test_object.source.test_string
   }
 }
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events    = [before_create]
-      condition = test_object.source.name == "source"
+      condition = test_object.source.test_string == "source"
       actions   = [action.action_example.hello]
     }
   }
@@ -2416,7 +2126,7 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
 				{
-					// action_example.hello before_create with config (attr = test_object.source.name -> "source")
+					// action_example.hello before_create with config (attr = test_object.source.test_string -> "source")
 					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("source"),
@@ -2424,10 +2134,8 @@ resource "test_object" "a" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
 			},
 		},
 
@@ -2440,7 +2148,7 @@ action "action_example" "hello" {
   }
 }
 resource "test_object" "source" {
-  name = "source"
+  test_string = "source"
   lifecycle {
     action_trigger {
       events  = [before_create]
@@ -2450,7 +2158,7 @@ resource "test_object" "source" {
 }
 action "action_example" "there" {
   config {
-    attr = test_object.source.name
+    attr = test_object.source.test_string
   }
 }
 resource "test_object" "a" {
@@ -2482,7 +2190,7 @@ resource "test_object" "b" {
 					}),
 				},
 				{
-					// action_example.there after_create with config attr = source.name ("source")
+					// action_example.there after_create with config attr = source.test_string ("source")
 					ActionType: "action_example",
 					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("source"),
@@ -2490,10 +2198,8 @@ resource "test_object" "b" {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
 			},
 		},
 
@@ -2506,34 +2212,34 @@ action "action_example" "hello" {
   }
 }
 resource "test_object" "source" {
-name = "source"
-lifecycle {
-	action_trigger {
-		events = [before_create]
-		actions = [action.action_example.hello]
-	}
-}
+    test_string = "source"
+    lifecycle {
+        action_trigger {
+            events = [before_create]
+            actions = [action.action_example.hello]
+        }
+    }
 }
 action "action_example" "there" {
-config {
-	attr = test_object.source.name
-}
+    config {
+        attr = test_object.source.test_string
+    }
 }
 resource "test_object" "a" {
-lifecycle {
-	action_trigger {
-		events = [after_update]
-		actions = [action.action_example.there]
-	}
-}
+    lifecycle {
+        action_trigger {
+            events = [after_update]
+            actions = [action.action_example.there]
+        }
+    }
 }
 resource "test_object" "b" {
-lifecycle {
-	action_trigger {
-		events = [before_update]
-		actions = [action.action_example.hello]
-	}
-}
+    lifecycle {
+        action_trigger {
+            events = [before_update]
+            actions = [action.action_example.hello]
+        }
+    }
 }
 		`,
 			},
@@ -2548,33 +2254,432 @@ lifecycle {
 				},
 			},
 			planOpts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
-				},
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
 			},
 		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("This test is not implemented yet")
-			}
+	}
 
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)
 
 			invokeActionCalls := []providers.InvokeActionRequest{}
+			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
+				invokeActionCalls = append(invokeActionCalls, req)
+				events := []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Progress{Message: "Hello world!"},
+					providers.InvokeActionEvent_Completed{},
+				}
+				return providers.InvokeActionResponse{
+					Events: func(yield func(providers.InvokeActionEvent) bool) {
+						for _, event := range events {
+							if !yield(event) {
+								return
+							}
+						}
+					},
+				}
+			}
 
-			testProvider := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					ResourceTypes: map[string]providers.Schema{
-						"test_object": {
-							Body: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"name": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
+			actionProvider := testContextActionProvider(invokeActionFn)
+			testProvider := simpleMockProvider()
+			ecosystem := &testing_provider.MockProvider{}
+			ecosystem.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"ecosystem": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			}
+			ecosystem.InvokeActionFn = invokeActionFn
+
+			hookCapture := newActionHookCapture()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"):                                testProviderFuncFixed(testProvider),
+					addrs.NewDefaultProvider("action"):                              testProviderFuncFixed(actionProvider),
+					addrs.MustParseProviderSourceString("danielmschmidt/ecosystem"): testProviderFuncFixed(ecosystem),
+				},
+				Hooks: []Hook{&hookCapture},
+			})
+
+			// Just a sanity check that the module is valid
+			diags := ctx.Validate(m, &ValidateOpts{})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			planOpts := SimplePlanOpts(plans.NormalMode, InputValues{})
+			if tc.planOpts != nil {
+				planOpts = tc.planOpts
+			}
+
+			plan, diags := ctx.Plan(m, nil, planOpts)
+			if tc.ignoreWarnings {
+				tfdiags.AssertNoErrors(t, diags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if !plan.Applyable {
+				t.Fatalf("plan is not applyable but should be")
+			}
+
+			_, diags = ctx.Apply(plan, m, nil)
+			if tc.ignoreWarnings {
+				tfdiags.AssertNoErrors(t, diags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
+				t.Fatalf("expected invoke action to be called, but it was not")
+			}
+
+			if len(tc.expectInvokeActionCalls) > 0 && len(invokeActionCalls) != len(tc.expectInvokeActionCalls) {
+				t.Fatalf("expected %d invoke action calls, got %d (%#v)", len(tc.expectInvokeActionCalls), len(invokeActionCalls), invokeActionCalls)
+			}
+
+			for i, expectedCall := range tc.expectInvokeActionCalls {
+				actualCall := invokeActionCalls[i]
+
+				if actualCall.ActionType != expectedCall.ActionType {
+					t.Fatalf("expected invoke action call %d ActionType to be %s, got %s", i, expectedCall.ActionType, actualCall.ActionType)
+				}
+				if !actualCall.PlannedActionData.RawEquals(expectedCall.PlannedActionData) {
+					t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
+				}
+			}
+
+			if tc.assertHooks != nil {
+				tc.assertHooks(t, hookCapture)
+			}
+		})
+	}
+}
+func TestContextApply_invoked_actions(t *testing.T) {
+	tests := map[string]struct {
+		module                              map[string]string
+		prevRunState                        *states.State
+		readResourceFn                      func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
+		planOpts                            *PlanOpts
+		expectInvokeActionCalled            bool
+		expectInvokeActionCalls             []providers.InvokeActionRequest
+		expectInvokeActionCallsAreUnordered bool
+	}{
+		"simple action invoke": {
+			module: map[string]string{
+				"main.tf": `
+	action "action_example" "one" {
+	  config {
+	    attr = "one"
+	  }
+	}
+	action "action_example" "two" {
+	  config {
+	    attr = "two"
+	  }
+	}
+	`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("action.action_example.one")},
+			},
+		},
+
+		"action invoke in module": {
+			module: map[string]string{
+				"mod/main.tf": `
+	action "action_example" "one" {
+	  config {
+	    attr = "one"
+	  }
+	}
+	action "action_example" "two" {
+	  config {
+	    attr = "two"
+	  }
+	}
+	`,
+
+				"main.tf": `
+	module "mod" {
+	  source = "./mod"
+	}
+	`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("module.mod.action.action_example.one")},
+			},
+		},
+
+		"action invoke in expanded module": {
+			module: map[string]string{
+				"mod/main.tf": `
+	action "action_example" "one" {
+	  config {
+	    attr = "one"
+	  }
+	}
+	action "action_example" "two" {
+	  config {
+	    attr = "two"
+	  }
+	}
+	`,
+
+				"main.tf": `
+	module "mod" {
+	  count = 2
+	  source = "./mod"
+	}
+	`,
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("one"),
+					}),
+				},
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("module.mod[1].action.action_example.one")},
+			},
+		},
+
+		"action invoke with count (all)": {
+			module: map[string]string{
+				"main.tf": `
+	action "action_example" "one" {
+	  count = 2
+
+	  config {
+	    attr = "${count.index}"
+	  }
+	}
+	action "action_example" "two" {
+	  count = 2
+
+	  config {
+	    attr = "two"
+	  }
+	}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("1"),
+					}),
+				},
+			},
+			expectInvokeActionCallsAreUnordered: true,
+		},
+
+		"action invoke with count (instance)": {
+			module: map[string]string{
+				"main.tf": `
+	action "action_example" "one" {
+	  count = 2
+
+	  config {
+	    attr = "${count.index}"
+	  }
+	}
+	action "action_example" "two" {
+	  count = 2
+
+	  config {
+	    attr = "two"
+	  }
+	}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("action.action_example.one[0]")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("0"),
+					}),
+				},
+			},
+		},
+
+		"invoke action with reference": {
+			module: map[string]string{
+				"main.tf": `
+	resource "test_object" "a" {
+	  test_string = "hello"
+	}
+
+	action "action_example" "one" {
+	  config {
+	    attr = test_object.a.test_string
+	  }
+	}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with reference (drift)": {
+			module: map[string]string{
+				"main.tf": `
+	resource "test_object" "a" {
+	  test_string = "hello"
+	}
+
+	action "action_example" "one" {
+	  config {
+	    attr = test_object.a.test_string
+	  }
+	}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("drifted value"),
+					}),
+				},
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"test_string": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with reference (drift, skip refresh)": {
+			module: map[string]string{
+				"main.tf": `
+	resource "test_object" "a" {
+	  test_string = "hello"
+	}
+
+	action "action_example" "one" {
+	  config {
+	    attr = test_object.a.test_string
+	  }
+	}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				SkipRefresh:   true,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			readResourceFn: func(t *testing.T, request providers.ReadResourceRequest) providers.ReadResourceResponse {
+				return providers.ReadResourceResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"test_string": cty.StringVal("drifted value"),
+					}),
+				}
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.module)
+
+			testProvider := &testing_provider.MockProvider{}
+			testProvider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				ResourceTypes: map[string]providers.Schema{
+					"test_object": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"test_string": {Type: cty.String, Optional: true},
 							},
 						},
 					},
@@ -2587,25 +2692,13 @@ lifecycle {
 				}
 			}
 
+			invokeActionCalls := []providers.InvokeActionRequest{}
 			invokeActionFn := func(req providers.InvokeActionRequest) providers.InvokeActionResponse {
 				invokeActionCalls = append(invokeActionCalls, req)
-				if tc.callingInvokeReturnsDiagnostics != nil && len(tc.callingInvokeReturnsDiagnostics(req)) > 0 {
-					return providers.InvokeActionResponse{
-						Diagnostics: tc.callingInvokeReturnsDiagnostics(req),
-					}
+				events := []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Progress{Message: "Hello world!"},
+					providers.InvokeActionEvent_Completed{},
 				}
-
-				defaultEvents := []providers.InvokeActionEvent{}
-				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Progress{
-					Message: "Hello world!",
-				})
-				defaultEvents = append(defaultEvents, providers.InvokeActionEvent_Completed{})
-
-				events := defaultEvents
-				if tc.events != nil {
-					events = tc.events(req)
-				}
-
 				return providers.InvokeActionResponse{
 					Events: func(yield func(providers.InvokeActionEvent) bool) {
 						for _, event := range events {
@@ -2616,105 +2709,86 @@ lifecycle {
 					},
 				}
 			}
-			actionProvider := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Actions: map[string]providers.ActionSchema{
-						"action_example": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
+
+			actionProvider := &testing_provider.MockProvider{}
+			actionProvider.InvokeActionFn = invokeActionFn
+			actionProvider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"action_example": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
 							},
 						},
-						"action_example_wo": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:      cty.String,
-										Optional:  true,
-										WriteOnly: true,
-									},
-								},
+					},
+					"action_example_wo": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true, WriteOnly: true},
 							},
 						},
-						// Added nested action schema with nested blocks
-						"action_nested": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"top_attr": {Type: cty.String, Optional: true},
-								},
-								BlockTypes: map[string]*configschema.NestedBlock{
-									"settings": {
-										Nesting: configschema.NestingSingle,
-										Block: configschema.Block{
-											Attributes: map[string]*configschema.Attribute{
-												"name": {Type: cty.String, Required: true},
-											},
-											BlockTypes: map[string]*configschema.NestedBlock{
-												"rule": {
-													Nesting: configschema.NestingList,
-													Block: configschema.Block{
-														Attributes: map[string]*configschema.Attribute{
-															"value": {Type: cty.String, Required: true},
-														},
+					},
+					// Added nested action schema with nested blocks
+					"action_nested": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"top_attr": {Type: cty.String, Optional: true},
+							},
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"settings": {
+									Nesting: configschema.NestingSingle,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"name": {Type: cty.String, Required: true},
+										},
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"rule": {
+												Nesting: configschema.NestingList,
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"value": {Type: cty.String, Required: true},
 													},
 												},
 											},
 										},
 									},
-									"settings_list": {
-										Nesting: configschema.NestingList,
-										Block: configschema.Block{
-											Attributes: map[string]*configschema.Attribute{
-												"id": {Type: cty.String, Required: true},
-											},
+								},
+								"settings_list": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"id": {Type: cty.String, Required: true},
 										},
 									},
 								},
 							},
 						},
 					},
-					ResourceTypes: map[string]providers.Schema{},
 				},
-				InvokeActionFn: invokeActionFn,
 			}
 
-			ecosystem := &testing_provider.MockProvider{
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					Actions: map[string]providers.ActionSchema{
-						"ecosystem": {
-							ConfigSchema: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"attr": {
-										Type:     cty.String,
-										Optional: true,
-									},
-								},
+			ecosystem := &testing_provider.MockProvider{}
+			ecosystem.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				Actions: map[string]providers.ActionSchema{
+					"ecosystem": {
+						ConfigSchema: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
 							},
 						},
 					},
-					ResourceTypes: map[string]providers.Schema{},
 				},
-				InvokeActionFn: invokeActionFn,
 			}
+			ecosystem.InvokeActionFn = invokeActionFn
 
 			hookCapture := newActionHookCapture()
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
-					addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
-					{
-						Type:      "ecosystem",
-						Namespace: "danielmschmidt",
-						Hostname:  addrs.DefaultProviderRegistryHost,
-					}: testProviderFuncFixed(ecosystem),
+					addrs.NewDefaultProvider("test"):                                testProviderFuncFixed(testProvider),
+					addrs.NewDefaultProvider("action"):                              testProviderFuncFixed(actionProvider),
+					addrs.MustParseProviderSourceString("danielmschmidt/ecosystem"): testProviderFuncFixed(ecosystem),
 				},
-				Hooks: []Hook{
-					&hookCapture,
-				},
+				Hooks: []Hook{&hookCapture},
 			})
 
 			// Just a sanity check that the module is valid
@@ -2727,26 +2801,14 @@ lifecycle {
 			}
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, planOpts)
-			if tc.ignoreWarnings {
-				tfdiags.AssertNoErrors(t, diags)
-			} else {
-				tfdiags.AssertNoDiagnostics(t, diags)
-			}
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if !plan.Applyable {
 				t.Fatalf("plan is not applyable but should be")
 			}
 
-			_, diags = ctx.Apply(plan, m, tc.applyOpts)
-			if tc.expectDiagnostics != nil {
-				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
-			} else {
-				if tc.ignoreWarnings {
-					tfdiags.AssertNoErrors(t, diags)
-				} else {
-					tfdiags.AssertNoDiagnostics(t, diags)
-				}
-			}
+			_, diags = ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {
 				t.Fatalf("expected invoke action to be called, but it was not")
@@ -2780,10 +2842,6 @@ lifecycle {
 						t.Fatalf("expected invoke action call %d PlannedActionData to be %s, got %s", i, expectedCall.PlannedActionData.GoString(), actualCall.PlannedActionData.GoString())
 					}
 				}
-			}
-
-			if tc.assertHooks != nil {
-				tc.assertHooks(t, hookCapture)
 			}
 		})
 	}
@@ -2933,5 +2991,65 @@ resource "test_object" "a" {
 
 	if diff := cmp.Diff(expectedOrder, orderedCalls); diff != "" {
 		t.Fatalf("expected calls in order did not match actual calls (-expected +actual):\n%s", diff)
+	}
+}
+
+func testContextActionProvider(invokeActionFn func(req providers.InvokeActionRequest) providers.InvokeActionResponse) *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
+		InvokeActionFn: invokeActionFn,
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Actions: map[string]providers.ActionSchema{
+				"action_example": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+				"action_example_wo": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {Type: cty.String, Optional: true, WriteOnly: true},
+						},
+					},
+				},
+				// Added nested action schema with nested blocks
+				"action_nested": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"top_attr": {Type: cty.String, Optional: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"settings": {
+								Nesting: configschema.NestingSingle,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"name": {Type: cty.String, Required: true},
+									},
+									BlockTypes: map[string]*configschema.NestedBlock{
+										"rule": {
+											Nesting: configschema.NestingList,
+											Block: configschema.Block{
+												Attributes: map[string]*configschema.Attribute{
+													"value": {Type: cty.String, Required: true},
+												},
+											},
+										},
+									},
+								},
+							},
+							"settings_list": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"id": {Type: cty.String, Required: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
