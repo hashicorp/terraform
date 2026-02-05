@@ -311,6 +311,9 @@ func (c *DeprecationOriginDiagnosticExtra) DeprecatedOriginDescription() string 
 // DiagnosticExtrasEqual compares the extra information of two diagnostics.
 // This is intended to be used for testing purposes where we want to verify
 // that diagnostics have the expected extra information.
+// We only compare extra information that we know about (so from inside Terraform).
+// Extra information can also come from external sources, we won't be able to compare those
+// and we don't want to fail tests just because of that.
 //
 // The comparison checks all known DiagnosticExtra* interfaces defined in this file.
 // NOTE: This function should be kept in sync with the extra interfaces defined
