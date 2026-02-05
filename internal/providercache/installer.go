@@ -799,5 +799,7 @@ func (err InstallerError) Error() string {
 		providerErr := err.ProviderErrors[addr]
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
+
+	// Render a PSS-specific security error separate to the list above.
 	return strings.TrimSpace(b.String())
 }

@@ -34,8 +34,10 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
-var _ providers.Interface = (*GRPCProvider)(nil)
-var _ providers.StateStoreChunkSizeSetter = (*GRPCProvider)(nil) // Specific to the v6 version of GRPCProvider
+var (
+	_ providers.Interface                 = (*GRPCProvider)(nil)
+	_ providers.StateStoreChunkSizeSetter = (*GRPCProvider)(nil) // Specific to the v6 version of GRPCProvider
+)
 
 var (
 	equateEmpty   = cmpopts.EquateEmpty()
@@ -144,7 +146,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		EphemeralResourceSchemas: map[string]*proto.Schema{
-			"ephemeral": &proto.Schema{
+			"ephemeral": {
 				Block: &proto.Schema_Block{
 					Attributes: []*proto.Schema_Attribute{
 						{
@@ -157,7 +159,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		ListResourceSchemas: map[string]*proto.Schema{
-			"list": &proto.Schema{
+			"list": {
 				Version: 1,
 				Block: &proto.Schema_Block{
 					Attributes: []*proto.Schema_Attribute{
@@ -1031,6 +1033,7 @@ func TestGRPCProvider_ApplyResourceChange(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedPrivate, resp.Private)
 	}
 }
+
 func TestGRPCProvider_ApplyResourceChangeJSON(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
@@ -1449,6 +1452,7 @@ func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
 
 	checkDiags(t, resp.Diagnostics)
 }
+
 func TestGRPCProvider_GetSchema_ListResourceTypes(t *testing.T) {
 	p := &GRPCProvider{
 		client: mockProviderClient(t),
@@ -2171,7 +2175,6 @@ func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *test
 
 		// Assert no error returned
 		checkDiags(t, resp.Diagnostics)
-
 	})
 
 	t.Run("validation error raised", func(t *testing.T) {
@@ -2216,9 +2219,7 @@ func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *test
 				resp.Diagnostics[0].Description().Summary,
 			)
 		}
-
 	})
-
 }
 
 func TestGRPCProvider_ValidateStateStoreConfig_schema_errors(t *testing.T) {
@@ -2378,9 +2379,7 @@ func TestGRPCProvider_ConfigureStateStore_returns_validation_errors(t *testing.T
 				resp.Diagnostics[0].Description().Summary,
 			)
 		}
-
 	})
-
 }
 
 func TestGRPCProvider_ConfigureStateStore_schema_errors(t *testing.T) {
