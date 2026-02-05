@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'HTTP backend: add ca_file option for custom CA trust'
+time: 2025-12-21T14:30:44.196824246-08:00
+custom:
+    Issue: "36937"
