@@ -47,6 +47,12 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 				} else {
 					pathHasOtherMarks = true
 				}
+			case SourceMark:
+				if _, ok := mark.(SourceMark); ok {
+					pathHasMark = true
+				} else {
+					pathHasOtherMarks = true
+				}
 
 			default:
 				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
@@ -162,4 +168,54 @@ func MarksEqual(a, b []cty.PathValueMarks) bool {
 	}
 
 	return true
+}
+
+func GetMarksDep(v cty.Value, wantMark any) []cty.PathValueMarks {
+	mp := make([]cty.PathValueMarks, 0)
+	_, pvms := v.UnmarkDeepWithPaths()
+	for _, pvm := range pvms {
+		var pathHasMark bool
+		for mark := range pvm.Marks {
+			switch wantMark.(type) {
+			case valueMark, string:
+				if mark == wantMark {
+					pathHasMark = true
+				}
+
+			// For data marks we check if a mark of the type exists
+			case DeprecationMark:
+				if _, ok := mark.(DeprecationMark); ok {
+					pathHasMark = true
+				}
+
+			case SourceMark:
+				if _, ok := mark.(SourceMark); ok {
+					pathHasMark = true
+				}
+
+			default:
+				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
+			}
+		}
+
+		if pathHasMark {
+			mp = append(mp, pvm)
+		}
+	}
+
+	return mp
+}
+
+func GetMarks[T any](v cty.Value) []T {
+	mp := make([]T, 0)
+	_, pvms := v.UnmarkDeepWithPaths()
+	for _, pvm := range pvms {
+		for mark := range pvm.Marks {
+			if _, ok := mark.(T); ok {
+				mp = append(mp, mark.(T))
+			}
+		}
+	}
+
+	return mp
 }

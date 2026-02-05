@@ -62,7 +62,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	vertices := g.Vertices()
 
 	for _, v := range vertices {
-		if t.nodeIsTarget(v, addrs) {
+		if nodeIsTarget(v, addrs) {
 			// We need to add everything this node depends on or that is closely associated with
 			// this node. In case of resource nodes, action triggers are considered closely related
 			// since they belong to the resource.
@@ -138,7 +138,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	return targetedNodes
 }
 
-func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
+func nodeIsTarget(v any, targets []addrs.Targetable) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
 	case *nodeApplyableDeferredPartialInstance:
@@ -165,7 +165,8 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.Target
 	case *nodeActionTriggerApplyInstance:
 		vertexAddr = r.ActionInvocation.Addr
-
+	case addrs.Targetable:
+		vertexAddr = r
 	default:
 		// Only partial nodes and resource and resource instance nodes can be
 		// targeted.

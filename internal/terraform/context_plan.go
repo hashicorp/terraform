@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -847,12 +848,44 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	diags = diags.Append(driftDiags)
 
 	var forgottenResources []string
+	targets := opts.Targets
 	for _, rc := range changes.Resources {
 		if rc.Action == plans.Forget {
 			// TODO KEM display resource ids
 			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
 		}
+
+		// we only check marks of direct targets
+		if !nodeIsTarget(rc.Addr, opts.Targets) {
+			continue
+		}
+
+		// Get the marks that contributed to the resource's state
+		valMarks := marks.GetMarks[marks.SourceMark](rc.After)
+		for _, mark := range valMarks {
+			ref, err := addrs.ParseTargetStr(mark.Addr)
+			if err != nil {
+				continue // not a targetable address, so it is not a resource
+			}
+
+			fmt.Printf("%s has mark %s\n", rc.Addr, mark.Addr)
+			targets = append(targets, ref.Subject)
+		}
 	}
+
+	// only filter out resources if we are in resource targeting mode
+	if len(targets) > 0 {
+		res := make([]*plans.ResourceInstanceChange, 0)
+		for _, rc := range changes.Resources {
+			if nodeIsTarget(rc.Addr, targets) {
+				res = append(res, rc)
+			} else {
+				walker.Deferrals.ReportResourceInstanceDeferred(rc.Addr, providers.DeferredReasonExcluded, rc)
+			}
+		}
+		changes.Resources = res
+	}
+
 	if len(forgottenResources) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
@@ -1001,12 +1034,12 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			// Targets:                   opts.Targets,
 			SafeTargeting:             opts.SafeTargeting,
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
@@ -1044,12 +1077,12 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			// Targets:                   opts.Targets,
 			skipRefresh:               opts.SkipRefresh,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,

@@ -66,6 +66,8 @@ type ResourceInstanceObjectSrc struct {
 	// state, or to save as sensitive paths when saving state
 	AttrSensitivePaths []cty.Path
 
+	AttrSourcePaths []cty.PathValueMarks
+
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
 	Private             []byte

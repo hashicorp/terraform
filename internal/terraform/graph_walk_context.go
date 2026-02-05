@@ -59,6 +59,7 @@ type ContextGraphWalker struct {
 
 	Actions      *actions.Actions
 	Deprecations *deprecation.Deprecations
+	Provenance   *Provenance
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -148,7 +149,10 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		forget:                  w.Forget,
 		ActionsValue:            w.Actions,
 		DeprecationsValue:       w.Deprecations,
+		ProvenanceValue:         w.Provenance,
 	}
+
+	ctx.ProvenanceValue.EvalContext = ctx
 
 	return ctx
 }

@@ -95,6 +95,8 @@ type BuiltinEvalContext struct {
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
 	DeprecationsValue       *deprecation.Deprecations
+
+	ProvenanceValue *Provenance
 }
 
 // BuiltinEvalContext implements EvalContext

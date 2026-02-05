@@ -388,6 +388,8 @@ type ResourceInstanceChange struct {
 	// Terraform that relates to this change. Terraform will save this
 	// byte-for-byte and return it to the provider in the apply call.
 	Private []byte
+
+	SourceMarks []cty.PathValueMarks
 }
 
 // Encode produces a variant of the receiver that has its change values
@@ -752,6 +754,9 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
 	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
 	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+
+	_, unsupportedMarksesBefore = marks.PathsWithMark(marksesBefore, marks.Source)
+	_, unsupportedMarksesAfter = marks.PathsWithMark(marksesAfter, marks.Source)
 
 	_, unsupportedMarksesBefore = marks.PathsWithMark(unsupportedMarksesBefore, marks.Deprecation)
 	_, unsupportedMarksesAfter = marks.PathsWithMark(unsupportedMarksesAfter, marks.Deprecation)

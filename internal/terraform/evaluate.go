@@ -295,6 +295,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		if config.Ephemeral {
 			ret = ret.Mark(marks.Ephemeral)
 		}
+		ret = MarkValueProvenance(ret, addr)
 		return ret, diags
 	}
 
@@ -319,6 +320,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = val.Mark(marks.Ephemeral)
 	}
 
+	val = MarkValueProvenance(val, addr)
 	return val, diags
 }
 
@@ -364,7 +366,8 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		})
 	}
 
-	return d.Evaluator.NamedValues.GetLocalValue(target), diags
+	ret := d.Evaluator.NamedValues.GetLocalValue(target)
+	return MarkValueProvenance(ret, target), diags
 }
 
 func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -508,6 +511,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			panic(fmt.Sprintf("module call has no instance key type but has %d instances (should be 1)", len(instKeys)))
 		}
 		ret, moreDiags := instanceObjVal(instKeys[0])
+		ret = MarkValueProvenance(ret, addr)
 		diags = diags.Append(moreDiags)
 		return ret, diags
 
@@ -517,6 +521,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		elems := make([]cty.Value, 0, len(instKeys))
 		for _, instKey := range instKeys {
 			instVal, moreDiags := instanceObjVal(instKey)
+			instVal = MarkValueProvenance(instVal, addr.Instance(instKey))
 			elems = append(elems, instVal)
 			diags = diags.Append(moreDiags)
 		}
@@ -526,6 +531,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		attrs := make(map[string]cty.Value, len(instKeys))
 		for _, instKey := range instKeys {
 			instVal, moreDiags := instanceObjVal(instKey)
+			instVal = MarkValueProvenance(instVal, addr.Instance(instKey))
 			attrs[string(instKey.(addrs.StringKey))] = instVal
 			diags = diags.Append(moreDiags)
 		}
@@ -845,12 +851,15 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 					continue
 				}
 
-				vals[int(intKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+				instance = MarkValueProvenance(instance, addr.Instance(intKey).Absolute(d.ModulePath))
+				instance = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+				vals[int(intKey)] = instance
 			}
 
 			// Insert unknown values where there are any missing instances
 			for i, v := range vals {
 				if v == cty.NilVal {
+					vals[i] = MarkValueProvenance(vals[i], addr.Absolute(d.ModulePath))
 					vals[i] = cty.UnknownVal(ty)
 				}
 			}
@@ -867,7 +876,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// old key that is being dropped and not used for evaluation
 				continue
 			}
-			vals[string(strKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+			instance = MarkValueProvenance(instance, addr.Absolute(d.ModulePath).Instance(strKey))
+			instance = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+			vals[string(strKey)] = instance
 		}
 
 		if len(vals) > 0 {
@@ -887,7 +898,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			val = cty.UnknownVal(ty)
 		}
 
-		ret = deprecation.MarkDeprecatedValues(val, schema.Body, addr.String())
+		ret = MarkValueProvenance(val, addr.Absolute(d.ModulePath))
+		ret = deprecation.MarkDeprecatedValues(ret, schema.Body, addr.String())
 	}
 
 	return ret, diags
@@ -1169,6 +1181,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	if config.Ephemeral {
 		value = value.Mark(marks.Ephemeral)
 	}
+	value = MarkValueProvenance(value, addr.Absolute(d.ModulePath))
 	if config.DeprecatedSet {
 		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.Absolute(d.ModulePath).String()))
 	}
@@ -1188,4 +1201,17 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
+}
+
+// MarkValueProvenance marks the given value with a provenance mark indicating
+// that it originated from the given address.
+// TODO: better if addr is more specific interface like addrs.Referenceable, but for now we'll use fmt.Stringer
+func MarkValueProvenance(value cty.Value, addr fmt.Stringer) cty.Value {
+	sourceMarks := marks.GetMarks[marks.SourceMark](value)
+	for _, mark := range sourceMarks {
+		if mark.Addr == addr.String() {
+			return value
+		}
+	}
+	return value.Mark(marks.NewSource(addr.String()))
 }

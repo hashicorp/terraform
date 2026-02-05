@@ -132,3 +132,20 @@ func NewDeprecation(message string, originDescription string) DeprecationMark {
 		OriginDescription: originDescription,
 	}
 }
+
+type SourceMark struct {
+	Addr string
+}
+
+func (d SourceMark) GoString() string {
+	return "marks.source<" + d.Addr + ">"
+}
+
+// Empty Source mark for usage in marks.Has / Contains / etc
+var Source = NewSource("")
+
+func NewSource(addr string) SourceMark {
+	return SourceMark{
+		Addr: addr,
+	}
+}
