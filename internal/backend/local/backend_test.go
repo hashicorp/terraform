@@ -675,6 +675,111 @@ func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 	}
 }
 
+func TestLocal_PrepareConfig_rejectsDataDirPaths(t *testing.T) {
+	// Setup
+	_ = testTmpDir(t)
+
+	b := New()
+
+	// PATH ATTR - .terraform directory validation
+	// Path exactly equal to .terraform raises warning
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(".terraform"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags := b.PrepareConfig(config)
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
+	}
+	expectedWarn := `path is inside the .terraform directory`
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
+	}
+
+	// Path deeply nested inside .terraform raises warning
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(".terraform/state/env/terraform.tfstate"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
+	}
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
+	}
+
+	// Path with .terraform/terraform.tfstate in middle of path is allowed (not at root)
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal("foo/.terraform/terraform.tfstate"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
+	}
+
+	// Path with .terraform as suffix is allowed
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal("my.terraform"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
+	}
+
+	// WORKSPACE_DIR ATTR - .terraform directory validation
+	// workspace_dir exactly equal to .terraform raises warning
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(".terraform"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
+	}
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
+	}
+
+	// workspace_dir inside .terraform raises warning
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(".terraform/workspaces"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
+	}
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
+	}
+
+	// workspace_dir deeply nested inside .terraform raises warning
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(".terraform/state/test/workspaces"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasWarnings() {
+		t.Fatalf("expected a warning from PrepareConfig but got none")
+	}
+	if !strings.Contains(diags.ErrWithWarnings().Error(), expectedWarn) {
+		t.Fatalf("expected a warning containing %q, got: %q", expectedWarn, diags.ErrWithWarnings())
+	}
+
+	// workspace_dir with .terraform in middle of path is allowed
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal("foo/.terraform/workspaces"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasWarnings() {
+		t.Fatalf("unexpected error returned from PrepareConfig: %s", diags.ErrWithWarnings())
+	}
+}
+
 // testTmpDir changes into a tmp dir and change back automatically when the test
 // and all its subtests complete.
 func testTmpDir(t *testing.T) string {
