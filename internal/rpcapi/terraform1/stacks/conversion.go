@@ -177,3 +177,10 @@ func NewResourceInstanceObjectInStackAddr(addr stackaddrs.AbsResourceInstanceObj
 		DeposedKey:            addr.Item.DeposedKey.String(),
 	}
 }
+
+func NewActionInvocationInStackAddr(addr stackaddrs.AbsActionInvocationInstance) *ActionInvocationInstanceInStackAddr {
+	return &ActionInvocationInstanceInStackAddr{
+		ComponentInstanceAddr:        addr.Component.String(),
+		ActionInvocationInstanceAddr: addr.Item.String(),
+	}
+}
