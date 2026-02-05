@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -928,7 +929,6 @@ func (s *stacksServer) CloseTerraformState(ctx context.Context, request *stacks.
 }
 
 func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformState_Request, server stacks.Stacks_MigrateTerraformStateServer) error {
-
 	previousStateHandle := handle[*states.State](request.StateHandle)
 	previousState := s.handles.TerraformState(previousStateHandle)
 	if previousState == nil {
@@ -1207,6 +1207,81 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationPlanned: func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
+			span.(trace.Span).AddEvent("planned action invocation", trace.WithAttributes(
+				attribute.String("component_instance", ai.Addr.Component.String()),
+				attribute.String("resource_instance", ai.Addr.Item.String()),
+			))
+
+			inv, err := actionInvocationPlanned(ai)
+			if err != nil {
+				return span
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationPlanned_{
+					ActionInvocationPlanned: inv,
+				},
+			})
+
+			return span
+		},
+
+		ReportActionInvocationStatus: func(ctx context.Context, span any, status *hooks.ActionInvocationStatusHookData) any {
+			log.Printf("[DEBUG] ReportActionInvocationStatus called: Action=%s, Status=%s, Provider=%s",
+				status.Addr.Item.String(), status.Status.String(), status.ProviderAddr.String())
+
+			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
+				attribute.String("component_instance", status.Addr.Component.String()),
+				attribute.String("action_instance", status.Addr.Item.String()),
+				attribute.String("status", status.Status.String()),
+			))
+
+			protoStatus := status.Status.ForProtobuf()
+			log.Printf("[DEBUG] Sending ActionInvocationStatus to gRPC client: Addr=%s, Status=%d (proto)",
+				status.Addr.String(), protoStatus)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
+					ActionInvocationStatus: &stacks.StackChangeProgress_ActionInvocationStatus{
+						Addr:         stacks.NewActionInvocationInStackAddr(status.Addr),
+						Status:       protoStatus,
+						ProviderAddr: status.ProviderAddr.String(),
+					},
+				},
+			})
+
+			log.Printf("[DEBUG] ActionInvocationStatus event successfully sent to client")
+			return span
+		},
+
+		ReportActionInvocationProgress: func(ctx context.Context, span any, progress *hooks.ActionInvocationProgressHookData) any {
+			log.Printf("[DEBUG] ReportActionInvocationProgress called: Action=%s, Message=%s, Provider=%s",
+				progress.Addr.Item.String(), progress.Message, progress.ProviderAddr.String())
+
+			span.(trace.Span).AddEvent("action invocation progress", trace.WithAttributes(
+				attribute.String("component_instance", progress.Addr.Component.String()),
+				attribute.String("action_instance", progress.Addr.Item.String()),
+				attribute.String("message", progress.Message),
+			))
+
+			log.Printf("[DEBUG] Sending ActionInvocationProgress to gRPC client: Addr=%s, Message=%s",
+				progress.Addr.String(), progress.Message)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationProgress_{
+					ActionInvocationProgress: &stacks.StackChangeProgress_ActionInvocationProgress{
+						Addr:         stacks.NewActionInvocationInStackAddr(progress.Addr),
+						Message:      progress.Message,
+						ProviderAddr: progress.ProviderAddr.String(),
+					},
+				},
+			})
+
+			log.Printf("[DEBUG] ActionInvocationProgress event successfully sent to client")
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
@@ -1315,6 +1390,38 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackCh
 		Imported:     imported,
 		ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
 	}, nil
+}
+
+func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangeProgress_ActionInvocationPlanned, error) {
+	res := &stacks.StackChangeProgress_ActionInvocationPlanned{
+		Addr:         stacks.NewActionInvocationInStackAddr(ai.Addr),
+		ProviderAddr: ai.ProviderAddr.String(),
+	}
+
+	switch trig := ai.Trigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger{
+			LifecycleActionTrigger: &stacks.StackChangeProgress_LifecycleActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: ai.Addr.Component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	default:
+		return nil, fmt.Errorf("unsupported action invocation trigger type")
+	}
+
+	return res, nil
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {

@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -210,4 +211,71 @@ func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedAction(add
 
 func (h *componentInstanceTerraformHook) ResourceInstanceObjectsSuccessfullyApplied() addrs.Set[addrs.AbsResourceInstanceObject] {
 	return h.resourceInstanceObjectApplySuccess
+}
+
+// StartAction fires when action execution begins
+func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.StartAction called for action: %s", id.Addr.String())
+	ai := h.actionInvocationFromHookActionIdentity(id)
+
+	// Report status transition: RUNNING (action execution starts)
+	// Note: PENDING status should have been reported during component apply preparation
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: id.ProviderAddr.Provider,
+		Status:       hooks.ActionInvocationRunning,
+	})
+	return terraform.HookActionContinue, nil
+}
+
+// ProgressAction fires for intermediate diagnostic messages (NO status changes)
+func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.ProgressAction called for action: %s, progress=%s", id.Addr.String(), progress)
+	ai := h.actionInvocationFromHookActionIdentity(id)
+
+	log.Printf("[DEBUG] Reporting action invocation progress: %s", progress)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationProgress, &hooks.ActionInvocationProgressHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: id.ProviderAddr.Provider,
+		Message:      progress,
+	})
+
+	return terraform.HookActionContinue, nil
+}
+
+// CompleteAction fires when action finishes (success or error)
+func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] terraform_hook.CompleteAction called for action: %s, error=%v", id.Addr.String(), err)
+	ai := h.actionInvocationFromHookActionIdentity(id)
+
+	// Report final status based on error
+	status := hooks.ActionInvocationCompleted
+	if err != nil {
+		status = hooks.ActionInvocationErrored
+		log.Printf("[DEBUG] Action failed with error: %v - reporting ERRORED status", err)
+	} else {
+		log.Printf("[DEBUG] Action completed successfully - reporting COMPLETED status")
+	}
+
+	// Report status transition: RUNNING → COMPLETED or ERRORED (action finishes)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: id.ProviderAddr.Provider,
+		Status:       status,
+	})
+	return terraform.HookActionContinue, nil
+}
+
+// actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation
+// from a core terraform.HookActionIdentity.
+func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(id terraform.HookActionIdentity) *hooks.ActionInvocation {
+	ai := &hooks.ActionInvocation{
+		Addr: stackaddrs.AbsActionInvocationInstance{
+			Component: h.addr,
+			Item:      id.Addr,
+		},
+		ProviderAddr: id.ProviderAddr.Provider,
+		Trigger:      id.ActionTrigger,
+	}
+	return ai
 }
