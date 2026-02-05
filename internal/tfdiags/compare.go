@@ -28,6 +28,28 @@ var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparerSimple)
 //
 //	cmp.Diff(diag1, diag2, tfdiags.DiagnosticComparerWithExtras)
 var DiagnosticComparerWithExtras cmp.Option = cmp.Options{
+	// Compare Diagnostics slices element by element
+	cmp.Comparer(func(l, r Diagnostics) bool {
+		// Use same nil vs empty slice semantics as the original comparer
+		// (nil and empty slices are considered different by default in cmp.Diff)
+		if l == nil && r == nil {
+			return true
+		}
+		if l == nil || r == nil {
+			// One is nil, one is not - they are different (even if the non-nil one is empty)
+			return false
+		}
+		if len(l) != len(r) {
+			return false
+		}
+		// Compare each element
+		for i := range l {
+			if !diagnosticsWithExtrasEqual(l[i], r[i]) {
+				return false
+			}
+		}
+		return true
+	}),
 	// Transform Diagnostics to a comparable representation
 	cmp.Transformer("DiagnosticWithExtras", func(d Diagnostic) diagnosticWithExtrasForComparison {
 		if d == nil {
@@ -73,6 +95,40 @@ type diagnosticWithExtrasForComparison struct {
 	Subject  *SourceRange
 	Context  *SourceRange
 	Extra    interface{}
+}
+
+// diagnosticsWithExtrasEqual compares two Diagnostic values including their ExtraInfo
+func diagnosticsWithExtrasEqual(l, r Diagnostic) bool {
+	if l == nil && r == nil {
+		return true
+	}
+	if l == nil || r == nil {
+		return false
+	}
+
+	// Compare basic fields
+	if l.Severity() != r.Severity() {
+		return false
+	}
+	lDesc := l.Description()
+	rDesc := r.Description()
+	if lDesc.Summary != rDesc.Summary {
+		return false
+	}
+	if lDesc.Detail != rDesc.Detail {
+		return false
+	}
+	lSrc := l.Source()
+	rSrc := r.Source()
+	if !sourceRangeEquals(lSrc.Subject, rSrc.Subject) {
+		return false
+	}
+	if !sourceRangeEquals(lSrc.Context, rSrc.Context) {
+		return false
+	}
+
+	// Compare extras
+	return extrasMatch(l.ExtraInfo(), r.ExtraInfo())
 }
 
 // diagnosticComparerSimple returns false when a difference is identified between

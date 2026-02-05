@@ -2491,6 +2491,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 5, Column: 28, Byte: 108},
 						End:      hcl.Pos{Line: 5, Column: 49, Byte: 129},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 		},
@@ -2519,6 +2522,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 152},
 						End:      hcl.Pos{Line: 6, Column: 44, Byte: 173},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2549,6 +2555,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 6, Column: 26, Byte: 164},
 						End:      hcl.Pos{Line: 6, Column: 47, Byte: 185},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 		},
@@ -2576,11 +2585,14 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 5, Column: 23, Byte: 123},
 						End:      hcl.Pos{Line: 5, Column: 44, Byte: 144},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 			// During apply we take the planned value for the output. Since the plan
 			// does not contain marks we can not detect this usage at apply time.
-			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics { return tfdiags.Diagnostics{} },
+			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics { return nil },
 		},
 
 		"in resource attribute": {
@@ -2606,6 +2618,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 21, Byte: 126},
 						End:      hcl.Pos{Line: 5, Column: 42, Byte: 147},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2641,6 +2656,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 9, Column: 31, Byte: 245},
 						End:      hcl.Pos{Line: 9, Column: 58, Byte: 272},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 		},
@@ -2671,6 +2689,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 31, Byte: 160},
 						End:      hcl.Pos{Line: 6, Column: 45, Byte: 174},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2719,6 +2740,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
 						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
@@ -2727,6 +2751,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
 						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2758,6 +2785,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 7, Column: 29, Byte: 170},
 						End:      hcl.Pos{Line: 7, Column: 56, Byte: 197},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2792,6 +2822,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 144},
 						End:      hcl.Pos{Line: 6, Column: 44, Byte: 165},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 		},
@@ -2825,6 +2858,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
 						End:      hcl.Pos{Line: 6, Column: 57, Byte: 198},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
@@ -2834,10 +2870,13 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
 						End:      hcl.Pos{Line: 9, Column: 47, Byte: 305},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{} // We can not connect this during planning
+				return nil // We can not connect this during planning
 			},
 			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
@@ -2849,6 +2888,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
 						End:      hcl.Pos{Line: 6, Column: 57, Byte: 198},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
@@ -2857,6 +2899,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
 						End:      hcl.Pos{Line: 9, Column: 47, Byte: 305},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
 					},
 				})
 			},
@@ -2887,6 +2932,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 						Start:    hcl.Pos{Line: 6, Column: 24, Byte: 152},
 						End:      hcl.Pos{Line: 6, Column: 45, Byte: 173},
 					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: "aws_instance.test.foo",
+					},
 				})
 			},
 		},
@@ -2895,7 +2943,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 			// Default values
 			if tc.expectedValidationDiags == nil {
 				tc.expectedValidationDiags = func(c *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}
+					return nil
 				}
 			}
 			// By default we want the same validations in plan as in validate
@@ -2939,19 +2987,19 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 
 			t.Run("validate", func(t *testing.T) {
 				validateDiags := ctx.Validate(m, nil)
-				tfdiags.AssertDiagnosticsMatch(t, validateDiags, tc.expectedValidationDiags(m))
+				tfdiags.AssertDiagnosticsAndExtrasMatch(t, validateDiags, tc.expectedValidationDiags(m))
 			})
 
 			var plan *plans.Plan
 			t.Run("plan", func(t *testing.T) {
 				var planDiags tfdiags.Diagnostics
 				plan, planDiags = ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
-				tfdiags.AssertDiagnosticsMatch(t, planDiags, tc.expectedPlanDiags(m))
+				tfdiags.AssertDiagnosticsAndExtrasMatch(t, planDiags, tc.expectedPlanDiags(m))
 			})
 
 			t.Run("apply", func(t *testing.T) {
 				_, applyDiags := ctx.Apply(plan, m, &ApplyOpts{})
-				tfdiags.AssertDiagnosticsMatch(t, applyDiags, tc.expectedApplyDiags(m))
+				tfdiags.AssertDiagnosticsAndExtrasMatch(t, applyDiags, tc.expectedApplyDiags(m))
 			})
 		})
 	}

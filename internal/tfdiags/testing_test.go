@@ -112,6 +112,26 @@ func Test_assertDiagnosticsAndExtrasMatch(t *testing.T) {
 		diags2     Diagnostics
 		expectDiff bool
 	}{
+		"nil vs nil slices match": {
+			expectDiff: false,
+			diags1:     nil,
+			diags2:     nil,
+		},
+		"empty vs empty slices match": {
+			expectDiff: false,
+			diags1:     Diagnostics{},
+			diags2:     Diagnostics{},
+		},
+		"nil vs empty slices don't match": {
+			expectDiff: true,
+			diags1:     nil,
+			diags2:     Diagnostics{},
+		},
+		"empty vs nil slices don't match": {
+			expectDiff: true,
+			diags1:     Diagnostics{},
+			diags2:     nil,
+		},
 		"diagnostics match without extras": {
 			expectDiff: false,
 			diags1:     Diagnostics{hclDiagnostic{&baseError}},
