@@ -1045,7 +1045,7 @@ func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tf
 			TotalLength: int64(totalLength),
 			Range: &proto6.StateRange{
 				Start: int64(rangeStart),
-				End:   int64(rangeStart + byteCount),
+				End:   int64(rangeStart+byteCount) - 1,
 			},
 			Diagnostics: diags,
 		})
