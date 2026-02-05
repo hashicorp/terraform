@@ -2667,6 +2667,107 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		}
 	})
 
+	t.Run("can process multiple chunks when last chunk size is one byte", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+		p.SetStateStoreChunkSize("mock_store", 5)
+
+		// Call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockReadBytesClient := mockReadStateBytesClient(t)
+
+		expectedReq := &proto.ReadStateBytes_Request{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+			gomock.Any(),
+		).Return(mockReadBytesClient, nil)
+
+		// Define what will be returned by each call to Recv
+		chunk := "helloworld!"
+		totalLength := len(chunk)
+		mockResp := map[int]struct {
+			resp *proto.ReadStateBytes_Response
+			err  error
+		}{
+			0: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[:5]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 0,
+						End:   4,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			1: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[5:10]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 5,
+						End:   9,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			2: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[10:]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 10,
+						End:   10,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			3: {
+				resp: &proto.ReadStateBytes_Response{},
+				err:  io.EOF,
+			},
+		}
+		var count int
+		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_Response, error) {
+			ret := mockResp[count]
+			count++
+			return ret.resp, ret.err
+		}).Times(4)
+
+		// There will be a call to CloseSend to close the stream
+		mockReadBytesClient.EXPECT().CloseSend().Return(nil).Times(1)
+
+		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+
+		// Chunk size mismatches are warnings so ensure there aren't any
+		if resp.Diagnostics.HasWarnings() {
+			t.Fatal(resp.Diagnostics.ErrWithWarnings())
+		}
+
+		if string(resp.Bytes) != "helloworld!" {
+			t.Fatalf("expected data to be %q, got: %q", "helloworld!", string(resp.Bytes))
+		}
+	})
+
 	t.Run("an error diagnostic is returned when final length does not match expectations", func(t *testing.T) {
 		client := mockProviderClient(t)
 		p := &GRPCProvider{
