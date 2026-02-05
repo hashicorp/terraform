@@ -307,3 +307,80 @@ func (c *DeprecationOriginDiagnosticExtra) WrapDiagnosticExtra(inner interface{}
 func (c *DeprecationOriginDiagnosticExtra) DeprecatedOriginDescription() string {
 	return c.OriginDescription
 }
+
+// DiagnosticExtrasEqual compares the extra information of two diagnostics.
+// This is intended to be used for testing purposes where we want to verify
+// that diagnostics have the expected extra information.
+//
+// The comparison checks all known DiagnosticExtra* interfaces defined in this file.
+// NOTE: This function should be kept in sync with the extra interfaces defined
+// in this file. When adding a new DiagnosticExtra* interface, also add a
+// corresponding check here to ensure test coverage remains comprehensive.
+func DiagnosticExtrasEqual(diag1, diag2 Diagnostic) bool {
+	// Check DiagnosticExtraBecauseUnknown
+	unknown1 := ExtraInfo[DiagnosticExtraBecauseUnknown](diag1)
+	unknown2 := ExtraInfo[DiagnosticExtraBecauseUnknown](diag2)
+	if (unknown1 == nil) != (unknown2 == nil) {
+		return false
+	}
+	if unknown1 != nil && unknown1.DiagnosticCausedByUnknown() != unknown2.DiagnosticCausedByUnknown() {
+		return false
+	}
+
+	// Check DiagnosticExtraBecauseEphemeral
+	ephemeral1 := ExtraInfo[DiagnosticExtraBecauseEphemeral](diag1)
+	ephemeral2 := ExtraInfo[DiagnosticExtraBecauseEphemeral](diag2)
+	if (ephemeral1 == nil) != (ephemeral2 == nil) {
+		return false
+	}
+	if ephemeral1 != nil && ephemeral1.DiagnosticCausedByEphemeral() != ephemeral2.DiagnosticCausedByEphemeral() {
+		return false
+	}
+
+	// Check DiagnosticExtraBecauseSensitive
+	sensitive1 := ExtraInfo[DiagnosticExtraBecauseSensitive](diag1)
+	sensitive2 := ExtraInfo[DiagnosticExtraBecauseSensitive](diag2)
+	if (sensitive1 == nil) != (sensitive2 == nil) {
+		return false
+	}
+	if sensitive1 != nil && sensitive1.DiagnosticCausedBySensitive() != sensitive2.DiagnosticCausedBySensitive() {
+		return false
+	}
+
+	// Check DiagnosticExtraDoNotConsolidate
+	doNotConsolidate1 := ExtraInfo[DiagnosticExtraDoNotConsolidate](diag1)
+	doNotConsolidate2 := ExtraInfo[DiagnosticExtraDoNotConsolidate](diag2)
+	if (doNotConsolidate1 == nil) != (doNotConsolidate2 == nil) {
+		return false
+	}
+	if doNotConsolidate1 != nil && doNotConsolidate1.DoNotConsolidateDiagnostic() != doNotConsolidate2.DoNotConsolidateDiagnostic() {
+		return false
+	}
+
+	// Check DiagnosticExtraCausedByTestFailure
+	testFailure1 := ExtraInfo[DiagnosticExtraCausedByTestFailure](diag1)
+	testFailure2 := ExtraInfo[DiagnosticExtraCausedByTestFailure](diag2)
+	if (testFailure1 == nil) != (testFailure2 == nil) {
+		return false
+	}
+	if testFailure1 != nil {
+		if testFailure1.DiagnosticCausedByTestFailure() != testFailure2.DiagnosticCausedByTestFailure() {
+			return false
+		}
+		if testFailure1.IsTestVerboseMode() != testFailure2.IsTestVerboseMode() {
+			return false
+		}
+	}
+
+	// Check DiagnosticExtraDeprecationOrigin
+	deprecation1 := ExtraInfo[DiagnosticExtraDeprecationOrigin](diag1)
+	deprecation2 := ExtraInfo[DiagnosticExtraDeprecationOrigin](diag2)
+	if (deprecation1 == nil) != (deprecation2 == nil) {
+		return false
+	}
+	if deprecation1 != nil && deprecation1.DeprecatedOriginDescription() != deprecation2.DeprecatedOriginDescription() {
+		return false
+	}
+
+	return true
+}
