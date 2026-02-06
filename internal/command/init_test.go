@@ -4790,7 +4790,7 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 	expectedErrs := []string{
 		// Pre-amble text that's shown when a config-parsing error occurs during init.
 		"Error: Terraform encountered problems during initialisation, including problems with the configuration, described below.",
-		// These are the two config parsing errors that previously wouldn't be reported before
+		// This parsing error previously wouldn't be reported before initialising the backend, so
 		// Terraform attempted to use a state store in the missing provider.
 		"Error: Missing entry in required_providers",
 	}
