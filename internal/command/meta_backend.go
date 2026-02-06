@@ -2015,6 +2015,12 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		return nil, diags
 	}
 
+	rDiags := m.removeLocalState(bcs.Type, b)
+	if rDiags.HasErrors() {
+		diags = diags.Append(rDiags)
+		return nil, diags
+	}
+
 	if m.stateLock {
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
@@ -2095,6 +2101,58 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 	}
 
 	return b, diags
+}
+
+func (m *Meta) removeLocalState(backendType string, b backend.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if backendType != "local" {
+		return diags
+	}
+
+	workspaces, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
+		return diags
+	}
+
+	var localStates []statemgr.Full
+	for _, workspace := range workspaces {
+		localState, sDiags := b.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
+			return diags
+		}
+		if err := localState.RefreshState(); err != nil {
+			diags = diags.Append(&errBackendLocalRead{err})
+			return diags
+		}
+
+		// We only care about non-empty states.
+		if localS := localState.State(); !localS.Empty() {
+			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
+			localStates = append(localStates, localState)
+		} else {
+			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
+		}
+	}
+
+	if len(localStates) > 0 {
+		log.Printf("[TRACE] Meta.removeLocalState: removing old state snapshots (%d) from old backend", len(localStates))
+		for idx, localState := range localStates {
+			// We always delete the local state, unless that was our new state too.
+			if err := localState.WriteState(nil); err != nil {
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
+				return diags
+			}
+			if err := localState.PersistState(nil); err != nil {
+				diags = diags.Append(&errBackendMigrateLocalDelete{err})
+				return diags
+			}
+			log.Printf("[DEBUG] Meta.removeLocalState: deleted local state for workspace %q", workspaces[idx])
+		}
+	}
+	return diags
 }
 
 //-------------------------------------------------------------------
