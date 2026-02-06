@@ -226,3 +226,60 @@ func TestChecksHappyPath(t *testing.T) {
 		}
 	}
 }
+
+func TestChecksDuplicateReport(t *testing.T) {
+	const fixtureDir = "testdata/happypath"
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, nil)
+	_, instDiags := inst.InstallModules(context.Background(), fixtureDir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
+
+	/////////////////////////////////////////////////////////////////////////
+
+	cfg, hclDiags := loader.LoadConfig(fixtureDir)
+	if hclDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", hclDiags.Error())
+	}
+
+	resourceA := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "null_resource",
+		Name: "a",
+	}.InModule(addrs.RootModule)
+
+	checks := NewState(cfg)
+
+	resourceInstA := resourceA.Resource.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey)
+
+	checks.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
+
+	// Report initial check results for resource A (2 preconditions, 1 postcondition)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusPass)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 1, StatusPass)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePostcondition, 0, StatusPass)
+
+	if got, want := checks.ObjectCheckStatus(resourceInstA), StatusPass; got != want {
+		t.Fatalf("incorrect check status after first report: got %s, want %s", got, want)
+	}
+
+	// Reporting the same status again should not panic or change the result
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusPass)
+
+	if got, want := checks.ObjectCheckStatus(resourceInstA), StatusPass; got != want {
+		t.Errorf("incorrect check status after duplicate report: got %s, want %s", got, want)
+	}
+
+	// Reporting a conflicting status should not panic, and should preserve
+	// the original status (first write wins)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusFail)
+
+	if got, want := checks.ObjectCheckStatus(resourceInstA), StatusPass; got != want {
+		t.Errorf("check status should be preserved after conflicting report: got %s, want %s", got, want)
+	}
+}
