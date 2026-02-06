@@ -17,7 +17,6 @@ import (
 // This tests combining locks from config and state. Locks derived from state are always unconstrained, i.e. no version constraint data,
 // so this test
 func Test_mergeLockedDependencies_config_and_state(t *testing.T) {
-
 	providerA := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerA")
 	providerB := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerB")
 	v1_0_0 := providerreqs.MustParseVersion("1.0.0")
@@ -36,6 +35,37 @@ func Test_mergeLockedDependencies_config_and_state(t *testing.T) {
 		"no locks when all inputs empty": {
 			configLocks:   depsfile.NewLocks(),
 			stateLocks:    depsfile.NewLocks(),
+			expectedLocks: depsfile.NewLocks(),
+		},
+		"nil config locks": {
+			configLocks: nil,
+			stateLocks: func() *depsfile.Locks {
+				configLocks := depsfile.NewLocks()
+				configLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return configLocks
+			}(),
+			expectedLocks: func() *depsfile.Locks {
+				combinedLocks := depsfile.NewLocks()
+				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return combinedLocks
+			}(),
+		},
+		"nil state locks": {
+			configLocks: func() *depsfile.Locks {
+				configLocks := depsfile.NewLocks()
+				configLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return configLocks
+			}(),
+			stateLocks: nil,
+			expectedLocks: func() *depsfile.Locks {
+				combinedLocks := depsfile.NewLocks()
+				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return combinedLocks
+			}(),
+		},
+		"all nil locks": {
+			configLocks:   nil,
+			stateLocks:    nil,
 			expectedLocks: depsfile.NewLocks(),
 		},
 		"when provider only described in config, output locks have matching constraints": {
