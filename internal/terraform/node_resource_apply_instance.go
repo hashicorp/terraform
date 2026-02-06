@@ -101,13 +101,21 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 		}
 	}
 
-	// add actions?
+	// add action config! remove actions!
 	if n.Config.Managed != nil {
 		if n.Config.Managed.ActionTriggers != nil {
 			for _, at := range n.Config.Managed.ActionTriggers {
 				for _, a := range at.Actions {
-					refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, a.Expr)
-					ret = append(ret, refs...)
+					config, ok := n.ActionConfigs.GetOk(a.ConfigAction)
+					if ok && config != nil {
+						schema := n.ActionSchemas[a.ConfigAction.Action.Type]
+						if schema != nil {
+							configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config.Config, schema.ConfigSchema)
+							ret = append(configRefs, configRefs...)
+						} else {
+							panic("still missing schemas")
+						}
+					}
 				}
 			}
 		}
