@@ -79,10 +79,20 @@ func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostic
 // This method supports downloading providers in 2 steps, and is used during the second download step and
 // while updating the dependency lock file.
 func (m *Meta) mergeLockedDependencies(baseLocks, additionalLocks *depsfile.Locks) *depsfile.Locks {
+	if baseLocks == nil && additionalLocks == nil {
+		return depsfile.NewLocks() // empty locks
+	}
+	if additionalLocks == nil {
+		return baseLocks
+	}
+	if baseLocks == nil {
+		return additionalLocks
+	}
 
-	mergedLocks := baseLocks.DeepCopy()
+	// Here we know that there are two sets of locks to combine and return
 
 	// Append locks derived from the state to locks derived from config.
+	mergedLocks := baseLocks.DeepCopy()
 	for _, lock := range additionalLocks.AllProviders() {
 		match := mergedLocks.Provider(lock.Provider())
 		if match != nil {
