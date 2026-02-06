@@ -220,8 +220,7 @@ func (err ErrQueryFailed) Unwrap() error {
 // This error type doesn't include information about what was cancelled,
 // because the expected treatment of this error type is to quickly abort and
 // exit with minimal ceremony.
-type ErrRequestCanceled struct {
-}
+type ErrRequestCanceled struct{}
 
 func (err ErrRequestCanceled) Error() string {
 	return "request canceled"
@@ -246,4 +245,20 @@ func ErrIsNotExist(err error) bool {
 	default:
 		return false
 	}
+}
+
+// ErrUnsafeStateStorageProviderDownload is an error type used to indicate that... TOTO
+//
+// This is returned when ... TODO
+type ErrUnsafeStateStorageProviderDownload struct {
+	Provider addrs.Provider
+	Version  Version
+}
+
+func (err ErrUnsafeStateStorageProviderDownload) Error() string {
+	return fmt.Sprintf(
+		"Terraform wanted to download %s %s to be used for pluggable state storage. Please provide -safe-init flag for safe install", // TODO improve wording
+		err.Provider,
+		err.Version,
+	)
 }

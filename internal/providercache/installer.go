@@ -556,6 +556,21 @@ NeedProvider:
 		// Step 3c: Retrieve the package indicated by the metadata we received,
 		// either directly into our target directory or via the global cache
 		// directory.
+
+		// Before we start the download process, perform and safety checks defined
+		// by the calling code.
+		if cb := evts.FetchPackageSafetyCheck; cb != nil {
+			err := cb(provider, version, meta.Location)
+			// A returned error means we're blocking download of a provider.
+			if err != nil {
+				errs[provider] = err
+				if cb := evts.FetchPackageFailure; cb != nil {
+					cb(provider, version, err)
+				}
+				continue
+			}
+		}
+
 		if cb := evts.FetchPackageBegin; cb != nil {
 			cb(provider, version, meta.Location)
 		}
@@ -784,5 +799,7 @@ func (err InstallerError) Error() string {
 		providerErr := err.ProviderErrors[addr]
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
+
+	// Render a PSS-specific security error separate to the list above.
 	return strings.TrimSpace(b.String())
 }

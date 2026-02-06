@@ -188,7 +188,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, initArgs.Backend, initArgs.SafeInitWithPluggableStateStore, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -257,7 +257,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, initArgs.SafeInitWithPluggableStateStore, view)
 	diags = diags.Append(configProviderDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -522,7 +522,6 @@ However, if you intended to override a defined backend, please verify that
 the backend configuration is present and valid.
 `,
 			))
-
 		}
 
 		opts = &BackendOpts{
