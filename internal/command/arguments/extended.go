@@ -63,6 +63,9 @@ type Operation struct {
 	// state before proceeding. Default is true.
 	Refresh bool
 
+	// Light
+	Light bool
+
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
 	Targets []addrs.Targetable
@@ -287,6 +290,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
 		f.BoolVar(&operation.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
+		f.BoolVar(&operation.Light, "light", false, "light")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")

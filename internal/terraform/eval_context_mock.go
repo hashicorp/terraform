@@ -439,6 +439,11 @@ func (c *MockEvalContext) Overrides() *mocking.Overrides {
 	return c.OverrideValues
 }
 
+func (c *MockEvalContext) PlanCtx() PlanContext {
+	// This is a no-op for the mock.
+	return PlanContext{}
+}
+
 func (c *MockEvalContext) Forget() bool {
 	c.ForgetCalled = true
 	return c.ForgetValues

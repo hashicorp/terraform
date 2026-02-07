@@ -70,6 +70,8 @@ type graphWalkOpts struct {
 	// the apply phase.
 	PlanTimeTimestamp time.Time
 
+	PlanCtx PlanContext
+
 	// Overrides contains the set of overrides we should apply during this
 	// operation.
 	Overrides *mocking.Overrides
@@ -203,5 +205,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		Forget:                  opts.Forget,
 		Actions:                 actions.NewActions(),
 		Deprecations:            deprecation.NewDeprecations(),
+		PlanCtx:                 opts.PlanCtx,
 	}
 }

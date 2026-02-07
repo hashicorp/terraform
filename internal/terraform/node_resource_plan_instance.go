@@ -26,6 +26,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type PlanContext struct {
+	// PlanMode is the mode of the plan. This is used to determine how
+	// the plan is executed and what actions are taken.
+	PlanMode plans.Mode
+
+	LightMode bool
+}
+
 // NodePlannableResourceInstance represents a _single_ resource
 // instance that is plannable. This means this represents a single
 // count index, for example.
@@ -71,9 +79,11 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		// return n.managedResourceExecute(ctx)
+		return n.Execute2(ctx, op)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx)
+		// return n.dataResourceExecute(ctx)
+		return n.Execute2(ctx, op)
 	case addrs.EphemeralResourceMode:
 		return n.ephemeralResourceExecute(ctx)
 	case addrs.ListResourceMode:

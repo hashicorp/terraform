@@ -150,6 +150,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
+	opReq.PlanLight = args.Light
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace

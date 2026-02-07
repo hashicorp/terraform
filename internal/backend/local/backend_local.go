@@ -96,6 +96,7 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 			stateMeta = &m
 		}
 		log.Printf("[TRACE] backend/local: populating backendrun.LocalRun from plan file")
+		// TODO: write light option to plan file
 		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, lp, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
@@ -210,6 +211,9 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
 		Query:              op.Query,
+		PlanCtx: terraform.PlanContext{
+			LightMode: op.PlanLight,
+		},
 	}
 	run.PlanOpts = planOpts
 

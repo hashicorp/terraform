@@ -63,6 +63,8 @@ type PlanGraphBuilder struct {
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
+	Ctx PlanContext
+
 	// preDestroyRefresh indicates that we are executing the refresh which
 	// happens immediately before a destroy plan, which happens to use the
 	// normal planing mode so skipPlanChanges cannot be set.
