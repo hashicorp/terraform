@@ -3034,6 +3034,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
 	case eq && !forceReplace:
+		// TODO: WHat if the resource has force replace?
 		action = plans.NoOp
 	default:
 		action = plans.Update
