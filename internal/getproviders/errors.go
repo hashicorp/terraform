@@ -247,18 +247,28 @@ func ErrIsNotExist(err error) bool {
 	}
 }
 
-// ErrUnsafeStateStorageProviderDownload is an error type used to indicate that... TOTO
+// ErrUnsafeProviderDownload is an error type used to indicate that... TOTO
 //
 // This is returned when ... TODO
-type ErrUnsafeStateStorageProviderDownload struct {
+type ErrUnsafeProviderDownload struct {
 	Provider addrs.Provider
 	Version  Version
+
+	// UsedForStateStorage helps determine what Error should be
+	// returned from the Error method.
+	// As more use cases for this error type are identified
+	// in future we will replace the use of this boolean.
+	UsedForStateStorage bool
 }
 
-func (err ErrUnsafeStateStorageProviderDownload) Error() string {
-	return fmt.Sprintf(
-		"Terraform wanted to download %s %s to be used for pluggable state storage. Please provide -safe-init flag for safe install", // TODO improve wording
-		err.Provider,
-		err.Version,
-	)
+func (err ErrUnsafeProviderDownload) Error() string {
+	if err.UsedForStateStorage {
+		return fmt.Sprintf(
+			"Terraform wanted to download %s %s to be used for pluggable state storage. Please provide -safe-init flag for safe install", // TODO improve wording
+			err.Provider,
+			err.Version,
+		)
+	}
+
+	panic("unimplemented error message for unknown use case of ErrUnsafeProviderDownload")
 }

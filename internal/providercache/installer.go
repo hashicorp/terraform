@@ -5,6 +5,7 @@ package providercache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -786,20 +787,44 @@ type InstallerError struct {
 }
 
 func (err InstallerError) Error() string {
-	addrs := make([]addrs.Provider, 0, len(err.ProviderErrors))
-	for addr := range err.ProviderErrors {
-		addrs = append(addrs, addr)
-	}
-	sort.Slice(addrs, func(i, j int) bool {
-		return addrs[i].LessThan(addrs[j])
-	})
 	var b strings.Builder
-	b.WriteString("some providers could not be installed:\n")
-	for _, addr := range addrs {
-		providerErr := err.ProviderErrors[addr]
-		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
+
+	// We want to render the "unsafe provider download" errors separately in the
+	// final error message, so separate those out here.
+	unsafeDownloadErrs := map[addrs.Provider]getproviders.ErrUnsafeProviderDownload{}
+	for p, pErr := range err.ProviderErrors {
+		var x getproviders.ErrUnsafeProviderDownload
+		if errors.As(pErr, &x) {
+			unsafeDownloadErrs[p] = pErr.(getproviders.ErrUnsafeProviderDownload)
+			delete(err.ProviderErrors, p)
+		}
+	}
+	if len(unsafeDownloadErrs) > 0 {
+		b.WriteString("Error: State storage providers must be downloaded using -safe-init flag:\n")
+		for _, pErr := range unsafeDownloadErrs {
+			b.WriteString(pErr.Error())
+		}
+		if len(err.ProviderErrors) > 0 {
+			b.WriteString("\n") // separate the errors above from subsequent errors
+		}
 	}
 
-	// Render a PSS-specific security error separate to the list above.
+	// Process remaining errors, if present after the process above.
+	if len(err.ProviderErrors) == 0 {
+		addrs := make([]addrs.Provider, 0, len(err.ProviderErrors))
+		for addr := range err.ProviderErrors {
+			addrs = append(addrs, addr)
+		}
+		sort.Slice(addrs, func(i, j int) bool {
+			return addrs[i].LessThan(addrs[j])
+		})
+
+		b.WriteString("some providers could not be installed:\n")
+		for _, addr := range addrs {
+			providerErr := err.ProviderErrors[addr]
+			fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
+		}
+	}
+
 	return strings.TrimSpace(b.String())
 }
