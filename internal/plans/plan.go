@@ -170,11 +170,9 @@ type Plan struct {
 	// apply can be checked for consistency.
 	FunctionResults []lang.FunctionResultHash
 
-	// Light is true if this plan was created in "light plan" mode, where
+	// Light is true if this plan was created in "light" mode, where
 	// Terraform skipped reading remote state for resources that have not
-	// changed in the local configuration or local state. This is recorded
-	// for UI purposes so that the user can be reminded that the plan may
-	// not reflect out-of-band changes to remote resources.
+	// changed in the local configuration and the state dependents of those resources.
 	Light bool
 }
 

@@ -489,31 +489,6 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 	return diags
 }
 
-// schemaUpgradeRequired determines if the state representation of a resource needs upgrading
-// based on its schema version in state and its current schema. It returns the state, the schema,
-// and a boolean indicating if an upgrade is needed.
-func (n *NodeAbstractResource) schemaUpgradeRequired(ctx EvalContext, providerSchema providers.ProviderSchema, addr addrs.AbsResourceInstance) (bool, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	log.Printf("[TRACE] schemaUpgradeRequired: checking schema version for %s", addr)
-
-	src := ctx.State().ResourceInstanceObject(addr, addrs.NotDeposed)
-	if src == nil {
-		// No state to upgrade
-		log.Printf("[TRACE] schemaUpgradeRequired: no state present for %s", addr)
-		return false, diags
-	}
-
-	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema.Body == nil {
-		// Shouldn't happen since we should've failed long ago if no schema is present
-		return false, diags.Append(fmt.Errorf("no schema available for %s while checking for upgrades; this is a bug in Terraform and should be reported", addr))
-	}
-
-	// Check if the schema version in state matches the current schema version
-	upgradeRequired := src.SchemaVersion != uint64(schema.Version)
-	return upgradeRequired, diags
-}
-
 // readResourceInstanceState reads the current object for a specific instance in
 // the state.
 func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {

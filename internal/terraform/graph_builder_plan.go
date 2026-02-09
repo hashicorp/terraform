@@ -60,8 +60,7 @@ type PlanGraphBuilder struct {
 	// action instead. Create and Delete actions are not affected.
 	ForceReplace []addrs.AbsResourceInstance
 
-	// planCtx carries per-node planning context flags (e.g. light-mode,
-	// skip-refresh, pre-destroy-refresh, skip-plan-changes) that are
+	// planCtx carries per-node planning context info that are
 	// propagated to individual resource nodes during graph building.
 	planCtx nodePlanContext
 

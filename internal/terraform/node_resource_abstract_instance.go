@@ -829,11 +829,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	config := *n.Config
-
-	checkRuleSeverity := tfdiags.Error
-	if planCtx.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
-	}
+	checkRuleSeverity := getCheckRuleSeverity(planCtx)
 
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
@@ -842,7 +838,6 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Evaluate the configuration
 	forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(

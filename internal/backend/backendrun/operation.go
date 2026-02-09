@@ -82,7 +82,6 @@ type Operation struct {
 	// backend that will be used when applying the plan.
 	// Only one of PlanOutBackend or PlanOutStateStore may be set.
 	PlanOutBackend *plans.Backend
-	PlanLight      bool
 
 	// PlanOutStateStore is the state_store to store with the plan. This is the
 	// state store that will be used when applying the plan.

@@ -212,9 +212,6 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
 		Query:              op.Query,
-		PlanCtx: terraform.PlanContext{
-			LightMode: op.PlanLight,
-		},
 	}
 	run.PlanOpts = planOpts
 

@@ -211,8 +211,6 @@ type EvalContext interface {
 	// this execution.
 	Overrides() *mocking.Overrides
 
-	PlanCtx() PlanContext
-
 	// withScope derives a new EvalContext that has all of the same global
 	// context, but a new evaluation scope.
 	withScope(scope evalContextScope) EvalContext

@@ -95,7 +95,6 @@ type BuiltinEvalContext struct {
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
 	DeprecationsValue       *deprecation.Deprecations
-	PlanContext             PlanContext
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -114,10 +113,6 @@ func (ctx *BuiltinEvalContext) StopCtx() context.Context {
 	}
 
 	return ctx.StopContext
-}
-
-func (ctx *BuiltinEvalContext) PlanCtx() PlanContext {
-	return ctx.PlanContext
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {

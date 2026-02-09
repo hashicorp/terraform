@@ -29,15 +29,18 @@ import (
 
 // nodePlanContext holds contextual flags that influence how individual resource
 // nodes behave during the plan walk. It is derived from PlanOpts and
-// threaded into every resource node.
+// copied into every resource node. Each node may further modify its own copy of this
+// struct, or/and pass it to child nodes.
 type nodePlanContext struct {
-	// lightMode, when set to true, activates "light plan" mode. In this mode,
-	// Terraform plans each resource against local state first; if the result
-	// is a NoOp the remote-state refresh is skipped entirely.
-	lightMode bool
+	lightMode       bool
+	skipPlanChanges bool
 
-	skipPlanChanges   bool
-	skipRefresh       bool
+	// skipRefresh indicates that we should skip refreshing managed resources
+	skipRefresh bool
+
+	// preDestroyRefresh indicates that we are executing the refresh which
+	// happens immediately before a destroy plan, which happens to use the
+	// normal planing mode so skipPlanChanges cannot be set.
 	preDestroyRefresh bool
 }
 
@@ -56,10 +59,6 @@ func (pc nodePlanContext) withPreDestroyRefresh(v bool) nodePlanContext {
 	return pc
 }
 
-func (pc nodePlanContext) SkipRefresh() bool {
-	return pc.skipRefresh || pc.lightMode
-}
-
 // PlanOpts are the various options that affect the details of how Terraform
 // will build a plan.
 type PlanOpts struct {
@@ -74,9 +73,8 @@ type PlanOpts struct {
 	// instance using its corresponding provider.
 	SkipRefresh bool
 
-	// LightMode, when set to true, activates "light plan" mode. In this mode,
-	// Terraform plans each resource against local state first; if the result
-	// is a NoOp the expensive remote-state refresh is skipped entirely.
+	// LightMode enables terraform to plan each resource against local state first,
+	// if the result is a NoOp the expensive remote-state refresh is skipped entirely.
 	// Resources whose local plan shows changes are still refreshed and
 	// re-planned so the final diff is accurate.
 	LightMode bool
@@ -391,7 +389,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 		}
 	}
 
-	if opts.PlanCtx.LightMode {
+	if opts.LightMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Light plan mode is in effect",
@@ -523,14 +521,6 @@ func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts
 	return diags
 }
 
-// nodeContext derives a nodePlanContext from the caller-facing fields on
-// PlanOpts. This is the single point where the public API maps into the
-// internal per-node flags that get threaded through the graph builder and
-// into every resource node.
-//
-// Flags that are purely internal (e.g. skipPlanChanges, which is derived
-// from plans.RefreshOnlyMode) are NOT set here — they are applied in
-// planGraph where the mode-specific logic lives.
 func (opts *PlanOpts) nodeContext() nodePlanContext {
 	if opts == nil {
 		return nodePlanContext{}
@@ -880,7 +870,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		DeferralAllowed:            opts.DeferralAllowed,
 		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
 		Changes:                    changes,
-		PlanCtx:                    opts.PlanCtx,
 		MoveResults:                moveResults,
 		Overrides:                  opts.Overrides,
 		PlanTimeTimestamp:          timestamp,
@@ -1103,12 +1092,10 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			queryPlan:                 opts.Query,
 			overridePreventDestroy:    opts.OverridePreventDestroy,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-			Ctx:                       opts.PlanCtx,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
-		nctx := opts.
-			nodeContext().
+		nodeCtx := opts.nodeContext().
 			withSkipPlanChanges(true) // this activates "refresh only" mode.
 		graph, diags := (&PlanGraphBuilder{
 			Config:                    config,
@@ -1118,7 +1105,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   append(opts.Targets, opts.ActionTargets...),
 			ActionTargets:             opts.ActionTargets,
-			planCtx:                   nctx,
+			planCtx:                   nodeCtx,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,

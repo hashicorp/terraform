@@ -57,7 +57,6 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
 	cmdFlags.StringVar(&plan.GenerateConfigPath, "generate-config-out", "", "generate-config-out")
-	cmdFlags.BoolVar(&plan.Light, "light", false, "light")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")
