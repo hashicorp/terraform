@@ -45,9 +45,10 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 
 func (b *Block) filter(path cty.Path, filterAttribute FilterT[*Attribute], filterBlock FilterT[*NestedBlock]) *Block {
 	ret := &Block{
-		Description:     b.Description,
-		DescriptionKind: b.DescriptionKind,
-		Deprecated:      b.Deprecated,
+		Description:        b.Description,
+		DescriptionKind:    b.DescriptionKind,
+		Deprecated:         b.Deprecated,
+		DeprecationMessage: b.DeprecationMessage,
 	}
 
 	if b.Attributes != nil {

@@ -158,6 +158,7 @@ message Schema {
         string description = 4;
         StringKind description_kind = 5;
         bool deprecated = 6;
+        string deprecation_message = 7;
     }
 
     message Attribute {
@@ -172,6 +173,7 @@ message Schema {
         StringKind description_kind = 8;
         bool deprecated = 9;
         bool write_only = 11;
+        string deprecation_message = 12;
     }
 
     message NestedBlock {

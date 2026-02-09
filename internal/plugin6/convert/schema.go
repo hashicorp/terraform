@@ -19,24 +19,26 @@ import (
 // proto.Schema_Block for a grpc response.
 func ConfigSchemaToProto(b *configschema.Block) *proto.Schema_Block {
 	block := &proto.Schema_Block{
-		Description:     b.Description,
-		DescriptionKind: protoStringKind(b.DescriptionKind),
-		Deprecated:      b.Deprecated,
+		Description:        b.Description,
+		DescriptionKind:    protoStringKind(b.DescriptionKind),
+		Deprecated:         b.Deprecated,
+		DeprecationMessage: b.DeprecationMessage,
 	}
 
 	for _, name := range sortedKeys(b.Attributes) {
 		a := b.Attributes[name]
 
 		attr := &proto.Schema_Attribute{
-			Name:            name,
-			Description:     a.Description,
-			DescriptionKind: protoStringKind(a.DescriptionKind),
-			Optional:        a.Optional,
-			Computed:        a.Computed,
-			Required:        a.Required,
-			Sensitive:       a.Sensitive,
-			Deprecated:      a.Deprecated,
-			WriteOnly:       a.WriteOnly,
+			Name:               name,
+			Description:        a.Description,
+			DescriptionKind:    protoStringKind(a.DescriptionKind),
+			Optional:           a.Optional,
+			Computed:           a.Computed,
+			Required:           a.Required,
+			Sensitive:          a.Sensitive,
+			Deprecated:         a.Deprecated,
+			DeprecationMessage: a.DeprecationMessage,
+			WriteOnly:          a.WriteOnly,
 		}
 
 		if a.Type != cty.NilType {
@@ -189,21 +191,23 @@ func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
 		Attributes: make(map[string]*configschema.Attribute),
 		BlockTypes: make(map[string]*configschema.NestedBlock),
 
-		Description:     b.Description,
-		DescriptionKind: schemaStringKind(b.DescriptionKind),
-		Deprecated:      b.Deprecated,
+		Description:        b.Description,
+		DescriptionKind:    schemaStringKind(b.DescriptionKind),
+		Deprecated:         b.Deprecated,
+		DeprecationMessage: b.DeprecationMessage,
 	}
 
 	for _, a := range b.Attributes {
 		attr := &configschema.Attribute{
-			Description:     a.Description,
-			DescriptionKind: schemaStringKind(a.DescriptionKind),
-			Required:        a.Required,
-			Optional:        a.Optional,
-			Computed:        a.Computed,
-			Sensitive:       a.Sensitive,
-			Deprecated:      a.Deprecated,
-			WriteOnly:       a.WriteOnly,
+			Description:        a.Description,
+			DescriptionKind:    schemaStringKind(a.DescriptionKind),
+			Required:           a.Required,
+			Optional:           a.Optional,
+			Computed:           a.Computed,
+			Sensitive:          a.Sensitive,
+			Deprecated:         a.Deprecated,
+			DeprecationMessage: a.DeprecationMessage,
+			WriteOnly:          a.WriteOnly,
 		}
 
 		if a.Type != nil {
@@ -287,14 +291,15 @@ func protoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Object {
 
 	for _, a := range b.Attributes {
 		attr := &configschema.Attribute{
-			Description:     a.Description,
-			DescriptionKind: schemaStringKind(a.DescriptionKind),
-			Required:        a.Required,
-			Optional:        a.Optional,
-			Computed:        a.Computed,
-			Sensitive:       a.Sensitive,
-			Deprecated:      a.Deprecated,
-			WriteOnly:       a.WriteOnly,
+			Description:        a.Description,
+			DescriptionKind:    schemaStringKind(a.DescriptionKind),
+			Required:           a.Required,
+			Optional:           a.Optional,
+			Computed:           a.Computed,
+			Sensitive:          a.Sensitive,
+			Deprecated:         a.Deprecated,
+			DeprecationMessage: a.DeprecationMessage,
+			WriteOnly:          a.WriteOnly,
 		}
 
 		if a.Type != nil {
@@ -349,15 +354,16 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 	for _, name := range sortedKeys(b.Attributes) {
 		a := b.Attributes[name]
 		attr := &proto.Schema_Attribute{
-			Name:            name,
-			Description:     a.Description,
-			DescriptionKind: protoStringKind(a.DescriptionKind),
-			Optional:        a.Optional,
-			Computed:        a.Computed,
-			Required:        a.Required,
-			Sensitive:       a.Sensitive,
-			Deprecated:      a.Deprecated,
-			WriteOnly:       a.WriteOnly,
+			Name:               name,
+			Description:        a.Description,
+			DescriptionKind:    protoStringKind(a.DescriptionKind),
+			Optional:           a.Optional,
+			Computed:           a.Computed,
+			Required:           a.Required,
+			Sensitive:          a.Sensitive,
+			Deprecated:         a.Deprecated,
+			DeprecationMessage: a.DeprecationMessage,
+			WriteOnly:          a.WriteOnly,
 		}
 
 		if a.Type != cty.NilType {
