@@ -749,7 +749,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 
 	// Return the cleanup
 	return func() {
-		var unusedAnswers = testInputResponseMap
+		unusedAnswers := testInputResponseMap
 
 		// First, clean up!
 		test = true
@@ -1036,8 +1036,10 @@ var movedProviderNamespaces = map[string]string{
 // The final return value is a function to call at the end of a test function
 // to shut down the test server. After you call that function, the discovery
 // object becomes useless.
-func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
-	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+func testServices(t *testing.T, server *httptest.Server) (services *disco.Disco, cleanup func()) {
+	if server == nil {
+		server = httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+	}
 
 	services = disco.New()
 	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
@@ -1055,8 +1057,10 @@ func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
 //
 // As with testServices, the final return value is a function to call at the end
 // of your test in order to shut down the test server.
-func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, cleanup func()) {
-	services, close := testServices(t)
+//
+// The calling code can
+func testRegistrySource(t *testing.T, server *httptest.Server) (source *getproviders.RegistrySource, cleanup func()) {
+	services, close := testServices(t, server)
 	source = getproviders.NewRegistrySource(services)
 	return source, close
 }
