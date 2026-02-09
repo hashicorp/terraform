@@ -82,7 +82,7 @@ func (e ActionTriggerEvent) IsDestroy() bool {
 type ActionRef struct {
 	Expr         hcl.Expression
 	Range        hcl.Range
-	ConfigAction addrs.ConfigAction
+	ConfigAction addrs.ConfigAction // local to the module the action reference was in
 }
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {

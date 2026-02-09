@@ -135,7 +135,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		&ActionTriggerConfigTransformer{
-			Config: b.Config,
+			Config:        b.Config,
+			ActionTargets: b.ActionTargets,
+			Operation:     b.Operation,
 		},
 
 		// Add dynamic values

@@ -77,35 +77,6 @@ func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 		if moreDiags.HasErrors() {
 			return nil, diags
 		}
-
-		// _, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
-		// if haveUnknownKeys {
-		// 	// this should never happen, n.recordActionData explicitly sets
-		// 	// allowUnknown to be false, so we should pick up diagnostics
-		// 	// during that call instance reaching this branch.
-		// 	panic("found unknown keys in action instance")
-		// }
-
-		// // Expand the action instances for this module.
-		// for _, knownInstKey := range knownInstKeys {
-		// 	node := NodeAbstractActionInstance{
-		// 		Addr:             absActAddr.Instance(knownInstKey),
-		// 		Config:           &n.Config,
-		// 		Schema:           n.Schema,
-		// 		ResolvedProvider: n.ResolvedProvider,
-		// 		Dependencies:     n.Dependencies,
-		// 		Planning:         n.Planning,
-		// 	}
-
-		// 	if n.Planning {
-		// 		g.Add(&node)
-		// 	} else {
-		// 		n := NodeApplyableActionInstance{
-		// 			&node,
-		// 		}
-		// 		g.Add(&n)
-		// 	}
-		// }
 	}
 	addRootNodeToGraph(&g)
 
@@ -175,6 +146,8 @@ func (n *nodeExpandAction) References() []*addrs.Reference {
 	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 	result = append(result, refs...)
 
+	// problem: invoke
+	// actionTargets? If actionTargets isn't nil, return all refs?
 	if n.Planning {
 		if n.Schema != nil {
 			configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
