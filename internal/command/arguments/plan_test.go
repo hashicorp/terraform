@@ -50,6 +50,23 @@ func TestParsePlan_basicValid(t *testing.T) {
 				},
 			},
 		},
+		"light mode": {
+			[]string{"-light"},
+			&Plan{
+				DetailedExitCode: false,
+				InputEnabled:     true,
+				Light:            true,
+				OutPath:          "",
+				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
 		"JSON view disables input": {
 			[]string{"-json"},
 			&Plan{
@@ -93,6 +110,26 @@ func TestParsePlan_invalid(t *testing.T) {
 	}
 	if got.ViewType != ViewHuman {
 		t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
+	}
+}
+
+func TestParsePlan_lightWithDestroy(t *testing.T) {
+	_, diags := ParsePlan([]string{"-light", "-destroy"})
+	if len(diags) == 0 {
+		t.Fatal("expected diags but got none")
+	}
+	if got, want := diags.Err().Error(), "mutually exclusive"; !strings.Contains(got, want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
+	}
+}
+
+func TestParsePlan_lightWithRefreshOnly(t *testing.T) {
+	_, diags := ParsePlan([]string{"-light", "-refresh-only"})
+	if len(diags) == 0 {
+		t.Fatal("expected diags but got none")
+	}
+	if got, want := diags.Err().Error(), "mutually exclusive"; !strings.Contains(got, want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
 	}
 }
 

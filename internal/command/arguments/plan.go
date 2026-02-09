@@ -4,6 +4,7 @@
 package arguments
 
 import (
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -30,6 +31,12 @@ type Plan struct {
 	// be written to.
 	GenerateConfigPath string
 
+	// Light enables "light plan" mode, where Terraform skips reading remote
+	// state for resources that have not changed in the local configuration
+	// or local state. The user is telling Terraform to trust that nothing
+	// has been modified outside of the local configuration.
+	Light bool
+
 	// ViewType specifies which output format to use
 	ViewType ViewType
 }
@@ -50,6 +57,7 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
 	cmdFlags.StringVar(&plan.GenerateConfigPath, "generate-config-out", "", "generate-config-out")
+	cmdFlags.BoolVar(&plan.Light, "light", false, "light")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")
@@ -81,6 +89,24 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	}
 
 	diags = diags.Append(plan.Operation.Parse())
+
+	// Validate -light flag compatibility
+	if plan.Light {
+		if plan.Operation.PlanMode == plans.RefreshOnlyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The -light and -refresh-only options are mutually exclusive. Light mode skips refreshing unchanged resources, while refresh-only mode requires refreshing all resources.",
+			))
+		}
+		if plan.Operation.PlanMode == plans.DestroyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The -light and -destroy options are mutually exclusive. A destroy plan requires reading the current state of all resources.",
+			))
+		}
+	}
 
 	// JSON view currently does not support input, so we disable it here
 	if json {

@@ -41,12 +41,10 @@ type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
 	ForceCreateBeforeDestroy bool
 
-	// skipRefresh indicates that we should skip refreshing individual instances
-	skipRefresh bool
-
-	// skipPlanChanges indicates we should skip trying to plan change actions
-	// for any instances.
-	skipPlanChanges bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes).
+	// See the nodePlanContext type for details on the individual fields.
+	planCtx nodePlanContext
 
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
@@ -110,13 +108,10 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	checkRuleSeverity := tfdiags.Error
-	if n.skipPlanChanges || n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
-	}
+	checkRuleSeverity := getCheckRuleSeverity(n.planCtx)
 
 	deferrals := ctx.Deferrals()
-	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges, deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies))
+	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.planCtx.skipPlanChanges, deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies))
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -192,10 +187,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var instanceRefreshState *states.ResourceInstanceObject
 
-	checkRuleSeverity := tfdiags.Error
-	if n.skipPlanChanges || n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
-	}
+	checkRuleSeverity := getCheckRuleSeverity(n.planCtx)
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -210,7 +202,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget != cty.NilVal && !n.preDestroyRefresh
+	importing := n.importTarget != cty.NilVal && !n.planCtx.preDestroyRefresh
+
 	var deferred *providers.Deferred
 	var importTarget *plans.Importing
 	shouldRefresh := !n.skipRefresh
@@ -355,7 +348,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	// The import process handles its own refresh
-	if shouldRefresh {
+	if !n.planCtx.SkipRefresh() && !importing {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refreshState(ctx, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
@@ -380,7 +373,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if n.skipRefresh && !importing && updatedCBD {
+	if n.planCtx.SkipRefresh() && !importing && updatedCBD {
 		// CreateBeforeDestroy must be set correctly in the state which is used
 		// to create the apply graph, so if we did not refresh the state make
 		// sure we still update any changes to CreateBeforeDestroy.
@@ -395,7 +388,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Plan the instance, unless we're in the refresh-only mode
-	if !n.skipPlanChanges {
+	if !n.planCtx.skipPlanChanges {
 		_, planDiags := n.planManagedResource(
 			ctx,
 			instanceRefreshState,
@@ -1208,4 +1201,12 @@ func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.
 		}
 	}
 	return triggeredEvents
+}
+
+func getCheckRuleSeverity(ctx nodePlanContext) tfdiags.Severity {
+	checkRuleSeverity := tfdiags.Error
+	if ctx.skipPlanChanges || ctx.preDestroyRefresh {
+		checkRuleSeverity = tfdiags.Warning
+	}
+	return checkRuleSeverity
 }

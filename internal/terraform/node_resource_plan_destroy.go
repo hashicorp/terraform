@@ -20,8 +20,10 @@ import (
 type NodePlanDestroyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
-	// skipRefresh indicates that we should skip refreshing
-	skipRefresh bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes).
+	// See the nodePlanContext type for details on the individual fields.
+	planCtx nodePlanContext
 }
 
 var (
@@ -85,7 +87,7 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	// running a normal plan walk when refresh is enabled. These two
 	// conditionals must agree (be exactly opposite) in order to get the
 	// correct behavior in both cases.
-	if n.skipRefresh {
+	if n.planCtx.skipRefresh || n.planCtx.lightMode {
 		diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
 		if diags.HasErrors() {
 			return diags

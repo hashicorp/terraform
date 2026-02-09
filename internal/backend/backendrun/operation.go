@@ -75,6 +75,7 @@ type Operation struct {
 	// plan for an apply operation.
 	PlanId      string
 	PlanRefresh bool   // PlanRefresh will do a refresh before a plan
+	PlanLight   bool   // PlanLight enables light plan mode, skipping refresh for unchanged resources
 	PlanOutPath string // PlanOutPath is the path to save the plan
 
 	// PlanOutBackend is the backend to store with the plan. This is the

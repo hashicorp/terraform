@@ -44,8 +44,6 @@ type NodeAbstractResourceInstance struct {
 
 	Dependencies []addrs.ConfigResource
 
-	preDestroyRefresh bool
-
 	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
@@ -791,6 +789,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 func (n *NodeAbstractResourceInstance) plan(
 	ctx EvalContext,
+	planCtx nodePlanContext,
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
@@ -832,7 +831,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	config := *n.Config
 
 	checkRuleSeverity := tfdiags.Error
-	if n.preDestroyRefresh {
+	if planCtx.preDestroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
 

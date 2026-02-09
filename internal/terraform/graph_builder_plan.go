@@ -60,21 +60,10 @@ type PlanGraphBuilder struct {
 	// action instead. Create and Delete actions are not affected.
 	ForceReplace []addrs.AbsResourceInstance
 
-	// skipRefresh indicates that we should skip refreshing managed resources
-	skipRefresh bool
-
-	Ctx PlanContext
-
-	// preDestroyRefresh indicates that we are executing the refresh which
-	// happens immediately before a destroy plan, which happens to use the
-	// normal planing mode so skipPlanChanges cannot be set.
-	preDestroyRefresh bool
-
-	// skipPlanChanges indicates that we should skip the step of comparing
-	// prior state with configuration and generating planned changes to
-	// resource instances. (This is for the "refresh only" planning mode,
-	// where we _only_ do the refresh step.)
-	skipPlanChanges bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes) that are
+	// propagated to individual resource nodes during graph building.
+	planCtx nodePlanContext
 
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
@@ -212,7 +201,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:                    b.Config,
-			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
+			RefreshOnly:               b.planCtx.skipPlanChanges || b.planCtx.preDestroyRefresh,
 			Destroying:                b.Operation == walkPlanDestroy,
 			Overrides:                 b.Overrides,
 			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
@@ -340,10 +329,8 @@ func (b *PlanGraphBuilder) initPlan() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
-			skipRefresh:          b.skipRefresh,
-			skipPlanChanges:      b.skipPlanChanges,
-			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
+			planCtx:              b.planCtx,
 		}
 	}
 
@@ -351,10 +338,9 @@ func (b *PlanGraphBuilder) initPlan() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
-			skipPlanChanges:              b.skipPlanChanges,
 			forgetResources:              b.forgetResources,
 			forgetModules:                b.forgetModules,
+			planCtx:                      b.planCtx,
 		}
 	}
 
@@ -364,10 +350,9 @@ func (b *PlanGraphBuilder) initPlan() {
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
 
-			skipRefresh:     b.skipRefresh,
-			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
+			planCtx:         b.planCtx,
 		}
 	}
 }
@@ -379,7 +364,7 @@ func (b *PlanGraphBuilder) initDestroy() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
+			planCtx:                      b.planCtx,
 		}
 	}
 }
@@ -426,12 +411,13 @@ func (b *PlanGraphBuilder) initImport() {
 			// not going to combine importing with other changes. This is
 			// temporary to try and maintain existing import behaviors, but
 			// planning will need to be allowed for more complex configurations.
-			skipPlanChanges: true,
-
+			//
 			// We also skip refresh for now, since the plan output is written
 			// as the new state, and users are not expecting the import process
 			// to update any other instances in state.
-			skipRefresh: true,
+			planCtx: b.planCtx.
+				withSkipPlanChanges(true).
+				withSkipRefresh(true),
 		}
 	}
 }

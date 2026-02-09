@@ -995,8 +995,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:        plans.DestroyMode,
-		SkipRefresh: false, // the default
+		Mode: plans.DestroyMode,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
@@ -7954,10 +7953,8 @@ func TestContext2Plan_lightModePartialUpdate(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.NormalMode,
-		PlanCtx: PlanContext{
-			LightMode: true,
-		},
+		Mode:      plans.NormalMode,
+		LightMode: true,
 	})
 
 	tfdiags.AssertNoErrors(t, diags)
@@ -8027,8 +8024,8 @@ func TestContext2Plan_lightModePartialUpdate2(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:    plans.NormalMode,
-		PlanCtx: PlanContext{LightMode: true},
+		Mode:      plans.NormalMode,
+		LightMode: true,
 	})
 
 	tfdiags.AssertNoErrors(t, diags)
@@ -8046,7 +8043,6 @@ func TestContext2Plan_lightModeUpgradedSchema(t *testing.T) {
 			resource "test_object" "unchanged" {
 			value = "original1"
 			}
-
 			resource "test_object" "changed" {
 			value = "updated"
 			}
@@ -8120,10 +8116,8 @@ func TestContext2Plan_lightModeUpgradedSchema(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.NormalMode,
-		PlanCtx: PlanContext{
-			LightMode: true,
-		},
+		Mode:      plans.NormalMode,
+		LightMode: true,
 	})
 
 	tfdiags.AssertNoErrors(t, diags)

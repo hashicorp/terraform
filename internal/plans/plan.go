@@ -169,6 +169,13 @@ type Plan struct {
 	// and builtin calls which may access external state so that calls during
 	// apply can be checked for consistency.
 	FunctionResults []lang.FunctionResultHash
+
+	// Light is true if this plan was created in "light plan" mode, where
+	// Terraform skipped reading remote state for resources that have not
+	// changed in the local configuration or local state. This is recorded
+	// for UI purposes so that the user can be reminded that the plan may
+	// not reflect out-of-band changes to remote resources.
+	Light bool
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
