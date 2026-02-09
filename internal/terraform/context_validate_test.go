@@ -3000,6 +3000,149 @@ output "a" {
 	}))
 }
 
+func TestContext2Validate_deprecated_resource_message(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" {
+    attr = "value"
+}
+output "a" {
+    value = test_resource.test.attr # WARNING
+}
+`,
+	})
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Deprecated:         true,
+				DeprecationMessage: "test_resource is deprecated, use test_resource_v2",
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "test_resource is deprecated, use test_resource_v2",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 6, Column: 13, Byte: 81},
+			End:      hcl.Pos{Line: 6, Column: 36, Byte: 104},
+		},
+	}))
+}
+
+func TestContext2Validate_deprecated_attribute_message(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" {
+}
+output "a" {
+    value = test_resource.test.attr
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:               cty.String,
+						Computed:           true,
+						Deprecated:         true,
+						DeprecationMessage: "attr is deprecated, use new_attr",
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "attr is deprecated, use new_attr",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 5, Column: 13, Byte: 62},
+			End:      hcl.Pos{Line: 5, Column: 36, Byte: 85},
+		},
+	}))
+}
+
+func TestContext2Validate_deprecated_block_message(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" {
+}
+output "a" {
+    value = test_resource.test.nested
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated, use replacement_nested",
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "nested block is deprecated, use replacement_nested",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 5, Column: 13, Byte: 62},
+			End:      hcl.Pos{Line: 5, Column: 38, Byte: 87},
+		},
+	}))
+}
+
 func TestContext2Validate_unknownForEach(t *testing.T) {
 	p := testProvider("aws")
 	m := testModuleInline(t, map[string]string{

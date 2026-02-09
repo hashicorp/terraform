@@ -6,9 +6,10 @@ package configschema
 // DeepCopy returns a deep copy of the schema.
 func (b *Block) DeepCopy() *Block {
 	block := &Block{
-		Description:     b.Description,
-		DescriptionKind: b.DescriptionKind,
-		Deprecated:      b.Deprecated,
+		Description:        b.Description,
+		DescriptionKind:    b.DescriptionKind,
+		Deprecated:         b.Deprecated,
+		DeprecationMessage: b.DeprecationMessage,
 	}
 
 	if b.Attributes != nil {
@@ -37,14 +38,15 @@ func (b *Block) DeepCopy() *Block {
 // DeepCopy returns a deep copy of the schema.
 func (a *Attribute) DeepCopy() *Attribute {
 	attr := &Attribute{
-		Type:            a.Type,
-		Description:     a.Description,
-		DescriptionKind: a.DescriptionKind,
-		Deprecated:      a.Deprecated,
-		Required:        a.Required,
-		Computed:        a.Computed,
-		Optional:        a.Optional,
-		Sensitive:       a.Sensitive,
+		Type:               a.Type,
+		Description:        a.Description,
+		DescriptionKind:    a.DescriptionKind,
+		Deprecated:         a.Deprecated,
+		DeprecationMessage: a.DeprecationMessage,
+		Required:           a.Required,
+		Computed:           a.Computed,
+		Optional:           a.Optional,
+		Sensitive:          a.Sensitive,
 
 		// NestedType is not copied here because it will be copied
 		// separately if it is set.
