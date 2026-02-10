@@ -51,14 +51,14 @@ type GraphNodeImportReferencer interface {
 	ImportReferences() []*addrs.Reference
 }
 
-// GraphNodeActionReferencer must be implemented by nodes that trigger actions.
-type GraphNodeActionReferencer interface {
-	GraphNodeReferencer
+// // GraphNodeActionReferencer must be implemented by nodes that trigger actions.
+// type GraphNodeActionReferencer interface {
+// 	GraphNodeReferencer
 
-	// ImportReferences returns a list of action references made by this node's
-	// associated action_triggers block(s).
-	ActionReferences() []*addrs.Reference
-}
+// 	// ActionReferences returns a list of action references made by this node's
+// 	// associated action_triggers block(s).
+// 	ActionReferences() []*addrs.Reference
+// }
 
 type GraphNodeAttachDependencies interface {
 	AttachDependencies([]addrs.ConfigResource)
@@ -335,11 +335,12 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 		}
 	}
 
-	if rn, ok := v.(GraphNodeActionReferencer); ok {
-		for _, ref := range rn.ActionReferences() {
-			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
-		}
-	}
+	// // do i even need this anymore? should be handled by References in the resource now?
+	// if rn, ok := v.(GraphNodeActionReferencer); ok {
+	// 	for _, ref := range rn.ActionReferences() {
+	// 		referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
+	// 	}
+	// }
 
 	for _, key := range referenceKeys {
 		vertices := m[key]

@@ -38,17 +38,6 @@ type NodeApplyableResourceInstance struct {
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
-
-	resolvedActionProviders []addrs.AbsProviderConfig
-
-	// @mildwonkey todo/fixme/something
-	// currently the string here is the action type
-	// terrible copy paste from provisioners? maybe.
-	// what's better? actionTypeName interface for string? actual addr?
-
-	// we can get the schema from GetProvider, so maybe do away with this?
-	// It's helpful in places we don't have access to the context (aren't calling GetProvider)
-	ActionSchemas map[string]*providers.ActionSchema
 }
 
 var (
@@ -61,7 +50,7 @@ var (
 	_ GraphNodeAttachDependencies         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeActionProviderConsumer     = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceActionSchema = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeActionReferencer           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachActionConfig         = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -101,13 +90,18 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 		}
 	}
 
-	// add action config! remove actions!
+	// NodeApplyableResourceInstance is the only node type that subsumes action
+	// configs, and returns the references from the action's config, removing
+	// any direct references to itself from the action config. Note that this
+	// cannot catch cycles caused by indirect references, such as a local value
+	// that includes the resource.
 	if n.Config.Managed != nil {
 		if n.Config.Managed.ActionTriggers != nil {
 			for _, at := range n.Config.Managed.ActionTriggers {
 				for _, a := range at.Actions {
 					config, ok := n.ActionConfigs.GetOk(a.ConfigAction)
 					if ok && config != nil {
+						fmt.Printf("Action schemas: %#v\n", n.ActionSchemas)
 						schema := n.ActionSchemas[a.ConfigAction.Action.Type]
 						if schema != nil {
 							configRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config.Config, schema.ConfigSchema)
@@ -621,7 +615,11 @@ func (n *NodeApplyableResourceInstance) applyActions(ctx EvalContext, actions ma
 			allInsts := ctx.InstanceExpander()
 			keyData := allInsts.GetActionInstanceRepetitionData(aiSrc.Addr)
 
-			actionData := n.ActionConfigs.Get(aiSrc.Addr.ConfigAction())
+			actionData, ok := n.ActionConfigs.GetOk(aiSrc.Addr.ConfigAction())
+			if !ok {
+				fmt.Printf("action config: %#v\n", n.ActionConfigs.Keys())
+				panic("I'm not okay!")
+			}
 
 			configVal := cty.NullVal(actionSchema.ConfigSchema.ImpliedType())
 			if actionData.Config != nil {
@@ -812,49 +810,39 @@ func (n *NodeApplyableResourceInstance) ActionTypesProvidedBy() map[string]addrs
 			providers[action.Addr.Action.Action.Type] = action.ProviderAddr
 		}
 	}
+
 	return providers
 }
 
-func (n *NodeApplyableResourceInstance) ActionsProvidedBy() []addrs.AbsProviderConfig {
-	providers := make([]addrs.AbsProviderConfig, 0)
+func (n *NodeApplyableResourceInstance) ActionsProvidedBy() addrs.Map[addrs.ConfigAction, ProviderRequest] {
+	providers := addrs.MakeMap[addrs.ConfigAction, ProviderRequest]()
 	if n.plannedActions != nil {
 		for _, action := range n.plannedActions {
-			providers = append(providers, action.ProviderAddr)
+			providers.Put(action.Addr.ConfigAction(), ProviderRequest{Addr: action.ProviderAddr, Exact: true})
 		}
 	}
 	return providers
 }
 
-func (n *NodeApplyableResourceInstance) AppendProvider(provider addrs.AbsProviderConfig) {
-	if n.resolvedActionProviders == nil {
-		n.resolvedActionProviders = make([]addrs.AbsProviderConfig, 0)
-	}
-	n.resolvedActionProviders = append(n.resolvedActionProviders, provider)
-}
+// // Also I feel like I lost track of the action's count/for_each? DO I need it here?
+// func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
+// 	var result []*addrs.Reference
+// 	for _, action := range n.plannedActions {
+// 		actionAddr := action.Addr.ConfigAction().Action.InModule(n.ModulePath())
+// 		actionConfig, ok := n.ActionConfigs.GetOk(actionAddr)
+// 		if !ok {
+// 			panic("this is a theme")
+// 		}
 
-func (n *NodeApplyableResourceInstance) AttachActionSchema(name string, schema *providers.ActionSchema) {
-	if n.ActionSchemas == nil {
-		n.ActionSchemas = make(map[string]*providers.ActionSchema)
-	}
-	n.ActionSchemas[name] = schema
-}
+// 		if schema, ok := n.ActionSchemas[action.Addr.ConfigAction().Action.Type]; ok {
+// 			refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, actionConfig.Config, schema.ConfigSchema)
+// 			result = append(result, refs...)
+// 		} else {
+// 			log.Printf("[WARN] no action schema is attached to %s, so action config references cannot be detected", n.Name())
+// 		}
+// 	}
 
-func (n *NodeApplyableResourceInstance) ActionReferences() []*addrs.Reference {
-	var result []*addrs.Reference
-	for _, action := range n.ActionConfigs.Iter() {
-		if action.Config == nil {
-			continue
-		}
-
-		if schema, ok := n.ActionSchemas[action.Type]; ok {
-			refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, action.Config, schema.ConfigSchema)
-			result = append(result, refs...)
-		} else {
-			log.Printf("[WARN] no action schema is attached to %s, so action config references cannot be detected", n.Name())
-		}
-	}
-
-	// remove any *direct* references to this resource from the embedded action config.
-	// Note that this DOES NOT CATCH indirect references, which are likely to cause confusing cycle errors for users. This is, alas, as designed.
-	return filterSelfRefs(n.Addr.Resource.Resource, result)
-}
+// 	// remove any *direct* references to this resource from the embedded action config.
+// 	// Note that this DOES NOT CATCH indirect references, which are likely to cause confusing cycle errors for users. This is, alas, as designed.
+// 	return filterSelfRefs(n.Addr.Resource.Resource, result)
+// }

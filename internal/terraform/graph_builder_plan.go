@@ -262,6 +262,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
+		// Attach triggered action configuration to any resources
+		// I definitely did not account for doing this during plan.
+		&AttachActionConfigTransformer{Config: b.Config},
+
 		// add providers
 		transformProviders(b.ConcreteProvider, b.Config, b.ExternalProviderConfigs),
 

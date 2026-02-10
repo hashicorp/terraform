@@ -67,7 +67,9 @@ type NodeAbstractResource struct {
 	ProvisionerSchemas map[string]*configschema.Block
 
 	// ActionConfigs is the configuration of any associated actions
-	ActionConfigs addrs.Map[addrs.ConfigAction, *configs.Action]
+	ActionConfigs           addrs.Map[addrs.ConfigAction, *configs.Action]
+	resolvedActionProviders addrs.Map[addrs.ConfigAction, addrs.AbsProviderConfig]
+	ActionSchemas           map[string]*providers.ActionSchema
 
 	// Set from GraphNodeTargetable
 	Targets []addrs.Targetable
@@ -113,6 +115,7 @@ var (
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachActionConfig          = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceActionSchema  = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -628,6 +631,7 @@ func (n *NodeAbstractResource) AttachActionConfig(action addrs.ConfigAction, cfg
 	if n.ActionConfigs.Len() == 0 {
 		n.ActionConfigs = addrs.MakeMap[addrs.ConfigAction, *configs.Action]()
 	}
+	log.Printf("[KRISTIN] putting action cfg %s in\n", action)
 	n.ActionConfigs.Put(action, cfg)
 }
 
@@ -642,8 +646,7 @@ func (n *NodeAbstractResource) ActionAddrs() []addrs.ConfigAction {
 		if n.Config.Managed.ActionTriggers != nil {
 			for _, at := range n.Config.Managed.ActionTriggers {
 				for _, a := range at.Actions {
-					configAction := configActionFromActionRef(a, n.ModulePath())
-					actions[configAction.String()] = configAction
+					actions[a.ConfigAction.Action.String()] = a.ConfigAction
 				}
 			}
 		}
@@ -656,24 +659,82 @@ func (n *NodeAbstractResource) ActionAddrs() []addrs.ConfigAction {
 	return ret
 }
 
-func configActionFromActionRef(action configs.ActionRef, path addrs.Module) addrs.ConfigAction {
-	// errors here would have been captured during configload
-	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+func (n *NodeAbstractResource) ActionsProvidedBy() addrs.Map[addrs.ConfigAction, ProviderRequest] {
+	pReqs := addrs.MakeMap[addrs.ConfigAction, ProviderRequest]()
+	if n.resolvedActionProviders.Len() > 0 {
+		for configAction, provider := range n.resolvedActionProviders.Iter() {
+			req := ProviderRequest{
+				Addr:  provider,
+				Exact: true,
+			}
+			pReqs.Put(configAction, req)
+		}
+		return pReqs
+	}
 
-	var configAction addrs.ConfigAction
+	if n.Config == nil || n.Config.Managed == nil {
+		return pReqs
+	}
 
-	for _, ref := range refs {
-		switch a := ref.Subject.(type) {
-		case addrs.Action:
-			configAction = a.InModule(path)
-		case addrs.ActionInstance:
-			configAction = a.Action.InModule(path)
-		case addrs.CountAttr, addrs.ForEachAttr:
-			// nothing to do, these will get evaluated later
-		default:
-			// This should have been caught during validation
-			panic(fmt.Sprintf("unexpected action address %T", a))
+	for _, at := range n.Config.Managed.ActionTriggers {
+		for _, aRef := range at.Actions {
+			actionCfg, ok := n.ActionConfigs.GetOk(aRef.ConfigAction.Action.InModule(n.ModulePath()))
+			if !ok {
+				panic(fmt.Sprintf("action configs: %v\n", n.ActionConfigs))
+			}
+
+			if actionCfg != nil {
+				relAddr := n.Config.ProviderConfigAddr()
+				req := ProviderRequest{
+					Addr: addrs.LocalProviderConfig{
+						LocalName: relAddr.LocalName,
+						Alias:     relAddr.Alias,
+					},
+					// ActionAddr: aRef.ConfigAction,
+					Exact: false,
+				}
+				pReqs.Put(aRef.ConfigAction, req)
+			}
 		}
 	}
-	return configAction
+
+	return pReqs
+}
+
+func (n *NodeAbstractResource) AttachActionSchema(name string, schema *providers.ActionSchema) {
+	if n.ActionSchemas == nil {
+		n.ActionSchemas = make(map[string]*providers.ActionSchema)
+	}
+	log.Printf("[KRISTIN] attaching action %s schema to node abstract resource\n", name)
+	n.ActionSchemas[name] = schema
+}
+
+func (n *NodeAbstractResource) ActionProviders() addrs.Map[addrs.ConfigAction, addrs.Provider] {
+	providers := addrs.MakeMap[addrs.ConfigAction, addrs.Provider]()
+	if n.Config == nil || n.Config.Managed == nil {
+		return providers
+	}
+
+	for _, at := range n.Config.Managed.ActionTriggers {
+		for _, action := range at.Actions {
+			cfg, ok := n.ActionConfigs.GetOk(action.ConfigAction)
+			if !ok {
+				panic("uh oh")
+			}
+			if cfg.Provider.Type != "" {
+				providers.Put(action.ConfigAction, cfg.Provider)
+			} else {
+				providers.Put(action.ConfigAction, addrs.ImpliedProviderForUnqualifiedType(action.ConfigAction.Action.Type))
+			}
+		}
+	}
+
+	return providers
+}
+
+func (n *NodeAbstractResource) AppendProvider(action addrs.ConfigAction, provider addrs.AbsProviderConfig) {
+	if n.resolvedActionProviders.Len() == 0 {
+		n.resolvedActionProviders = addrs.MakeMap[addrs.ConfigAction, addrs.AbsProviderConfig]()
+	}
+	n.resolvedActionProviders.Put(action, provider)
 }

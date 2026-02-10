@@ -21,12 +21,13 @@ type nodeExpandApplyableResource struct {
 }
 
 var (
-	_ GraphNodeReferenceable        = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferenceable              = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferencer                 = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeConfigResource             = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeAttachResourceConfig       = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeTargetable                 = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeDynamicExpandable          = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeAttachResourceActionSchema = (*nodeExpandApplyableResource)(nil)
 )
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {

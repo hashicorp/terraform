@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -479,6 +480,7 @@ func (n *nodeActionInvokeApplyInstance) AttachActionSchema(schema *providers.Act
 // is there a better way?
 // inevitably!!!
 func (n *nodeActionInvokeApplyInstance) AttachActionConfig(_ addrs.ConfigAction, config *configs.Action) {
+	log.Printf("[KRISTIN] attaching action cfg to nodeActionInvokeApplyInstance")
 	n.Config = config
 }
 

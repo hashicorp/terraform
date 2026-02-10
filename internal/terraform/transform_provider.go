@@ -92,17 +92,25 @@ type GraphNodeProviderConsumer interface {
 // providers for planned actions must implement. Unlike
 // GraphNodeProviderConsumer, this interface is used by nodes during apply only
 // and so the absolute provider is already resolved.
+// @mildwonkey:
+// This name could make it clearer that this is used by RESOURCE nodes and not ACTION nodes
 type GraphNodeActionProviderConsumer interface {
 	GraphNodeModulePath
 
 	// ActionsProvidedBy returns a list of addresses of the provider
 	// configurations the node's planned actions refers to.
-	ActionsProvidedBy() []addrs.AbsProviderConfig
+	// this could be a map with ConfigActions as the key, they will have the same provider
+	ActionsProvidedBy() addrs.Map[addrs.ConfigAction, ProviderRequest]
 
-	// Add a resolved provider address for this resource's actions. @mildwonkey
-	// NOTE: should this be a map (to avoid duplicates), or should we just let
-	// the transformer remove redundancies?
-	AppendProvider(addrs.AbsProviderConfig)
+	ActionProviders() addrs.Map[addrs.ConfigAction, addrs.Provider]
+
+	// Add a resolved provider address for this resource's actions.
+	AppendProvider(addrs.ConfigAction, addrs.AbsProviderConfig)
+}
+
+type ProviderRequest struct {
+	Addr  addrs.ProviderConfig
+	Exact bool
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to providers
@@ -129,6 +137,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		Addr           addrs.AbsProviderConfig
 		Exact          bool // If true, inheritance from parent modules is not attempted
 		ActionProvider bool // if this is an action or resource
+		ActionAddr     addrs.ConfigAction
 	}
 	requested := map[dag.Vertex]map[string]ProviderRequest{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}
@@ -138,16 +147,61 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		// implemented by NodeApplyableResourceInstance and only relevant during
 		// apply.
 		if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
-			providers := pv.ActionsProvidedBy()
-			for _, provider := range providers {
-				requested[v] = make(map[string]ProviderRequest)
-				log.Printf("[TRACE] ProviderTransformer: %s has an action provided by %s exactly", dag.VertexName(v), provider.String())
-				// we only associate action providers with resources during apply, so we already have the exact provider
-				requested[v][provider.String()] = ProviderRequest{
-					Addr:           provider,
-					Exact:          true,
-					ActionProvider: true,
+			providerReqs := pv.ActionsProvidedBy()
+			for actionAddr, providerReq := range providerReqs.Iter() {
+				providerAddr := providerReq.Addr
+				exact := providerReq.Exact
+
+				if providerAddr == nil && exact {
+					continue
 				}
+				if len(requested[v]) == 0 {
+					requested[v] = make(map[string]ProviderRequest)
+				}
+
+				var absPc addrs.AbsProviderConfig
+
+				switch p := providerAddr.(type) {
+				case addrs.AbsProviderConfig:
+					// ProvidedBy() returns an AbsProviderConfig when the provider
+					// configuration is set in state, so we do not need to verify
+					// the FQN matches.
+					absPc = p
+
+					if exact {
+						log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
+					}
+
+				case addrs.LocalProviderConfig:
+					// ProvidedBy() returns a LocalProviderConfig when the action
+					// contains a `provider` attribute
+					fmt.Println(actionAddr.Action.Type)
+					absPc.Provider = addrs.ImpliedProviderForUnqualifiedType(actionAddr.Action.ImpliedProvider())
+
+					modPath := pv.ModulePath()
+					if t.Config == nil {
+						absPc.Module = modPath
+						absPc.Alias = p.Alias
+						break
+					}
+
+					absPc.Module = modPath
+					absPc.Alias = p.Alias
+
+				default:
+					// This should never happen; the case statements are meant to be exhaustive
+					panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
+				}
+
+				requested[v][absPc.String()] = ProviderRequest{
+					Addr:           absPc,
+					Exact:          exact,
+					ActionProvider: true,
+					ActionAddr:     actionAddr,
+				}
+
+				// Direct references need the provider configured as well as initialized
+				needConfigured[absPc.String()] = absPc
 			}
 		}
 
@@ -279,7 +333,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			if req.ActionProvider {
 				if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
-					pv.AppendProvider(target.ProviderAddr())
+					pv.AppendProvider(req.ActionAddr, target.ProviderAddr())
 				}
 			} else {
 				if pv, ok := v.(GraphNodeProviderConsumer); ok {
@@ -331,13 +385,25 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if apc, ok := v.(GraphNodeActionProviderConsumer); ok {
 			providers := apc.ActionsProvidedBy()
-			if len(providers) > 0 {
-				for _, provider := range providers {
-					closer, ok := cpm[provider.String()]
-					if !ok {
-						return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+			if providers.Len() > 0 {
+				for _, provider := range providers.Iter() {
+					p := provider.Addr
+					exact := provider.Exact
+
+					if p == nil && exact {
+						// this node does not require a provider
+					} else {
+						provider, ok := p.(addrs.AbsProviderConfig)
+						if !ok {
+							return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(apc))
+						}
+
+						closer, ok := cpm[provider.String()]
+						if !ok {
+							return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+						}
+						g.Connect(dag.BasicEdge(closer, v))
 					}
-					g.Connect(dag.BasicEdge(closer, v))
 				}
 			}
 		}
@@ -345,7 +411,6 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
 			p, exact := pc.ProvidedBy()
 			if p == nil && exact {
-
 				// this node does not require a provider
 			} else {
 				provider, ok := p.(addrs.AbsProviderConfig)
