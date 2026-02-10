@@ -245,9 +245,9 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, *MockClient, func()) {
 	var s *httptest.Server
 	if handlers != nil {
-		s = testServerWithHandlers(handlers)
+		s = TestServerWithHandlers(t, handlers)
 	} else {
-		s = testServer(t)
+		s = TestServer(t)
 	}
 	b := New(testDisco(s))
 
@@ -324,7 +324,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 // testUnconfiguredBackend is used for testing the configuration of the backend
 // with the mock client
 func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
-	s := testServer(t)
+	s := TestServer(t)
 	b := New(testDisco(s))
 
 	// Normally, the client is created during configuration, but the configuration uses the
@@ -395,15 +395,15 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
 	return b
 }
 
-// testServer returns a started *httptest.Server used for local testing with the default set of
+// TestServer returns a started *httptest.Server used for local testing with the default set of
 // request handlers.
-func testServer(t *testing.T) *httptest.Server {
-	return testServerWithHandlers(testDefaultRequestHandlers)
+func TestServer(t *testing.T) *httptest.Server {
+	return TestServerWithHandlers(t, testDefaultRequestHandlers)
 }
 
-// testServerWithHandlers returns a started *httptest.Server with the given set of request handlers
+// TestServerWithHandlers returns a started *httptest.Server with the given set of request handlers
 // overriding any default request handlers (testDefaultRequestHandlers).
-func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.Request)) *httptest.Server {
+func TestServerWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	mux := http.NewServeMux()
 	for route, handler := range handlers {
 		mux.HandleFunc(route, handler)
@@ -413,6 +413,11 @@ func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.
 			mux.HandleFunc(route, handler)
 		}
 	}
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		t.Logf("unexpected %s request received for %q", req.Method, req.URL.String())
+		w.WriteHeader(http.StatusBadRequest)
+	})
 
 	return httptest.NewServer(mux)
 }
