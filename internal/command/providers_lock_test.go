@@ -27,9 +27,11 @@ func TestProvidersLock(t *testing.T) {
 		t.Chdir(td)
 
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		}
 		code := c.Run([]string{})
@@ -119,9 +121,11 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ProvidersLockCommand{
 		Meta: Meta{
 			Ui:               ui,
+			View:             view,
 			testingOverrides: metaOverridesForProvider(p),
 		},
 	}
@@ -146,9 +150,11 @@ func TestProvidersLock_args(t *testing.T) {
 
 	t.Run("mirror collision", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		}
 
@@ -162,7 +168,7 @@ func TestProvidersLock_args(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
+		output := done(t).Stderr()
 		if !strings.Contains(output, "The -fs-mirror and -net-mirror command line options are mutually-exclusive.") {
 			t.Fatalf("missing expected error message: %s", output)
 		}
@@ -170,9 +176,11 @@ func TestProvidersLock_args(t *testing.T) {
 
 	t.Run("invalid platform", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		}
 
@@ -183,17 +191,19 @@ func TestProvidersLock_args(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "must be two words separated by an underscore.") {
+		output := done(t).Stderr()
+		if !strings.Contains(output, "not a valid target platform") {
 			t.Fatalf("missing expected error message: %s", output)
 		}
 	})
 
 	t.Run("invalid provider argument", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		}
 
@@ -204,8 +214,8 @@ func TestProvidersLock_args(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
+		output := done(t).Stderr()
+		if !strings.Contains(output, "is not required by") {
 			t.Fatalf("missing expected error message: %s", output)
 		}
 	})
