@@ -118,7 +118,7 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 			}
 		}
 		return "", &statemgr.LockError{
-			Info: info,
+			Info: &existing,
 			Err:  fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID),
 		}
 	default:
