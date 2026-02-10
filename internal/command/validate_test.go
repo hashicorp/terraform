@@ -221,7 +221,6 @@ func TestMissingDefinedVar(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestFile(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -253,7 +252,6 @@ func TestValidateWithInvalidTestFile(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestModule(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -310,7 +308,6 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 }
 
 func TestValidateWithInvalidOverrides(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -561,13 +558,26 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
-	// Backend blocks aren't validated using their schemas currently.
 	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
 		if code != 1 {
 			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
 		}
 		expectedErr := "Error: Unsupported argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("invalid when a required attribute is unset", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/missing-required-attr")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Missing required argument"
 		if !strings.Contains(output.Stderr(), expectedErr) {
 			t.Fatalf("unexpected error content: wanted %q, got: %s",
 				expectedErr,
