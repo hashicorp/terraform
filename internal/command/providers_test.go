@@ -26,16 +26,16 @@ func TestProviders(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			View: view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -44,7 +44,7 @@ func TestProviders(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -62,10 +62,10 @@ func TestProviders_noConfigs(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			View: view,
 		},
 	}
 
@@ -75,7 +75,7 @@ func TestProviders_noConfigs(t *testing.T) {
 			" when no configs are available")
 	}
 
-	output := ui.ErrorWriter.String()
+	output := done(t).Stderr()
 	expectedErrMsg := "No configuration files"
 	if !strings.Contains(output, expectedErrMsg) {
 		t.Errorf("Expected error message: %s\nGiven output: %s", expectedErrMsg, output)
@@ -110,16 +110,16 @@ func TestProviders_modules(t *testing.T) {
 	}
 
 	// Providers command
-	ui := new(cli.MockUi)
+	providersView, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			View: providersView,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -129,7 +129,7 @@ func TestProviders_modules(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]", // implied by a resource in the child module
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -147,16 +147,16 @@ func TestProviders_state(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			View: view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -166,7 +166,7 @@ func TestProviders_state(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -184,16 +184,16 @@ func TestProviders_tests(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			View: view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -201,7 +201,7 @@ func TestProviders_tests(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/bar]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -247,10 +247,10 @@ func TestProviders_state_withStateStore(t *testing.T) {
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:                        ui,
+			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{
@@ -262,7 +262,7 @@ func TestProviders_state_withStateStore(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -272,7 +272,7 @@ func TestProviders_state_withStateStore(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
