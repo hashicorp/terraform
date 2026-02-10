@@ -28,62 +28,87 @@ type ImportCommand struct {
 	Meta
 }
 
-func (c *ImportCommand) Run(args []string) int {
-	// Get the pwd since its our default -config flag value
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	var configPath string
-	args = c.Meta.process(args)
-
-	cmdFlags := c.Meta.extendedFlagSet("import")
-	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.StringVar(&configPath, "config", pwd, "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("The import command expects two arguments.")
-		cmdFlags.Usage()
-		return 1
-	}
-
+func (c *ImportCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Propagate -no-color for legacy use of Ui. The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
+	// Parse and validate flags
+	args, diags := arguments.ParseImport(rawArgs)
+
+	// Instantiate the view, even if there are flag errors, so that we render
+	// diagnostics according to the desired view
+	view := views.NewImport(c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		view.HelpPrompt()
+		return 1
+	}
+
+	// FIXME: the -input flag value is needed to initialize the backend and the
+	// operation, but there is no clear path to pass this value down, so we
+	// continue to mutate the Meta object state for now.
+	c.Meta.input = args.InputEnabled
+
+	// FIXME: the -parallelism flag is used to control the concurrency of
+	// Terraform operations. At the moment, this value is used both to
+	// initialize the backend via the ContextOpts field inside CLIOpts, and to
+	// set a largely unused field on the Operation request. Again, there is no
+	// clear path to pass this value down, so we continue to mutate the Meta
+	// object state for now.
+	c.Meta.parallelism = args.Parallelism
+
+	// FIXME: we need to apply the state arguments to the meta object here
+	// because they are later used when initializing the backend. Carving a
+	// path to pass these arguments to the functions that need them is
+	// difficult but would make their use easier to understand.
+	c.Meta.applyStateArguments(args.State)
+
+	c.ignoreRemoteVersion = args.IgnoreRemoteVersion
+
+	// Determine config path, defaulting to pwd
+	configPath := args.ConfigPath
+	if configPath == "" {
+		pwd, err := os.Getwd()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
+			view.Diagnostics(diags)
+			return 1
+		}
+		configPath = pwd
+	}
+
 	// Parse the provided resource address.
-	traversalSrc := []byte(args[0])
+	traversalSrc := []byte(args.Addr)
 	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(travDiags)
 	if travDiags.HasErrors() {
 		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
+		view.Diagnostics(diags)
+		view.InvalidAddressReference()
 		return 1
 	}
 	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
 	diags = diags.Append(addrDiags)
 	if addrDiags.HasErrors() {
 		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
+		view.Diagnostics(diags)
+		view.InvalidAddressReference()
 		return 1
 	}
 
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		diags = diags.Append(errors.New("A managed resource address is required. Importing into a data resource is not allowed."))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -96,7 +121,7 @@ func (c *ImportCommand) Run(args []string) int {
 				configPath,
 			),
 		})
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -105,7 +130,7 @@ func (c *ImportCommand) Run(args []string) int {
 	config, configDiags := c.loadConfig(configPath)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -124,7 +149,7 @@ func (c *ImportCommand) Run(args []string) int {
 				modulePath,
 			),
 		})
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	targetMod := targetConfig.Module
@@ -143,23 +168,22 @@ func (c *ImportCommand) Run(args []string) int {
 			modulePath = "the root module"
 		}
 
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 
 		// This is not a diagnostic because currently our diagnostics printer
 		// doesn't support having a code example in the detail, and there's
 		// a code example in this message.
 		// TODO: Improve the diagnostics printer so we can use it for this
 		// message.
-		c.Ui.Error(fmt.Sprintf(
-			importCommandMissingResourceFmt,
-			addr, modulePath, resourceRelAddr.Type, resourceRelAddr.Name,
-		))
+		view.MissingResourceConfig(addr.String(), modulePath, resourceRelAddr.Type, resourceRelAddr.Name)
 		return 1
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(fmt.Errorf("Error loading plugin path: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -167,7 +191,7 @@ func (c *ImportCommand) Run(args []string) int {
 	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -178,7 +202,8 @@ func (c *ImportCommand) Run(args []string) int {
 	// that may be delegated to a "remotestate.Backend".
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		c.Ui.Error(ErrUnsupportedLocalOp)
+		diags = diags.Append(errors.New(ErrUnsupportedLocalOp))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -188,16 +213,15 @@ func (c *ImportCommand) Run(args []string) int {
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	{
-		var moreDiags tfdiags.Diagnostics
-		opReq.Variables, moreDiags = c.collectVariableValues()
+		moreDiags := c.GatherVariables(opReq, args.Vars)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
@@ -206,7 +230,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -215,7 +239,7 @@ func (c *ImportCommand) Run(args []string) int {
 	lr, state, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -223,7 +247,7 @@ func (c *ImportCommand) Run(args []string) int {
 	defer func() {
 		diags := opReq.StateLocker.Unlock()
 		if diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 		}
 	}()
 
@@ -234,7 +258,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				LegacyID:   args[1],
+				LegacyID:   args.ID,
 			},
 		},
 
@@ -245,7 +269,7 @@ func (c *ImportCommand) Run(args []string) int {
 	})
 	diags = diags.Append(importDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -260,22 +284,48 @@ func (c *ImportCommand) Run(args []string) int {
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := state.WriteState(newState); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := state.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
+	view.Success()
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
 
 	return 0
+}
+
+// GatherVariables collects variable values from the arguments and populates
+// the operation request.
+func (c *ImportCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME the arguments package currently trivially gathers variable related
+	// arguments in a heterogenous slice, in order to minimize the number of
+	// code paths gathering variables during the transition to this structure.
+	// Once all commands that gather variables have been converted to this
+	// structure, we could move the variable gathering code to the arguments
+	// package directly, removing this shim layer.
+
+	varArgs := args.All()
+	items := make([]arguments.FlagNameValue, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+	opReq.Variables, diags = c.collectVariableValues()
+
+	return diags
 }
 
 func (c *ImportCommand) Help() string {
@@ -337,21 +387,3 @@ Options:
 func (c *ImportCommand) Synopsis() string {
 	return "Associate existing infrastructure with a Terraform resource"
 }
-
-const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://developer.hashicorp.com/terraform/cli/state/resource-addressing`
-
-const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
-
-Before importing this resource, please create its configuration in %s. For example:
-
-resource %q %q {
-  # (resource arguments)
-}
-`
-
-const importCommandSuccessMsg = `Import successful!
-
-The resources that were imported are shown above. These resources are now in
-your Terraform state and will henceforth be managed by Terraform.
-`

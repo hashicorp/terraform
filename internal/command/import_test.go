@@ -28,12 +28,11 @@ func TestImport(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -67,7 +66,7 @@ func TestImport(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	if !p.ImportResourceStateCalled {
@@ -85,12 +84,11 @@ func TestImport_providerConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -150,7 +148,7 @@ func TestImport_providerConfig(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Verify that we were called
@@ -199,12 +197,12 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui = new(cli.MockUi)
+	importView, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
+			Ui:               new(cli.MockUi),
+			View:             importView,
 		},
 	}
 
@@ -256,8 +254,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 	log.Printf("[TRACE] TestImport_remoteState running: terraform import %s %s", args[0], args[1])
 	if code := c.Run(args); code != 0 {
-		fmt.Println(ui.OutputWriter)
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// verify that the local state was unlocked after import
@@ -314,12 +311,12 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	copy.CopyFile(filepath.Join(testFixturePath("import-provider-invalid"), "main.tf"), filepath.Join(td, "main.tf"))
 
 	p := testProvider()
-	ui = new(cli.MockUi)
+	importView, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
+			Ui:               new(cli.MockUi),
+			View:             importView,
 		},
 	}
 
@@ -331,12 +328,11 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	// this should fail
 	if code := c.Run(args); code != 1 {
-		fmt.Println(ui.OutputWriter)
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// specifically, it should fail due to a missing provider
-	msg := strings.ReplaceAll(ui.ErrorWriter.String(), "\n", " ")
+	msg := strings.ReplaceAll(done(t).All(), "\n", " ")
 	if want := `provider registry.terraform.io/hashicorp/unknown: required by this configuration but no version is selected`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
@@ -355,12 +351,11 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -414,7 +409,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Verify that we were called
@@ -437,12 +432,11 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -492,7 +486,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad, wanted error: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad, wanted error: %d\n\n%s", code, done(t).All())
 	}
 }
 
@@ -504,12 +498,11 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -562,7 +555,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Verify that we were called
@@ -585,12 +578,11 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -644,7 +636,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 		"bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Verify that we were called
@@ -667,12 +659,11 @@ func TestImport_emptyConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -687,7 +678,7 @@ func TestImport_emptyConfig(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
+	msg := done(t).All()
 	if want := `No Terraform configuration files`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
@@ -701,12 +692,11 @@ func TestImport_missingResourceConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -721,7 +711,7 @@ func TestImport_missingResourceConfig(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
+	msg := done(t).All()
 	if want := `resource address "test_instance.foo" does not exist`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
@@ -735,12 +725,11 @@ func TestImport_missingModuleConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -755,7 +744,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
+	msg := done(t).All()
 	if want := `module.baz is not defined in the configuration`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
@@ -804,12 +793,12 @@ func TestImportModuleVarFile(t *testing.T) {
 	}
 
 	// import
-	ui = new(cli.MockUi)
+	importView, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
+			Ui:               new(cli.MockUi),
+			View:             importView,
 		},
 	}
 	args := []string{
@@ -878,12 +867,12 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	}
 
 	// import
-	ui = new(cli.MockUi)
+	importView, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
+			Ui:               new(cli.MockUi),
+			View:             importView,
 		},
 	}
 	args := []string{
@@ -905,12 +894,11 @@ func TestImport_dataResource(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -925,7 +913,7 @@ func TestImport_dataResource(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
+	msg := done(t).All()
 	if want := `A managed resource address is required`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
@@ -939,12 +927,11 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -959,8 +946,8 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
-	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
+	msg := done(t).All()
+	if want := `Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
@@ -973,12 +960,11 @@ func TestImport_targetIsModule(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Ui:               new(cli.MockUi),
 			View:             view,
 		},
 	}
@@ -993,8 +979,8 @@ func TestImport_targetIsModule(t *testing.T) {
 		t.Fatalf("import succeeded; expected failure")
 	}
 
-	msg := ui.ErrorWriter.String()
-	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
+	msg := done(t).All()
+	if want := `Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 }
