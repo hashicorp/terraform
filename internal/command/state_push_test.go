@@ -60,6 +60,7 @@ func TestStatePush_stateStore(t *testing.T) {
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -68,7 +69,8 @@ func TestStatePush_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -97,7 +99,7 @@ func TestStatePush_lockedState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -116,8 +118,8 @@ func TestStatePush_lockedState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "Error acquiring the state lock") {
-		t.Fatalf("expected a lock error, got: %s", ui.ErrorWriter.String())
+	if got := done(t).Stderr(); !strings.Contains(got, "Error acquiring the state lock") {
+		t.Fatalf("expected a lock error, got: %s", got)
 	}
 }
 
@@ -339,7 +341,7 @@ func TestStatePush_checkRequiredVersion(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -350,11 +352,11 @@ func TestStatePush_checkRequiredVersion(t *testing.T) {
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), ui.OutputWriter.String())
 	}
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}

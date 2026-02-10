@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -22,34 +21,49 @@ type StateRmCommand struct {
 	StateMeta
 }
 
-func (c *StateRmCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var dryRun bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state rm")
-	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *StateRmCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+
+	// Propagate -no-color for legacy Ui usage
+	if common.NoColor {
+		c.Meta.Color = false
+	}
+	c.Meta.color = c.Meta.Color
+
+	// Configure the view with the reconciled color setting
+	c.View.Configure(&arguments.View{
+		NoColor:         !c.Meta.color,
+		CompactWarnings: common.CompactWarnings,
+	})
+
+	// Parse command flags/args
+	args, diags := arguments.ParseStateRm(rawArgs)
+
+	// Instantiate the view even if flag parsing produced errors
+	view := views.NewStateRm(c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		view.HelpPrompt()
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) < 1 {
-		c.Ui.Error("At least one address is required.\n")
-		return cli.RunResultHelp
-	}
+	// Copy parsed args to appropriate Meta/StateMeta fields
+	c.backupPath = args.BackupPath
+	c.Meta.stateLock = args.StateLock
+	c.Meta.stateLockTimeout = args.StateLockTimeout
+	c.statePath = args.StatePath
+	c.Meta.ignoreRemoteVersion = args.IgnoreRemoteVersion
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Get the state
-	view := arguments.ViewHuman
-	stateMgr, err := c.State(view)
+	viewType := arguments.ViewHuman
+	stateMgr, err := c.State(viewType)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -58,12 +72,12 @@ func (c *StateRmCommand) Run(args []string) int {
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-rm"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -81,35 +95,34 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	// This command primarily works with resource instances, though it will
 	// also clean up any modules and resources left empty by actions it takes.
-	var addrs []addrs.AbsResourceInstance
-	var diags tfdiags.Diagnostics
-	for _, addrStr := range args {
+	var resolvedAddrs []addrs.AbsResourceInstance
+	for _, addrStr := range args.Addrs {
 		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, true, addrStr)
-		addrs = append(addrs, moreAddrs...)
+		resolvedAddrs = append(resolvedAddrs, moreAddrs...)
 		diags = diags.Append(moreDiags)
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	prefix := "Removed "
-	if dryRun {
+	if args.DryRun {
 		prefix = "Would remove "
 	}
 
 	var isCount int
 	ss := state.SyncWrapper()
-	for _, addr := range addrs {
+	for _, addr := range resolvedAddrs {
 		isCount++
 		c.Ui.Output(prefix + addr.String())
-		if !dryRun {
+		if !args.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
 		}
 	}
 
-	if dryRun {
+	if args.DryRun {
 		if isCount == 0 {
 			c.Ui.Output("Would have removed nothing.")
 		}
@@ -117,10 +130,10 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", viewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -142,7 +155,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if len(diags) > 0 && isCount != 0 {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 	}
 
 	if isCount == 0 {
@@ -151,7 +164,7 @@ func (c *StateRmCommand) Run(args []string) int {
 			"Invalid target address",
 			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 

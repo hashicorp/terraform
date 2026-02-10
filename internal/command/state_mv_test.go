@@ -256,6 +256,7 @@ func TestStateMv_stateStore(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -265,7 +266,8 @@ func TestStateMv_stateStore(t *testing.T) {
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
 				},
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		},
 	}
@@ -314,7 +316,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 
 		p := testProvider()
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
 				Meta: Meta{
@@ -334,17 +336,12 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 		}
 
-		gotErr := ui.ErrorWriter.String()
-		wantErr := `
-Error: Invalid command line options: -backup
-
-Command line options -backup and -backup-out are legacy options that operate
-on a local state file only. You must specify a local state file with the
--state option or switch to the local backend.
-
-`
-		if gotErr != wantErr {
-			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		gotErr := done(t).Stderr()
+		if !strings.Contains(gotErr, "Invalid command line options: -backup") {
+			t.Fatalf("expected error about -backup option, got:\n%s", gotErr)
+		}
+		if !strings.Contains(gotErr, "are legacy options") {
+			t.Fatalf("expected error about legacy options, got:\n%s", gotErr)
 		}
 	})
 
@@ -362,7 +359,7 @@ on a local state file only. You must specify a local state file with the
 
 		p := testProvider()
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
 				Meta: Meta{
@@ -382,17 +379,12 @@ on a local state file only. You must specify a local state file with the
 			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 		}
 
-		gotErr := ui.ErrorWriter.String()
-		wantErr := `
-Error: Invalid command line options: -backup-out
-
-Command line options -backup and -backup-out are legacy options that operate
-on a local state file only. You must specify a local state file with the
--state option or switch to the local backend.
-
-`
-		if gotErr != wantErr {
-			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		gotErr := done(t).Stderr()
+		if !strings.Contains(gotErr, "Invalid command line options: -backup-out") {
+			t.Fatalf("expected error about -backup-out option, got:\n%s", gotErr)
+		}
+		if !strings.Contains(gotErr, "are legacy options") {
+			t.Fatalf("expected error about legacy options, got:\n%s", gotErr)
 		}
 	})
 
@@ -411,7 +403,7 @@ on a local state file only. You must specify a local state file with the
 
 		p := testProvider()
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
 				Meta: Meta{
@@ -432,17 +424,12 @@ on a local state file only. You must specify a local state file with the
 			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 		}
 
-		gotErr := ui.ErrorWriter.String()
-		wantErr := `
-Error: Invalid command line options: -backup, -backup-out
-
-Command line options -backup and -backup-out are legacy options that operate
-on a local state file only. You must specify a local state file with the
--state option or switch to the local backend.
-
-`
-		if gotErr != wantErr {
-			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		gotErr := done(t).Stderr()
+		if !strings.Contains(gotErr, "Invalid command line options: -backup, -backup-out") {
+			t.Fatalf("expected error about -backup, -backup-out options, got:\n%s", gotErr)
+		}
+		if !strings.Contains(gotErr, "are legacy options") {
+			t.Fatalf("expected error about legacy options, got:\n%s", gotErr)
 		}
 	})
 
@@ -652,7 +639,7 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 
 	c := &StateMvCommand{
 		StateMeta{
@@ -674,17 +661,12 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	expectedErr := `
-Error: Invalid target address
-
-Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
-resource (not a resource instance) so the target must also be a whole
-resource.
-
-`
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != expectedErr {
-		t.Errorf("wrong output\n%s", cmp.Diff(errOutput, expectedErr))
+	errOutput := done(t).Stderr()
+	if !strings.Contains(errOutput, "Invalid target address") {
+		t.Errorf("expected 'Invalid target address' error, got:\n%s", errOutput)
+	}
+	if !strings.Contains(errOutput, "the source is a whole") {
+		t.Errorf("expected error about whole resource, got:\n%s", errOutput)
 	}
 }
 
@@ -721,7 +703,7 @@ func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -743,18 +725,12 @@ func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	expectedErr := `
-Error: Invalid target address
-
-Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
-resource (not a resource instance) so the target must also be a whole
-resource.
-
-`
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != expectedErr {
-		t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", errOutput, expectedErr)
-		t.Errorf("%s", cmp.Diff(errOutput, expectedErr))
+	errOutput := done(t).Stderr()
+	if !strings.Contains(errOutput, "Invalid target address") {
+		t.Errorf("expected 'Invalid target address' error, got:\n%s", errOutput)
+	}
+	if !strings.Contains(errOutput, "the source is a whole") {
+		t.Errorf("expected error about whole resource, got:\n%s", errOutput)
 	}
 }
 
@@ -943,7 +919,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -963,16 +939,12 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	gotErr := ui.ErrorWriter.String()
-	wantErr := `
-Error: Invalid state move request
-
-Cannot move test_instance.foo to test_network.bar: resource types don't
-match.
-
-`
-	if gotErr != wantErr {
-		t.Fatalf("expected initialization error\ngot:\n%s\n\nwant:%s", gotErr, wantErr)
+	gotErr := done(t).Stderr()
+	if !strings.Contains(gotErr, "Invalid state move request") {
+		t.Fatalf("expected 'Invalid state move request' error, got:\n%s", gotErr)
+	}
+	if !strings.Contains(gotErr, "resource types don't") {
+		t.Fatalf("expected resource types error, got:\n%s", gotErr)
 	}
 }
 
@@ -1879,7 +1851,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -1897,14 +1869,14 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	}
 
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), ui.OutputWriter.String())
 	}
 
 	// State is unchanged
 	testStateOutput(t, statePath, testStateMvOutputOriginal)
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}

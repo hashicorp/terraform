@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -26,58 +25,71 @@ type StateReplaceProviderCommand struct {
 	StateMeta
 }
 
-func (c *StateReplaceProviderCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+func (c *StateReplaceProviderCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
 
-	var autoApprove bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state replace-provider")
-	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of replacements")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return cli.RunResultHelp
+	// Propagate -no-color for legacy Ui usage
+	if common.NoColor {
+		c.Meta.Color = false
 	}
-	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("Exactly two arguments expected.\n")
-		return cli.RunResultHelp
-	}
+	c.Meta.color = c.Meta.Color
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+	// Configure the view with the reconciled color setting
+	c.View.Configure(&arguments.View{
+		NoColor:         !c.Meta.color,
+		CompactWarnings: common.CompactWarnings,
+	})
+
+	// Parse command flags/args
+	args, diags := arguments.ParseStateReplaceProvider(rawArgs)
+
+	// Instantiate the view even if flag parsing produced errors
+	view := views.NewStateReplaceProvider(c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		view.HelpPrompt()
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	// Copy parsed args to appropriate Meta/StateMeta fields
+	c.backupPath = args.BackupPath
+	c.Meta.stateLock = args.StateLock
+	c.Meta.stateLockTimeout = args.StateLockTimeout
+	c.statePath = args.StatePath
+	c.Meta.ignoreRemoteVersion = args.IgnoreRemoteVersion
+
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Parse from/to arguments into providers
-	from, fromDiags := addrs.ParseProviderSourceString(args[0])
+	from, fromDiags := addrs.ParseProviderSourceString(args.From)
 	if fromDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			fmt.Sprintf(`Invalid "from" provider %q`, args[0]),
+			fmt.Sprintf(`Invalid "from" provider %q`, args.From),
 			fromDiags.Err().Error(),
 		))
 	}
-	to, toDiags := addrs.ParseProviderSourceString(args[1])
+	to, toDiags := addrs.ParseProviderSourceString(args.To)
 	if toDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			fmt.Sprintf(`Invalid "to" provider %q`, args[1]),
+			fmt.Sprintf(`Invalid "to" provider %q`, args.To),
 			toDiags.Err().Error(),
 		))
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Initialize the state manager as configured
-	view := arguments.ViewHuman
-	stateMgr, err := c.State(view)
+	viewType := arguments.ViewHuman
+	stateMgr, err := c.State(viewType)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -86,13 +98,13 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	// Acquire lock if requested
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
-		if diags := stateLocker.Lock(stateMgr, "state-replace-provider"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+		if lockDiags := stateLocker.Lock(stateMgr, "state-replace-provider"); lockDiags.HasErrors() {
+			view.Diagnostics(lockDiags)
 			return 1
 		}
 		defer func() {
-			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				view.Diagnostics(unlockDiags)
 			}
 		}()
 	}
@@ -110,9 +122,9 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Fetch all resources from the state
-	resources, diags := c.lookupAllResources(state)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	resources, resourceDiags := c.lookupAllResources(state)
+	if resourceDiags.HasErrors() {
+		view.Diagnostics(resourceDiags)
 		return 1
 	}
 
@@ -124,7 +136,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 			willReplace = append(willReplace, resource)
 		}
 	}
-	c.showDiagnostics(diags)
+	view.Diagnostics(resourceDiags)
 
 	if len(willReplace) == 0 {
 		c.Ui.Output("No matching resources found.")
@@ -144,7 +156,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Confirm
-	if !autoApprove {
+	if !args.AutoApprove {
 		c.Ui.Output(colorize.Color(
 			"\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
@@ -166,10 +178,10 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", viewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -191,7 +203,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	c.Ui.Output(fmt.Sprintf("\nSuccessfully replaced provider for %d resources.", len(willReplace)))
 	return 0
 }

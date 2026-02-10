@@ -206,7 +206,7 @@ func TestStateReplaceProvider(t *testing.T) {
 
 	t.Run("invalid flags", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
@@ -225,14 +225,14 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Error parsing command-line flags"; !strings.Contains(got, want) {
+		if got, want := done(t).Stderr(), "Failed to parse command-line flags"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	})
 
 	t.Run("wrong number of arguments", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
@@ -247,14 +247,14 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Exactly two arguments expected"; !strings.Contains(got, want) {
+		if got, want := done(t).Stderr(), "Exactly two arguments expected"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	})
 
 	t.Run("invalid provider strings", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
@@ -272,7 +272,7 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		got := ui.ErrorWriter.String()
+		got := done(t).Stderr()
 		msgs := []string{
 			`Invalid "from" provider "hashicorp/google_cloud"`,
 			"Invalid provider type",
@@ -339,6 +339,7 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
@@ -348,7 +349,8 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
 				},
-				Ui: ui,
+				Ui:   ui,
+				View: view,
 			},
 		},
 	}
@@ -447,7 +449,7 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
@@ -467,14 +469,14 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 		"acmecorp/aws",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), ui.OutputWriter.String())
 	}
 
 	// State is unchanged
 	testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}

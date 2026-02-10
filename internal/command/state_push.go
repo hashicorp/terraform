@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -25,34 +24,49 @@ type StatePushCommand struct {
 	StateMeta
 }
 
-func (c *StatePushCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var flagForce bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state push")
-	cmdFlags.BoolVar(&flagForce, "force", false, "")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *StatePushCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+
+	// Propagate -no-color for legacy Ui usage
+	if common.NoColor {
+		c.Meta.Color = false
+	}
+	c.Meta.color = c.Meta.Color
+
+	// Configure the view with the reconciled color setting
+	c.View.Configure(&arguments.View{
+		NoColor:         !c.Meta.color,
+		CompactWarnings: common.CompactWarnings,
+	})
+
+	// Parse command flags/args
+	args, diags := arguments.ParseStatePush(rawArgs)
+
+	// Instantiate the view even if flag parsing produced errors
+	view := views.NewStatePush(c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		view.HelpPrompt()
 		return 1
 	}
-	args = cmdFlags.Args()
 
-	if len(args) != 1 {
-		c.Ui.Error("Exactly one argument expected.\n")
-		return cli.RunResultHelp
-	}
+	// Copy parsed args to appropriate Meta fields
+	c.Meta.stateLock = args.StateLock
+	c.Meta.stateLockTimeout = args.StateLockTimeout
+	c.Meta.ignoreRemoteVersion = args.IgnoreRemoteVersion
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Determine our reader for the input state. This is the filepath
 	// or stdin if "-" is given.
 	var r io.Reader = os.Stdin
-	if args[0] != "-" {
-		f, err := os.Open(args[0])
+	if args.Path != "-" {
+		f, err := os.Open(args.Path)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
@@ -71,15 +85,16 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Close()
 	}
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
+		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args.Path, err))
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
+	viewType := arguments.ViewHuman
+	b, backendDiags := c.backend(".", viewType)
+	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -92,7 +107,7 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
-	c.showDiagnostics(remoteVersionDiags)
+	view.Diagnostics(remoteVersionDiags)
 	if remoteVersionDiags.HasErrors() {
 		return 1
 	}
@@ -107,12 +122,12 @@ func (c *StatePushCommand) Run(args []string) int {
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-push"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -128,7 +143,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Import it, forcing through the lineage/serial if requested and possible.
-	if err := statemgr.Import(srcStateFile, stateMgr, flagForce); err != nil {
+	if err := statemgr.Import(srcStateFile, stateMgr, args.Force); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
@@ -148,7 +163,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	return 0
 }
 
