@@ -105,16 +105,14 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return "", &statemgr.LockError{
-				Info: info,
-				Err:  fmt.Errorf("HTTP remote state already locked, failed to read body"),
+				Err: fmt.Errorf("HTTP remote state already locked, failed to read body"),
 			}
 		}
 		existing := statemgr.LockInfo{}
 		err = json.Unmarshal(body, &existing)
 		if err != nil {
 			return "", &statemgr.LockError{
-				Info: info,
-				Err:  fmt.Errorf("HTTP remote state already locked, failed to unmarshal body"),
+				Err: fmt.Errorf("HTTP remote state already locked, failed to unmarshal body"),
 			}
 		}
 		return "", &statemgr.LockError{
