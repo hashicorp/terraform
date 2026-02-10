@@ -5,16 +5,21 @@ package command
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -92,9 +97,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 
 	// Validation of backend block, if present
 	// Backend blocks live outside the Terraform graph so we have to do this separately.
-	backend := cfg.Module.Backend
-	if backend != nil {
-		diags = diags.Append(c.validateBackend(backend))
+	switch {
+	case cfg.Module.Backend != nil:
+		diags = diags.Append(c.validateBackend(cfg.Module.Backend))
+	case cfg.Module.StateStore != nil:
+		diags = diags.Append(c.validateStateStore(cfg.Module.StateStore))
 	}
 
 	// Unless excluded, we'll also do a quick validation of the Terraform test files. These live
@@ -134,7 +141,6 @@ func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnos
 		diags = diags.Append(file.Validate(cfg))
 
 		for _, run := range file.Runs {
-
 			if run.Module != nil {
 				// Then we can also validate the referenced modules, but we are
 				// only going to do this is if they are local modules.
@@ -144,7 +150,6 @@ func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnos
 				// the registry, the expectation is that the author of the
 				// module should have ran `terraform validate` themselves.
 				if _, ok := run.Module.Source.(addrs.ModuleSourceLocal); ok {
-
 					if validated := validatedModules[run.Module.Source.String()]; !validated {
 
 						// Since we can reference the same module twice, let's
@@ -153,14 +158,12 @@ func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnos
 						validatedModules[run.Module.Source.String()] = true
 						diags = diags.Append(c.validateConfig(run.ConfigUnderTest))
 					}
-
 				}
 
 				diags = diags.Append(run.Validate(run.ConfigUnderTest))
 			} else {
 				diags = diags.Append(run.Validate(cfg))
 			}
-
 		}
 	}
 
@@ -206,6 +209,114 @@ func (c *ValidateCommand) validateBackend(cfg *configs.Backend) tfdiags.Diagnost
 		return diags
 	}
 
+	return diags
+}
+
+// We validate the state store in an offline manner, so we use:
+// - State store's PrepareConfig method to validate the state_store block.
+// - Provider's ValidateProviderConfig to validate the nested provider block.
+// We don't use the Configure method, as that will interact with third-party systems.
+//
+// The code in this method is very similar to the `stateStoreInitFromConfig` method,
+// expect it doesn't configure the provider or the state store.
+func (c *ValidateCommand) validateStateStore(cfg *configs.StateStore) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	locks, depsDiags := c.Meta.lockedDependencies()
+	if depsDiags.HasErrors() {
+		// Add some context to the error so it's obvious that it's related to the state store.
+		newDiag := &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unable to validate state store configuration",
+			Detail:   fmt.Sprintf("An unexpected error was encountered when loading the dependency locks file. Make sure the working directory has been initialized and try again. Error: %s", diags.Err()),
+			Subject:  &cfg.DeclRange,
+		}
+		return diags.Append(newDiag)
+	}
+	diags = diags.Append(depsDiags) // Preserve any warnings
+
+	factory, pDiags := c.Meta.StateStoreProviderFactoryFromConfig(cfg, locks)
+	diags = diags.Append(pDiags)
+	if pDiags.HasErrors() {
+		return diags
+	}
+
+	provider, err := factory()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Unable to validate state store configuration. Terraform was unable to obtain a provider instance during state store initialization: %w", err))
+		return diags
+	}
+	defer provider.Close()
+
+	resp := provider.GetProviderSchema()
+
+	if len(resp.StateStores) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider does not support pluggable state storage",
+			Detail: fmt.Sprintf("There are no state stores implemented by provider %s (%q)",
+				cfg.Provider.Name,
+				cfg.ProviderAddr),
+			Subject: &cfg.DeclRange,
+		})
+		return diags
+	}
+
+	schema, exists := resp.StateStores[cfg.Type]
+	if !exists {
+		suggestions := slices.Sorted(maps.Keys(resp.StateStores))
+		suggestion := didyoumean.NameSuggestion(cfg.Type, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "State store not implemented by the provider",
+			Detail: fmt.Sprintf("State store %q is not implemented by provider %s (%q)%s",
+				cfg.Type, cfg.Provider.Name,
+				cfg.ProviderAddr, suggestion),
+			Subject: &cfg.DeclRange,
+		})
+		return diags
+	}
+
+	// Handle the nested provider block.
+	pDecSpec := resp.Provider.Body.DecoderSpec()
+	pConfig := cfg.Provider.Config
+	providerConfigVal, pDecDiags := hcldec.Decode(pConfig, pDecSpec, nil)
+	diags = diags.Append(pDecDiags)
+	if pDecDiags.HasErrors() {
+		return diags
+	}
+
+	// Handle the schema for the state store itself, excluding the provider block.
+	ssdecSpec := schema.Body.DecoderSpec()
+	stateStoreConfigVal, ssDecDiags := hcldec.Decode(cfg.Config, ssdecSpec, nil)
+	diags = diags.Append(ssDecDiags)
+	if ssDecDiags.HasErrors() {
+		return diags
+	}
+
+	// Validate the provider config
+	//
+	// NOTE: We don't configure the provider because the validate command is offline-only.
+	validateResp := provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+		Config: providerConfigVal,
+	})
+	diags = diags.Append(validateResp.Diagnostics)
+	if validateResp.Diagnostics.HasErrors() {
+		return diags
+	}
+
+	// Validate the state store config
+	//
+	// NOTE: We don't configure the state store because the validate command is offline-only.
+	p, err := backendPluggable.NewPluggable(provider, cfg.Type)
+	if err != nil {
+		diags = diags.Append(err)
+	}
+	_, validateDiags := p.PrepareConfig(stateStoreConfigVal)
+	diags = diags.Append(validateDiags)
 	return diags
 }
 
