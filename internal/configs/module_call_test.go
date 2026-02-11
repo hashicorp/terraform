@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -31,7 +32,11 @@ func TestLoadModuleCall(t *testing.T) {
 	gotModules := file.ModuleCalls
 	wantModules := []*ModuleCall{
 		{
-			Name:          "foo",
+			Name: "foo",
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"./foo\""), "module-calls.tf",
+				hcl.Pos{Line: 3, Column: 12, Byte: 27},
+			)),
 			SourceAddr:    addrs.ModuleSourceLocal("./foo"),
 			SourceAddrRaw: "./foo",
 			SourceSet:     true,
@@ -48,6 +53,10 @@ func TestLoadModuleCall(t *testing.T) {
 		},
 		{
 			Name: "bar",
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"hashicorp/bar/aws\""), "module-calls.tf",
+				hcl.Pos{Line: 8, Column: 12, Byte: 113},
+			)),
 			SourceAddr: addrs.ModuleSourceRegistry{
 				Package: addrs.ModuleRegistryPackage{
 					Host:         addrs.DefaultModuleRegistryHost,
@@ -71,6 +80,10 @@ func TestLoadModuleCall(t *testing.T) {
 		},
 		{
 			Name: "baz",
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"git::https://example.com/\""), "module-calls.tf",
+				hcl.Pos{Line: 15, Column: 12, Byte: 193},
+			)),
 			SourceAddr: addrs.ModuleSourceRemote{
 				Package: addrs.ModulePackage("git::https://example.com/"),
 			},
