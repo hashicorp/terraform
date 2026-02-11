@@ -1629,6 +1629,69 @@ prompts.
 	})
 }
 
+func TestInit_cloudConfigColorTokensProcessed(t *testing.T) {
+	// This test verifies that when the error
+	// diagnostic detail contains color formatting tokens like [bold] and
+	// [reset], they are properly processed
+	// by the diagnostic formatter and do not appear as literal text in the
+	// output.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-cloud-no-workspaces"), td)
+	t.Chdir(td)
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			Ui:   ui,
+			View: view,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args)
+	if code == 0 {
+		t.Fatalf("expected error, got success\n%s", done(t).Stdout())
+	}
+
+	gotStderr := done(t).Stderr()
+
+	expected := `
+Error: failed to create backend alias to target "". The hostname is not in the correct format.
+
+
+Error: Invalid workspaces configuration
+
+  on main.tf line 7, in terraform:
+   7:   cloud {
+
+Missing workspace mapping strategy. Either workspace "tags" or "name" is
+required.
+
+The 'workspaces' block configures how Terraform CLI maps its workspaces for
+this single
+configuration to workspaces within an HCP Terraform or Terraform Enterprise
+organization. Two strategies are available:
+
+tags - A set of tags used to select remote HCP Terraform or Terraform
+Enterprise workspaces to be used for this single
+configuration. New workspaces will automatically be tagged with these tag
+values. Generally, this
+is the primary and recommended strategy to use.  This option conflicts with
+"name".
+
+name - The name of a single HCP Terraform or Terraform Enterprise workspace
+to be used with this configuration.
+When configured, only the specified workspace can be used. This option
+conflicts with "tags"
+and with the TF_WORKSPACE environment variable.
+`
+
+	if diff := cmp.Diff(gotStderr, expected); diff != "" {
+		t.Errorf("unexpected output (-got +expected):\n%s", diff)
+	}
+}
+
 // make sure inputFalse stops execution on migrate
 func TestInit_inputFalse(t *testing.T) {
 	td := t.TempDir()
