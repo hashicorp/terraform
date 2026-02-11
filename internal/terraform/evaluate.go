@@ -422,14 +422,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
 			if c.DeprecatedSet {
-				accessor := "."
-				switch {
-				case callConfig.Count != nil:
-					accessor = ".[*]."
-				case callConfig.ForEach != nil:
-					accessor = ".[*]."
-				}
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, fmt.Sprintf("%s%s%s", absAddr.String(), accessor, name)))
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().String()))
 			}
 			as[name] = val
 		}
@@ -490,7 +483,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, fmt.Sprintf("%s.%s", moduleInstAddr.String(), name)))
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, moduleInstAddr.OutputValue(name).ConfigOutputValue().String()))
 			}
 			attrs[name] = outputVal
 		}
@@ -1170,7 +1163,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		value = value.Mark(marks.Ephemeral)
 	}
 	if config.DeprecatedSet {
-		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.Absolute(d.ModulePath).String()))
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.InModule(d.Module).String()))
 	}
 
 	return value, diags
