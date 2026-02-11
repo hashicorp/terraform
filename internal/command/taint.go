@@ -22,69 +22,72 @@ type TaintCommand struct {
 	Meta
 }
 
-func (c *TaintCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var allowMissing bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("taint")
-	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "allow missing")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *TaintCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Propagate -no-color for legacy Ui usage
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
+	// Parse command flags/args
+	args, diags := arguments.ParseTaint(rawArgs)
+
+	// Instantiate the view even if there are parse errors
+	view := views.NewTaint(c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		view.HelpPrompt()
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	// Copy parsed values to Meta for backend/state operations
+	c.Meta.statePath = args.StatePath
+	c.Meta.stateOutPath = args.StateOutPath
+	c.Meta.backupPath = args.BackupPath
+	c.Meta.stateLock = args.Lock
+	c.Meta.stateLockTimeout = args.LockTimeout
+	c.Meta.ignoreRemoteVersion = args.IgnoreRemoteVersion
 
-	// Require the one argument for the resource to taint
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("The taint command expects exactly one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
-
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
-	diags = diags.Append(addrDiags)
-	if addrDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
+	addr := args.Addr
 
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-		c.Ui.Error(fmt.Sprintf("Resource instance %s cannot be tainted", addr))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid resource address",
+			fmt.Sprintf("Resource instance %s cannot be tainted", addr),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Determine the workspace name
 	workspace, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -92,33 +95,36 @@ func (c *TaintCommand) Run(args []string) int {
 	// Get the state
 	stateMgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", sDiags.Err()))
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", sDiags.Err()))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "taint"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Get the actual state structure
 	state := stateMgr.State()
 	if state.Empty() {
-		if allowMissing {
-			return c.allowMissingExit(addr)
+		if args.AllowMissing {
+			view.AllowMissingWarning(addr)
+			return 0
 		}
 
 		diags = diags.Append(tfdiags.Sourceless(
@@ -126,7 +132,7 @@ func (c *TaintCommand) Run(args []string) int {
 			"No such resource instance",
 			"The state currently contains no resource instances whatsoever. This may occur if the configuration has never been applied or if it has recently been destroyed.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -144,8 +150,9 @@ func (c *TaintCommand) Run(args []string) int {
 	rs := ss.Resource(addr.ContainingResource())
 	is := ss.ResourceInstance(addr)
 	if is == nil {
-		if allowMissing {
-			return c.allowMissingExit(addr)
+		if args.AllowMissing {
+			view.AllowMissingWarning(addr)
+			return 0
 		}
 
 		diags = diags.Append(tfdiags.Sourceless(
@@ -153,7 +160,7 @@ func (c *TaintCommand) Run(args []string) int {
 			"No such resource instance",
 			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"terraform apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -166,14 +173,13 @@ func (c *TaintCommand) Run(args []string) int {
 				fmt.Sprintf("Resource instance %s is currently part-way through a create_before_destroy replacement action. Run \"terraform apply\" to complete its replacement before tainting it.", addr),
 			))
 		} else {
-			// Don't know why we're here, but we'll produce a generic error message anyway.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"No such resource instance",
 				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be tainted.", addr),
 			))
 		}
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -181,16 +187,18 @@ func (c *TaintCommand) Run(args []string) int {
 	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.showDiagnostics(diags)
-	c.Ui.Output(fmt.Sprintf("Resource instance %s has been marked as tainted.", addr))
+	view.Diagnostics(diags)
+	view.Success(addr)
 	return 0
 }
 
@@ -242,13 +250,4 @@ Options:
 
 func (c *TaintCommand) Synopsis() string {
 	return "Mark a resource instance as not fully functional"
-}
-
-func (c *TaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
-	c.showDiagnostics(tfdiags.Sourceless(
-		tfdiags.Warning,
-		"No such resource instance",
-		fmt.Sprintf("Resource instance %s was not found, but this is not an error because -allow-missing was set.", name),
-	))
-	return 0
 }

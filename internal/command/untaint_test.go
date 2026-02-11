@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -35,7 +34,7 @@ func TestUntaint(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -48,7 +47,7 @@ func TestUntaint(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	expected := strings.TrimSpace(`
@@ -85,7 +84,7 @@ func TestUntaint_lockedState(t *testing.T) {
 	defer unlock()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -101,7 +100,7 @@ func TestUntaint_lockedState(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	output := ui.ErrorWriter.String()
+	output := done(t).Stderr()
 	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
@@ -133,7 +132,7 @@ func TestUntaint_backup(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -145,7 +144,7 @@ func TestUntaint_backup(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Backup is still tainted
@@ -189,7 +188,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -202,7 +201,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	if _, err := os.Stat(DefaultStateFilename + ".backup"); err == nil {
@@ -218,7 +217,7 @@ test_instance.foo:
 
 func TestUntaint_badState(t *testing.T) {
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -231,7 +230,7 @@ func TestUntaint_badState(t *testing.T) {
 		"foo",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 }
 
@@ -261,7 +260,7 @@ func TestUntaint_defaultState(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -273,7 +272,7 @@ func TestUntaint_defaultState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
@@ -310,7 +309,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	meta := Meta{Ui: ui, View: view}
 	meta.SetWorkspace(testWorkspace)
 	c := &UntaintCommand{
@@ -321,7 +320,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	testStateOutput(t, path, strings.TrimSpace(`
@@ -352,7 +351,7 @@ func TestUntaint_missing(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -365,7 +364,7 @@ func TestUntaint_missing(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.OutputWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stdout())
 	}
 }
 
@@ -390,7 +389,7 @@ func TestUntaint_missingAllow(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -404,20 +403,19 @@ func TestUntaint_missingAllow(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	// Check for the warning
-	actual := strings.TrimSpace(ui.ErrorWriter.String())
-	expected := strings.TrimSpace(`
-Warning: No such resource instance
-
-Resource instance test_instance.bar was not found, but this is not an error
-because -allow-missing was set.
-
-`)
-	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Fatalf("wrong output\n%s", diff)
+	// Check for the warning - warnings are rendered via the view to stdout
+	output := done(t).Stdout()
+	if !strings.Contains(output, "No such resource instance") {
+		t.Fatalf("expected warning summary in output, got:\n%s", output)
+	}
+	if !strings.Contains(output, "test_instance.bar") {
+		t.Fatalf("expected resource address in output, got:\n%s", output)
+	}
+	if !strings.Contains(output, "-allow-missing") {
+		t.Fatalf("expected allow-missing mention in output, got:\n%s", output)
 	}
 }
 
@@ -447,7 +445,7 @@ func TestUntaint_stateOut(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -460,7 +458,7 @@ func TestUntaint_stateOut(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
@@ -511,7 +509,7 @@ func TestUntaint_module(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -524,7 +522,7 @@ func TestUntaint_module(t *testing.T) {
 		"module.child.test_instance.blah",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("command exited with status code %d; want 0\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("command exited with status code %d; want 0\n\n%s", code, done(t).Stderr())
 	}
 
 	testStateOutput(t, statePath, strings.TrimSpace(`
