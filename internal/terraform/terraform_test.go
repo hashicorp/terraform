@@ -147,6 +147,49 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 	return config
 }
 
+func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {
+	t.Helper()
+
+	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	// We need to be able to exercise experimental features in our integration tests.
+	loader.AllowLanguageExperiments(true)
+
+	mod, diags := loader.Parser().LoadConfigDir(cfgPath)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	return mod
+}
+
 // testSetResourceInstanceCurrent is a helper function for tests that sets a Current,
 // Ready resource instance for the given module.
 func testSetResourceInstanceCurrent(module *states.Module, resource, attrsJson, provider string) {
