@@ -1029,7 +1029,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		initReason := fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type)
 		if !opts.Init {
-			diags = diags.Append(errStateStoreInitDiag(initReason))
+			diags = diags.Append(errStateStoreInitDiag(initReason, nil))
 			return nil, diags
 		}
 
@@ -1081,7 +1081,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 				stateStoreConfig.Provider.Name,
 				stateStoreConfig.ProviderAddr,
 			)
-			diags = diags.Append(errStateStoreInitDiag(initReason))
+			diags = diags.Append(errStateStoreInitDiag(initReason, stateStoreConfig.DeclRange.Ptr()))
 			return nil, diags
 		}
 
@@ -1240,14 +1240,47 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return savedStateStore, diags
 		}
 
-		// Above caters only for unchanged config
-		// but this switch case will also handle changes,
-		// which isn't implemented yet.
-		return nil, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Not implemented yet",
-			Detail:   "Changing a state store configuration is not implemented yet",
-		})
+		// If our configuration (the result of both the literal configuration and given
+		// -backend-config options) is the same, then we're just initializing a previously
+		// configured state store. The literal configuration may differ, however, so while we
+		// don't need to migrate, we update the state store cache hash value.
+		if !m.stateStoreConfigNeedsMigration(stateStoreConfig, s.StateStore, opts) {
+			log.Printf("[TRACE] Meta.Backend: using already-initialized %q state store configuration", stateStoreConfig.Type)
+			savedStateStore, moreDiags := m.savedStateStore(sMgr)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				return nil, diags
+			}
+
+			// It's possible for a state store to be unchanged, and the config itself to
+			// have changed by moving a parameter from the config to `-backend-config`
+			// In this case, we update the Hash.
+			moreDiags = m.updateSavedStateStoreHash(cHash, sMgr)
+			if moreDiags.HasErrors() {
+				return nil, diags
+			}
+			// Verify that selected workspace exist. Otherwise prompt user to create one
+			if opts.Init && savedStateStore != nil {
+				if err := m.selectWorkspace(savedStateStore); err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			}
+
+			return savedStateStore, diags
+		}
+		log.Printf("[TRACE] Meta.Backend: state store configuration has changed (from type %q to type %q)", s.StateStore.Type, stateStoreConfig.Type)
+
+		if !opts.Init {
+			// user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their state store configuration
+			initDiag := m.determineStateStoreInitReason(s.StateStore, stateStoreConfig, opts.Locks)
+			diags = diags.Append(initDiag)
+			return nil, diags
+		}
+
+		log.Printf("[WARN] state store config has changed since last init")
+
+		return m.stateStore_changed(stateStoreConfig, cHash, sMgr, opts)
 
 	default:
 		diags = diags.Append(fmt.Errorf(
@@ -1300,6 +1333,82 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	}
 
 	return diags
+}
+
+func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigState, cfg *configs.StateStore, pLocks *depsfile.Locks) tfdiags.Diagnostics {
+	if cfgState.Empty() || cfgState.Empty() {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store %q (%s) not initialised before",
+				cfg.Type, cfg.ProviderAddr.ForDisplay()),
+			cfg.DeclRange.Ptr())
+	}
+	if !cfg.ProviderAddr.Equals(*cfgState.Provider.Source) {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store provider changed from %s to %s",
+				cfgState.Provider.Source.ForDisplay(), cfg.ProviderAddr.ForDisplay()),
+			cfg.Provider.DeclRange.Ptr())
+	}
+
+	pLock := pLocks.Provider(cfg.ProviderAddr)
+	lockVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
+	if err != nil {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("Unable to determine version of the state store provider (%s): %s",
+				cfg.ProviderAddr.ForDisplay(), err), nil)
+	}
+	if lockVersion != cfgState.Provider.Version {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store provider %q (%s) version changed from %s to %s",
+				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay(),
+				cfgState.Provider.Version, lockVersion), nil)
+	}
+
+	if cfgState.Type != cfg.Type {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store type changed from %q to %q",
+				cfgState.Type, cfg.Type),
+			cfg.TypeRange.Ptr())
+	}
+
+	// We need the state store schema to do our comparisons here.
+	ssBackend, ssCfgVal, pCfgVal, ssDiags := m.stateStoreInitFromConfig(cfg, pLocks)
+	if ssDiags.HasErrors() {
+		return ssDiags
+	}
+
+	// change of provider configuration
+	cachedProviderVal, err := cfgState.Provider.Config(ssBackend.ProviderSchema())
+	if err != nil {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("Unable to decode state store provider (%s) configuration: %s",
+				cfg.ProviderAddr.ForDisplay(), err),
+			cfg.Provider.DeclRange.Ptr())
+	}
+	if !cachedProviderVal.RawEquals(pCfgVal) {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store provider %q (%s) configuration changed",
+				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay()),
+			cfg.Provider.DeclRange.Ptr())
+	}
+
+	// change of state_store configuration
+	cachedSsVal, err := cfgState.Config(ssBackend.ConfigSchema())
+	if err != nil {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("Unable to decode state store %q configuration: %s",
+				cfg.Type, err),
+			cfg.DeclRange.Ptr())
+	}
+
+	if cachedSsVal.RawEquals(ssCfgVal) {
+		return errStateStoreInitDiag(
+			fmt.Sprintf("State store %q (%s) configuration changed",
+				cfg.Type, cfg.ProviderAddr.ForDisplay()),
+			cfg.Provider.DeclRange.Ptr())
+	}
+
+	// The above conditions should have covered all possible reasons
+	panic("Unable to determine state store init reason. This is a bug in Terraform and should be reported.")
 }
 
 // backendFromState returns the initialized (not configured) backend directly
@@ -1863,6 +1972,22 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 	return diags
 }
 
+func (m *Meta) updateSavedStateStoreHash(cHash int, sMgr *clistate.LocalState) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	s := sMgr.State()
+
+	if s.StateStore.Hash != uint64(cHash) {
+		s.StateStore.Hash = uint64(cHash)
+		if err := sMgr.WriteState(s); err != nil {
+			diags = diags.Append(errStateStoreWriteSavedDiag(err))
+		}
+		// No need to call PersistState as it's a no-op
+	}
+
+	return diags
+}
+
 // backend returns an operations backend that may use a backend, cloud, or state_store block for state storage.
 // Based on the supplied config, it prepares arguments to pass into (Meta).Backend, which returns the operations backend.
 //
@@ -2061,11 +2186,7 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		return nil, diags
 	}
 
-	// We need to briefly convert away from backend.Backend interface to use the method
-	// for accessing the provider schema. In this method we _always_ expect the concrete value
-	// to be backendPluggable.Pluggable.
-	plug := ssBackend.(*backendPluggable.Pluggable)
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, ssBackend.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
 		return nil, diags
@@ -2295,11 +2416,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		return nil, diags
 	}
 
-	// We need to briefly convert away from backend.Backend interface to use the method
-	// for accessing the provider schema. In this method we _always_ expect the concrete value
-	// to be backendPluggable.Pluggable.
-	plug := b.(*backendPluggable.Pluggable)
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, b.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
 		return nil, diags
@@ -2416,6 +2533,209 @@ func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType
 
 	// Return backend
 	return dstBackend, diags
+}
+
+// stateStoreConfigNeedsMigration returns true if migration might be required to
+// move from the configured state store to the given cached state store config.
+//
+// This must be called with the synthetic *configs.StateStore that results from
+// merging in any command-line options for correct behavior.
+//
+// If either the given configuration or cached configuration are invalid then
+// this function will conservatively assume that migration is required,
+// expecting that the migration code will subsequently deal with the same
+// errors.
+func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState *workdir.StateStoreConfigState, opts *BackendOpts) bool {
+	if cfgState == nil || cfgState.Empty() {
+		log.Print("[TRACE] stateStoreConfigNeedsMigration: no cached config, so migration is required")
+		return true
+	}
+
+	if !cfg.ProviderAddr.Equals(*cfgState.Provider.Source) {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider changed from %q to %q, so migration is required", cfgState.Provider.Source, cfg.ProviderAddr)
+		return true
+	}
+
+	pLock := opts.Locks.Provider(cfg.ProviderAddr)
+	pVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
+	if err != nil {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: unable to determine provider version (%s), so migration is required", err)
+		return true // let the migration codepath deal with the error
+	}
+	if pVersion != cfgState.Provider.Version {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider version changed from %q to %q, so migration is required", cfgState.Provider.Version, pVersion)
+		return true
+	}
+
+	if cfg.Type != cfgState.Type {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: type changed from %q to %q, so migration is required", cfgState.Type, cfg.Type)
+		return true
+	}
+
+	// We need the state store schema to do our comparisons here.
+	ssBackend, ssCfgVal, pCfgVal, ssDiags := m.stateStoreInitFromConfig(cfg, opts.Locks)
+	if ssDiags.HasErrors() {
+		log.Printf("[ERROR] Unable to initialise state store: %s", ssDiags)
+		return true
+	}
+
+	// change of provider configuration
+	cachedProviderVal, err := cfgState.Provider.Config(ssBackend.ProviderSchema())
+	if err != nil {
+		log.Printf("[ERROR] Unable to decode cached provider configuration: %s", err)
+		return true
+	}
+	if !cachedProviderVal.RawEquals(pCfgVal) {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider configuration, so migration is changed")
+		return true
+	}
+
+	// change of state_store configuration
+	cachedSsVal, err := cfgState.Config(ssBackend.ConfigSchema())
+	if err != nil {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: failed to decode cached config; migration codepath must handle problem: %s", err)
+		return true // let the migration codepath deal with the error
+	}
+
+	// If we get all the way down here then it's the exact equality of the
+	// two decoded values that decides our outcome. It's safe to use RawEquals
+	// here (rather than Equals) because we know that unknown values can
+	// never appear in backend configurations.
+	if cachedSsVal.RawEquals(ssCfgVal) {
+		log.Print("[TRACE] stateStoreConfigNeedsMigration: given configuration matches cached configuration, so no migration is required")
+		return false
+	}
+	log.Print("[TRACE] stateStoreConfigNeedsMigration: configuration values have changed, so migration is required")
+	return true
+}
+
+func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
+	// TODO: print out the reason for migration
+	// if s.Backend.Type != c.Type {
+	// 	view.Output(views.BackendMigrateTypeChangeMessage, s.Backend.Type, c.Type)
+	// } else {
+	// 	view.Output(views.BackendReconfigureMessage)
+	// }
+
+	// Get the destination state store
+	dstB, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(cfg, opts.Locks)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Grab the source state store
+	srcB, srcBDiags := m.savedStateStore(sMgr)
+	diags = diags.Append(srcBDiags)
+	if srcBDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Get the old state
+	s := sMgr.State()
+
+	// Perform the migration
+	err := m.backendMigrateState(&backendMigrateOpts{
+		SourceType:      s.StateStore.Type,
+		DestinationType: cfg.Type,
+		Source:          srcB,
+		Destination:     dstB,
+		ViewType:        vt,
+	})
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	if m.stateLock {
+		view := views.NewStateLocker(vt, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
+		if err := stateLocker.Lock(sMgr, "state store from plan"); err != nil {
+			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
+			return nil, diags
+		}
+		defer stateLocker.Unlock()
+	}
+
+	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
+	if cfg.ProviderAddr.IsBuiltIn() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State storage is using a builtin provider",
+			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	} else {
+		isReattached, err := reattach.IsProviderReattached(cfg.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while initializing state store for the first time. This is a bug in Terraform and should be reported: %w", err))
+			return nil, diags
+		}
+		if isReattached {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "State storage provider is not managed by Terraform",
+				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+			})
+		} else {
+			// The provider is not built in and is being managed by Terraform
+			// This is the most common scenario, by far.
+			var vDiags tfdiags.Diagnostics
+			pVersion, vDiags = getStateStorageProviderVersion(cfg, opts.Locks)
+			diags = diags.Append(vDiags)
+			if vDiags.HasErrors() {
+				return nil, diags
+			}
+		}
+	}
+
+	// Update the state to the new configuration
+	s = sMgr.State()
+	if s == nil {
+		s = workdir.NewBackendStateFile()
+	}
+
+	s.StateStore = &workdir.StateStoreConfigState{
+		Type: cfg.Type,
+		Hash: uint64(cfgHash),
+		Provider: &workdir.ProviderConfigState{
+			Source:  &cfg.ProviderAddr,
+			Version: pVersion,
+		},
+	}
+	err = s.StateStore.SetConfig(storeConfigVal, dstB.ConfigSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
+		return nil, diags
+	}
+
+	// We need to briefly convert away from backend.Backend interface to use the method
+	// for accessing the provider schema. In this method we _always_ expect the concrete value
+	// to be backendPluggable.Pluggable.
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
+		return nil, diags
+	}
+
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return nil, diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return nil, diags
+	}
+
+	return dstB, diags
 }
 
 // getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
@@ -2762,7 +3082,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 //
 // NOTE: the backend version of this method, `backendInitFromConfig`, prompts users for input if any required fields
 // are missing from the backend config. In `stateStoreInitFromConfig` we don't do this, and instead users will see an error.
-func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (*backendPluggable.Pluggable, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	factory, pDiags := m.StateStoreProviderFactoryFromConfig(c, locks)

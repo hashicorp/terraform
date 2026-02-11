@@ -6,6 +6,7 @@ package command
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -165,7 +166,7 @@ configuration or state have been made.`, initReason)
 // state_store configuration.
 //
 // An init reason should be provided as an argument.
-func errStateStoreInitDiag(initReason string) tfdiags.Diagnostic {
+func errStateStoreInitDiag(initReason string, subject *hcl.Range) tfdiags.Diagnostics {
 	msg := fmt.Sprintf(`Reason: %s
 
 The "state store" is the interface that Terraform uses to store state when
@@ -182,11 +183,25 @@ If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.`, initReason)
 
-	return tfdiags.Sourceless(
+	var diags tfdiags.Diagnostics
+
+	if subject != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Subject:  subject,
+			Severity: hcl.DiagError,
+			Summary:  "State store initialization required, please run \"terraform init\"",
+			Detail:   msg,
+		})
+		return diags
+	}
+
+	diags = diags.Append(tfdiags.Sourceless(
 		tfdiags.Error,
 		"State store initialization required, please run \"terraform init\"",
 		msg,
-	)
+	))
+
+	return diags
 }
 
 // errBackendInitCloudDiag creates a diagnostic to present to users when
@@ -223,6 +238,23 @@ above, resolve it, and try again.`, innerError)
 	return tfdiags.Sourceless(
 		tfdiags.Error,
 		"Backend initialization failed",
+		msg,
+	)
+}
+
+// errStateStoreWriteSavedDiag creates a diagnostic to present to users when
+// an init command experiences an error while writing to the backend state file.
+func errStateStoreWriteSavedDiag(innerError error) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Error saving the state store configuration: %s
+
+Terraform saves the complete state store configuration in a local file for
+configuring the state store on future operations. This cannot be disabled. Errors
+are usually due to simple file permission errors. Please look at the error
+above, resolve it, and try again.`, innerError)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"State store initialization failed",
 		msg,
 	)
 }
