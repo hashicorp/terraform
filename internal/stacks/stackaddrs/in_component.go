@@ -87,6 +87,10 @@ type AbsResourceInstance = InAbsComponentInstance[addrs.AbsResourceInstance]
 // of a resource from inside a particular component instance.
 type AbsResourceInstanceObject = InAbsComponentInstance[addrs.AbsResourceInstanceObject]
 
+// AbsActionInvocationInstance represents an instance of an action from inside a
+// particular component instance.
+type AbsActionInvocationInstance = InAbsComponentInstance[addrs.AbsActionInstance]
+
 // AbsModuleInstance represents an instance of a module from inside a
 // particular component instance.
 //
@@ -155,6 +159,36 @@ func ParseAbsResourceInstanceObjectStr(s string) (AbsResourceInstanceObject, tfd
 	}
 
 	ret, moreDiags := ParseAbsResourceInstanceObject(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, diags
+}
+
+func ParseAbsActionInvocationInstance(traversal hcl.Traversal) (AbsActionInvocationInstance, tfdiags.Diagnostics) {
+	stack, remain, diags := ParseAbsComponentInstanceOnly(traversal)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	action, diags := addrs.ParseAbsActionInstance(remain)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	return AbsActionInvocationInstance{
+		Component: stack,
+		Item:      action,
+	}, diags
+}
+
+func ParseAbsActionInvocationInstanceStr(s string) (AbsActionInvocationInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	ret, moreDiags := ParseAbsActionInvocationInstance(traversal)
 	diags = diags.Append(moreDiags)
 	return ret, diags
 }

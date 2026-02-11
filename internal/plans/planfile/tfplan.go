@@ -26,8 +26,10 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-const tfplanFormatVersion = 3
-const tfplanFilename = "tfplan"
+const (
+	tfplanFormatVersion = 3
+	tfplanFilename      = "tfplan"
+)
 
 // ---------------------------------------------------------------------------
 // This file deals with the internal structure of the "tfplan" sub-file within
@@ -198,7 +200,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	}
 
 	for _, rawAction := range rawPlan.ActionInvocations {
-		action, err := actionInvocationFromTfplan(rawAction)
+		action, err := ActionInvocationFromTfplan(rawAction)
 		if err != nil {
 			// errors from actionInvocationFromTfplan already include context
 			return nil, err
@@ -410,7 +412,6 @@ func ActionFromProto(rawAction planproto.Action) (plans.Action, error) {
 	default:
 		return plans.NoOp, fmt.Errorf("invalid change action %s", rawAction)
 	}
-
 }
 
 func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
@@ -570,7 +571,7 @@ func deferredActionInvocationFromTfplan(dai *planproto.DeferredActionInvocation)
 		return nil, fmt.Errorf("deferred action invocation object is absent")
 	}
 
-	actionInvocation, err := actionInvocationFromTfplan(dai.ActionInvocation)
+	actionInvocation, err := ActionInvocationFromTfplan(dai.ActionInvocation)
 	if err != nil {
 		return nil, err
 	}
@@ -1320,7 +1321,7 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	}
 }
 
-func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
+func ActionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
 	if rawAction == nil {
 		// Should never happen in practice, since protobuf can't represent
 		// a nil value in a list.
@@ -1393,6 +1394,10 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 
 	return ret, nil
+}
+
+func ActionInvocationToProto(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
+	return actionInvocationToTfPlan(action)
 }
 
 func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {

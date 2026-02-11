@@ -35,6 +35,7 @@ type ExpectedHooks struct {
 	ReportResourceInstanceDeferred          []*hooks.DeferredResourceInstanceChange
 	ReportComponentInstancePlanned          []*hooks.ComponentInstanceChange
 	ReportComponentInstanceApplied          []*hooks.ComponentInstanceChange
+	ReportActionInvocationStatus            []*hooks.ActionInvocationStatusHookData
 }
 
 func (eh *ExpectedHooks) Validate(t *testing.T, expectedHooks *ExpectedHooks) {
@@ -397,6 +398,21 @@ func (ch *CapturedHooks) captureHooks() *Hooks {
 			}
 
 			ch.ReportComponentInstanceApplied = append(ch.ReportComponentInstanceApplied, change)
+			return a
+		},
+		ReportActionInvocationStatus: func(ctx context.Context, a any, data *hooks.ActionInvocationStatusHookData) any {
+			ch.Lock()
+			defer ch.Unlock()
+
+			if !ch.ComponentInstanceBegun(data.Addr.Component) {
+				panic("tried to report action invocation status before component")
+			}
+
+			if ch.ComponentInstanceFinished(data.Addr.Component) {
+				panic("tried to report action invocation status after component")
+			}
+
+			ch.ReportActionInvocationStatus = append(ch.ReportActionInvocationStatus, data)
 			return a
 		},
 	}

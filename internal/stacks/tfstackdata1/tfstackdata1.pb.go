@@ -72,7 +72,7 @@ func (x StateResourceInstanceObjectV1_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StateResourceInstanceObjectV1_Status.Descriptor instead.
 func (StateResourceInstanceObjectV1_Status) EnumDescriptor() ([]byte, []int) {
-	return file_tfstackdata1_proto_rawDescGZIP(), []int{14, 0}
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{16, 0}
 }
 
 // Appears early in a raw plan sequence to capture some metadata that we need
@@ -898,6 +898,134 @@ func (x *PlanDeferredResourceInstanceChange) GetChange() *PlanResourceInstanceCh
 	return nil
 }
 
+type PlanActionInvocationPlanned struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The same string must previously have been announced with a
+	// PlanComponentInstance message, or the overall plan sequence is invalid.
+	ComponentInstanceAddr string `protobuf:"bytes,1,opt,name=component_instance_addr,json=componentInstanceAddr,proto3" json:"component_instance_addr,omitempty"`
+	ActionInvocationAddr  string `protobuf:"bytes,3,opt,name=action_invocation_addr,json=actionInvocationAddr,proto3" json:"action_invocation_addr,omitempty"`
+	// The address of the provider configuration that planned this change,
+	// or that produced the prior state for messages where "change" is
+	// unpopulated. This is a module-centric view relative to the root module
+	// of the component identified in component_instance_addr.
+	ProviderConfigAddr string                              `protobuf:"bytes,4,opt,name=provider_config_addr,json=providerConfigAddr,proto3" json:"provider_config_addr,omitempty"`
+	Invocation         *planproto.ActionInvocationInstance `protobuf:"bytes,2,opt,name=invocation,proto3" json:"invocation,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PlanActionInvocationPlanned) Reset() {
+	*x = PlanActionInvocationPlanned{}
+	mi := &file_tfstackdata1_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanActionInvocationPlanned) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanActionInvocationPlanned) ProtoMessage() {}
+
+func (x *PlanActionInvocationPlanned) ProtoReflect() protoreflect.Message {
+	mi := &file_tfstackdata1_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanActionInvocationPlanned.ProtoReflect.Descriptor instead.
+func (*PlanActionInvocationPlanned) Descriptor() ([]byte, []int) {
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PlanActionInvocationPlanned) GetComponentInstanceAddr() string {
+	if x != nil {
+		return x.ComponentInstanceAddr
+	}
+	return ""
+}
+
+func (x *PlanActionInvocationPlanned) GetActionInvocationAddr() string {
+	if x != nil {
+		return x.ActionInvocationAddr
+	}
+	return ""
+}
+
+func (x *PlanActionInvocationPlanned) GetProviderConfigAddr() string {
+	if x != nil {
+		return x.ProviderConfigAddr
+	}
+	return ""
+}
+
+func (x *PlanActionInvocationPlanned) GetInvocation() *planproto.ActionInvocationInstance {
+	if x != nil {
+		return x.Invocation
+	}
+	return nil
+}
+
+// Represents a deferred change to a particular action invocation within a
+// particular component instance.
+type PlanDeferredActionInvocation struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Deferred      *planproto.Deferred          `protobuf:"bytes,1,opt,name=deferred,proto3" json:"deferred,omitempty"`
+	Invocation    *PlanActionInvocationPlanned `protobuf:"bytes,2,opt,name=invocation,proto3" json:"invocation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanDeferredActionInvocation) Reset() {
+	*x = PlanDeferredActionInvocation{}
+	mi := &file_tfstackdata1_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanDeferredActionInvocation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanDeferredActionInvocation) ProtoMessage() {}
+
+func (x *PlanDeferredActionInvocation) ProtoReflect() protoreflect.Message {
+	mi := &file_tfstackdata1_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanDeferredActionInvocation.ProtoReflect.Descriptor instead.
+func (*PlanDeferredActionInvocation) Descriptor() ([]byte, []int) {
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *PlanDeferredActionInvocation) GetDeferred() *planproto.Deferred {
+	if x != nil {
+		return x.Deferred
+	}
+	return nil
+}
+
+func (x *PlanDeferredActionInvocation) GetInvocation() *PlanActionInvocationPlanned {
+	if x != nil {
+		return x.Invocation
+	}
+	return nil
+}
+
 // Represents that we need to emit "delete" requests for one or more raw
 // state and/or state description objects during the apply phase.
 //
@@ -918,7 +1046,7 @@ type PlanDiscardStateMapKeys struct {
 
 func (x *PlanDiscardStateMapKeys) Reset() {
 	*x = PlanDiscardStateMapKeys{}
-	mi := &file_tfstackdata1_proto_msgTypes[12]
+	mi := &file_tfstackdata1_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -930,7 +1058,7 @@ func (x *PlanDiscardStateMapKeys) String() string {
 func (*PlanDiscardStateMapKeys) ProtoMessage() {}
 
 func (x *PlanDiscardStateMapKeys) ProtoReflect() protoreflect.Message {
-	mi := &file_tfstackdata1_proto_msgTypes[12]
+	mi := &file_tfstackdata1_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -943,7 +1071,7 @@ func (x *PlanDiscardStateMapKeys) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanDiscardStateMapKeys.ProtoReflect.Descriptor instead.
 func (*PlanDiscardStateMapKeys) Descriptor() ([]byte, []int) {
-	return file_tfstackdata1_proto_rawDescGZIP(), []int{12}
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PlanDiscardStateMapKeys) GetRawStateKeys() []string {
@@ -1004,7 +1132,7 @@ type StateComponentInstanceV1 struct {
 
 func (x *StateComponentInstanceV1) Reset() {
 	*x = StateComponentInstanceV1{}
-	mi := &file_tfstackdata1_proto_msgTypes[13]
+	mi := &file_tfstackdata1_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +1144,7 @@ func (x *StateComponentInstanceV1) String() string {
 func (*StateComponentInstanceV1) ProtoMessage() {}
 
 func (x *StateComponentInstanceV1) ProtoReflect() protoreflect.Message {
-	mi := &file_tfstackdata1_proto_msgTypes[13]
+	mi := &file_tfstackdata1_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1029,7 +1157,7 @@ func (x *StateComponentInstanceV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateComponentInstanceV1.ProtoReflect.Descriptor instead.
 func (*StateComponentInstanceV1) Descriptor() ([]byte, []int) {
-	return file_tfstackdata1_proto_rawDescGZIP(), []int{13}
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *StateComponentInstanceV1) GetOutputValues() map[string]*DynamicValue {
@@ -1100,7 +1228,7 @@ type StateResourceInstanceObjectV1 struct {
 
 func (x *StateResourceInstanceObjectV1) Reset() {
 	*x = StateResourceInstanceObjectV1{}
-	mi := &file_tfstackdata1_proto_msgTypes[14]
+	mi := &file_tfstackdata1_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1112,7 +1240,7 @@ func (x *StateResourceInstanceObjectV1) String() string {
 func (*StateResourceInstanceObjectV1) ProtoMessage() {}
 
 func (x *StateResourceInstanceObjectV1) ProtoReflect() protoreflect.Message {
-	mi := &file_tfstackdata1_proto_msgTypes[14]
+	mi := &file_tfstackdata1_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1125,7 +1253,7 @@ func (x *StateResourceInstanceObjectV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StateResourceInstanceObjectV1.ProtoReflect.Descriptor instead.
 func (*StateResourceInstanceObjectV1) Descriptor() ([]byte, []int) {
-	return file_tfstackdata1_proto_rawDescGZIP(), []int{14}
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *StateResourceInstanceObjectV1) GetValueJson() []byte {
@@ -1194,7 +1322,7 @@ type DynamicValue struct {
 
 func (x *DynamicValue) Reset() {
 	*x = DynamicValue{}
-	mi := &file_tfstackdata1_proto_msgTypes[15]
+	mi := &file_tfstackdata1_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1206,7 +1334,7 @@ func (x *DynamicValue) String() string {
 func (*DynamicValue) ProtoMessage() {}
 
 func (x *DynamicValue) ProtoReflect() protoreflect.Message {
-	mi := &file_tfstackdata1_proto_msgTypes[15]
+	mi := &file_tfstackdata1_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1219,7 +1347,7 @@ func (x *DynamicValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DynamicValue.ProtoReflect.Descriptor instead.
 func (*DynamicValue) Descriptor() ([]byte, []int) {
-	return file_tfstackdata1_proto_rawDescGZIP(), []int{15}
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DynamicValue) GetValue() *planproto.DynamicValue {
@@ -1293,7 +1421,19 @@ const file_tfstackdata1_proto_rawDesc = "" +
 	"priorState\"\x9b\x01\n" +
 	"\"PlanDeferredResourceInstanceChange\x12,\n" +
 	"\bdeferred\x18\x01 \x01(\v2\x10.tfplan.DeferredR\bdeferred\x12G\n" +
-	"\x06change\x18\x02 \x01(\v2/.tfstackdata1.PlanResourceInstanceChangePlannedR\x06change\"j\n" +
+	"\x06change\x18\x02 \x01(\v2/.tfstackdata1.PlanResourceInstanceChangePlannedR\x06change\"\xff\x01\n" +
+	"\x1bPlanActionInvocationPlanned\x126\n" +
+	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
+	"\x16action_invocation_addr\x18\x03 \x01(\tR\x14actionInvocationAddr\x120\n" +
+	"\x14provider_config_addr\x18\x04 \x01(\tR\x12providerConfigAddr\x12@\n" +
+	"\n" +
+	"invocation\x18\x02 \x01(\v2 .tfplan.ActionInvocationInstanceR\n" +
+	"invocation\"\x97\x01\n" +
+	"\x1cPlanDeferredActionInvocation\x12,\n" +
+	"\bdeferred\x18\x01 \x01(\v2\x10.tfplan.DeferredR\bdeferred\x12I\n" +
+	"\n" +
+	"invocation\x18\x02 \x01(\v2).tfstackdata1.PlanActionInvocationPlannedR\n" +
+	"invocation\"j\n" +
 	"\x17PlanDiscardStateMapKeys\x12$\n" +
 	"\x0eraw_state_keys\x18\x01 \x03(\tR\frawStateKeys\x12)\n" +
 	"\x10description_keys\x18\x02 \x03(\tR\x0fdescriptionKeys\"\xee\x03\n" +
@@ -1339,7 +1479,7 @@ func file_tfstackdata1_proto_rawDescGZIP() []byte {
 }
 
 var file_tfstackdata1_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tfstackdata1_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_tfstackdata1_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_tfstackdata1_proto_goTypes = []any{
 	(StateResourceInstanceObjectV1_Status)(0),  // 0: tfstackdata1.StateResourceInstanceObjectV1.Status
 	(*PlanHeader)(nil),                         // 1: tfstackdata1.PlanHeader
@@ -1354,53 +1494,59 @@ var file_tfstackdata1_proto_goTypes = []any{
 	(*PlanComponentInstance)(nil),              // 10: tfstackdata1.PlanComponentInstance
 	(*PlanResourceInstanceChangePlanned)(nil),  // 11: tfstackdata1.PlanResourceInstanceChangePlanned
 	(*PlanDeferredResourceInstanceChange)(nil), // 12: tfstackdata1.PlanDeferredResourceInstanceChange
-	(*PlanDiscardStateMapKeys)(nil),            // 13: tfstackdata1.PlanDiscardStateMapKeys
-	(*StateComponentInstanceV1)(nil),           // 14: tfstackdata1.StateComponentInstanceV1
-	(*StateResourceInstanceObjectV1)(nil),      // 15: tfstackdata1.StateResourceInstanceObjectV1
-	(*DynamicValue)(nil),                       // 16: tfstackdata1.DynamicValue
-	nil,                                        // 17: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
-	nil,                                        // 18: tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry
-	nil,                                        // 19: tfstackdata1.StateComponentInstanceV1.OutputValuesEntry
-	nil,                                        // 20: tfstackdata1.StateComponentInstanceV1.InputVariablesEntry
-	(*anypb.Any)(nil),                          // 21: google.protobuf.Any
-	(*planproto.FunctionCallHash)(nil),         // 22: tfplan.FunctionCallHash
-	(planproto.Action)(0),                      // 23: tfplan.Action
-	(planproto.Mode)(0),                        // 24: tfplan.Mode
-	(*planproto.CheckResults)(nil),             // 25: tfplan.CheckResults
-	(*planproto.ResourceInstanceChange)(nil),   // 26: tfplan.ResourceInstanceChange
-	(*planproto.Deferred)(nil),                 // 27: tfplan.Deferred
-	(*planproto.Path)(nil),                     // 28: tfplan.Path
-	(*planproto.DynamicValue)(nil),             // 29: tfplan.DynamicValue
+	(*PlanActionInvocationPlanned)(nil),        // 13: tfstackdata1.PlanActionInvocationPlanned
+	(*PlanDeferredActionInvocation)(nil),       // 14: tfstackdata1.PlanDeferredActionInvocation
+	(*PlanDiscardStateMapKeys)(nil),            // 15: tfstackdata1.PlanDiscardStateMapKeys
+	(*StateComponentInstanceV1)(nil),           // 16: tfstackdata1.StateComponentInstanceV1
+	(*StateResourceInstanceObjectV1)(nil),      // 17: tfstackdata1.StateResourceInstanceObjectV1
+	(*DynamicValue)(nil),                       // 18: tfstackdata1.DynamicValue
+	nil,                                        // 19: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
+	nil,                                        // 20: tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry
+	nil,                                        // 21: tfstackdata1.StateComponentInstanceV1.OutputValuesEntry
+	nil,                                        // 22: tfstackdata1.StateComponentInstanceV1.InputVariablesEntry
+	(*anypb.Any)(nil),                          // 23: google.protobuf.Any
+	(*planproto.FunctionCallHash)(nil),         // 24: tfplan.FunctionCallHash
+	(planproto.Action)(0),                      // 25: tfplan.Action
+	(planproto.Mode)(0),                        // 26: tfplan.Mode
+	(*planproto.CheckResults)(nil),             // 27: tfplan.CheckResults
+	(*planproto.ResourceInstanceChange)(nil),   // 28: tfplan.ResourceInstanceChange
+	(*planproto.Deferred)(nil),                 // 29: tfplan.Deferred
+	(*planproto.ActionInvocationInstance)(nil), // 30: tfplan.ActionInvocationInstance
+	(*planproto.Path)(nil),                     // 31: tfplan.Path
+	(*planproto.DynamicValue)(nil),             // 32: tfplan.DynamicValue
 }
 var file_tfstackdata1_proto_depIdxs = []int32{
-	21, // 0: tfstackdata1.PlanPriorStateElem.raw:type_name -> google.protobuf.Any
-	16, // 1: tfstackdata1.PlanRootInputValue.value:type_name -> tfstackdata1.DynamicValue
-	22, // 2: tfstackdata1.FunctionResults.function_results:type_name -> tfplan.FunctionCallHash
-	17, // 3: tfstackdata1.PlanComponentInstance.planned_input_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
-	23, // 4: tfstackdata1.PlanComponentInstance.planned_action:type_name -> tfplan.Action
-	24, // 5: tfstackdata1.PlanComponentInstance.mode:type_name -> tfplan.Mode
-	18, // 6: tfstackdata1.PlanComponentInstance.planned_output_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry
-	25, // 7: tfstackdata1.PlanComponentInstance.planned_check_results:type_name -> tfplan.CheckResults
-	22, // 8: tfstackdata1.PlanComponentInstance.function_results:type_name -> tfplan.FunctionCallHash
-	26, // 9: tfstackdata1.PlanResourceInstanceChangePlanned.change:type_name -> tfplan.ResourceInstanceChange
-	15, // 10: tfstackdata1.PlanResourceInstanceChangePlanned.prior_state:type_name -> tfstackdata1.StateResourceInstanceObjectV1
-	27, // 11: tfstackdata1.PlanDeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
+	23, // 0: tfstackdata1.PlanPriorStateElem.raw:type_name -> google.protobuf.Any
+	18, // 1: tfstackdata1.PlanRootInputValue.value:type_name -> tfstackdata1.DynamicValue
+	24, // 2: tfstackdata1.FunctionResults.function_results:type_name -> tfplan.FunctionCallHash
+	19, // 3: tfstackdata1.PlanComponentInstance.planned_input_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
+	25, // 4: tfstackdata1.PlanComponentInstance.planned_action:type_name -> tfplan.Action
+	26, // 5: tfstackdata1.PlanComponentInstance.mode:type_name -> tfplan.Mode
+	20, // 6: tfstackdata1.PlanComponentInstance.planned_output_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry
+	27, // 7: tfstackdata1.PlanComponentInstance.planned_check_results:type_name -> tfplan.CheckResults
+	24, // 8: tfstackdata1.PlanComponentInstance.function_results:type_name -> tfplan.FunctionCallHash
+	28, // 9: tfstackdata1.PlanResourceInstanceChangePlanned.change:type_name -> tfplan.ResourceInstanceChange
+	17, // 10: tfstackdata1.PlanResourceInstanceChangePlanned.prior_state:type_name -> tfstackdata1.StateResourceInstanceObjectV1
+	29, // 11: tfstackdata1.PlanDeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
 	11, // 12: tfstackdata1.PlanDeferredResourceInstanceChange.change:type_name -> tfstackdata1.PlanResourceInstanceChangePlanned
-	19, // 13: tfstackdata1.StateComponentInstanceV1.output_values:type_name -> tfstackdata1.StateComponentInstanceV1.OutputValuesEntry
-	20, // 14: tfstackdata1.StateComponentInstanceV1.input_variables:type_name -> tfstackdata1.StateComponentInstanceV1.InputVariablesEntry
-	28, // 15: tfstackdata1.StateResourceInstanceObjectV1.sensitive_paths:type_name -> tfplan.Path
-	0,  // 16: tfstackdata1.StateResourceInstanceObjectV1.status:type_name -> tfstackdata1.StateResourceInstanceObjectV1.Status
-	29, // 17: tfstackdata1.DynamicValue.value:type_name -> tfplan.DynamicValue
-	28, // 18: tfstackdata1.DynamicValue.sensitive_paths:type_name -> tfplan.Path
-	16, // 19: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
-	16, // 20: tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
-	16, // 21: tfstackdata1.StateComponentInstanceV1.OutputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
-	16, // 22: tfstackdata1.StateComponentInstanceV1.InputVariablesEntry.value:type_name -> tfstackdata1.DynamicValue
-	23, // [23:23] is the sub-list for method output_type
-	23, // [23:23] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	30, // 13: tfstackdata1.PlanActionInvocationPlanned.invocation:type_name -> tfplan.ActionInvocationInstance
+	29, // 14: tfstackdata1.PlanDeferredActionInvocation.deferred:type_name -> tfplan.Deferred
+	13, // 15: tfstackdata1.PlanDeferredActionInvocation.invocation:type_name -> tfstackdata1.PlanActionInvocationPlanned
+	21, // 16: tfstackdata1.StateComponentInstanceV1.output_values:type_name -> tfstackdata1.StateComponentInstanceV1.OutputValuesEntry
+	22, // 17: tfstackdata1.StateComponentInstanceV1.input_variables:type_name -> tfstackdata1.StateComponentInstanceV1.InputVariablesEntry
+	31, // 18: tfstackdata1.StateResourceInstanceObjectV1.sensitive_paths:type_name -> tfplan.Path
+	0,  // 19: tfstackdata1.StateResourceInstanceObjectV1.status:type_name -> tfstackdata1.StateResourceInstanceObjectV1.Status
+	32, // 20: tfstackdata1.DynamicValue.value:type_name -> tfplan.DynamicValue
+	31, // 21: tfstackdata1.DynamicValue.sensitive_paths:type_name -> tfplan.Path
+	18, // 22: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
+	18, // 23: tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
+	18, // 24: tfstackdata1.StateComponentInstanceV1.OutputValuesEntry.value:type_name -> tfstackdata1.DynamicValue
+	18, // 25: tfstackdata1.StateComponentInstanceV1.InputVariablesEntry.value:type_name -> tfstackdata1.DynamicValue
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_tfstackdata1_proto_init() }
@@ -1414,7 +1560,7 @@ func file_tfstackdata1_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tfstackdata1_proto_rawDesc), len(file_tfstackdata1_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   20,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
