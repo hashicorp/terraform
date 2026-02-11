@@ -162,7 +162,7 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 			lines := strings.Split(diag.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width-1))
+					line = wordwrap.WrapString(disabledColorize.Color(line), uint(width-1))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
