@@ -184,6 +184,9 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.SourceAddrRange = omc.SourceAddrRange
 		mc.SourceSet = omc.SourceSet
 	}
+	if omc.SourceExpr != nil {
+		mc.SourceExpr = omc.SourceExpr
+	}
 
 	if omc.Count != nil {
 		mc.Count = omc.Count
@@ -195,6 +198,9 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	if len(omc.Version.Required) != 0 {
 		mc.Version = omc.Version
+	}
+	if omc.VersionExpr != nil {
+		mc.VersionExpr = omc.VersionExpr
 	}
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
