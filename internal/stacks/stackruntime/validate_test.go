@@ -318,6 +318,88 @@ var (
 				return diags
 			},
 		},
+		filepath.Join("with-single-input", "variable-validation"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("Hi"), // only one validation should fail
+			},
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				// FIXME: adjust ___ and 0s in the Subject once we have a stable location to point to for the validation rule.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Invalid value for variable",
+					Detail:   "Input must be longer than 5 characters.\n\n This was checked by the validation rule at ___",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/variable-validation/variable-validation.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 13, Column: 0, Byte: 0},
+						End:      hcl.Pos{Line: 16, Column: 0, Byte: 0},
+					},
+				})
+
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "variable-validation"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("Aha"), // Both validations should fail
+			},
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				// FIXME: adjust ___ and 0s in the Subject once we have a stable location to point to for the validation rule.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail:   "Input must be longer than 5 characters.\n\n This was checked by the validation rule at ___",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/variable-validation/variable-validation.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 13, Column: 0, Byte: 0},
+						End:      hcl.Pos{Line: 16, Column: 0, Byte: 0},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail:   "Input must start with H.\n\n This was checked by the validation rule at ___",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/variable-validation/variable-validation.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 18, Column: 0, Byte: 0},
+						End:      hcl.Pos{Line: 21, Column: 0, Byte: 0},
+					},
+				})
+
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "variable-validation"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("Hi"), // only one validation should fail
+			},
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				// FIXME: adjust ___ and 0s in the Subject once we have a stable location to point to for the validation rule.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail:   "Input must be longer than 5 characters.\n\n This was checked by the validation rule at ___",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/variable-validation/variable-validation.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 13, Column: 0, Byte: 0},
+						End:      hcl.Pos{Line: 16, Column: 0, Byte: 0},
+					},
+				})
+
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "variable-validation"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("HelloThere"), // no validation should fail
+			},
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				return diags
+			},
+		},
 	}
 )
 
