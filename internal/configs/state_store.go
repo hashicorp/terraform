@@ -120,14 +120,16 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// that the builtin provider is intended.
 		return addrs.NewBuiltInProvider("terraform"), nil
 	case !foundReqProviderEntry:
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing entry in required_providers",
-			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
-				stateStore.Provider.Name,
-			),
-			Subject: &stateStore.DeclRange,
-		})
+		diags = diags.Append(
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing entry in required_providers",
+				Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
+					stateStore.Provider.Name,
+				),
+				Subject: &stateStore.DeclRange,
+			},
+		)
 		return tfaddr.Provider{}, diags
 	default:
 		// We've got a required_providers entry to use

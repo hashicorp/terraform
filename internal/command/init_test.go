@@ -4707,7 +4707,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	}
 }
 
-func TestInit_unitialized_stateStore(t *testing.T) {
+func TestInit_uninitialized_stateStore(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	cfg := `terraform {
@@ -5637,6 +5637,65 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 		expectedMsg := "Migrating state from HCP Terraform or Terraform Enterprise to another backend is not \nyet implemented."
 		if !strings.Contains(testOutput.Stderr(), expectedMsg) {
 			t.Fatalf("expected error message %q not found: \n%s", expectedMsg, testOutput.Stderr())
+		}
+	}
+}
+
+// Test that config-parsing errors that prevent initialising the pluggable state store are identified and returned
+// before Terraform attempts to initialise the store.
+//
+// These errors include omitting the necessary entry in required_providers, or causing an issue with how require_providers
+// is parsed. This test uses the first scenario for simplicity.
+func TestInit_configErrorsImpactingStateStore(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+	cfg1 := `terraform {
+  required_providers {
+    foobar = {
+      source = "hashicorp/foobar"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {} # missing from required_providers
+    value = "foobar"
+  }
+}
+	`
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg1), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init start")
+	args := []string{"-enable-pluggable-state-storage-experiment"}
+	code := initCmd.Run(args)
+	testOutput := done(t)
+	if code != 1 {
+		t.Fatalf("expected apply to fail with code 1, got code %d: \n%s", code, testOutput.All())
+	}
+	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init complete")
+	t.Logf("init output:\n%s", testOutput.Stdout())
+	t.Logf("init errors:\n%s", testOutput.Stderr())
+
+	expectedErrs := []string{
+		// Pre-amble text that's shown when a config-parsing error occurs during init.
+		"Error: Terraform encountered problems during initialisation, including problems with the configuration, described below.",
+		// This parsing error previously wouldn't be reported before initialising the backend, so
+		// Terraform attempted to use a state store in the missing provider.
+		"Error: Missing entry in required_providers",
+	}
+	for _, e := range expectedErrs {
+		if !strings.Contains(cleanString(testOutput.Stderr()), e) {
+			t.Fatalf("unexpected error, expected %q, given: %s", e, testOutput.Stderr())
 		}
 	}
 }
