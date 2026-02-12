@@ -2906,6 +2906,137 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			)
 		}
 	})
+
+	t.Run("error - locks are empty and the provider required by the state_store block isn't present", func(t *testing.T) {
+		opts := &BackendOpts{
+			StateStoreConfig:     config,
+			ProviderRequirements: requiredProviders,
+			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:                depsfile.NewLocks(), // empty!
+		}
+
+		mock := testStateStoreMock(t)
+
+		m := testMetaBackend(t, nil)
+		m.testingOverrides = metaOverridesForProvider(mock)
+		_, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErrMsgs := []string{
+			"Inconsistent dependency lock file",
+			"- provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected",
+		}
+		for _, errMsg := range expectedErrMsgs {
+			if !strings.Contains(diags.Err().Error(), errMsg) {
+				t.Fatalf("expected the returned error to include %q, got: %s",
+					errMsg,
+					diags.Err(),
+				)
+			}
+		}
+	})
+
+	t.Run("ok - locks are empty but reattach config supplies the provider required by state_store block", func(t *testing.T) {
+		reattachConfig := `{
+				"hashicorp/test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 5,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`
+		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
+
+		opts := &BackendOpts{
+			StateStoreConfig:     config,
+			ProviderRequirements: requiredProviders,
+			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:                depsfile.NewLocks(), // empty!
+		}
+
+		mock := testStateStoreMock(t)
+
+		m := testMetaBackend(t, nil)
+		m.testingOverrides = metaOverridesForProvider(mock)
+		_, _, diags := m.stateStoreConfig(opts)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+	})
+
+	t.Run("error - locks are empty and whilst the state_store provider is reattached other providers are not present", func(t *testing.T) {
+		reattachConfig := `{
+				"hashicorp/test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 5,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`
+		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
+
+		// One required provider is supplied through reattach config,
+		// but another required provider -hashicorp/other-one- isn't supplied at all.
+		requiredProviders := &configs.RequiredProviders{
+			RequiredProviders: map[string]*configs.RequiredProvider{
+				"registry.terraform.io/hashicorp/test": {
+					Name:   "test",
+					Source: "registry.terraform.io/hashicorp/test",
+					Type:   providerAddr,
+					Requirement: configs.VersionConstraint{
+						Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
+					},
+				},
+				"registry.terraform.io/hashicorp/other-one": {
+					Name:   "other-one",
+					Source: "registry.terraform.io/hashicorp/other-one",
+					Type:   addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/other-one"),
+					Requirement: configs.VersionConstraint{
+						Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
+					},
+				},
+			},
+		}
+
+		opts := &BackendOpts{
+			StateStoreConfig:     config,
+			ProviderRequirements: requiredProviders,
+			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:                depsfile.NewLocks(), // empty!
+		}
+
+		mock := testStateStoreMock(t)
+
+		m := testMetaBackend(t, nil)
+		m.testingOverrides = metaOverridesForProvider(mock)
+		_, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatalf("expected errors but got none")
+		}
+
+		expectedErrMsgs := []string{
+			"Inconsistent dependency lock file",
+			"- provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected",
+			"- provider registry.terraform.io/hashicorp/other-one: required by this configuration but no version is selected",
+		}
+		for _, errMsg := range expectedErrMsgs {
+			if !strings.Contains(diags.Err().Error(), errMsg) {
+				t.Fatalf("expected the returned error to include %q, got: %s",
+					errMsg,
+					diags.Err(),
+				)
+			}
+		}
+	})
 }
 
 func Test_getStateStorageProviderVersion(t *testing.T) {

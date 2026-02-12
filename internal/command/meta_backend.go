@@ -813,19 +813,30 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 			// didn't yet update to populate DependencyLocks, which is a bug.
 			panic("This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!")
 		case opts.Locks.Empty():
-			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+			isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+			if err != nil {
+				return nil, 0, diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while verifying required_providers are available to launch a state store. This is a bug in Terraform and should be reported: %w", err))
+			}
+
+			// If the PSS provider is not reattached then it missing from the lockfile is bad.
+			// Or, if the PSS provider is reattached but other providers are missing from the lockfile we should still show the errors.
+			if !isReattached || (isReattached && len(errs) != 1) {
+				suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+			}
 		default:
 			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
 		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
-				buf.String(), suggestion,
-			),
-		))
-		return nil, 0, diags
+		if suggestion != "" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf(
+					"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+					buf.String(), suggestion,
+				),
+			))
+			return nil, 0, diags
+		}
 	}
 
 	// Get the provider version from locks, as this impacts the hash
