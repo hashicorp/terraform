@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -2570,6 +2571,98 @@ func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+}
+
+func TestContext2Plan_move_with_expansions(t *testing.T) {
+	for name, tc := range map[string]struct {
+		modules               map[string]string
+		buildState            func(s *states.SyncState)
+		expectPlanDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+		assertPlan            func(t *testing.T, plan *plans.Plan)
+	}{
+		"basic": {
+			modules: map[string]string{
+				"main.tf": `
+           	resource "test_object" "b" {
+              count = 3
+			}
+         
+			moved {
+				from = test_object.a
+				to   = test_object.b
+			}
+            `,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"value":"before0"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"value":"before1"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[2]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"value":"before2"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			assertPlan: func(t *testing.T, plan *plans.Plan) {
+				for i := range 3 {
+					addrA := mustResourceInstanceAddr(fmt.Sprintf("test_object.a[%d]", i))
+					addrB := mustResourceInstanceAddr(fmt.Sprintf("test_object.b[%d]", i))
+					instPlan := plan.Changes.ResourceInstance(addrA)
+					if instPlan != nil {
+						t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+					}
+
+					instPlan = plan.Changes.ResourceInstance(addrB)
+					if instPlan == nil {
+						t.Fatalf("no plan for %s at all", addrB)
+					}
+
+					if got, want := instPlan.Addr, addrB; !got.Equal(want) {
+						t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+					}
+					if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+						t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+					}
+					if got, want := instPlan.Action, plans.NoOp; got != want {
+						t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+					}
+					if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+						t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+					}
+				}
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.modules)
+			state := states.BuildState(tc.buildState)
+
+			p := simpleMockProvider()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode: plans.NormalMode,
+			})
+			if tc.expectPlanDiagnostics == nil {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			} else {
+				expectedDiags := tc.expectPlanDiagnostics(m)
+				tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
+			}
+
+			if tc.assertPlan != nil {
+				tc.assertPlan(t, plan)
+			}
+		})
+	}
 }
 
 func TestContext2Plan_refreshOnlyMode(t *testing.T) {
