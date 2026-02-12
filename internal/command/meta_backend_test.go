@@ -2771,12 +2771,25 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		[]providerreqs.Hash{""},
 	)
 
+	requiredProviders := &configs.RequiredProviders{
+		RequiredProviders: map[string]*configs.RequiredProvider{
+			"registry.terraform.io/hashicorp/test": {
+				Name:   "test",
+				Source: "registry.terraform.io/hashicorp/test",
+				Type:   providerAddr,
+				Requirement: configs.VersionConstraint{
+					Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
+				},
+			},
+		},
+	}
+
 	t.Run("override config can change values of custom attributes in the state_store block", func(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
 			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
+			ProviderRequirements: requiredProviders,
 			ConfigOverride:       configOverride,
 			Init:                 true,
 			Locks:                locks,
@@ -2808,9 +2821,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - no config present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig: nil, // unset
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     nil, // unset
+			Init:                 true,
+			ProviderRequirements: requiredProviders,
+			Locks:                locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2836,7 +2850,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		opts := &BackendOpts{
 			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
+			ProviderRequirements: requiredProviders,
 			Init:                 true,
 			Locks:                locks,
 		}
@@ -2865,7 +2879,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		opts := &BackendOpts{
 			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
+			ProviderRequirements: requiredProviders,
 			Init:                 true,
 			Locks:                locks,
 		}
