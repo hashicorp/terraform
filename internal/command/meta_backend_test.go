@@ -2315,10 +2315,9 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 			// Get the operations backend
 			_, err := m.Backend(&BackendOpts{
-				Init:                 true,
-				StateStoreConfig:     mod.StateStore,
-				ProviderRequirements: mod.ProviderRequirements,
-				Locks:                locks,
+				Init:             true,
+				StateStoreConfig: mod.StateStore,
+				Locks:            locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2771,28 +2770,14 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		[]providerreqs.Hash{""},
 	)
 
-	requiredProviders := &configs.RequiredProviders{
-		RequiredProviders: map[string]*configs.RequiredProvider{
-			"registry.terraform.io/hashicorp/test": {
-				Name:   "test",
-				Source: "registry.terraform.io/hashicorp/test",
-				Type:   providerAddr,
-				Requirement: configs.VersionConstraint{
-					Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
-				},
-			},
-		},
-	}
-
 	t.Run("override config can change values of custom attributes in the state_store block", func(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			ConfigOverride:       configOverride,
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2821,10 +2806,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - no config present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig:     nil, // unset
-			Init:                 true,
-			ProviderRequirements: requiredProviders,
-			Locks:                locks,
+			StateStoreConfig: nil, // unset
+			Init:             true,
+			Locks:            locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2849,10 +2833,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2878,10 +2861,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2909,10 +2891,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - locks are empty and the provider required by the state_store block isn't present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
-			Locks:                depsfile.NewLocks(), // empty!
+			StateStoreConfig: config,
+			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:            depsfile.NewLocks(), // empty!
 		}
 
 		mock := testStateStoreMock(t)
@@ -2953,10 +2934,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
 
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
-			Locks:                depsfile.NewLocks(), // empty!
+			StateStoreConfig: config,
+			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:            depsfile.NewLocks(), // empty!
 		}
 
 		mock := testStateStoreMock(t)
@@ -2966,75 +2946,6 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		_, _, diags := m.stateStoreConfig(opts)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
-		}
-	})
-
-	t.Run("error - locks are empty and whilst the state_store provider is reattached other providers are not present", func(t *testing.T) {
-		reattachConfig := `{
-				"hashicorp/test": {
-					"Protocol": "grpc",
-					"ProtocolVersion": 5,
-					"Pid": 12345,
-					"Test": true,
-					"Addr": {
-						"Network": "unix",
-						"String":"/var/folders/xx/abcde12345/T/plugin12345"
-					}
-				}
-			}`
-		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
-
-		// One required provider is supplied through reattach config,
-		// but another required provider -hashicorp/other-one- isn't supplied at all.
-		requiredProviders := &configs.RequiredProviders{
-			RequiredProviders: map[string]*configs.RequiredProvider{
-				"registry.terraform.io/hashicorp/test": {
-					Name:   "test",
-					Source: "registry.terraform.io/hashicorp/test",
-					Type:   providerAddr,
-					Requirement: configs.VersionConstraint{
-						Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
-					},
-				},
-				"registry.terraform.io/hashicorp/other-one": {
-					Name:   "other-one",
-					Source: "registry.terraform.io/hashicorp/other-one",
-					Type:   addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/other-one"),
-					Requirement: configs.VersionConstraint{
-						Required: version.MustConstraints(version.NewConstraint(">1.0.0")),
-					},
-				},
-			},
-		}
-
-		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: requiredProviders,
-			Init:                 false,               // Not being used in an init operation; hence why we're checking dependencies.
-			Locks:                depsfile.NewLocks(), // empty!
-		}
-
-		mock := testStateStoreMock(t)
-
-		m := testMetaBackend(t, nil)
-		m.testingOverrides = metaOverridesForProvider(mock)
-		_, _, diags := m.stateStoreConfig(opts)
-		if !diags.HasErrors() {
-			t.Fatalf("expected errors but got none")
-		}
-
-		expectedErrMsgs := []string{
-			"Inconsistent dependency lock file",
-			"- provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected",
-			"- provider registry.terraform.io/hashicorp/other-one: required by this configuration but no version is selected",
-		}
-		for _, errMsg := range expectedErrMsgs {
-			if !strings.Contains(diags.Err().Error(), errMsg) {
-				t.Fatalf("expected the returned error to include %q, got: %s",
-					errMsg,
-					diags.Err(),
-				)
-			}
 		}
 	})
 }
