@@ -221,7 +221,6 @@ func TestMissingDefinedVar(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestFile(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -253,7 +252,6 @@ func TestValidateWithInvalidTestFile(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestModule(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -310,7 +308,6 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 }
 
 func TestValidateWithInvalidOverrides(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -547,33 +544,44 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
-	// TODO: Should this validation be added?
-	t.Run("NOT invalid when the backend type is unknown", func(t *testing.T) {
+	t.Run("invalid when the backend type is unknown", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-backend-type")
-		if code != 0 {
-			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
 		}
-		expectedMsg := "Success! The configuration is valid."
-		if !strings.Contains(output.Stdout(), expectedMsg) {
-			t.Fatalf("unexpected output content: wanted %q, got: %s",
-				expectedMsg,
-				output.Stdout(),
+		expectedErr := "Error: Unsupported backend type"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
 			)
 		}
 	})
 
-	// Backend blocks aren't validated using their schemas currently.
-	// TODO: Should this validation be added?
-	t.Run("NOT invalid when there's an unknown attribute present", func(t *testing.T) {
+	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
-		if code != 0 {
-			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
 		}
-		expectedMsg := "Success! The configuration is valid."
-		if !strings.Contains(output.Stdout(), expectedMsg) {
-			t.Fatalf("unexpected output content: wanted %q, got: %s",
-				expectedMsg,
-				output.Stdout(),
+		expectedErr := "Error: Unsupported argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("invalid when a required attribute is unset", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/missing-required-attr")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Missing required argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
 			)
 		}
 	})
