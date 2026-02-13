@@ -2622,7 +2622,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunks[0])),
+						End:   int64(len(chunks[0])) - 1,
 					},
 				},
 				err: nil,
@@ -2633,7 +2633,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: int64(len(chunks[0])),
-						End:   int64(len(chunks[1])),
+						End:   int64(len(chunks[1])) - 1,
 					},
 				},
 				err: nil,
@@ -2664,6 +2664,107 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 		checkDiags(t, resp.Diagnostics)
 		if string(resp.Bytes) != "helloworld" {
 			t.Fatalf("expected data to be %q, got: %q", "helloworld", string(resp.Bytes))
+		}
+	})
+
+	t.Run("can process multiple chunks when last chunk size is one byte", func(t *testing.T) {
+		client := mockProviderClient(t)
+		p := &GRPCProvider{
+			client: client,
+			ctx:    context.Background(),
+		}
+		p.SetStateStoreChunkSize("mock_store", 5)
+
+		// Call to ReadStateBytes
+		// > Assert the arguments received
+		// > Define the returned mock client
+		mockReadBytesClient := mockReadStateBytesClient(t)
+
+		expectedReq := &proto.ReadStateBytes_Request{
+			TypeName: "mock_store",
+			StateId:  backend.DefaultStateName,
+		}
+		client.EXPECT().ReadStateBytes(
+			gomock.Any(),
+			gomock.Eq(expectedReq),
+			gomock.Any(),
+		).Return(mockReadBytesClient, nil)
+
+		// Define what will be returned by each call to Recv
+		chunk := "helloworld!"
+		totalLength := len(chunk)
+		mockResp := map[int]struct {
+			resp *proto.ReadStateBytes_Response
+			err  error
+		}{
+			0: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[:5]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 0,
+						End:   4,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			1: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[5:10]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 5,
+						End:   9,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			2: {
+				resp: &proto.ReadStateBytes_Response{
+					Bytes:       []byte(chunk[10:]),
+					TotalLength: int64(totalLength),
+					Range: &proto.StateRange{
+						Start: 10,
+						End:   10,
+					},
+					Diagnostics: []*proto.Diagnostic{},
+				},
+				err: nil,
+			},
+			3: {
+				resp: &proto.ReadStateBytes_Response{},
+				err:  io.EOF,
+			},
+		}
+		var count int
+		mockReadBytesClient.EXPECT().Recv().DoAndReturn(func() (*proto.ReadStateBytes_Response, error) {
+			ret := mockResp[count]
+			count++
+			return ret.resp, ret.err
+		}).Times(4)
+
+		// There will be a call to CloseSend to close the stream
+		mockReadBytesClient.EXPECT().CloseSend().Return(nil).Times(1)
+
+		// Act
+		request := providers.ReadStateBytesRequest{
+			TypeName: expectedReq.TypeName,
+			StateId:  expectedReq.StateId,
+		}
+		resp := p.ReadStateBytes(request)
+
+		// Assert returned values
+		checkDiags(t, resp.Diagnostics)
+
+		// Chunk size mismatches are warnings so ensure there aren't any
+		if resp.Diagnostics.HasWarnings() {
+			t.Fatal(resp.Diagnostics.ErrWithWarnings())
+		}
+
+		if string(resp.Bytes) != "helloworld!" {
+			t.Fatalf("expected data to be %q, got: %q", "helloworld!", string(resp.Bytes))
 		}
 	})
 
@@ -2703,7 +2804,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunks[0])),
+						End:   int64(len(chunks[0])) - 1,
 					},
 				},
 				err: nil,
@@ -2714,7 +2815,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: incorrectLength,
 					Range: &proto.StateRange{
 						Start: int64(len(chunks[0])),
-						End:   int64(len(chunks[1])),
+						End:   int64(len(chunks[1])) - 1,
 					},
 				},
 				err: nil,
@@ -2868,7 +2969,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   int64(len(chunk)),
+						End:   int64(len(chunk)) - 1,
 					},
 					Diagnostics: []*proto.Diagnostic{
 						{
@@ -3039,7 +3140,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 0,
-						End:   4,
+						End:   3,
 					},
 					Diagnostics: []*proto.Diagnostic{},
 				},
@@ -3051,7 +3152,7 @@ func TestGRPCProvider_ReadStateBytes(t *testing.T) {
 					TotalLength: int64(totalLength),
 					Range: &proto.StateRange{
 						Start: 4,
-						End:   10,
+						End:   9,
 					},
 					Diagnostics: []*proto.Diagnostic{},
 				},
@@ -3133,7 +3234,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.Eq(expectedReq)).Times(1).Return(nil)
@@ -3193,7 +3294,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(chunkSize),
+				End:   int64(chunkSize) - 1,
 			},
 		}
 		req2 := &proto.WriteStateBytes_RequestChunk{
@@ -3202,7 +3303,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: int64(chunkSize),
-				End:   int64(chunkSize + 10),
+				End:   int64(chunkSize+10) - 1,
 			},
 		}
 		mockWriteClient.EXPECT().Send(gomock.AnyOf(req1, req2)).Times(2).Return(nil)
@@ -3281,7 +3382,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockResp := &proto.WriteStateBytes_Response{
@@ -3337,7 +3438,7 @@ func TestGRPCProvider_WriteStateBytes(t *testing.T) {
 			TotalLength: int64(len(data)),
 			Range: &proto.StateRange{
 				Start: 0,
-				End:   int64(len(data)),
+				End:   int64(len(data)) - 1,
 			},
 		}
 		mockResp := &proto.WriteStateBytes_Response{

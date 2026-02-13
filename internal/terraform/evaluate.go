@@ -422,14 +422,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
 			if c.DeprecatedSet {
-				accessor := "."
-				switch {
-				case callConfig.Count != nil:
-					accessor = ".[*]."
-				case callConfig.ForEach != nil:
-					accessor = ".[*]."
-				}
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, fmt.Sprintf("%s%s%s", addr.String(), accessor, name)))
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().String()))
 			}
 			as[name] = val
 		}
@@ -490,7 +483,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, fmt.Sprintf("%s.%s", moduleInstAddr.String(), name)))
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, moduleInstAddr.OutputValue(name).ConfigOutputValue().String()))
 			}
 			attrs[name] = outputVal
 		}
@@ -652,11 +645,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// result, using some per-resource-mode logic maintained elsewhere.
 		val, epehemeralDiags := d.getEphemeralResource(addr, rng)
 		diags = diags.Append(epehemeralDiags)
-		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.String()), diags
+		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String()), diags
 	case addrs.ListResourceMode:
 		val, listDiags := d.getListResource(config, rng)
 		diags = diags.Append(listDiags)
-		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.String()), diags
+		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String()), diags
 	default:
 		// continue with the rest of the function
 	}
@@ -803,9 +796,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// states populated for all resources in the configuration.
 			switch {
 			case config.Count != nil:
-				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.String()), diags
+				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.Absolute(d.ModulePath).String()), diags
 			case config.ForEach != nil:
-				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.String()), diags
+				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.Absolute(d.ModulePath).String()), diags
 			default:
 				// We don't know the values of the single resource instance, but we know the general
 				// shape these values will take.
@@ -814,7 +807,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 					content[attr] = cty.UnknownVal(attrType)
 				}
 
-				return deprecation.MarkDeprecatedValues(cty.ObjectVal(content), schema.Body, addr.String()), diags
+				return deprecation.MarkDeprecatedValues(cty.ObjectVal(content), schema.Body, addr.Absolute(d.ModulePath).String()), diags
 			}
 		}
 	}
@@ -845,7 +838,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 					continue
 				}
 
-				vals[int(intKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+				vals[int(intKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Absolute(d.ModulePath).Instance(key).String())
 			}
 
 			// Insert unknown values where there are any missing instances
@@ -867,7 +860,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// old key that is being dropped and not used for evaluation
 				continue
 			}
-			vals[string(strKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Instance(key).String())
+			vals[string(strKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Absolute(d.ModulePath).Instance(key).String())
 		}
 
 		if len(vals) > 0 {
@@ -887,7 +880,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			val = cty.UnknownVal(ty)
 		}
 
-		ret = deprecation.MarkDeprecatedValues(val, schema.Body, addr.String())
+		ret = deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String())
 	}
 
 	return ret, diags
@@ -1170,7 +1163,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		value = value.Mark(marks.Ephemeral)
 	}
 	if config.DeprecatedSet {
-		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.Absolute(d.ModulePath).String()))
+		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.InModule(d.Module).String()))
 	}
 
 	return value, diags

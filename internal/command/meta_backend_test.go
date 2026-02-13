@@ -2262,56 +2262,6 @@ func Test_determineInitReason(t *testing.T) {
 	}
 }
 
-// Changing from using backend to state_store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("backend-to-state-store"), td)
-	t.Chdir(td)
-
-	mock := testStateStoreMock(t)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.testingOverrides = metaOverridesForProvider(mock)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get the operations backend
-	locks := depsfile.NewLocks()
-	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
-	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
-	if err != nil {
-		t.Fatalf("test setup failed when making constraint: %s", err)
-	}
-	locks.SetProvider(
-		providerAddr,
-		versions.MustParseVersion("9.9.9"),
-		constraint,
-		[]providerreqs.Hash{""},
-	)
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:                 true,
-		StateStoreConfig:     mod.StateStore,
-		ProviderRequirements: mod.ProviderRequirements,
-		Locks:                locks,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from backend to state store is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Verify that using variables results in an error
 func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"
