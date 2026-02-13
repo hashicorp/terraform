@@ -2636,6 +2636,8 @@ func TestContext2Plan_move_with_expansions(t *testing.T) {
 				}
 			},
 		},
+
+		// TODO: Tests for transforming instances, merging from multiple sources to same target and opposite.
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.modules)
