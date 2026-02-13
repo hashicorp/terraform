@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -23,24 +22,17 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var dryRun bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state rm")
-	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseStateRm(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) < 1 {
-		c.Ui.Error("At least one address is required.\n")
-		return cli.RunResultHelp
-	}
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
@@ -82,19 +74,19 @@ func (c *StateRmCommand) Run(args []string) int {
 	// This command primarily works with resource instances, though it will
 	// also clean up any modules and resources left empty by actions it takes.
 	var addrs []addrs.AbsResourceInstance
-	var diags tfdiags.Diagnostics
-	for _, addrStr := range args {
+	var rmDiags tfdiags.Diagnostics
+	for _, addrStr := range parsedArgs.Addrs {
 		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, true, addrStr)
 		addrs = append(addrs, moreAddrs...)
-		diags = diags.Append(moreDiags)
+		rmDiags = rmDiags.Append(moreDiags)
 	}
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	if rmDiags.HasErrors() {
+		c.showDiagnostics(rmDiags)
 		return 1
 	}
 
 	prefix := "Removed "
-	if dryRun {
+	if parsedArgs.DryRun {
 		prefix = "Would remove "
 	}
 
@@ -103,13 +95,13 @@ func (c *StateRmCommand) Run(args []string) int {
 	for _, addr := range addrs {
 		isCount++
 		c.Ui.Output(prefix + addr.String())
-		if !dryRun {
+		if !parsedArgs.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
 		}
 	}
 
-	if dryRun {
+	if parsedArgs.DryRun {
 		if isCount == 0 {
 			c.Ui.Output("Would have removed nothing.")
 		}
@@ -118,9 +110,9 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	// Load the backend
 	b, backendDiags := c.backend(".", view)
-	diags = diags.Append(backendDiags)
+	rmDiags = rmDiags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		c.showDiagnostics(rmDiags)
 		return 1
 	}
 
@@ -129,7 +121,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
-		diags = diags.Append(schemaDiags)
+		rmDiags = rmDiags.Append(schemaDiags)
 	}
 
 	if err := stateMgr.WriteState(state); err != nil {
@@ -141,17 +133,17 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(diags) > 0 && isCount != 0 {
-		c.showDiagnostics(diags)
+	if len(rmDiags) > 0 && isCount != 0 {
+		c.showDiagnostics(rmDiags)
 	}
 
 	if isCount == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
+		rmDiags = rmDiags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid target address",
 			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
 		))
-		c.showDiagnostics(diags)
+		c.showDiagnostics(rmDiags)
 		return 1
 	}
 
