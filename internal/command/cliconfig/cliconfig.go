@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package cliconfig has the types representing and the logic to load CLI-level

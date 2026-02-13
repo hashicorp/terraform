@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2014, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 url_docker_registry_dockerhub = "https://hub.docker.com/r/hashicorp/terraform"
