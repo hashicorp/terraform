@@ -177,11 +177,12 @@ func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *
 		//
 		// Note this in the logs to help with any bug reports.
 		log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's not managed by Terraform", ss.ProviderAddr)
+		return diags
 	}
 
 	// From this point on the state storage provider should be present in the lock file, and the lock file should not be empty or missing.
 
-	if depLocks.Empty() {
+	if depLocks.Empty() && !isReattached {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Inconsistent dependency lock file",
@@ -196,7 +197,7 @@ To make the initial dependency selections that will initialize the dependency lo
 		return diags
 	}
 
-	req, ok := reqs.RequiredProviders[ss.ProviderAddr.String()]
+	req, ok := reqs.RequiredProviders[ss.ProviderAddr.Type]
 	if !ok {
 		// The provider used for state storage is not in the required providers list.
 		// This should have been identified when the block was parsed, so if we get here
