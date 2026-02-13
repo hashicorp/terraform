@@ -6474,9 +6474,9 @@ func TestPlanWithActionInvocationHooks(t *testing.T) {
 				InstanceAddrs: []stackaddrs.AbsComponentInstance{webComponentInstance},
 			},
 		},
-		PendingComponentInstancePlan:  collections.NewSet(webComponentInstance),
-		BeginComponentInstancePlan:    collections.NewSet(webComponentInstance),
-		EndComponentInstancePlan:      collections.NewSet(webComponentInstance),
+		PendingComponentInstancePlan: collections.NewSet(webComponentInstance),
+		BeginComponentInstancePlan:   collections.NewSet(webComponentInstance),
+		EndComponentInstancePlan:     collections.NewSet(webComponentInstance),
 		ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
 			{
 				Addr:         testResourceObject,

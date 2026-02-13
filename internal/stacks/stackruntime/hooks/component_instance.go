@@ -53,14 +53,14 @@ func (s ComponentInstanceStatus) ForProtobuf() stacks.StackChangeProgress_Compon
 // ComponentInstanceChange is the argument type for hook callbacks which
 // signal a set of planned or applied changes for a component instance.
 type ComponentInstanceChange struct {
-	Addr            stackaddrs.AbsComponentInstance
-	Add             int
-	Change          int
-	Import          int
-	Remove          int
-	Defer           int
-	Move            int
-	Forget          int
+	Addr             stackaddrs.AbsComponentInstance
+	Add              int
+	Change           int
+	Import           int
+	Remove           int
+	Defer            int
+	Move             int
+	Forget           int
 	ActionInvocation int
 }
 
