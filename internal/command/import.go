@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -29,41 +28,34 @@ type ImportCommand struct {
 }
 
 func (c *ImportCommand) Run(args []string) int {
-	// Get the pwd since its our default -config flag value
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
+	parsedArgs, diags := arguments.ParseImport(c.Meta.process(args))
+
+	// Copy parsed flags back to Meta
+	c.Meta.statePath = parsedArgs.State.StatePath
+	c.Meta.stateOutPath = parsedArgs.State.StateOutPath
+	c.Meta.backupPath = parsedArgs.State.BackupPath
+	c.Meta.stateLock = parsedArgs.State.Lock
+	c.Meta.stateLockTimeout = parsedArgs.State.LockTimeout
+	c.Meta.parallelism = parsedArgs.Parallelism
+	c.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+	c.Meta.input = parsedArgs.InputEnabled
+	c.Meta.compactWarnings = parsedArgs.CompactWarnings
+	c.Meta.targetFlags = parsedArgs.TargetFlags
+
+	varItems := parsedArgs.Vars.All()
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{
+		FlagName: "-var",
+		Items:    &varItems,
 	}
 
-	var configPath string
-	args = c.Meta.process(args)
-
-	cmdFlags := c.Meta.extendedFlagSet("import")
-	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.StringVar(&configPath, "config", pwd, "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		c.Ui.Error(c.Help())
 		return 1
 	}
-
-	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("The import command expects two arguments.")
-		cmdFlags.Usage()
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
 
 	// Parse the provided resource address.
-	traversalSrc := []byte(args[0])
+	traversalSrc := []byte(parsedArgs.Addr)
 	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(travDiags)
 	if travDiags.HasErrors() {
@@ -87,13 +79,13 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !c.dirIsConfigPath(configPath) {
+	if !c.dirIsConfigPath(parsedArgs.ConfigPath) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No Terraform configuration files",
 			Detail: fmt.Sprintf(
 				"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
-				configPath,
+				parsedArgs.ConfigPath,
 			),
 		})
 		c.showDiagnostics(diags)
@@ -102,7 +94,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Load the full config, so we can verify that the target resource is
 	// already configured.
-	config, configDiags := c.loadConfig(configPath)
+	config, configDiags := c.loadConfig(parsedArgs.ConfigPath)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -158,6 +150,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
@@ -184,7 +177,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Build the operation
 	opReq := c.Operation(b, arguments.ViewHuman)
-	opReq.ConfigDir = configPath
+	opReq.ConfigDir = parsedArgs.ConfigPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
@@ -234,7 +227,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				LegacyID:   args[1],
+				LegacyID:   parsedArgs.ID,
 			},
 		},
 
