@@ -78,9 +78,10 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		return
 	}
 
-	body, hclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)
+	body, decHclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)
+	moreDiags = moreDiags.Append(decHclDiags)
 	n.File.AppendDiagnostics(moreDiags)
-	if hclDiags.HasErrors() {
+	if decHclDiags.HasErrors() {
 		ctx.SetProviderStatus(n.Addr, moduletest.Error)
 		return
 	}

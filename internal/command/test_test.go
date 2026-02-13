@@ -5663,6 +5663,76 @@ func TestTest_TeardownOrder(t *testing.T) {
 	}
 }
 
+// TestTest_ProviderConfigError reproduces
+// https://github.com/hashicorp/terraform/issues/38084
+// This tests that an invalid provider configuration within the test
+// file should result in a failure.
+func TestTest_ProviderConfigError(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "provider_config_error")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer closeFn()
+
+	view, done := testView(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset streams for the test command.
+	view, done = testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	expected := `
+Error: Unsupported argument
+
+  on main.tftest.hcl line 2, in provider "test":
+   2:   resource_prefix_aaa = "foo" // this is decoded during the test runtime, and we should
+
+An argument named "resource_prefix_aaa" is not expected here.
+
+main.tftest.hcl... in progress
+  run "test-1"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 0 failed, 1 skipped.
+`
+
+	out := output.Stderr() + "\n" + output.Stdout()
+	if diff := cmp.Diff(expected, out); diff != "" {
+		t.Errorf("expected output:\n%s, got:\n%s, diff: %s", expected, out, diff)
+	}
+
+	if code < 1 {
+		t.Errorf("expected non-zero exit code but got 0")
+	}
+}
+
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {

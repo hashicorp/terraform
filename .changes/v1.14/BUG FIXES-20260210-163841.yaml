@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'terraform test: return error when provider config is invalid'
+time: 2026-02-10T16:38:41.601357+01:00
+custom:
+    Issue: "38084"
