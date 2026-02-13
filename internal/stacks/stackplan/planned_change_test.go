@@ -992,7 +992,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						ProviderConfigAddr:    "example.com/webhooks/http",
 						Invocation: &planproto.ActionInvocationInstance{
 							Addr:     "action.webhook.notify",
-							Provider: "example.com/webhooks/http",
+							Provider: `provider["example.com/webhooks/http"]`,
 							ActionTrigger: &planproto.ActionInvocationInstance_LifecycleActionTrigger{
 								LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
 									TriggeringResourceAddr:  "example_resource.main",
