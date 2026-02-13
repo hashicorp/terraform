@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -1925,7 +1927,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
 	}
-	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil)
+	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil, nil)
 
 	m := Meta{
 		testingOverrides: overrides,
@@ -3394,6 +3396,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 				"hashicorp/test": {"1.2.3"},
 			},
 			"", // In this test case the provider will not be downloaded so no address is needed
+			nil,
 		)
 		defer close()
 
@@ -3453,12 +3456,17 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		t.Chdir(td)
 
 		server := httptest.NewUnstartedServer(nil) // Get un-started server so we know the port it'll run on.
+		client := httpclient.New()
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 		source, close := newMockProviderSourceViaHTTP(
 			t,
 			map[string][]string{
 				"hashicorp/test": {"1.2.3"},
 			},
 			server.Listener.Addr().String(),
+			client,
 		)
 		defer close()
 
@@ -3525,7 +3533,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		// We're only able to allow Terraform to download providers from a mock provider registry if
 		// we satisfy TLS requirements. This value passed via context allows the eventual http client used
 		// for downloading the provider to have config making it accept the self-signed certs from our test server.
-		meta.CallerContext = context.WithValue(context.Background(), "testing", true)
+		// meta.CallerContext = context.WithValue(context.Background(), "testing", true)
 		c := &InitCommand{
 			Meta: meta,
 		}
@@ -4987,7 +4995,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), close
+	return getproviders.NewMockSource(packages, nil, nil), close
 }
 
 // newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
@@ -5000,7 +5008,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 // When using `newMockProviderSourceViaHTTP` to set a value for `(Meta).ProviderSource` in a test, also set up `testOverrides`
 // in the same Meta. That way the provider source will allow the download process to complete, and when Terraform attempts to use
 // those binaries it will instead use the testOverride providers.
-func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource, close func()) {
+func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string, client *http.Client) (source *getproviders.MockSource, close func()) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
 	var closes []func()
@@ -5027,7 +5035,7 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), close
+	return getproviders.NewMockSource(packages, nil, client), close
 }
 
 // installFakeProviderPackages installs a fake package for the given provider
@@ -5085,7 +5093,7 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
 			}
-			_, err = cacheDir.InstallPackage(context.Background(), meta, nil)
+			_, err = cacheDir.InstallPackage(context.Background(), meta, nil, nil)
 			if err != nil {
 				t.Fatalf("failed to install fake package for %s %s: %s", name, versionStr, err)
 			}

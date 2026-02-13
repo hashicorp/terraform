@@ -5,10 +5,9 @@ package depsfile
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -48,6 +47,9 @@ type Locks struct {
 	// parser during loading, which we retain only so that the caller can
 	// use it to produce source code snippets in error messages.
 	sources map[string][]byte
+
+	// Use callbacks to make a mop of locations for providers, return to calling code
+	// map[provideraddr]Location
 }
 
 // NewLocks constructs and returns a new Locks object that initially contains

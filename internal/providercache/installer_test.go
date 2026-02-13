@@ -259,6 +259,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			Mode: InstallNewProvidersOnly,
 			Reqs: getproviders.Requirements{
@@ -384,6 +385,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
@@ -516,6 +518,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
 				globalCacheDirPath := tmpDir(t)
@@ -528,6 +531,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -667,6 +671,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				# The existing cache entry is valid only if it matches a
@@ -690,6 +695,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -812,6 +818,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				# This is approximating the awkward situation where the lock
@@ -855,6 +862,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderOtherPlatformDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -990,6 +998,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				# (intentionally empty)
@@ -1005,6 +1014,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -1128,6 +1138,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				# The existing cache entry is valid only if it matches a
@@ -1152,6 +1163,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -1270,6 +1282,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -1400,6 +1413,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				provider "example.com/foo/beep" {
@@ -1419,6 +1433,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -1513,6 +1528,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -1636,6 +1652,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{},
 				nil,
+				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
 				inst.SetBuiltInProviderTypes([]string{"terraform"})
@@ -1684,6 +1701,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -1817,6 +1835,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{},
 				nil,
+				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
 				// NOTE: We're intentionally not calling
@@ -1853,6 +1872,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 		"failed install when a built-in provider has a version constraint": {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{},
+				nil,
 				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
@@ -1900,6 +1920,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -1981,6 +2002,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			LockFile: `
 				provider "example.com/foo/beep" {
@@ -2055,6 +2077,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			),
 			Mode: InstallNewProvidersOnly,
 			Reqs: getproviders.Requirements{
@@ -2100,6 +2123,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			Mode: InstallNewProvidersOnly,
@@ -2162,6 +2186,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -2241,6 +2266,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 				},
+				nil,
 				nil,
 			),
 			LockFile: `
@@ -2373,7 +2399,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 			outputDir := NewDirWithPlatform(tmpDir(t), fakePlatform)
 			source := test.Source
 			if source == nil {
-				source = getproviders.NewMockSource(nil, nil)
+				source = getproviders.NewMockSource(nil, nil, nil)
 			}
 			inst := NewInstaller(outputDir, source)
 			if test.Prepare != nil {

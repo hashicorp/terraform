@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -589,7 +590,11 @@ NeedProvider:
 			allowedHashes = []getproviders.Hash{}
 		}
 
-		authResult, err := installTo.InstallPackage(ctx, meta, allowedHashes)
+		var client *http.Client
+		if s, ok := i.source.(getproviders.ClientReturningSource); ok {
+			client = s.Client()
+		}
+		authResult, err := installTo.InstallPackage(ctx, meta, allowedHashes, client)
 		if err != nil {
 			// TODO: Consider retrying for certain kinds of error that seem
 			// likely to be transient. For now, we just treat all errors equally.

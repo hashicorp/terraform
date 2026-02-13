@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -22,9 +23,16 @@ type MockSource struct {
 	packages []PackageMeta
 	warnings map[addrs.Provider]Warnings
 	calls    [][]interface{}
+
+	// client is set during a test; it's paired with a test http server created to mock out
+	// where providers are downloaded from
+	client *http.Client
 }
 
-var _ Source = (*MockSource)(nil)
+var (
+	_ Source                = (*MockSource)(nil)
+	_ ClientReturningSource = (*MockSource)(nil)
+)
 
 // NewMockSource creates and returns a MockSource with the given packages.
 //
@@ -32,11 +40,16 @@ var _ Source = (*MockSource)(nil)
 // exist on disk or over the network, unless the calling test is planning to
 // use (directly or indirectly) the results for further provider installation
 // actions.
-func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *MockSource {
+func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings, client *http.Client) *MockSource {
 	return &MockSource{
 		packages: packages,
 		warnings: warns,
+		client:   client, // will be nil for all tests that don't want to simulate HTTP downloads
 	}
+}
+
+func (s *MockSource) Client() *http.Client {
+	return s.client
 }
 
 // AvailableVersions returns all of the versions of the given provider that

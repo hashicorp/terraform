@@ -5,7 +5,6 @@ package providercache
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -29,17 +28,15 @@ var unzip = getter.ZipDecompressor{}
 // func getProviderDownloadClient() *http.Client {
 // }
 
-func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
+func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash, client *http.Client) (*getproviders.PackageAuthenticationResult, error) {
 	urlStr := meta.Location.String()
 
 	// When we're installing from an HTTP URL we expect the URL to refer to
 	// a zip file. We'll fetch that into a temporary file here and then
 	// delegate to installFromLocalArchive below to actually extract it.
-	client := httpclient.New()
-	if ctx.Value("testing") == true {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
+
+	if client == nil {
+		client = httpclient.New()
 	}
 
 	httpGetter := getter.HttpGetter{

@@ -37,6 +37,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			),
 		},
 			nil,
+			nil,
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
@@ -58,6 +59,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				platform1,
 			),
 		},
+			nil,
 			nil,
 		)
 		multi := MultiSource{
@@ -106,6 +108,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			),
 		},
 			nil,
+			nil,
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
@@ -121,6 +124,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				platform1,
 			),
 		},
+			nil,
 			nil,
 		)
 		multi := MultiSource{
@@ -165,8 +169,8 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 	})
 
 	t.Run("provider not found", func(t *testing.T) {
-		s1 := NewMockSource(nil, nil)
-		s2 := NewMockSource(nil, nil)
+		s1 := NewMockSource(nil, nil, nil)
+		s2 := NewMockSource(nil, nil, nil)
 		multi := MultiSource{
 			{Source: s1},
 			{Source: s2},
@@ -182,7 +186,6 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		if err.Error() != wantErr {
 			t.Fatalf("wrong error.\ngot:  %s\nwant: %s\n", err, wantErr)
 		}
-
 	})
 
 	t.Run("merging with warnings", func(t *testing.T) {
@@ -199,6 +202,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			map[addrs.Provider]Warnings{
 				addrs.NewDefaultProvider("bar"): {"WARNING!"},
 			},
+			nil,
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
@@ -208,6 +212,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				platform1,
 			),
 		},
+			nil,
 			nil,
 		)
 		multi := MultiSource{
@@ -279,6 +284,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 		)),
 	},
 		nil,
+		nil,
 	)
 	s2 := NewMockSource([]PackageMeta{
 		inBothS2,
@@ -289,7 +295,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 			VersionList{MustParseVersion("5.0")},
 			platform1,
 		)),
-	}, nil)
+	}, nil, nil)
 	multi := MultiSource{
 		{Source: s1},
 		{Source: s2},
@@ -366,7 +372,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 }
 
 func TestMultiSourceSelector(t *testing.T) {
-	emptySource := NewMockSource(nil, nil)
+	emptySource := NewMockSource(nil, nil, nil)
 
 	tests := map[string]struct {
 		Selector  MultiSourceSelector

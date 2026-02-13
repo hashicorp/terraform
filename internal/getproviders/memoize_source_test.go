@@ -21,7 +21,7 @@ func TestMemoizeSource(t *testing.T) {
 	nonexistPlatform := Platform{OS: "gamegear", Arch: "z80"}
 
 	t.Run("AvailableVersions for existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta}, nil)
+		mock := NewMockSource([]PackageMeta{meta}, nil, nil)
 		source := NewMemoizeSource(mock)
 
 		got, _, err := source.AvailableVersions(context.Background(), provider)
@@ -71,7 +71,7 @@ func TestMemoizeSource(t *testing.T) {
 	t.Run("AvailableVersions with warnings", func(t *testing.T) {
 		warnProvider := addrs.NewDefaultProvider("warning")
 		meta := FakePackageMeta(warnProvider, version, protocols, platform)
-		mock := NewMockSource([]PackageMeta{meta}, map[addrs.Provider]Warnings{warnProvider: {"WARNING!"}})
+		mock := NewMockSource([]PackageMeta{meta}, map[addrs.Provider]Warnings{warnProvider: {"WARNING!"}}, nil)
 		source := NewMemoizeSource(mock)
 
 		got, warns, err := source.AvailableVersions(context.Background(), warnProvider)
@@ -88,10 +88,9 @@ func TestMemoizeSource(t *testing.T) {
 		if warns[0] != "WARNING!" {
 			t.Fatalf("wrong result! Got %s, expected \"WARNING!\"", warns[0])
 		}
-
 	})
 	t.Run("PackageMeta for existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta}, nil)
+		mock := NewMockSource([]PackageMeta{meta}, nil, nil)
 		source := NewMemoizeSource(mock)
 
 		got, err := source.PackageMeta(context.Background(), provider, version, platform)
@@ -144,7 +143,7 @@ func TestMemoizeSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions for non-existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta}, nil)
+		mock := NewMockSource([]PackageMeta{meta}, nil, nil)
 		source := NewMemoizeSource(mock)
 
 		_, _, err := source.AvailableVersions(context.Background(), nonexistProvider)
@@ -166,7 +165,7 @@ func TestMemoizeSource(t *testing.T) {
 		}
 	})
 	t.Run("PackageMeta for non-existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta}, nil)
+		mock := NewMockSource([]PackageMeta{meta}, nil, nil)
 		source := NewMemoizeSource(mock)
 
 		_, err := source.PackageMeta(context.Background(), nonexistProvider, version, platform)

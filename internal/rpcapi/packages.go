@@ -87,7 +87,6 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *p
 }
 
 func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *packages.FetchProviderPackage_Request) (*packages.FetchProviderPackage_Response, error) {
-
 	response := new(packages.FetchProviderPackage_Response)
 
 	version, err := versions.ParseVersion(request.Version)
@@ -139,7 +138,7 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *pack
 		}
 
 		into := providercache.NewDirWithPlatform(request.CacheDir, platform)
-		authResult, err := into.InstallPackage(ctx, meta, allowedHashes)
+		authResult, err := into.InstallPackage(ctx, meta, allowedHashes, nil) // magic nil client!!
 		if err != nil {
 			// TODO: Parse the different error types so we can provide specific
 			//  error diagnostics, see commands/init.go:731.
