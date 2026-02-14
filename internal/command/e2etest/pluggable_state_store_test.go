@@ -98,6 +98,14 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
+	if !provider.ReadStateBytesCalled() {
+		t.Error("ReadStateBytes not called on un-managed provider")
+	}
+	if !provider.WriteStateBytesCalled() {
+		t.Error("WriteStateBytes not called on un-managed provider")
+	}
+	provider.ResetReadStateBytesCalled()
+	provider.ResetWriteStateBytesCalled()
 
 	// Make sure we didn't download the binary
 	if strings.Contains(stdout, "Installing hashicorp/simple6 v") {
@@ -112,12 +120,28 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
+	if !provider.ReadStateBytesCalled() {
+		t.Error("ReadStateBytes not called on un-managed provider")
+	}
+	if provider.WriteStateBytesCalled() {
+		t.Error("WriteStateBytes should not be called on un-managed provider during plan")
+	}
+	provider.ResetReadStateBytesCalled()
+	provider.ResetWriteStateBytesCalled()
 
 	//// APPLY
 	stdout, stderr, err = tf.Run("apply", "tfplan")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
+	if !provider.ReadStateBytesCalled() {
+		t.Error("ReadStateBytes not called on un-managed provider")
+	}
+	if !provider.WriteStateBytesCalled() {
+		t.Error("WriteStateBytes not called on un-managed provider")
+	}
+	provider.ResetReadStateBytesCalled()
+	provider.ResetWriteStateBytesCalled()
 
 	// Check the apply process has made a state file as expected.
 	stateFilePath := filepath.Join("states", "default", "terraform.tfstate")

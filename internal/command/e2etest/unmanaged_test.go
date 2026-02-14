@@ -53,6 +53,8 @@ type providerServer struct {
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
 	listResourceCalled        bool
+	readStateBytesCalled      bool
+	writeStateBytesCalled     bool
 }
 
 func (p *providerServer) PlanResourceChange(ctx context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
@@ -69,6 +71,22 @@ func (p *providerServer) ApplyResourceChange(ctx context.Context, req *proto.App
 
 	p.applyResourceChangeCalled = true
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
+}
+
+func (p *providerServer) WriteStateBytes(server proto.Provider_WriteStateBytesServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.writeStateBytesCalled = true
+	return p.ProviderServer.WriteStateBytes(server)
+}
+
+func (p *providerServer) ReadStateBytes(req *proto.ReadStateBytes_Request, server proto.Provider_ReadStateBytesServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.readStateBytesCalled = true
+	return p.ProviderServer.ReadStateBytes(req, server)
 }
 
 func (p *providerServer) ListResource(req *proto.ListResource_Request, res proto.Provider_ListResourceServer) error {
@@ -112,6 +130,34 @@ func (p *providerServer) ListResourceCalled() bool {
 	defer p.Unlock()
 
 	return p.listResourceCalled
+}
+
+func (p *providerServer) ReadStateBytesCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.readStateBytesCalled
+}
+
+func (p *providerServer) ResetReadStateBytesCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.readStateBytesCalled = false
+}
+
+func (p *providerServer) WriteStateBytesCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.writeStateBytesCalled
+}
+
+func (p *providerServer) ResetWriteStateBytesCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.writeStateBytesCalled = false
 }
 
 type providerServer5 struct {
