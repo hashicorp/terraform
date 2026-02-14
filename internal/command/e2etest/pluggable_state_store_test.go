@@ -257,7 +257,6 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 // > `terraform state show`
 // > `terraform state list`
 func TestPrimary_stateStore_stateCmds(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -334,7 +333,6 @@ resource "terraform_data" "my-data" {
 // > `terraform output`
 // > `terraform output <name>`
 func TestPrimary_stateStore_outputCmd(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -404,7 +402,6 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 // > `terraform show <path-to-state-file>`
 // > `terraform show <path-to-plan-file>`
 func TestPrimary_stateStore_showCmd(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
