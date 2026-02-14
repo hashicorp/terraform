@@ -4770,10 +4770,13 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	}
 }
 
+// Test that users are shown actionable errors if they try to use a state store in a non-init command
+// before running an init operation to download the state storage provider and record it in the dependency lock file.
 func TestInit_uninitialized_stateStore(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	cfg := `terraform {
+	t.Run("error if working directory isn't initialized before apply", func(t *testing.T) {
+		// Create a temporary working directory that is empty
+		td := t.TempDir()
+		cfg := `terraform {
 	  required_providers {
 	    test = {
 	      source = "hashicorp/test"
@@ -4785,30 +4788,40 @@ func TestInit_uninitialized_stateStore(t *testing.T) {
 	  }
 	}
 	`
-	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	t.Chdir(td)
+		if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		t.Chdir(td)
 
-	ui := cli.NewMockUi()
-	view, done := testView(t)
-	cApply := &ApplyCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-		},
-	}
-	code := cApply.Run([]string{})
-	testOutput := done(t)
-	if code == 0 {
-		t.Fatalf("expected apply to fail: \n%s", testOutput.All())
-	}
-	log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply with state store complete")
-	expectedErr := `provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected`
-	if !strings.Contains(testOutput.Stderr(), expectedErr) {
-		t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
-	}
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		cApply := &ApplyCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		code := cApply.Run([]string{"-no-color"})
+		testOutput := done(t)
+		if code == 0 {
+			t.Fatalf("expected apply to fail: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply with state store complete")
+		expectedErrMsgs := []string{
+			"The provider dependency used for state storage is missing from the lock file despite being present in the current configuration",
+			`provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected`,
+		}
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(cleanString(testOutput.Stderr()), expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
+			}
+		}
+	})
+
+	t.Run("the error isn't shown if the provider is supplied through reattach config", func(t *testing.T) {
+		t.Skip("This is implemented as an E2E test: TestPrimary_stateStore_Unmanaged_SeparatePlan")
+	})
 }
 
 func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
