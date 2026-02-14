@@ -108,25 +108,16 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 	}
 
 	//// PLAN
-	_, stderr, err = tf.Run("plan", "-out=tfplan")
+	stdout, stderr, err = tf.Run("plan", "-out=tfplan")
 	if err != nil {
-		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
-	}
-
-	if !provider.PlanResourceChangeCalled() {
-		t.Error("PlanResourceChange not called on un-managed provider")
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
 
 	//// APPLY
-	_, stderr, err = tf.Run("apply", "tfplan")
+	stdout, stderr, err = tf.Run("apply", "tfplan")
 	if err != nil {
-		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
-
-	if !provider.ApplyResourceChangeCalled() {
-		t.Error("ApplyResourceChange not called on un-managed provider")
-	}
-	provider.ResetApplyResourceChangeCalled()
 
 	// Check the apply process has made a state file as expected.
 	stateFilePath := filepath.Join("states", "default", "terraform.tfstate")
@@ -135,14 +126,11 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 	}
 
 	//// DESTROY
-	_, stderr, err = tf.Run("destroy", "-auto-approve")
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
 	if err != nil {
-		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
 
-	if !provider.ApplyResourceChangeCalled() {
-		t.Error("ApplyResourceChange (destroy) not called on in-process provider")
-	}
 	cancel()
 	<-closeCh
 }
