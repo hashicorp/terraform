@@ -88,6 +88,10 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
+	// Required for the local state files to be written to the temp directory,
+	// instead of the e2e directory in the repo.
+	t.Chdir(tf.WorkDir())
+
 	//// INIT
 	t.Setenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE", "1")
 	stdout, stderr, err := tf.Run("init")
@@ -111,6 +115,33 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 
 	if !provider.PlanResourceChangeCalled() {
 		t.Error("PlanResourceChange not called on un-managed provider")
+	}
+
+	//// APPLY
+	_, stderr, err = tf.Run("apply", "tfplan")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !provider.ApplyResourceChangeCalled() {
+		t.Error("ApplyResourceChange not called on un-managed provider")
+	}
+	provider.ResetApplyResourceChangeCalled()
+
+	// Check the apply process has made a state file as expected.
+	stateFilePath := filepath.Join("states", "default", "terraform.tfstate")
+	if !tf.FileExists(stateFilePath) {
+		t.Fatalf("state file not found at expected path: %s", filepath.Join(tf.WorkDir(), stateFilePath))
+	}
+
+	//// DESTROY
+	_, stderr, err = tf.Run("destroy", "-auto-approve")
+	if err != nil {
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !provider.ApplyResourceChangeCalled() {
+		t.Error("ApplyResourceChange (destroy) not called on in-process provider")
 	}
 	cancel()
 	<-closeCh
