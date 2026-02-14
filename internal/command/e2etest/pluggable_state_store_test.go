@@ -102,6 +102,16 @@ func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
 	if tf.FileExists(filepath.Join(".terraform", "plugins", "registry.terraform.io", "hashicorp", "simple6")) {
 		t.Errorf("test provider binary found in .terraform dir")
 	}
+
+	//// PLAN
+	_, stderr, err = tf.Run("plan", "-out=tfplan")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !provider.PlanResourceChangeCalled() {
+		t.Error("PlanResourceChange not called on un-managed provider")
+	}
 	cancel()
 	<-closeCh
 }
