@@ -2038,3 +2038,364 @@ Result: false
 
 FALSE - Passthrough.sentinel:1:1 - Rule "main"
 `
+
+
+// TestCloud_applyWithPostApplyTasksAfterApplyError tests that post-apply tasks
+// are properly waited for and displayed when an apply operation fails.
+func TestCloud_applyWithPostApplyTasksAfterApplyError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	// Mock the Applies API to return an errored apply
+	applyMock := mocks.NewMockApplies(ctrl)
+	logs := strings.NewReader("\n\n\nError: Apply failed")
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil).AnyTimes()
+	applyMock.EXPECT().Read(gomock.Any(), gomock.Any()).Return(&tfe.Apply{
+		ID:     "apply-123",
+		Status: tfe.ApplyStatus("errored"),
+	}, nil).AnyTimes()
+	b.client.Applies = applyMock
+
+	// Mock the Runs API to include post-apply task stage after refresh
+	runsMock := mocks.NewMockRuns(ctrl)
+	postApplyStage := tfe.Stage("post_apply")
+	
+	// Initial run without post-apply stage
+	initialRun := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunApplying,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{},
+	}
+	
+	// Run with post-apply stage after refresh
+	runWithPostApply := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunErrored,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{
+			{
+				ID:    "ts-post-apply",
+				Stage: postApplyStage,
+				Status: tfe.TaskStageRunning,
+			},
+		},
+	}
+	
+	// Final run after post-apply completes
+	finalRun := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunErrored,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{
+			{
+				ID:    "ts-post-apply",
+				Stage: postApplyStage,
+				Status: tfe.TaskStagePassed,
+			},
+		},
+	}
+
+	gomock.InOrder(
+		runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(initialRun, nil),
+		runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(runWithPostApply, nil),
+		runsMock.EXPECT().Read(gomock.Any(), "run-123").Return(finalRun, nil),
+	)
+	b.client.Runs = runsMock
+
+	// Mock TaskStages API
+	taskStagesMock := mocks.NewMockTaskStages(ctrl)
+	taskStagesMock.EXPECT().Read(gomock.Any(), "ts-post-apply", gomock.Any()).Return(&tfe.TaskStage{
+		ID:     "ts-post-apply",
+		Stage:  postApplyStage,
+		Status: tfe.TaskStagePassed,
+	}, nil).AnyTimes()
+	b.client.TaskStages = taskStagesMock
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+	op.AutoApprove = false
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	
+	// The operation should fail due to apply error, but post-apply tasks should have been processed
+	if run.Result == backendrun.OperationSuccess {
+		t.Fatal("expected apply operation to fail due to errored apply")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Post-apply Tasks") {
+		t.Fatalf("expected post-apply tasks header in output: %s", output)
+	}
+}
+
+// TestCloud_applyWithPostApplyTasksAfterApplyErrorNoStage tests that when
+// an apply fails but there are no post-apply tasks, the operation completes normally.
+func TestCloud_applyWithPostApplyTasksAfterApplyErrorNoStage(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	// Mock the Applies API to return an errored apply
+	applyMock := mocks.NewMockApplies(ctrl)
+	logs := strings.NewReader("\n\n\nError: Apply failed")
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil).AnyTimes()
+	applyMock.EXPECT().Read(gomock.Any(), gomock.Any()).Return(&tfe.Apply{
+		ID:     "apply-123",
+		Status: tfe.ApplyStatus("errored"),
+	}, nil).AnyTimes()
+	b.client.Applies = applyMock
+
+	// Mock the Runs API without post-apply task stage
+	runsMock := mocks.NewMockRuns(ctrl)
+	
+	runWithoutPostApply := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunErrored,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{},
+	}
+
+	runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(runWithoutPostApply, nil).AnyTimes()
+	b.client.Runs = runsMock
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+	op.AutoApprove = false
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	
+	// The operation should fail due to apply error
+	if run.Result == backendrun.OperationSuccess {
+		t.Fatal("expected apply operation to fail due to errored apply")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	// Should not contain post-apply tasks header since there are no post-apply tasks
+	if strings.Contains(output, "Post-apply Tasks") {
+		t.Fatalf("unexpected post-apply tasks header in output when no post-apply stage exists: %s", output)
+	}
+}
+
+// TestCloud_applyWithPostApplyTasksAfterApplyErrorEmptyStageID tests that when
+// an apply fails and post-apply stage exists but has empty ID, it's skipped.
+func TestCloud_applyWithPostApplyTasksAfterApplyErrorEmptyStageID(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	// Mock the Applies API to return an errored apply
+	applyMock := mocks.NewMockApplies(ctrl)
+	logs := strings.NewReader("\n\n\nError: Apply failed")
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil).AnyTimes()
+	applyMock.EXPECT().Read(gomock.Any(), gomock.Any()).Return(&tfe.Apply{
+		ID:     "apply-123",
+		Status: tfe.ApplyStatus("errored"),
+	}, nil).AnyTimes()
+	b.client.Applies = applyMock
+
+	// Mock the Runs API with post-apply task stage but empty ID
+	runsMock := mocks.NewMockRuns(ctrl)
+	postApplyStage := tfe.Stage("post_apply")
+	
+	runWithEmptyStageID := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunErrored,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{
+			{
+				ID:    "", // Empty ID should be skipped
+				Stage: postApplyStage,
+			},
+		},
+	}
+
+	runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(runWithEmptyStageID, nil).AnyTimes()
+	b.client.Runs = runsMock
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+	op.AutoApprove = false
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	
+	// The operation should fail due to apply error
+	if run.Result == backendrun.OperationSuccess {
+		t.Fatal("expected apply operation to fail due to errored apply")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	// Should not contain post-apply tasks header since stage ID is empty
+	if strings.Contains(output, "Post-apply Tasks") {
+		t.Fatalf("unexpected post-apply tasks header in output when stage ID is empty: %s", output)
+	}
+}
+
+// TestCloud_applySuccessNoPostApplyTasks tests that successful applies
+// without post-apply tasks work as expected (no regression).
+func TestCloud_applySuccessNoPostApplyTasks(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backendrun.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	// Successful apply should not trigger post-apply task stage logic
+	if strings.Contains(output, "Post-apply Tasks") {
+		t.Fatalf("unexpected post-apply tasks header in successful apply output: %s", output)
+	}
+}
+
+// TestCloud_applyWithPostApplyTasksRefreshError tests error handling when
+// refreshing task stages after apply error fails.
+func TestCloud_applyWithPostApplyTasksRefreshError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	// Mock the Applies API to return an errored apply
+	applyMock := mocks.NewMockApplies(ctrl)
+	logs := strings.NewReader("\n\n\nError: Apply failed")
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil).AnyTimes()
+	applyMock.EXPECT().Read(gomock.Any(), gomock.Any()).Return(&tfe.Apply{
+		ID:     "apply-123",
+		Status: tfe.ApplyStatus("errored"),
+	}, nil).AnyTimes()
+	b.client.Applies = applyMock
+
+	// Mock the Runs API to fail on second ReadWithOptions (task stage refresh)
+	runsMock := mocks.NewMockRuns(ctrl)
+	
+	initialRun := &tfe.Run{
+		ID:         "run-123",
+		Status:     tfe.RunApplying,
+		HasChanges: true,
+		Apply: &tfe.Apply{
+			ID:     "apply-123",
+			Status: tfe.ApplyStatus("errored"),
+		},
+		TaskStages: []*tfe.TaskStage{},
+	}
+
+	gomock.InOrder(
+		runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(initialRun, nil),
+		runsMock.EXPECT().ReadWithOptions(gomock.Any(), "run-123", gomock.Any()).Return(nil, fmt.Errorf("failed to refresh task stages")),
+	)
+	b.client.Runs = runsMock
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+	op.AutoApprove = false
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	
+	// The operation should fail
+	if run.Result == backendrun.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+
+	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	if !strings.Contains(errOutput, "failed to refresh task stages") {
+		t.Fatalf("expected error about task stage refresh failure: %s", errOutput)
+	}
+}
