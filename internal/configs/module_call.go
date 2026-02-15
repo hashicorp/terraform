@@ -38,6 +38,97 @@ type ModuleCall struct {
 	DeclRange hcl.Range
 
 	IgnoreNestedDeprecations bool
+
+	Managed *ManagedModule
+}
+
+// ManagedModule represents a "resource" block in a module or file.
+type ManagedModule struct {
+	Connection     *Connection
+	Provisioners   []*Provisioner
+	ActionTriggers []*ActionTrigger
+
+	CreateBeforeDestroy bool
+	PreventDestroy      bool
+	IgnoreChanges       []hcl.Traversal
+	IgnoreAllChanges    bool
+
+	CreateBeforeDestroySet bool
+	PreventDestroySet      bool
+}
+
+func decodeModuleCallLifecycleBlock(block *hcl.Block, mc *ModuleCall) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// Allocate only when lifecycle is present (tests expect nil otherwise).
+	if mc.Managed == nil {
+		mc.Managed = &ManagedModule{}
+	}
+
+	lcContent, lcDiags := block.Body.Content(moduleCallLifecycleBlockSchema)
+	diags = append(diags, lcDiags...)
+
+	if attr, exists := lcContent.Attributes["create_before_destroy"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.Managed.CreateBeforeDestroy)
+		diags = append(diags, valDiags...)
+		mc.Managed.CreateBeforeDestroySet = true
+	}
+
+	if attr, exists := lcContent.Attributes["prevent_destroy"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.Managed.PreventDestroy)
+		diags = append(diags, valDiags...)
+		mc.Managed.PreventDestroySet = true
+	}
+
+	if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
+		kw := hcl.ExprAsKeyword(attr.Expr)
+
+		switch {
+		case kw == "all":
+			mc.Managed.IgnoreAllChanges = true
+
+		default:
+			exprs, listDiags := hcl.ExprList(attr.Expr)
+			diags = append(diags, listDiags...)
+
+			var ignoreAllRange hcl.Range
+
+			for _, expr := range exprs {
+				if shimIsIgnoreChangesStar(expr) {
+					mc.Managed.IgnoreAllChanges = true
+					ignoreAllRange = expr.Range()
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid ignore_changes wildcard",
+						Detail:   "The [\"*\"] form of ignore_changes wildcard is was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+					continue
+				}
+
+				expr, shimDiags := shimTraversalInString(expr, false)
+				diags = append(diags, shimDiags...)
+
+				traversal, travDiags := hcl.RelTraversalForExpr(expr)
+				diags = append(diags, travDiags...)
+				if len(traversal) != 0 {
+					mc.Managed.IgnoreChanges = append(mc.Managed.IgnoreChanges, traversal)
+				}
+			}
+
+			if mc.Managed.IgnoreAllChanges && len(mc.Managed.IgnoreChanges) != 0 {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid ignore_changes ruleset",
+					Detail:   "Cannot mix wildcard string \"*\" with non-wildcard references.",
+					Subject:  &ignoreAllRange,
+					Context:  attr.Expr.Range().Ptr(),
+				})
+			}
+		}
+	}
+
+	return diags
 }
 
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
@@ -46,6 +137,8 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	mc := &ModuleCall{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
+		// IMPORTANT: Managed must stay nil unless we actually decode a lifecycle
+		// (or other managed-module features in future). Tests depend on this.
 	}
 
 	schema := moduleBlockSchema
@@ -191,8 +284,10 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	var seenEscapeBlock *hcl.Block
-	for _, block := range content.Blocks {
-		switch block.Type {
+	var seenLifecycle *hcl.Block
+
+	for _, inner := range content.Blocks {
+		switch inner.Type {
 		case "_":
 			if seenEscapeBlock != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -202,24 +297,34 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 						"The special block type \"_\" can be used to force particular arguments to be interpreted as module input variables rather than as meta-arguments, but each module block can have only one such block. The first escaping block was at %s.",
 						seenEscapeBlock.DefRange,
 					),
-					Subject: &block.DefRange,
+					Subject: &inner.DefRange,
 				})
 				continue
 			}
-			seenEscapeBlock = block
+			seenEscapeBlock = inner
+			mc.Config = hcl.MergeBodies([]hcl.Body{mc.Config, inner.Body})
 
-			// When there's an escaping block its content merges with the
-			// existing config we extracted earlier, so later decoding
-			// will see a blend of both.
-			mc.Config = hcl.MergeBodies([]hcl.Body{mc.Config, block.Body})
+		case "lifecycle":
+			if seenLifecycle != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate lifecycle block",
+					Detail:   fmt.Sprintf("This module call already has a lifecycle block at %s.", seenLifecycle.DefRange),
+					Subject:  &inner.DefRange,
+				})
+				continue
+			}
+			seenLifecycle = inner
+
+			diags = append(diags, decodeModuleCallLifecycleBlock(inner, mc)...)
 
 		default:
 			// All of the other block types in our schema are reserved.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in module block",
-				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
-				Subject:  &block.TypeRange,
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", inner.Type),
+				Subject:  &inner.TypeRange,
 			})
 		}
 	}
@@ -299,9 +404,18 @@ var moduleBlockSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "_"}, // meta-argument escaping block
 
-		// These are all reserved for future use.
+		// "lifecycle" is interpreted as Terraform meta-configuration for this module call.
+		// Other block types are reserved for future use.
 		{Type: "lifecycle"},
 		{Type: "locals"},
 		{Type: "provider", LabelNames: []string{"type"}},
+	},
+}
+
+var moduleCallLifecycleBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "create_before_destroy"},
+		{Name: "prevent_destroy"},
+		{Name: "ignore_changes"},
 	},
 }
