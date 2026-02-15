@@ -23,6 +23,10 @@ import (
 func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Apply operation")
 
+	// go-tfe doesn't currently expose a constant for the post-apply task stage.
+	// We still want to be able to look it up if the server returns it.
+	postApplyStage := tfe.Stage("post_apply")
+
 	var diags tfdiags.Diagnostics
 
 	// We should remove the `CanUpdate` part of this test, but for now
@@ -211,6 +215,39 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	err = b.renderApplyLogs(stopCtx, r)
 	if err != nil {
 		return &RunResult{run: r, backend: b}, err
+	}
+
+	// If the apply failed, keep watching the run long enough to summarize any
+	// configured post-apply tasks before returning control back to Terraform.
+	//
+	// Note: We intentionally key off the apply status (not the run status), since
+	// Atlas may delay marking the overall run as errored until post-apply tasks
+	// have finished.
+	if r.Apply != nil {
+		apply, err := b.client.Applies.Read(stopCtx, r.Apply.ID)
+		if err != nil {
+			return &RunResult{run: r, backend: b}, b.generalError("Failed to retrieve apply", err)
+		}
+		r.Apply = apply
+	}
+
+	if r.Apply != nil && r.Apply.Status == tfe.ApplyStatus("errored") {
+		// Refresh task stages after apply fails to get post-apply stage
+		taskStages, err = b.runTaskStages(stopCtx, b.client, r.ID)
+		if err != nil {
+			return &RunResult{run: r, backend: b}, err
+		}
+		
+		if stage, ok := taskStages[postApplyStage]; ok && stage != nil && stage.ID != "" {
+			if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, stage.ID, "Post-apply Tasks"); err != nil {
+				return &RunResult{run: r, backend: b}, err
+			}
+			// Refresh the run so callers observe the final status after post-apply.
+			r, err = b.client.Runs.Read(stopCtx, r.ID)
+			if err != nil {
+				return &RunResult{run: r, backend: b}, b.generalError("Failed to retrieve run", err)
+			}
+		}
 	}
 
 	return &RunResult{run: r, backend: b}, nil
