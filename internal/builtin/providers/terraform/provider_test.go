@@ -67,3 +67,13 @@ func TestMoveResourceState_NonExistentResource(t *testing.T) {
 		t.Fatal("expected diagnostics")
 	}
 }
+
+func TestGetProviderSchema_ProviderConfigNotNil(t *testing.T) {
+	provider := &Provider{}
+	resp := provider.GetProviderSchema()
+
+	if resp.Provider.Body == nil {
+		t.Fatal("provider config schema body should not be nil; a nil body causes " +
+			"a spurious ERROR-level log message in AttachSchemaTransformer")
+	}
+}
