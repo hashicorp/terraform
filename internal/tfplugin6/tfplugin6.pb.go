@@ -2283,9 +2283,13 @@ func (x *RequestChunkMeta) GetStateId() string {
 }
 
 type StateRange struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Start         int64                  `protobuf:"varint,1,opt,name=start,proto3" json:"start,omitempty"`
-	End           int64                  `protobuf:"varint,2,opt,name=end,proto3" json:"end,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// start is the starting byte index for a chunk of state byte data.
+	// This index is in relation to the entire byte array that will be sent or received.
+	Start int64 `protobuf:"varint,1,opt,name=start,proto3" json:"start,omitempty"`
+	// end is the ending byte index for a chunk of state byte data.
+	// This index is in relation to the entire byte array that will be sent or received.
+	End           int64 `protobuf:"varint,2,opt,name=end,proto3" json:"end,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7027,11 +7031,12 @@ func (x *ReadStateBytes_Request) GetStateId() string {
 }
 
 type ReadStateBytes_Response struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Bytes         []byte                 `protobuf:"bytes,1,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	TotalLength   int64                  `protobuf:"varint,2,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
-	Range         *StateRange            `protobuf:"bytes,3,opt,name=range,proto3" json:"range,omitempty"`
-	Diagnostics   []*Diagnostic          `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Bytes []byte                 `protobuf:"bytes,1,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	// total_length is the overall size of all of the state byte chunks that will be received
+	TotalLength   int64         `protobuf:"varint,2,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
+	Range         *StateRange   `protobuf:"bytes,3,opt,name=range,proto3" json:"range,omitempty"`
+	Diagnostics   []*Diagnostic `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7097,10 +7102,11 @@ func (x *ReadStateBytes_Response) GetDiagnostics() []*Diagnostic {
 type WriteStateBytes_RequestChunk struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// meta is sent with the first chunk only
-	Meta          *RequestChunkMeta `protobuf:"bytes,1,opt,name=meta,proto3,oneof" json:"meta,omitempty"`
-	Bytes         []byte            `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	TotalLength   int64             `protobuf:"varint,3,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
-	Range         *StateRange       `protobuf:"bytes,4,opt,name=range,proto3" json:"range,omitempty"`
+	Meta  *RequestChunkMeta `protobuf:"bytes,1,opt,name=meta,proto3,oneof" json:"meta,omitempty"`
+	Bytes []byte            `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	// total_length is the overall size of all of the state byte chunks that will be sent.
+	TotalLength   int64       `protobuf:"varint,3,opt,name=total_length,json=totalLength,proto3" json:"total_length,omitempty"`
+	Range         *StateRange `protobuf:"bytes,4,opt,name=range,proto3" json:"range,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

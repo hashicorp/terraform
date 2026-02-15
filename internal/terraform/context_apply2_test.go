@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -4343,6 +4345,503 @@ func TestContext2Apply_noListValidated(t *testing.T) {
 
 			_, diags = ctx.Apply(plan, m, nil)
 			tfdiags.AssertNoErrors(t, diags)
+		})
+	}
+}
+
+func TestContext2Apply_deprecatedOutputsAndVariables(t *testing.T) {
+	tests := map[string]struct {
+		modules             map[string]string
+		buildState          func(*states.SyncState)
+		vars                InputValues
+		expectedDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+	}{
+		"create resource using deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
+					},
+				})
+			},
+		},
+		"update resource to use deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+output "new" {
+    value = "new-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"value":"old-non-deprecated-value"}`),
+						Status:    states.ObjectReady,
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
+					},
+				})
+			},
+		},
+		"no-op resource using deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"value":"deprecated-value"}`),
+						Status:    states.ObjectReady,
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// if the resource instance is not executed, we can not warn (during plan a warning was already emitted)
+				return tfdiags.Diagnostics{}
+			},
+		},
+		"create resource using deprecated variable": {
+			modules: map[string]string{
+				"mod/main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "Please use new_var instead"
+}
+
+output "value" {
+    value = var.old_var
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+    old_var = "test-value"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "Please use new_var instead",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 15, Byte: 51},
+						End:      hcl.Pos{Line: 4, Column: 27, Byte: 63},
+					},
+				})
+			},
+		},
+
+		"deprecated output in root output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "old-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = "static"
+}
+
+output "test_output" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// Root outputs do not trigger deprecation warnings during apply
+				return tfdiags.Diagnostics{}
+			},
+		},
+		"deprecated variable with input value": {
+			modules: map[string]string{
+				"main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "This variable is deprecated"
+}
+
+resource "test_resource" "test" {
+    value = var.old_var
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			vars: InputValues{
+				"old_var": {
+					Value: cty.StringVal("test-value"),
+				},
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "This variable is deprecated",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 5, Byte: 44},
+						End:      hcl.Pos{Line: 4, Column: 47, Byte: 86},
+					},
+				})
+			},
+		},
+		"multiple deprecated outputs used": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old1" {
+    deprecated = "Stop using old1"
+    value = "value1"
+}
+output "old2" {
+    deprecated = "Stop using old2"
+    value = "value2"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test1" {
+    value = module.mod.old1
+}
+
+resource "test_resource" "test2" {
+    value = module.mod.old2
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Stop using old1",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 87},
+						End:      hcl.Pos{Line: 7, Column: 28, Byte: 102},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Stop using old2",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 13, Byte: 153},
+						End:      hcl.Pos{Line: 11, Column: 28, Byte: 168},
+					},
+				})
+			},
+		},
+		"deprecated output in count": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "count_val" {
+    deprecated = "Please stop using this output"
+    value = 2
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    count = module.mod.count_val
+    value = "test-${count.index}"
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 33, Byte: 106},
+					},
+				})
+			},
+		},
+		"deprecated output in conditional expression": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+output "new" {
+    value = "new-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = true ? module.mod.old : module.mod.new
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 51, Byte: 124},
+					},
+				})
+			},
+		},
+		"deprecated output used in local value": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+locals {
+    local_value = module.mod.old
+}
+
+resource "test_resource" "test" {
+    value = local.local_value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 19, Byte: 67},
+						End:      hcl.Pos{Line: 7, Column: 33, Byte: 81},
+					},
+				})
+			},
+		},
+		"deprecated variable in module with default value": {
+			modules: map[string]string{
+				"mod/main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "Please use new_var instead"
+    default = "default-value"
+}
+
+output "value" {
+    value = var.old_var
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+    old_var = "custom-value"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "Please use new_var instead",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 15, Byte: 51},
+						End:      hcl.Pos{Line: 4, Column: 29, Byte: 65},
+					},
+				})
+			},
+		},
+		"nested deprecated outputs": {
+			modules: map[string]string{
+				"inner/main.tf": `
+output "old" {
+    deprecated = "Inner module: please stop using this"
+    value = "inner-value"
+}
+`,
+				"outer/main.tf": `
+module "inner" {
+    source = "../inner"
+}
+
+output "old" {
+    deprecated = "Outer module: please stop using this"
+    value = module.inner.old
+}
+`,
+				"main.tf": `
+module "outer" {
+    source = "./outer"
+}
+
+resource "test_resource" "test" {
+    value = module.outer.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Outer module: please stop using this",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 90},
+						End:      hcl.Pos{Line: 7, Column: 29, Byte: 106},
+					},
+				})
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.modules)
+
+			state := states.BuildState(tc.buildState)
+
+			p := new(testing_provider.MockProvider)
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_resource": {
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			})
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			vars := tc.vars
+			if vars == nil {
+				vars = InputValues{}
+			}
+
+			plan, planDiags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, vars))
+			if planDiags.HasErrors() {
+				t.Fatalf("plan errors: %s", planDiags.Err())
+			}
+
+			// Apply the plan
+			_, applyDiags := ctx.Apply(plan, m, nil)
+			if applyDiags.HasErrors() {
+				t.Fatalf("apply errors: %s", applyDiags.Err())
+			}
+
+			expectDiagnostics := tc.expectedDiagnostics(m)
+			tfdiags.AssertDiagnosticsMatch(t, applyDiags, expectDiagnostics)
 		})
 	}
 }

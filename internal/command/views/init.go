@@ -303,6 +303,14 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from HCP Terraform or Terraform Enterprise to local state.",
 		JSONValue:  "Migrating from HCP Terraform or Terraform Enterprise to local state.",
 	},
+	"backend_cloud_migrate_state_store": {
+		HumanValue: "Migrating from HCP Terraform Terraform Enterprise to state store %q.",
+		JSONValue:  "Migrating from HCP Terraform Terraform Enterprise to state store %q.",
+	},
+	"backend_migrate_state_store": {
+		HumanValue: "Migrating from backend %q to state store %q.",
+		JSONValue:  "Migrating from backend %q to state store %q.",
+	},
 	"state_store_migrate_local": {
 		HumanValue: stateMigrateLocalHuman,
 		JSONValue:  stateMigrateLocalJSON,
@@ -365,6 +373,10 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
+	// BackendCloudMigrateStateStoreMessage indicates migration from cloud to a state store
+	BackendCloudMigrateStateStoreMessage InitMessageCode = "backend_cloud_migrate_state_store"
+	// BackendMigrateStateStoreMessage indicates migration from a backend to a state store
+	BackendMigrateStateStoreMessage InitMessageCode = "backend_migrate_state_store"
 	// StateMigrateLocalMessage indicates migration from state store to local
 	StateMigrateLocalMessage InitMessageCode = "state_store_migrate_local"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation

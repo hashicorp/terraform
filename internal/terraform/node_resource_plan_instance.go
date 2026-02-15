@@ -662,6 +662,13 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			diags = diags.Append(configDiags)
 			return nil, deferred, diags
 		}
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, absAddr.String()))
+		if diags.HasErrors() {
+			return nil, deferred, diags
+		}
+
 		configVal, _ = configVal.UnmarkDeep()
 
 		// Let's pretend we're reading the value as a data source so we

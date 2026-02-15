@@ -49,6 +49,12 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	if diags.HasErrors() {
 		return diags
 	}
+	var deprecationDiags tfdiags.Diagnostics
+	blockVal, deprecationDiags = ctx.Deprecations().ValidateConfig(blockVal, schema.FullSchema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
 
 	// Unmark before sending to provider
 	unmarkedBlockVal, _ := blockVal.UnmarkDeepWithPaths()
@@ -64,10 +70,22 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	if config.List.Limit != nil {
+		var limitDeprecationDiags tfdiags.Diagnostics
+		limitCty, limitDeprecationDiags = ctx.Deprecations().Validate(limitCty, ctx.Path().Module(), config.List.Limit.Range().Ptr())
+		diags = diags.Append(limitDeprecationDiags)
+	}
+
 	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
 		return diags
+	}
+
+	if config.List.IncludeResource != nil {
+		var includeDeprecationDiags tfdiags.Diagnostics
+		includeRscCty, includeDeprecationDiags = ctx.Deprecations().Validate(includeRscCty, ctx.Path().Module(), config.List.IncludeResource.Range().Ptr())
+		diags = diags.Append(includeDeprecationDiags)
 	}
 
 	rId := HookResourceIdentity{

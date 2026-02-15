@@ -9,6 +9,43 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// errWrongWorkspaceForPlan is a custom error used to alert users that the plan file they are applying
+// describes a workspace that doesn't match the currently selected workspace.
+//
+// This needs to render slightly different errors depending on whether we're using:
+// > CE Workspaces (remote-state backends, local backends)
+// > HCP Terraform Workspaces (cloud backend)
+type errWrongWorkspaceForPlan struct {
+	plannedWorkspace string
+	currentWorkspace string
+	isCloud          bool
+}
+
+func (e *errWrongWorkspaceForPlan) Error() string {
+	msg := fmt.Sprintf(`The plan file describes changes to the %q workspace, but the %q workspace is currently in use.
+
+Applying this plan with the incorrect workspace selected could result in state being stored in an unexpected location, or a downstream error when Terraform attempts apply a plan using the other workspace's state.`,
+		e.plannedWorkspace,
+		e.currentWorkspace,
+	)
+
+	// For users to understand what's happened and how to correct it we'll give some guidance,
+	// but that guidance depends on whether a cloud backend is in use or not.
+	if e.isCloud {
+		// When using the cloud backend the solution is to focus on the cloud block and running init
+		msg = msg + fmt.Sprintf(` If you'd like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q.
+In future, make sure your cloud block is correct and unchanged since the last time you performed "terraform init" before creating a plan.`, e.plannedWorkspace)
+	} else {
+		// When using the backend block the solution is to not select a different workspace
+		// between plan and apply operations.
+		msg = msg + fmt.Sprintf(` If you'd like to continue to use the plan file, you must run "terraform workspace select %s" to select the matching workspace.
+In future make sure the selected workspace is not changed between creating and applying a plan file.
+`, e.plannedWorkspace)
+	}
+
+	return msg
+}
+
 // errBackendLocalRead is a custom error used to alert users that state
 // files on their local filesystem were not erased successfully after
 // migrating that state to a remote-state backend.
@@ -185,7 +222,7 @@ above, resolve it, and try again.`, innerError)
 
 	return tfdiags.Sourceless(
 		tfdiags.Error,
-		"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
+		"Backend initialization failed",
 		msg,
 	)
 }

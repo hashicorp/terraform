@@ -1601,7 +1601,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
 			return resp
 		}
-		if chunk.Range.End < chunk.TotalLength {
+		if chunk.Range.End < chunk.TotalLength-1 {
 			// all but last chunk must match exactly
 			if len(chunk.Bytes) != chunkSize {
 				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
@@ -1733,7 +1733,7 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 			TotalLength: totalLength,
 			Range: &proto6.StateRange{
 				Start: int64(totalBytesProcessed),
-				End:   int64(totalBytesProcessed + len(chunk)),
+				End:   int64(totalBytesProcessed+len(chunk)) - 1,
 			},
 		}
 		err = client.Send(protoReq)
