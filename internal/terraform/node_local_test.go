@@ -59,8 +59,11 @@ func TestNodeLocalExecute(t *testing.T) {
 
 				EvaluateExprResult: test.Want,
 			}
+			scopedCtx := ctx.withScope(evalContextModuleInstance{
+				Addr: addrs.RootModuleInstance,
+			})
 
-			err := n.Execute(ctx, walkApply)
+			err := n.Execute(scopedCtx, walkApply)
 			if (err != nil) != test.Err {
 				if err != nil {
 					t.Errorf("unexpected error: %s", err)

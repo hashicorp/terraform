@@ -945,9 +945,15 @@ func (p *GRPCProvider) GenerateResourceConfig(r providers.GenerateResourceConfig
 		return resp
 	}
 
+	mp, err := msgpack.Marshal(r.State, resSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	protoReq := &proto6.GenerateResourceConfig_Request{
 		TypeName: r.TypeName,
-		State:    nil,
+		State:    &proto6.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.GenerateResourceConfig(p.ctx, protoReq)
@@ -1520,6 +1526,11 @@ func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreReques
 	logger.Trace("GRPCProvider.v6: ConfigureStateStore: received server capabilities", resp.Capabilities)
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	// Note: validation of chunk size will happen in the calling code, and if the data is valid
+	// (p *GRPCProvider) SetStateStoreChunkSize should be used to make the value accessible in
+	// the instance of GRPCProvider.
+
 	return resp
 }
 
@@ -1590,7 +1601,7 @@ func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Unable to determine chunk size for provider %s; this is a bug in Terraform - please report it", r.TypeName))
 			return resp
 		}
-		if chunk.Range.End < chunk.TotalLength {
+		if chunk.Range.End < chunk.TotalLength-1 {
 			// all but last chunk must match exactly
 			if len(chunk.Bytes) != chunkSize {
 				resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
@@ -1722,7 +1733,7 @@ func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 			TotalLength: totalLength,
 			Range: &proto6.StateRange{
 				Start: int64(totalBytesProcessed),
-				End:   int64(totalBytesProcessed + len(chunk)),
+				End:   int64(totalBytesProcessed+len(chunk)) - 1,
 			},
 		}
 		err = client.Send(protoReq)

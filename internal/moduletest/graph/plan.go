@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -24,7 +23,7 @@ import (
 // testPlan defines how to execute a run block representing a plan command
 //
 // See also: (n *NodeTestRun).testApply
-func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) {
+func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
 
@@ -37,7 +36,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	planScope, plan, originalDiags := plan(ctx, tfCtx, file.Config, run.Config, run.ModuleConfig, setVariables, providers, mocks, waiter)
+	planScope, plan, originalDiags := plan(ctx, tfCtx, file.Config, run.Config, run.ModuleConfig, setVariables, providers, waiter)
 	// We exclude the diagnostics that are expected to fail from the plan
 	// diagnostics, and if an expected failure is not found, we add a new error diagnostic.
 	planDiags := moduletest.ValidateExpectedFailures(run.Config, originalDiags)
@@ -90,7 +89,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	run.Outputs = outputVals
 }
 
-func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, run *configs.TestRun, module *configs.Config, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, mocks map[addrs.RootProviderConfig]*configs.MockData, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
+func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, run *configs.TestRun, module *configs.Config, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called plan for %s", run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -133,7 +132,7 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 		SetVariables:              variables,
 		ExternalReferences:        references,
 		ExternalProviders:         providers,
-		Overrides:                 mocking.PackageOverrides(run, file, mocks),
+		Overrides:                 ctx.GetOverrides(run.Name),
 		DeferralAllowed:           ctx.deferralAllowed,
 		AllowRootEphemeralOutputs: true,
 	}

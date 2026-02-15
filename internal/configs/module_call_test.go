@@ -4,18 +4,17 @@
 package configs
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("testdata/invalid-files/module-calls.tf")
+	src, err := os.ReadFile("testdata/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,51 +146,5 @@ func TestLoadModuleCall(t *testing.T) {
 
 	for _, problem := range deep.Equal(gotModules, wantModules) {
 		t.Error(problem)
-	}
-}
-
-func TestModuleSourceAddrEntersNewPackage(t *testing.T) {
-	tests := []struct {
-		Addr string
-		Want bool
-	}{
-		{
-			"./",
-			false,
-		},
-		{
-			"../bork",
-			false,
-		},
-		{
-			"/absolute/path",
-			true,
-		},
-		{
-			"github.com/example/foo",
-			true,
-		},
-		{
-			"hashicorp/subnets/cidr", // registry module
-			true,
-		},
-		{
-			"registry.terraform.io/hashicorp/subnets/cidr", // registry module
-			true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Addr, func(t *testing.T) {
-			addr, err := moduleaddrs.ParseModuleSource(test.Addr)
-			if err != nil {
-				t.Fatalf("parsing failed for %q: %s", test.Addr, err)
-			}
-
-			got := moduleSourceAddrEntersNewPackage(addr)
-			if got != test.Want {
-				t.Errorf("wrong result for %q\ngot:  %#v\nwant:  %#v", addr, got, test.Want)
-			}
-		})
 	}
 }

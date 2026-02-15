@@ -5,8 +5,11 @@ package pluggable
 
 import (
 	"errors"
+	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/pluggable/chunks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -15,19 +18,22 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// NewPluggable returns an instance of the backend.Backend interface that
-// contains a provider interface. These are the assumptions about that
-// provider:
+// NewPluggable returns a Pluggable. A Pluggable fulfils the
+// backend.Backend interface and allows management of state via
+// a state store implemented in the provider that's within the Pluggable.
 //
+// These are the assumptions about that
+// provider:
 // * The provider implements at least one state store.
-// * The provider has already been configured before using NewPluggable.
+// * The provider has already been fully configured before using NewPluggable.
 //
 // The state store could also be configured prior to using NewPluggable,
-// or it could be configured using the relevant backend.Backend methods.
+// but preferably it will be configured via the Pluggable,
+// using the relevant backend.Backend methods.
 //
 // By wrapping a configured provider in a Pluggable we allow calling code
 // to use the provider's gRPC methods when interacting with state.
-func NewPluggable(p providers.Interface, typeName string) (backend.Backend, error) {
+func NewPluggable(p providers.Interface, typeName string) (*Pluggable, error) {
 	if p == nil {
 		return nil, errors.New("Attempted to initialize pluggable state with a nil provider interface. This is a bug in Terraform and should be reported")
 	}
@@ -102,14 +108,40 @@ func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnost
 //
 // Configure implements backend.Backend
 func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	req := providers.ConfigureStateStoreRequest{
 		TypeName: p.typeName,
 		Config:   config,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: DefaultStateStoreChunkSize,
+			// The core binary will always request the default chunk size from the provider to start
+			ChunkSize: chunks.DefaultStateStoreChunkSize,
 		},
 	}
 	resp := p.provider.ConfigureStateStore(req)
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Validate the returned value from chunk size negotiation
+	chunkSize := resp.Capabilities.ChunkSize
+	if chunkSize == 0 || chunkSize > chunks.MaxStateStoreChunkSize {
+		diags = diags.Append(fmt.Errorf("Failed to negotiate acceptable chunk size. "+
+			"Expected size > 0 and <= %d bytes, provider wants %d bytes",
+			chunks.MaxStateStoreChunkSize, chunkSize,
+		))
+		return diags
+	}
+
+	// Negotiated chunk size is valid, so set it in the provider server
+	// that will use the value for future RPCs to read/write state.
+	cs := p.provider.(providers.StateStoreChunkSizeSetter)
+	cs.SetStateStoreChunkSize(p.typeName, int(chunkSize))
+	log.Printf("[TRACE] Pluggable.Configure: negotiated a chunk size of %v when configuring state store %s",
+		chunkSize,
+		p.typeName,
+	)
+
 	return resp.Diagnostics
 }
 

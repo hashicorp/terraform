@@ -518,6 +518,22 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		return diags
 	}
 
+	if n.Config.DeprecatedSet {
+		val = marks.RemoveDeprecationMarksDeep(val)
+		if n.Addr.Module.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Root module output deprecated",
+				Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
+				Subject:  n.Config.DeprecatedRange.Ptr(),
+			})
+		}
+	} else if n.Config.Expr != nil {
+		var deprecationDiags tfdiags.Diagnostics
+		val, deprecationDiags = ctx.Deprecations().ValidateExpressionDeep(val, n.ModulePath(), n.Config.Expr)
+		diags = diags.Append(deprecationDiags)
+	}
+
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
 
 	// If we were able to evaluate a new value, we can update that in the

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
@@ -35,6 +36,8 @@ type ModuleCall struct {
 	DependsOn []hcl.Traversal
 
 	DeclRange hcl.Range
+
+	IgnoreNestedDeprecations bool
 }
 
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
@@ -163,6 +166,30 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		mc.Providers = append(mc.Providers, providers...)
 	}
 
+	if attr, exists := content.Attributes["ignore_nested_deprecations"]; exists {
+		// We only allow static boolean values for this argument.
+		val, evalDiags := attr.Expr.Value(&hcl.EvalContext{})
+		if len(evalDiags.Errs()) > 0 {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for ignore_nested_deprecations",
+				Detail:   "The value for ignore_nested_deprecations must be a static boolean (true or false).",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+
+		if val.Type() != cty.Bool {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type for ignore_nested_deprecations",
+				Detail:   fmt.Sprintf("The value for ignore_nested_deprecations must be a boolean (true or false), but the given value has type %s.", val.Type().FriendlyName()),
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+
+		mc.IgnoreNestedDeprecations = val.True()
+	}
+
 	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -198,19 +225,6 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	return mc, diags
-}
-
-// EntersNewPackage returns true if this call is to an external module, either
-// directly via a remote source address or indirectly via a registry source
-// address.
-//
-// Other behaviors in Terraform may treat package crossings as a special
-// situation, because that indicates that the caller and callee can change
-// independently of one another and thus we should disallow using any features
-// where the caller assumes anything about the callee other than its input
-// variables, required provider configurations, and output values.
-func (mc *ModuleCall) EntersNewPackage() bool {
-	return moduleSourceAddrEntersNewPackage(mc.SourceAddr)
 }
 
 // PassedProviderConfig represents a provider config explicitly passed down to
@@ -278,6 +292,9 @@ var moduleBlockSchema = &hcl.BodySchema{
 		{
 			Name: "providers",
 		},
+		{
+			Name: "ignore_nested_deprecations",
+		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "_"}, // meta-argument escaping block
@@ -287,28 +304,4 @@ var moduleBlockSchema = &hcl.BodySchema{
 		{Type: "locals"},
 		{Type: "provider", LabelNames: []string{"type"}},
 	},
-}
-
-func moduleSourceAddrEntersNewPackage(addr addrs.ModuleSource) bool {
-	switch addr.(type) {
-	case nil:
-		// There are only two situations where we should get here:
-		// - We've been asked about the source address of the root module,
-		//   which is always nil.
-		// - We've been asked about a ModuleCall that is part of the partial
-		//   result of a failed decode.
-		// The root module exists outside of all module packages, so we'll
-		// just return false for that case. For the error case it doesn't
-		// really matter what we return as long as we don't panic, because
-		// we only make a best-effort to allow careful inspection of objects
-		// representing invalid configuration.
-		return false
-	case addrs.ModuleSourceLocal:
-		// Local source addresses are the only address type that remains within
-		// the same package.
-		return false
-	default:
-		// All other address types enter a new package.
-		return true
-	}
 }

@@ -42,9 +42,19 @@ func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 
 	ret := make(Diagnostics, len(diags))
 	for i, srcDiag := range diags {
-		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
-			ret[i] = cd.ElaborateFromConfigBody(body, addr)
-		} else {
+		switch diag := srcDiag.(type) {
+		case contextualFromConfigBody:
+			ret[i] = diag.ElaborateFromConfigBody(body, addr)
+		case overriddenDiagnostic:
+			if cd, isCD := diag.original.(contextualFromConfigBody); isCD {
+				newOriginal := cd.ElaborateFromConfigBody(body, addr)
+				ret[i] = &overriddenDiagnostic{
+					original: newOriginal,
+					severity: diag.severity,
+					extra:    diag.extra,
+				}
+			}
+		default:
 			ret[i] = srcDiag
 		}
 	}
@@ -146,7 +156,6 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 	// presence of errors where performance isn't a concern.
 
 	traverse := d.attrPath[:]
-	final := d.attrPath[len(d.attrPath)-1]
 
 	// Index should never be the first step
 	// as indexing of top blocks (such as resources & data sources)
@@ -157,53 +166,18 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 		return &ret
 	}
 
-	// Process index separately
-	idxStep, hasIdx := final.(cty.IndexStep)
-	if hasIdx {
-		final = d.attrPath[len(d.attrPath)-2]
-		traverse = d.attrPath[:len(d.attrPath)-1]
-	}
-
 	// If we have more than one step after removing index
 	// then we'll first try to traverse to a child body
 	// corresponding to the requested path.
+	remaining := traverse
 	if len(traverse) > 1 {
-		body = traversePathSteps(traverse, body)
+		body, remaining = getDeepestBodyFromPath(body, traverse)
 	}
 
 	// Default is to indicate a missing item in the deepest body we reached
 	// while traversing.
-	subject := SourceRangeFromHCL(body.MissingItemRange())
+	subject := SourceRangeFromHCL(rangeOfDeepestAttributeValueFromPath(body, remaining))
 	ret.subject = &subject
-
-	// Once we get here, "final" should be a GetAttr step that maps to an
-	// attribute in our current body.
-	finalStep, isAttr := final.(cty.GetAttrStep)
-	if !isAttr {
-		return &ret
-	}
-
-	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{
-			{
-				Name:     finalStep.Name,
-				Required: true,
-			},
-		},
-	})
-	if contentDiags.HasErrors() {
-		return &ret
-	}
-
-	if attr, ok := content.Attributes[finalStep.Name]; ok {
-		hclRange := attr.Expr.Range()
-		if hasIdx {
-			// Try to be more precise by finding index range
-			hclRange = hclRangeFromIndexStepAndAttribute(idxStep, attr)
-		}
-		subject = SourceRangeFromHCL(hclRange)
-		ret.subject = &subject
-	}
 
 	return &ret
 }
@@ -233,13 +207,15 @@ func (d *attributeDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 	return sourceRangeEquals(d.subject, od.subject)
 }
 
-func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
+func getDeepestBodyFromPath(body hcl.Body, traverse []cty.PathStep) (hcl.Body, []cty.PathStep) {
+	lastProcessedIndex := -1
+
+LOOP:
 	for i := 0; i < len(traverse); i++ {
 		step := traverse[i]
 
 		switch tStep := step.(type) {
 		case cty.GetAttrStep:
-
 			var next cty.PathStep
 			if i < (len(traverse) - 1) {
 				next = traverse[i+1]
@@ -271,7 +247,7 @@ func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 				},
 			})
 			if contentDiags.HasErrors() {
-				return body
+				break LOOP
 			}
 			filtered := make([]*hcl.Block, 0, len(content.Blocks))
 			for _, block := range content.Blocks {
@@ -281,22 +257,24 @@ func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 			}
 			if len(filtered) == 0 {
 				// Step doesn't refer to a block
-				continue
+				break LOOP
 			}
 
 			switch indexType {
 			case cty.NilType: // no index at all
 				if len(filtered) != 1 {
-					return body
+					break LOOP
 				}
 				body = filtered[0].Body
+				lastProcessedIndex = i
 			case cty.Number:
 				var idx int
 				err := gocty.FromCtyValue(indexVal, &idx)
 				if err != nil || idx >= len(filtered) {
-					return body
+					break LOOP
 				}
 				body = filtered[idx].Body
+				lastProcessedIndex = i
 			case cty.String:
 				key := indexVal.AsString()
 				var block *hcl.Block
@@ -309,56 +287,113 @@ func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 				if block == nil {
 					// No block with this key, so we'll just indicate a
 					// missing item in the containing block.
-					return body
+					break LOOP
 				}
 				body = block.Body
+				lastProcessedIndex = i
 			default:
 				// Should never happen, because only string and numeric indices
 				// are supported by cty collections.
-				return body
+				break LOOP
 			}
 
 		default:
 			// For any other kind of step, we'll just return our current body
 			// as the subject and accept that this is a little inaccurate.
-			return body
+			break LOOP
 		}
 	}
-	return body
+	return body, traverse[lastProcessedIndex+1:]
 }
 
-func hclRangeFromIndexStepAndAttribute(idxStep cty.IndexStep, attr *hcl.Attribute) hcl.Range {
-	switch idxStep.Key.Type() {
-	case cty.Number:
-		var idx int
-		err := gocty.FromCtyValue(idxStep.Key, &idx)
-		items, diags := hcl.ExprList(attr.Expr)
+func rangeOfDeepestAttributeValueFromPath(body hcl.Body, traverse cty.Path) hcl.Range {
+	if len(traverse) == 0 {
+		return body.MissingItemRange()
+	}
+	// First we need to use the first traverse item to get the final attribute
+	// expression.
+	current, rest := traverse[0], traverse[1:]
+
+	currentGetAttr, ok := current.(cty.GetAttrStep)
+	if !ok {
+		// If the remaining basis is not an attribute access something went wrong.
+		// We can't do anything better than returning the bodies missing item range.
+		return body.MissingItemRange()
+	}
+
+	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{
+				Name:     currentGetAttr.Name,
+				Required: true,
+			},
+		},
+	})
+	if contentDiags.HasErrors() {
+		return body.MissingItemRange()
+	}
+	attr, ok := content.Attributes[currentGetAttr.Name]
+	if !ok {
+		// We could not find the attribute, this should have emitted a diag above, but just in case
+		return body.MissingItemRange()
+	}
+
+	return RangeForExpressionAtPath(attr.Expr, rest)
+}
+
+func RangeForExpressionAtPath(expression hcl.Expression, path cty.Path) hcl.Range {
+	// Now we need to loop through the rest of the path and progressively introspect
+	// the HCL expression.
+	currentExpr := expression
+
+STEP_ITERATION:
+	for _, step := range path {
+		// We treat cty.IndexStep[type=String] and cty.GetAttrStep the same, so we just
+		// need to deal with list indexes first
+		if idxStep, ok := step.(cty.IndexStep); ok && idxStep.Key.Type() == cty.Number {
+			var idx int
+			err := gocty.FromCtyValue(idxStep.Key, &idx)
+			items, diags := hcl.ExprList(currentExpr)
+			if diags.HasErrors() {
+				return currentExpr.Range()
+			}
+			if err != nil || idx >= len(items) {
+				return currentExpr.Range()
+			}
+			currentExpr = items[idx]
+			continue STEP_ITERATION
+		}
+
+		var stepKey string
+		switch s := step.(type) {
+		case cty.GetAttrStep:
+			stepKey = s.Name
+		case cty.IndexStep:
+			stepKey = s.Key.AsString()
+		default: // should not happen
+			return currentExpr.Range()
+		}
+
+		pairs, diags := hcl.ExprMap(currentExpr)
 		if diags.HasErrors() {
-			return attr.Expr.Range()
+			return currentExpr.Range()
 		}
-		if err != nil || idx >= len(items) {
-			return attr.NameRange
-		}
-		return items[idx].Range()
-	case cty.String:
-		pairs, diags := hcl.ExprMap(attr.Expr)
-		if diags.HasErrors() {
-			return attr.Expr.Range()
-		}
-		stepKey := idxStep.Key.AsString()
+
 		for _, kvPair := range pairs {
 			key, diags := kvPair.Key.Value(nil)
 			if diags.HasErrors() {
-				return attr.Expr.Range()
+				return currentExpr.Range()
 			}
 			if key.AsString() == stepKey {
-				startRng := kvPair.Value.StartRange()
-				return startRng
+				currentExpr = kvPair.Value
+				continue STEP_ITERATION
 			}
 		}
-		return attr.NameRange
+		// If we could not find the item return early
+		return currentExpr.Range()
 	}
-	return attr.Expr.Range()
+
+	return currentExpr.Range()
 }
 
 func (d *attributeDiagnostic) Source() Source {

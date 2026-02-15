@@ -943,6 +943,7 @@ message ReadStateBytes {
     }
     message Response {
         bytes bytes = 1;
+        // total_length is the overall size of all of the state byte chunks that will be received
         int64 total_length = 2;
         StateRange range = 3;
         repeated Diagnostic diagnostics = 4;
@@ -955,6 +956,7 @@ message WriteStateBytes {
         optional RequestChunkMeta meta = 1;
 
         bytes bytes = 2;
+        // total_length is the overall size of all of the state byte chunks that will be sent.
         int64 total_length = 3;
         StateRange range = 4;
     }
@@ -969,7 +971,11 @@ message RequestChunkMeta {
 }
 
 message StateRange {
+    // start is the starting byte index for a chunk of state byte data.
+    // This index is in relation to the entire byte array that will be sent or received.
     int64 start = 1;
+    // end is the ending byte index for a chunk of state byte data.
+    // This index is in relation to the entire byte array that will be sent or received.
     int64 end = 2;
 }
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -89,6 +91,9 @@ type EvalContext struct {
 	// repair is true if the test suite is being run in cleanup repair mode.
 	// It is only set when in test cleanup mode.
 	repair bool
+
+	overrides    map[string]*mocking.Overrides
+	overrideLock sync.Mutex
 }
 
 type EvalContextOpts struct {
@@ -135,6 +140,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		mode:              opts.Mode,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
+		overrides:         make(map[string]*mocking.Overrides),
 	}
 }
 
@@ -322,6 +328,9 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, nil)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
+		errorMessage, _ = errorMessage.Unmark()
+		errorMessageStr := strings.TrimSpace(errorMessage.AsString())
+
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
 		ruleDiags = ruleDiags.Append(hclDiags)
 
@@ -385,7 +394,7 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Test assertion failed",
-				Detail:      errorMessage,
+				Detail:      errorMessageStr,
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
@@ -718,6 +727,18 @@ func (ec *EvalContext) PriorRunsCompleted(runs map[string]*moduletest.Run) bool 
 		}
 	}
 	return true
+}
+
+func (ec *EvalContext) SetOverrides(run *moduletest.Run, overrides *mocking.Overrides) {
+	ec.overrideLock.Lock()
+	defer ec.overrideLock.Unlock()
+	ec.overrides[run.Name] = overrides
+}
+
+func (ec *EvalContext) GetOverrides(runName string) *mocking.Overrides {
+	ec.overrideLock.Lock()
+	defer ec.overrideLock.Unlock()
+	return ec.overrides[runName]
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

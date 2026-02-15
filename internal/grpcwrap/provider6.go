@@ -18,9 +18,9 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/hashicorp/terraform/internal/backend/pluggable/chunks"
 	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
 
-	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfplugin6"
@@ -966,21 +966,24 @@ func (p *provider6) ConfigureStateStore(ctx context.Context, req *tfplugin6.Conf
 		TypeName: req.TypeName,
 		Config:   configVal,
 		Capabilities: providers.StateStoreClientCapabilities{
-			ChunkSize: backendPluggable.DefaultStateStoreChunkSize,
+			ChunkSize: chunks.DefaultStateStoreChunkSize,
 		},
 	})
 
 	// Validate the returned chunk size value
-	if configureResp.Capabilities.ChunkSize == 0 || configureResp.Capabilities.ChunkSize > backendPluggable.MaxStateStoreChunkSize {
+	if configureResp.Capabilities.ChunkSize == 0 || configureResp.Capabilities.ChunkSize > chunks.MaxStateStoreChunkSize {
 		diag := &tfplugin6.Diagnostic{
 			Severity: tfplugin6.Diagnostic_ERROR,
 			Summary:  "Failed to negotiate acceptable chunk size",
 			Detail: fmt.Sprintf("Expected size > 0 and <= %d bytes, provider wants %d bytes",
-				backendPluggable.MaxStateStoreChunkSize, configureResp.Capabilities.ChunkSize),
+				chunks.MaxStateStoreChunkSize, configureResp.Capabilities.ChunkSize),
 		}
 		resp.Diagnostics = append(resp.Diagnostics, diag)
 		return resp, nil
 	}
+
+	// If this isn't present, chunk size is 0 and downstream code
+	// acts like there is no state at all.
 	p.chunkSize = configureResp.Capabilities.ChunkSize
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, configureResp.Diagnostics)
@@ -1042,7 +1045,7 @@ func (p *provider6) ReadStateBytes(req *tfplugin6.ReadStateBytes_Request, srv tf
 			TotalLength: int64(totalLength),
 			Range: &proto6.StateRange{
 				Start: int64(rangeStart),
-				End:   int64(rangeStart + byteCount),
+				End:   int64(rangeStart+byteCount) - 1,
 			},
 			Diagnostics: diags,
 		})

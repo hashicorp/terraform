@@ -6272,6 +6272,79 @@ func TestPlanWithResourceIdentities(t *testing.T) {
 	}
 }
 
+func TestPlanInvalidLocalValue(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "invalid-local")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config:             cfg,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "in"}: {
+				Value: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("foo")}),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid operand",
+		Detail:   "Unsuitable value for left operand: a number is required.",
+		Subject: &hcl.Range{
+			Filename: "git::https://example.com/test.git//invalid-local/invalid-local.tfcomponent.hcl",
+			Start:    hcl.Pos{Line: 19, Column: 49, Byte: 377},
+			End:      hcl.Pos{Line: 19, Column: 50, Byte: 378},
+		},
+		Context: &hcl.Range{
+			Filename: "git::https://example.com/test.git//invalid-local/invalid-local.tfcomponent.hcl",
+			Start:    hcl.Pos{Line: 19, Column: 49, Byte: 377},
+			End:      hcl.Pos{Line: 19, Column: 54, Byte: 382},
+		},
+	}))
+
+	// We don't really care about the precise content of the plan changes here,
+	// we just want to ensure that the produced plan is not applyable
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	pca, ok := gotChanges[0].(*stackplan.PlannedChangeApplyable)
+	if !ok {
+		t.Fatalf("expected first change to be PlannedChangeApplyable, got %T", gotChanges[0])
+	}
+	if pca.Applyable {
+		t.Fatalf("expected plan to be not applyable due to invalid local value, but it is applyable")
+	}
+}
+
 // collectPlanOutput consumes the two output channels emitting results from
 // a call to [Plan], and collects all of the data written to them before
 // returning once changesCh has been closed by the sender to indicate that

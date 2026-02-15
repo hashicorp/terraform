@@ -369,7 +369,23 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 			}
 			underlyingSource = base.FinalSourceAddr(underlyingSource)
 			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
+		case sourceaddrs.ComponentSourceFinal:
+			ret, err := sourceaddrs.ResolveRelativeFinalSource(base, rel)
+			if err == nil {
+				return ret, nil
+			}
 
+			// If we can't resolve relative to the registry source then
+			// we need to resolve relative to its underlying remote source
+			// instead.
+			underlyingSource, ok := sources.ComponentPackageSourceAddr(base.Package(), base.SelectedVersion())
+			if !ok {
+				// If we also can't find the underlying source for some reason
+				// then we're stuck.
+				return nil, fmt.Errorf("can't find underlying source address for %s", base.Package())
+			}
+			underlyingSource = base.FinalSourceAddr(underlyingSource)
+			return sourceaddrs.ResolveRelativeFinalSource(underlyingSource, rel)
 		default:
 			// Easy case: this source type is already a final type
 			return sourceaddrs.ResolveRelativeFinalSource(base, rel)
@@ -387,6 +403,17 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 			// We should get here only if the source bundle was built
 			// incorrectly. A valid source bundle should always contain
 			// at least one entry that matches each version constraint.
+			return nil, fmt.Errorf("no cached versions of %s match the given version constraints", rel.Package())
+		}
+		finalRel := rel.Versioned(selectedVersion)
+		return sourceaddrs.ResolveRelativeFinalSource(base, finalRel)
+
+	case sourceaddrs.ComponentSource:
+		// Component registry sources work similar to module registry sources
+		allowedVersions := versions.MeetingConstraints(versionConstraints)
+		availableVersions := sources.ComponentPackageVersions(rel.Package())
+		selectedVersion := availableVersions.NewestInSet(allowedVersions)
+		if selectedVersion == versions.Unspecified {
 			return nil, fmt.Errorf("no cached versions of %s match the given version constraints", rel.Package())
 		}
 		finalRel := rel.Versioned(selectedVersion)

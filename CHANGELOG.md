@@ -5,12 +5,22 @@ NEW FEATURES:
 
 * We now produce builds for Windows ARM64 ([#32719](https://github.com/hashicorp/terraform/issues/32719))
 
+* You can set a `deprecated` attribute on variable and output blocks to indicate that they are deprecated. This will produce warnings when passing in a value for a deprecated variable or when referencing a deprecated output. ([#38001](https://github.com/hashicorp/terraform/issues/38001))
+
+* backend/s3: Support authentication via `aws login` ([#37967](https://github.com/hashicorp/terraform/issues/37967))
+
 
 ENHANCEMENTS:
 
 * ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell ([#37794](https://github.com/hashicorp/terraform/issues/37794))
 
-* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#27459](https://github.com/hashicorp/terraform/issues/27459))
+* terraform init log timestamps include millisecond precision ([#37818](https://github.com/hashicorp/terraform/issues/37818))
+
+* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#37884](https://github.com/hashicorp/terraform/issues/37884))
+
+* Terraform Test: Allow functions within mock blocks ([#34672](https://github.com/hashicorp/terraform/issues/34672))
+
+* improve detection of deprecated resource attributes / blocks ([#38077](https://github.com/hashicorp/terraform/issues/38077))
 
 
 BUG FIXES:
@@ -20,6 +30,27 @@ BUG FIXES:
 * A refresh-only plan could result in a non-zero exit code with no changes ([#37406](https://github.com/hashicorp/terraform/issues/37406))
 
 * cli: Fixed crash in `terraform show -json` when plan contains ephemeral resources with preconditions or postconditions ([#37834](https://github.com/hashicorp/terraform/issues/37834))
+
+* cli: Fixed `terraform init -json` to properly format all backend configuration messages as JSON instead of plain text ([#37911](https://github.com/hashicorp/terraform/issues/37911))
+
+* `state show`: The `state show` command will now explicitly fail and return code 1 when it fails to render the named resources state ([#37933](https://github.com/hashicorp/terraform/issues/37933))
+
+* apply: Terraform will raise an explicit error if a plan file intended for one workspace is applied against another workspace ([#37954](https://github.com/hashicorp/terraform/issues/37954))
+
+* lifecycle: `replace_triggered_by` now reports an error when given an invalid attribute reference that does not exist in the target resource ([#36740](https://github.com/hashicorp/terraform/issues/36740))
+
+* backend: Fix nil pointer dereference crash during `terraform init` when the destination backend returns an error ([#38027](https://github.com/hashicorp/terraform/issues/38027))
+
+* stacks: send progress events if the plan fails for better UI integration ([#38039](https://github.com/hashicorp/terraform/issues/38039))
+
+* cloud: terraform cloud and registry discovery network requests are now more resilient, making temporary network or service related errors less common ([#38064](https://github.com/hashicorp/terraform/issues/38064))
+
+* stacks: component instances should report no-op plan/apply. This solves a UI inconsistency with convergence destroy plans  ([#38049](https://github.com/hashicorp/terraform/issues/38049))
+
+
+UPGRADE NOTES:
+
+* backend/s3: The `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables now only respect `true` or `false` values, aligning with the AWS SDK for Go. This replaces the previous behavior which treated any non-empty value as `true`. ([#37601](https://github.com/hashicorp/terraform/issues/37601))
 
 
 EXPERIMENTS:

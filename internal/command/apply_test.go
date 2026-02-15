@@ -19,6 +19,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/cli"
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -701,6 +703,269 @@ func TestApply_plan(t *testing.T) {
 	}
 }
 
+// Test the ability to apply a plan file with a state store.
+//
+// The state store's details (provider, config, etc) are supplied by the plan,
+// which allows this test to not use any configuration.
+func TestApply_plan_stateStore(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = new(bytes.Buffer)
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Create the plan file that includes a state store
+	ver := version.Must(version.NewVersion("1.2.3"))
+	providerCfg := cty.ObjectVal(map[string]cty.Value{
+		"region": cty.StringVal("spain"),
+	})
+	providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeCfg := cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("foobar"),
+	})
+	storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plan := &plans.Plan{
+		Changes: plans.NewChangesSrc(),
+
+		// We'll default to the fake plan being both applyable and complete,
+		// since that's what most tests expect. Tests can override these
+		// back to false again afterwards if they need to.
+		Applyable: true,
+		Complete:  true,
+
+		StateStore: &plans.StateStore{
+			Type: "test_store",
+			Provider: &plans.Provider{
+				Version: ver,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				Config: providerCfgRaw,
+			},
+			Config:    storeCfgRaw,
+			Workspace: "default",
+		},
+	}
+
+	// Create a plan file on disk
+	//
+	// In this process we create a plan file describing the creation of a test_instance.foo resource.
+	state := testState() // State describes
+	_, snap := testModuleWithSnapshot(t, "apply")
+	planPath := testPlanFile(t, snap, state, plan)
+
+	// Create a mock, to be used as the pluggable state store described in the planfile
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !mock.WriteStateBytesCalled {
+		t.Fatal("expected the test to write new state when applying the plan, but WriteStateBytesCalled is false on the mock provider.")
+	}
+}
+
+// Test unhappy paths when applying a plan file describing a state store.
+func TestApply_plan_stateStore_errorCases(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
+		// Set some default reader/writers for the inputs
+		defaultInputReader = new(bytes.Buffer)
+		defaultInputWriter = new(bytes.Buffer)
+
+		// Create the plan file that includes a state store
+		ver := version.Must(version.NewVersion("1.2.3"))
+		providerCfg := cty.ObjectVal(map[string]cty.Value{
+			"region": cty.StringVal("spain"),
+		})
+		providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		storeCfg := cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foobar"),
+		})
+		storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		plan := &plans.Plan{
+			Changes: plans.NewChangesSrc(),
+
+			// We'll default to the fake plan being both applyable and complete,
+			// since that's what most tests expect. Tests can override these
+			// back to false again afterwards if they need to.
+			Applyable: true,
+			Complete:  true,
+
+			StateStore: &plans.StateStore{
+				Type: "test_doesnt_exist", // Mismatched with test_store in the provider
+				Provider: &plans.Provider{
+					Version: ver,
+					Source: &tfaddr.Provider{
+						Hostname:  tfaddr.DefaultProviderRegistryHost,
+						Namespace: "hashicorp",
+						Type:      "test",
+					},
+					Config: providerCfgRaw,
+				},
+				Config:    storeCfgRaw,
+				Workspace: "default",
+			},
+		}
+
+		// Create a plan file on disk
+		//
+		// In this process we create a plan file describing the creation of a test_instance.foo resource.
+		state := testState() // State describes
+		_, snap := testModuleWithSnapshot(t, "apply")
+		planPath := testPlanFile(t, snap, state, plan)
+
+		// Create a mock, to be used as the pluggable state store described in the planfile
+		mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+					},
+				},
+				View: view,
+			},
+		}
+
+		args := []string{
+			planPath,
+			"-no-color",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("expected an error but got none: %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: State store not implemented by the provider"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("expected error to include %q, but got:\n%s", expectedErr, output.Stderr())
+		}
+	})
+
+	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
+		// Set some default reader/writers for the inputs
+		defaultInputReader = new(bytes.Buffer)
+		defaultInputWriter = new(bytes.Buffer)
+
+		// Create the plan file that includes a state store
+		ver := version.Must(version.NewVersion("1.2.3"))
+		providerCfg := cty.ObjectVal(map[string]cty.Value{
+			"region": cty.StringVal("spain"),
+		})
+		providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		storeCfg := cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foobar"),
+		})
+		storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		plan := &plans.Plan{
+			Changes: plans.NewChangesSrc(),
+
+			// We'll default to the fake plan being both applyable and complete,
+			// since that's what most tests expect. Tests can override these
+			// back to false again afterwards if they need to.
+			Applyable: true,
+			Complete:  true,
+
+			StateStore: &plans.StateStore{
+				Type: "test_store",
+				Provider: &plans.Provider{
+					Version: ver,
+					Source: &tfaddr.Provider{
+						Hostname:  tfaddr.DefaultProviderRegistryHost,
+						Namespace: "hashicorp",
+						Type:      "test",
+					},
+					Config: providerCfgRaw,
+				},
+				Config:    storeCfgRaw,
+				Workspace: "default",
+			},
+		}
+
+		// Create a plan file on disk
+		//
+		// In this process we create a plan file describing the creation of a test_instance.foo resource.
+		state := testState() // State describes
+		_, snap := testModuleWithSnapshot(t, "apply")
+		planPath := testPlanFile(t, snap, state, plan)
+
+		// Create a mock, to be used as the pluggable state store described in the planfile
+		mock := &testing_provider.MockProvider{}
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+					},
+				},
+				View: view,
+			},
+		}
+
+		args := []string{
+			planPath,
+			"-no-color",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("expected an error but got none: %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Provider does not support pluggable state storage"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("expected error to include %q, but got:\n%s", expectedErr, output.Stderr())
+		}
+	})
+}
+
 func TestApply_plan_backup(t *testing.T) {
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
@@ -821,9 +1086,10 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatal(err)
 	}
 	planPath := testPlanFile(t, snap, state, &plans.Plan{
-		Backend: plans.Backend{
-			Type:   "http",
-			Config: backendConfigRaw,
+		Backend: &plans.Backend{
+			Type:      "http",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		Changes: plans.NewChangesSrc(),
 	})

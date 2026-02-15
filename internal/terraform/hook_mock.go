@@ -210,7 +210,7 @@ func (h *MockHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -222,7 +222,7 @@ func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorSt
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

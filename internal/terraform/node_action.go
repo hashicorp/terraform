@@ -55,7 +55,6 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 				resolvedProvider: n.ResolvedProvider,
 			})
 		}
-		addRootNodeToGraph(&g)
 	}
 
 	for _, module := range moduleInstances {
@@ -94,9 +93,8 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 			g.Add(&node)
 		}
-
-		addRootNodeToGraph(&g)
 	}
+	addRootNodeToGraph(&g)
 
 	return &g, diags
 }

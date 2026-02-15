@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: actions in modules without instances failed the plan graph
+time: 2026-01-23T10:33:07.244665+01:00
+custom:
+    Issue: "38089"

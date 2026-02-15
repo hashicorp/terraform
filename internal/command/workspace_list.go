@@ -56,17 +56,22 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	env, isOverridden := c.WorkspaceOverridden()
 
-	var out bytes.Buffer
-	for _, s := range states {
-		if s == env {
-			out.WriteString("* ")
-		} else {
-			out.WriteString("  ")
+	if len(states) != 0 {
+		var out bytes.Buffer
+		for _, s := range states {
+			if s == env {
+				out.WriteString("* ")
+			} else {
+				out.WriteString("  ")
+			}
+			out.WriteString(s + "\n")
 		}
-		out.WriteString(s + "\n")
-	}
 
-	c.Ui.Output(out.String())
+		c.Ui.Output(out.String())
+	} else {
+		// Warn that no states exist
+		c.showDiagnostics(warnNoEnvsExistDiag(env))
+	}
 
 	if isOverridden {
 		c.Ui.Output(envIsOverriddenNote)

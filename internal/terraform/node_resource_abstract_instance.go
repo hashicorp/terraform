@@ -429,7 +429,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal)
+		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -478,6 +478,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, diags.Err())
+			}))
 			return plan, deferred, diags
 		}
 
@@ -498,7 +501,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal)
+		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -866,6 +869,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	diags = diags.Append(
 		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
+	var deprecationDiags tfdiags.Diagnostics
+	origConfigVal, deprecationDiags = ctx.Deprecations().ValidateConfig(origConfigVal, schema.Body, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
@@ -945,7 +951,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal)
+		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal, nil)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -994,6 +1000,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+		}))
 		return nil, nil, deferred, keyData, diags
 	}
 
@@ -1207,6 +1216,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 
@@ -1233,6 +1245,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 
@@ -1251,6 +1266,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
+			}))
 			return nil, nil, deferred, keyData, diags
 		}
 	}
@@ -1297,7 +1315,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal)
+		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal, nil)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1771,6 +1789,9 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				var configDiags tfdiags.Diagnostics
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
+				var deprecationDiags tfdiags.Diagnostics
+				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
+				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, n.Addr.String()))
 			}
 		}
 	}
@@ -1847,6 +1868,11 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	diags = diags.Append(
 		validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, ctx.Path().Module())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
@@ -1939,7 +1965,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal)
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, nil)
 		}))
 
 		return plannedChange, plannedNewState, deferred, keyData, diags
@@ -2181,6 +2207,14 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
+		return nil, keyData, diags
+	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+	if diags.HasErrors() {
 		return nil, keyData, diags
 	}
 
@@ -2495,6 +2529,9 @@ func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, bo
 
 	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.ResourceInstanceAddr().Resource, keyData)
 	diags = diags.Append(configDiags)
+	var deprecationDiags tfdiags.Diagnostics
+	config, deprecationDiags = ctx.Deprecations().ValidateConfig(config, schema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
 
 	return config, diags
 }
@@ -2512,7 +2549,9 @@ func (n *NodeAbstractResourceInstance) evalDestroyProvisionerConfig(ctx EvalCont
 	evalScope := ctx.EvaluationScope(n.ResourceInstanceAddr().Resource, nil, keyData)
 	config, evalDiags := evalScope.EvalSelfBlock(body, self, schema, keyData)
 	diags = diags.Append(evalDiags)
-
+	var deprecationDiags tfdiags.Diagnostics
+	config, deprecationDiags = ctx.Deprecations().ValidateConfig(config, schema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
 	return config, diags
 }
 
@@ -2542,13 +2581,13 @@ func (n *NodeAbstractResourceInstance) apply(
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, diags.Append(err)
+		return state, diags.Append(err)
 	}
 	schema := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return nil, diags
+		return state, diags
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -2559,7 +2598,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema.Body, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return nil, diags
+			return state, diags
 		}
 	}
 
@@ -2584,13 +2623,13 @@ func (n *NodeAbstractResourceInstance) apply(
 				strings.Join(unknownPaths, "\n"),
 			),
 		))
-		return nil, diags
+		return state, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		return state, diags
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -2713,7 +2752,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return nil, diags
+		return state, diags
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
@@ -2731,7 +2770,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
-		return nil, diags
+		return state, diags
 	}
 
 	// After this point we have a type-conforming result object and so we

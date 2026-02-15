@@ -5,7 +5,9 @@ package configs
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"sort"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -13,6 +15,8 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -116,14 +120,16 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// that the builtin provider is intended.
 		return addrs.NewBuiltInProvider("terraform"), nil
 	case !foundReqProviderEntry:
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing entry in required_providers",
-			Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
-				stateStore.Provider.Name,
-			),
-			Subject: &stateStore.DeclRange,
-		})
+		diags = diags.Append(
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing entry in required_providers",
+				Detail: fmt.Sprintf("The provider used for state storage must have a matching entry in required_providers. Please add an entry for provider %s",
+					stateStore.Provider.Name,
+				),
+				Subject: &stateStore.DeclRange,
+			},
+		)
 		return tfaddr.Provider{}, diags
 	default:
 		// We've got a required_providers entry to use
@@ -131,6 +137,64 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// providers that are fully managed by Terraform.
 		return addr.Type, nil
 	}
+}
+
+func (ss *StateStore) VerifyDependencySelections(depLocks *depsfile.Locks, reqs *RequiredProviders) []error {
+	var errs []error
+
+	for _, reqProvider := range reqs.RequiredProviders {
+		providerAddr := reqProvider.Type
+		constraints := providerreqs.MustParseVersionConstraints(reqProvider.Requirement.Required.String())
+
+		if !depsfile.ProviderIsLockable(providerAddr) {
+			continue // disregard builtin providers, and such
+		}
+		if depLocks != nil && depLocks.ProviderIsOverridden(providerAddr) {
+			// The "overridden" case is for unusual special situations like
+			// dev overrides, so we'll explicitly note it in the logs just in
+			// case we see bug reports with these active and it helps us
+			// understand why we ended up using the "wrong" plugin.
+			log.Printf("[DEBUG] StateStore.VerifyDependencySelections: skipping %s because it's overridden by a special configuration setting", providerAddr)
+			continue
+		}
+
+		var lock *depsfile.ProviderLock
+		if depLocks != nil { // Should always be true in main code, but unfortunately sometimes not true in old tests that don't fill out arguments completely
+			lock = depLocks.Provider(providerAddr)
+		}
+		if lock == nil {
+			log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", providerAddr, providerreqs.VersionConstraintsString(constraints))
+			errs = append(errs, fmt.Errorf("provider %s: required by this configuration but no version is selected", providerAddr))
+			continue
+		}
+
+		selectedVersion := lock.Version()
+		allowedVersions := providerreqs.MeetingConstraints(constraints)
+		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has %s to satisfy %q", providerAddr, selectedVersion.String(), providerreqs.VersionConstraintsString(constraints))
+		if !allowedVersions.Has(selectedVersion) {
+			// The most likely cause of this is that the author of a module
+			// has changed its constraints, but this could also happen in
+			// some other unusual situations, such as the user directly
+			// editing the lock file to record something invalid. We'll
+			// distinguish those cases here in order to avoid the more
+			// specific error message potentially being a red herring in
+			// the edge-cases.
+			currentConstraints := providerreqs.VersionConstraintsString(constraints)
+			lockedConstraints := providerreqs.VersionConstraintsString(lock.VersionConstraints())
+			switch {
+			case currentConstraints != lockedConstraints:
+				errs = append(errs, fmt.Errorf("provider %s: locked version selection %s doesn't match the updated version constraints %q", providerAddr, selectedVersion.String(), currentConstraints))
+			default:
+				errs = append(errs, fmt.Errorf("provider %s: version constraints %q don't match the locked version selection %s", providerAddr, currentConstraints, selectedVersion.String()))
+			}
+		}
+	}
+
+	// Return multiple errors in an arbitrary-but-deterministic order.
+	sort.Slice(errs, func(i, j int) bool {
+		return errs[i].Error() < errs[j].Error()
+	})
+	return errs
 }
 
 // Hash produces a hash value for the receiver that covers:

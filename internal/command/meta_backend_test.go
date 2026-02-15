@@ -1560,7 +1560,7 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	}
 }
 
-// A plan that has uses the local backend
+// A plan that has uses the local backend and local state storage
 func TestMetaBackend_planLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -1575,17 +1575,19 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	backendConfig := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1649,6 +1651,71 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 }
 
+// A plan that has uses the local backend and pluggable state storage
+func TestMetaBackend_planLocal_stateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	t.Chdir(td)
+
+	stateStoreConfigBlock := cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("foobar"),
+	})
+	stateStoreConfigRaw, err := plans.NewDynamicValue(stateStoreConfigBlock, stateStoreConfigBlock.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
+
+	plan := &plans.Plan{
+		StateStore: &plans.StateStore{
+			Type:      "test_store",
+			Config:    stateStoreConfigRaw,
+			Workspace: backend.DefaultStateName,
+			Provider: &plans.Provider{
+				Version: version.Must(version.NewVersion("1.2.3")), // Matches lock file in the test fixtures
+				Source:  &providerAddr,
+				Config:  nil,
+			},
+		},
+	}
+
+	// Setup the meta, including a mock provider set up to mock PSS
+	m := testMetaBackend(t, nil)
+	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	m.testingOverrides = &testingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+		},
+	}
+
+	// Get the backend
+	b, diags := m.BackendForLocalPlan(plan)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	// Check the state
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	state := s.State()
+	if state != nil {
+		t.Fatalf("state should be nil: %#v", state)
+	}
+
+	// Write some state
+	state = states.NewState()
+	s.WriteState(state)
+	if err := s.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+}
+
 // A plan with a custom state save path
 func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	td := t.TempDir()
@@ -1666,10 +1733,12 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	plannedBackend := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Create an alternate output path
@@ -1686,7 +1755,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(plannedBackend)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1765,17 +1834,19 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	backendConfig := plans.Backend{
-		Type:      "local",
-		Config:    backendConfigRaw,
-		Workspace: "default",
+	plan := &plans.Plan{
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
+		},
 	}
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForLocalPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(plan)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1835,6 +1906,111 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	if isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
 		t.Fatal("backup is empty")
 	}
+}
+
+// A plan that contains a workspace that isn't the currently selected workspace
+func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
+	t.Run("local backend", func(t *testing.T) {
+		td := t.TempDir()
+		t.Chdir(td)
+
+		backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
+			"path":          cty.NullVal(cty.String),
+			"workspace_dir": cty.NullVal(cty.String),
+		})
+		backendConfigRaw, err := plans.NewDynamicValue(backendConfigBlock, backendConfigBlock.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		planWorkspace := "default"
+		plan := &plans.Plan{
+			Backend: &plans.Backend{
+				Type:      "local",
+				Config:    backendConfigRaw,
+				Workspace: planWorkspace,
+			},
+		}
+
+		// Setup the meta
+		m := testMetaBackend(t, nil)
+		otherWorkspace := "foobar"
+		err = m.SetWorkspace(otherWorkspace)
+		if err != nil {
+			t.Fatalf("error in test setup: %s", err)
+		}
+
+		// Get the backend
+		_, diags := m.BackendForLocalPlan(plan)
+		if !diags.HasErrors() {
+			t.Fatalf("expected an error but got none: %s", diags.ErrWithWarnings())
+		}
+		expectedMsgs := []string{
+			fmt.Sprintf("The plan file describes changes to the %q workspace, but the %q workspace is currently in use",
+				planWorkspace,
+				otherWorkspace,
+			),
+			fmt.Sprintf("terraform workspace select %s", planWorkspace),
+		}
+		for _, msg := range expectedMsgs {
+			if !strings.Contains(diags.Err().Error(), msg) {
+				t.Fatalf("expected error to include %q, but got:\n%s",
+					msg,
+					diags.Err())
+			}
+		}
+	})
+
+	t.Run("cloud backend", func(t *testing.T) {
+		td := t.TempDir()
+		t.Chdir(td)
+
+		planWorkspace := "prod"
+		cloudConfigBlock := cty.ObjectVal(map[string]cty.Value{
+			"organization": cty.StringVal("hashicorp"),
+			"workspaces": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal(planWorkspace),
+			}),
+		})
+		cloudConfigRaw, err := plans.NewDynamicValue(cloudConfigBlock, cloudConfigBlock.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := &plans.Plan{
+			Backend: &plans.Backend{
+				Type:      "cloud",
+				Config:    cloudConfigRaw,
+				Workspace: planWorkspace,
+			},
+		}
+
+		// Setup the meta
+		m := testMetaBackend(t, nil)
+		otherWorkspace := "foobar"
+		err = m.SetWorkspace(otherWorkspace)
+		if err != nil {
+			t.Fatalf("error in test setup: %s", err)
+		}
+
+		// Get the backend
+		_, diags := m.BackendForLocalPlan(plan)
+		if !diags.HasErrors() {
+			t.Fatalf("expected an error but got none: %s", diags.ErrWithWarnings())
+		}
+		expectedMsgs := []string{
+			fmt.Sprintf("The plan file describes changes to the %q workspace, but the %q workspace is currently in use",
+				planWorkspace,
+				otherWorkspace,
+			),
+			fmt.Sprintf(`If you'd like to continue to use the plan file, make sure the cloud block in your configuration contains the workspace name %q`, planWorkspace),
+		}
+		for _, msg := range expectedMsgs {
+			if !strings.Contains(diags.Err().Error(), msg) {
+				t.Fatalf("expected error to include `%s`, but got:\n%s",
+					msg,
+					diags.Err())
+			}
+		}
+	})
 }
 
 // init a backend using -backend-config options multiple times
@@ -1989,7 +2165,6 @@ func TestBackendFromState(t *testing.T) {
 }
 
 func Test_determineInitReason(t *testing.T) {
-
 	cases := map[string]struct {
 		cloudMode     cloud.ConfigChangeMode
 		backendState  workdir.BackendStateFile
@@ -2087,107 +2262,6 @@ func Test_determineInitReason(t *testing.T) {
 	}
 }
 
-// Changing from using backend to state_store
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configuredBackendToStateStore(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("backend-to-state-store"), td)
-	t.Chdir(td)
-
-	mock := testStateStoreMock(t)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.testingOverrides = metaOverridesForProvider(mock)
-	m.AllowExperimentalFeatures = true
-
-	// Get the state store's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	// Get the operations backend
-	locks := depsfile.NewLocks()
-	providerAddr := addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test")
-	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
-	if err != nil {
-		t.Fatalf("test setup failed when making constraint: %s", err)
-	}
-	locks.SetProvider(
-		providerAddr,
-		versions.MustParseVersion("9.9.9"),
-		constraint,
-		[]providerreqs.Hash{""},
-	)
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:             true,
-		StateStoreConfig: mod.StateStore,
-		Locks:            locks,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from backend to state store is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
-// Changing from using state_store to backend
-//
-// TODO(SarahFrench/radeksimko): currently this test only confirms that we're hitting the switch
-// case for this scenario, and will need to be updated when that init feature is implemented.
-func TestMetaBackend_configuredStateStoreToBackend(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-to-backend"), td)
-	t.Chdir(td)
-
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-	m.AllowExperimentalFeatures = true
-
-	// Get the backend's config
-	mod, loadDiags := m.loadSingleModule(td)
-	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
-	}
-
-	providerAddr := tfaddr.MustParseProviderSource("hashicorp/test")
-	constraint, err := providerreqs.ParseVersionConstraints(">1.0.0")
-	if err != nil {
-		t.Fatalf("test setup failed when making constraint: %s", err)
-	}
-	locks := depsfile.NewLocks()
-	locks.SetProvider(
-		providerAddr,
-		versions.MustParseVersion("1.2.3"),
-		constraint,
-		[]providerreqs.Hash{""},
-	)
-
-	// No mock provider is used here - yet
-	// Logic will need to be implemented that lets the init have access to
-	// a factory for the 'old' provider used for PSS previously. This will be
-	// used when migrating away from PSS entirely, or to a new PSS configuration.
-
-	// Get the operations backend
-	_, beDiags := m.Backend(&BackendOpts{
-		Init:          true,
-		BackendConfig: mod.Backend,
-		Locks:         locks,
-	})
-	if !beDiags.HasErrors() {
-		t.Fatal("expected an error to be returned during partial implementation of PSS")
-	}
-	wantErr := "Migration from state store to backend is not implemented yet"
-	if !strings.Contains(beDiags.Err().Error(), wantErr) {
-		t.Fatalf("expected the returned error to contain %q, but got: %s", wantErr, beDiags.Err())
-	}
-}
-
 // Verify that using variables results in an error
 func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 	wantErr := "Variables not allowed"
@@ -2241,9 +2315,10 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 			// Get the operations backend
 			_, err := m.Backend(&BackendOpts{
-				Init:             true,
-				StateStoreConfig: mod.StateStore,
-				Locks:            locks,
+				Init:                 true,
+				StateStoreConfig:     mod.StateStore,
+				ProviderRequirements: mod.ProviderRequirements,
+				Locks:                locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2251,7 +2326,6 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			if !strings.Contains(err.Err().Error(), tc.wantErr) {
 				t.Fatalf("error should include %q, got: %s", tc.wantErr, err.Err())
 			}
-
 		})
 	}
 }
@@ -2701,10 +2775,11 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			ConfigOverride:   configOverride,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			ConfigOverride:       configOverride,
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2733,7 +2808,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - no config present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig: nil, //unset
+			StateStoreConfig: nil, // unset
 			Init:             true,
 			Locks:            locks,
 		}
@@ -2760,9 +2835,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2788,9 +2864,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
-			Init:             true,
-			Locks:            locks,
+			StateStoreConfig:     config,
+			ProviderRequirements: &configs.RequiredProviders{},
+			Init:                 true,
+			Locks:                locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2919,7 +2996,6 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 }
 
 func TestMetaBackend_prepareBackend(t *testing.T) {
-
 	t.Run("it returns a cloud backend from cloud backend config", func(t *testing.T) {
 		// Create a temporary working directory with cloud configuration in
 		td := t.TempDir()
