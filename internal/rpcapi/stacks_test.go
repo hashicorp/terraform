@@ -977,6 +977,11 @@ func TestStackChangeProgressDuringPlanNormal(t *testing.T) {
 								ComponentInstanceAddr: "component.self",
 							},
 							Status: stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED,
+						},
+					},
+				},
+			},
+		},
 		"action_invocations": {
 			// This test verifies that the ActionInvocation field exists in ComponentInstanceChanges
 			// and is included in the total count. Once we implement action invocation tracking logic,
@@ -1604,7 +1609,6 @@ func TestStackChangeProgressDuringApply(t *testing.T) {
 					return values
 				}(),
 			})
-
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
