@@ -51,9 +51,7 @@ type StateMv struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateMv(args []string) (*StateMv, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	mv := &StateMv{
-		StateLock: true,
-	}
+	mv := &StateMv{}
 
 	cmdFlags := defaultFlagSet("state mv")
 	cmdFlags.BoolVar(&mv.DryRun, "dry-run", false, "dry run")
