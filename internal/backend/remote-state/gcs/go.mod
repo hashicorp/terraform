@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/gcs
 
-go 1.25
+go 1.25.7
 
 require (
 	cloud.google.com/go/kms v1.15.5
