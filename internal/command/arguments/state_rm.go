@@ -41,9 +41,7 @@ type StateRm struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateRm(args []string) (*StateRm, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	rm := &StateRm{
-		StateLock: true,
-	}
+	rm := &StateRm{}
 
 	cmdFlags := defaultFlagSet("state rm")
 	cmdFlags.BoolVar(&rm.DryRun, "dry-run", false, "dry run")
