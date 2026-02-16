@@ -45,9 +45,7 @@ type StateReplaceProvider struct {
 // interpretation of the arguments.
 func ParseStateReplaceProvider(args []string) (*StateReplaceProvider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	rp := &StateReplaceProvider{
-		StateLock: true,
-	}
+	rp := &StateReplaceProvider{}
 
 	cmdFlags := defaultFlagSet("state replace-provider")
 	cmdFlags.BoolVar(&rp.AutoApprove, "auto-approve", false, "skip interactive approval of replacements")
