@@ -7428,7 +7428,7 @@ output "test_output_no_warning" {
 				End:      hcl.Pos{Line: 21, Column: 28, Byte: 268},
 			},
 			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-				OriginDescription: "module.mod2[0].old",
+				OriginDescription: "module.mod2.old",
 			},
 		},
 		&hcl.Diagnostic{
@@ -7501,7 +7501,7 @@ output "test_output2" {
 				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
 			},
 			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-				OriginDescription: "module.mod[0].old",
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7515,7 +7515,7 @@ output "test_output2" {
 				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
 			},
 			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-				OriginDescription: "module.mod[1].old",
+				OriginDescription: "module.mod.old",
 			},
 		},
 	))
@@ -7932,7 +7932,7 @@ locals {
 			End:      hcl.Pos{Line: 12, Column: 46, Byte: 281},
 		},
 		Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-			OriginDescription: "module.silenced[0].old",
+			OriginDescription: "module.silenced.old",
 		},
 	}))
 }
