@@ -31,7 +31,6 @@ func TestParseProvidersMirror_valid(t *testing.T) {
 			},
 			&ProvidersMirror{
 				Platforms: FlagStringSlice{"linux_amd64", "darwin_arm64"},
-				LockFile:  false,
 				OutputDir: "./mirror",
 			},
 		},
