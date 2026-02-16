@@ -35,9 +35,7 @@ type StatePush struct {
 // representing the best effort interpretation of the arguments.
 func ParseStatePush(args []string) (*StatePush, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	push := &StatePush{
-		StateLock: true,
-	}
+	push := &StatePush{}
 
 	cmdFlags := defaultFlagSet("state push")
 	cmdFlags.BoolVar(&push.Force, "force", false, "")

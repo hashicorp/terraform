@@ -18,59 +18,43 @@ func TestParseStatePush_valid(t *testing.T) {
 		"path only": {
 			[]string{"replace.tfstate"},
 			&StatePush{
-				Force:               false,
-				StateLock:           true,
-				StateLockTimeout:    0,
-				IgnoreRemoteVersion: false,
-				Path:                "replace.tfstate",
+				StateLock: true,
+				Path:      "replace.tfstate",
 			},
 		},
 		"stdin": {
 			[]string{"-"},
 			&StatePush{
-				Force:               false,
-				StateLock:           true,
-				StateLockTimeout:    0,
-				IgnoreRemoteVersion: false,
-				Path:                "-",
+				StateLock: true,
+				Path:      "-",
 			},
 		},
 		"force": {
 			[]string{"-force", "replace.tfstate"},
 			&StatePush{
-				Force:               true,
-				StateLock:           true,
-				StateLockTimeout:    0,
-				IgnoreRemoteVersion: false,
-				Path:                "replace.tfstate",
+				Force:     true,
+				StateLock: true,
+				Path:      "replace.tfstate",
 			},
 		},
 		"lock disabled": {
 			[]string{"-lock=false", "replace.tfstate"},
 			&StatePush{
-				Force:               false,
-				StateLock:           false,
-				StateLockTimeout:    0,
-				IgnoreRemoteVersion: false,
-				Path:                "replace.tfstate",
+				Path: "replace.tfstate",
 			},
 		},
 		"lock timeout": {
 			[]string{"-lock-timeout=5s", "replace.tfstate"},
 			&StatePush{
-				Force:               false,
-				StateLock:           true,
-				StateLockTimeout:    5 * time.Second,
-				IgnoreRemoteVersion: false,
-				Path:                "replace.tfstate",
+				StateLock:        true,
+				StateLockTimeout: 5 * time.Second,
+				Path:             "replace.tfstate",
 			},
 		},
 		"ignore remote version": {
 			[]string{"-ignore-remote-version", "replace.tfstate"},
 			&StatePush{
-				Force:               false,
 				StateLock:           true,
-				StateLockTimeout:    0,
 				IgnoreRemoteVersion: true,
 				Path:                "replace.tfstate",
 			},
@@ -113,7 +97,6 @@ func TestParseStatePush_invalid(t *testing.T) {
 			[]string{"foo.tfstate", "bar.tfstate"},
 			&StatePush{
 				StateLock: true,
-				Path:      "",
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
