@@ -18,25 +18,17 @@ func TestParseStateRm_valid(t *testing.T) {
 		"single address": {
 			[]string{"test_instance.foo"},
 			&StateRm{
-				DryRun:              false,
-				BackupPath:          "-",
-				StateLock:           true,
-				StateLockTimeout:    0,
-				StatePath:           "",
-				IgnoreRemoteVersion: false,
-				Addrs:               []string{"test_instance.foo"},
+				BackupPath: "-",
+				StateLock:  true,
+				Addrs:      []string{"test_instance.foo"},
 			},
 		},
 		"multiple addresses": {
 			[]string{"test_instance.foo", "test_instance.bar"},
 			&StateRm{
-				DryRun:              false,
-				BackupPath:          "-",
-				StateLock:           true,
-				StateLockTimeout:    0,
-				StatePath:           "",
-				IgnoreRemoteVersion: false,
-				Addrs:               []string{"test_instance.foo", "test_instance.bar"},
+				BackupPath: "-",
+				StateLock:  true,
+				Addrs:      []string{"test_instance.foo", "test_instance.bar"},
 			},
 		},
 		"all options": {
