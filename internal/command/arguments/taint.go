@@ -44,9 +44,7 @@ type Taint struct {
 // the best effort interpretation of the arguments.
 func ParseTaint(args []string) (*Taint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	taint := &Taint{
-		StateLock: true,
-	}
+	taint := &Taint{}
 
 	cmdFlags := defaultFlagSet("taint")
 	cmdFlags.BoolVar(&taint.AllowMissing, "allow-missing", false, "allow missing")

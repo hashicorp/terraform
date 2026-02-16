@@ -44,9 +44,7 @@ type Untaint struct {
 // the best effort interpretation of the arguments.
 func ParseUntaint(args []string) (*Untaint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	untaint := &Untaint{
-		StateLock: true,
-	}
+	untaint := &Untaint{}
 
 	cmdFlags := defaultFlagSet("untaint")
 	cmdFlags.BoolVar(&untaint.AllowMissing, "allow-missing", false, "allow missing")
