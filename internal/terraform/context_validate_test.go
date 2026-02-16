@@ -4752,7 +4752,7 @@ output "test_output_deprecated_use" {
 					End:      hcl.Pos{Line: 10, Column: 28, Byte: 312},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-					OriginDescription: "module.nested.old",
+					OriginDescription: "module.mod2.module.nested.old",
 				},
 			},
 		),
@@ -5142,7 +5142,7 @@ locals {
 			End:      hcl.Pos{Line: 12, Column: 26, Byte: 158},
 		},
 		Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-			OriginDescription: "module.nested.old",
+			OriginDescription: "module.normal.module.nested.old",
 		},
 	}).Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
@@ -5154,7 +5154,7 @@ locals {
 			End:      hcl.Pos{Line: 12, Column: 26, Byte: 172},
 		},
 		Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-			OriginDescription: "module.deeper.old",
+			OriginDescription: "module.normal.module.nested.module.deeper.old",
 		},
 	}))
 }

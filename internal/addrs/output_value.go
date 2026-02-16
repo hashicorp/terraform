@@ -226,6 +226,13 @@ func (v ConfigOutputValue) String() string {
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.String())
 }
 
+func (v ConfigOutputValue) ForDisplay() string {
+	if v.Module.IsRoot() {
+		return v.OutputValue.Name
+	}
+	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.Name)
+}
+
 func (v ConfigOutputValue) configCheckableSigil() {
 	// ConfigOutputValue is the ConfigCheckable for AbsOutputValue.
 }
