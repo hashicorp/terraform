@@ -41,8 +41,7 @@ func TestParseTaint_valid(t *testing.T) {
 		"lock disabled": {
 			[]string{"-lock=false", "test_instance.foo"},
 			&Taint{
-				Address:   "test_instance.foo",
-				StateLock: false,
+				Address: "test_instance.foo",
 			},
 		},
 		"lock-timeout": {
@@ -92,7 +91,6 @@ func TestParseTaint_valid(t *testing.T) {
 				Address:             "module.child.test_instance.foo",
 				AllowMissing:        true,
 				BackupPath:          "backup.tfstate",
-				StateLock:           false,
 				StateLockTimeout:    10 * time.Second,
 				StatePath:           "foo.tfstate",
 				StateOutPath:        "bar.tfstate",
