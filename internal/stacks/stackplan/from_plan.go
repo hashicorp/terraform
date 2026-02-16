@@ -210,7 +210,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 	// Handle deferred action invocations from the plan
 	for _, deferredAction := range plan.DeferredActionInvocations {
 		invocation := deferredAction.ActionInvocationInstanceSrc
-		
+
 		if invocation == nil {
 			continue
 		}
