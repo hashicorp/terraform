@@ -1209,7 +1209,7 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 		ReportActionInvocationPlanned: func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
 			span.(trace.Span).AddEvent("planned action invocation", trace.WithAttributes(
 				attribute.String("component_instance", ai.Addr.Component.String()),
-				attribute.String("resource_instance", ai.Addr.Item.String()),
+				attribute.String("action_invocation_instance", ai.Addr.Item.String()),
 			))
 
 			inv, err := actionInvocationPlanned(ai)
