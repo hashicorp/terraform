@@ -940,8 +940,8 @@ message StackChangeProgress {
       ActionInvocationInstanceInStackAddr addr = 1;
       string provider_addr = 2;
       oneof action_trigger {
-          LifecycleActionTrigger lifecycle_action_trigger = 3;
-          InvokeActionTrigger invoke_action_trigger = 4;
+        LifecycleActionTrigger lifecycle_action_trigger = 3;
+        InvokeActionTrigger invoke_action_trigger = 4;
       }
   }
 
@@ -949,6 +949,11 @@ message StackChangeProgress {
       ActionInvocationInstanceInStackAddr addr = 1;
       Status status = 2;
       string provider_addr = 3;
+
+      oneof action_trigger {
+        LifecycleActionTrigger lifecycle_action_trigger = 4;
+        InvokeActionTrigger invoke_action_trigger = 5;
+      }
 
       enum Status {
         INVALID = 0;
@@ -963,6 +968,11 @@ message StackChangeProgress {
       ActionInvocationInstanceInStackAddr addr = 1;
       string message = 2;
       string provider_addr = 3;
+
+      oneof action_trigger {
+        LifecycleActionTrigger lifecycle_action_trigger = 4;
+        InvokeActionTrigger invoke_action_trigger = 5;
+      }
   }
 
   // LifecycleActionTrigger contains details on the conditions that led to the
