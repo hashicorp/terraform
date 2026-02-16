@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'core: The builtin `terraform` provider no longer causes a spurious `[ERROR]` log about missing provider config schema'
+time: 2026-02-15T12:00:00.00000+00:00
+custom:
+    Issue: "34207"
