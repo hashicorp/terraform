@@ -30,7 +30,11 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
-func TestPrimary_stateStore_Unmanaged_SeparatePlan(t *testing.T) {
+// Test that users can do the full init-plan-apply workflow with pluggable state storage
+// when the state storage provider is reattached/unmanaged by Terraform.
+// As well as ensuring that the state store can be initialised ok, this tests that
+// the state store's details can be stored in the plan file despite the fact it's reattached.
+func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
 	t.Setenv(e2e.TestExperimentFlag, "true")
