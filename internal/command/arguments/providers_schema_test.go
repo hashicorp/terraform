@@ -44,9 +44,7 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 	}{
 		"missing json": {
 			nil,
-			&ProvidersSchema{
-				JSON: false,
-			},
+			&ProvidersSchema{},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -70,9 +68,7 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		},
 		"unknown flag and missing json": {
 			[]string{"-wat"},
-			&ProvidersSchema{
-				JSON: false,
-			},
+			&ProvidersSchema{},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
