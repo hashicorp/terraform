@@ -6527,10 +6527,15 @@ func (*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger) isStackC
 }
 
 type StackChangeProgress_ActionInvocationStatus struct {
-	state         protoimpl.MessageState                            `protogen:"open.v1"`
-	Addr          *ActionInvocationInstanceInStackAddr              `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Status        StackChangeProgress_ActionInvocationStatus_Status `protobuf:"varint,2,opt,name=status,proto3,enum=terraform1.stacks.StackChangeProgress_ActionInvocationStatus_Status" json:"status,omitempty"`
-	ProviderAddr  string                                            `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
+	state        protoimpl.MessageState                            `protogen:"open.v1"`
+	Addr         *ActionInvocationInstanceInStackAddr              `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Status       StackChangeProgress_ActionInvocationStatus_Status `protobuf:"varint,2,opt,name=status,proto3,enum=terraform1.stacks.StackChangeProgress_ActionInvocationStatus_Status" json:"status,omitempty"`
+	ProviderAddr string                                            `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
+	// Types that are valid to be assigned to ActionTrigger:
+	//
+	//	*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger
+	//	*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger
+	ActionTrigger isStackChangeProgress_ActionInvocationStatus_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6586,11 +6591,59 @@ func (x *StackChangeProgress_ActionInvocationStatus) GetProviderAddr() string {
 	return ""
 }
 
+func (x *StackChangeProgress_ActionInvocationStatus) GetActionTrigger() isStackChangeProgress_ActionInvocationStatus_ActionTrigger {
+	if x != nil {
+		return x.ActionTrigger
+	}
+	return nil
+}
+
+func (x *StackChangeProgress_ActionInvocationStatus) GetLifecycleActionTrigger() *StackChangeProgress_LifecycleActionTrigger {
+	if x != nil {
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger); ok {
+			return x.LifecycleActionTrigger
+		}
+	}
+	return nil
+}
+
+func (x *StackChangeProgress_ActionInvocationStatus) GetInvokeActionTrigger() *StackChangeProgress_InvokeActionTrigger {
+	if x != nil {
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger); ok {
+			return x.InvokeActionTrigger
+		}
+	}
+	return nil
+}
+
+type isStackChangeProgress_ActionInvocationStatus_ActionTrigger interface {
+	isStackChangeProgress_ActionInvocationStatus_ActionTrigger()
+}
+
+type StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger struct {
+	LifecycleActionTrigger *StackChangeProgress_LifecycleActionTrigger `protobuf:"bytes,4,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+}
+
+type StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger struct {
+	InvokeActionTrigger *StackChangeProgress_InvokeActionTrigger `protobuf:"bytes,5,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
+}
+
+func (*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger) isStackChangeProgress_ActionInvocationStatus_ActionTrigger() {
+}
+
+func (*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger) isStackChangeProgress_ActionInvocationStatus_ActionTrigger() {
+}
+
 type StackChangeProgress_ActionInvocationProgress struct {
-	state         protoimpl.MessageState               `protogen:"open.v1"`
-	Addr          *ActionInvocationInstanceInStackAddr `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Message       string                               `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	ProviderAddr  string                               `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
+	state        protoimpl.MessageState               `protogen:"open.v1"`
+	Addr         *ActionInvocationInstanceInStackAddr `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Message      string                               `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	ProviderAddr string                               `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
+	// Types that are valid to be assigned to ActionTrigger:
+	//
+	//	*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger
+	//	*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger
+	ActionTrigger isStackChangeProgress_ActionInvocationProgress_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6644,6 +6697,49 @@ func (x *StackChangeProgress_ActionInvocationProgress) GetProviderAddr() string 
 		return x.ProviderAddr
 	}
 	return ""
+}
+
+func (x *StackChangeProgress_ActionInvocationProgress) GetActionTrigger() isStackChangeProgress_ActionInvocationProgress_ActionTrigger {
+	if x != nil {
+		return x.ActionTrigger
+	}
+	return nil
+}
+
+func (x *StackChangeProgress_ActionInvocationProgress) GetLifecycleActionTrigger() *StackChangeProgress_LifecycleActionTrigger {
+	if x != nil {
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger); ok {
+			return x.LifecycleActionTrigger
+		}
+	}
+	return nil
+}
+
+func (x *StackChangeProgress_ActionInvocationProgress) GetInvokeActionTrigger() *StackChangeProgress_InvokeActionTrigger {
+	if x != nil {
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger); ok {
+			return x.InvokeActionTrigger
+		}
+	}
+	return nil
+}
+
+type isStackChangeProgress_ActionInvocationProgress_ActionTrigger interface {
+	isStackChangeProgress_ActionInvocationProgress_ActionTrigger()
+}
+
+type StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger struct {
+	LifecycleActionTrigger *StackChangeProgress_LifecycleActionTrigger `protobuf:"bytes,4,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+}
+
+type StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger struct {
+	InvokeActionTrigger *StackChangeProgress_InvokeActionTrigger `protobuf:"bytes,5,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
+}
+
+func (*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger) isStackChangeProgress_ActionInvocationProgress_ActionTrigger() {
+}
+
+func (*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger) isStackChangeProgress_ActionInvocationProgress_ActionTrigger() {
 }
 
 // LifecycleActionTrigger contains details on the conditions that led to the
@@ -7704,7 +7800,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\rInputVariable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\tnew_value\x18\x02 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\bnewValue\x1a\t\n" +
-	"\aNothing\"\xe5'\n" +
+	"\aNothing\"\xe3+\n" +
 	"\x13StackChangeProgress\x12|\n" +
 	"\x19component_instance_status\x18\x01 \x01(\v2>.terraform1.stacks.StackChangeProgress.ComponentInstanceStatusH\x00R\x17componentInstanceStatus\x12y\n" +
 	"\x18resource_instance_status\x18\x02 \x01(\v2=.terraform1.stacks.StackChangeProgress.ResourceInstanceStatusH\x00R\x16resourceInstanceStatus\x12\x8f\x01\n" +
@@ -7764,21 +7860,27 @@ const file_stacks_proto_rawDesc = "" +
 	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12y\n" +
 	"\x18lifecycle_action_trigger\x18\x03 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
 	"\x15invoke_action_trigger\x18\x04 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\x1a\xb4\x02\n" +
+	"\x0eaction_trigger\x1a\xb3\x04\n" +
 	"\x16ActionInvocationStatus\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12\\\n" +
 	"\x06status\x18\x02 \x01(\x0e2D.terraform1.stacks.StackChangeProgress.ActionInvocationStatus.StatusR\x06status\x12#\n" +
-	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\"K\n" +
+	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12y\n" +
+	"\x18lifecycle_action_trigger\x18\x04 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
+	"\x15invoke_action_trigger\x18\x05 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTrigger\"K\n" +
 	"\x06Status\x12\v\n" +
 	"\aINVALID\x10\x00\x12\v\n" +
 	"\aPENDING\x10\x01\x12\v\n" +
 	"\aRUNNING\x10\x02\x12\r\n" +
 	"\tCOMPLETED\x10\x03\x12\v\n" +
-	"\aERRORED\x10\x04\x1a\xa5\x01\n" +
+	"\aERRORED\x10\x04B\x10\n" +
+	"\x0eaction_trigger\x1a\xa4\x03\n" +
 	"\x18ActionInvocationProgress\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
-	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x1a\xd3\x02\n" +
+	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12y\n" +
+	"\x18lifecycle_action_trigger\x18\x04 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
+	"\x15invoke_action_trigger\x18\x05 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
+	"\x0eaction_trigger\x1a\xd3\x02\n" +
 	"\x16LifecycleActionTrigger\x12n\n" +
 	"\x1btriggering_resource_address\x18\x01 \x01(\v2..terraform1.stacks.ResourceInstanceInStackAddrR\x19triggeringResourceAddress\x12^\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e29.terraform1.stacks.StackChangeProgress.ActionTriggerEventR\ftriggerEvent\x12;\n" +
@@ -8160,53 +8262,57 @@ var file_stacks_proto_depIdxs = []int32{
 	119, // 131: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
 	31,  // 132: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
 	9,   // 133: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ActionInvocationStatus.Status
-	31,  // 134: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
-	32,  // 135: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	6,   // 136: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
-	33,  // 137: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	120, // 138: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
-	33,  // 139: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
-	30,  // 140: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
-	32,  // 141: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	128, // 142: terraform1.stacks.ListResourceIdentities.Response.resource:type_name -> terraform1.stacks.ListResourceIdentities.Resource
-	26,  // 143: terraform1.stacks.ListResourceIdentities.Resource.resource_identity:type_name -> terraform1.stacks.DynamicValue
-	48,  // 144: terraform1.stacks.Stacks.OpenStackConfiguration:input_type -> terraform1.stacks.OpenStackConfiguration.Request
-	50,  // 145: terraform1.stacks.Stacks.CloseStackConfiguration:input_type -> terraform1.stacks.CloseStackConfiguration.Request
-	52,  // 146: terraform1.stacks.Stacks.ValidateStackConfiguration:input_type -> terraform1.stacks.ValidateStackConfiguration.Request
-	54,  // 147: terraform1.stacks.Stacks.FindStackConfigurationComponents:input_type -> terraform1.stacks.FindStackConfigurationComponents.Request
-	68,  // 148: terraform1.stacks.Stacks.OpenState:input_type -> terraform1.stacks.OpenStackState.RequestItem
-	70,  // 149: terraform1.stacks.Stacks.CloseState:input_type -> terraform1.stacks.CloseStackState.Request
-	72,  // 150: terraform1.stacks.Stacks.PlanStackChanges:input_type -> terraform1.stacks.PlanStackChanges.Request
-	76,  // 151: terraform1.stacks.Stacks.OpenPlan:input_type -> terraform1.stacks.OpenStackPlan.RequestItem
-	78,  // 152: terraform1.stacks.Stacks.ClosePlan:input_type -> terraform1.stacks.CloseStackPlan.Request
-	80,  // 153: terraform1.stacks.Stacks.ApplyStackChanges:input_type -> terraform1.stacks.ApplyStackChanges.Request
-	83,  // 154: terraform1.stacks.Stacks.OpenStackInspector:input_type -> terraform1.stacks.OpenStackInspector.Request
-	87,  // 155: terraform1.stacks.Stacks.InspectExpressionResult:input_type -> terraform1.stacks.InspectExpressionResult.Request
-	39,  // 156: terraform1.stacks.Stacks.OpenTerraformState:input_type -> terraform1.stacks.OpenTerraformState.Request
-	41,  // 157: terraform1.stacks.Stacks.CloseTerraformState:input_type -> terraform1.stacks.CloseTerraformState.Request
-	43,  // 158: terraform1.stacks.Stacks.MigrateTerraformState:input_type -> terraform1.stacks.MigrateTerraformState.Request
-	126, // 159: terraform1.stacks.Stacks.ListResourceIdentities:input_type -> terraform1.stacks.ListResourceIdentities.Request
-	49,  // 160: terraform1.stacks.Stacks.OpenStackConfiguration:output_type -> terraform1.stacks.OpenStackConfiguration.Response
-	51,  // 161: terraform1.stacks.Stacks.CloseStackConfiguration:output_type -> terraform1.stacks.CloseStackConfiguration.Response
-	53,  // 162: terraform1.stacks.Stacks.ValidateStackConfiguration:output_type -> terraform1.stacks.ValidateStackConfiguration.Response
-	55,  // 163: terraform1.stacks.Stacks.FindStackConfigurationComponents:output_type -> terraform1.stacks.FindStackConfigurationComponents.Response
-	69,  // 164: terraform1.stacks.Stacks.OpenState:output_type -> terraform1.stacks.OpenStackState.Response
-	71,  // 165: terraform1.stacks.Stacks.CloseState:output_type -> terraform1.stacks.CloseStackState.Response
-	73,  // 166: terraform1.stacks.Stacks.PlanStackChanges:output_type -> terraform1.stacks.PlanStackChanges.Event
-	77,  // 167: terraform1.stacks.Stacks.OpenPlan:output_type -> terraform1.stacks.OpenStackPlan.Response
-	79,  // 168: terraform1.stacks.Stacks.ClosePlan:output_type -> terraform1.stacks.CloseStackPlan.Response
-	81,  // 169: terraform1.stacks.Stacks.ApplyStackChanges:output_type -> terraform1.stacks.ApplyStackChanges.Event
-	84,  // 170: terraform1.stacks.Stacks.OpenStackInspector:output_type -> terraform1.stacks.OpenStackInspector.Response
-	88,  // 171: terraform1.stacks.Stacks.InspectExpressionResult:output_type -> terraform1.stacks.InspectExpressionResult.Response
-	40,  // 172: terraform1.stacks.Stacks.OpenTerraformState:output_type -> terraform1.stacks.OpenTerraformState.Response
-	42,  // 173: terraform1.stacks.Stacks.CloseTerraformState:output_type -> terraform1.stacks.CloseTerraformState.Response
-	44,  // 174: terraform1.stacks.Stacks.MigrateTerraformState:output_type -> terraform1.stacks.MigrateTerraformState.Event
-	127, // 175: terraform1.stacks.Stacks.ListResourceIdentities:output_type -> terraform1.stacks.ListResourceIdentities.Response
-	160, // [160:176] is the sub-list for method output_type
-	144, // [144:160] is the sub-list for method input_type
-	144, // [144:144] is the sub-list for extension type_name
-	144, // [144:144] is the sub-list for extension extendee
-	0,   // [0:144] is the sub-list for field type_name
+	118, // 134: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	119, // 135: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
+	31,  // 136: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
+	118, // 137: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	119, // 138: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
+	32,  // 139: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	6,   // 140: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
+	33,  // 141: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	120, // 142: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
+	33,  // 143: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
+	30,  // 144: terraform1.stacks.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
+	32,  // 145: terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	128, // 146: terraform1.stacks.ListResourceIdentities.Response.resource:type_name -> terraform1.stacks.ListResourceIdentities.Resource
+	26,  // 147: terraform1.stacks.ListResourceIdentities.Resource.resource_identity:type_name -> terraform1.stacks.DynamicValue
+	48,  // 148: terraform1.stacks.Stacks.OpenStackConfiguration:input_type -> terraform1.stacks.OpenStackConfiguration.Request
+	50,  // 149: terraform1.stacks.Stacks.CloseStackConfiguration:input_type -> terraform1.stacks.CloseStackConfiguration.Request
+	52,  // 150: terraform1.stacks.Stacks.ValidateStackConfiguration:input_type -> terraform1.stacks.ValidateStackConfiguration.Request
+	54,  // 151: terraform1.stacks.Stacks.FindStackConfigurationComponents:input_type -> terraform1.stacks.FindStackConfigurationComponents.Request
+	68,  // 152: terraform1.stacks.Stacks.OpenState:input_type -> terraform1.stacks.OpenStackState.RequestItem
+	70,  // 153: terraform1.stacks.Stacks.CloseState:input_type -> terraform1.stacks.CloseStackState.Request
+	72,  // 154: terraform1.stacks.Stacks.PlanStackChanges:input_type -> terraform1.stacks.PlanStackChanges.Request
+	76,  // 155: terraform1.stacks.Stacks.OpenPlan:input_type -> terraform1.stacks.OpenStackPlan.RequestItem
+	78,  // 156: terraform1.stacks.Stacks.ClosePlan:input_type -> terraform1.stacks.CloseStackPlan.Request
+	80,  // 157: terraform1.stacks.Stacks.ApplyStackChanges:input_type -> terraform1.stacks.ApplyStackChanges.Request
+	83,  // 158: terraform1.stacks.Stacks.OpenStackInspector:input_type -> terraform1.stacks.OpenStackInspector.Request
+	87,  // 159: terraform1.stacks.Stacks.InspectExpressionResult:input_type -> terraform1.stacks.InspectExpressionResult.Request
+	39,  // 160: terraform1.stacks.Stacks.OpenTerraformState:input_type -> terraform1.stacks.OpenTerraformState.Request
+	41,  // 161: terraform1.stacks.Stacks.CloseTerraformState:input_type -> terraform1.stacks.CloseTerraformState.Request
+	43,  // 162: terraform1.stacks.Stacks.MigrateTerraformState:input_type -> terraform1.stacks.MigrateTerraformState.Request
+	126, // 163: terraform1.stacks.Stacks.ListResourceIdentities:input_type -> terraform1.stacks.ListResourceIdentities.Request
+	49,  // 164: terraform1.stacks.Stacks.OpenStackConfiguration:output_type -> terraform1.stacks.OpenStackConfiguration.Response
+	51,  // 165: terraform1.stacks.Stacks.CloseStackConfiguration:output_type -> terraform1.stacks.CloseStackConfiguration.Response
+	53,  // 166: terraform1.stacks.Stacks.ValidateStackConfiguration:output_type -> terraform1.stacks.ValidateStackConfiguration.Response
+	55,  // 167: terraform1.stacks.Stacks.FindStackConfigurationComponents:output_type -> terraform1.stacks.FindStackConfigurationComponents.Response
+	69,  // 168: terraform1.stacks.Stacks.OpenState:output_type -> terraform1.stacks.OpenStackState.Response
+	71,  // 169: terraform1.stacks.Stacks.CloseState:output_type -> terraform1.stacks.CloseStackState.Response
+	73,  // 170: terraform1.stacks.Stacks.PlanStackChanges:output_type -> terraform1.stacks.PlanStackChanges.Event
+	77,  // 171: terraform1.stacks.Stacks.OpenPlan:output_type -> terraform1.stacks.OpenStackPlan.Response
+	79,  // 172: terraform1.stacks.Stacks.ClosePlan:output_type -> terraform1.stacks.CloseStackPlan.Response
+	81,  // 173: terraform1.stacks.Stacks.ApplyStackChanges:output_type -> terraform1.stacks.ApplyStackChanges.Event
+	84,  // 174: terraform1.stacks.Stacks.OpenStackInspector:output_type -> terraform1.stacks.OpenStackInspector.Response
+	88,  // 175: terraform1.stacks.Stacks.InspectExpressionResult:output_type -> terraform1.stacks.InspectExpressionResult.Response
+	40,  // 176: terraform1.stacks.Stacks.OpenTerraformState:output_type -> terraform1.stacks.OpenTerraformState.Response
+	42,  // 177: terraform1.stacks.Stacks.CloseTerraformState:output_type -> terraform1.stacks.CloseTerraformState.Response
+	44,  // 178: terraform1.stacks.Stacks.MigrateTerraformState:output_type -> terraform1.stacks.MigrateTerraformState.Event
+	127, // 179: terraform1.stacks.Stacks.ListResourceIdentities:output_type -> terraform1.stacks.ListResourceIdentities.Response
+	164, // [164:180] is the sub-list for method output_type
+	148, // [148:164] is the sub-list for method input_type
+	148, // [148:148] is the sub-list for extension type_name
+	148, // [148:148] is the sub-list for extension extendee
+	0,   // [0:148] is the sub-list for field type_name
 }
 
 func init() { file_stacks_proto_init() }
@@ -8278,6 +8384,14 @@ func file_stacks_proto_init() {
 	file_stacks_proto_msgTypes[104].OneofWrappers = []any{
 		(*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger)(nil),
 		(*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger)(nil),
+	}
+	file_stacks_proto_msgTypes[105].OneofWrappers = []any{
+		(*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger)(nil),
+		(*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger)(nil),
+	}
+	file_stacks_proto_msgTypes[106].OneofWrappers = []any{
+		(*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger)(nil),
+		(*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
