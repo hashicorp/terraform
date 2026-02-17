@@ -535,21 +535,21 @@ func mustAbsActionInvocationInstance(addr string) stackaddrs.AbsActionInvocation
 	if len(parts) < 5 || parts[2] != "action" {
 		panic(fmt.Sprintf("invalid action invocation instance address format %q", addr))
 	}
-	
+
 	// Extract component part: component.instance
 	compAddr := strings.Join(parts[:2], ".")
 	comp, diags := stackaddrs.ParsePartialComponentInstanceStr(compAddr)
 	if len(diags) > 0 {
 		panic(fmt.Sprintf("failed to parse component address from %q: %s", addr, diags))
 	}
-	
+
 	// Extract action part: action.type.name
 	actionStr := strings.Join(parts[2:], ".")
 	actionAddr, moreDiags := addrs.ParseAbsActionInstanceStr(actionStr)
 	if len(moreDiags) > 0 {
 		panic(fmt.Sprintf("failed to parse action address from %q: %s", addr, moreDiags))
 	}
-	
+
 	return stackaddrs.AbsActionInvocationInstance{
 		Component: comp,
 		Item:      actionAddr,
