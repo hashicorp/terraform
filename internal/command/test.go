@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -260,8 +259,8 @@ type TestRunnerSetup struct {
 	Args          *arguments.Test
 	View          views.Test
 	Config        *configs.Config
-	Variables     map[string]backendrun.UnparsedVariableValue
-	TestVariables map[string]backendrun.UnparsedVariableValue
+	Variables     map[string]arguments.UnparsedVariableValue
+	TestVariables map[string]arguments.UnparsedVariableValue
 	Opts          *terraform.ContextOpts
 }
 

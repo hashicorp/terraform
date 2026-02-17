@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
@@ -43,7 +43,7 @@ type EvalContext struct {
 	// required by this test file. The parsedVariables will be populated as the
 	// test graph is executed, while the unparsedVariables will be lazily
 	// evaluated by each run block that needs them.
-	unparsedVariables map[string]backendrun.UnparsedVariableValue
+	unparsedVariables map[string]arguments.UnparsedVariableValue
 	parsedVariables   terraform.InputValues
 	variableStatus    map[string]moduletest.Status
 	variablesLock     sync.Mutex
@@ -102,7 +102,7 @@ type EvalContextOpts struct {
 	Render            views.Test
 	CancelCtx         context.Context
 	StopCtx           context.Context
-	UnparsedVariables map[string]backendrun.UnparsedVariableValue
+	UnparsedVariables map[string]arguments.UnparsedVariableValue
 	Config            *configs.Config
 	FileStates        map[string]*teststates.TestRunState
 	Concurrency       int

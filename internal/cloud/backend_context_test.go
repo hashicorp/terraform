@@ -253,12 +253,12 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 	varValue3 := "value3"
 
 	tests := map[string]struct {
-		localVariables    map[string]backendrun.UnparsedVariableValue
+		localVariables    map[string]arguments.UnparsedVariableValue
 		remoteVariables   []*tfe.VariableCreateOptions
 		expectedVariables terraform.InputValues
 	}{
 		"no local variables": {
-			map[string]backendrun.UnparsedVariableValue{},
+			map[string]arguments.UnparsedVariableValue{},
 			[]*tfe.VariableCreateOptions{
 				{
 					Key:      &varName1,
@@ -307,7 +307,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"single conflicting local variable": {
-			map[string]backendrun.UnparsedVariableValue{
+			map[string]arguments.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{
@@ -356,7 +356,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"no conflicting local variable": {
-			map[string]backendrun.UnparsedVariableValue{
+			map[string]arguments.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{

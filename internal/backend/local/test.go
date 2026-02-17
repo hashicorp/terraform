@@ -12,7 +12,7 @@ import (
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -39,8 +39,8 @@ type TestSuiteRunner struct {
 
 	// Global variables comes from the main configuration directory,
 	// and the Global Test Variables are loaded from the test directory.
-	GlobalVariables     map[string]backendrun.UnparsedVariableValue
-	GlobalTestVariables map[string]backendrun.UnparsedVariableValue
+	GlobalVariables     map[string]arguments.UnparsedVariableValue
+	GlobalTestVariables map[string]arguments.UnparsedVariableValue
 
 	Opts *terraform.ContextOpts
 
@@ -120,7 +120,7 @@ func (runner *TestSuiteRunner) Test(experimentsAllowed bool) (moduletest.Status,
 	// Test files in the root directory have access to the GlobalVariables only,
 	// while test files in the test directory have access to the union of
 	// GlobalVariables and GlobalTestVariables.
-	testDirectoryGlobalVariables := make(map[string]backendrun.UnparsedVariableValue)
+	testDirectoryGlobalVariables := make(map[string]arguments.UnparsedVariableValue)
 	maps.Copy(testDirectoryGlobalVariables, runner.GlobalVariables)
 	// We're okay to overwrite the global variables in case of name
 	// collisions, as the test directory variables should take precedence.
@@ -235,7 +235,7 @@ type TestFileRunner struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
 	Suite                        *TestSuiteRunner
-	TestDirectoryGlobalVariables map[string]backendrun.UnparsedVariableValue
+	TestDirectoryGlobalVariables map[string]arguments.UnparsedVariableValue
 	Manifest                     *teststates.TestManifest
 }
 

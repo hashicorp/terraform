@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -263,7 +264,7 @@ func (b *Local) opApply(
 		// depends on how they were declared, and is subject to compatibility
 		// constraints. Collect any suspect values as we go, and then use the
 		// same parsing logic from the plan to generate the diagnostics.
-		undeclaredVariables := map[string]backendrun.UnparsedVariableValue{}
+		undeclaredVariables := map[string]arguments.UnparsedVariableValue{}
 
 		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables)
 

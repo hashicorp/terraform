@@ -25,6 +25,7 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -624,9 +625,9 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 	}, tfdiags.Diagnostics{}
 }
 
-// testVariable returns a backendrun.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
-	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
+// testVariable returns a arguments.UnparsedVariableValue used for testing.
+func testVariables(s terraform.ValueSourceType, vs ...string) map[string]arguments.UnparsedVariableValue {
+	vars := make(map[string]arguments.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{
 			value:  v,
