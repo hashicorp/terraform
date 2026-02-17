@@ -818,6 +818,7 @@ func (m *Meta) SetWorkspace(name string) error {
 }
 
 // isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+// TODO: remove here
 func isAutoVarFile(path string) bool {
 	return strings.HasSuffix(path, ".auto.tfvars") ||
 		strings.HasSuffix(path, ".auto.tfvars.json")
