@@ -3041,7 +3041,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
-		expectMsg := "not present in the lockfile"
+		expectMsg := "The provider dependency used for state storage is missing from the lock file despite being present in the current configuration"
 		if !strings.Contains(diags.Err().Error(), expectMsg) {
 			t.Fatalf("expected error to include %q but got: %s",
 				expectMsg,
