@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/oss
 
-go 1.25
+go 1.25.7
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501
