@@ -575,17 +575,6 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// ignoreRemoteVersionFlagSet add the ignore-remote version flag to suppress
-// the error when the configured Terraform version on the remote workspace
-// does not match the local Terraform version.
-func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
-	f := m.defaultFlagSet(n)
-
-	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
-
-	return f
-}
-
 // extendedFlagSet adds custom flags that are mostly used by commands
 // that are used to run an operation like plan or apply.
 func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
