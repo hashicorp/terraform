@@ -527,6 +527,35 @@ func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
 	return ret
 }
 
+func mustAbsActionInvocationInstance(addr string) stackaddrs.AbsActionInvocationInstance {
+	// Parse as "component.instance.action.type.name" format
+	// E.g., "component.self.action.local_exec.example"
+	// For simplicity, we'll construct it manually - in a real scenario you'd need proper parsing
+	parts := strings.Split(addr, ".")
+	if len(parts) < 5 || parts[2] != "action" {
+		panic(fmt.Sprintf("invalid action invocation instance address format %q", addr))
+	}
+	
+	// Extract component part: component.instance
+	compAddr := strings.Join(parts[:2], ".")
+	comp, diags := stackaddrs.ParsePartialComponentInstanceStr(compAddr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse component address from %q: %s", addr, diags))
+	}
+	
+	// Extract action part: action.type.name
+	actionStr := strings.Join(parts[2:], ".")
+	actionAddr, moreDiags := addrs.ParseAbsActionInstanceStr(actionStr)
+	if len(moreDiags) > 0 {
+		panic(fmt.Sprintf("failed to parse action address from %q: %s", addr, moreDiags))
+	}
+	
+	return stackaddrs.AbsActionInvocationInstance{
+		Component: comp,
+		Item:      actionAddr,
+	}
+}
+
 func mustAbsComponent(addr string) stackaddrs.AbsComponent {
 	ret, diags := stackaddrs.ParsePartialComponentInstanceStr(addr)
 	if len(diags) > 0 {

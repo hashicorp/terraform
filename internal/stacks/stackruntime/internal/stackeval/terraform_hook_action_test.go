@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package stackeval
 
 import (
@@ -40,11 +43,20 @@ func TestActionHookForwarding(t *testing.T) {
 	}
 
 	// Prepare a HookActionIdentity with an invoke trigger
+	actionAddr := addrs.AbsActionInstance{}
 	id := terraform.HookActionIdentity{
-		Addr:          addrs.AbsActionInstance{},
+		Addr:          actionAddr,
 		ActionTrigger: &plans.InvokeActionTrigger{},
-		ProviderAddr:  addrs.AbsProviderConfig{},
 	}
+
+	// Pre-populate the provider address map
+	providerAddr := addrs.Provider{
+		Type:      "test",
+		Namespace: "hashicorp",
+		Hostname:  "registry.terraform.io",
+	}
+	c.actionInvocationProviderAddr = addrs.MakeMap[addrs.AbsActionInstance, addrs.Provider]()
+	c.actionInvocationProviderAddr.Put(actionAddr, providerAddr)
 
 	// StartAction should trigger a status hook with "Running" status
 	_, _ = c.StartAction(id)
