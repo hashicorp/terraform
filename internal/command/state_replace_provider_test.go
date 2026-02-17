@@ -225,7 +225,7 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Error parsing command-line flags"; !strings.Contains(got, want) {
+		if got, want := ui.ErrorWriter.String(), "Failed to parse command-line flags"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	})

@@ -22,33 +22,24 @@ type TaintCommand struct {
 	Meta
 }
 
-func (c *TaintCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var allowMissing bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("taint")
-	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "allow missing")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *TaintCommand) Run(rawArgs []string) int {
+	parsedArgs, parseDiags := arguments.ParseTaint(c.Meta.process(rawArgs))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
 		return 1
 	}
+
+	// Copy parsed flags to Meta
+	c.Meta.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.Meta.statePath = parsedArgs.StatePath
+	c.Meta.stateOutPath = parsedArgs.StateOutPath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
 	var diags tfdiags.Diagnostics
 
-	// Require the one argument for the resource to taint
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("The taint command expects exactly one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
-
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	diags = diags.Append(addrDiags)
 	if addrDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -117,7 +108,7 @@ func (c *TaintCommand) Run(args []string) int {
 	// Get the actual state structure
 	state := stateMgr.State()
 	if state.Empty() {
-		if allowMissing {
+		if parsedArgs.AllowMissing {
 			return c.allowMissingExit(addr)
 		}
 
@@ -144,7 +135,7 @@ func (c *TaintCommand) Run(args []string) int {
 	rs := ss.Resource(addr.ContainingResource())
 	is := ss.ResourceInstance(addr)
 	if is == nil {
-		if allowMissing {
+		if parsedArgs.AllowMissing {
 			return c.allowMissingExit(addr)
 		}
 
