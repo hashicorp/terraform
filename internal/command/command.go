@@ -35,6 +35,7 @@ const DefaultStateFilename = "terraform.tfstate"
 const DefaultStatePersistInterval = 20
 
 // DefaultVarsFilename is the default filename used for vars
+// TODO: Remove here
 const DefaultVarsFilename = "terraform.tfvars"
 
 // DefaultBackupExtension is added to the state file to form the path
