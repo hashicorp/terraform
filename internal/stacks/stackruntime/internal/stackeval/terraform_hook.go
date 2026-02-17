@@ -61,19 +61,27 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 }
 
 func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanning
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanning,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
 
 func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanned
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanned,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
@@ -227,7 +235,7 @@ func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIden
 	return terraform.HookActionContinue, nil
 }
 
-// ProgressAction fires for intermediate diagnostic messages (NO status changes)
+// ProgressAction fires for intermediate diagnostic messages from the provider.
 func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
 	ai := h.actionInvocationFromHookActionIdentity(id)
 	providerAddr, ok := h.actionInvocationProviderAddr.GetOk(id.Addr)
@@ -235,6 +243,8 @@ func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionI
 		// Should not happen - actions should be pre-registered
 		return terraform.HookActionContinue, nil
 	}
+
+	// Always report progress message
 	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationProgress, &hooks.ActionInvocationProgressHookData{
 		Addr:         ai.Addr,
 		ProviderAddr: providerAddr,

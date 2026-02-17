@@ -1226,6 +1226,56 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationStatus: func(ctx context.Context, span any, statusData *hooks.ActionInvocationStatusHookData) any {
+			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
+				attribute.String("component_instance", statusData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", statusData.Addr.Item.String()),
+				attribute.String("status", statusData.Status.String()),
+			))
+
+			providerAddr := ""
+			if !statusData.ProviderAddr.IsZero() {
+				providerAddr = statusData.ProviderAddr.String()
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
+					ActionInvocationStatus: &stacks.StackChangeProgress_ActionInvocationStatus{
+						Addr:         stacks.NewActionInvocationInStackAddr(statusData.Addr),
+						Status:       statusData.Status.ForProtobuf(),
+						ProviderAddr: providerAddr,
+					},
+				},
+			})
+
+			return span
+		},
+
+		ReportActionInvocationProgress: func(ctx context.Context, span any, progressData *hooks.ActionInvocationProgressHookData) any {
+			span.(trace.Span).AddEvent("action invocation progress", trace.WithAttributes(
+				attribute.String("component_instance", progressData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", progressData.Addr.Item.String()),
+				attribute.String("message", progressData.Message),
+			))
+
+			providerAddr := ""
+			if !progressData.ProviderAddr.IsZero() {
+				providerAddr = progressData.ProviderAddr.String()
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationProgress_{
+					ActionInvocationProgress: &stacks.StackChangeProgress_ActionInvocationProgress{
+						Addr:         stacks.NewActionInvocationInStackAddr(progressData.Addr),
+						Message:      progressData.Message,
+						ProviderAddr: providerAddr,
+					},
+				},
+			})
+
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
