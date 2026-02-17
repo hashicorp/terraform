@@ -86,12 +86,19 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Collect variable value and add them to the operation request
-	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
-	if diags.HasErrors() {
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
 		view.Diagnostics(diags)
 		return 1
 	}
+
+	// Collect variable value and add them to the operation request
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -179,28 +186,6 @@ func (c *PlanCommand) OperationRequest(
 	}
 
 	return opReq, diags
-}
-
-func (c *PlanCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// FIXME the arguments package currently trivially gathers variable related
-	// arguments in a heterogenous slice, in order to minimize the number of
-	// code paths gathering variables during the transition to this structure.
-	// Once all commands that gather variables have been converted to this
-	// structure, we could move the variable gathering code to the arguments
-	// package directly, removing this shim layer.
-
-	varArgs := args.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
-	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-	opReq.Variables, diags = c.collectVariableValues()
-
-	return diags
 }
 
 func (c *PlanCommand) Help() string {
