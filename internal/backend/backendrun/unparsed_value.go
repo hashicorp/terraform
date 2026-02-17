@@ -9,25 +9,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// UnparsedVariableValue represents a variable value provided by the caller
-// whose parsing must be deferred until configuration is available.
-//
-// This exists to allow processing of variable-setting arguments (e.g. in the
-// command package) to be separated from parsing (in the backend package).
-type UnparsedVariableValue interface {
-	// ParseVariableValue information in the provided variable configuration
-	// to parse (if necessary) and return the variable value encapsulated in
-	// the receiver.
-	//
-	// If error diagnostics are returned, the resulting value may be invalid
-	// or incomplete.
-	ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics)
-}
 
 // ParseUndeclaredVariableValues processes a map of unparsed variable values
 // and returns an input values map of the ones not declared in the specified
@@ -35,7 +21,7 @@ type UnparsedVariableValue interface {
 // variables being present, depending on the source of these values. If more
 // than two undeclared values are present in file form (config, auto, -var-file)
 // the remaining errors are summarized to avoid a massive list of errors.
-func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 	seenUndeclaredInFile := 0
@@ -106,7 +92,7 @@ func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls ma
 // and returns an input values map of the ones declared in the specified
 // variable declaration mapping. Diagnostics will be populating with
 // any variable parsing errors encountered within this collection.
-func ParseDeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseDeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 
@@ -160,7 +146,7 @@ func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 // InputValues may be incomplete but will include the subset of variables
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
-func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	ret, diags := ParseDeclaredVariableValues(vv, decls)
 	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 

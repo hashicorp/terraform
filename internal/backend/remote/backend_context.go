@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -120,7 +121,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 			}
 			if tfeVariables != nil {
 				if op.Variables == nil {
-					op.Variables = make(map[string]backendrun.UnparsedVariableValue)
+					op.Variables = make(map[string]arguments.UnparsedVariableValue)
 				}
 				for _, v := range tfeVariables.Items {
 					if v.Category == tfe.CategoryTerraform {
@@ -188,7 +189,7 @@ func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName st
 	return remoteWorkspace.ID, nil
 }
 
-func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
+func stubAllVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
 	ret := make(terraform.InputValues, len(decls))
 
 	for name, cfg := range decls {
@@ -222,7 +223,7 @@ type remoteStoredVariableValue struct {
 	definition *tfe.Variable
 }
 
-var _ backendrun.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
+var _ arguments.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
 
 func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
