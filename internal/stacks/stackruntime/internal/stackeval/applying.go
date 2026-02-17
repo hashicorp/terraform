@@ -129,14 +129,11 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	// Fire PENDING status for all planned action invocations
 	// These actions are queued and ready to execute during the apply phase
-	if stackPlan != nil && stackPlan.ActionInvocations.Len() > 0 {
-		for _, elem := range stackPlan.ActionInvocations.Elems {
-			actionAddr := elem.Key
-			action := elem.Value
-
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		for _, action := range plan.Changes.ActionInvocations {
 			absActionAddr := stackaddrs.AbsActionInvocationInstance{
 				Component: inst.Addr(),
-				Item:      actionAddr,
+				Item:      action.Addr,
 			}
 
 			hookMore(ctx, seq, h.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
@@ -194,6 +191,15 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		hooks: hooksFromContext(ctx),
 		addr:  inst.Addr(),
 	}
+
+	// Populate action invocation provider address map for hook callbacks
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		tfHook.actionInvocationProviderAddr = addrs.MakeMap[addrs.AbsActionInstance, addrs.Provider]()
+		for _, action := range plan.Changes.ActionInvocations {
+			tfHook.actionInvocationProviderAddr.Put(action.Addr, action.ProviderAddr.Provider)
+		}
+	}
+
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
 			tfHook,
