@@ -4820,7 +4820,7 @@ func TestInit_uninitialized_stateStore(t *testing.T) {
 	})
 
 	t.Run("the error isn't shown if the provider is supplied through reattach config", func(t *testing.T) {
-		t.Skip("This is implemented as an E2E test: TestPrimary_stateStore_Unmanaged_SeparatePlan")
+		t.Skip("This is implemented as an E2E test: TestPrimary_stateStore_unmanaged_separatePlan")
 	})
 }
 
