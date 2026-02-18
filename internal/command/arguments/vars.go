@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -171,6 +173,60 @@ func (v *Vars) CollectValues(onFileLoad func(filename string, src []byte)) (map[
 			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", flagNameValue.Name))
 		}
 	}
+
+	return ret, diags
+}
+
+func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string, src []byte)) (map[string]UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := map[string]UnparsedVariableValue{}
+
+	// We collect the variables from the ./tests directory
+	// there is no other need to process environmental variables
+	// as this is done via collectVariableValues function
+	if testsFilePath == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Missing test directory",
+			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret, diags
+	}
+
+	// Firstly we collect variables from .tfvars file
+	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
+	if _, err := os.Stat(testVarsFilename); err == nil {
+		moreDiags := addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret, onFileLoad)
+		diags = diags.Append(moreDiags)
+
+	}
+
+	// Then we collect variables from .tfvars.json file
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
+
+	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
+		moreDiags := addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret, onFileLoad)
+		diags = diags.Append(moreDiags)
+	}
+
+	// Also, load any variables from the *.auto.tfvars files.
+	if infos, err := os.ReadDir(testsFilePath); err == nil {
+		for _, info := range infos {
+			if info.IsDir() {
+				continue
+			}
+
+			if !isAutoVarFile(info.Name()) {
+				continue
+			}
+
+			moreDiags := addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, ret, onFileLoad)
+			diags = diags.Append(moreDiags)
+		}
+	}
+
+	// Also, no need to additionally process variables from command line,
+	// as this is also done via collectVariableValues
 
 	return ret, diags
 }
