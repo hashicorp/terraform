@@ -392,8 +392,19 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	preparation.TestVariables, moreDiags = m.collectVariableValuesForTests(preparation.Args.TestDirectory)
 	diags = diags.Append(moreDiags)
 
-	preparation.Variables, moreDiags = m.collectVariableValues()
-	diags = diags.Append(moreDiags)
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	// Collect variable value and add them to the operation request
+	var varDiags tfdiags.Diagnostics
+	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return
