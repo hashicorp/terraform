@@ -27,31 +27,34 @@ type ConsoleCommand struct {
 }
 
 func (c *ConsoleCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var evalFromPlan bool
-	cmdFlags := c.Meta.extendedFlagSet("console")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.BoolVar(&evalFromPlan, "plan", false, "evaluate from plan")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseConsole(c.Meta.process(args))
+
+	// Copy parsed flags back to Meta
+	c.Meta.statePath = parsedArgs.StatePath
+	c.Meta.input = parsedArgs.InputEnabled
+	c.Meta.compactWarnings = parsedArgs.CompactWarnings
+	c.Meta.targetFlags = parsedArgs.TargetFlags
+
+	varItems := parsedArgs.Vars.All()
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{
+		FlagName: "-var",
+		Items:    &varItems,
+	}
+
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		c.Ui.Error(c.Help())
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	configPath = c.Meta.normalizePath(configPath)
+	configPath := c.Meta.normalizePath(parsedArgs.ConfigPath)
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	b, backendDiags := c.backend(configPath, arguments.ViewHuman)
@@ -116,7 +119,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	var scope *lang.Scope
-	if evalFromPlan {
+	if parsedArgs.EvalFromPlan {
 		var planDiags tfdiags.Diagnostics
 		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(planDiags)
