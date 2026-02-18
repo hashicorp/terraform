@@ -35,12 +35,6 @@ func (c *ConsoleCommand) Run(args []string) int {
 	c.Meta.compactWarnings = parsedArgs.CompactWarnings
 	c.Meta.targetFlags = parsedArgs.TargetFlags
 
-	varItems := parsedArgs.Vars.All()
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{
-		FlagName: "-var",
-		Items:    &varItems,
-	}
-
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -86,10 +80,21 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	{
-		var moreDiags tfdiags.Diagnostics
-		opReq.Variables, moreDiags = c.collectVariableValues()
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
+
+		loader, err := c.initConfigLoader()
+		if err != nil {
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		// Collect variable value and add them to the operation request
+		var varDiags tfdiags.Diagnostics
+		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+			loader.Parser().ForceFileSource(filename, src)
+		})
+		diags = diags.Append(varDiags)
+		if varDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
