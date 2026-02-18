@@ -6,6 +6,7 @@ package arguments
 import (
 	"fmt"
 	"io/ioutil"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -109,12 +110,14 @@ func (v *Vars) CollectValues(onFileLoad func(filename string, src []byte)) (map[
 	// (DefaultVarsFilename) along with the later-added search for all files
 	// ending in .auto.tfvars.
 	if _, err := os.Stat(DefaultVarsFilename); err == nil {
-		moreDiags := addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, ret, onFileLoad)
+		varsFromFile, moreDiags := addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 	}
 	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
 	if _, err := os.Stat(defaultVarsFilenameJSON); err == nil {
-		moreDiags := addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, ret, onFileLoad)
+		varsFromFile, moreDiags := addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
@@ -124,7 +127,8 @@ func (v *Vars) CollectValues(onFileLoad func(filename string, src []byte)) (map[
 			if !isAutoVarFile(name) {
 				continue
 			}
-			moreDiags := addVarsFromFile(name, terraform.ValueFromAutoFile, ret, onFileLoad)
+			varsFromFile, moreDiags := addVarsFromFile(name, terraform.ValueFromAutoFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
 			diags = diags.Append(moreDiags)
 		}
 	}
@@ -164,7 +168,8 @@ func (v *Vars) CollectValues(onFileLoad func(filename string, src []byte)) (map[
 			}
 
 		case "-var-file":
-			moreDiags := addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, ret, onFileLoad)
+			varsFromFile, moreDiags := addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
 			diags = diags.Append(moreDiags)
 
 		default:
@@ -195,7 +200,8 @@ func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string
 	// Firstly we collect variables from .tfvars file
 	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
 	if _, err := os.Stat(testVarsFilename); err == nil {
-		moreDiags := addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret, onFileLoad)
+		varsFromFile, moreDiags := addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 
 	}
@@ -205,7 +211,8 @@ func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string
 	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
 
 	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
-		moreDiags := addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret, onFileLoad)
+		varsFromFile, moreDiags := addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 	}
 
@@ -220,7 +227,8 @@ func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string
 				continue
 			}
 
-			moreDiags := addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, ret, onFileLoad)
+			varsFromFile, moreDiags := addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
 			diags = diags.Append(moreDiags)
 		}
 	}
@@ -231,8 +239,8 @@ func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string
 	return ret, diags
 }
 
-// TODO: Can I get around mutating the to map efficiently?
-func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]UnparsedVariableValue, onFileLoad func(filename string, src []byte)) tfdiags.Diagnostics {
+func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, onFileLoad func(filename string, src []byte)) (map[string]UnparsedVariableValue, tfdiags.Diagnostics) {
+	to := map[string]UnparsedVariableValue{}
 	var diags tfdiags.Diagnostics
 
 	src, err := ioutil.ReadFile(filename)
@@ -250,7 +258,7 @@ func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to m
 				fmt.Sprintf("Error while reading %s: %s.", filename, err),
 			))
 		}
-		return diags
+		return to, diags
 	}
 
 	// Record the file source code for snippets in diagnostic messages.
@@ -262,14 +270,14 @@ func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to m
 		f, hclDiags = hcljson.Parse(src, filename)
 		diags = diags.Append(hclDiags)
 		if f == nil || f.Body == nil {
-			return diags
+			return to, diags
 		}
 	} else {
 		var hclDiags hcl.Diagnostics
 		f, hclDiags = hclsyntax.ParseConfig(src, filename, hcl.Pos{Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if f == nil || f.Body == nil {
-			return diags
+			return to, diags
 		}
 	}
 
@@ -300,7 +308,7 @@ func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to m
 			// If we already found problems then JustAttributes below will find
 			// the same problems with less-helpful messages, so we'll bail for
 			// now to let the user focus on the immediate problem.
-			return diags
+			return to, diags
 		}
 	}
 
@@ -313,7 +321,7 @@ func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to m
 			sourceType: sourceType,
 		}
 	}
-	return diags
+	return to, diags
 }
 
 // unparsedVariableValueLiteral is a backendrun.UnparsedVariableValue
