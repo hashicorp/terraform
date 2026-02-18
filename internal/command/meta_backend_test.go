@@ -2315,10 +2315,9 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 
 			// Get the operations backend
 			_, err := m.Backend(&BackendOpts{
-				Init:                 true,
-				StateStoreConfig:     mod.StateStore,
-				ProviderRequirements: mod.ProviderRequirements,
-				Locks:                locks,
+				Init:             true,
+				StateStoreConfig: mod.StateStore,
+				Locks:            locks,
 			})
 			if err == nil {
 				t.Fatal("should error")
@@ -2775,11 +2774,10 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
-			ConfigOverride:       configOverride,
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		mock := testStateStoreMock(t)
@@ -2835,10 +2833,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2864,10 +2861,9 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig:     config,
-			ProviderRequirements: &configs.RequiredProviders{},
-			Init:                 true,
-			Locks:                locks,
+			StateStoreConfig: config,
+			Init:             true,
+			Locks:            locks,
 		}
 
 		m := testMetaBackend(t, nil)
@@ -2890,6 +2886,66 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 				expectedSuggestion,
 				diags.Err(),
 			)
+		}
+	})
+
+	t.Run("error - locks are empty and the provider required by the state_store block isn't present", func(t *testing.T) {
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:            depsfile.NewLocks(), // empty!
+		}
+
+		mock := testStateStoreMock(t)
+
+		m := testMetaBackend(t, nil)
+		m.testingOverrides = metaOverridesForProvider(mock)
+		_, _, diags := m.stateStoreConfig(opts)
+		if !diags.HasErrors() {
+			t.Fatal("expected errors but got none")
+		}
+		expectedErrMsgs := []string{
+			"Inconsistent dependency lock file",
+			"- provider registry.terraform.io/hashicorp/test: required by this configuration but no version is selected",
+		}
+		for _, errMsg := range expectedErrMsgs {
+			if !strings.Contains(diags.Err().Error(), errMsg) {
+				t.Fatalf("expected the returned error to include %q, got: %s",
+					errMsg,
+					diags.Err(),
+				)
+			}
+		}
+	})
+
+	t.Run("ok - locks are empty but reattach config supplies the provider required by state_store block", func(t *testing.T) {
+		reattachConfig := `{
+				"hashicorp/test": {
+					"Protocol": "grpc",
+					"ProtocolVersion": 5,
+					"Pid": 12345,
+					"Test": true,
+					"Addr": {
+						"Network": "unix",
+						"String":"/var/folders/xx/abcde12345/T/plugin12345"
+					}
+				}
+			}`
+		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
+
+		opts := &BackendOpts{
+			StateStoreConfig: config,
+			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
+			Locks:            depsfile.NewLocks(), // empty!
+		}
+
+		mock := testStateStoreMock(t)
+
+		m := testMetaBackend(t, nil)
+		m.testingOverrides = metaOverridesForProvider(mock)
+		_, _, diags := m.stateStoreConfig(opts)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 	})
 }
@@ -2985,7 +3041,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
-		expectMsg := "not present in the lockfile"
+		expectMsg := "The provider dependency used for state storage is missing from the lock file despite being present in the current configuration"
 		if !strings.Contains(diags.Err().Error(), expectMsg) {
 			t.Fatalf("expected error to include %q but got: %s",
 				expectMsg,

@@ -61,8 +61,6 @@ type BackendOpts struct {
 	// the root module, or nil if no such block is present.
 	StateStoreConfig *configs.StateStore
 
-	ProviderRequirements *configs.RequiredProviders
-
 	// Locks allows state-migration logic to detect when the provider used for pluggable state storage
 	// during the last init (i.e. what's in the backend state file) is mismatched with the provider
 	// version in use currently.
@@ -801,35 +799,8 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 		return nil, 0, diags
 	}
 
-	if errs := c.VerifyDependencySelections(opts.Locks, opts.ProviderRequirements); len(errs) > 0 {
-		var buf strings.Builder
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n  - %s", err.Error())
-		}
-		var suggestion string
-		switch {
-		case opts.Locks == nil:
-			// If we get here then it suggests that there's a caller that we
-			// didn't yet update to populate DependencyLocks, which is a bug.
-			panic("This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!")
-		case opts.Locks.Empty():
-			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
-		default:
-			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
-				buf.String(), suggestion,
-			),
-		))
-		return nil, 0, diags
-	}
-
 	// Get the provider version from locks, as this impacts the hash
-	// NOTE: this assumes that we will never allow users to override config definint which provider is used for state storage
+	// NOTE: this assumes that we will never allow users to override config defining which provider is used for state storage
 	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks)
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
@@ -1935,11 +1906,21 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 			ViewType:      viewType,
 		}
 	case root.StateStore != nil:
+		// Check the provider for state storage is present, either via the dependency lock file or
+		// supplied via developer overrides, reattach config, or being built-in.
+		//
+		// Remember, the (Meta).backend method is used for non-init commands, so we expect dependency locks
+		// to be present or for the provider to be otherwise available, e.g. via reattach config.
+		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.ProviderRequirements)
+		diags = diags.Append(depsDiags)
+		if depsDiags.HasErrors() {
+			return nil, diags
+		}
+
 		opts = &BackendOpts{
-			StateStoreConfig:     root.StateStore,
-			ProviderRequirements: root.ProviderRequirements,
-			Locks:                locks,
-			ViewType:             viewType,
+			StateStoreConfig: root.StateStore,
+			Locks:            locks,
+			ViewType:         viewType,
 		}
 	default:
 		// there is no config; defaults to local state storage
@@ -2457,12 +2438,17 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 
 	pLock := locks.Provider(c.ProviderAddr)
 	if pLock == nil {
-		// This should never happen as the user would've already hit
-		// an error earlier prompting them to run init
-		diags = diags.Append(fmt.Errorf("The provider %s (%q) is not present in the lockfile, despite being used for state store %q. This is a bug in Terraform and should be reported.",
-			c.Provider.Name,
-			c.ProviderAddr,
-			c.Type))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(`The provider dependency used for state storage is missing from the lock file despite being present in the current configuration:
+  - provider %s: required by this configuration but no version is selected
+
+To make the initial dependency selections that will initialize the dependency lock file, run:
+  terraform init`,
+				c.ProviderAddr,
+			),
+		))
 		return nil, diags
 	}
 	pVersion, err = providerreqs.GoVersionFromVersion(pLock.Version())
