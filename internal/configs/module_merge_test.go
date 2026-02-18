@@ -308,7 +308,117 @@ func TestModuleOverrideSensitiveVariable(t *testing.T) {
 			}
 
 			if got[v].SensitiveSet != want.sensitiveSet {
-				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].SensitiveSet, want.sensitiveSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideEphemeralVariable(t *testing.T) {
+	type testCase struct {
+		ephemeral    bool
+		ephemeralSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"true_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-ephemeral")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Ephemeral != want.ephemeral {
+				t.Errorf("wrong result for ephemeral\ngot: %t want: %t", got[v].Ephemeral, want.ephemeral)
+			}
+
+			if got[v].EphemeralSet != want.ephemeralSet {
+				t.Errorf("wrong result for ephemeral set\ngot: %t want: %t", got[v].EphemeralSet, want.ephemeralSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideConstVariable(t *testing.T) {
+	type testCase struct {
+		constV   bool
+		constSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"true_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-const")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Const != want.constV {
+				t.Errorf("wrong result for const\ngot: %t want: %t", got[v].Const, want.constV)
+			}
+
+			if got[v].ConstSet != want.constSet {
+				t.Errorf("wrong result for const set\ngot: %t want: %t", got[v].ConstSet, want.constSet)
 			}
 		})
 	}
