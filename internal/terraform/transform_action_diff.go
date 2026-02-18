@@ -19,13 +19,8 @@ type ActionDiffTransformer struct {
 }
 
 func (t *ActionDiffTransformer) Transform(g *Graph) error {
-	applyNodes := addrs.MakeMap[addrs.AbsResourceInstance, *NodeApplyableResourceInstance]()
 	actionTriggerNodes := addrs.MakeMap[addrs.ConfigResource, []*nodeActionTriggerApplyExpand]()
 	for _, vs := range g.Vertices() {
-		if applyableResource, ok := vs.(*NodeApplyableResourceInstance); ok {
-			applyNodes.Put(applyableResource.Addr, applyableResource)
-		}
-
 		if atn, ok := vs.(*nodeActionTriggerApplyExpand); ok {
 			configResource := actionTriggerNodes.Get(atn.triggerConfig.resourceAddress)
 			actionTriggerNodes.Put(atn.triggerConfig.resourceAddress, append(configResource, atn))
