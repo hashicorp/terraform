@@ -140,6 +140,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 				Addr:         absActionAddr,
 				ProviderAddr: action.ProviderAddr.Provider,
 				Status:       hooks.ActionInvocationPending,
+				Trigger:      action.ActionTrigger,
 			})
 		}
 	}

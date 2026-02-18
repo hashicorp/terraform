@@ -231,6 +231,7 @@ func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIden
 		Addr:         ai.Addr,
 		ProviderAddr: providerAddr,
 		Status:       hooks.ActionInvocationRunning,
+		Trigger:      ai.Trigger,
 	})
 	return terraform.HookActionContinue, nil
 }
@@ -249,6 +250,7 @@ func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionI
 		Addr:         ai.Addr,
 		ProviderAddr: providerAddr,
 		Message:      progress,
+		Trigger:      ai.Trigger,
 	})
 	return terraform.HookActionContinue, nil
 }
@@ -273,6 +275,7 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 		Addr:         ai.Addr,
 		ProviderAddr: providerAddr,
 		Status:       status,
+		Trigger:      ai.Trigger,
 	})
 	return terraform.HookActionContinue, nil
 }

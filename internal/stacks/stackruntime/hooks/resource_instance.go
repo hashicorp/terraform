@@ -157,6 +157,7 @@ type ActionInvocationStatusHookData struct {
 	Addr         stackaddrs.AbsActionInvocationInstance
 	ProviderAddr addrs.Provider
 	Status       ActionInvocationStatus
+	Trigger      plans.ActionTrigger
 }
 
 // String returns a concise string representation of the action invocation status.
@@ -171,6 +172,7 @@ type ActionInvocationProgressHookData struct {
 	Addr         stackaddrs.AbsActionInvocationInstance
 	ProviderAddr addrs.Provider
 	Message      string
+	Trigger      plans.ActionTrigger
 }
 
 // String returns a concise string representation of the action invocation progress.
