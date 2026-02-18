@@ -215,9 +215,7 @@ type Meta struct {
 	// This is used when creating plan files.
 	stateStoreConfigState *workdir.StateStoreConfigState
 
-	// Variables for the context (private)
-	variableArgs arguments.FlagNameValueSlice
-	input        bool
+	input bool
 
 	// Targets for this context (private)
 	targets     []addrs.Targetable
@@ -583,14 +581,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
-
-	if m.variableArgs.Items == nil {
-		m.variableArgs = arguments.NewFlagNameValueSlice("-var")
-	}
-	varValues := m.variableArgs.Alias("-var")
-	varFiles := m.variableArgs.Alias("-var-file")
-	f.Var(varValues, "var", "variables")
-	f.Var(varFiles, "var-file", "variable file")
 
 	// commands that bypass locking will supply their own flag on this var,
 	// but set the initial meta value to true as a failsafe.

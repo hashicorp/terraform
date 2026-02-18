@@ -377,17 +377,6 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
-	// Users can also specify variables via the command line, so we'll parse
-	// all that here.
-	var items []arguments.FlagNameValue
-	for _, variable := range preparation.Args.Vars.All() {
-		items = append(items, arguments.FlagNameValue{
-			Name:  variable.Name,
-			Value: variable.Value,
-		})
-	}
-	m.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
 	loader, err := m.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
