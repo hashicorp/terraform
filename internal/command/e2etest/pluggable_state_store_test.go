@@ -35,6 +35,15 @@ import (
 // As well as ensuring that the state store can be initialised ok, this tests that
 // the state store's details can be stored in the plan file despite the fact it's reattached.
 func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
 	t.Setenv(e2e.TestExperimentFlag, "true")
