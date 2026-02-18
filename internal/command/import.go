@@ -179,19 +179,12 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 	opReq.Hooks = []terraform.Hook{c.uiHook()}
+
 	{
-
-		loader, err := c.initConfigLoader()
-		if err != nil {
-			diags = diags.Append(err)
-			c.showDiagnostics(diags)
-			return 1
-		}
-
 		// Collect variable value and add them to the operation request
 		var varDiags tfdiags.Diagnostics
 		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
-			loader.Parser().ForceFileSource(filename, src)
+			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
 		})
 		diags = diags.Append(varDiags)
 
