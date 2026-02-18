@@ -388,10 +388,6 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	}
 	m.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 
-	// Collect variables for "terraform test"
-	preparation.TestVariables, moreDiags = m.collectVariableValuesForTests(preparation.Args.TestDirectory)
-	diags = diags.Append(moreDiags)
-
 	loader, err := m.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
@@ -399,11 +395,17 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
+	registerFileSource := func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	}
+
+	// Collect variables for "terraform test"
+	preparation.TestVariables, moreDiags = arguments.CollectValuesForTests(preparation.Args.TestDirectory, registerFileSource)
+	diags = diags.Append(moreDiags)
+
 	// Collect variable value and add them to the operation request
 	var varDiags tfdiags.Diagnostics
-	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(func(filename string, src []byte) {
-		loader.Parser().ForceFileSource(filename, src)
-	})
+	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(registerFileSource)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
