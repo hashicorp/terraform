@@ -1,0 +1,3 @@
+kind: BUG FIXES
+body: 'backend: Return conflicting lock info from HTTP backend instead of the lock that failed to be taken'
+time: 2026-02-10T11:39:30.00000-08:00
