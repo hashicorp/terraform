@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func TestHTTPClient_impl(t *testing.T) {
@@ -91,6 +92,58 @@ func TestHTTPClient(t *testing.T) {
 	}
 	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
+}
+
+// Make assertions about the data returned in lock errors
+func TestHTTPClient_lockErrors(t *testing.T) {
+	// Create a test HTTP backend that's already locked and contains
+	// data about the current lock.
+	testOperation := "test-setup-lock"
+	testWho := "i-am-the-one-who-locks"
+	handler := new(TestHTTPBackend)
+	handler.Locked = true
+	handler.LockInfo = &statemgr.LockInfo{
+		Operation: testOperation,
+		Who:       testWho,
+	}
+	ts := httptest.NewServer(http.HandlerFunc(handler.Handle))
+	defer ts.Close()
+
+	url, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+
+	// Test locking when the test server is set up to already be locked.
+	var locker statemgr.Locker = &httpClient{
+		URL:          url,
+		UpdateMethod: "PUT",
+		LockURL:      url,
+		LockMethod:   "LOCK",
+		UnlockURL:    url,
+		UnlockMethod: "UNLOCK",
+		Client:       retryablehttp.NewClient(),
+	}
+
+	// Assert
+	info := statemgr.NewLockInfo()
+	info.Operation = "can-i-get-a-lock?"
+	info.Who = "client-that-wants-the-lock"
+
+	_, err = locker.Lock(info)
+	if err == nil {
+		t.Fatal("test client obtained lock while the server was locked by another client")
+	}
+	lockErr, ok := err.(*statemgr.LockError)
+	if !ok {
+		t.Errorf("expected a LockError, but was %t: %s", err, err)
+	}
+	if lockErr.Info.Operation != testOperation {
+		t.Errorf("expected lock info operation %q, but was %q", testOperation, lockErr.Info.Operation)
+	}
+	if lockErr.Info.Who != testWho {
+		t.Errorf("expected lock held by %q, but was %q", testWho, lockErr.Info.Who)
+	}
 }
 
 type TestBrokenHTTPBackend struct {
