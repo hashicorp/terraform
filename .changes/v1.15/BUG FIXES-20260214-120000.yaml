@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'states: fixed a bug that caused Terraform to be unable to identify when two states had different output values. This may have caused issues in specific circumstances like backend migrations.'
+time: 2026-02-14T12:00:00.000000+00:00
+custom:
+    Issue: "38181"

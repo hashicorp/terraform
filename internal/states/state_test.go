@@ -474,6 +474,110 @@ func TestStateHasRootOutputValues(t *testing.T) {
 
 }
 
+func TestStateRootOutputValuesEqual(t *testing.T) {
+	tests := map[string]struct {
+		SetupA func(ss *SyncState)
+		SetupB func(ss *SyncState)
+		Want   bool
+	}{
+		"both empty": {
+			func(ss *SyncState) {},
+			func(ss *SyncState) {},
+			true,
+		},
+		"identical outputs": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
+			},
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
+			},
+			true,
+		},
+		"different values same key": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
+			},
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("baz"), false,
+				)
+			},
+			false,
+		},
+		"different sensitivity same value": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
+			},
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), true,
+				)
+			},
+			false,
+		},
+		"different keys same count": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("val"), false,
+				)
+			},
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("val"), false,
+				)
+			},
+			false,
+		},
+		"different count": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("val"), false,
+				)
+			},
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("val"), false,
+				)
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("val2"), false,
+				)
+			},
+			false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			stateA := BuildState(test.SetupA)
+			stateB := BuildState(test.SetupB)
+			got := stateA.RootOutputValuesEqual(stateB)
+			if got != test.Want {
+				t.Errorf("wrong result for stateA.RootOutputValuesEqual(stateB)\ngot:  %t\nwant: %t", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestState_MoveAbsResource(t *testing.T) {
 	// Set up a starter state for the embedded tests, which should start from a copy of this state.
 	state := NewState()
