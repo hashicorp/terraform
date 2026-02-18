@@ -125,12 +125,13 @@ func TestHTTPClient_lockErrors(t *testing.T) {
 		Client:       retryablehttp.NewClient(),
 	}
 
-	// Assert
+	// Attempt to acquire a new lock with the data below
 	info := statemgr.NewLockInfo()
 	info.Operation = "can-i-get-a-lock?"
 	info.Who = "client-that-wants-the-lock"
-
 	_, err = locker.Lock(info)
+
+	// Assert expected outcome: an error mentioning the pre-existing lock.
 	if err == nil {
 		t.Fatal("test client obtained lock while the server was locked by another client")
 	}
