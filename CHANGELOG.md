@@ -1,4 +1,4 @@
-## 1.15.0-alpha20260218 (February 18, 2026)
+## 1.15.0 (Unreleased)
 
 
 NEW FEATURES:
@@ -46,6 +46,8 @@ BUG FIXES:
 * stacks: send progress events if the plan fails for better UI integration ([#38039](https://github.com/hashicorp/terraform/issues/38039))
 
 * stacks: component instances should report no-op plan/apply. This solves a UI inconsistency with convergence destroy plans  ([#38049](https://github.com/hashicorp/terraform/issues/38049))
+
+* backend/http: Return conflicting lock info from HTTP backend instead of the lock that failed to be taken ([#38144](https://github.com/hashicorp/terraform/issues/38144))
 
 * states: fixed a bug that caused Terraform to be unable to identify when two states had different output values. This may have caused issues in specific circumstances like backend migrations. ([#38181](https://github.com/hashicorp/terraform/issues/38181))
 
