@@ -27,6 +27,38 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// nodePlanContext holds contextual flags that influence how individual resource
+// nodes behave during the plan walk. It is derived from PlanOpts and
+// copied into every resource node. Each node may further modify its own copy of this
+// struct, or/and pass it to child nodes.
+type nodePlanContext struct {
+	lightMode       bool
+	skipPlanChanges bool
+
+	// skipRefresh indicates that we should skip refreshing managed resources
+	skipRefresh bool
+
+	// preDestroyRefresh indicates that we are executing the refresh which
+	// happens immediately before a destroy plan, which happens to use the
+	// normal planing mode so skipPlanChanges cannot be set.
+	preDestroyRefresh bool
+}
+
+func (pc nodePlanContext) withSkipPlanChanges(v bool) nodePlanContext {
+	pc.skipPlanChanges = v
+	return pc
+}
+
+func (pc nodePlanContext) withSkipRefresh(v bool) nodePlanContext {
+	pc.skipRefresh = v
+	return pc
+}
+
+func (pc nodePlanContext) withPreDestroyRefresh(v bool) nodePlanContext {
+	pc.preDestroyRefresh = v
+	return pc
+}
+
 // PlanOpts are the various options that affect the details of how Terraform
 // will build a plan.
 type PlanOpts struct {
@@ -40,6 +72,12 @@ type PlanOpts struct {
 	// disable the usual step of fetching updated values for each resource
 	// instance using its corresponding provider.
 	SkipRefresh bool
+
+	// LightMode enables terraform to plan each resource against local state first,
+	// if the result is a NoOp the expensive remote-state refresh is skipped entirely.
+	// Resources whose local plan shows changes are still refreshed and
+	// re-planned so the final diff is accurate.
+	LightMode bool
 
 	// PreDestroyRefresh indicated that this is being passed to a plan used to
 	// refresh the state immediately before a destroy plan.
@@ -253,6 +291,22 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		))
 		return nil, nil, diags
 	}
+	if opts.LightMode && opts.Mode != plans.NormalMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan options",
+			"Light plan mode is only compatible with normal planning mode. It cannot be used with -refresh-only or -destroy.",
+		))
+		return nil, nil, diags
+	}
+	if opts.LightMode {
+		log.Printf("[INFO] Light plan mode enabled: skipping refresh for all resources")
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Light plan mode is in effect",
+			"You are creating a plan with the -light option, which skips reading the current state of remote resources. The resulting plan may not detect changes made outside of Terraform (drift). Use a normal plan to get a complete view of all changes.",
+		))
+	}
 	if len(opts.ForceReplace) > 0 && opts.Mode != plans.NormalMode {
 		// The other modes don't generate no-op or update actions that we might
 		// upgrade to be "replace", so doesn't make sense to combine those.
@@ -333,6 +387,14 @@ The -target option is not for routine use, and is provided only for exceptional 
 			))
 			return nil, nil, diags
 		}
+	}
+
+	if opts.LightMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Light plan mode is in effect",
+			`You are creating a plan with the light mode, which means that the result of this plan may not represent all of the changes that may have occurred outside of Terraform.`,
+		))
 	}
 
 	var plan *plans.Plan
@@ -457,6 +519,17 @@ func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts
 
 	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
+}
+
+func (opts *PlanOpts) nodeContext() nodePlanContext {
+	if opts == nil {
+		return nodePlanContext{}
+	}
+	return nodePlanContext{
+		lightMode:         opts.LightMode,
+		skipRefresh:       opts.SkipRefresh,
+		preDestroyRefresh: opts.PreDestroyRefresh,
+	}
 }
 
 var DefaultPlanOpts = &PlanOpts{
@@ -880,6 +953,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
+		Light:              opts.LightMode,
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -1006,8 +1080,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			ForceReplace:              opts.ForceReplace,
-			skipRefresh:               opts.SkipRefresh,
-			preDestroyRefresh:         opts.PreDestroyRefresh,
+			planCtx:                   opts.nodeContext(),
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1022,6 +1095,8 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
+		nodeCtx := opts.nodeContext().
+			withSkipPlanChanges(true) // this activates "refresh only" mode.
 		graph, diags := (&PlanGraphBuilder{
 			Config:                    config,
 			State:                     prevRunState,
@@ -1030,8 +1105,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   append(opts.Targets, opts.ActionTargets...),
 			ActionTargets:             opts.ActionTargets,
-			skipRefresh:               opts.SkipRefresh,
-			skipPlanChanges:           true, // this activates "refresh only" mode.
+			planCtx:                   nodeCtx,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1047,7 +1121,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
-			skipRefresh:               opts.SkipRefresh,
+			planCtx:                   opts.nodeContext(),
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,

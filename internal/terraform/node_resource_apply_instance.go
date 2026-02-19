@@ -34,6 +34,9 @@ type NodeApplyableResourceInstance struct {
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
+
+	// planCtx is the plan context for this resource instance.
+	planCtx nodePlanContext
 }
 
 var (
@@ -265,7 +268,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, n.planCtx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
