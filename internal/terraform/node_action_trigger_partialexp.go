@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -24,13 +25,13 @@ import (
 //
 // This is the partial-expanded equivalent of NodeActionTriggerInstance.
 type NodeActionTriggerPartialExpanded struct {
-	addr                   addrs.PartialExpandedAction
-	config                 *configs.Action
-	resolvedProvider       addrs.AbsProviderConfig
-	lifecycleActionTrigger *lifecycleActionTriggerPartialExpanded
+	addr                  addrs.PartialExpandedAction
+	config                *configs.Action
+	resolvedProvider      addrs.AbsProviderConfig
+	resourceActionTrigger *resourceActionTriggerPartialExpanded
 }
 
-type lifecycleActionTriggerPartialExpanded struct {
+type resourceActionTriggerPartialExpanded struct {
 	resourceAddress         addrs.PartialExpandedResource
 	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
@@ -38,7 +39,7 @@ type lifecycleActionTriggerPartialExpanded struct {
 	invokingSubject         *hcl.Range
 }
 
-func (at *lifecycleActionTriggerPartialExpanded) Name() string {
+func (at *resourceActionTriggerPartialExpanded) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
@@ -73,12 +74,12 @@ func (n *NodeActionTriggerPartialExpanded) ActionAddr() addrs.ConfigAction {
 func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	// We know that if the action is partially expanded, the triggering resource must also be partially expanded.
-	partialResourceChange := ctx.Deferrals().GetDeferredPartialExpandedResource(n.lifecycleActionTrigger.resourceAddress)
+	partialResourceChange := ctx.Deferrals().GetDeferredPartialExpandedResource(n.resourceActionTrigger.resourceAddress)
 	if partialResourceChange == nil {
 		panic("partialResource is nil")
 	}
 
-	triggeringEvents := actionIsTriggeredByEvent(n.lifecycleActionTrigger.events, partialResourceChange.Change.Action)
+	triggeringEvents := actionIsTriggeredByEvent(n.resourceActionTrigger.events, partialResourceChange.Change.Action)
 	if len(triggeringEvents) == 0 {
 		return nil
 	}
@@ -94,7 +95,7 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 			Severity: hcl.DiagError,
 			Summary:  "Failed to get provider",
 			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
+			Subject:  n.resourceActionTrigger.invokingSubject,
 		})
 
 		return diags
@@ -118,11 +119,11 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		ctx.Deferrals().ReportActionInvocationDeferred(plans.ActionInvocationInstance{
 			Addr:         n.addr.UnknownActionInstance(),
 			ProviderAddr: n.resolvedProvider,
-			ActionTrigger: &plans.LifecycleActionTrigger{
-				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
+			ActionTrigger: &plans.ResourceActionTrigger{
+				TriggeringResourceAddr:  n.resourceActionTrigger.resourceAddress.UnknownResourceInstance(),
 				ActionTriggerEvent:      triggeringEvent,
-				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
-				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
+				ActionTriggerBlockIndex: n.resourceActionTrigger.actionTriggerBlockIndex,
+				ActionsListIndex:        n.resourceActionTrigger.actionListIndex,
 			},
 			ConfigValue: actionInstance.ConfigValue,
 		}, providers.DeferredReasonInstanceCountUnknown)

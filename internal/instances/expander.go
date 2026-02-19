@@ -934,6 +934,33 @@ func (m *expanderModule) knowsResource(want addrs.AbsResource) bool {
 	return ret
 }
 
+func (m *expanderModule) knowsActionInstance(want addrs.AbsActionInstance) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	actionExp := modInst.actions[want.Action.Action]
+	if actionExp == nil {
+		return false
+	}
+	_, knownKeys, _ := actionExp.instanceKeys()
+	for _, key := range knownKeys {
+		if key == want.Action.Key {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *expanderModule) knowsAction(want addrs.AbsAction) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	_, ret := modInst.actions[want.Action]
+	return ret
+}
+
 // SetActionSingle records that the given resource inside the given module
 // does not use any repetition arguments and is therefore a singleton.
 func (e *Expander) SetActionSingle(moduleAddr addrs.ModuleInstance, actionAddr addrs.Action) {
@@ -1099,4 +1126,18 @@ func (e *Expander) ActionInstanceKeys(addr addrs.AbsAction) (keyType addrs.Insta
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
 	}
 	return exp.instanceKeys()
+}
+
+func (e *Expander) knowsActionInstance(want addrs.AbsActionInstance) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsActionInstance(want)
+}
+
+func (e *Expander) knowsAction(want addrs.AbsAction) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsAction(want)
 }

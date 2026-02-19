@@ -391,7 +391,7 @@ func NewActionStart(id terraform.HookActionIdentity) Hook {
 	}
 
 	switch trigger := id.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		action.LifecycleTrigger = &lifecycleActionTrigger{
 			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
@@ -434,7 +434,7 @@ func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
 	}
 
 	switch trigger := id.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		action.LifecycleTrigger = &lifecycleActionTrigger{
 			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
@@ -475,7 +475,7 @@ func NewActionComplete(id terraform.HookActionIdentity) Hook {
 	}
 
 	switch trigger := id.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		action.LifecycleTrigger = &lifecycleActionTrigger{
 			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
@@ -518,7 +518,7 @@ func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
 	}
 
 	switch trigger := id.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		action.LifecycleTrigger = &lifecycleActionTrigger{
 			TriggeringResource: newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,

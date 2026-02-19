@@ -6,8 +6,9 @@ package actions
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // Actions keeps track of action declarations accessible to the context.

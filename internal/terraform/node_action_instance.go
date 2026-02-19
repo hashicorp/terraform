@@ -13,12 +13,12 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// NodeActionDeclarationInstance represents an action in a particular module.
+// NodeAbstractActionInstance represents an action in a particular module.
 //
 // Action Declarations don't do anything by themselves, they are just
 // coming into effect when they are triggered. We expand them here so that
 // when they are referenced we can get the configuration for the action directly.
-type NodeActionDeclarationInstance struct {
+type NodeAbstractActionInstance struct {
 	Addr             addrs.AbsActionInstance
 	Config           *configs.Action
 	Schema           *providers.ActionSchema
@@ -27,21 +27,21 @@ type NodeActionDeclarationInstance struct {
 }
 
 var (
-	_ GraphNodeModuleInstance = (*NodeActionDeclarationInstance)(nil)
-	_ GraphNodeExecutable     = (*NodeActionDeclarationInstance)(nil)
-	_ GraphNodeReferencer     = (*NodeActionDeclarationInstance)(nil)
-	_ GraphNodeReferenceable  = (*NodeActionDeclarationInstance)(nil)
+	_ GraphNodeModuleInstance = (*NodeAbstractActionInstance)(nil)
+	_ GraphNodeExecutable     = (*NodeAbstractActionInstance)(nil)
+	_ GraphNodeReferencer     = (*NodeAbstractActionInstance)(nil)
+	_ GraphNodeReferenceable  = (*NodeAbstractActionInstance)(nil)
 )
 
-func (n *NodeActionDeclarationInstance) Name() string {
+func (n *NodeAbstractActionInstance) Name() string {
 	return n.Addr.String()
 }
 
-func (n *NodeActionDeclarationInstance) Path() addrs.ModuleInstance {
+func (n *NodeAbstractActionInstance) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
-func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	deferrals := ctx.Deferrals()
@@ -60,9 +60,8 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.Config.Config != nil {
-		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
-
+		var configDiags, deprecationDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return diags
@@ -71,7 +70,6 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
 		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
-		var deprecationDiags tfdiags.Diagnostics
 		configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
 		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
@@ -80,17 +78,18 @@ func (n *NodeActionDeclarationInstance) Execute(ctx EvalContext, _ walkOperation
 		}
 	}
 
+	// record the evaluated action config value
 	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
 	return diags
 }
 
 // GraphNodeReferenceable
-func (n *NodeActionDeclarationInstance) ReferenceableAddrs() []addrs.Referenceable {
+func (n *NodeAbstractActionInstance) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Action, n.Addr.Action.Action}
 }
 
 // GraphNodeReferencer
-func (n *NodeActionDeclarationInstance) References() []*addrs.Reference {
+func (n *NodeAbstractActionInstance) References() []*addrs.Reference {
 	var result []*addrs.Reference
 	c := n.Config
 	countRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
@@ -106,6 +105,6 @@ func (n *NodeActionDeclarationInstance) References() []*addrs.Reference {
 	return result
 }
 
-func (n *NodeActionDeclarationInstance) ModulePath() addrs.Module {
+func (n *NodeAbstractActionInstance) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }

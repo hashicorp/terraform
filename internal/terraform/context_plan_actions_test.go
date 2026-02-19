@@ -100,13 +100,12 @@ func TestContextPlan_actions(t *testing.T) {
 	}
 
 	for topic, tcs := range map[string]map[string]struct {
-		toBeImplemented bool
-		module          map[string]string
-		buildState      func(*states.SyncState)
-		planActionFn    func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse
-		planResourceFn  func(*testing.T, providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
-		readResourceFn  func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
-		planOpts        *PlanOpts
+		module         map[string]string
+		buildState     func(*states.SyncState)
+		planActionFn   func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse
+		planResourceFn func(*testing.T, providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
+		readResourceFn func(*testing.T, providers.ReadResourceRequest) providers.ReadResourceResponse
+		planOpts       *PlanOpts
 
 		expectPlanActionCalled bool
 
@@ -368,7 +367,7 @@ resource "other_object" "a" {
 					if action.Addr.String() != "action.ecosystem.hello" {
 						t.Fatalf("expected action address to be 'action.ecosystem.hello', got '%s'", action.Addr)
 					}
-					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 					if !ok {
 						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 					}
@@ -415,7 +414,7 @@ resource "test_object" "a" {
 						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", action.Addr)
 					}
 
-					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 					if !ok {
 						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 					}
@@ -712,36 +711,6 @@ resource "test_object" "a" {
 					)
 				},
 			},
-			"splat is not supported": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {
-  count = 42
-}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.hello[*]]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid action expression",
-						Detail:   "Unexpected expression found in action_triggers.actions.",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 159},
-							End:      hcl.Pos{Line: 9, Column: 47, Byte: 186},
-						},
-					})
-				},
-			},
 			"multiple events triggering in same action trigger": {
 				module: map[string]string{
 					"main.tf": `
@@ -769,7 +738,7 @@ resource "test_object" "a" {
 
 					triggeredEvents := []configs.ActionTriggerEvent{}
 					for _, action := range p.Changes.ActionInvocations {
-						at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 						}
@@ -834,7 +803,7 @@ resource "test_object" "a" {
 
 					triggeredEvents := []configs.ActionTriggerEvent{}
 					for _, action := range p.Changes.ActionInvocations {
-						at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 						}
@@ -894,7 +863,7 @@ resource "test_object" "a" {
 					}
 
 					for _, ai := range p.Changes.ActionInvocations {
-						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
 						}
@@ -948,7 +917,7 @@ resource "test_object" "a" {
 					}
 
 					for _, ai := range p.Changes.ActionInvocations {
-						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
 						}
@@ -1066,9 +1035,9 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello' and 'action.test_action.hello', got %v", actionAddrs)
 					}
 
-					actionTriggers := []plans.LifecycleActionTrigger{}
+					actionTriggers := []plans.ResourceActionTrigger{}
 					for _, ai := range p.Changes.ActionInvocations {
-						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
 						}
@@ -1127,9 +1096,9 @@ resource "test_object" "a" {
 						t.Fatalf("expected action addresses to be 'action.test_action.hello[0]' and 'action.test_action.hello[1]', got %v", actionAddrs)
 					}
 
-					actionTriggers := []plans.LifecycleActionTrigger{}
+					actionTriggers := []plans.ResourceActionTrigger{}
 					for _, ai := range p.Changes.ActionInvocations {
-						at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", ai.ActionTrigger)
 						}
@@ -1642,7 +1611,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected action address to be 'module.mod.action.test_action.hello', got '%s'", action.Addr)
 					}
 
-					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 					if !ok {
 						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 					}
@@ -1696,11 +1665,11 @@ resource "other_object" "a" {
 
 					// We know we are run within two child modules, so we can just sort by the triggering resource address
 					slices.SortFunc(p.Changes.ActionInvocations, func(a, b *plans.ActionInvocationInstanceSrc) int {
-						at, ok := a.ActionTrigger.(*plans.LifecycleActionTrigger)
+						at, ok := a.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", a.ActionTrigger)
 						}
-						bt, ok := b.ActionTrigger.(*plans.LifecycleActionTrigger)
+						bt, ok := b.ActionTrigger.(*plans.ResourceActionTrigger)
 						if !ok {
 							t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", b.ActionTrigger)
 						}
@@ -1716,7 +1685,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected action address to be 'module.mod[0].action.test_action.hello', got '%s'", action.Addr)
 					}
 
-					at := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at := action.ActionTrigger.(*plans.ResourceActionTrigger)
 
 					if !at.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[0].other_object.a")) {
 						t.Fatalf("expected action to have triggering resource address 'module.mod[0].other_object.a', but it is %s", at.TriggeringResourceAddr)
@@ -1741,7 +1710,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected action address to be 'module.mod[1].action.test_action.hello', got '%s'", action2.Addr)
 					}
 
-					a2t := action2.ActionTrigger.(*plans.LifecycleActionTrigger)
+					a2t := action2.ActionTrigger.(*plans.ResourceActionTrigger)
 
 					if !a2t.TriggeringResourceAddr.Equal(mustResourceInstanceAddr("module.mod[1].other_object.a")) {
 						t.Fatalf("expected action to have triggering resource address 'module.mod[1].other_object.a', but it is %s", a2t.TriggeringResourceAddr)
@@ -1861,7 +1830,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected action address to be 'module.mod.action.test_action.hello', got '%s'", action.Addr)
 					}
 
-					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 					if !ok {
 						t.Fatalf("expected action trigger to be a lifecycle action trigger, got %T", action.ActionTrigger)
 					}
@@ -1916,7 +1885,7 @@ resource "other_object" "a" {
 						t.Fatalf("expected action address to be 'action.test_action.hello', got '%s'", action.Addr)
 					}
 
-					at, ok := action.ActionTrigger.(*plans.LifecycleActionTrigger)
+					at, ok := action.ActionTrigger.(*plans.ResourceActionTrigger)
 					if !ok {
 						t.Fatalf("expected action trigger to be a LifecycleActionTrigger, got %T", action.ActionTrigger)
 					}
@@ -2173,8 +2142,8 @@ resource "test_object" "a" {
 						t.Fatalf("expected deferred action to be deferred due to deferred prereq, but got %s", firstDeferredActionInvocation.DeferredReason)
 					}
 
-					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.ResourceActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+						t.Fatalf("expected deferred action to be triggered by test_object.a, but got %s", firstDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.ResourceActionTrigger).TriggeringResourceAddr.String())
 					}
 
 					if firstDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
@@ -2185,8 +2154,8 @@ resource "test_object" "a" {
 					if secondDeferredActionInvocation.DeferredReason != providers.DeferredReasonDeferredPrereq {
 						t.Fatalf("expected second deferred action to be deferred due to deferred prereq, but got %s", secondDeferredActionInvocation.DeferredReason)
 					}
-					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
-						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.LifecycleActionTrigger).TriggeringResourceAddr.String())
+					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.ResourceActionTrigger).TriggeringResourceAddr.String() != "test_object.a" {
+						t.Fatalf("expected second deferred action to be triggered by test_object.a, but got %s", secondDeferredActionInvocation.ActionInvocationInstanceSrc.ActionTrigger.(*plans.ResourceActionTrigger).TriggeringResourceAddr.String())
 					}
 
 					if secondDeferredActionInvocation.ActionInvocationInstanceSrc.Addr.String() != "action.test_action.hello" {
@@ -4129,10 +4098,6 @@ resource "test_object" "b" {
 		t.Run(topic, func(t *testing.T) {
 			for name, tc := range tcs {
 				t.Run(name, func(t *testing.T) {
-					if tc.toBeImplemented {
-						t.Skip("Test not implemented yet")
-					}
-
 					opts := SimplePlanOpts(plans.NormalMode, InputValues{})
 					if tc.planOpts != nil {
 						opts = tc.planOpts

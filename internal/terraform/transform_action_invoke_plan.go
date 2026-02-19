@@ -13,13 +13,12 @@ import (
 type ActionInvokePlanTransformer struct {
 	Config        *configs.Config
 	ActionTargets []addrs.Targetable
-	Operation     walkOperation
 
 	queryPlanMode bool
 }
 
 func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
-	if t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) == 0 {
+	if t.queryPlanMode || len(t.ActionTargets) == 0 {
 		return nil
 	}
 
@@ -46,9 +45,12 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 			return fmt.Errorf("action %s does not exist in the configuration", target.String())
 		}
 
-		g.Add(&nodeActionInvokeExpand{
+		abstract := nodeActionInvokeAbstract{
 			Target: target,
 			Config: config,
+		}
+		g.Add(&nodeActionInvokeExpand{
+			nodeActionInvokeAbstract: abstract,
 		})
 	}
 

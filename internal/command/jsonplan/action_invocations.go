@@ -127,7 +127,7 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 	}
 
 	switch at := action.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		ai.LifecycleActionTrigger = &LifecycleActionTrigger{
 			TriggeringResourceAddress: at.TriggeringResourceAddr.String(),
 			ActionTriggerEvent:        at.TriggerEvent().String(),

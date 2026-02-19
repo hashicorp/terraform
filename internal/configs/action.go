@@ -68,8 +68,9 @@ const (
 
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
-	Expr  hcl.Expression
-	Range hcl.Range
+	Expr         hcl.Expression
+	Range        hcl.Range
+	ConfigAction addrs.ConfigAction
 }
 
 func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics) {
@@ -387,9 +388,31 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 				Detail:   "Multiple action references in actions expression.",
 				Subject:  expr.Range().Ptr(),
 			})
+		default:
+			configAction, parseDiags := parseConfigActionFromExpression(expr)
+			diags = append(diags, parseDiags.ToHCL()...)
+			if !parseDiags.HasErrors() {
+				actionRefs[i].ConfigAction = configAction
+			}
 		}
-
 	}
 
 	return actionRefs, diags
+}
+
+// parseConfigActionFromExpression takes an arbitrary expression
+// representing an action instance, and parses out the static ConfigActions
+// skipping any variable index expressions.
+func parseConfigActionFromExpression(expr hcl.Expression) (addrs.ConfigAction, tfdiags.Diagnostics) {
+	traversal, hcdiags := exprToResourceTraversal(expr)
+	if hcdiags.HasErrors() {
+		return addrs.ConfigAction{}, tfdiags.Diagnostics(nil).Append(hcdiags)
+	}
+
+	addr, diags := addrs.ParseAbsActionInstance(traversal)
+	if diags.HasErrors() {
+		return addrs.ConfigAction{}, diags
+	}
+
+	return addr.ConfigAction(), diags
 }

@@ -167,9 +167,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
 
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, timing RelativeActionTiming) dag.Vertex {
 				return &nodeActionTriggerApplyExpand{
-					nodeAbstractActionTriggerExpand: node,
+					nodeAbstractActionTrigger: node,
 
 					relativeTiming: timing,
 				}
@@ -178,7 +178,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		&ActionInvokeApplyTransformer{
 			Config:        b.Config,
-			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
 			Changes:       b.Changes,
 		},

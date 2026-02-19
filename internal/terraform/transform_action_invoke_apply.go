@@ -12,14 +12,13 @@ import (
 type ActionInvokeApplyTransformer struct {
 	Config        *configs.Config
 	ActionTargets []addrs.Targetable
-	Operation     walkOperation
 	Changes       *plans.ChangesSrc
 
 	queryPlanMode bool
 }
 
 func (t *ActionInvokeApplyTransformer) Transform(g *Graph) error {
-	if t.Operation != walkApply || t.queryPlanMode || len(t.ActionTargets) == 0 {
+	if t.queryPlanMode || len(t.ActionTargets) == 0 {
 		return nil
 	}
 

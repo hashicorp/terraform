@@ -1360,7 +1360,7 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		default:
 			return nil, fmt.Errorf("invalid action trigger event %s", at.LifecycleActionTrigger.TriggerEvent)
 		}
-		ret.ActionTrigger = &plans.LifecycleActionTrigger{
+		ret.ActionTrigger = &plans.ResourceActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddrs,
 			ActionTriggerBlockIndex: int(at.LifecycleActionTrigger.ActionTriggerBlockIndex),
 			ActionsListIndex:        int(at.LifecycleActionTrigger.ActionsListIndex),
@@ -1406,7 +1406,7 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	}
 
 	switch at := action.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
 		switch at.ActionTriggerEvent {
 		case configs.BeforeCreate:

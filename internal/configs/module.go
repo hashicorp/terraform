@@ -215,6 +215,12 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 	}
 }
 
+// ActionByAddr returns the configuration for the action with the given
+// address, or nil if there is no such actions.
+func (m *Module) ActionByAddr(addr addrs.Action) *Action {
+	return m.Actions[addr.String()]
+}
+
 func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 

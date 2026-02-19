@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestDecodeActionBlock(t *testing.T) {
@@ -73,6 +75,9 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 	barActionExpr := hcltest.MockExprTraversalSrc("action.action_type.bar")
 	fooAndBarExpr := hcltest.MockExprList([]hcl.Expression{fooActionExpr, barActionExpr})
 
+	fooConfigAction := addrs.ConfigAction{Action: addrs.Action{Type: "action_type", Name: "foo"}}
+	barConfigAction := addrs.ConfigAction{Action: addrs.Action{Type: "action_type", Name: "bar"}}
+
 	// bad inputs!
 	moduleActionExpr := hcltest.MockExprTraversalSrc("module.foo.action.action_type.bar")
 	fooDataSourceExpr := hcltest.MockExprTraversalSrc("data.example.foo")
@@ -100,10 +105,12 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),
+						fooConfigAction,
 					},
 					{
 						barActionExpr,
 						barActionExpr.Range(),
+						barConfigAction,
 					},
 				},
 			},
@@ -179,6 +186,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),
+						fooConfigAction,
 					},
 				},
 			},
@@ -206,6 +214,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					{
 						fooActionExpr,
 						fooActionExpr.Range(),
+						fooConfigAction,
 					},
 				},
 			},

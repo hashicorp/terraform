@@ -22,13 +22,13 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	actionTriggerNodes := addrs.MakeMap[addrs.ConfigResource, []*nodeActionTriggerApplyExpand]()
 	for _, vs := range g.Vertices() {
 		if atn, ok := vs.(*nodeActionTriggerApplyExpand); ok {
-			configResource := actionTriggerNodes.Get(atn.lifecycleActionTrigger.resourceAddress)
-			actionTriggerNodes.Put(atn.lifecycleActionTrigger.resourceAddress, append(configResource, atn))
+			configResource := actionTriggerNodes.Get(atn.triggerConfig.resourceAddress)
+			actionTriggerNodes.Put(atn.triggerConfig.resourceAddress, append(configResource, atn))
 		}
 	}
 
 	for _, ai := range t.Changes.ActionInvocations {
-		lat, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+		lat, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 		if !ok {
 			continue
 		}
@@ -44,7 +44,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			beforeMatches := atn.relativeTiming == RelativeActionTimingBefore && isBefore
 			afterMatches := atn.relativeTiming == RelativeActionTimingAfter && isAfter
 
-			if (beforeMatches || afterMatches) && atn.lifecycleActionTrigger.actionTriggerBlockIndex == lat.ActionTriggerBlockIndex && atn.lifecycleActionTrigger.actionListIndex == lat.ActionsListIndex {
+			if (beforeMatches || afterMatches) && atn.triggerConfig.actionTriggerBlockIndex == lat.ActionTriggerBlockIndex && atn.triggerConfig.actionListIndex == lat.ActionsListIndex {
 				atn.actionInvocationInstances = append(atn.actionInvocationInstances, ai)
 			}
 		}
