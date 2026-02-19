@@ -2496,6 +2496,25 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 			},
 		},
 
+		"other attribute in locals": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+				"bar": {Type: cty.String, Optional: true, Deprecated: false},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            locals {
+              deprecated = aws_instance.test.bar
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}
+			},
+		},
+
 		"in count": {
 			attributeSchema: map[string]*configschema.Attribute{
 				"foo": {Type: cty.Number, Required: true, Deprecated: true},
@@ -2968,6 +2987,143 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 			t.Run("apply", func(t *testing.T) {
 				_, applyDiags := ctx.Apply(plan, m, &ApplyOpts{})
 				tfdiags.AssertDiagnosticsAndExtrasMatch(t, applyDiags, tc.expectedApplyDiags(m))
+			})
+		})
+	}
+}
+
+func TestContext2Validate_deprecatedBlock(t *testing.T) {
+	for name, tc := range map[string]struct {
+		blockSchema             map[string]*configschema.NestedBlock
+		module                  map[string]string
+		expectedValidationDiags func(*configs.Config) tfdiags.Diagnostics
+	}{
+		"referencing deprecated block": {
+			blockSchema: map[string]*configschema.NestedBlock{
+				"nested": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Deprecated: true,
+						Attributes: map[string]*configschema.Attribute{
+							"value": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              nested {
+                value = "foo"
+              }
+            }
+            locals {
+              deprecated = aws_instance.test.nested[0].value
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `Deprecated resource block "nested" used`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 28, Byte: 177},
+						End:      hcl.Pos{Line: 8, Column: 61, Byte: 210},
+					},
+					Extra: &tfdiags.DeprecationOriginDiagnosticExtra{OriginDescription: "aws_instance.test.nested"},
+				})
+			},
+		},
+
+		"referencing non-deprecated block": {
+			blockSchema: map[string]*configschema.NestedBlock{
+				"nested": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Deprecated: false,
+						Attributes: map[string]*configschema.Attribute{
+							"value": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              nested {
+                value = "foo"
+              }
+            }
+            locals {
+              not_deprecated = aws_instance.test.nested[0].value
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}
+			},
+		},
+
+		"referencing non-deprecated attribute with deprecated block in schema": {
+			blockSchema: map[string]*configschema.NestedBlock{
+				"nested": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Deprecated: true,
+						Attributes: map[string]*configschema.Attribute{
+							"value": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+				"other": {
+					Nesting: configschema.NestingList,
+					Block: configschema.Block{
+						Deprecated: false,
+						Attributes: map[string]*configschema.Attribute{
+							"value": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+              other {
+                value = "foo"
+              }
+            }
+            locals {
+              not_deprecated = aws_instance.test.other[0].value
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p := testProvider("aws")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": {
+						BlockTypes: tc.blockSchema,
+					},
+				},
+			})
+			m := testModuleInline(t, tc.module)
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+			})
+
+			t.Run("validate", func(t *testing.T) {
+				validateDiags := ctx.Validate(m, nil)
+				tfdiags.AssertDiagnosticsAndExtrasMatch(t, validateDiags, tc.expectedValidationDiags(m))
 			})
 		})
 	}
