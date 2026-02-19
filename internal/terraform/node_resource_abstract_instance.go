@@ -935,7 +935,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// starting values.
 	// Here we operate on the marked values, so as to revert any changes to the
 	// marks as well as the value.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema.Body)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChangesWithModuleCallLifecycle(ctx, priorVal, origConfigVal, schema.Body)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -3122,4 +3122,75 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
+}
+
+// rootConfigForModuleCallIgnore attempts to retrieve the root *configs.Config
+// from the current EvalContext. In normal Terraform runs this is a BuiltinEvalContext.
+func rootConfigForModuleCallIgnore(ctx EvalContext) *configs.Config {
+	switch c := ctx.(type) {
+	case *BuiltinEvalContext:
+		if c.Evaluator == nil {
+			return nil
+		}
+		return c.Evaluator.Config
+	case interface{ Evaluator() *Evaluator }:
+		ev := c.Evaluator()
+		if ev == nil {
+			return nil
+		}
+		return ev.Config
+	default:
+		return nil
+	}
+}
+
+// processIgnoreChangesWithModuleCallLifecycle is a thin wrapper around the existing
+// processIgnoreChanges, but it augments the resource's ignore_changes rules with
+// any matching ignore_changes rules coming from module-call lifecycle blocks.
+//
+// This must run at resource-instance time (not during graph config attachment),
+// because only resource instances have the module instance keys needed for self["k"] filtering.
+func (n *NodeAbstractResourceInstance) processIgnoreChangesWithModuleCallLifecycle(
+	ctx EvalContext,
+	priorVal, configVal cty.Value,
+	schema *configschema.Block,
+) (cty.Value, tfdiags.Diagnostics) {
+
+	// Preserve existing behavior if we can't evaluate module-call lifecycle ignores.
+	root := rootConfigForModuleCallIgnore(ctx)
+	if root == nil {
+		return n.processIgnoreChanges(priorVal, configVal, schema)
+	}
+	if n.Config == nil || n.Config.Mode != addrs.ManagedResourceMode || n.Config.Managed == nil {
+		return n.processIgnoreChanges(priorVal, configVal, schema)
+	}
+
+	// Use the *resource instance* address which includes module instance keys.
+	resInst := n.ResourceInstanceAddr()
+
+	extra, ignoreAll := moduleCallExtraIgnoreTraversals(root, resInst)
+	if !ignoreAll && len(extra) == 0 {
+		return n.processIgnoreChanges(priorVal, configVal, schema)
+	}
+
+	// Temporarily swap n.Config for this one call so we can reuse the existing
+	// processIgnoreChanges implementation without duplicating it.
+	saved := n.Config
+	attach := copyResourceForIgnoreAppend(saved)
+
+	// Should already be non-nil for managed resources.
+	if attach.Managed == nil {
+		attach.Managed = &configs.ManagedResource{}
+	}
+
+	if ignoreAll {
+		attach.Managed.IgnoreAllChanges = true
+	}
+	attach.Managed.IgnoreChanges = append(attach.Managed.IgnoreChanges, extra...)
+
+	n.Config = attach
+	ignored, diags := n.processIgnoreChanges(priorVal, configVal, schema)
+	n.Config = saved
+
+	return ignored, diags
 }
