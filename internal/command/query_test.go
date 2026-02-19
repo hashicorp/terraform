@@ -686,6 +686,70 @@ func TestQuery_JSON(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "success with sensitive variables",
+			directory: "with-sensitive-variables",
+			opts:      []string{"-var", "sensitive_foo=test-instance"},
+			expectedRes: []map[string]any{
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Starting query...",
+					"list_start": map[string]any{
+						"address":                   "list.test_instance.example",
+						"resource_type":             "test_instance",
+						"input_config":              map[string]any{"ami": "ami-12345", "foo": "test-instance"},
+						"sensitive_attribute_paths": []any{string(".foo")},
+					},
+					"type": "list_start",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Result found",
+					"list_resource_found": map[string]any{
+						"address":      "list.test_instance.example",
+						"display_name": "Test Instance 1",
+						"identity": map[string]any{
+							"id": "test-instance-1",
+						},
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
+						"resource_object": map[string]any{
+							"ami": "ami-12345",
+							"id":  "test-instance-1",
+						},
+					},
+					"type": "list_resource_found",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: Result found",
+					"list_resource_found": map[string]any{
+						"address":      "list.test_instance.example",
+						"display_name": "Test Instance 2",
+						"identity": map[string]any{
+							"id": "test-instance-2",
+						},
+						"identity_version": float64(1),
+						"resource_type":    "test_instance",
+						"resource_object": map[string]any{
+							"ami": "ami-67890",
+							"id":  "test-instance-2",
+						},
+					},
+					"type": "list_resource_found",
+				},
+				{
+					"@level":   "info",
+					"@message": "list.test_instance.example: List complete",
+					"list_complete": map[string]any{
+						"address":       "list.test_instance.example",
+						"resource_type": "test_instance",
+						"total":         float64(2),
+					},
+					"type": "list_complete",
+				},
+			},
+		},
 	}
 
 	for _, ts := range tests {

@@ -93,7 +93,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		ProviderAddr: n.ResolvedProvider.Provider,
 	}
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
+		return h.PreListQuery(rId, blockVal.GetAttr("config"), schema.ConfigSchema)
 	})
 
 	// if we are generating config, we implicitly set include_resource to true
