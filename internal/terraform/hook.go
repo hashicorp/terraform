@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -117,7 +118,7 @@ type Hook interface {
 
 	// PreListQuery and PostListQuery are called during a query operation before and after
 	// resources are queried from the provider.
-	PreListQuery(id HookResourceIdentity, inputConfig cty.Value) (HookAction, error)
+	PreListQuery(id HookResourceIdentity, inputConfig cty.Value, configSchema *configschema.Block) (HookAction, error)
 	PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error)
 
 	// StartAction, ProgressAction, and CompleteAction are called during the
@@ -232,7 +233,7 @@ func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, 
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

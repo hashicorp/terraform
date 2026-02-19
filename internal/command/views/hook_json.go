@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -234,12 +235,12 @@ func (h *jsonHook) PostEphemeralOp(id terraform.HookResourceIdentity, action pla
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (terraform.HookAction, error) {
 	addr := id.Addr
 	h.view.log.Info(
 		fmt.Sprintf("%s: Starting query...", addr.String()),
 		"type", json.MessageListStart,
-		json.MessageListStart, json.NewQueryStart(addr, input_config),
+		json.MessageListStart, json.NewQueryStart(addr, input_config, configSchema),
 	)
 
 	return terraform.HookActionContinue, nil
