@@ -227,6 +227,10 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Config:    config,
 			Workspace: rawBackend.Workspace,
 		}
+		err = plan.Backend.Validate()
+		if err != nil {
+			return nil, fmt.Errorf("plan describes an invalid backend: %w", err)
+		}
 	case rawPlan.StateStore != nil:
 		rawStateStore := rawPlan.StateStore
 
@@ -255,6 +259,10 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Provider:  provider,
 			Config:    storeConfig,
 			Workspace: rawStateStore.Workspace,
+		}
+		err = plan.StateStore.Validate()
+		if err != nil {
+			return nil, fmt.Errorf("plan describes an invalid state store: %w", err)
 		}
 	}
 
@@ -755,12 +763,20 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		// should never have both a backend and state_store populated.
 		return fmt.Errorf("plan contains both backend and state_store configurations, only one is expected")
 	case plan.Backend != nil:
+		err := plan.Backend.Validate()
+		if err != nil {
+			return fmt.Errorf("plan describes an invalid backend: %w", err)
+		}
 		rawPlan.Backend = &planproto.Backend{
 			Type:      plan.Backend.Type,
 			Config:    valueToTfplan(plan.Backend.Config),
 			Workspace: plan.Backend.Workspace,
 		}
 	case plan.StateStore != nil:
+		err := plan.StateStore.Validate()
+		if err != nil {
+			return fmt.Errorf("plan describes an invalid state store: %w", err)
+		}
 		rawPlan.StateStore = &planproto.StateStore{
 			Type: plan.StateStore.Type,
 			Provider: &planproto.Provider{

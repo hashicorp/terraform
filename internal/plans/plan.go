@@ -4,6 +4,8 @@
 package plans
 
 import (
+	"errors"
+	"fmt"
 	"sort"
 	"time"
 
@@ -256,6 +258,22 @@ func NewBackend(typeName string, config cty.Value, configSchema *configschema.Bl
 	}, nil
 }
 
+func (b *Backend) Validate() error {
+	if b == nil {
+		return errors.New("plan contains a nil Backend")
+	}
+	if b.Type == "" {
+		return fmt.Errorf("plan's description of a backend has an unset Type: %#v", b)
+	}
+	if b.Workspace == "" {
+		return fmt.Errorf("plan's description of a backend has the Workspace unset: %#v", b)
+	}
+	if len(b.Config) == 0 {
+		return fmt.Errorf("plan's description of a backend includes no Config: %#v", b)
+	}
+	return nil
+}
+
 // StateStore represents the state store-related configuration and other data as it
 // existed when a plan was created.
 type StateStore struct {
@@ -264,8 +282,8 @@ type StateStore struct {
 
 	Provider *Provider
 
-	// Config is the configuration of the state store, whose schema is obtained
-	// from the host provider's GetProviderSchema response.
+	// Config is the configuration of the state store, excluding the nested provider block.
+	// The schema is determined by the state store's type and data received via GetProviderSchema RPC.
 	Config DynamicValue
 
 	// Workspace is the name of the workspace that was active when the plan
@@ -277,13 +295,48 @@ type StateStore struct {
 	Workspace string
 }
 
+func (s *StateStore) Validate() error {
+	if s == nil {
+		return errors.New("plan contains a nil StateStore")
+	}
+	if s.Type == "" {
+		return fmt.Errorf("plan's description of a state store has an unset Type: %#v", s)
+	}
+	if len(s.Config) == 0 {
+		return fmt.Errorf("plan's description of a state store includes no Config: %#v", s)
+	}
+	if err := s.Provider.Validate(); err != nil {
+		return err
+	}
+	if s.Workspace == "" {
+		return fmt.Errorf("plan's description of a state store has an unset Workspace: %#v", s)
+	}
+	return nil
+}
+
 type Provider struct {
 	Version *version.Version // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
 	Source  *tfaddr.Provider // The FQN/fully-qualified name of the provider.
 
-	// Config is the configuration of the state store, whose schema is obtained
-	// from the host provider's GetProviderSchema response.
+	// Config is the configuration of the provider block nested within state_store.
+	// The schema is determined by data received via GetProviderSchema RPC.
 	Config DynamicValue
+}
+
+func (p *Provider) Validate() error {
+	if p == nil {
+		return errors.New("plan's description of a state store contains a nil Provider")
+	}
+	if p.Version == nil {
+		return fmt.Errorf("plan's description of a state store contains a nil provider Version: %#v", p)
+	}
+	if p.Source == nil {
+		return fmt.Errorf("plan's description of a state store contains a nil provider Source: %#v", p)
+	}
+	if len(p.Config) == 0 {
+		return fmt.Errorf("plan's description of a state store includes no provider Config: %#v", p)
+	}
+	return nil
 }
 
 func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provider, storeConfig cty.Value, storeSchema *configschema.Block, providerConfig cty.Value, providerSchema *configschema.Block, workspaceName string) (*StateStore, error) {
