@@ -1,0 +1,1203 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package configs
+
+import (
+	"fmt"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// TestCommand represents the Terraform a given run block will execute, plan
+// or apply. Defaults to apply.
+type TestCommand rune
+
+// TestMode represents the plan mode that Terraform will use for a given run
+// block, normal or refresh-only. Defaults to normal.
+type TestMode rune
+
+const (
+	// ApplyTestCommand causes the run block to execute a Terraform apply
+	// operation.
+	ApplyTestCommand TestCommand = 0
+
+	// PlanTestCommand causes the run block to execute a Terraform plan
+	// operation.
+	PlanTestCommand TestCommand = 'P'
+
+	// NormalTestMode causes the run block to execute in plans.NormalMode.
+	NormalTestMode TestMode = 0
+
+	// RefreshOnlyTestMode causes the run block to execute in
+	// plans.RefreshOnlyMode.
+	RefreshOnlyTestMode TestMode = 'R'
+)
+
+const (
+	// TestMainStateIdentifier is the default state identifier for the main
+	// state of the test file.
+	TestMainStateIdentifier = ""
+)
+
+// TestFile represents a single test file within a `terraform test` execution.
+//
+// A test file is made up of a sequential list of run blocks, each designating
+// a command to execute and a series of validations to check after the command.
+type TestFile struct {
+
+	// VariableDefinitions allows users to specify variables that should be
+	// provided externally (eg. from the command line or external files).
+	//
+	// This conflicts with the Variables block. Variables specified in the
+	// VariableDefinitions cannot also be specified within the Variables block.
+	VariableDefinitions map[string]*Variable
+
+	// Variables defines a set of global variable definitions that should be set
+	// for every run block within the test file.
+	Variables map[string]hcl.Expression
+
+	// Providers defines a set of providers that are available to run blocks
+	// within this test file.
+	//
+	// Some or all of these providers may be mocked providers.
+	//
+	// If empty, tests should use the default providers for the module under
+	// test.
+	Providers map[string]*Provider
+
+	// BackendConfigs is a map of state keys to structs that contain backend
+	// configuration. This should be used to set the state for a given state key
+	// at the start of a test command.
+	BackendConfigs map[string]RunBlockBackend
+
+	// Overrides contains any specific overrides that should be applied for this
+	// test outside any mock providers.
+	Overrides addrs.Map[addrs.Targetable, *Override]
+
+	// Runs defines the sequential list of run blocks that should be executed in
+	// order.
+	Runs []*TestRun
+
+	Config *TestFileConfig
+
+	VariablesDeclRange hcl.Range
+}
+
+// TestFileConfig represents the configuration block within a test file.
+type TestFileConfig struct {
+	// Parallel: Indicates if test runs should be executed in parallel.
+	Parallel bool
+
+	// SkipCleanup: Indicates if the test runs should skip the cleanup phase.
+	SkipCleanup bool
+
+	DeclRange hcl.Range
+}
+
+// TestRun represents a single run block within a test file.
+//
+// Each run block represents a single Terraform command to be executed and a set
+// of validations to run after the command.
+type TestRun struct {
+	Name string
+
+	// Command is the Terraform command to execute.
+	//
+	// One of ['apply', 'plan'].
+	Command TestCommand
+
+	// Options contains the embedded plan options that will affect the given
+	// Command. These should map to the options documented here:
+	//   - https://developer.hashicorp.com/terraform/cli/commands/plan#planning-options
+	//
+	// Note, that the Variables are a top level concept and not embedded within
+	// the options despite being listed as plan options in the documentation.
+	Options *TestRunOptions
+
+	// Variables defines a set of variable definitions for this command.
+	//
+	// Any variables specified locally that clash with the global variables will
+	// take precedence over the global definition.
+	Variables map[string]hcl.Expression
+
+	// Overrides contains any specific overrides that should be applied for this
+	// run block only outside any mock providers or overrides from the file.
+	Overrides addrs.Map[addrs.Targetable, *Override]
+
+	// Providers specifies the set of providers that should be loaded into the
+	// module for this run block.
+	//
+	// Providers specified here must be configured in one of the provider blocks
+	// for this file. If empty, the run block will load the default providers
+	// for the module under test.
+	Providers []PassedProviderConfig
+
+	// CheckRules defines the list of assertions/validations that should be
+	// checked by this run block.
+	CheckRules []*CheckRule
+
+	// Module defines an address of another module that should be loaded and
+	// executed as part of this run block instead of the module under test.
+	//
+	// In the initial version of the testing framework we will only support
+	// loading alternate modules from local directories or the registry.
+	Module *TestRunModuleCall
+
+	// ConfigUnderTest describes the configuration this run block should execute
+	// against.
+	//
+	// In typical cases, this will be null and the config under test is the
+	// configuration within the directory the terraform test command is
+	// executing within. However, when Module is set the config under test is
+	// whichever config is defined by Module. This field is then set during the
+	// configuration load process and should be used when the test is executed.
+	ConfigUnderTest *Config
+
+	// File is a reference to the parent TestFile that contains this run block.
+	File *TestFile
+
+	// ExpectFailures should be a list of checkable objects that are expected
+	// to report a failure from their custom conditions as part of this test
+	// run.
+	ExpectFailures []hcl.Traversal
+
+	// StateKey when given, will be used to identify the state file to use for
+	// this test run. If not provided, the state key is derived from the
+	// configuration under test.
+	StateKey string
+
+	// Parallel: Indicates if the test run should be executed in parallel.
+	// This, in combination with the state key, will determine if the test run
+	// will be executed in parallel with other test runs.
+	Parallel bool
+
+	Backend *Backend
+
+	// SkipCleanup: Indicates if the test run should skip the cleanup phase.
+	SkipCleanup      bool
+	SkipCleanupRange *hcl.Range
+
+	NameDeclRange      hcl.Range
+	VariablesDeclRange hcl.Range
+	DeclRange          hcl.Range
+}
+
+// Validate does a very simple and cursory check across the test file to look
+// for simple issues we can highlight early on.
+//
+// This function only returns warnings in the diagnostics. Callers of this
+// function usually do not validate the returned diagnostics as a result. If
+// you change this function, make sure to update the callers as well.
+func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, provider := range file.Providers {
+		if !provider.Mock {
+			continue
+		}
+
+		for _, elem := range provider.MockData.Overrides.Elems {
+			if elem.Value.Source != MockProviderOverrideSource {
+				// Only check overrides that are defined directly within the
+				// mock provider block of this file. This is a safety check
+				// against any override blocks loaded from a dedicated data
+				// file, for these we won't raise warnings if they target
+				// resources that don't exist.
+				continue
+			}
+
+			if !file.canTarget(config, elem.Key) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Invalid override target",
+					Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+					Subject:  elem.Value.TargetRange.Ptr(),
+				})
+			}
+		}
+	}
+
+	for _, elem := range file.Overrides.Elems {
+		if !file.canTarget(config, elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
+// canTarget is a helper function, that just checks all the available
+// configurations to make sure at least one contains the specified target.
+func (file *TestFile) canTarget(config *Config, target addrs.Targetable) bool {
+	// If the target is in the main configuration, then easy.
+	if config.TargetExists(target) {
+		return true
+	}
+
+	// But, we could be targeting something in configuration loaded by one of
+	// the run blocks.
+	for _, run := range file.Runs {
+		if run.Module != nil {
+			if run.ConfigUnderTest.TargetExists(target) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// Validate does a very simple and cursory check across the run block to look
+// for simple issues we can highlight early on.
+func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// First, we want to make sure all the ExpectFailure references are the
+	// correct kind of reference.
+	for _, traversal := range run.ExpectFailures {
+
+		reference, refDiags := addrs.ParseRefFromTestingScope(traversal)
+		diags = diags.Append(refDiags)
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		switch reference.Subject.(type) {
+		// You can only reference outputs, inputs, checks, and resources.
+		case addrs.OutputValue, addrs.InputVariable, addrs.Check, addrs.ResourceInstance, addrs.Resource:
+			// Do nothing, these are okay!
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid `expect_failures` reference",
+				Detail:   fmt.Sprintf("You cannot expect failures from %s. You can only expect failures from checkable objects such as input variables, output values, check blocks, managed resources and data sources.", reference.Subject.String()),
+				Subject:  reference.SourceRange.ToHCL().Ptr(),
+			})
+		}
+
+	}
+
+	// All the overrides defined within a run block should target an existing
+	// configuration block.
+	for _, elem := range run.Overrides.Elems {
+		if !config.TargetExists(elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
+	}
+
+	// All the providers defined within a run block should target an existing
+	// provider block within the test file.
+	for _, ref := range run.Providers {
+		_, ok := run.File.Providers[ref.InParent.String()]
+		if !ok {
+			// Then this reference was invalid as we didn't have the
+			// specified provider in the parent. This should have been
+			// caught earlier in validation anyway so is unlikely to happen.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Missing provider definition for %s", ref.InParent.String()),
+				Detail:   "This provider block references a provider definition that does not exist.",
+				Subject:  ref.InParent.NameRange.Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
+// TestRunModuleCall specifies which module should be executed by a given run
+// block.
+type TestRunModuleCall struct {
+	// Source is the source of the module to test.
+	Source addrs.ModuleSource
+
+	// Version is the version of the module to load from the registry.
+	Version VersionConstraint
+
+	DeclRange       hcl.Range
+	SourceDeclRange hcl.Range
+}
+
+// TestRunOptions contains the plan options for a given run block.
+type TestRunOptions struct {
+	// Mode is the planning mode to run in. One of ['normal', 'refresh-only'].
+	Mode TestMode
+
+	// Refresh is analogous to the -refresh=false Terraform plan option.
+	Refresh bool
+
+	// Replace is analogous to the -replace=ADDRESS Terraform plan option.
+	Replace []hcl.Traversal
+
+	// Target is analogous to the -target=ADDRESS Terraform plan option.
+	Target []hcl.Traversal
+
+	DeclRange hcl.Range
+}
+
+// RunBlockBackend records a backend block and which run block it was parsed
+// from.
+type RunBlockBackend struct {
+	Backend *Backend
+
+	// Run is the TestRun containing the backend block for this Backend.
+	// This is used in diagnostics to help avoid duplicate backends for a given
+	// internal state file or duplicated use of the same backend for multiple
+	// internal states.
+	Run *TestRun
+}
+
+func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	tf := &TestFile{
+		VariableDefinitions: make(map[string]*Variable),
+		Providers:           make(map[string]*Provider),
+		BackendConfigs:      make(map[string]RunBlockBackend),
+		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
+	}
+
+	// we need to retrieve the file config block first, because the run blocks
+	// may depend on some of its settings.
+	configContent, remain, contentDiags := body.PartialContent(&hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{{Type: "test"}},
+	})
+	diags = append(diags, contentDiags...)
+
+	var cDiags hcl.Diagnostics
+	tf.Config, cDiags = decodeFileConfigBlock(configContent, experimentsAllowed)
+	diags = append(diags, cDiags...)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	content, contentDiags := remain.Content(testFileSchema)
+	diags = append(diags, contentDiags...)
+
+	runBlockNames := make(map[string]hcl.Range)
+	skipCleanups := make(map[string]string)
+
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "run":
+			nextRunIndex := len(tf.Runs)
+
+			run, runDiags := decodeTestRunBlock(block, tf, experimentsAllowed)
+			diags = append(diags, runDiags...)
+			if !runDiags.HasErrors() {
+				tf.Runs = append(tf.Runs, run)
+			}
+
+			if rng, exists := runBlockNames[run.Name]; exists {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate \"run\" block names",
+					Detail:   fmt.Sprintf("This test file already has a run named %s block defined at %s.", run.Name, rng),
+					Subject:  run.NameDeclRange.Ptr(),
+				})
+			} else {
+				runBlockNames[run.Name] = run.DeclRange
+			}
+
+			if run.SkipCleanup && run.SkipCleanupRange != nil {
+				if backend, found := tf.BackendConfigs[run.StateKey]; found {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Duplicate \"skip_cleanup\" block",
+						Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that has a backend defined. The later run takes precedence, but the backend will still be used to manage this state.", run.Name, backend.Run.Name),
+						Subject:  run.SkipCleanupRange,
+					})
+				} else {
+					if _, found := skipCleanups[run.StateKey]; found {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Duplicate \"skip_cleanup\" block",
+							Detail:   fmt.Sprintf("The run %q has a skip_cleanup attribute set, but shares state with an earlier run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.", run.Name, skipCleanups[run.StateKey]),
+							Subject:  run.SkipCleanupRange,
+						})
+					}
+					skipCleanups[run.StateKey] = run.Name
+				}
+			}
+
+			if run.Backend != nil {
+				if existing, exists := tf.BackendConfigs[run.StateKey]; exists {
+					// then we definitely have two run blocks with the same
+					// state key trying to load backends
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate backend blocks",
+						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, existing.Run.Name),
+						Subject:  run.Backend.DeclRange.Ptr(),
+					})
+					continue
+				} else {
+					// Record the backend block in the test file, under the related state key
+					tf.BackendConfigs[run.StateKey] = RunBlockBackend{
+						Backend: run.Backend,
+						Run:     run,
+					}
+				}
+
+				for ix := range nextRunIndex {
+					previousRun := tf.Runs[ix]
+
+					if previousRun.StateKey != run.StateKey {
+						continue
+					}
+
+					if previousRun.Command == ApplyTestCommand {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid backend block",
+							Detail:   fmt.Sprintf("The run %q cannot load in state using a backend block, because internal state has already been created by an apply command in run %q. Backend blocks can only be present in the first apply command for a given internal state.", run.Name, previousRun.Name),
+							Subject:  run.Backend.DeclRange.Ptr(),
+						})
+						break
+					}
+				}
+
+			}
+
+		case "variable":
+			variable, variableDiags := decodeVariableBlock(block, false)
+			diags = append(diags, variableDiags...)
+			if !variableDiags.HasErrors() {
+				if existing, exists := tf.VariableDefinitions[variable.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", variable.Name, existing.DeclRange),
+						Subject:  variable.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.VariableDefinitions[variable.Name] = variable
+
+				if existing, exists := tf.Variables[variable.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", variable.Name, existing.Range()),
+						Subject:  variable.DeclRange.Ptr(),
+					})
+				}
+			}
+
+		case "variables":
+			if tf.Variables != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"variables\" blocks",
+					Detail:   fmt.Sprintf("This test file already has a variables block defined at %s.", tf.VariablesDeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			tf.Variables = make(map[string]hcl.Expression)
+			tf.VariablesDeclRange = block.DefRange
+
+			vars, varsDiags := block.Body.JustAttributes()
+			diags = append(diags, varsDiags...)
+			for _, v := range vars {
+				tf.Variables[v.Name] = v.Expr
+
+				if existing, exists := tf.VariableDefinitions[v.Name]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate \"variable\" block names",
+						Detail:   fmt.Sprintf("This test file already has a variable named %s defined at %s.", v.Name, v.Range),
+						Subject:  existing.DeclRange.Ptr(),
+					})
+				}
+			}
+		case "provider":
+			provider, providerDiags := decodeProviderBlock(block, true)
+			diags = append(diags, providerDiags...)
+			if provider != nil {
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "mock_provider":
+			provider, providerDiags := decodeMockProviderBlock(block)
+			diags = append(diags, providerDiags...)
+			if provider != nil {
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block, false, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		}
+	}
+
+	return tf, diags
+}
+
+func decodeFileConfigBlock(fileContent *hcl.BodyContent, experimentsAllowed bool) (*TestFileConfig, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	// The "test" block is optional, so we just return a nil config if it doesn't exist.
+	if len(fileContent.Blocks) == 0 {
+		return nil, diags
+	}
+
+	block := fileContent.Blocks[0]
+	for _, other := range fileContent.Blocks[1:] {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Multiple \"test\" blocks",
+			Detail:   fmt.Sprintf(`This test file already has a "test" block defined at %s.`, block.DefRange),
+			Subject:  other.DefRange.Ptr(),
+		})
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	ret := &TestFileConfig{DeclRange: block.DefRange}
+
+	content, contentDiags := block.Body.Content(testFileConfigBlockSchema)
+	diags = append(diags, contentDiags...)
+	if content == nil {
+		return ret, diags
+	}
+
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Parallel)
+		diags = append(diags, rawDiags...)
+	}
+
+	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		if !experimentsAllowed {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid attribute",
+				Detail:   "The skip_cleanup attribute is only available in experimental builds of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.SkipCleanup)
+		diags = append(diags, rawDiags...)
+	}
+
+	return ret, diags
+}
+
+func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed bool) (*TestRun, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	content, contentDiags := block.Body.Content(testRunBlockSchema)
+	diags = append(diags, contentDiags...)
+
+	r := TestRun{
+		Overrides:     addrs.MakeMap[addrs.Targetable, *Override](),
+		File:          file,
+		Name:          block.Labels[0],
+		NameDeclRange: block.LabelRanges[0],
+		DeclRange:     block.DefRange,
+		Parallel:      file.Config != nil && file.Config.Parallel,
+		SkipCleanup:   file.Config != nil && file.Config.SkipCleanup,
+	}
+
+	if !hclsyntax.ValidIdentifier(r.Name) {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid run block name",
+			Detail:   badIdentifierDetail,
+			Subject:  r.NameDeclRange.Ptr(),
+		})
+	}
+
+	var backendRange *hcl.Range // Stored for validation once all blocks/attrs processed
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "assert":
+			cr, crDiags := decodeCheckRuleBlock(block, false)
+			diags = append(diags, crDiags...)
+			if !crDiags.HasErrors() {
+				r.CheckRules = append(r.CheckRules, cr)
+			}
+		case "plan_options":
+			if r.Options != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"plan_options\" blocks",
+					Detail:   fmt.Sprintf("This run block already has a plan_options block defined at %s.", r.Options.DeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			opts, optsDiags := decodeTestRunOptionsBlock(block)
+			diags = append(diags, optsDiags...)
+			if !optsDiags.HasErrors() {
+				r.Options = opts
+			}
+		case "variables":
+			if r.Variables != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"variables\" blocks",
+					Detail:   fmt.Sprintf("This run block already has a variables block defined at %s.", r.VariablesDeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			r.Variables = make(map[string]hcl.Expression)
+			r.VariablesDeclRange = block.DefRange
+
+			vars, varsDiags := block.Body.JustAttributes()
+			diags = append(diags, varsDiags...)
+			for _, v := range vars {
+				r.Variables[v.Name] = v.Expr
+			}
+		case "module":
+			if r.Module != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"module\" blocks",
+					Detail:   fmt.Sprintf("This run block already has a module block defined at %s.", r.Module.DeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
+
+			module, moduleDiags := decodeTestRunModuleBlock(block)
+			diags = append(diags, moduleDiags...)
+			if !moduleDiags.HasErrors() {
+				r.Module = module
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block, false, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "backend":
+			if !experimentsAllowed {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid block",
+					Detail:   "The backend block is only available within run blocks in experimental builds of Terraform.",
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
+
+			backend, backedDiags := decodeBackendBlock(block)
+			diags = append(diags, backedDiags...)
+
+			if backend.Type == "remote" {
+				// Enhanced backends are not in use
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid backend block",
+					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s. Only state storage backends can be used in a test run.", r.Name, block.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			if r.Backend != nil {
+				// We've already encountered a backend for this run block
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate backend blocks",
+					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at %s.", r.Name, backendRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			r.Backend = backend
+			backendRange = &block.DefRange
+			// Using a backend implies skipping cleanup for that run
+			r.SkipCleanup = true
+		}
+	}
+
+	if r.Variables == nil {
+		// There is no distinction between a nil map of variables or an empty
+		// map, but we can avoid any potential nil pointer exceptions by just
+		// creating an empty map.
+		r.Variables = make(map[string]hcl.Expression)
+	}
+
+	if r.Options == nil {
+		// Create an options with default values if the user didn't specify
+		// anything.
+		r.Options = &TestRunOptions{
+			Mode:    NormalTestMode,
+			Refresh: true,
+		}
+	}
+
+	if attr, exists := content.Attributes["command"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "apply":
+			r.Command = ApplyTestCommand
+		case "plan":
+			r.Command = PlanTestCommand
+		default:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"command\" keyword",
+				Detail:   "The \"command\" argument requires one of the following keywords without quotes: apply or plan.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+	} else {
+		r.Command = ApplyTestCommand // Default to apply
+	}
+
+	if attr, exists := content.Attributes["providers"]; exists {
+		providers, providerDiags := decodePassedProviderConfigs(attr)
+		diags = append(diags, providerDiags...)
+		r.Providers = append(r.Providers, providers...)
+	}
+
+	if attr, exists := content.Attributes["expect_failures"]; exists {
+		failures, failDiags := DecodeDependsOn(attr)
+		diags = append(diags, failDiags...)
+		r.ExpectFailures = failures
+	}
+
+	if attr, exists := content.Attributes["state_key"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
+		diags = append(diags, rawDiags...)
+	} else if r.Module != nil {
+		r.StateKey = r.Module.Source.String()
+	} else {
+		r.StateKey = TestMainStateIdentifier // redundant, but let's be explicit
+	}
+
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
+		diags = append(diags, rawDiags...)
+	}
+
+	if r.Command != ApplyTestCommand && r.Backend != nil {
+		// Backend blocks must be used in the first _apply_ run block for a given internal state file.
+		// So, they cannot be present in a plan run block
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid backend block",
+			Detail:   "A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+			Subject:  backendRange.Ptr(),
+		})
+	}
+
+	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		if !experimentsAllowed {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid attribute",
+				Detail:   "The skip_cleanup attribute is only available in experimental builds of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
+		diags = append(diags, rawDiags...)
+		r.SkipCleanupRange = attr.NameRange.Ptr()
+	}
+
+	if r.SkipCleanupRange != nil && !r.SkipCleanup && r.Backend != nil {
+		// Stop user attempting to clean up long-lived resources
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot use `skip_cleanup=false` in a run block that contains a backend block",
+			Detail:   "Backend blocks are used in tests to allow reuse of long-lived resources. Due to this, cleanup behavior is implicitly skipped and backend blocks are incompatible with setting `skip_cleanup=false`",
+			Subject:  r.SkipCleanupRange,
+		})
+	}
+
+	return &r, diags
+}
+
+func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	content, contentDiags := block.Body.Content(testRunModuleBlockSchema)
+	diags = append(diags, contentDiags...)
+
+	module := TestRunModuleCall{
+		DeclRange: block.DefRange,
+	}
+
+	haveVersionArg := false
+	if attr, exists := content.Attributes["version"]; exists {
+		var versionDiags hcl.Diagnostics
+		module.Version, versionDiags = decodeVersionConstraint(attr)
+		diags = append(diags, versionDiags...)
+		haveVersionArg = true
+	}
+
+	if attr, exists := content.Attributes["source"]; exists {
+		module.SourceDeclRange = attr.Range
+
+		var raw string
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &raw)
+		diags = append(diags, rawDiags...)
+		if !rawDiags.HasErrors() {
+			var err error
+			if haveVersionArg {
+				module.Source, err = moduleaddrs.ParseModuleSourceRegistry(raw)
+			} else {
+				module.Source, err = moduleaddrs.ParseModuleSource(raw)
+			}
+			if err != nil {
+				// NOTE: We leave mc.SourceAddr as nil for any situation where the
+				// source attribute is invalid, so any code which tries to carefully
+				// use the partial result of a failed config decode must be
+				// resilient to that.
+				module.Source = nil
+
+				// NOTE: In practice it's actually very unlikely to end up here,
+				// because our source address parser can turn just about any string
+				// into some sort of remote package address, and so for most errors
+				// we'll detect them only during module installation. There are
+				// still a _few_ purely-syntax errors we can catch at parsing time,
+				// though, mostly related to remote package sub-paths and local
+				// paths.
+				switch err := err.(type) {
+				case *moduleaddrs.MaybeRelativePathErr:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid module source address",
+						Detail: fmt.Sprintf(
+							"Terraform failed to determine your intended installation method for remote module package %q.\n\nIf you intended this as a path relative to the current module, use \"./%s\" instead. The \"./\" prefix indicates that the address is a relative filesystem path.",
+							err.Addr, err.Addr,
+						),
+						Subject: module.SourceDeclRange.Ptr(),
+					})
+				default:
+					if haveVersionArg {
+						// In this case we'll include some extra context that
+						// we assumed a registry source address due to the
+						// version argument.
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid registry module source address",
+							Detail:   fmt.Sprintf("Failed to parse module registry address: %s.\n\nTerraform assumed that you intended a module registry source address because you also set the argument \"version\", which applies only to registry modules.", err),
+							Subject:  module.SourceDeclRange.Ptr(),
+						})
+					} else {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid module source address",
+							Detail:   fmt.Sprintf("Failed to parse module source address: %s.", err),
+							Subject:  module.SourceDeclRange.Ptr(),
+						})
+					}
+				}
+			}
+
+			switch module.Source.(type) {
+			case addrs.ModuleSourceRemote:
+				// We only support local or registry modules when loading
+				// modules directly from alternate sources during a test
+				// execution.
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source address",
+					Detail:   "Only local or registry module sources are currently supported from within test run blocks.",
+					Subject:  module.SourceDeclRange.Ptr(),
+				})
+			}
+		}
+	} else {
+		// Must have a source attribute.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing \"source\" attribute for module block",
+			Detail:   "You must specify a source attribute when executing alternate modules during test executions.",
+			Subject:  module.DeclRange.Ptr(),
+		})
+	}
+
+	return &module, diags
+}
+
+func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	content, contentDiags := block.Body.Content(testRunOptionsBlockSchema)
+	diags = append(diags, contentDiags...)
+
+	opts := TestRunOptions{
+		DeclRange: block.DefRange,
+	}
+
+	if attr, exists := content.Attributes["mode"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "refresh-only":
+			opts.Mode = RefreshOnlyTestMode
+		case "normal":
+			opts.Mode = NormalTestMode
+		default:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"mode\" keyword",
+				Detail:   "The \"mode\" argument requires one of the following keywords without quotes: normal or refresh-only",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
+	} else {
+		opts.Mode = NormalTestMode // Default to normal
+	}
+
+	if attr, exists := content.Attributes["refresh"]; exists {
+		diags = append(diags, gohcl.DecodeExpression(attr.Expr, nil, &opts.Refresh)...)
+	} else {
+		// Defaults to true.
+		opts.Refresh = true
+	}
+
+	if attr, exists := content.Attributes["replace"]; exists {
+		reps, repsDiags := DecodeDependsOn(attr)
+		diags = append(diags, repsDiags...)
+		opts.Replace = reps
+	}
+
+	if attr, exists := content.Attributes["target"]; exists {
+		tars, tarsDiags := DecodeDependsOn(attr)
+		diags = append(diags, tarsDiags...)
+		opts.Target = tars
+	}
+
+	if !opts.Refresh && opts.Mode == RefreshOnlyTestMode {
+		// These options are incompatible.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Incompatible plan options",
+			Detail:   "The \"refresh\" option cannot be set to false when running a test in \"refresh-only\" mode.",
+			Subject:  content.Attributes["refresh"].Range.Ptr(),
+		})
+	}
+
+	return &opts, diags
+}
+
+var testFileSchema = &hcl.BodySchema{
+	Blocks: []hcl.BlockHeaderSchema{
+		{
+			Type:       "run",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "provider",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "mock_provider",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "variable",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type: "variables",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
+		},
+	},
+}
+
+var testFileConfigBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "parallel"},
+		{Name: "skip_cleanup"},
+	},
+}
+
+var testRunBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "command"},
+		{Name: "providers"},
+		{Name: "expect_failures"},
+		{Name: "state_key"},
+		{Name: "parallel"},
+		{Name: "skip_cleanup"},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		{
+			Type: "plan_options",
+		},
+		{
+			Type: "assert",
+		},
+		{
+			Type: "variables",
+		},
+		{
+			Type: "module",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
+		},
+		{
+			Type:       "backend",
+			LabelNames: []string{"name"},
+		},
+	},
+}
+
+var testRunOptionsBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "mode"},
+		{Name: "refresh"},
+		{Name: "replace"},
+		{Name: "target"},
+	},
+}
+
+var testRunModuleBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "source"},
+		{Name: "version"},
+	},
+}

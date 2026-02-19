@@ -1,0 +1,5 @@
+# tfcoremock_simple_resource.second:
+resource "tfcoremock_simple_resource" "second" {
+    id     = "70c47571-66c3-b1dc-2474-47a74b9c7886"
+    string = "Hello, world!"
+}

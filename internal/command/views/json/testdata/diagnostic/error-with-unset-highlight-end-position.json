@@ -1,0 +1,26 @@
+{
+  "severity": "error",
+  "summary": "There is no end",
+  "detail": "But there is a beginning",
+  "range": {
+    "filename": "test.tf",
+    "start": {
+      "line": 1,
+      "column": 16,
+      "byte": 15
+    },
+    "end": {
+      "line": 1,
+      "column": 17,
+      "byte": 16
+    }
+  },
+  "snippet": {
+    "context": "resource \"test_resource\" \"test\"",
+    "code": "resource \"test_resource\" \"test\" {",
+    "start_line": 1,
+    "highlight_start_offset": 15,
+    "highlight_end_offset": 16,
+    "values": []
+  }
+}

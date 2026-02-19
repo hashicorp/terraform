@@ -1,0 +1,1 @@
+unknown-root-provider/main.tf:5,11-14: Reference to undefined provider; There is no explicit declaration for local provider name "bar" in the root module, so Terraform is assuming you mean to pass a configuration for provider "hashicorp/bar".

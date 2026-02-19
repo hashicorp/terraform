@@ -1,0 +1,326 @@
+name: build
+
+# If you want to test changes to this file before merging to a main branch,
+# push them up to a branch whose name has the prefix "build-workflow-dev/",
+# which is a special prefix that triggers this workflow even though it's not
+# actually a release branch.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'v[0-9]+.[0-9]+'
+      - releng/**
+      - tsccr-auto-pinning/**
+      - dependabot/**
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+env:
+  PKG_NAME: "terraform"
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  get-product-version:
+    name: "Determine intended Terraform version"
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+      product-version-base: ${{ steps.get-product-version.outputs.base-product-version }}
+      product-version-pre: ${{ steps.get-product-version.outputs.prerelease-product-version }}
+      experiments: ${{ steps.get-ldflags.outputs.experiments }}
+      go-ldflags: ${{ steps.get-ldflags.outputs.go-ldflags }}
+      pkg-name: ${{ steps.get-pkg-name.outputs.pkg-name }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Get Package Name
+        id: get-pkg-name
+        run: |
+          pkg_name=${{ env.PKG_NAME }}
+          echo "pkg-name=${pkg_name}" | tee -a "${GITHUB_OUTPUT}"
+      - name: Decide version number
+        id: get-product-version
+        uses: hashicorp/actions-set-product-version@2ec1b51402b3070bccf7ca95306afbd039e574ff # v2.0.1
+        with:
+          checkout: false
+      - name: Determine experiments
+        id: get-ldflags
+        env:
+          RAW_VERSION: ${{ steps.get-product-version.outputs.product-version }}
+        shell: bash
+        run: .github/scripts/get_product_version.sh
+      - name: Report chosen version number
+        run: |
+          [ -n "${{steps.get-product-version.outputs.product-version}}" ]
+          echo "::notice title=Terraform CLI Version::${{ steps.get-product-version.outputs.product-version }}"
+
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Determine Go version
+        id: get-go-version
+        uses: ./.github/actions/go-version
+
+  generate-metadata-file:
+    name: "Generate release metadata"
+    runs-on: ubuntu-latest
+    needs: get-product-version
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Generate package metadata
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@f1d852525201cb7bbbf031dd2e985fb4c22307fc # v1.1.3
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build:
+    name: Build for ${{ matrix.goos }}_${{ matrix.goarch }}
+    needs:
+      - get-product-version
+      - get-go-version
+    uses: ./.github/workflows/build-terraform-cli.yml
+    with:
+      goarch: ${{ matrix.goarch }}
+      goos: ${{ matrix.goos }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
+      package-name: ${{ needs.get-product-version.outputs.pkg-name }}
+      product-version: ${{ needs.get-product-version.outputs.product-version }}
+      ld-flags: ${{ needs.get-product-version.outputs.go-ldflags }}
+      cgo-enabled: ${{ matrix.cgo-enabled }}
+      runson: ${{ matrix.runson }}
+    secrets: inherit
+    strategy:
+      matrix:
+        include:
+          - {goos: "freebsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "freebsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "windows", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "darwin", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "darwin", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+      fail-fast: false
+
+  package-docker:
+    name: Build Docker image for linux_${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - build
+    strategy:
+      matrix:
+        arch: ["amd64", "386", "arm", "arm64"]
+      fail-fast: false
+    env:
+      repo: "terraform"
+      version: ${{needs.get-product-version.outputs.product-version}}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Build Docker images
+        uses: hashicorp/actions-docker-build@200254326a30d7b747745592f8f4d226bbe4abe4 # v2.2.0
+        with:
+          pkg_name: "terraform_${{env.version}}"
+          version: ${{env.version}}
+          bin_name: terraform
+          target: default
+          arch: ${{matrix.arch}}
+          dockerfile: build.Dockerfile
+          smoke_test: .github/scripts/verify_docker v${{ env.version }}
+          tags: |
+            docker.io/hashicorp/${{env.repo}}:${{env.version}}
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
+
+  e2etest-build:
+    name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    outputs:
+      e2e-cache-key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
+      e2e-cache-path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
+    needs:
+      - get-product-version
+      - get-go-version
+    strategy:
+      matrix:
+        include:
+          - {goos: "darwin", goarch: "amd64"}
+          - {goos: "darwin", goarch: "arm64"}
+          - {goos: "windows", goarch: "amd64"}
+          - {goos: "windows", goarch: "386"}
+          - {goos: "linux", goarch: "386"}
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm"}
+          - {goos: "linux", goarch: "arm64"}
+      fail-fast: false
+
+    env:
+      build_script: ./internal/command/e2etest/make-archive.sh
+
+    steps:
+      - name: Set Cache Values
+        id: set-cache-values
+        run: |
+          cache_key=e2e-cache-${{ github.sha }}
+          cache_path=internal/command/e2etest/build
+          echo "e2e-cache-key=${cache_key}" | tee -a "${GITHUB_OUTPUT}"
+          echo "e2e-cache-path=${cache_path}" | tee -a "${GITHUB_OUTPUT}"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build test harness package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GO_LDFLAGS: ${{ needs.get-product-version.outputs.go-ldflags }}
+        run: |
+          # NOTE: This script reacts to the GOOS, GOARCH, and GO_LDFLAGS
+          # environment variables defined above. The e2e test harness
+          # needs to know the version we're building for so it can verify
+          # that "terraform version" is returning that version number.
+          bash ./internal/command/e2etest/make-archive.sh
+
+      - name: Save test harness to cache
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
+          key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
+
+  e2e-test:
+    name: Run e2e test for ${{ matrix.goos }}_${{ matrix.goarch }}
+    runs-on: ${{ matrix.runson }}
+    needs:
+      - get-product-version
+      - build
+      - e2etest-build
+    strategy:
+      matrix:
+        include:
+          - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
+          - { runson: ubuntu-latest, goos: linux, goarch: "386" }
+          - { runson: ubuntu-latest, goos: linux, goarch: "arm" }
+          - { runson: ubuntu-latest, goos: linux, goarch: "arm64" }
+          - { runson: macos-latest, goos: darwin, goarch: "amd64" }
+          - { runson: windows-latest, goos: windows, goarch: "amd64" }
+          - { runson: windows-latest, goos: windows, goarch: "386" }
+      fail-fast: false
+
+    env:
+      os: ${{ matrix.goos }}
+      arch: ${{ matrix.goarch }}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      # NOTE: This intentionally _does not_ check out the source code
+      # for the commit/tag we're building, because by now we should
+      # have everything we need in the combination of CLI release package
+      # and e2etest package for this platform. (This helps ensure that we're
+      # really testing the release package and not inadvertently testing a
+      # fresh build from source.)
+      - name: Checkout repo
+        if: ${{ (matrix.goos == 'linux') || (matrix.goos == 'darwin') }}
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: "Restore cache"
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        id: e2etestpkg
+        with:
+          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
+          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        id: clipkg
+        with:
+          name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        if: ${{ matrix.goos == 'windows' }}
+        run: |
+          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+        if: ${{ contains(matrix.goarch, 'arm') }}
+        with:
+          platforms: all
+      - name: Run E2E Tests (Darwin & Linux)
+        id: get-product-version
+        shell: bash
+        if: ${{ (matrix.goos == 'linux') || (matrix.goos == 'darwin') }}
+        env:
+          e2e_cache_path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
+        run: .github/scripts/e2e_test_linux_darwin.sh
+      - name: Run E2E Tests (Windows)
+        if: ${{ matrix.goos == 'windows' }}
+        env:
+          TF_ACC: 1
+        shell: cmd
+        run: e2etest.exe -test.v
+
+
+  e2e-test-exec:
+    name: Run terraform-exec test for linux amd64
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - get-go-version
+      - build
+
+    env:
+      os: ${{ matrix.goos }}
+      arch: ${{ matrix.goarch }}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+      - name: Download Terraform CLI package
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        id: clipkg
+        with:
+          name: terraform_${{ env.version }}_linux_amd64.zip
+          path: .
+      - name: Checkout terraform-exec repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: hashicorp/terraform-exec
+          path: terraform-exec
+      - name: Run terraform-exec end-to-end tests
+        run: |
+          FULL_RELEASE_VERSION="${{ env.version }}"
+          unzip terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
+          export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
+          cd terraform-exec
+          go test -race -timeout=30m -v ./tfexec/internal/e2etest

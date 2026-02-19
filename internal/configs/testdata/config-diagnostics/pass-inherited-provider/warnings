@@ -1,0 +1,1 @@
+pass-inherited-provider/main.tf:5,1-13: Missing required provider configuration; The configuration for module.mod expects to inherit a configuration for provider hashicorp/test with local name "test", but the root module doesn't pass a configuration under that name.

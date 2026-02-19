@@ -1,0 +1,3 @@
+module "empty" {
+  source = "./empty"
+}

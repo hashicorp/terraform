@@ -1,0 +1,161 @@
+# This workflow is a collection of "quick checks" that should be reasonable
+# to run for any new commit to this repository in principle.
+#
+# The main purpose of this workflow is to represent checks that we want to
+# run prior to reviewing and merging a pull request. We should therefore aim
+# for these checks to complete in no more than a few minutes in the common
+# case.
+#
+# The build.yml workflow includes some additional checks we run only for
+# already-merged changes to release branches and tags, as a compromise to
+# keep the PR feedback relatively fast. The intent is that checks.yml should
+# catch most problems but that build.yml might occasionally by the one to catch
+# more esoteric situations, such as architecture-specific or OS-specific
+# misbehavior.
+
+name: Quick Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+  push:
+    branches:
+      - "*"
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          cache-dependency-path: go.sum
+
+      - name: "Unit tests"
+        run: |
+          # We run tests for all packages from all modules in this repository.
+          for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
+              (cd $dir && go test -cover "./...")
+          done
+
+  race-tests:
+    name: "Race Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          cache-dependency-path: go.sum
+
+      # The race detector add significant time to the unit tests, so only run
+      # it for select packages.
+      - name: "Race detector"
+        run: |
+          go test -race ./internal/terraform ./internal/command ./internal/states
+
+  e2e-tests:
+    # This is an intentionally-limited form of our E2E test run which only
+    # covers Terraform running on Linux. The build.yml workflow runs these
+    # tests across various other platforms in order to catch the rare exception
+    # that might leak through this.
+    name: "End-to-end Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          cache-dependency-path: go.sum
+
+      - name: "End-to-end tests"
+        run: |
+          TF_ACC=1 go test -v ./internal/command/e2etest
+
+  consistency-checks:
+    name: "Code Consistency Checks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # We need to do comparisons against the main branch.
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          cache-dependency-path: go.sum
+
+      - name: "go.mod and go.sum consistency check"
+        run: |
+          make syncdeps
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
+            echo >&2 "ERROR: go.mod/go.sum files are not up-to-date. Run 'make syncdeps' and then commit the updated files."
+            echo >&2 $'Affected files:\n'"$CHANGED"
+            exit 1
+          fi
+
+      - name: Cache protobuf tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: "tools/protobuf-compile/.workdir"
+          key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
+          restore-keys: |
+            protobuf-tools-
+
+      - name: "Code consistency checks"
+        run: |
+          make fmtcheck importscheck vetcheck copyright generate staticcheck exhaustive protobuf
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
+            echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
+            echo >&2 $'Affected files:\n'"$CHANGED"
+            exit 1
+          fi

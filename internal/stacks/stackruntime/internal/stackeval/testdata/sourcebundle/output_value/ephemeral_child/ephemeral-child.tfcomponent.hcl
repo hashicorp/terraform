@@ -1,0 +1,3 @@
+stack "child" {
+  source = "./child"
+}

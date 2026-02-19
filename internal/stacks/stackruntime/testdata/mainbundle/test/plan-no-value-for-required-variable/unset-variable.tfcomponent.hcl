@@ -1,0 +1,3 @@
+variable "beep" {
+  type = string
+}

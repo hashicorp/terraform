@@ -1,0 +1,8 @@
+Terraform v1.14.0
+on linux_amd64
+Initializing plugins and modules...
+list.concept_pet.pets   id=honest-coyote,legs=5       This is a honest-coyote
+list.concept_pet.pets   id=united-fox,legs=5          This is a united-fox
+list.concept_pet.pets   id=thorough-dassie,legs=5     This is a thorough-dassie
+list.concept_pet.pets   id=singular-cockatoo,legs=4   This is a singular-cockatoo
+list.concept_pet.pets   id=integral-hippo,legs=6      This is a integral-hippo

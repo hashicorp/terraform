@@ -1,0 +1,26 @@
+{
+  "severity": "error",
+  "summary": "In this house we respect booleans",
+  "detail": "True or false, there is no maybe",
+  "range": {
+    "filename": "test.tf",
+    "start": {
+      "line": 4,
+      "column": 11,
+      "byte": 81
+    },
+    "end": {
+      "line": 4,
+      "column": 16,
+      "byte": 86
+    }
+  },
+  "snippet": {
+    "context": "resource \"test_resource\" \"test\"",
+    "code": "  bar = {\n    baz = maybe\n  }",
+    "start_line": 3,
+    "highlight_start_offset": 20,
+    "highlight_end_offset": 25,
+    "values": []
+  }
+}

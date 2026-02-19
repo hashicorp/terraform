@@ -1,0 +1,96 @@
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+name: equivalence-test
+description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests and update the golden files."
+inputs:
+  target-equivalence-test-version:
+    description: "The version of the Terraform equivalence tests to use."
+    default: "0.3.0"
+  target-os:
+    description: "Current operating system"
+    default: "linux"
+  target-arch:
+    description: "Current architecture"
+    default: "amd64"
+  current-branch:
+    description: "What branch are we currently on?"
+    required: true
+  new-branch:
+    description: "Name of new branch to be created for the review."
+    required: true
+  reviewers:
+    description: "Comma-separated list of GitHub usernames to request review from."
+    required: true
+  message:
+    description: "Message to include in the commit."
+    required: true
+  github-token:
+    description: "Token to use for PR creation."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: "download equivalence test binary"
+      shell: bash
+      env:
+        TARGET_VERSION: ${{ inputs.target-equivalence-test-version }}
+        TARGET_OS: ${{ inputs.target-os }}
+        TARGET_ARCH: ${{ inputs.target-arch }}
+      run: |
+        ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
+          "$TARGET_VERSION" \
+          ./bin/equivalence-tests \
+          "$TARGET_OS" \
+          "$TARGET_ARCH"
+
+    - name: Build terraform
+      shell: bash
+      run: ./.github/scripts/equivalence-test.sh build_terraform_binary ./bin/terraform
+
+    - name: "run and update equivalence tests"
+      id: execute
+      shell: bash
+      run: |
+        ./bin/equivalence-tests update \
+          --tests=testing/equivalence-tests/tests \
+          --goldens=testing/equivalence-tests/outputs \
+          --binary=$(pwd)/bin/terraform
+
+        git add --intent-to-add testing/equivalence-tests/outputs
+        changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
+        echo "changed=$changed" >> "${GITHUB_OUTPUT}"
+
+    - name: "branch, commit, and push changes"
+      if: steps.execute.outputs.changed == 'true'
+      shell: bash
+      env:
+        NEW_BRANCH: ${{ inputs.new-branch }}
+        # GitHub token w/ push permissions is inherited from the calling workflow here
+      run: |
+        git config user.name "hc-github-team-tf-core"
+        git config user.email "github-team-tf-core@hashicorp.com"
+        git checkout -b "$NEW_BRANCH"
+        git add testing/equivalence-tests/outputs
+        git commit -m "Update equivalence test golden files."
+        git push --set-upstream origin "$NEW_BRANCH"
+
+    - name: "create pull request"
+      if: steps.execute.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        CURRENT_BRANCH: ${{ inputs.current-branch }}
+        NEW_BRANCH: ${{ inputs.new-branch }}
+        PR_MESSAGE: ${{ inputs.message }}
+        PR_REVIEWERS: ${{ inputs.reviewers }}
+      run: |
+        gh pr create \
+          --draft \
+          --base "$CURRENT_BRANCH" \
+          --head "$NEW_BRANCH" \
+          --title "Update equivalence test golden files" \
+          --body "$PR_MESSAGE" \
+          --reviewer "$PR_REVIEWERS"

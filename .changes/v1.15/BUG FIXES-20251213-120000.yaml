@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'lifecycle: `replace_triggered_by` now reports an error when given an invalid attribute reference that does not exist in the target resource'
+time: 2025-12-13T12:00:00.000000Z
+custom:
+    Issue: "36740"

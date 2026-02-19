@@ -1,0 +1,5 @@
+This is just a placeholder file for discovery testing, not a real provider package.
+
+This file is what we'd find for mirrors using the "packed" mirror layout,
+where the mirror maintainer can just download the packages from upstream and
+have Terraform unpack them automatically when installing.

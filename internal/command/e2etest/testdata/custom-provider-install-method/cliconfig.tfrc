@@ -1,0 +1,8 @@
+provider_installation {
+  filesystem_mirror {
+    path = "./fs-mirror"
+  }
+  direct {
+    exclude = ["example.com/*/*"]
+  }
+}

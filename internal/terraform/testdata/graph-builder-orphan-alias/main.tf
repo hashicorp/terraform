@@ -1,0 +1,3 @@
+provider "test" {
+  alias = "foo"
+}

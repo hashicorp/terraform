@@ -1,0 +1,42 @@
+{
+  "include_files": [],
+  "ignore_fields": {},
+  "commands": [
+    {
+      "name": "init",
+      "arguments": ["init"],
+      "capture_output": false
+    },
+    {
+      "name": "plan",
+      "arguments": ["plan", "-out=equivalence_test_plan", "-no-color", "-destroy"],
+      "capture_output": true,
+      "output_file_name": "plan",
+      "has_json_output": false
+    },
+    {
+      "name": "apply",
+      "arguments": ["destroy", "-json", "-auto-approve"],
+      "capture_output": true,
+      "output_file_name": "apply.json",
+      "has_json_output": true,
+      "streams_json_output": true
+    },
+    {
+      "name": "show_state",
+      "arguments": ["show", "-json"],
+      "capture_output": true,
+      "output_file_name": "state.json",
+      "has_json_output": true,
+      "streams_json_output": false
+    },
+    {
+      "name": "show_plan",
+      "arguments": ["show", "-json", "equivalence_test_plan"],
+      "capture_output": true,
+      "output_file_name": "plan.json",
+      "has_json_output": true,
+      "streams_json_output": false
+    }
+  ]
+}

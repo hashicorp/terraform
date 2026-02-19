@@ -1,0 +1,99 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
+)
+
+// StatePullCommand is a Command implementation that allows downloading
+// and outputting state information from remote state.
+type StatePullCommand struct {
+	Meta
+	StateMeta
+}
+
+func (c *StatePullCommand) Run(args []string) int {
+	_, diags := arguments.ParseStatePull(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Load the backend
+	view := arguments.ViewHuman
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// This is a read-only command
+	c.ignoreRemoteVersionConflict(b)
+
+	// Get the state manager for the current workspace
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		return 1
+	}
+	if err := stateMgr.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		return 1
+	}
+
+	// Get a statefile object representing the latest snapshot
+	stateFile := statemgr.Export(stateMgr)
+
+	if stateFile != nil { // we produce no output if the statefile is nil
+		var buf bytes.Buffer
+		err = statefile.Write(stateFile, &buf)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+			return 1
+		}
+
+		c.Ui.Output(buf.String())
+	}
+
+	return 0
+}
+
+func (c *StatePullCommand) Help() string {
+	helpText := `
+Usage: terraform [global options] state pull [options]
+
+  Pull the state from its location, upgrade the local copy, and output it
+  to stdout.
+
+  This command "pulls" the current state and outputs it to stdout.
+  As part of this process, Terraform will upgrade the state format of the
+  local copy to the current version.
+
+  The primary use of this is for state stored remotely. This command
+  will still work with local state but is less useful for this.
+
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *StatePullCommand) Synopsis() string {
+	return "Pull current state and output to stdout"
+}

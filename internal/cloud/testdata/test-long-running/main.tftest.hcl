@@ -1,0 +1,1 @@
+run "just_go" {}

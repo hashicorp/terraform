@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'apply: Terraform will raise an explicit error if a plan file intended for one workspace is applied against another workspace'
+time: 2025-12-01T11:49:50.360928Z
+custom:
+    Issue: "37954"

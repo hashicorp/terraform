@@ -1,0 +1,3 @@
+output "foo" {
+  sensitive = true
+}

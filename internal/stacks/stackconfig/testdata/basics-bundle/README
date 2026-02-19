@@ -1,0 +1,28 @@
+This directory is a source bundle set up to behave as though it contains
+the following remote source packages:
+
+- git::https://example.com/root.git
+- git::https://example.com/nested.git
+
+The bundle also recognizes the following module registry address mapping:
+
+- example.com/awesomecorp/nested/happycloud@1.0.0 -> git::https://example.com/nested.git//subdir
+- example.com/awesomecorp/nested/happycloud@2.0.0 -> git::https://example.com/nested.git//intentionally-missing-v2
+
+The following source addresses contain valid stack configurations when
+interpreted trough this bundle:
+
+- git::https://example.com/root.git
+- git::https://example.com/nested.git//subdir
+- example.com/awesomecorp/nested/happycloud if resolved with a version constraint that includes v1.0.0 and excludes v2.0.0
+
+Requesting example.com/awesomecorp/nested/happycloud without a version
+constraint that excludes v2.0.0 will select
+git::https://example.com/nested.git//intentionally-missing-v2, which
+as the name suggests is intentionally missing and so will cause configuration
+loading to fail.
+
+There's also a regular Terraform module at this address, usable as a component
+implementation:
+
+- git::https://example.com/nested.git

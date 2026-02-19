@@ -1,0 +1,16 @@
+{
+  "tfcoremock_nested_list": {
+    "attributes": {
+      "lists": {
+        "type": "list",
+        "required": true,
+        "list": {
+          "type": "list",
+          "list": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

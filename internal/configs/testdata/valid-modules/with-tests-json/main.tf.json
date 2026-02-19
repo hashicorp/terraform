@@ -1,0 +1,17 @@
+{
+  "variable": {
+    "input": {
+      "type": "string"
+    }
+  },
+  "resource": {
+    "foo_resource": {
+      "a": {
+        "value": "${var.input}"
+      }
+    },
+    "bar_resource": {
+      "c": {}
+    }
+  }
+}

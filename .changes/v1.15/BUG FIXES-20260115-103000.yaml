@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: component instances should report no-op plan/apply. This solves a UI inconsistency with convergence destroy plans '
+time: 2026-01-15T10:30:00.72402+01:00
+custom:
+    Issue: "38049"

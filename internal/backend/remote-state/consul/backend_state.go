@@ -1,0 +1,163 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package consul
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+const (
+	keyEnvPrefix = "-env:"
+)
+
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// List our raw path
+	prefix := b.path + keyEnvPrefix
+	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
+	if err != nil {
+		return nil, diags.Append(err)
+	}
+
+	// Find the envs, we use a map since we can get duplicates with
+	// path suffixes.
+	envs := map[string]struct{}{}
+	for _, key := range keys {
+		// Consul should ensure this but it doesn't hurt to check again
+		if strings.HasPrefix(key, prefix) {
+			key = strings.TrimPrefix(key, prefix)
+
+			// Ignore anything with a "/" in it since we store the state
+			// directly in a key not a directory.
+			if idx := strings.IndexRune(key, '/'); idx >= 0 {
+				continue
+			}
+
+			envs[key] = struct{}{}
+		}
+	}
+
+	result := make([]string, 1, len(envs)+1)
+	result[0] = backend.DefaultStateName
+	for k, _ := range envs {
+		result = append(result, k)
+	}
+
+	return result, nil
+}
+
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if name == backend.DefaultStateName || name == "" {
+		return diags.Append(fmt.Errorf("can't delete default state"))
+	}
+
+	// Determine the path of the data
+	path := b.statePath(name)
+
+	// Delete it. We just delete it without any locking since
+	// the DeleteState API is documented as such.
+	_, err := b.client.KV().Delete(path, nil)
+	return diags.Append(err)
+}
+
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Determine the path of the data
+	path := b.statePath(name)
+
+	// Determine whether to gzip or not
+	gzip := b.gzip
+
+	// Build the state client
+	var stateMgr = &remote.State{
+		Client: &RemoteClient{
+			Client:    b.client,
+			Path:      path,
+			GZip:      gzip,
+			lockState: b.lock,
+		},
+	}
+
+	if !b.lock {
+		stateMgr.DisableLocks()
+	}
+
+	// the default state always exists
+	if name == backend.DefaultStateName {
+		return stateMgr, nil
+	}
+
+	// Grab a lock, we use this to write an empty state if one doesn't
+	// exist already. We have to write an empty state as a sentinel value
+	// so States() knows it exists.
+	lockInfo := statemgr.NewLockInfo()
+	lockInfo.Operation = "init"
+	lockId, err := stateMgr.Lock(lockInfo)
+	if err != nil {
+		return nil, diags.Append(fmt.Errorf("failed to lock state in Consul: %s", err))
+	}
+
+	// Local helper function so we can call it multiple places
+	lockUnlock := func(parent error) error {
+		if err := stateMgr.Unlock(lockId); err != nil {
+			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
+		}
+
+		return parent
+	}
+
+	// Grab the value
+	if err := stateMgr.RefreshState(); err != nil {
+		err = lockUnlock(err)
+		return nil, diags.Append(err)
+	}
+
+	// If we have no state, we have to create an empty state
+	if v := stateMgr.State(); v == nil {
+		if err := stateMgr.WriteState(states.NewState()); err != nil {
+			err = lockUnlock(err)
+			return nil, diags.Append(err)
+		}
+		if err := stateMgr.PersistState(nil); err != nil {
+			err = lockUnlock(err)
+			return nil, diags.Append(err)
+		}
+	}
+
+	// Unlock, the state should now be initialized
+	if err := lockUnlock(nil); err != nil {
+		return nil, diags.Append(err)
+	}
+
+	return stateMgr, diags
+}
+
+func (b *Backend) statePath(name string) string {
+	path := b.path
+	if name != backend.DefaultStateName {
+		path += fmt.Sprintf("%s%s", keyEnvPrefix, name)
+	}
+
+	return path
+}
+
+const errStateUnlock = `
+Error unlocking Consul state. Lock ID: %s
+
+Error: %s
+
+You may have to force-unlock this state in order to use it again.
+The Consul backend acquires a lock during initialization to ensure
+the minimum required key/values are prepared.
+`

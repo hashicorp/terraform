@@ -1,0 +1,112 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 4,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Missing required argument",
+      "detail": "The argument \"source\" is required, but no definition was found.",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 1,
+          "column": 23,
+          "byte": 22
+        },
+        "end": {
+          "line": 1,
+          "column": 24,
+          "byte": 23
+        }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 22,
+        "highlight_end_offset": 23,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Invalid module instance name",
+      "detail": "A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 1,
+          "column": 8,
+          "byte": 7
+        },
+        "end": {
+          "line": 1,
+          "column": 22,
+          "byte": 21
+        }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 7,
+        "highlight_end_offset": 21,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Variables not allowed",
+      "detail": "Variables may not be used here.",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 5,
+          "column": 12,
+          "byte": 55
+        },
+        "end": {
+          "line": 5,
+          "column": 15,
+          "byte": 58
+        }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 14,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Unsuitable value type",
+      "detail": "Unsuitable value: value must be known",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 5,
+          "column": 12,
+          "byte": 55
+        },
+        "end": {
+          "line": 5,
+          "column": 26,
+          "byte": 69
+        }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 25,
+        "values": []
+      }
+    }
+  ]
+}

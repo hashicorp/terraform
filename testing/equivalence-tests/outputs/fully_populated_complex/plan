@@ -1,0 +1,228 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # tfcoremock_complex_resource.complex will be created
+  + resource "tfcoremock_complex_resource" "complex" {
+      + bool    = true
+      + float   = 987654321
+      + id      = "64564E36-BFCB-458B-9405-EBBF6A3CAC7A"
+      + integer = 987654321
+      + list    = [
+          + {
+              + string = "this is my first entry in the list, and doesn't contain anything interesting"
+            },
+          + {
+              + string = <<-EOT
+                    this is my second entry in the list
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT
+            },
+          + {
+              + list   = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                  + {
+                      + number = 2
+                    },
+                ]
+              + string = "this is my third entry, and I actually have a nested list"
+            },
+          + {
+              + set    = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                ]
+              + string = "this is my fourth entry, and I actually have a nested set"
+            },
+        ]
+      + map     = {
+          + "key_four" = {
+              + set    = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                ]
+              + string = "this is my fourth entry, and I actually have a nested set"
+            },
+          + "key_one" = {
+              + string = "this is my first entry in the map, and doesn't contain anything interesting"
+            },
+          + "key_three" = {
+              + list   = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                  + {
+                      + number = 2
+                    },
+                ]
+              + string = "this is my third entry, and I actually have a nested list"
+            },
+          + "key_two" = {
+              + string = <<-EOT
+                    this is my second entry in the map
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT
+            },
+        }
+      + number  = 123456789
+      + object  = {
+          + bool   = false
+          + number = 0
+          + object = {
+              + bool   = true
+              + number = 1
+              + string = "i am a nested nested object"
+            }
+          + string = "i am a nested object"
+        }
+      + set     = [
+          + {
+              + list   = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                  + {
+                      + number = 2
+                    },
+                ]
+              + string = "this is my third entry, and I actually have a nested list"
+            },
+          + {
+              + set    = [
+                  + {
+                      + number = 0
+                    },
+                  + {
+                      + number = 1
+                    },
+                ]
+              + string = "this is my fourth entry, and I actually have a nested set"
+            },
+          + {
+              + string = "this is my first entry in the set, and doesn't contain anything interesting"
+            },
+          + {
+              + string = <<-EOT
+                    this is my second entry in the set
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT
+            },
+        ]
+      + string  = "a not very long or complex string"
+
+      + list_block {
+          + string = jsonencode(
+                {
+                  + index = 0
+                }
+            )
+        }
+      + list_block {
+          + list   = [
+              + {
+                  + number = 0
+                },
+              + {
+                  + number = 1
+                },
+              + {
+                  + number = 2
+                },
+            ]
+          + string = jsonencode(
+                {
+                  + index = 1
+                }
+            )
+        }
+      + list_block {
+          + set    = [
+              + {
+                  + number = 0
+                },
+              + {
+                  + number = 1
+                },
+            ]
+          + string = jsonencode(
+                {
+                  + index = 2
+                }
+            )
+        }
+
+      + set_block {
+          + list   = [
+              + {
+                  + number = 0
+                },
+              + {
+                  + number = 1
+                },
+              + {
+                  + number = 2
+                },
+            ]
+          + string = jsonencode(
+                {
+                  + index = 1
+                }
+            )
+        }
+      + set_block {
+          + set    = [
+              + {
+                  + number = 0
+                },
+              + {
+                  + number = 1
+                },
+            ]
+          + string = jsonencode(
+                {
+                  + index = 2
+                }
+            )
+        }
+      + set_block {
+          + string = jsonencode(
+                {
+                  + index = 0
+                }
+            )
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

@@ -1,0 +1,10 @@
+{
+  "values": {
+    "id": {
+      "string": "69fe5233-e77a-804f-0dac-115c949540bc"
+    },
+    "string": {
+      "string": "one\ntwo\nthree\nfour\nfive"
+    }
+  }
+}

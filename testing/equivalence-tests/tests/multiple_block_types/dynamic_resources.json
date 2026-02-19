@@ -1,0 +1,24 @@
+{
+  "tfcoremock_multiple_blocks": {
+    "blocks": {
+      "first_block": {
+        "attributes": {
+          "id": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "mode": "list"
+      },
+      "second_block": {
+        "attributes": {
+          "id": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "mode": "list"
+      }
+    }
+  }
+}

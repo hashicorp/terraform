@@ -1,0 +1,1 @@
+override-provider/main.tf:17,5-8: Cannot override provider configuration; The configuration of module.mod has its own local configuration for bar, and so it cannot accept an overridden configuration provided by the root module.

@@ -1,0 +1,28 @@
+*.dll
+*.exe
+.DS_Store
+bin/
+modules-dev/
+/pkg/
+.vagrant/
+*.backup
+*.bak
+*~
+.*.swp
+.idea
+*.iml
+*.test
+*.iml
+
+go.work*
+
+/terraform
+
+vendor/
+
+# Coverage
+coverage.txt
+
+# IDEs
+.vscode/
+.zed/

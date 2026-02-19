@@ -1,0 +1,5 @@
+{
+  "description": "tests setting an object within a resource to null by removing it from the config",
+  "include_files": [],
+  "ignore_fields": {}
+}

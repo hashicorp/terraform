@@ -1,0 +1,38 @@
+{
+    "format_version": "1.0",
+    "terraform_version": "0.12.0",
+    "values": {
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.example[0]",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "example",
+                    "index": 0,
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": null,
+                        "id": "621124146446964903"
+                    },
+                    "sensitive_values": {}
+                },
+                {
+                    "address": "test_instance.example[1]",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "example",
+                    "index": 1,
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": null,
+                        "id": "4330206298367988603"
+                    },
+                    "sensitive_values": {}
+                }
+            ]
+        }
+    }
+}

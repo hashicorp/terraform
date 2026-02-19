@@ -1,0 +1,34 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Unsupported block type",
+      "detail": "Blocks of type \"resorce\" are not expected here. Did you mean \"resource\"?",
+      "range": {
+        "filename": "testdata/validate-invalid/main.tf",
+        "start": {
+          "line": 1,
+          "column": 1,
+          "byte": 0
+        },
+        "end": {
+          "line": 1,
+          "column": 8,
+          "byte": 7
+        }
+      },
+      "snippet": {
+        "context": null,
+        "code": "resorce \"test_instance\" \"foo\" { # Intentional typo to test error reporting",
+        "start_line": 1,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 7,
+        "values": []
+      }
+    }
+  ]
+}

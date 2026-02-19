@@ -1,0 +1,1 @@
+incorrect-type/main.tf:15,11-14: Provider type mismatch; The local name "foo" in the root module represents provider "hashicorp/foo", but "foo" in module.mod represents "example.com/vendor/foo".
