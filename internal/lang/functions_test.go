@@ -281,6 +281,19 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"convert": {
+			{
+				`convert({}, object({attr=optional(string, "default")}))`,
+				cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("default"),
+				}),
+			},
+			{
+				`convert({}, map(list(map(set(string)))))`,
+				cty.MapValEmpty(cty.List(cty.Map(cty.Set(cty.String)))),
+			},
+		},
+
 		"csvdecode": {
 			{
 				`csvdecode("a,b,c\n1,2,3\n4,5,6")`,

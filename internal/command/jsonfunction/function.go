@@ -82,13 +82,16 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 	signatures := newFunctions()
 
 	for name, v := range f {
-		if name == "can" || name == "core::can" {
+		switch name {
+		case "can", "core::can":
 			signatures.Signatures[name] = marshalCan(v)
-		} else if name == "try" || name == "core::try" {
+		case "try", "core::try":
 			signatures.Signatures[name] = marshalTry(v)
-		} else if name == "templatestring" || name == "core::templatestring" {
+		case "templatestring", "core::templatestring":
 			signatures.Signatures[name] = marshalTemplatestring(v)
-		} else {
+		case "convert", "core::convert":
+			signatures.Signatures[name] = marshalConvert(v)
+		default:
 			signature, err := marshalFunction(v)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -175,6 +178,29 @@ func marshalTry(try function.Function) *FunctionSignature {
 			Description: try.VarParam().Description,
 			IsNullable:  try.VarParam().AllowNull,
 			Type:        cty.DynamicPseudoType,
+		},
+	}
+}
+
+// marshalConvert returns a static function signature for the try function.
+// We need this exception because the function implementation uses capsule
+// types that we can't marshal.
+func marshalConvert(convert function.Function) *FunctionSignature {
+	return &FunctionSignature{
+		Description: convert.Description(),
+		ReturnType:  cty.DynamicPseudoType,
+		Parameters: []*parameter{
+			{
+				Name:        convert.Params()[0].Name,
+				Description: convert.Params()[0].Description,
+				IsNullable:  convert.Params()[0].AllowNull,
+				Type:        cty.DynamicPseudoType,
+			},
+			{
+				Name:        convert.Params()[1].Name,
+				Description: convert.Params()[1].Description,
+				Type:        cty.DynamicPseudoType,
+			},
 		},
 	}
 }

@@ -1056,6 +1056,47 @@ func TestParseRef(t *testing.T) {
 			},
 			``,
 		},
+
+		// a standalone primitive name is a type constraint, and does not
+		// reference anything
+		{
+			`string`,
+			nil,
+			``,
+		},
+		{
+			`bool`,
+			nil,
+			``,
+		},
+		{
+			`number`,
+			nil,
+			``,
+		},
+		{
+			`any`,
+			nil,
+			``,
+		},
+
+		{
+			// a multi-step traversal starting with a primitive name is still
+			// treated as any other resource reference
+			`string.foo`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "string",
+					Name: "foo",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
+				},
+			},
+			``,
+		},
 	}
 
 	for _, test := range tests {
