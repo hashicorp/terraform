@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -169,7 +170,7 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})
