@@ -19,12 +19,20 @@ func TestMarshalAttribute(t *testing.T) {
 		Want  *Attribute
 	}{
 		{
-			&configschema.Attribute{Type: cty.String, Optional: true, Computed: true},
+			&configschema.Attribute{
+				Type:               cty.String,
+				Optional:           true,
+				Computed:           true,
+				Deprecated:         true,
+				DeprecationMessage: "This is a deprecated attribute",
+			},
 			&Attribute{
-				AttributeType:   json.RawMessage(`"string"`),
-				Optional:        true,
-				Computed:        true,
-				DescriptionKind: "plain",
+				AttributeType:      json.RawMessage(`"string"`),
+				Optional:           true,
+				Computed:           true,
+				DescriptionKind:    "plain",
+				Deprecated:         true,
+				DeprecationMessage: "This is a deprecated attribute",
 			},
 		},
 		{ // collection types look a little odd.
