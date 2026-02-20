@@ -122,6 +122,18 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{},
 		},
+		"attribute with deprecation message but not deprecated": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						DeprecationMessage: "use bar instead",
+					},
+				},
+			},
+			[]string{"foo: DeprecationMessage must not be set when Deprecated is false"},
+		},
 		"attribute with missing type": {
 			&Block{
 				Attributes: map[string]*Attribute{
@@ -208,6 +220,25 @@ func TestBlockInternalValidate(t *testing.T) {
 				},
 			},
 			[]string{"bad.nested_bad: cannot set both Optional and Required"},
+		},
+		"nested block with deprecation message but not deprecated": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": {
+						Nesting: NestingSingle,
+						Block: Block{
+							DeprecationMessage: "use good instead",
+						},
+					},
+				},
+			},
+			[]string{"bad: DeprecationMessage must not be set when Deprecated is false"},
+		},
+		"top-level block with deprecation message but not deprecated": {
+			&Block{
+				DeprecationMessage: "use another resource instead",
+			},
+			[]string{"top-level block: DeprecationMessage must not be set when Deprecated is false"},
 		},
 		"nested list block with dynamically-typed attribute": {
 			&Block{

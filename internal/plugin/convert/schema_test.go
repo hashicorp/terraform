@@ -180,6 +180,52 @@ func TestConvertSchemaBlocks(t *testing.T) {
 				},
 			},
 		},
+		"deprecation messages": {
+			&proto.Schema_Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated",
+				Attributes: []*proto.Schema_Attribute{
+					{
+						Name:               "foo",
+						Type:               []byte(`"string"`),
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "attribute is deprecated",
+					},
+				},
+				BlockTypes: []*proto.Schema_NestedBlock{
+					{
+						TypeName: "nested",
+						Nesting:  proto.Schema_NestedBlock_SINGLE,
+						Block: &proto.Schema_Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
+						},
+					},
+				},
+			},
+			&configschema.Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated",
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "attribute is deprecated",
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -347,6 +393,52 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+		},
+		"deprecation messages": {
+			&proto.Schema_Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated",
+				Attributes: []*proto.Schema_Attribute{
+					{
+						Name:               "foo",
+						Type:               []byte(`"string"`),
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "attribute is deprecated",
+					},
+				},
+				BlockTypes: []*proto.Schema_NestedBlock{
+					{
+						TypeName: "nested",
+						Nesting:  proto.Schema_NestedBlock_SINGLE,
+						Block: &proto.Schema_Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
+						},
+					},
+				},
+			},
+			&configschema.Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated",
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "attribute is deprecated",
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
 						},
 					},
 				},
