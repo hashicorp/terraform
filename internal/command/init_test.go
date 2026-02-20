@@ -4101,7 +4101,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
-	t.Run("handling changed state store config is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store config", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4138,19 +4138,19 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
 	})
 
-	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store provider config", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4187,19 +4187,19 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
 	})
 
-	t.Run("handling changed state store type in the same provider is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store type in the same provider", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4207,6 +4207,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		storeName := "test_store"
 		otherStoreName := "test_otherstore"
 		// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -4239,19 +4240,19 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
 	})
 
-	t.Run("handling changing the provider used for state storage is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changing the provider used for state storage", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4297,13 +4298,13 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
@@ -4316,7 +4317,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 // TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
 // changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+	t.Run("handling upgrading the provider used for state storage", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4324,6 +4325,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
@@ -4353,13 +4355,13 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
