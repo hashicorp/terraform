@@ -23,10 +23,12 @@ type ModuleCall struct {
 	SourceAddrRaw   string
 	SourceAddrRange hcl.Range
 	SourceSet       bool
+	SourceExpr      hcl.Expression
 
 	Config hcl.Body
 
-	Version VersionConstraint
+	Version     VersionConstraint
+	VersionExpr hcl.Expression
 
 	Count   hcl.Expression
 	ForEach hcl.Expression
@@ -68,6 +70,8 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 
 	haveVersionArg := false
 	if attr, exists := content.Attributes["version"]; exists {
+		mc.VersionExpr = attr.Expr
+
 		var versionDiags hcl.Diagnostics
 		mc.Version, versionDiags = decodeVersionConstraint(attr)
 		diags = append(diags, versionDiags...)
@@ -75,6 +79,8 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["source"]; exists {
+		mc.SourceExpr = attr.Expr
+
 		mc.SourceSet = true
 		mc.SourceAddrRange = attr.Expr.Range()
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.SourceAddrRaw)

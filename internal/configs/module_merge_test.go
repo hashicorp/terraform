@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -91,7 +92,11 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	got := mod.ModuleCalls["example"]
 	want := &ModuleCall{
-		Name:          "example",
+		Name: "example",
+		SourceExpr: mustExpr(hclsyntax.ParseExpression(
+			[]byte("\"./example2-a_override\""), "testdata/valid-modules/override-module/a_override.tf",
+			hcl.Pos{Line: 3, Column: 12, Byte: 31},
+		)),
 		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
 		SourceAddrRaw: "./example2-a_override",
 		SourceAddrRange: hcl.Range{
