@@ -2485,7 +2485,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 28, Byte: 108},
@@ -2514,7 +2514,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 152},
@@ -2543,7 +2543,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 26, Byte: 164},
@@ -2570,7 +2570,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 23, Byte: 123},
@@ -2601,7 +2601,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 21, Byte: 126},
@@ -2635,7 +2635,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 9, Column: 31, Byte: 245},
@@ -2666,7 +2666,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 31, Byte: 160},
@@ -2713,7 +2713,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
@@ -2722,7 +2722,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
@@ -2753,7 +2753,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 7, Column: 29, Byte: 170},
@@ -2786,7 +2786,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 23, Byte: 144},
@@ -2819,7 +2819,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
@@ -2828,7 +2828,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
@@ -2843,7 +2843,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
@@ -2852,7 +2852,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
@@ -2881,7 +2881,7 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 24, Byte: 152},
@@ -2991,7 +2991,7 @@ output "a" {
 	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
 		Summary:  "Deprecated value used",
-		Detail:   `Deprecated resource used as value`,
+		Detail:   `Deprecated resource used as value. Refer to the provider documentation for details.`,
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start:    hcl.Pos{Line: 6, Column: 13, Byte: 91},

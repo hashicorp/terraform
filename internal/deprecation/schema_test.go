@@ -88,7 +88,7 @@ func TestMarkDeprecatedValues_DeprecationMessages(t *testing.T) {
 			},
 			val:             cty.ObjectVal(map[string]cty.Value{}),
 			path:            cty.Path{},
-			expectedMessage: "Deprecated resource used as value",
+			expectedMessage: "Deprecated resource used as value. Refer to the provider documentation for details.",
 		},
 		"resource with message": {
 			schema: &configschema.Block{
@@ -111,7 +111,7 @@ func TestMarkDeprecatedValues_DeprecationMessages(t *testing.T) {
 			},
 			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
 			path:            cty.GetAttrPath("foo"),
-			expectedMessage: `Deprecated resource attribute "foo" used`,
+			expectedMessage: `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 		},
 		"attribute with message": {
 			schema: &configschema.Block{
@@ -151,7 +151,7 @@ func TestMarkDeprecatedValues_DeprecationMessages(t *testing.T) {
 				}),
 			}),
 			path:            cty.GetAttrPath("nested"),
-			expectedMessage: `Deprecated resource block "nested" used`,
+			expectedMessage: `Deprecated resource block "nested" used. Refer to the provider documentation for details.`,
 		},
 		"block with message": {
 			schema: &configschema.Block{
@@ -208,7 +208,7 @@ func TestMarkDeprecatedValues_DiagnosticMessages(t *testing.T) {
 				Deprecated: true,
 			},
 			val:             cty.ObjectVal(map[string]cty.Value{}),
-			expectedMessage: "Deprecated resource used as value",
+			expectedMessage: "Deprecated resource used as value. Refer to the provider documentation for details.",
 		},
 		"resource with message": {
 			schema: &configschema.Block{
@@ -229,7 +229,7 @@ func TestMarkDeprecatedValues_DiagnosticMessages(t *testing.T) {
 				},
 			},
 			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
-			expectedMessage: `Deprecated resource attribute "foo" used`,
+			expectedMessage: `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 		},
 		"attribute with message": {
 			schema: &configschema.Block{
@@ -267,7 +267,7 @@ func TestMarkDeprecatedValues_DiagnosticMessages(t *testing.T) {
 					"foo": cty.StringVal("bar"),
 				}),
 			}),
-			expectedMessage: `Deprecated resource block "nested" used`,
+			expectedMessage: `Deprecated resource block "nested" used. Refer to the provider documentation for details.`,
 		},
 		"block with message": {
 			schema: &configschema.Block{

@@ -59,19 +59,19 @@ func schemaDeprecationMessage(schema *configschema.Block) string {
 	if schema.DeprecationMessage != "" {
 		return schema.DeprecationMessage
 	}
-	return "Deprecated resource used as value"
+	return "Deprecated resource used as value. Refer to the provider documentation for details."
 }
 
 func attributeDeprecationMessage(attr *configschema.Attribute, path cty.Path) string {
 	if attr.DeprecationMessage != "" {
 		return attr.DeprecationMessage
 	}
-	return fmt.Sprintf("Deprecated resource attribute %q used", strings.TrimPrefix(format.CtyPath(path), "."))
+	return fmt.Sprintf("Deprecated resource attribute %q used. Refer to the provider documentation for details.", strings.TrimPrefix(format.CtyPath(path), "."))
 }
 
 func blockDeprecationMessage(block *configschema.Block, path cty.Path) string {
 	if block.DeprecationMessage != "" {
 		return block.DeprecationMessage
 	}
-	return fmt.Sprintf("Deprecated resource block %q used", strings.TrimPrefix(format.CtyPath(path), "."))
+	return fmt.Sprintf("Deprecated resource block %q used. Refer to the provider documentation for details.", strings.TrimPrefix(format.CtyPath(path), "."))
 }
