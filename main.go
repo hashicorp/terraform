@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/colorstring"
@@ -235,6 +236,27 @@ func realMain() int {
 		if err != nil {
 			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
 			return 1
+		}
+
+		// After changing the working directory with -chdir, we need to re-validate
+		// any relative plugin cache directory paths, since they are resolved relative
+		// to the current working directory.
+		if pluginCacheDir := config.PluginCacheDir; pluginCacheDir != "" && !filepath.IsAbs(pluginCacheDir) {
+			if _, err := os.Stat(pluginCacheDir); err != nil {
+				Ui.Error("There are some problems with the CLI configuration:")
+				earlyColor := &colorstring.Colorize{
+					Colors:  colorstring.DefaultColors,
+					Disable: true,
+					Reset:   true,
+				}
+				diag := tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid plugin cache directory",
+					fmt.Sprintf("The specified plugin cache dir %s cannot be opened: %s", pluginCacheDir, err),
+				)
+				Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+				Ui.Error("As a result of the above problems, Terraform may not behave as intended.\n\n")
+			}
 		}
 	}
 
