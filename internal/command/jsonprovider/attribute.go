@@ -16,6 +16,7 @@ type Attribute struct {
 	Description         string          `json:"description,omitempty"`
 	DescriptionKind     string          `json:"description_kind,omitempty"`
 	Deprecated          bool            `json:"deprecated,omitempty"`
+	DeprecationMessage  string          `json:"deprecation_message,omitempty"`
 	Required            bool            `json:"required,omitempty"`
 	Optional            bool            `json:"optional,omitempty"`
 	Computed            bool            `json:"computed,omitempty"`
@@ -39,14 +40,15 @@ func marshalStringKind(sk configschema.StringKind) string {
 
 func marshalAttribute(attr *configschema.Attribute) *Attribute {
 	ret := &Attribute{
-		Description:     attr.Description,
-		DescriptionKind: marshalStringKind(attr.DescriptionKind),
-		Required:        attr.Required,
-		Optional:        attr.Optional,
-		Computed:        attr.Computed,
-		Sensitive:       attr.Sensitive,
-		Deprecated:      attr.Deprecated,
-		WriteOnly:       attr.WriteOnly,
+		Description:        attr.Description,
+		DescriptionKind:    marshalStringKind(attr.DescriptionKind),
+		Required:           attr.Required,
+		Optional:           attr.Optional,
+		Computed:           attr.Computed,
+		Sensitive:          attr.Sensitive,
+		Deprecated:         attr.Deprecated,
+		DeprecationMessage: attr.DeprecationMessage,
+		WriteOnly:          attr.WriteOnly,
 	}
 
 	// we're not concerned about errors because at this point the schema has
