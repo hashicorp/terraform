@@ -105,6 +105,17 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 		})
 	}
 
+	for _, actInvoke := range plan.Changes.ActionInvocations {
+		hookMore(ctx, seq, h.ReportActionInvocationPlanned, &hooks.ActionInvocation{
+			Addr: stackaddrs.AbsActionInvocationInstance{
+				Component: addr,
+				Item:      actInvoke.Addr,
+			},
+			ProviderAddr: actInvoke.ProviderAddr.Provider,
+			Trigger:      actInvoke.ActionTrigger,
+		})
+	}
+
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
 

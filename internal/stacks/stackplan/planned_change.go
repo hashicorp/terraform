@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -493,7 +494,6 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 			},
 		},
 	}, nil
-
 }
 
 func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
@@ -852,5 +852,207 @@ func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.Pl
 
 	return &stacks.PlannedChange{
 		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
+type PlannedChangeActionInvocationInstancePlanned struct {
+	ActionInvocationAddr stackaddrs.AbsActionInvocationInstance
+
+	// Invocation describes the planned invocation.
+	Invocation *plans.ActionInvocationInstanceSrc
+
+	// ProviderConfigAddr is the address of the provider configuration
+	// that planned this change, resolved in terms of the configuration for
+	// the component this resource instance object belongs to.
+	ProviderConfigAddr addrs.AbsProviderConfig
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside ChangeSrc
+	//
+	// Can be empty if and only if ChangeSrc is nil.
+	Schema providers.ActionSchema
+}
+
+var _ PlannedChange = (*PlannedChangeActionInvocationInstancePlanned)(nil)
+
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProto() (*tfstackdata1.PlanActionInvocationPlanned, error) {
+	addr := pc.ActionInvocationAddr
+
+	if pc.Invocation == nil {
+		// TODO: This shouldn't happen, should we throw an error instead?
+		return &tfstackdata1.PlanActionInvocationPlanned{
+			ComponentInstanceAddr: addr.Component.String(),
+			ActionInvocationAddr:  addr.Item.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
+		}, nil
+	}
+
+	invocationProto, err := planfile.ActionInvocationToProto(pc.Invocation)
+	if err != nil {
+		return nil, fmt.Errorf("converting action invocation to proto: %w", err)
+	}
+
+	return &tfstackdata1.PlanActionInvocationPlanned{
+		ComponentInstanceAddr: addr.Component.String(),
+		ActionInvocationAddr:  addr.Item.String(),
+		ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
+		Invocation:            invocationProto,
+	}, nil
+}
+
+func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*stacks.PlannedChange_ChangeDescription, error) {
+	addr := pc.ActionInvocationAddr
+
+	// We only emit an external description if there's an invocation to describe.
+	if pc.Invocation == nil {
+		return nil, nil
+	}
+
+	invoke := stacks.PlannedChange_ActionInvocationInstance{
+		Addr:         stacks.NewActionInvocationInStackAddr(addr),
+		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
+		ActionType:   pc.Invocation.Addr.Action.Action.Type,
+
+		ConfigValue: stacks.NewDynamicValue(
+			pc.Invocation.ConfigValue,
+			pc.Invocation.SensitiveConfigPaths,
+		),
+	}
+
+	switch at := pc.Invocation.ActionTrigger.(type) {
+	case *plans.LifecycleActionTrigger:
+		triggerEvent := stacks.PlannedChange_INVALID_EVENT
+		switch at.ActionTriggerEvent {
+		case configs.BeforeCreate:
+			triggerEvent = stacks.PlannedChange_BEFORE_CREATE
+		case configs.AfterCreate:
+			triggerEvent = stacks.PlannedChange_AFTER_CREATE
+		case configs.BeforeUpdate:
+			triggerEvent = stacks.PlannedChange_BEFORE_UPDATE
+		case configs.AfterUpdate:
+			triggerEvent = stacks.PlannedChange_AFTER_UPDATE
+		case configs.BeforeDestroy:
+			triggerEvent = stacks.PlannedChange_BEFORE_DESTROY
+		case configs.AfterDestroy:
+			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
+		}
+
+		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
+			LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
+				TriggerEvent: triggerEvent,
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
+					Component: addr.Component,
+					Item:      at.TriggeringResourceAddr,
+				}),
+				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(at.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		invoke.ActionTrigger = new(stacks.PlannedChange_ActionInvocationInstance_InvokeActionTrigger)
+	default:
+		// This should be exhaustive
+		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
+	}
+
+	return &stacks.PlannedChange_ChangeDescription{
+		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
+			ActionInvocationPlanned: &invoke,
+		},
+	}, nil
+}
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	paip, err := pc.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, paip, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.Invocation == nil {
+		// We only emit a "raw" in this case, because this is a relatively
+		// uninteresting edge-case. The PlanActionInvocationProto
+		// function should have returned a placeholder value for this use case.
+
+		return &stacks.PlannedChange{
+			Raw: []*anypb.Any{&raw},
+		}, nil
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	desc, err := pc.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+	if desc != nil {
+		descs = append(descs, desc)
+	}
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
+	}, nil
+}
+
+// PlannedChangeDeferredActionInvocationPlanned announces that an invocation that Terraform
+// is proposing to take if this plan is applied is being deferred.
+type PlannedChangeDeferredActionInvocationPlanned struct {
+	// ActionInvocationPlanned is the planned invocation that is being deferred.
+	ActionInvocationPlanned PlannedChangeActionInvocationInstancePlanned
+
+	// DeferredReason is the reason why the change is being deferred.
+	DeferredReason providers.DeferredReason
+}
+
+var _ PlannedChange = (*PlannedChangeDeferredActionInvocationPlanned)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (dai *PlannedChangeDeferredActionInvocationPlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	invocation, err := dai.ActionInvocationPlanned.PlanActionInvocationProto()
+	if err != nil {
+		return nil, err
+	}
+
+	// We'll ignore the error here. We certainly should not have got this far
+	// if we have a deferred reason that the Terraform Core runtime doesn't
+	// recognise. There will be diagnostics elsewhere to reflect this, as we
+	// can just use INVALID to capture this. This also makes us forwards and
+	// backwards compatible, as we'll return INVALID for any new deferred
+	// reasons that are added in the future without erroring.
+	deferredReason, _ := planfile.DeferredReasonToProto(dai.DeferredReason)
+
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredActionInvocation{
+		Invocation: invocation,
+		Deferred: &planproto.Deferred{
+			Reason: deferredReason,
+		},
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+	desc, err := dai.ActionInvocationPlanned.ChangeDescription()
+	if err != nil {
+		return nil, err
+	}
+
+	var descs []*stacks.PlannedChange_ChangeDescription
+	descs = append(descs, &stacks.PlannedChange_ChangeDescription{
+		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationDeferred{
+			ActionInvocationDeferred: &stacks.PlannedChange_ActionInvocationDeferred{
+				ActionInvocation: desc.GetActionInvocationPlanned(),
+				Deferred:         EncodeDeferred(dai.DeferredReason),
+			},
+		},
+	})
+
+	return &stacks.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
 	}, nil
 }
