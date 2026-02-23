@@ -31,7 +31,7 @@ import (
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
 func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[addrs.Provider]providers.Factory) (MoveResults, tfdiags.Diagnostics) {
-	ret := makeMoveResults()
+	ret := MakeMoveResults()
 
 	if len(stmts) == 0 {
 		return ret, nil
@@ -43,14 +43,14 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[
 	// That then means we can traverse the graph in topological sort order
 	// to gradually move objects through potentially multiple moves each.
 
-	g := buildMoveStatementGraph(stmts)
-
 	// If the graph is not valid the we will not take any action at all. The
 	// separate validation step should detect this and return an error.
-	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
+	if diags := ValidateMoveStatementsForExecution(stmts); diags.HasErrors() {
 		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
 		return ret, nil
 	}
+
+	g := buildMoveStatementGraph(stmts)
 
 	// The graph must be reduced in order for ReverseDepthFirstWalk to work
 	// correctly, since it is built from following edges and can skip over
@@ -92,120 +92,170 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[
 		})
 	}
 
-	crossTypeMover := &crossTypeMover{
-		State:             state,
-		ProviderFactories: providerFactory,
-		ProviderCache:     make(map[addrs.Provider]providers.Interface),
-	}
+	crossTypeMover := NewCrossTypeMover(providerFactory)
 
 	var diags tfdiags.Diagnostics
 
 	syncState := state.SyncWrapper()
 	for _, v := range g.ReverseTopologicalOrder() {
 		stmt := v.(*MoveStatement)
-
-		for _, ms := range state.Modules {
-			modAddr := ms.Addr
-
-			// We don't yet know that the current module is relevant, and
-			// we determine that differently for each the object kind.
-			switch kind := stmt.ObjectKind(); kind {
-			case addrs.MoveEndpointModule:
-				// For a module endpoint we just try the module address
-				// directly, and execute the moves if it matches.
-				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
-					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
-
-					// If we already have a module at the new address then
-					// we'll skip this move and let the existing object take
-					// priority.
-					if ms := state.Module(newAddr); ms != nil {
-						log.Printf("[WARN] Skipped moving %s to %s, because there's already another module instance at the destination", modAddr, newAddr)
-						recordBlockage(modAddr, newAddr)
-						continue
-					}
-
-					// We need to visit all of the resource instances in the
-					// module and record them individually as results.
-					for _, rs := range ms.Resources {
-						relAddr := rs.Addr.Resource
-						for key := range rs.Instances {
-							oldInst := relAddr.Instance(key).Absolute(modAddr)
-							newInst := relAddr.Instance(key).Absolute(newAddr)
-							recordOldAddr(oldInst, newInst)
-						}
-					}
-
-					syncState.MoveModuleInstance(modAddr, newAddr)
-					continue
-				}
-			case addrs.MoveEndpointResource:
-				// For a resource endpoint we require an exact containing
-				// module match, because by definition a matching resource
-				// cannot be nested any deeper than that.
-				if !stmt.From.SelectsModule(modAddr) {
-					continue
-				}
-
-				// We then need to search each of the resources and resource
-				// instances in the module.
-				for _, rs := range ms.Resources {
-					rAddr := rs.Addr
-					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
-						log.Printf("[TRACE] refactoring.ApplyMoves: resource %s has moved to %s", rAddr, newAddr)
-
-						// If we already have a resource at the new address then
-						// we'll skip this move and let the existing object take
-						// priority.
-						if rs := state.Resource(newAddr); rs != nil {
-							log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource at the destination", rAddr, newAddr)
-							recordBlockage(rAddr, newAddr)
-							continue
-						}
-
-						crossTypeMove, prepareDiags := crossTypeMover.prepareCrossTypeMove(stmt, rAddr, newAddr)
-						diags = diags.Append(prepareDiags)
-						for key := range rs.Instances {
-							oldInst := rAddr.Instance(key)
-							newInst := newAddr.Instance(key)
-							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, oldInst, newInst, syncState))
-							recordOldAddr(oldInst, newInst)
-						}
-						state.MoveAbsResource(rAddr, newAddr)
-						continue
-					}
-					for key := range rs.Instances {
-						iAddr := rAddr.Instance(key)
-						if newAddr, matches := iAddr.MoveDestination(stmt.From, stmt.To); matches {
-							log.Printf("[TRACE] refactoring.ApplyMoves: resource instance %s has moved to %s", iAddr, newAddr)
-
-							// If we already have a resource instance at the new
-							// address then we'll skip this move and let the existing
-							// object take priority.
-							if is := state.ResourceInstance(newAddr); is != nil {
-								log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource instance at the destination", iAddr, newAddr)
-								recordBlockage(iAddr, newAddr)
-								continue
-							}
-
-							crossTypeMove, crossTypeMoveDiags := crossTypeMover.prepareCrossTypeMove(stmt, iAddr.ContainingResource(), newAddr.ContainingResource())
-							diags = diags.Append(crossTypeMoveDiags)
-							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, iAddr, newAddr, syncState))
-							recordOldAddr(iAddr, newAddr)
-							syncState.MoveResourceInstance(iAddr, newAddr)
-							continue
-						}
-					}
-				}
-			default:
-				panic(fmt.Sprintf("unhandled move object kind %s", kind))
-			}
-		}
+		diags = diags.Append(ApplySingleMoveStatement(stmt, syncState, crossTypeMover, recordOldAddr, recordBlockage))
 	}
 	syncState.Close()
 
-	diags = diags.Append(crossTypeMover.close())
+	diags = diags.Append(crossTypeMover.Close())
 	return ret, diags
+}
+
+// ValidateMoveStatementsForExecution checks only the execution-order graph
+// validity used by ApplyMoves. It intentionally does not perform the full
+// move validation rules, which happen later during planning.
+func ValidateMoveStatementsForExecution(stmts []MoveStatement) tfdiags.Diagnostics {
+	if len(stmts) == 0 {
+		return nil
+	}
+
+	g := buildMoveStatementGraph(stmts)
+	return validateMoveStatementGraph(g)
+}
+
+// ApplySingleMoveStatement applies a single move statement against the given
+// state wrapper, recording successful moves and blockers via callbacks.
+//
+// This is the per-statement unit of work used both by ApplyMoves and the moved
+// mini-graph execution path.
+func ApplySingleMoveStatement(
+	stmt *MoveStatement,
+	syncState *states.SyncState,
+	crossTypeMover *CrossTypeMover,
+	recordOldAddr func(oldAddr, newAddr addrs.AbsResourceInstance),
+	recordBlockage func(actualAddr, wantedAddr addrs.AbsMoveable),
+) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, modAddr := range snapshotModuleInstanceAddrs(syncState) {
+		ms := syncState.Module(modAddr)
+		if ms == nil {
+			continue
+		}
+
+		// We don't yet know that the current module is relevant, and
+		// we determine that differently for each the object kind.
+		switch kind := stmt.ObjectKind(); kind {
+		case addrs.MoveEndpointModule:
+			// For a module endpoint we just try the module address
+			// directly, and execute the moves if it matches.
+			if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
+				log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
+
+				// If we already have a module at the new address then
+				// we'll skip this move and let the existing object take
+				// priority.
+				if existing := syncState.Module(newAddr); existing != nil {
+					log.Printf("[WARN] Skipped moving %s to %s, because there's already another module instance at the destination", modAddr, newAddr)
+					recordBlockage(modAddr, newAddr)
+					continue
+				}
+
+				// We need to visit all of the resource instances in the
+				// module and record them individually as results.
+				for _, rs := range ms.Resources {
+					relAddr := rs.Addr.Resource
+					for key := range rs.Instances {
+						oldInst := relAddr.Instance(key).Absolute(modAddr)
+						newInst := relAddr.Instance(key).Absolute(newAddr)
+						recordOldAddr(oldInst, newInst)
+					}
+				}
+
+				if !syncState.MaybeMoveModuleInstance(modAddr, newAddr) && syncState.Module(newAddr) != nil {
+					recordBlockage(modAddr, newAddr)
+				}
+				continue
+			}
+
+		case addrs.MoveEndpointResource:
+			// For a resource endpoint we require an exact containing
+			// module match, because by definition a matching resource
+			// cannot be nested any deeper than that.
+			if !stmt.From.SelectsModule(modAddr) {
+				continue
+			}
+
+			// We then need to search each of the resources and resource
+			// instances in the module.
+			for _, rs := range ms.Resources {
+				rAddr := rs.Addr
+				if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
+					log.Printf("[TRACE] refactoring.ApplyMoves: resource %s has moved to %s", rAddr, newAddr)
+
+					// If we already have a resource at the new address then
+					// we'll skip this move and let the existing object take
+					// priority.
+					if existing := syncState.Resource(newAddr); existing != nil {
+						log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource at the destination", rAddr, newAddr)
+						recordBlockage(rAddr, newAddr)
+						continue
+					}
+
+					crossTypeMove, prepareDiags := crossTypeMover.PrepareCrossTypeMove(syncState, stmt, rAddr, newAddr)
+					diags = diags.Append(prepareDiags)
+					for key := range rs.Instances {
+						oldInst := rAddr.Instance(key)
+						newInst := newAddr.Instance(key)
+						diags = diags.Append(crossTypeMove.ApplyCrossTypeMove(stmt, oldInst, newInst, syncState))
+						recordOldAddr(oldInst, newInst)
+					}
+					if !syncState.MaybeMoveAbsResource(rAddr, newAddr) && syncState.Resource(newAddr) != nil {
+						recordBlockage(rAddr, newAddr)
+					}
+					continue
+				}
+				for key := range rs.Instances {
+					iAddr := rAddr.Instance(key)
+					if newAddr, matches := iAddr.MoveDestination(stmt.From, stmt.To); matches {
+						log.Printf("[TRACE] refactoring.ApplyMoves: resource instance %s has moved to %s", iAddr, newAddr)
+
+						// If we already have a resource instance at the new
+						// address then we'll skip this move and let the existing
+						// object take priority.
+						if existing := syncState.ResourceInstance(newAddr); existing != nil {
+							log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource instance at the destination", iAddr, newAddr)
+							recordBlockage(iAddr, newAddr)
+							continue
+						}
+
+						crossTypeMove, crossTypeMoveDiags := crossTypeMover.PrepareCrossTypeMove(syncState, stmt, iAddr.ContainingResource(), newAddr.ContainingResource())
+						diags = diags.Append(crossTypeMoveDiags)
+						diags = diags.Append(crossTypeMove.ApplyCrossTypeMove(stmt, iAddr, newAddr, syncState))
+						recordOldAddr(iAddr, newAddr)
+						if !syncState.MaybeMoveResourceInstance(iAddr, newAddr) && syncState.ResourceInstance(newAddr) != nil {
+							recordBlockage(iAddr, newAddr)
+						}
+						continue
+					}
+				}
+			}
+
+		default:
+			panic(fmt.Sprintf("unhandled move object kind %s", kind))
+		}
+	}
+
+	return diags
+}
+
+func snapshotModuleInstanceAddrs(syncState *states.SyncState) []addrs.ModuleInstance {
+	state := syncState.Lock()
+	defer syncState.Unlock()
+
+	ret := make([]addrs.ModuleInstance, 0, len(state.Modules))
+	for _, ms := range state.Modules {
+		addr := make(addrs.ModuleInstance, len(ms.Addr))
+		copy(addr, ms.Addr)
+		ret = append(ret, addr)
+	}
+	return ret
 }
 
 // buildMoveStatementGraph constructs a dependency graph of the given move
@@ -233,7 +283,7 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 			}
 			dependee := &stmts[dependeeI]
 
-			if statementDependsOn(depender, dependee) {
+			if StatementDependsOn(depender, dependee) {
 				g.Connect(dag.BasicEdge(depender, dependee))
 			}
 		}
@@ -242,9 +292,9 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 	return g
 }
 
-// statementDependsOn returns true if statement a depends on statement b;
-// i.e. statement b must be executed before statement a.
-func statementDependsOn(a, b *MoveStatement) bool {
+// StatementDependsOn returns true if statement a depends on statement b; i.e.
+// statement b must be executed before statement a.
+func StatementDependsOn(a, b *MoveStatement) bool {
 	// chain-able moves are simple, as on the destination of one move could be
 	// equal to the source of another.
 	if a.From.CanChainFrom(b.To) {
@@ -325,7 +375,8 @@ type MoveResults struct {
 	Blocked addrs.Map[addrs.AbsMoveable, MoveBlocked]
 }
 
-func makeMoveResults() MoveResults {
+// MakeMoveResults returns an initialized MoveResults value.
+func MakeMoveResults() MoveResults {
 	return MoveResults{
 		Changes: addrs.MakeMap[addrs.AbsResourceInstance, MoveSuccess](),
 		Blocked: addrs.MakeMap[addrs.AbsMoveable, MoveBlocked](),

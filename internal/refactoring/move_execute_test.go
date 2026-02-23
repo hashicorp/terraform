@@ -37,7 +37,7 @@ func TestApplyMoves(t *testing.T) {
 		return addr
 	}
 
-	emptyResults := makeMoveResults()
+	emptyResults := MakeMoveResults()
 
 	tests := map[string]struct {
 		Stmts []MoveStatement

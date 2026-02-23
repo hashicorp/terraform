@@ -624,7 +624,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, evalScope, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
+func (c *Context) prePlanFindAndApplyMovesViaGraph(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -633,8 +633,46 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 		moveStmts = append(moveStmts, explicitMoveStmts...)
 		moveStmts = append(moveStmts, implicitMoveStmts...)
 	}
-	moveResults, diags := refactoring.ApplyMoves(moveStmts, prevRunState, c.plugins.ProviderFactories())
-	return moveStmts, moveResults, diags
+	if len(moveStmts) == 0 {
+		return moveStmts, refactoring.MakeMoveResults(), nil
+	}
+
+	// Preserve ApplyMoves behavior: invalid ordering graphs are skipped here and
+	// reported later by postPlanValidateMoves.
+	if diags := refactoring.ValidateMoveStatementsForExecution(moveStmts); diags.HasErrors() {
+		log.Printf("[ERROR] prePlanFindAndApplyMovesViaGraph: %s", diags.ErrWithWarnings())
+		return moveStmts, refactoring.MakeMoveResults(), nil
+	}
+
+	collector := newMoveResultsCollector()
+	crossTypeMover := refactoring.NewCrossTypeMover(c.plugins.ProviderFactories())
+
+	graph, diags := (&MovedGraphBuilder{
+		Statements: moveStmts,
+		Runtime: &movedExecutionRuntime{
+			CrossTypeMover: crossTypeMover,
+			Collector:      collector,
+		},
+	}).Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		diags = diags.Append(crossTypeMover.Close())
+		return moveStmts, refactoring.MakeMoveResults(), diags
+	}
+
+	walker, walkDiags := c.walk(graph, walkEval, &graphWalkOpts{
+		InputState: prevRunState,
+		Config:     config,
+	})
+	diags = diags.Append(walker.NonFatalDiagnostics)
+	diags = diags.Append(walkDiags)
+
+	// c.walk uses a deep-copied state wrapper, so copy the resulting state data
+	// back into our caller-owned previous-run state.
+	newState := walker.State.Close()
+	*prevRunState = *newState
+
+	diags = diags.Append(crossTypeMover.Close())
+	return moveStmts, collector.Results(), diags
 }
 
 func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
@@ -749,7 +787,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMoves(config, prevRunState)
+	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMovesViaGraph(config, prevRunState)
 	diags = diags.Append(moveDiags)
 	if moveDiags.HasErrors() {
 		return nil, nil, diags
