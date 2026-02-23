@@ -3451,60 +3451,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("temporary: test showing use of HTTP server in mock provider source", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderVersion := getproviders.MustParseVersion("1.2.3")
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-
-		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
-		// This stops Terraform auto-approving the provider installation.
-		source := newMockProviderSourceUsingTestHttpServer(t, mockProviderAddress, mockProviderVersion)
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: source,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedOutputs := []string{
-			"Initializing the state store...",
-			"Terraform created an empty state file for the default workspace",
-			"Terraform has been successfully initialized!",
-		}
-		for _, expected := range expectedOutputs {
-			if !strings.Contains(output, expected) {
-				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
-			}
-		}
-	})
-
-	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
+	t.Run("init: creates a backend state file and creates the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3591,7 +3538,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3640,7 +3587,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: TF_SKIP_CREATE_DEFAULT_WORKSPACE will cause the default workspace to not be created", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3691,7 +3638,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	})
 
 	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
-	t.Run("if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
+	t.Run("init: error if a custom workspace is selected but no workspaces exist", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3761,7 +3708,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	//
 	// When input is disabled (in automation, etc) Terraform cannot prompts the user to select an alternative.
 	// Instead, an error is returned.
-	t.Run("init: returns an error when input is disabled and the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
+	t.Run("init: error when input is disabled and the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
