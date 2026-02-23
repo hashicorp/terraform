@@ -315,6 +315,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: stateMigrateLocalHuman,
 		JSONValue:  stateMigrateLocalJSON,
 	},
+	"state_store_migrate_state_store": {
+		HumanValue: "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
+		JSONValue:  "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
+	},
 	"empty_message": {
 		HumanValue: "",
 		JSONValue:  "",
@@ -379,6 +383,8 @@ const (
 	BackendMigrateStateStoreMessage InitMessageCode = "backend_migrate_state_store"
 	// StateMigrateLocalMessage indicates migration from state store to local
 	StateMigrateLocalMessage InitMessageCode = "state_store_migrate_local"
+	// StateStoreMigrationMessage indicates migration from state store to state store
+	StateStoreMigrationMessage InitMessageCode = "state_store_migrate_state_store"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
 	// InstalledProviderVersionInfo describes a successfully installed provider along with its version

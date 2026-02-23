@@ -248,6 +248,23 @@ above, resolve it, and try again.`, innerError)
 	)
 }
 
+// errStateStoreWriteSavedDiag creates a diagnostic to present to users when
+// an init command experiences an error while writing to the backend state file.
+func errStateStoreWriteSavedDiag(innerError error) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Error saving the state store configuration: %s
+
+Terraform saves the complete state store configuration in a local file for
+configuring the state store on future operations. This cannot be disabled. Errors
+are usually due to simple file permission errors. Please look at the error
+above, resolve it, and try again.`, innerError)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"State store initialization failed",
+		msg,
+	)
+}
+
 // errBackendNoExistingWorkspaces is returned by calling code when it expects a backend.Backend
 // to report one or more workspaces exist.
 //

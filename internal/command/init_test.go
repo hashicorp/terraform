@@ -4148,6 +4148,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
+		expectedReason := "State store \"test_store\" (hashicorp/test) configuration changed"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
 	})
 
 	t.Run("handling changed state store provider config", func(t *testing.T) {
@@ -4196,6 +4200,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store provider \"test\" (hashicorp/test) configuration changed"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
 		}
 	})
 
@@ -4249,6 +4257,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store type changed from \"test_store\" to \"test_otherstore\""
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
 		}
 	})
 
@@ -4308,6 +4320,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
+		expectedReason := "State store provider changed from hashicorp/test to hashicorp/test2"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
 	})
 }
 
@@ -4364,6 +4380,10 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
 		}
 	})
 }
