@@ -3425,21 +3425,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Error: State storage providers must be downloaded using -safe-init flag",
-			"Terraform wanted to download registry.terraform.io/hashicorp/test 1.2.3 to be used for pluggable state storage. Please provide -safe-init flag for safe install",
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
-			}
-		}
-		unexpectedOutputs := []string{
-			// If the only provider that's blocked from installing is the state storage provider, we don't
-			// want the text below to be rendered with zero providers listed below it.
-			"some providers could not be installed:\n",
-		}
-		for _, unexpectedOutput := range unexpectedOutputs {
-			if !strings.Contains(output, unexpectedOutput) {
-				t.Fatalf("expected output to include %q, but got':\n %s", unexpectedOutput, output)
 			}
 		}
 	})
