@@ -3547,7 +3547,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		lockFile := filepath.Join(td, ".terraform.lock.hcl")
 		_, err := os.Stat(lockFile)
 		if os.IsNotExist(err) {
-			t.Fatal("expected dependency lock file to not exist, but it doesn't")
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
 		}
 	})
 
