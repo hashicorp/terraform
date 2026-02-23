@@ -23,7 +23,6 @@ import (
 )
 
 func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
-
 	tcs := map[string]struct {
 		source           string
 		expectedVersions []string
@@ -40,7 +39,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 						Version:  versions.MustParseVersion("0.1.0"),
 					},
 				}
-				return getproviders.NewMockSource(packages, nil)
+				return getproviders.NewMockSource(packages, nil, nil)
 			},
 		},
 		"multiple_versions": {
@@ -57,7 +56,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 						Version:  versions.MustParseVersion("0.2.0"),
 					},
 				}
-				return getproviders.NewMockSource(packages, nil)
+				return getproviders.NewMockSource(packages, nil, nil)
 			},
 		},
 		"with_warnings": {
@@ -77,7 +76,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 						"warning two",
 					},
 				}
-				return getproviders.NewMockSource(packages, warnings)
+				return getproviders.NewMockSource(packages, warnings, nil)
 			},
 		},
 	}
@@ -126,7 +125,6 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestPackagesServer_FetchProviderPackage(t *testing.T) {
@@ -226,7 +224,7 @@ func TestPackagesServer_FetchProviderPackage(t *testing.T) {
 						})
 					}
 
-					return getproviders.NewMockSource(providers, nil)
+					return getproviders.NewMockSource(providers, nil, nil)
 				},
 			}
 

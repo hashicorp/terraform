@@ -1993,7 +1993,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
 	}
-	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil)
+	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil, nil)
 
 	m := Meta{
 		testingOverrides: overrides,
@@ -5824,7 +5824,47 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), close
+	return getproviders.NewMockSource(packages, nil, nil), close
+}
+
+// newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
+// reports that the provider is going to be accessed via HTTP
+//
+// Provider binaries are not available via the mock HTTP provider source. This source is sufficient only to allow Terraform
+// to complete the provider installation process while believing it's installing providers over HTTP.
+// This method is not sufficient to enable Terraform to use providers with those names.
+//
+// When using `newMockProviderSourceViaHTTP` to set a value for `(Meta).ProviderSource` in a test, also set up `testOverrides`
+// in the same Meta. That way the provider source will allow the download process to complete, and when Terraform attempts to use
+// those binaries it will instead use the testOverride providers.
+func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string, client *http.Client) (source *getproviders.MockSource, close func()) {
+	t.Helper()
+	var packages []getproviders.PackageMeta
+	var closes []func()
+	close = func() {
+		for _, f := range closes {
+			f()
+		}
+	}
+	for source, versions := range availableProviderVersions {
+		addr := addrs.MustParseProviderSourceString(source)
+		for _, versionStr := range versions {
+			version, err := getproviders.ParseVersion(versionStr)
+			if err != nil {
+				close()
+				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
+			}
+			meta, close, err := getproviders.FakePackageMetaViaHTTP(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, address, "")
+			if err != nil {
+				close()
+				t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), versionStr, err)
+			}
+			closes = append(closes, close)
+			packages = append(packages, meta)
+		}
+	}
+
+	return getproviders.NewMockSource(packages, nil, client), close
 }
 
 // installFakeProviderPackages installs a fake package for the given provider
