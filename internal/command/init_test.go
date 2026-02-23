@@ -3384,7 +3384,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("int: return error if -safe-init isn't set when downloading the state storage provider", func(t *testing.T) {
+	t.Run("init: error if -safe-init isn't set when downloading the state storage provider via HTTP", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3444,7 +3444,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("init: can safely use a new provider when -safe-init is present", func(t *testing.T) {
+	t.Run("init: can safely download state storage provider via HTTP when -safe-init is present", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3477,10 +3477,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			},
 			ProviderSource: source,
 		}
-		// We're only able to allow Terraform to download providers from a mock provider registry if
-		// we satisfy TLS requirements. This value passed via context allows the eventual http client used
-		// for downloading the provider to have config making it accept the self-signed certs from our test server.
-		// meta.CallerContext = context.WithValue(context.Background(), "testing", true)
 		c := &InitCommand{
 			Meta: meta,
 		}
@@ -3516,7 +3512,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("init: initialising a state store creates a backend state file and create the default workspace", func(t *testing.T) {
+	t.Run("init: initializing a state store creates a backend state file and create the default workspace", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3620,7 +3616,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3669,7 +3665,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("an init command with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
+	t.Run("init: with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3680,7 +3676,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3720,7 +3716,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	})
 
 	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
-	t.Run("if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
+	t.Run("init: if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3735,7 +3731,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3810,7 +3806,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
