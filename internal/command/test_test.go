@@ -292,7 +292,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"10 passed, 0 failed."},
+			expectedOut: []string{"11 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
@@ -5675,101 +5675,58 @@ func TestTest_TeardownOrder(t *testing.T) {
 }
 
 func TestTest_OverrideData(t *testing.T) {
-	tcs := map[string]struct {
-		dir  string
-		code int
-		desc string
-	}{
-		"list_attribute": {
-			dir:  "override_data_list_attribute",
-			code: 0,
-			desc: "override_data with a computed cty.List(cty.Object) attribute",
-		},
-		"nested_list_attribute": {
-			dir:  "override_data_nested_list_attribute",
-			code: 0,
-			desc: "override_data with a computed NestedType NestingList attribute",
-		},
-		"set_attribute": {
-			dir:  "override_data_set_attribute",
-			code: 0,
-			desc: "override_data with a computed cty.Set(cty.Object) attribute",
-		},
-		"nested_set_attribute": {
-			dir:  "override_data_nested_set_attribute",
-			code: 0,
-			desc: "override_data with a computed NestedType NestingSet attribute",
-		},
-		"map_attribute": {
-			dir:  "override_data_map_attribute",
-			code: 0,
-			desc: "override_data with a computed cty.Map(cty.Object) attribute",
-		},
-		"nested_map_attribute": {
-			dir:  "override_data_nested_map_attribute",
-			code: 0,
-			desc: "override_data with a computed NestedType NestingMap attribute",
-		},
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "override_data_attribute")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer closeFn()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
-	for name, tc := range tcs {
-		t.Run(name, func(t *testing.T) {
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", tc.dir)), td)
-			t.Chdir(td)
+	init := &InitCommand{
+		Meta: meta,
+	}
 
-			provider := testing_command.NewProvider(nil)
-			providerSource, closeFn := newMockProviderSource(t, map[string][]string{
-				"test": {"1.0.0"},
-			})
-			defer closeFn()
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+	}
 
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
-			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
-			}
+	c := &TestCommand{
+		Meta: meta,
+	}
 
-			init := &InitCommand{
-				Meta: meta,
-			}
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
 
-			if code := init.Run(nil); code != 0 {
-				output := done(t)
-				t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
-			}
+	if code != 0 {
+		t.Errorf("expected status code %d but got %d:\n\n%s", 0, code, output.All())
+	}
 
-			// Reset the streams for the next command.
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
-
-			c := &TestCommand{
-				Meta: meta,
-			}
-
-			code := c.Run([]string{"-no-color"})
-			output := done(t)
-
-			if code != tc.code {
-				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
-			}
-
-			if tc.code == 0 {
-				if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
-					t.Errorf("expected passing test output but got:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
-				}
-				if output.Stderr() != "" {
-					t.Errorf("unexpected stderr output:\n%s", output.Stderr())
-				}
-			}
-		})
+	if !strings.Contains(output.Stdout(), "6 passed, 0 failed.") {
+		t.Errorf("expected passing test output but got:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
+	}
+	if output.Stderr() != "" {
+		t.Errorf("unexpected stderr output:\n%s", output.Stderr())
 	}
 }
 
