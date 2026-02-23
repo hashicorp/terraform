@@ -3483,7 +3483,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("init: can safely download state storage provider via HTTP when -safe-init is present", func(t *testing.T) {
+	t.Run("init: -safe-init enables downloading a state storage provider via HTTP", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3548,6 +3548,124 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		_, err := os.Stat(lockFile)
 		if os.IsNotExist(err) {
 			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+	})
+
+	// We expect the init process to require 2 separate init commands when Terraform is run in automation
+	t.Run("init: in automation, -safe-init enables downloading a state storage provider via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source, close := newMockProviderSourceWithTestHttpServer(t, mockProviderAddress, getproviders.MustParseVersion("1.2.3"))
+		t.Cleanup(close)
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+			"-input=false", // in automation
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := cleanString(testOutput.All())
+		expectedOutputs := []string{
+			"Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Terraform has created a lock file .terraform.lock.hcl",
+			"Terraform has exited early to allow you to confirm the provider used for state storage: provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3.",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+		unexpectedOutput := "Initializing the state store..."
+		if strings.Contains(output, unexpectedOutput) {
+			t.Fatalf("didn't expect the state store to be initialized at the same time as downloading the state storage provider, but it was:\n %s", output)
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+
+		// Assert the default workspace and backend states haven't been created yet
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected the default workspace to not be created yet, but it is present")
+		}
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err = os.Stat(statePath)
+		if !os.IsNotExist(err) {
+			t.Fatal("expected backend state file to not exist, but it does")
+		}
+
+		// Second init is required to fully initialize the working directory
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.Ui = ui
+		c.Meta.View = view
+
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// -safe-init not needed in second init
+			"-input=false", // in automation
+		}
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output = cleanString(testOutput.All())
+		expectedOutputs = []string{
+			"Reusing previous version of hashicorp/test from the dependency lock file",
+			"Terraform auto-approved the state storage provider as it comes from a trusted source",
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the default workspace and backend states have now been created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to created, but it is missing")
+		}
+		_, err = os.Stat(statePath)
+		if os.IsNotExist(err) {
+			t.Fatal("expected backend state file to exist, but it is missing")
 		}
 	})
 
