@@ -3390,15 +3390,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		source, close := newMockProviderSourceViaHTTP(
-			t,
-			map[string][]string{
-				"hashicorp/test": {"1.2.3"},
-			},
-			"", // In this test case the provider will not be downloaded so no address is needed
-			nil,
-		)
-		defer close()
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source, close := newMockProviderSourceWithTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3455,58 +3450,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		server := httptest.NewUnstartedServer(nil) // Get un-started server so we know the port it'll run on.
-		client := httpclient.New()
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		source, close := newMockProviderSourceViaHTTP(
-			t,
-			map[string][]string{
-				"hashicorp/test": {"1.2.3"},
-			},
-			server.Listener.Addr().String(),
-			client,
-		)
-		defer close()
-
-		// Supply a download location so that the installation completes ok
-		// while Terraform still believes it's downloading a provider via HTTP.
-		providerMetadata, err := source.PackageMeta(
-			context.Background(),
-			addrs.NewDefaultProvider("test"),
-			getproviders.MustParseVersion("1.2.3"),
-			getproviders.CurrentPlatform,
-		)
-		if err != nil {
-			t.Fatalf("failed to get provider metadata: %s", err)
-		}
-		server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			providerLocationPath := strings.ReplaceAll(
-				providerMetadata.Location.String(),
-				"https://"+server.Listener.Addr().String(),
-				"",
-			)
-			if r.URL.Path == providerLocationPath {
-				// This is the URL that the init command will hit to download the provider, so we return a valid provider archive.
-				f, err := os.Open(providerMetadata.Filename)
-				if err != nil {
-					t.Fatalf("failed to open mock source file: %s", err)
-				}
-				defer f.Close()
-				archiveBytes, err := io.ReadAll(f)
-				if err != nil {
-					t.Fatalf("failed to read mock source file: %s", err)
-				}
-				w.WriteHeader(http.StatusOK)
-				w.Write(archiveBytes)
-				return
-			} else {
-				t.Fatalf("unexpected URL path: %s", r.URL.Path)
-			}
-		})}
-		server.StartTLS()
-		defer server.Close()
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source, close := newMockProviderSourceWithTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+		t.Cleanup(close)
 
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
@@ -3563,7 +3510,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Assert the dependency lock file was created
 		lockFile := filepath.Join(td, ".terraform.lock.hcl")
-		_, err = os.Stat(lockFile)
+		_, err := os.Stat(lockFile)
 		if os.IsNotExist(err) {
 			t.Fatal("expected dependency lock file to not exist, but it doesn't")
 		}
@@ -5202,4 +5149,91 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 		}
 	}
 	return &mock
+}
+
+// newMockProviderSourceWithTestHttpServer returns a mock provider source that makes Terraform think it's downloading providers over HTTP.
+// This helper sets up a test HTTP server for use with newMockProviderSourceViaHTTP, and configures a handler that will respond when
+// Terraform attempts to download provider binaries during installation.
+//
+// This source is not sufficient for providers to be available to use during a test; when using this helper, also set up testOverrides in
+// the same Meta to provide the actual provider implementations for use during the test.
+//
+// Currently this helper only allows one provider/version to be mocked. In future we could extend it to allow multiple providers/versions.
+func newMockProviderSourceWithTestHttpServer(t *testing.T, p addrs.Provider, v getproviders.Version) (*getproviders.MockSource, func()) {
+	var closes []func() // See final return values.
+
+	// Get un-started server so we can obtain the port it'll run on.
+	server := httptest.NewUnstartedServer(nil)
+
+	// Prepare a client that ignores TLS errors, since the test server uses a self-signed cert when started with StartTLS.
+	client := httpclient.New()
+	client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	// Set up mock provider source that mocks installation via HTTP.
+	source, close := newMockProviderSourceViaHTTP(
+		t,
+		map[string][]string{
+			fmt.Sprintf("%s/%s", p.Namespace, p.Type): {v.String()},
+		},
+		server.Listener.Addr().String(),
+		client,
+	)
+	closes = append(closes, close)
+
+	// Supply a download location so that the installation completes ok
+	// while Terraform still believes it's downloading a provider via HTTP.
+	providerMetadata, err := source.PackageMeta(
+		context.Background(),
+		p,
+		v,
+		getproviders.CurrentPlatform,
+	)
+	if err != nil {
+		t.Fatalf("failed to get provider metadata: %s", err)
+	}
+
+	// Make Terraform believe it's downloading the provider.
+	// Any requests to the test server that aren't for that purpose will cause the test to fail.
+	server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		providerLocationPath := strings.ReplaceAll(
+			providerMetadata.Location.String(),
+			"https://"+server.Listener.Addr().String(),
+			"",
+		)
+		// This is the URL that the init command will hit to download the provider, so we return a valid provider archive.
+		if r.URL.Path == providerLocationPath {
+			// This code returns data in the temporary file that's created by the mock provider source.
+			// This 'downloaded' is not used when Terraform uses the provider after the mock installation completes;
+			// Terraform will look for will use testOverrides in the Meta set up for this test.
+			//
+			// Although it's not used later we need to use this file (versus empty or made-up bytes) to enable installation
+			// logic to receive data with the correct checksum.
+			f, err := os.Open(providerMetadata.Filename)
+			if err != nil {
+				t.Fatalf("failed to open mock source file: %s", err)
+			}
+			defer f.Close()
+			archiveBytes, err := io.ReadAll(f)
+			if err != nil {
+				t.Fatalf("failed to read mock source file: %s", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write(archiveBytes)
+			return
+		} else {
+			t.Fatalf("unexpected URL path: %s", r.URL.Path)
+		}
+	})}
+
+	server.StartTLS()
+	closes = append(closes, server.Close)
+
+	allCloses := func() {
+		for _, f := range closes {
+			f()
+		}
+	}
+	return source, allCloses
 }
