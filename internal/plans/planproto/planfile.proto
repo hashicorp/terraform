@@ -108,8 +108,8 @@ message Plan {
     repeated string target_addrs = 5;
 
     // An unordered set of action addresses that must be invoked when applying.
-    // If no actions are specified then only lifecycle actions should be
-    // executed.
+    // If no actions are specified then only resource lifecycle actions should
+    // be executed.
     repeated string action_target_addrs = 32;
 
     // An unordered set of force-replace addresses to include when applying.

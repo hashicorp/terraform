@@ -549,8 +549,8 @@ type Plan struct {
 	// configuration.
 	TargetAddrs []string `protobuf:"bytes,5,rep,name=target_addrs,json=targetAddrs,proto3" json:"target_addrs,omitempty"`
 	// An unordered set of action addresses that must be invoked when applying.
-	// If no actions are specified then only lifecycle actions should be
-	// executed.
+	// If no actions are specified then only resource lifecycle actions should
+	// be executed.
 	ActionTargetAddrs []string `protobuf:"bytes,32,rep,name=action_target_addrs,json=actionTargetAddrs,proto3" json:"action_target_addrs,omitempty"`
 	// An unordered set of force-replace addresses to include when applying.
 	// This must match the set of addresses that was used when creating the
