@@ -299,7 +299,7 @@ func TestMarkDeprecatedValues_DiagnosticMessages(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			marked := MarkDeprecatedValues(test.val, test.schema, "origin")
-			_, diags := NewDeprecations().ValidateConfig(marked, test.schema, addrs.RootModule)
+			_, diags := NewDeprecations().ValidateAndUnmarkConfig(marked, test.schema, addrs.RootModule)
 			warnings := diags.Warnings()
 
 			if len(warnings) != 1 {
