@@ -199,6 +199,10 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
 	},
+	"exit_early_for_state_store_provider_confirmation_message": {
+		HumanValue: earlyExitAfterStateStorageProviderInstallHuman,
+		JSONValue:  earlyExitAfterStateStorageProviderInstallJSON,
+	},
 	"user_approved_state_store_provider_message": {
 		HumanValue: "\n[reset][bold]User approved the state storage provider.",
 		JSONValue:  "User approved the state storage provider.",
@@ -339,24 +343,25 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage           InitMessageCode = "copying_configuration_message"
-	EmptyMessage                          InitMessageCode = "empty_message"
-	OutputInitEmptyMessage                InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage              InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage         InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage           InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage      InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage               InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage     InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage            InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage            InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage         InitMessageCode = "initializing_state_store_message"
-	UserApprovedStateStoreProviderMessage InitMessageCode = "user_approved_state_store_provider_message"
-	UserRejectedStateStoreProviderMessage InitMessageCode = "user_rejected_state_store_provider_message"
-	DefaultWorkspaceCreatedMessage        InitMessageCode = "default_workspace_created_message"
-	InitializingProviderPluginMessage     InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                              InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo           InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage                       InitMessageCode = "copying_configuration_message"
+	EmptyMessage                                      InitMessageCode = "empty_message"
+	OutputInitEmptyMessage                            InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage                          InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage                     InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage                       InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage                  InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage                           InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage                 InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage                        InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage                        InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage                     InitMessageCode = "initializing_state_store_message"
+	ExitEarlyForStateStoreProviderConfirmationMessage InitMessageCode = "exit_early_for_state_store_provider_confirmation_message"
+	UserApprovedStateStoreProviderMessage             InitMessageCode = "user_approved_state_store_provider_message"
+	UserRejectedStateStoreProviderMessage             InitMessageCode = "user_rejected_state_store_provider_message"
+	DefaultWorkspaceCreatedMessage                    InitMessageCode = "default_workspace_created_message"
+	InitializingProviderPluginMessage                 InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                                          InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo                       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
@@ -510,6 +515,20 @@ version control system if they represent changes you intended to make.`
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
 	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
+
+const earlyExitAfterStateStorageProviderInstallHuman = `
+[reset][bold]Terraform has exited early to allow you to confirm the provider used for state storage: provider %q (%s), version %s.
+[reset]Inspect the provider's details above in the dependency lockfile to confirm it's the provider you intend to use for managing state.
+To accept the provider run  "terraform init" again.
+To reject the provider update your configuration and run "terraform init" again.
+`
+
+const earlyExitAfterStateStorageProviderInstallJSON = `
+Terraform has exited early to allow you to confirm the provider used for state storage: provider %q (%s), version %s.
+Inspect the provider's details above in the dependency lockfile to confirm it's the provider you intend to use for managing state.
+To accept the provider run  "terraform init" again.
+To reject the provider update your configuration and run "terraform init" again.
+`
 
 const errInitConfigError = `
 [reset]Terraform encountered problems during initialisation, including problems
