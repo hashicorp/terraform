@@ -3501,6 +3501,74 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	t.Run("init: can safely download state storage provider from a local archive without needing to supply the -safe-init flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// This mock provider source makes Terraform think the provider is coming from a local archive,
+		// so security checks are skipped.
+		source, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+		t.Cleanup(close)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		// We're only able to allow Terraform to download providers from a mock provider registry if
+		// we satisfy TLS requirements. This value passed via context allows the eventual http client used
+		// for downloading the provider to have config making it accept the self-signed certs from our test server.
+		// meta.CallerContext = context.WithValue(context.Background(), "testing", true)
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// This test doesn't need -safe-init in the flags due to the location of the provider
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform created an empty state file for the default workspace",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to not exist, but it doesn't")
+		}
+	})
+
 	t.Run("init: initializing a state store creates a backend state file and create the default workspace", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
