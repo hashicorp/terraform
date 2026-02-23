@@ -5674,6 +5674,85 @@ func TestTest_TeardownOrder(t *testing.T) {
 	}
 }
 
+func TestTest_OverrideDataListAttribute(t *testing.T) {
+	tcs := map[string]struct {
+		dir  string
+		code int
+		desc string
+	}{
+		"plain_list_attribute": {
+			dir:  "override_data_list_attribute",
+			code: 0,
+			desc: "override_data with a computed cty.List(cty.Object) attribute",
+		},
+		"nested_list_attribute": {
+			dir:  "override_data_nested_list_attribute",
+			code: 0,
+			desc: "override_data with a computed NestedType NestingList attribute",
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dir)), td)
+			t.Chdir(td)
+
+			provider := testing_command.NewProvider(nil)
+			providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer closeFn()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				output := done(t)
+				t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+			}
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tc.code {
+				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
+			}
+
+			if tc.code == 0 {
+				if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+					t.Errorf("expected passing test output but got:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
+				}
+				if output.Stderr() != "" {
+					t.Errorf("unexpected stderr output:\n%s", output.Stderr())
+				}
+			}
+		})
+	}
+}
+
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {

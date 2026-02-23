@@ -53,6 +53,33 @@ var (
 						"value":      {Type: cty.String, Computed: true},
 						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
 
+						// list_value is a computed attribute of list-of-objects
+						// type, used to test that override_data can correctly
+						// override list-type attributes (see GitHub issue #37939).
+						"list_value": {
+							Type: cty.List(cty.Object(map[string]cty.Type{
+								"name":  cty.String,
+								"value": cty.String,
+							})),
+							Computed: true,
+						},
+
+						// nested_list_value is a computed attribute using NestedType
+						// with NestingList, used to test that override_data can correctly
+						// override nested list-type attributes (see GitHub issue #37939).
+						// Many real-world providers (e.g. Databricks) define list-of-objects
+						// attributes this way rather than using a plain cty.List type.
+						"nested_list_value": {
+							Computed: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"name":  {Type: cty.String, Optional: true},
+									"value": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+
 						// We never actually reference these values from a data
 						// source, but we have tests that use the same cty.Value
 						// to represent a test_resource and a test_data_source
