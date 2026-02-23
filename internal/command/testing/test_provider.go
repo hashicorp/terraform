@@ -66,6 +66,7 @@ var (
 					},
 				},
 			},
+
 			"test_complex_data_source": {
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
