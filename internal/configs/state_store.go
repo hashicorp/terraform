@@ -24,6 +24,7 @@ import (
 // StateStore represents a "state_store" block inside a "terraform" block
 // in a module or file.
 type StateStore struct {
+	// Type is a state store type name
 	Type string
 
 	// Config is the full configuration of the state_store block, including the
