@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -188,7 +189,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, initArgs.Backend, initArgs.SafeInitWithPluggableStateStore, view)
+	configProvidersOutput, configLocks, safeInitAction, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -196,6 +197,53 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	}
 	if configProvidersOutput {
 		header = true
+	}
+
+	switch safeInitAction {
+	case SafeInitActionNotRelevant:
+		// do nothing; security features aren't relevant.
+	case SafeInitActionProceed:
+		lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+		view.Output(views.TerraformApprovedStateStoreProviderMessage,
+			lock.Provider().Type,
+			lock.Provider(),
+			lock.Version(),
+		)
+	case SafeInitActionPromptForInput:
+		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks))
+		if diags.HasErrors() {
+			view.Output(views.UserRejectedStateStoreProviderMessage)
+			view.Diagnostics(diags)
+			return 1
+		}
+		view.Output(views.UserApprovedStateStoreProviderMessage)
+	case SafeInitActionExitEarly:
+		// If we're in automation we need to write the config-derived providers to lock file
+		lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, nil, initArgs.Lockfile, view)
+		diags = diags.Append(lockFileDiags)
+		if lockFileDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+		if lockFileOutput {
+			// If we outputted information, then we need to output a newline
+			// so that our success message is nicely spaced out from prior text.
+			view.Output(views.EmptyMessage)
+		}
+
+		// ... and prompt the user to look at the values.
+		lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+
+		view.Diagnostics(diags) // display any warnings
+		view.Output(views.ExitEarlyForStateStoreProviderConfirmationMessage,
+			lock.Provider().Type,
+			lock.Provider(),
+			lock.Version(),
+		)
+		return 0
+	default:
+		// Handle SafeInitActionInvalid or unexpected action types
+		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
 	}
 
 	// If we outputted information, then we need to output a newline
@@ -534,4 +582,40 @@ the backend configuration is present and valid.
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
+}
+
+// promptStateStorageProviderApproval is used when Terraform is unsure about the safety of the provider downloaded for state storage
+// purposes, and we need to prompt the user to approve or reject using it.
+func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// If we can receive input then we prompt for ok from the user
+	lock := configLocks.Provider(stateStorageProvider)
+
+	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id: "approve",
+		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
+
+Hash: %s
+`,
+			lock.Provider().Type,
+			lock.Provider(),
+			lock.Version(),
+			lock.PreferredHashes()[0], // TODO - better handle of multiple hashes
+		),
+		Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
+	Only 'yes' will be accepted to confirm.`, lock.Provider()),
+	})
+	if err != nil {
+		return diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
+	}
+	if v != "yes" {
+		return diags.Append(
+			fmt.Errorf("State storage provider %q (%s) was not approved by the user",
+				lock.Provider().Type,
+				lock.Provider(),
+			),
+		)
+	}
+	return diags
 }
