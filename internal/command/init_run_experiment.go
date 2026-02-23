@@ -229,6 +229,17 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 		}
 		view.Output(views.UserApprovedStateStoreProviderMessage)
 	case SafeInitActionExitEarly:
+		if !initArgs.SafeInitWithPluggableStateStore {
+			// If the -safe-init flag isn't present we prompt the user to re-run init so they're opting into the security UX.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "State storage providers must be downloaded using -safe-init flag",
+				Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+			})
+			view.Diagnostics(diags)
+			return 1
+		}
+
 		// If we're in automation we need to write the config-derived providers to lock file
 		lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, nil, initArgs.Lockfile, view)
 		diags = diags.Append(lockFileDiags)

@@ -3433,6 +3433,56 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	t.Run("init: error if -safe-init isn't set when Terraform is run in automation and tries to download the state storage provider via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source, close := newMockProviderSourceWithTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+		t.Cleanup(close)
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			// We don't use testOverrides here because that causes providers to come from the local
+			// filesystem, and that makes them automatically trusted.
+			// The purpose of this test is to assert that downloading providers via HTTP, so we use a
+			// provider source that's mimicking the Registry with an http.Server.
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false",
+			// -safe-init is omitted to create the test scenario
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Error: State storage providers must be downloaded using -safe-init flag",
+		}
+		for _, expectedOutput := range expectedOutputs {
+			if !strings.Contains(output, expectedOutput) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+			}
+		}
+	})
+
 	t.Run("init: can safely download state storage provider via HTTP when -safe-init is present", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
