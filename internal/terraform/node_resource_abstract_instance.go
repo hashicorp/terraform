@@ -870,7 +870,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
 	var deprecationDiags tfdiags.Diagnostics
-	origConfigVal, deprecationDiags = ctx.Deprecations().ValidateConfig(origConfigVal, schema.Body, n.ModulePath())
+	origConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(origConfigVal, schema.Body, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1790,7 +1790,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				var deprecationDiags tfdiags.Diagnostics
-				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
+				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
 				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, n.Addr.String()))
 			}
 		}
@@ -1870,7 +1870,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	)
 
 	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, ctx.Path().Module())
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, ctx.Path().Module())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	if diags.HasErrors() {
@@ -2211,7 +2211,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	}
 
 	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.Body, n.ModulePath())
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	if diags.HasErrors() {
@@ -2530,7 +2530,7 @@ func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, bo
 	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.ResourceInstanceAddr().Resource, keyData)
 	diags = diags.Append(configDiags)
 	var deprecationDiags tfdiags.Diagnostics
-	config, deprecationDiags = ctx.Deprecations().ValidateConfig(config, schema, n.ModulePath())
+	config, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(config, schema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
 
 	return config, diags
@@ -2550,7 +2550,7 @@ func (n *NodeAbstractResourceInstance) evalDestroyProvisionerConfig(ctx EvalCont
 	config, evalDiags := evalScope.EvalSelfBlock(body, self, schema, keyData)
 	diags = diags.Append(evalDiags)
 	var deprecationDiags tfdiags.Diagnostics
-	config, deprecationDiags = ctx.Deprecations().ValidateConfig(config, schema, n.ModulePath())
+	config, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(config, schema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
 	return config, diags
 }
