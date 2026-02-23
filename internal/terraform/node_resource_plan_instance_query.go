@@ -50,7 +50,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 	var deprecationDiags tfdiags.Diagnostics
-	blockVal, deprecationDiags = ctx.Deprecations().ValidateConfig(blockVal, schema.FullSchema, n.ModulePath())
+	blockVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(blockVal, schema.FullSchema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
@@ -72,7 +72,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	if config.List.Limit != nil {
 		var limitDeprecationDiags tfdiags.Diagnostics
-		limitCty, limitDeprecationDiags = ctx.Deprecations().Validate(limitCty, ctx.Path().Module(), config.List.Limit.Range().Ptr())
+		limitCty, limitDeprecationDiags = ctx.Deprecations().ValidateAndUnmark(limitCty, ctx.Path().Module(), config.List.Limit.Range().Ptr())
 		diags = diags.Append(limitDeprecationDiags)
 	}
 
@@ -84,7 +84,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	if config.List.IncludeResource != nil {
 		var includeDeprecationDiags tfdiags.Diagnostics
-		includeRscCty, includeDeprecationDiags = ctx.Deprecations().Validate(includeRscCty, ctx.Path().Module(), config.List.IncludeResource.Range().Ptr())
+		includeRscCty, includeDeprecationDiags = ctx.Deprecations().ValidateAndUnmark(includeRscCty, ctx.Path().Module(), config.List.IncludeResource.Range().Ptr())
 		diags = diags.Append(includeDeprecationDiags)
 	}
 

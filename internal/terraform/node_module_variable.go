@@ -232,7 +232,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	}
 
 	if n.Expr != nil {
-		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Expr.Range().Ptr())
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Expr.Range().Ptr())
 		diags = diags.Append(deprecationDiags)
 	}
 
