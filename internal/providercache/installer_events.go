@@ -109,11 +109,10 @@ type InstallerEvents struct {
 	// a provider that is about to be downloaded. Currently this is used to manage scenarios
 	// where a provider binary may be downloaded and immediately executed during the
 	// same init command.
-	FetchPackageMeta        func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
-	FetchPackageBegin       func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
-	FetchPackageSuccess     func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
-	FetchPackageFailure     func(provider addrs.Provider, version getproviders.Version, err error)
-	FetchPackageSafetyCheck func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) error
+	FetchPackageMeta    func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
+	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
+	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
+	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 
 	// The ProvidersLockUpdated event is called whenever the lock file will be
 	// updated. It provides the following information:

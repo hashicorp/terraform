@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"slices"
 	"sort"
 	"strings"
 
@@ -31,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -701,8 +699,6 @@ func (c *InitCommand) getProvidersFromConfig(
 	upgrade bool,
 	pluginDirs arguments.FlagStringSlice, // Not needed for PSS stuff - for installer sources.
 	flagLockfile string,
-	backendInit bool,
-	safeInit bool,
 	view views.Init,
 ) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from config")
@@ -756,17 +752,7 @@ func (c *InitCommand) getProvidersFromConfig(
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	// TODO:
-	// if backendInit = false then either we're using a previously installed provider for state storage,
-	// or the config is being ignored and an implied local backend will be used instead.
-	// Think about use of backendInit here and edge cases.
-	safeOpts := &safeInitOptions{}
-	if config.Module.StateStore != nil {
-		safeOpts.providers = []addrs.Provider{config.Module.StateStore.ProviderAddr}
-		safeOpts.safeInitEnabled = safeInit
-	}
-	postInstallAction := false
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, safeOpts, &postInstallAction, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -804,36 +790,6 @@ func (c *InitCommand) getProvidersFromConfig(
 		}
 
 		return true, nil, diags
-	}
-
-	if postInstallAction {
-
-		// If we can receive input then we prompt for ok from the user
-		lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
-
-		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
-			Id: "approve",
-			Query: fmt.Sprintf("Do you want to use provider %q (%s), version %s, for managing state?",
-				lock.Provider().Type,
-				lock.Provider(),
-				lock.Version(),
-			),
-			Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
-	Only 'yes' will be accepted to confirm.`, lock.Provider()),
-		})
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
-			return true, nil, diags
-		}
-		if v != "yes" {
-			diags = diags.Append(
-				fmt.Errorf("State storage provider %q (%s) was not approved",
-					lock.Provider().Type,
-					lock.Provider(),
-				),
-			)
-			return true, nil, diags
-		}
 	}
 
 	return true, configLocks, diags
@@ -913,9 +869,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
-	var safeOpts *safeInitOptions
-	var postInstallAction bool
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, safeOpts, &postInstallAction, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
+	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -941,11 +895,6 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		}
 
 		return true, nil, diags
-	}
-
-	if postInstallAction {
-		// We don't need to monitor installation events related to the state.
-		panic("unexpected post-install action after installing providers from state")
 	}
 
 	return true, newLocks, diags
@@ -1020,16 +969,10 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 	return output, diags
 }
 
-// safeInitOptions
-type safeInitOptions struct {
-	providers       []addrs.Provider
-	safeInitEnabled bool
-}
-
 // prepareInstallerEvents returns an instance of *providercache.InstallerEvents. This struct defines callback functions that will be executed
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
-func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, safeOpts *safeInitOptions, postInstallAction *bool, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
+func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -1069,40 +1012,6 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
 			view.Log("location = " + location.String())
-		},
-		FetchPackageSafetyCheck: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) error {
-			// If there are no safe opts the calling code has decided there's no need to be cautious
-			// in the current scenario.
-			if safeOpts != nil {
-				if slices.Contains(safeOpts.providers, provider) {
-					switch location.(type) {
-					case getproviders.PackageLocalDir:
-						// Ok, as providers sourced from the local directory are considered trusted.
-						return nil
-					case getproviders.PackageLocalArchive:
-						// Ok, as providers sourced from a local archive are considered trusted.
-						return nil
-					case getproviders.PackageHTTPURL:
-						if safeOpts.safeInitEnabled {
-							// Code elsewhere will enforce safe installation - allow
-							//
-							// That code elsewhere is controlled by this boolean
-							*postInstallAction = true
-							return nil
-						} else {
-							// Unsafe - block
-							return getproviders.ErrUnsafeProviderDownload{
-								Provider:            provider,
-								Version:             version,
-								UsedForStateStorage: true,
-							}
-						}
-					default:
-						panic(fmt.Sprintf("unexpected install location for provider %s %s: %s", provider, version, location))
-					}
-				}
-			}
-			return nil
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			switch errorTy := err.(type) {
@@ -1275,16 +1184,6 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				// We don't attribute cancellation to any particular operation,
 				// but rather just emit a single general message about it at
 				// the end, by checking ctx.Err().
-
-			case getproviders.ErrUnsafeProviderDownload:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unsafe init - TODO",
-					fmt.Sprintf(
-						"TODO - blocked download of provider %s v%s.",
-						err.Provider, err.Version,
-					),
-				))
 
 			default:
 				// We can potentially end up in here under cancellation too,

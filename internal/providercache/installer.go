@@ -5,7 +5,6 @@ package providercache
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -558,21 +557,6 @@ NeedProvider:
 		// Step 3c: Retrieve the package indicated by the metadata we received,
 		// either directly into our target directory or via the global cache
 		// directory.
-
-		// Before we start the download process, perform and safety checks defined
-		// by the calling code.
-		if cb := evts.FetchPackageSafetyCheck; cb != nil {
-			err := cb(provider, version, meta.Location)
-			// A returned error means we're blocking download of a provider.
-			if err != nil {
-				errs[provider] = err
-				if cb := evts.FetchPackageFailure; cb != nil {
-					cb(provider, version, err)
-				}
-				continue
-			}
-		}
-
 		if cb := evts.FetchPackageBegin; cb != nil {
 			cb(provider, version, meta.Location)
 		}
@@ -592,6 +576,10 @@ NeedProvider:
 
 		var client *http.Client
 		if s, ok := i.source.(getproviders.ClientReturningSource); ok {
+			// This will often be nil if the mock provider source is used
+			// in a way that isn't mocking download via HTTP.
+			// Downstream code is written to supply a client if the passed
+			// *http.Client argument is nil.
 			client = s.Client()
 		}
 		authResult, err := installTo.InstallPackage(ctx, meta, allowedHashes, client)
@@ -792,44 +780,18 @@ type InstallerError struct {
 }
 
 func (err InstallerError) Error() string {
+	addrs := make([]addrs.Provider, 0, len(err.ProviderErrors))
+	for addr := range err.ProviderErrors {
+		addrs = append(addrs, addr)
+	}
+	sort.Slice(addrs, func(i, j int) bool {
+		return addrs[i].LessThan(addrs[j])
+	})
 	var b strings.Builder
-
-	// We want to render the "unsafe provider download" errors separately in the
-	// final error message, so separate those out here.
-	unsafeDownloadErrs := map[addrs.Provider]getproviders.ErrUnsafeProviderDownload{}
-	for p, pErr := range err.ProviderErrors {
-		var x getproviders.ErrUnsafeProviderDownload
-		if errors.As(pErr, &x) {
-			unsafeDownloadErrs[p] = pErr.(getproviders.ErrUnsafeProviderDownload)
-			delete(err.ProviderErrors, p)
-		}
+	b.WriteString("some providers could not be installed:\n")
+	for _, addr := range addrs {
+		providerErr := err.ProviderErrors[addr]
+		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
-	if len(unsafeDownloadErrs) > 0 {
-		b.WriteString("Error: State storage providers must be downloaded using -safe-init flag:\n")
-		for _, pErr := range unsafeDownloadErrs {
-			b.WriteString(pErr.Error())
-		}
-		if len(err.ProviderErrors) > 0 {
-			b.WriteString("\n") // separate the errors above from subsequent errors
-		}
-	}
-
-	// Process remaining errors, if present after the process above.
-	if len(err.ProviderErrors) == 0 {
-		addrs := make([]addrs.Provider, 0, len(err.ProviderErrors))
-		for addr := range err.ProviderErrors {
-			addrs = append(addrs, addr)
-		}
-		sort.Slice(addrs, func(i, j int) bool {
-			return addrs[i].LessThan(addrs[j])
-		})
-
-		b.WriteString("some providers could not be installed:\n")
-		for _, addr := range addrs {
-			providerErr := err.ProviderErrors[addr]
-			fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
-		}
-	}
-
 	return strings.TrimSpace(b.String())
 }
