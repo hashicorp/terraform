@@ -22,61 +22,11 @@ func FillAttribute(in cty.Value, attribute *configschema.Attribute) (cty.Value, 
 }
 
 func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+	ty := attribute.Type
 	if attribute.NestedType != nil {
-
-		switch attribute.NestedType.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			return fillObject(in, attribute, path)
-		case configschema.NestingSet:
-			return fillIterable(in, attribute, path)
-		case configschema.NestingList:
-			return fillIterable(in, attribute, path)
-		case configschema.NestingMap:
-			return fillIterable(in, attribute, path)
-		default:
-			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
-		}
+		ty = attribute.NestedType.ConfigType()
 	}
 
-	return fillType(in, attribute.Type, path)
-}
-
-func fillObject(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
-	// Then the in value must be an object.
-	if !in.Type().IsObjectType() {
-		return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
-	}
-
-	var names []string
-	for name := range attribute.NestedType.Attributes {
-		names = append(names, name)
-	}
-	if len(names) == 0 {
-		return cty.EmptyObjectVal, nil
-	}
-
-	// Make the order we iterate through the attributes deterministic. We
-	// are generating random strings in here so it's worth making the
-	// operation repeatable.
-	sort.Strings(names)
-
-	children := make(map[string]cty.Value)
-	for _, name := range names {
-		if in.Type().HasAttribute(name) {
-			child, err := fillAttribute(in.GetAttr(name), attribute.NestedType.Attributes[name], path.GetAttr(name))
-			if err != nil {
-				return cty.NilVal, err
-			}
-			children[name] = child
-			continue
-		}
-		children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
-	}
-	return cty.ObjectVal(children), nil
-}
-
-func fillIterable(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
-	ty := attribute.NestedType.ConfigType()
 	return fillType(in, ty, path)
 }
 
