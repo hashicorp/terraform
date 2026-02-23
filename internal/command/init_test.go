@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,6 +40,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3451,6 +3453,269 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
+	t.Run("init: error if -safe-init isn't set when downloading the state storage provider via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source := newMockProviderSourceUsingTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			// We don't use testOverrides here because that causes providers to come from the local
+			// filesystem, and that makes them automatically trusted.
+			// The purpose of this test is to assert that downloading providers via HTTP, so we use a
+			// provider source that's mimicking the Registry with an http.Server.
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// -safe-init is omitted to create the test scenario
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Error: State storage providers must be downloaded using -safe-init flag",
+		}
+		for _, expectedOutput := range expectedOutputs {
+			if !strings.Contains(output, expectedOutput) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+			}
+		}
+	})
+
+	t.Run("init: -safe-init enables downloading a state storage provider via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source := newMockProviderSourceUsingTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init", // In this test the provider is downloaded via HTTP so this flag is necessary.
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform created an empty state file for the default workspace",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+	})
+
+	t.Run("init: can safely download state storage provider from a local archive without needing to supply the -safe-init flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// This mock provider source makes Terraform think the provider is coming from a local archive,
+		// so security checks are skipped.
+		source, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+		t.Cleanup(close)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		// We're only able to allow Terraform to download providers from a mock provider registry if
+		// we satisfy TLS requirements. This value passed via context allows the eventual http client used
+		// for downloading the provider to have config making it accept the self-signed certs from our test server.
+		// meta.CallerContext = context.WithValue(context.Background(), "testing", true)
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// This test doesn't need -safe-init in the flags due to the location of the provider
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform created an empty state file for the default workspace",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to not exist, but it doesn't")
+		}
+	})
+
+	t.Run("init: if user forgets -safe-init flag and retries they're prompted as expected on the second attempt", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source := newMockProviderSourceUsingTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("1.2.3"))
+
+		// Set up providers for use in the second init attempt after the user adds the -safe-init flag.
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Init number 1: forgetting -safe-init flag
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Error: State storage providers must be downloaded using -safe-init flag",
+		}
+		for _, expectedOutput := range expectedOutputs {
+			if !strings.Contains(output, expectedOutput) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+			}
+		}
+
+		// Init number 2: retrying with -safe-init flag and responding to prompts
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-safe-init",
+		}
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Ui = ui
+		c.View = view
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output = testOutput.All()
+		expectedOutputs = []string{
+			"Initializing the state store...",
+			"Terraform created an empty state file for the default workspace",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
+
 	t.Run("init: creates a backend state file and creates the default workspace by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()

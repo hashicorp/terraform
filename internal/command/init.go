@@ -434,7 +434,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					),
 				))
 			}
-
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
 			displayWarnings := make([]string, len(warnings))
@@ -690,11 +689,24 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	return true, false, diags
 }
 
+// SafeInitAction describes the action that should be taken by Terraform based on whether
+// pluggable state storage is in use, if the provider is going to be downloaded via HTTP or not,
+// and whether Terraform is being run in automation or not.
+type SafeInitAction rune
+
+const (
+	SafeInitActionInvalid        SafeInitAction = 0
+	SafeInitActionProceed        SafeInitAction = 'P'
+	SafeInitActionPromptForInput SafeInitAction = 'I'
+	SafeInitActionExitEarly      SafeInitAction = 'E'
+	SafeInitActionNotRelevant    SafeInitAction = 'N' // For when a state store isn't in use at all!
+)
+
 // getProvidersFromConfig determines what providers are required by the given configuration data.
 // The method downloads any missing providers that aren't already downloaded and then returns
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
@@ -708,7 +720,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	for providerAddr := range reqs {
@@ -724,7 +736,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	var inst *providercache.Installer
@@ -746,7 +758,310 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
+	// Prepare callback functions for the installer.
+	// These allow us to send output to the terminal as events happen, catch
+	// diagnostics, etc.
+	//
+	// One of the things we capture via these callbacks is the location of
+	// providers as we install them. This allows the calling code to determine
+	// what 'safe init' actions need to take place.
+	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
+
+	// Because we're currently just streaming a series of events sequentially
+	// into the terminal, we're showing only a subset of the events to keep
+	// things relatively concise. Later it'd be nice to have a progress UI
+	// where statuses update in-place, but we can't do that as long as we
+	// are shimming our vt100 output to the legacy console API on Windows.
+	evts := &providercache.InstallerEvents{
+		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
+			view.Output(views.InitializingProviderPluginFromConfigMessage)
+		},
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+		},
+		BuiltInProviderAvailable: func(provider addrs.Provider) {
+			view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+		},
+		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid dependency on built-in provider",
+				fmt.Sprintf("Cannot use %s: %s.", provider.ForDisplay(), err),
+			))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
+			if locked {
+				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+			} else {
+				if len(versionConstraints) > 0 {
+					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+				} else {
+					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+				}
+			}
+		},
+		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+			view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+
+			// Record the location of this provider.
+			//
+			// FetchPackageBegin is the callback hook at the start of the process of obtaining a provider that isn't yet
+			// in the dependency lock file. Providers that are processed here will not be processed here on the next init,
+			// as then they will be in the lock file. The same provider type would only be processed here again if the
+			// provider version changed via an `init -upgrade` command.
+			providerLocations[provider] = location
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			switch errorTy := err.(type) {
+			case getproviders.ErrProviderNotFound:
+				sources := errorTy.Sources
+				displaySources := make([]string, len(sources))
+				for i, source := range sources {
+					displaySources[i] = fmt.Sprintf("  - %s", source)
+				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s",
+						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
+					),
+				))
+			case getproviders.ErrRegistryProviderNotKnown:
+				// We might be able to suggest an alternative provider to use
+				// instead of this one.
+				suggestion := fmt.Sprintf("\n\nAll modules should specify their required_providers so that external consumers will get the correct providers when using a module. To see which modules are currently depending on %s, run the following command:\n    terraform providers", provider.ForDisplay())
+				alternative := getproviders.MissingProviderSuggestion(ctx, provider, inst.ProviderSource(), reqs)
+				if alternative != provider {
+					suggestion = fmt.Sprintf(
+						"\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider. To see which modules are currently depending on %s, run the following command:\n    terraform providers",
+						alternative.ForDisplay(), provider.ForDisplay(),
+					)
+				}
+
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			case getproviders.ErrHostNoProviders:
+				switch {
+				case errorTy.Hostname == svchost.Hostname("github.com") && !errorTy.HasOtherVersion:
+					// If a user copies the URL of a GitHub repository into
+					// the source argument and removes the schema to make it
+					// provider-address-shaped then that's one way we can end up
+					// here. We'll use a specialized error message in anticipation
+					// of that mistake. We only do this if github.com isn't a
+					// provider registry, to allow for the (admittedly currently
+					// rather unlikely) possibility that github.com starts being
+					// a real Terraform provider registry in the future.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
+							provider.String(),
+						),
+					))
+
+				case errorTy.HasOtherVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+				}
+
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
+
+			default:
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			}
+		},
+		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
+			displayWarnings := make([]string, len(warnings))
+			for i, warning := range warnings {
+				displayWarnings[i] = fmt.Sprintf("- %s", warning)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Additional provider information from registry",
+				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
+					provider.String(),
+					strings.Join(displayWarnings, "\n"),
+				),
+			))
+		},
+		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider from shared cache",
+				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
+			))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			const summaryIncompatible = "Incompatible provider version"
+			switch err := err.(type) {
+			case getproviders.ErrProtocolNotSupported:
+				closestAvailable := err.Suggestion
+				switch {
+				case closestAvailable == getproviders.UnspecifiedVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(errProviderVersionIncompatible, provider.String()),
+					))
+				case version.GreaterThan(closestAvailable):
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(providerProtocolTooNew, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				default: // version is less than closestAvailable
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(providerProtocolTooOld, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				}
+			case getproviders.ErrPlatformNotSupported:
+				switch {
+				case err.MirrorURL != nil:
+					// If we're installing from a mirror then it may just be
+					// the mirror lacking the package, rather than it being
+					// unavailable from upstream.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Your chosen provider mirror at %s does not have a %s v%s package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so this provider might not support your current platform. Alternatively, the mirror itself might have only a subset of the plugin packages available in the origin registry, at %s.",
+							err.MirrorURL, err.Provider, err.Version, err.Platform,
+							err.Provider.Hostname,
+						),
+					))
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Provider %s v%s does not have a package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.",
+							err.Provider, err.Version, err.Platform,
+						),
+					))
+				}
+
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
+
+			default:
+				// We can potentially end up in here under cancellation too,
+				// in spite of our getproviders.ErrRequestCanceled case above,
+				// because not all of the outgoing requests we do under the
+				// "fetch package" banner are source metadata requests.
+				// In that case we will emit a redundant error here about
+				// the request being cancelled, but we'll still detect it
+				// as a cancellation after the installer returns and do the
+				// normal cancellation handling.
+
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
+				))
+			}
+		},
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			var keyID string
+			if authResult != nil && authResult.ThirdPartySigned() {
+				keyID = authResult.KeyID
+			}
+			if keyID != "" {
+				keyID = view.PrepareMessage(views.KeyID, keyID)
+			}
+
+			view.LogInitMessage(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
+		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
+			// We're going to use this opportunity to track if we have any
+			// "incomplete" installs of providers. An incomplete install is
+			// when we are only going to write the local hashes into our lock
+			// file which means a `terraform init` command will fail in future
+			// when used on machines of a different architecture.
+			//
+			// We want to print a warning about this.
+
+			if len(signedHashes) > 0 {
+				// If we have any signedHashes hashes then we don't worry - as
+				// we know we retrieved all available hashes for this version
+				// anyway.
+				return
+			}
+
+			// If local hashes and prior hashes are exactly the same then
+			// it means we didn't record any signed hashes previously, and
+			// we know we're not adding any extra in now (because we already
+			// checked the signedHashes), so that's a problem.
+			//
+			// In the actual check here, if we have any priorHashes and those
+			// hashes are not the same as the local hashes then we're going to
+			// accept that this provider has been configured correctly.
+			if len(priorHashes) > 0 && !reflect.DeepEqual(localHashes, priorHashes) {
+				return
+			}
+
+			// Now, either signedHashes is empty, or priorHashes is exactly the
+			// same as our localHashes which means we never retrieved the
+			// signedHashes previously.
+			//
+			// Either way, this is bad. Let's complain/warn.
+			c.incompleteProviders = append(c.incompleteProviders, provider.ForDisplay())
+		},
+		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+			thirdPartySigned := false
+			for _, authResult := range authResults {
+				if authResult.ThirdPartySigned() {
+					thirdPartySigned = true
+					break
+				}
+			}
+			if thirdPartySigned {
+				view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
+			}
+		},
+	}
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -754,7 +1069,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, nil, diags
+			return true, nil, SafeInitActionInvalid, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -764,7 +1079,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	// Determine which required providers are already downloaded, and download any
@@ -773,7 +1088,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, nil, diags
+		return true, nil, SafeInitActionInvalid, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -783,10 +1098,40 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			diags = diags.Append(err)
 		}
 
-		return true, nil, diags
+		return true, nil, SafeInitActionInvalid, diags
 	}
 
-	return true, configLocks, diags
+	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
+	if config.Module.StateStore == nil {
+		// If PSS isn't in use then return a value that isn't the zero value but isn't misleading.
+		safeInitAction = SafeInitActionNotRelevant
+	}
+	if config.Module.StateStore != nil {
+		location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
+		if !ok {
+			// The provider was not processed in the FetchPackageBegin callback, so it was already present.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionProceed
+		} else {
+			// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+
+			switch location.(type) {
+			case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
+				// If the provider is downloaded from a local source we assume it's safe.
+				// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
+				log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+				safeInitAction = SafeInitActionProceed
+			case getproviders.PackageHTTPURL:
+				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+				safeInitAction = SafeInitActionPromptForInput
+			default:
+				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
+			}
+		}
+	}
+
+	return true, configLocks, safeInitAction, diags
 }
 
 // getProvidersFromState determines what providers are required by the given state data.
@@ -898,7 +1243,6 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
 func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
-
 	// Get the combination of config and state locks
 	newLocks := c.mergeLockedDependencies(configLocks, stateLocks)
 
@@ -968,7 +1312,6 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
 func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
-
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -1095,7 +1438,6 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					),
 				))
 			}
-
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
 			displayWarnings := make([]string, len(warnings))
