@@ -5674,13 +5674,13 @@ func TestTest_TeardownOrder(t *testing.T) {
 	}
 }
 
-func TestTest_OverrideDataListAttribute(t *testing.T) {
+func TestTest_OverrideData(t *testing.T) {
 	tcs := map[string]struct {
 		dir  string
 		code int
 		desc string
 	}{
-		"plain_list_attribute": {
+		"list_attribute": {
 			dir:  "override_data_list_attribute",
 			code: 0,
 			desc: "override_data with a computed cty.List(cty.Object) attribute",
@@ -5689,6 +5689,26 @@ func TestTest_OverrideDataListAttribute(t *testing.T) {
 			dir:  "override_data_nested_list_attribute",
 			code: 0,
 			desc: "override_data with a computed NestedType NestingList attribute",
+		},
+		"set_attribute": {
+			dir:  "override_data_set_attribute",
+			code: 0,
+			desc: "override_data with a computed cty.Set(cty.Object) attribute",
+		},
+		"nested_set_attribute": {
+			dir:  "override_data_nested_set_attribute",
+			code: 0,
+			desc: "override_data with a computed NestedType NestingSet attribute",
+		},
+		"map_attribute": {
+			dir:  "override_data_map_attribute",
+			code: 0,
+			desc: "override_data with a computed cty.Map(cty.Object) attribute",
+		},
+		"nested_map_attribute": {
+			dir:  "override_data_nested_map_attribute",
+			code: 0,
+			desc: "override_data with a computed NestedType NestingMap attribute",
 		},
 	}
 

@@ -53,26 +53,81 @@ var (
 						"value":      {Type: cty.String, Computed: true},
 						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
 
-						// list_value is a computed attribute of list-of-objects
-						// type, used to test that override_data can correctly
-						// override list-type attributes (see GitHub issue #37939).
+						// We never actually reference these values from a data
+						// source, but we have tests that use the same cty.Value
+						// to represent a test_resource and a test_data_source
+						// so the schemas have to match.
+
+						"interrupt_count":      {Type: cty.Number, Computed: true},
+						"destroy_fail":         {Type: cty.Bool, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Computed: true},
+						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
+						"defer":                {Type: cty.Bool, Computed: true},
+					},
+				},
+			},
+			"test_complex_data_source": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":         {Type: cty.String, Required: true},
+						"value":      {Type: cty.String, Computed: true},
+						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
+
 						"list_value": {
 							Type: cty.List(cty.Object(map[string]cty.Type{
 								"name":  cty.String,
 								"value": cty.String,
 							})),
 							Computed: true,
+							Optional: true,
+						},
+						"set_value": {
+							Type: cty.Set(cty.Object(map[string]cty.Type{
+								"name":  cty.String,
+								"value": cty.String,
+							})),
+							Computed: true,
+							Optional: true,
+						},
+						"map_value": {
+							Type: cty.Map(cty.Object(map[string]cty.Type{
+								"name":  cty.String,
+								"value": cty.String,
+							})),
+							Computed: true,
+							Optional: true,
 						},
 
-						// nested_list_value is a computed attribute using NestedType
-						// with NestingList, used to test that override_data can correctly
-						// override nested list-type attributes (see GitHub issue #37939).
-						// Many real-world providers (e.g. Databricks) define list-of-objects
-						// attributes this way rather than using a plain cty.List type.
+						// The below nested_* attributes represent config supporting
+						// attributes as nested blocks, where terraform interprets the nested blocks
+						// as attributes within the schema
 						"nested_list_value": {
 							Computed: true,
+							Optional: true,
 							NestedType: &configschema.Object{
 								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"name":  {Type: cty.String, Optional: true},
+									"value": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+						"nested_set_value": {
+							Computed: true,
+							Optional: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingSet,
+								Attributes: map[string]*configschema.Attribute{
+									"name":  {Type: cty.String, Optional: true},
+									"value": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+						"nested_map_value": {
+							Computed: true,
+							Optional: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingMap,
 								Attributes: map[string]*configschema.Attribute{
 									"name":  {Type: cty.String, Optional: true},
 									"value": {Type: cty.String, Optional: true},

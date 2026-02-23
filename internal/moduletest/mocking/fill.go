@@ -28,11 +28,11 @@ func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Pat
 		case configschema.NestingSingle, configschema.NestingGroup:
 			return fillObject(in, attribute, path)
 		case configschema.NestingSet:
-			return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
+			return fillIterable(in, attribute, path)
 		case configschema.NestingList:
 			return fillIterable(in, attribute, path)
 		case configschema.NestingMap:
-			return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+			return fillIterable(in, attribute, path)
 		default:
 			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
 		}
@@ -77,11 +77,7 @@ func fillObject(in cty.Value, attribute *configschema.Attribute, path cty.Path) 
 
 func fillIterable(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
 	ty := attribute.NestedType.ConfigType()
-	out, err := fillType(in, ty, path)
-	if err != nil {
-		return cty.NilVal, err
-	}
-	return out, err
+	return fillType(in, ty, path)
 }
 
 // FillType makes the input value match the target type by adding attributes

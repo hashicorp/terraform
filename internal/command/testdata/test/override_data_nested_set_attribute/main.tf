@@ -10,6 +10,6 @@ data "test_complex_data_source" "datasource" {
   id = "resource"
 }
 
-output "list_value" {
-  value = data.test_complex_data_source.datasource.list_value
+output "nested_set_value" {
+  value = data.test_complex_data_source.datasource.nested_set_value
 }

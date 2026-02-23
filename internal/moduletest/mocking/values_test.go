@@ -565,6 +565,9 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: []string{
+				`Terraform could not compute a value for the target type list of object with the mocked data defined at :0,0-0 with the attribute ".nested": incompatible types; expected list of object, found object.`,
+			},
 		},
 		"nested_set_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
