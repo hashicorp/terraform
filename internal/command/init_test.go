@@ -3527,12 +3527,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		})
 		defer close()
 
-		// Allow the test to respond to the pause in provider installation for
-		// checking the state storage provider.
-		defer testInputMap(t, map[string]string{
-			"approve": "yes",
-		})()
-
 		ui := new(cli.MockUi)
 		view, done := testView(t)
 		meta := Meta{
@@ -3553,7 +3547,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
 			// -safe-init isn't needed when providers are supplied from the filesystem
-			// and use of testingOverrides causes the provider to come from the filesystem.
+			// and use of newMockProviderSource causes the provider to come from the filesystem.
 		}
 		code := c.Run(args)
 		testOutput := done(t)
