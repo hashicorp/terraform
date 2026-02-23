@@ -694,6 +694,176 @@ resource "test_object" "s" {
 	tfdiags.AssertNoErrors(t, diags)
 }
 
+func TestContext2Apply_movedResourceForEachEachValue(t *testing.T) {
+	addrOldOne := mustResourceInstanceAddr(`test_object.a["one"]`)
+	addrOldTwo := mustResourceInstanceAddr(`test_object.a["two"]`)
+	addrNewAlpha := mustResourceInstanceAddr(`test_object.b["alpha"]`)
+	addrNewBeta := mustResourceInstanceAddr(`test_object.b["beta"]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "renames" {
+				type = map(string)
+			}
+
+			locals {
+				renames = var.renames
+			}
+
+			locals {
+				new_keys = { for k, v in local.renames : v => true }
+			}
+
+			resource "test_object" "b" {
+				for_each = local.new_keys
+			}
+
+			moved {
+				for_each = local.renames
+				from = test_object.a[each.key]
+				to   = test_object.b[each.value]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOldOne, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOldTwo, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"renames": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("alpha"),
+					"two": cty.StringVal("beta"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if got := state.ResourceInstance(addrOldOne); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOldOne)
+	}
+	if got := state.ResourceInstance(addrOldTwo); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOldTwo)
+	}
+
+	if got := state.ResourceInstance(addrNewAlpha); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNewAlpha)
+	}
+	if got := state.ResourceInstance(addrNewBeta); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNewBeta)
+	}
+}
+
+func TestContext2Apply_movedResourceForEachLocalInChildModule(t *testing.T) {
+	addrOldOne := mustResourceInstanceAddr(`module.child.test_object.a["one"]`)
+	addrOldTwo := mustResourceInstanceAddr(`module.child.test_object.a["two"]`)
+	addrNewOne := mustResourceInstanceAddr(`module.child.test_object.b["one"]`)
+	addrNewTwo := mustResourceInstanceAddr(`module.child.test_object.b["two"]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			module "child" {
+				source = "./child"
+				moves  = var.moves
+			}
+		`,
+		"child/main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			locals {
+				moves = var.moves
+			}
+
+			resource "test_object" "b" {
+				for_each = local.moves
+			}
+
+			moved {
+				for_each = local.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOldOne, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`module.child.provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOldTwo, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`module.child.provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("x"),
+					"two": cty.StringVal("y"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if got := state.ResourceInstance(addrOldOne); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOldOne)
+	}
+	if got := state.ResourceInstance(addrOldTwo); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOldTwo)
+	}
+
+	if got := state.ResourceInstance(addrNewOne); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNewOne)
+	}
+	if got := state.ResourceInstance(addrNewTwo); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNewTwo)
+	}
+}
+
 func TestContext2Apply_graphError(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

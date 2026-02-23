@@ -141,7 +141,7 @@ var importBlockSchema = &hcl.BodySchema{
 // block's "to" to the configuration address before the full instance
 // expressions are evaluated.
 func parseConfigResourceFromExpression(expr hcl.Expression) (addrs.ConfigResource, tfdiags.Diagnostics) {
-	traversal, hcdiags := exprToResourceTraversal(expr)
+	traversal, hcdiags := exprToTraversalSkippingIndexes(expr)
 	if hcdiags.HasErrors() {
 		return addrs.ConfigResource{}, tfdiags.Diagnostics(nil).Append(hcdiags)
 	}
@@ -187,47 +187,6 @@ func unwrapJSONRefExpr(expr hcl.Expression) (hcl.Expression, hcl.Diagnostics) {
 	expr, ds := hclsyntax.ParseExpression([]byte(v.AsString()), rng.Filename, rng.Start)
 	diags = diags.Extend(ds)
 	return expr, diags
-}
-
-// exprToResourceTraversal is used to parse the import block's to expression,
-// which must be a resource instance, but may contain limited variables with
-// index expressions. Since we only need the ConfigResource to connect the
-// import to the configuration, we skip any index expressions.
-func exprToResourceTraversal(expr hcl.Expression) (hcl.Traversal, hcl.Diagnostics) {
-	var trav hcl.Traversal
-	var diags hcl.Diagnostics
-
-	switch e := expr.(type) {
-	case *hclsyntax.RelativeTraversalExpr:
-		t, d := exprToResourceTraversal(e.Source)
-		diags = diags.Extend(d)
-		trav = append(trav, t...)
-		trav = append(trav, e.Traversal...)
-
-	case *hclsyntax.ScopeTraversalExpr:
-		// a static reference, we can just append the traversal
-		trav = append(trav, e.Traversal...)
-
-	case *hclsyntax.IndexExpr:
-		// Get the collection from the index expression, we don't need the
-		// index for a ConfigResource
-		t, d := exprToResourceTraversal(e.Collection)
-		diags = diags.Extend(d)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-		trav = append(trav, t...)
-
-	default:
-		// if we don't recognise the expression type (which means we are likely
-		// dealing with a test mock), try and interpret this as an absolute
-		// traversal
-		t, d := hcl.AbsTraversalForExpr(e)
-		diags = diags.Extend(d)
-		trav = append(trav, t...)
-	}
-
-	return trav, diags
 }
 
 // parseImportToStatic attempts to parse the To address of an import block

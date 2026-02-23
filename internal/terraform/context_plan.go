@@ -624,7 +624,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, evalScope, diags
 }
 
-func (c *Context) prePlanFindAndApplyMovesViaGraph(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
+func (c *Context) prePlanFindAndApplyMovesViaGraph(config *configs.Config, prevRunState *states.State, rootVariableValues InputValues) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -644,14 +644,36 @@ func (c *Context) prePlanFindAndApplyMovesViaGraph(config *configs.Config, prevR
 		return moveStmts, refactoring.MakeMoveResults(), nil
 	}
 
+	if moveStatementsUseForEach(moveStmts) {
+		var expandDiags tfdiags.Diagnostics
+		moveStmts, expandDiags = c.expandMoveStatementsViaGraph(config, prevRunState, rootVariableValues, moveStmts)
+		if expandDiags.HasErrors() {
+			return moveStmts, refactoring.MakeMoveResults(), expandDiags
+		}
+		if diags := refactoring.ValidateMoveStatementsForExecution(moveStmts); diags.HasErrors() {
+			log.Printf("[ERROR] prePlanFindAndApplyMovesViaGraph (expanded): %s", diags.ErrWithWarnings())
+			return moveStmts, refactoring.MakeMoveResults(), nil
+		}
+	}
+
 	collector := newMoveResultsCollector()
 	crossTypeMover := refactoring.NewCrossTypeMover(c.plugins.ProviderFactories())
 
+	// NOTE: EnableExpressionEval will always be false on this execution walk
+	// when for_each was used, because the expansion walk above already replaced
+	// the original for_each-bearing statements with fully-expanded concrete
+	// statements (ForEach == nil). This is intentional: the execution walk
+	// doesn't need variable/local evaluation infrastructure since all
+	// addresses are already resolved.
 	graph, diags := (&MovedGraphBuilder{
-		Statements: moveStmts,
+		Statements:           moveStmts,
+		EnableExpressionEval: moveStatementsUseForEach(moveStmts),
+		Config:               config,
+		RootVariableValues:   rootVariableValues,
 		Runtime: &movedExecutionRuntime{
 			CrossTypeMover: crossTypeMover,
 			Collector:      collector,
+			ExecuteMoves:   true,
 		},
 	}).Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
@@ -673,6 +695,48 @@ func (c *Context) prePlanFindAndApplyMovesViaGraph(config *configs.Config, prevR
 
 	diags = diags.Append(crossTypeMover.Close())
 	return moveStmts, collector.Results(), diags
+}
+
+func (c *Context) expandMoveStatementsViaGraph(config *configs.Config, prevRunState *states.State, rootVariableValues InputValues, stmts []refactoring.MoveStatement) ([]refactoring.MoveStatement, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	stmtCollector := newMoveStatementsCollector()
+	graph, diags := (&MovedGraphBuilder{
+		Statements:           stmts,
+		EnableExpressionEval: true,
+		Config:               config,
+		RootVariableValues:   rootVariableValues,
+		Runtime: &movedExecutionRuntime{
+			Statements:   stmtCollector,
+			ExecuteMoves: false,
+		},
+	}).Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	walker, walkDiags := c.walk(graph, walkEval, &graphWalkOpts{
+		InputState: prevRunState,
+		Config:     config,
+	})
+	diags = diags.Append(walker.NonFatalDiagnostics)
+	diags = diags.Append(walkDiags)
+	// Expansion-only walk still allocates state wrappers internally.
+	walker.State.Close()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return stmtCollector.Results(), diags
+}
+
+func moveStatementsUseForEach(stmts []refactoring.MoveStatement) bool {
+	for _, stmt := range stmts {
+		if stmt.ForEach != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
@@ -787,7 +851,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMovesViaGraph(config, prevRunState)
+	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMovesViaGraph(config, prevRunState, opts.SetVariables)
 	diags = diags.Append(moveDiags)
 	if moveDiags.HasErrors() {
 		return nil, nil, diags

@@ -6,6 +6,7 @@ package refactoring
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -13,8 +14,12 @@ import (
 )
 
 type MoveStatement struct {
-	From, To  *addrs.MoveEndpointInModule
-	DeclRange tfdiags.SourceRange
+	From, To   *addrs.MoveEndpointInModule
+	DeclRange  tfdiags.SourceRange
+	DeclModule addrs.Module
+	FromExpr   hcl.Expression
+	ToExpr     hcl.Expression
+	ForEach    hcl.Expression
 
 	// Provider is the provider configuration that applies to the "to" address
 	// of this move. As in, the provider that will manage the resource after
@@ -59,7 +64,18 @@ func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStateme
 			From:      fromAddr,
 			To:        toAddr,
 			DeclRange: tfdiags.SourceRangeFromHCL(mc.DeclRange),
-			Implied:   false,
+			DeclModule: func() addrs.Module {
+				if len(modAddr) == 0 {
+					return nil
+				}
+				ret := make(addrs.Module, len(modAddr))
+				copy(ret, modAddr)
+				return ret
+			}(),
+			FromExpr: mc.FromExpr,
+			ToExpr:   mc.ToExpr,
+			ForEach:  mc.ForEach,
+			Implied:  false,
 		}
 
 		// We have the statement, let's see if we should attach a provider to

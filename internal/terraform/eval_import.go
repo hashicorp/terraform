@@ -123,7 +123,12 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 	var res addrs.AbsResourceInstance
 	var diags tfdiags.Diagnostics
 
-	traversal, diags := importToExprToTraversal(expr, keyData)
+	traversal, diags := exprToTraversalWithRepetitionData(
+		expr,
+		keyData,
+		`Only "each.key" and "each.value" can be used in import address index expressions.`,
+		"Import address index expression cannot be sensitive.",
+	)
 	if diags.HasErrors() {
 		return res, diags
 	}
@@ -155,7 +160,12 @@ func evalImportUnknownToExpression(expr hcl.Expression) (addrs.PartialExpandedRe
 	var per addrs.PartialExpandedResource
 	var diags tfdiags.Diagnostics
 
-	traversal, diags := importToExprToTraversal(expr, instances.UnknownForEachRepetitionData(cty.DynamicPseudoType))
+	traversal, diags := exprToTraversalWithRepetitionData(
+		expr,
+		instances.UnknownForEachRepetitionData(cty.DynamicPseudoType),
+		`Only "each.key" and "each.value" can be used in import address index expressions.`,
+		"Import address index expression cannot be sensitive.",
+	)
 	if diags.HasErrors() {
 		return per, diags
 	}
@@ -165,17 +175,21 @@ func evalImportUnknownToExpression(expr hcl.Expression) (addrs.PartialExpandedRe
 	return per, diags
 }
 
-// trggersExprToTraversal takes an hcl expression limited to the syntax allowed
-// in replace_triggered_by, and converts it to a static traversal. The
-// RepetitionData contains the data necessary to evaluate the only allowed
-// variables in the expression, count.index and each.key.
-func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
+// exprToTraversalWithRepetitionData converts an address-like expression into a
+// traversal while evaluating any repetition-derived index expressions using the
+// provided each.key/each.value data.
+func exprToTraversalWithRepetitionData(
+	expr hcl.Expression,
+	keyData instances.RepetitionData,
+	unknownVarDetail string,
+	sensitiveDetail string,
+) (hcl.Traversal, tfdiags.Diagnostics) {
 	var trav hcl.Traversal
 	var diags tfdiags.Diagnostics
 
 	switch e := expr.(type) {
 	case *hclsyntax.RelativeTraversalExpr:
-		t, d := importToExprToTraversal(e.Source, keyData)
+		t, d := exprToTraversalWithRepetitionData(e.Source, keyData, unknownVarDetail, sensitiveDetail)
 		diags = diags.Append(d)
 		trav = append(trav, t...)
 		trav = append(trav, e.Traversal...)
@@ -186,7 +200,7 @@ func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 	case *hclsyntax.IndexExpr:
 		// Get the collection from the index expression
-		t, d := importToExprToTraversal(e.Collection, keyData)
+		t, d := exprToTraversalWithRepetitionData(e.Collection, keyData, unknownVarDetail, sensitiveDetail)
 		diags = diags.Append(d)
 		if diags.HasErrors() {
 			return nil, diags
@@ -195,7 +209,7 @@ func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 		// The index key is the only place where we could have variables that
 		// reference count and each, so we need to parse those independently.
-		idx, hclDiags := parseImportToKeyExpression(e.Key, keyData)
+		idx, hclDiags := parseTraversalIndexKeyExpression(e.Key, keyData, unknownVarDetail, sensitiveDetail)
 		diags = diags.Append(hclDiags)
 
 		trav = append(trav, idx)
@@ -212,9 +226,9 @@ func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 	return trav, diags
 }
 
-// parseImportToKeyExpression takes an hcl.Expression and parses it as an index key, while
-// evaluating any references to count.index or each.key.
-func parseImportToKeyExpression(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
+// parseTraversalIndexKeyExpression takes an hcl.Expression and parses it as an
+// index key, while evaluating any references to count.index or each.key.
+func parseTraversalIndexKeyExpression(expr hcl.Expression, keyData instances.RepetitionData, unknownVarDetail, sensitiveDetail string) (hcl.TraverseIndex, hcl.Diagnostics) {
 	idx := hcl.TraverseIndex{
 		SrcRange: expr.Range(),
 	}
@@ -234,7 +248,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 		// give the user a slightly more helpful error
 		for i := range diags {
 			if diags[i].Summary == "Unknown variable" {
-				diags[i].Detail += "Only \"each.key\" and \"each.value\" can be used in import address index expressions."
+				diags[i].Detail += unknownVarDetail
 			}
 		}
 
@@ -245,7 +259,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid index expression",
-			Detail:   "Import address index expression cannot be sensitive.",
+			Detail:   sensitiveDetail,
 			Subject:  expr.Range().Ptr(),
 		})
 		return idx, diags

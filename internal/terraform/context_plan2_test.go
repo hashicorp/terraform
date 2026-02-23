@@ -1306,6 +1306,697 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 	})
 }
 
+func TestContext2Plan_movedResourceForEachLocal(t *testing.T) {
+	addrOldOne := mustResourceInstanceAddr(`test_object.a["one"]`)
+	addrOldTwo := mustResourceInstanceAddr(`test_object.a["two"]`)
+	addrNewOne := mustResourceInstanceAddr(`test_object.b["one"]`)
+	addrNewTwo := mustResourceInstanceAddr(`test_object.b["two"]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			locals {
+				moves = var.moves
+			}
+
+			resource "test_object" "b" {
+				for_each = local.moves
+			}
+
+			moved {
+				for_each = local.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOldOne, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOldTwo, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("x"),
+					"two": cty.StringVal("y"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	for _, oldAddr := range []addrs.AbsResourceInstance{addrOldOne, addrOldTwo} {
+		if got := plan.Changes.ResourceInstance(oldAddr); got != nil {
+			t.Fatalf("unexpected plan for %s after move expansion", oldAddr)
+		}
+	}
+
+	checkMovedPlan := func(addr, prev addrs.AbsResourceInstance) {
+		t.Helper()
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s", addr)
+		}
+		if !instPlan.Addr.Equal(addr) {
+			t.Fatalf("wrong current address\ngot:  %s\nwant: %s", instPlan.Addr, addr)
+		}
+		if !instPlan.PrevRunAddr.Equal(prev) {
+			t.Fatalf("wrong previous run address\ngot:  %s\nwant: %s", instPlan.PrevRunAddr, prev)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Fatalf("wrong action for %s\ngot:  %s\nwant: %s", addr, got, want)
+		}
+	}
+
+	checkMovedPlan(addrNewOne, addrOldOne)
+	checkMovedPlan(addrNewTwo, addrOldTwo)
+}
+
+func TestContext2Plan_movedResourceForEachLocalInChildModule(t *testing.T) {
+	addrOldOne := mustResourceInstanceAddr(`module.child.test_object.a["one"]`)
+	addrOldTwo := mustResourceInstanceAddr(`module.child.test_object.a["two"]`)
+	addrNewOne := mustResourceInstanceAddr(`module.child.test_object.b["one"]`)
+	addrNewTwo := mustResourceInstanceAddr(`module.child.test_object.b["two"]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			module "child" {
+				source = "./child"
+				moves  = var.moves
+			}
+		`,
+		"child/main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			locals {
+				moves = var.moves
+			}
+
+			resource "test_object" "b" {
+				for_each = local.moves
+			}
+
+			moved {
+				for_each = local.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOldOne, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`module.child.provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOldTwo, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`module.child.provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("x"),
+					"two": cty.StringVal("y"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	for _, oldAddr := range []addrs.AbsResourceInstance{addrOldOne, addrOldTwo} {
+		if got := plan.Changes.ResourceInstance(oldAddr); got != nil {
+			t.Fatalf("unexpected plan for %s after move expansion", oldAddr)
+		}
+	}
+
+	checkMovedPlan := func(addr, prev addrs.AbsResourceInstance) {
+		t.Helper()
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s", addr)
+		}
+		if !instPlan.Addr.Equal(addr) {
+			t.Fatalf("wrong current address\ngot:  %s\nwant: %s", instPlan.Addr, addr)
+		}
+		if !instPlan.PrevRunAddr.Equal(prev) {
+			t.Fatalf("wrong previous run address\ngot:  %s\nwant: %s", instPlan.PrevRunAddr, prev)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Fatalf("wrong action for %s\ngot:  %s\nwant: %s", addr, got, want)
+		}
+	}
+
+	checkMovedPlan(addrNewOne, addrOldOne)
+	checkMovedPlan(addrNewTwo, addrOldTwo)
+}
+
+func TestContext2Plan_movedForEachInRepeatedChildModuleMustBeConsistent(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "child_moves" {
+				type = map(map(string))
+			}
+
+			module "child" {
+				source   = "./child"
+				for_each = var.child_moves
+				moves    = each.value
+			}
+		`,
+		"child/main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			locals {
+				moves = var.moves
+			}
+
+			resource "test_object" "b" {
+				for_each = local.moves
+			}
+
+			moved {
+				for_each = local.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"child_moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"a": cty.MapVal(map[string]cty.Value{
+						"one": cty.StringVal("x"),
+					}),
+					"b": cty.MapVal(map[string]cty.Value{
+						"two": cty.StringVal("y"),
+					}),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Inconsistent moved block for_each across module instances") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedForEachRejectsResourceReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "seed" {}
+			resource "test_object" "b" {}
+
+			moved {
+				for_each = test_object.seed
+				from = test_object.a
+				to   = test_object.b
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "The `for_each` expression in a `moved` block may reference only input variables and local values.") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedForEachRejectsSensitiveValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type      = map(string)
+				sensitive = true
+			}
+
+			moved {
+				for_each = var.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("x"),
+				}).Mark(marks.Sensitive),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments.") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedForEachRejectsUnknownValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			moved {
+				for_each = var.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value:      cty.UnknownVal(cty.Map(cty.String)),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Invalid for_each argument") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedResourceForEachEachValue(t *testing.T) {
+	// Tests the primary use case for for_each on moved blocks: using each.value
+	// to remap instance keys (key transformation).
+	addrOldOne := mustResourceInstanceAddr(`test_object.a["one"]`)
+	addrOldTwo := mustResourceInstanceAddr(`test_object.a["two"]`)
+	addrNewAlpha := mustResourceInstanceAddr(`test_object.b["alpha"]`)
+	addrNewBeta := mustResourceInstanceAddr(`test_object.b["beta"]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "renames" {
+				type = map(string)
+			}
+
+			locals {
+				renames = var.renames
+			}
+
+			locals {
+				new_keys = { for k, v in local.renames : v => true }
+			}
+
+			resource "test_object" "b" {
+				for_each = local.new_keys
+			}
+
+			moved {
+				for_each = local.renames
+				from = test_object.a[each.key]
+				to   = test_object.b[each.value]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOldOne, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOldTwo, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"renames": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("alpha"),
+					"two": cty.StringVal("beta"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// Old addresses should not have plans.
+	for _, oldAddr := range []addrs.AbsResourceInstance{addrOldOne, addrOldTwo} {
+		if got := plan.Changes.ResourceInstance(oldAddr); got != nil {
+			t.Fatalf("unexpected plan for old address %s after move expansion", oldAddr)
+		}
+	}
+
+	checkMovedPlan := func(addr, prev addrs.AbsResourceInstance) {
+		t.Helper()
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s", addr)
+		}
+		if !instPlan.Addr.Equal(addr) {
+			t.Fatalf("wrong current address\ngot:  %s\nwant: %s", instPlan.Addr, addr)
+		}
+		if !instPlan.PrevRunAddr.Equal(prev) {
+			t.Fatalf("wrong previous run address\ngot:  %s\nwant: %s", instPlan.PrevRunAddr, prev)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Fatalf("wrong action for %s\ngot:  %s\nwant: %s", addr, got, want)
+		}
+	}
+
+	checkMovedPlan(addrNewAlpha, addrOldOne)
+	checkMovedPlan(addrNewBeta, addrOldTwo)
+}
+
+func TestContext2Plan_movedForEachInvalidEndpointIndexExpression(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			moved {
+				for_each = var.moves
+				from = test_object.a[var.bad]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("x"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, `Only "each.key" and "each.value" can be used in moved address index expressions.`) {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedForEachRejectsSensitiveEndpointIndexValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "renames" {
+				type = map(string)
+			}
+
+			moved {
+				for_each = var.renames
+				from = test_object.a[each.key]
+				to   = test_object.b[each.value]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"renames": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("secret-key").Mark(marks.Sensitive),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Moved address index expression cannot be sensitive.") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedForEachDuplicateDestinationAmbiguous(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "renames" {
+				type = map(string)
+			}
+
+			moved {
+				for_each = var.renames
+				from = test_object.a[each.key]
+				to   = test_object.b[each.value]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"renames": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"one": cty.StringVal("dup"),
+					"two": cty.StringVal("dup"),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Ambiguous move statements") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedResourceForEachEmptyMap(t *testing.T) {
+	// When for_each evaluates to an empty map, the moved block should produce
+	// zero move statements and planning should succeed without error.
+	addrA := mustResourceInstanceAddr("test_object.a")
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "moves" {
+				type = map(string)
+			}
+
+			locals {
+				moves = var.moves
+			}
+
+			resource "test_object" "b" {
+				for_each = local.moves
+			}
+
+			moved {
+				for_each = local.moves
+				from = test_object.a[each.key]
+				to   = test_object.b[each.key]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"moves": &InputValue{
+				Value:      cty.MapValEmpty(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// The resource at test_object.a should still have a plan (delete, since
+	// it's not in config any more) because the empty for_each produced no
+	// moves so the old address was never relocated.
+	instPlan := plan.Changes.ResourceInstance(addrA)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addrA)
+	}
+	if got, want := instPlan.Action, plans.Delete; got != want {
+		t.Errorf("wrong planned action for %s\ngot:  %s\nwant: %s", addrA, got, want)
+	}
+}
+
+func TestContext2Plan_movedResourceChainedExplicitMoves(t *testing.T) {
+	// Tests that two explicit chained moved blocks (A→B, B→C) through the
+	// graph path execute in the correct order and produce the right final state.
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrC := mustResourceInstanceAddr("test_object.c")
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "c" {
+			}
+
+			moved {
+				from = test_object.a
+				to   = test_object.b
+			}
+
+			moved {
+				from = test_object.b
+				to   = test_object.c
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// test_object.a should have no plan — it was moved away.
+	if got := plan.Changes.ResourceInstance(addrA); got != nil {
+		t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrC)
+	}
+
+	// test_object.c should show that it was moved from test_object.a
+	// (the chain A→B→C should collapse to A→C).
+	instPlan := plan.Changes.ResourceInstance(addrC)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addrC)
+	}
+	if got, want := instPlan.Addr, addrC; !got.Equal(want) {
+		t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+		t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := instPlan.Action, plans.NoOp; got != want {
+		t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
 func TestContext2Plan_movedCyclicStatementsDiagnosticComesFromMoveValidation(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
