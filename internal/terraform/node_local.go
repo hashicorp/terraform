@@ -144,7 +144,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	// if the entire value is deprecated. If e.g. a module is stored in the local and the module
 	// contains a deprecated output we don't want to warn about that here, but only when the
 	// output is actually referenced.
-	valWithoutDeprecations, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+	valWithoutDeprecations, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
@@ -243,7 +243,7 @@ func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrS
 	}
 
 	var deprecationDiags tfdiags.Diagnostics
-	val, deprecationDiags = ctx.Deprecations().Validate(val, ctx.Path().Module(), expr.Range().Ptr())
+	val, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(val, ctx.Path().Module(), expr.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	return val, diags
