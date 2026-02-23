@@ -28,7 +28,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	}
 
 	for _, ai := range t.Changes.ActionInvocations {
-		lat, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+		lat, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 		if !ok {
 			continue
 		}

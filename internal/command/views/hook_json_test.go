@@ -34,7 +34,7 @@ func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResour
 func testJSONLifecycleHook(actionAddr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, actionTriggerIndex int, actionsListIndex int) terraform.HookActionIdentity {
 	return terraform.HookActionIdentity{
 		Addr: actionAddr,
-		ActionTrigger: &plans.LifecycleActionTrigger{
+		ActionTrigger: &plans.ResourceActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddr,
 			ActionTriggerBlockIndex: actionTriggerIndex,
 			ActionsListIndex:        actionsListIndex,

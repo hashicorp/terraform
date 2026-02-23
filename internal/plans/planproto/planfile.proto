@@ -108,8 +108,8 @@ message Plan {
     repeated string target_addrs = 5;
 
     // An unordered set of action addresses that must be invoked when applying.
-    // If no actions are specified then only lifecycle actions should be
-    // executed.
+    // If no actions are specified then only resource-triggered actions should
+    // be executed.
     repeated string action_target_addrs = 32;
 
     // An unordered set of force-replace addresses to include when applying.
@@ -478,14 +478,14 @@ message ActionInvocationInstance {
     repeated Path sensitive_config_paths = 5;
 
     oneof action_trigger {
-        LifecycleActionTrigger lifecycle_action_trigger = 6;
+        ResourceActionTrigger resource_action_trigger = 6;
         InvokeActionTrigger invoke_action_trigger = 7;
     }
 }
 
-// LifecycleActionTrigger contains details on the conditions that led to the
+// ResourceActionTrigger contains details on the conditions that led to the
 // triggering of an action.
-message LifecycleActionTrigger {
+message ResourceActionTrigger {
   string triggering_resource_addr = 1;
   ActionTriggerEvent trigger_event = 2;
   int64 action_trigger_block_index = 3;

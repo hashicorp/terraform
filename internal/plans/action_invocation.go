@@ -46,11 +46,12 @@ type ActionTrigger interface {
 }
 
 var (
-	_ ActionTrigger = (*LifecycleActionTrigger)(nil)
+	_ ActionTrigger = (*ResourceActionTrigger)(nil)
 	_ ActionTrigger = (*InvokeActionTrigger)(nil)
 )
 
-type LifecycleActionTrigger struct {
+// ResourceActionTrigger contains the action trigger configuration from the resource.
+type ResourceActionTrigger struct {
 	TriggeringResourceAddr addrs.AbsResourceInstance
 	// Information about the trigger
 	// The event that triggered this action invocation.
@@ -61,18 +62,18 @@ type LifecycleActionTrigger struct {
 	ActionsListIndex int
 }
 
-func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+func (t *ResourceActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return t.ActionTriggerEvent
 }
 
-func (t *LifecycleActionTrigger) actionTriggerSigil() {}
+func (t *ResourceActionTrigger) actionTriggerSigil() {}
 
-func (t *LifecycleActionTrigger) String() string {
+func (t *ResourceActionTrigger) String() string {
 	return t.TriggeringResourceAddr.String()
 }
 
-func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
-	o, ok := other.(*LifecycleActionTrigger)
+func (t *ResourceActionTrigger) Equals(other ActionTrigger) bool {
+	o, ok := other.(*ResourceActionTrigger)
 	if !ok {
 		return false
 	}
@@ -83,8 +84,8 @@ func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
 		t.ActionTriggerEvent == o.ActionTriggerEvent
 }
 
-func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
-	o, ok := other.(*LifecycleActionTrigger)
+func (t *ResourceActionTrigger) Less(other ActionTrigger) bool {
+	o, ok := other.(*ResourceActionTrigger)
 	if !ok {
 		return false // We always want to show non-lifecycle actions first
 	}
@@ -98,6 +99,8 @@ func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionTriggerEvent < o.ActionTriggerEvent)
 }
 
+// InvokeActionTrigger contains the configuration for an action triggered
+// (invoked) directly via CLI command.
 type InvokeActionTrigger struct{}
 
 func (t *InvokeActionTrigger) actionTriggerSigil() {}
