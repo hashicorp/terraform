@@ -2652,16 +2652,9 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		m.testingOverrides = metaOverridesForProvider(mock)
 
 		// Code under test
-		b, _, _, diags := m.stateStoreInitFromConfig(config, locks)
+		_, _, _, diags := m.stateStoreInitFromConfig(config, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
-		}
-		if _, ok := b.(*pluggable.Pluggable); !ok {
-			t.Fatalf(
-				"expected stateStoreInitFromConfig to return a backend.Backend interface with concrete type %s, but got something else: %#v",
-				"*pluggable.Pluggable",
-				b,
-			)
 		}
 
 		if !mock.SetStateStoreChunkSizeCalled {

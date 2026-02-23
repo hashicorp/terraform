@@ -2061,11 +2061,7 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		return nil, diags
 	}
 
-	// We need to briefly convert away from backend.Backend interface to use the method
-	// for accessing the provider schema. In this method we _always_ expect the concrete value
-	// to be backendPluggable.Pluggable.
-	plug := ssBackend.(*backendPluggable.Pluggable)
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, ssBackend.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
 		return nil, diags
@@ -2295,11 +2291,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		return nil, diags
 	}
 
-	// We need to briefly convert away from backend.Backend interface to use the method
-	// for accessing the provider schema. In this method we _always_ expect the concrete value
-	// to be backendPluggable.Pluggable.
-	plug := b.(*backendPluggable.Pluggable)
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, plug.ProviderSchema())
+	err = s.StateStore.Provider.SetConfig(providerConfigVal, b.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
 		return nil, diags
@@ -2762,7 +2754,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 //
 // NOTE: the backend version of this method, `backendInitFromConfig`, prompts users for input if any required fields
 // are missing from the backend config. In `stateStoreInitFromConfig` we don't do this, and instead users will see an error.
-func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (backend.Backend, cty.Value, cty.Value, tfdiags.Diagnostics) {
+func (m *Meta) stateStoreInitFromConfig(c *configs.StateStore, locks *depsfile.Locks) (*backendPluggable.Pluggable, cty.Value, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	factory, pDiags := m.StateStoreProviderFactoryFromConfig(c, locks)
