@@ -6,6 +6,7 @@ package command
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -160,15 +161,21 @@ configuration or state have been made.`, initReason)
 	)
 }
 
+type ssInitReason struct {
+	Reason  string
+	Subject *hcl.Range
+}
+
 // errStateStoreInitDiag creates a diagnostic to present to users when
 // users attempt to run a non-init command after making a change to their
 // state_store configuration.
-//
-// An init reason should be provided as an argument.
-func errStateStoreInitDiag(initReason string) tfdiags.Diagnostic {
-	msg := fmt.Sprintf(`Reason: %s
+func errStateStoreInitDiag(ir *ssInitReason) tfdiags.Diagnostics {
+	var msg string
+	if ir != nil {
+		msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
+	}
 
-The "state store" is the interface that Terraform uses to store state when
+	msg += `The "state store" is the interface that Terraform uses to store state when
 performing operations on the local machine. If this message is showing up,
 it means that the Terraform configuration you're using is using a custom
 configuration for state storage in Terraform.
@@ -180,13 +187,27 @@ use the current configuration.
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
-configuration or state have been made.`, initReason)
+configuration or state have been made.`
 
-	return tfdiags.Sourceless(
+	var diags tfdiags.Diagnostics
+
+	if ir != nil && ir.Subject != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Subject:  ir.Subject,
+			Severity: hcl.DiagError,
+			Summary:  "State store initialization required, please run \"terraform init\"",
+			Detail:   msg,
+		})
+		return diags
+	}
+
+	diags = diags.Append(tfdiags.Sourceless(
 		tfdiags.Error,
 		"State store initialization required, please run \"terraform init\"",
 		msg,
-	)
+	))
+
+	return diags
 }
 
 // errBackendInitCloudDiag creates a diagnostic to present to users when

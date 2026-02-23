@@ -1027,9 +1027,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source,
 		)
 
-		initReason := fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type)
 		if !opts.Init {
-			diags = diags.Append(errStateStoreInitDiag(initReason))
+			diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
+				Reason: fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type),
+			}))
 			return nil, diags
 		}
 
@@ -1076,12 +1077,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		)
 
 		if !opts.Init {
-			initReason := fmt.Sprintf("Initial configuration of the requested state_store %q in provider %s (%q)",
+			reason := fmt.Sprintf("Initial configuration of a state store %q in provider %s (%q)",
 				stateStoreConfig.Type,
 				stateStoreConfig.Provider.Name,
 				stateStoreConfig.ProviderAddr,
 			)
-			diags = diags.Append(errStateStoreInitDiag(initReason))
+			diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
+				Reason:  reason,
+				Subject: stateStoreConfig.DeclRange.Ptr(),
+			}))
 			return nil, diags
 		}
 
