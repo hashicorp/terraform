@@ -532,6 +532,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 					nil,
+					nil,
 				)
 				if err != nil {
 					t.Fatalf("failed to populate global cache: %s", err)
@@ -694,6 +695,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -861,6 +863,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderOtherPlatformDir,
 					},
 					nil,
+					nil,
 				)
 				if err != nil {
 					t.Fatalf("failed to populate global cache: %s", err)
@@ -1012,6 +1015,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						Location:       beepProviderDir,
 					},
 					nil,
+					nil,
 				)
 				if err != nil {
 					t.Fatalf("failed to populate global cache: %s", err)
@@ -1159,6 +1163,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
@@ -1428,6 +1433,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						TargetPlatform: fakePlatform,
 						Location:       beepProviderDir,
 					},
+					nil,
 					nil,
 				)
 				if err != nil {
