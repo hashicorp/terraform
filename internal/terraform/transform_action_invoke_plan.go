@@ -47,8 +47,8 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		}
 
 		g.Add(&nodeActionInvokeExpand{
-			Target: target,
-			Config: config,
+			TargetAction: target,
+			Config:       config,
 		})
 	}
 

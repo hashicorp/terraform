@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'actions(graph): move action configuration evaluation later in the graph walk to obtain updated values'
+time: 2026-02-24T12:13:39.286756-05:00
+custom:
+    Issue: "38208"

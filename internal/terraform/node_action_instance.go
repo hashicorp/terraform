@@ -4,8 +4,6 @@
 package terraform
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
@@ -58,10 +56,9 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
 
-	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.Config.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
 
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
@@ -72,7 +69,7 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		var deprecationDiags tfdiags.Diagnostics
-		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
+		_, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
 		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if diags.HasErrors() {
@@ -80,7 +77,6 @@ func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) t
 		}
 	}
 
-	ctx.Actions().AddActionInstance(n.Addr, configVal, n.ResolvedProvider)
 	return diags
 }
 

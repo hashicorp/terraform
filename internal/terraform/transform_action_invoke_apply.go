@@ -25,9 +25,14 @@ func (t *ActionInvokeApplyTransformer) Transform(g *Graph) error {
 
 	// We just want to add all invoke triggered action invocations
 	for _, action := range t.Changes.ActionInvocations {
+		// get the config for the action!
+		cfg := t.Config.DescendantForInstance(action.Addr.Module)
+		actionCfg := cfg.Module.ActionByAddr(action.Addr.Action.Action)
+
 		// Add nodes for each action invocation
 		node := &nodeActionTriggerApplyInstance{
 			ActionInvocation: action,
+			actionConfig:     actionCfg,
 		}
 		g.Add(node)
 	}
