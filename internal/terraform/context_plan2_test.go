@@ -1306,6 +1306,37 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 	})
 }
 
+func TestContext2Plan_movedCyclicStatementsDiagnosticComesFromMoveValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved {
+				from = module.a
+				to   = module.b
+			}
+
+			moved {
+				from = module.b
+				to   = module.a
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+
+	got := diags.Err().Error()
+	if !strings.Contains(got, "Cyclic dependency in move statements") {
+		t.Fatalf("expected move validation cycle diagnostic, got:\n%s", got)
+	}
+	if strings.Contains(got, "Cycle: ") {
+		t.Fatalf("got generic DAG cycle diagnostic instead of move validation diagnostic:\n%s", got)
+	}
+}
+
 func TestContext2Plan_movedResourceMissingModule(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	addrB := mustResourceInstanceAddr("module.gone.test_object.b")
