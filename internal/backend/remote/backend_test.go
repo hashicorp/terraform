@@ -204,6 +204,10 @@ func TestRemote_versionConstraints(t *testing.T) {
 		},
 	}
 
+	// Ensure CHECKPOINT_DISABLE is not set, as it causes the disco library
+	// to skip version constraint checks.
+	t.Setenv("CHECKPOINT_DISABLE", "")
+
 	// Save and restore the actual version.
 	p := tfversion.Prerelease
 	v := tfversion.Version
