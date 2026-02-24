@@ -18,7 +18,7 @@ type Source interface {
 	ForDisplay(provider addrs.Provider) string
 }
 
-type ClientReturningSource interface {
+type MockSourceWithClient interface {
 	Source
 	Client() *http.Client
 }

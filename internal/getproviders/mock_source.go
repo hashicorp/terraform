@@ -32,7 +32,7 @@ type MockSource struct {
 
 var (
 	_ Source                = (*MockSource)(nil)
-	_ ClientReturningSource = (*MockSource)(nil)
+	_ MockSourceWithClient = (*MockSource)(nil)
 )
 
 // NewMockSource creates and returns a MockSource with the given packages.

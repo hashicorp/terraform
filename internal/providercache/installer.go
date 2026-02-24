@@ -575,7 +575,7 @@ NeedProvider:
 		}
 
 		var client *http.Client
-		if s, ok := i.source.(getproviders.ClientReturningSource); ok {
+		if s, ok := i.source.(getproviders.MockSourceWithClient); ok {
 			// This will often be nil if the mock provider source is used
 			// in a way that isn't mocking download via HTTP.
 			// Downstream code is written to supply a client if the passed
