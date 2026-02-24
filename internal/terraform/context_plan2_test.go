@@ -1908,6 +1908,40 @@ func TestContext2Plan_movedCountRejectsUnknownValue(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_movedCountRejectsNegativeValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(-1),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Invalid count argument") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
 func TestContext2Plan_movedCountInvalidEndpointIndexExpression(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -1938,6 +1972,83 @@ func TestContext2Plan_movedCountInvalidEndpointIndexExpression(t *testing.T) {
 		t.Fatal("expected planning errors, got none")
 	}
 	if got := diags.Err().Error(); !strings.Contains(got, `Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`) {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedCountRejectsEachKeyInEndpointIndex(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[each.key]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(1),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, `Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`) {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedCountDuplicateDestinationAmbiguous(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			resource "test_object" "b" {
+				count = 1
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[0]
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(2),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Ambiguous move statements") {
 		t.Fatalf("unexpected error:\n%s", got)
 	}
 }
@@ -2321,6 +2432,51 @@ func TestContext2Plan_movedCyclicStatementsDiagnosticComesFromMoveValidation(t *
 	}
 	if strings.Contains(got, "Cycle: ") {
 		t.Fatalf("got generic DAG cycle diagnostic instead of move validation diagnostic:\n%s", got)
+	}
+}
+
+func TestContext2PrePlanFindAndApplyMovesViaGraph_cyclicStatementsDoNotMutateState(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved {
+				from = test_object.a
+				to   = test_object.b
+			}
+
+			moved {
+				from = test_object.b
+				to   = test_object.a
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	moveStmts, moveResults, diags := ctx.prePlanFindAndApplyMovesViaGraph(m, state, nil)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected pre-plan move errors: %s", diags.Err())
+	}
+	if len(moveStmts) != 2 {
+		t.Fatalf("wrong number of move statements: got %d, want 2", len(moveStmts))
+	}
+	if moveResults.Changes.Len() != 0 || moveResults.Blocked.Len() != 0 {
+		t.Fatalf("expected no move results for cyclic graph; got changes=%d blocked=%d", moveResults.Changes.Len(), moveResults.Blocked.Len())
+	}
+
+	if got := state.ResourceInstance(addrA); got == nil {
+		t.Fatalf("state at %s was unexpectedly removed", addrA)
+	}
+	if got := state.ResourceInstance(addrB); got != nil {
+		t.Fatalf("state at %s was unexpectedly created/moved", addrB)
 	}
 }
 
