@@ -130,12 +130,12 @@ func (n *nodeExpandMoved) expandStatements(ctx EvalContext) ([]refactoring.MoveS
 	if n == nil || n.Stmt == nil {
 		return nil, nil
 	}
-	if n.Stmt.ForEach == nil {
+	if !moveStatementUsesRepetition(n.Stmt) {
 		return []refactoring.MoveStatement{*n.Stmt}, nil
 	}
 
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(validateMovedForEachReferences(n.Stmt.ForEach))
+	diags = diags.Append(validateMovedRepetitionReferences(n.Stmt))
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -163,7 +163,7 @@ func (n *nodeExpandMoved) expandStatements(ctx EvalContext) ([]refactoring.MoveS
 			stmts:  stmts,
 		})
 	}, func(pem addrs.PartialExpandedModule) {
-		diags = diags.Append(movedForEachUnknownModuleInstancesDiag(n.Stmt, pem))
+		diags = diags.Append(movedRepetitionUnknownModuleInstancesDiag(n.Stmt, pem))
 	})
 	if diags.HasErrors() {
 		return nil, diags
@@ -179,7 +179,7 @@ func (n *nodeExpandMoved) expandStatements(ctx EvalContext) ([]refactoring.MoveS
 	baselineKeys := movedStatementSetKeys(expansions[0].stmts)
 	for i := 1; i < len(expansions); i++ {
 		if !equalStringSlices(baselineKeys, movedStatementSetKeys(expansions[i].stmts)) {
-			diags = diags.Append(movedForEachInconsistentAcrossModuleInstancesDiag(n.Stmt, expansions[0].module, expansions[i].module))
+			diags = diags.Append(movedRepetitionInconsistentAcrossModuleInstancesDiag(n.Stmt, expansions[0].module, expansions[i].module))
 			return nil, diags
 		}
 	}
@@ -190,24 +190,14 @@ func (n *nodeExpandMoved) expandStatements(ctx EvalContext) ([]refactoring.MoveS
 func (n *nodeExpandMoved) expandStatementsForModuleInstance(ctx EvalContext) ([]refactoring.MoveStatement, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	forEachMap, known, forEachDiags := evaluateForEachExpression(n.Stmt.ForEach, ctx, false)
-	diags = diags.Append(forEachDiags)
-	if diags.HasErrors() || !known {
+	repDataList, repDiags := n.repetitionDataForModuleInstance(ctx)
+	diags = diags.Append(repDiags)
+	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	keys := make([]string, 0, len(forEachMap))
-	for k := range forEachMap {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	ret := make([]refactoring.MoveStatement, 0, len(keys))
-	for _, k := range keys {
-		repData := instances.RepetitionData{
-			EachKey:   cty.StringVal(k),
-			EachValue: forEachMap[k],
-		}
+	ret := make([]refactoring.MoveStatement, 0, len(repDataList))
+	for _, repData := range repDataList {
 		stmt, stmtDiags := expandMoveStatementTemplate(n.Stmt, repData)
 		diags = diags.Append(stmtDiags)
 		if stmtDiags.HasErrors() {
@@ -221,9 +211,99 @@ func (n *nodeExpandMoved) expandStatementsForModuleInstance(ctx EvalContext) ([]
 	return ret, diags
 }
 
-func validateMovedForEachReferences(expr hcl.Expression) tfdiags.Diagnostics {
+func (n *nodeExpandMoved) repetitionDataForModuleInstance(ctx EvalContext) ([]instances.RepetitionData, tfdiags.Diagnostics) {
+	if n == nil || n.Stmt == nil {
+		return nil, nil
+	}
+
+	if n.Stmt.ForEach != nil {
+		return movedForEachRepetitionData(n.Stmt.ForEach, ctx)
+	}
+	if n.Stmt.Count != nil {
+		return movedCountRepetitionData(n.Stmt.Count, ctx)
+	}
+	return nil, nil
+}
+
+func movedForEachRepetitionData(expr hcl.Expression, ctx EvalContext) ([]instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	forEachMap, known, forEachDiags := evaluateForEachExpression(expr, ctx, false)
+	diags = diags.Append(forEachDiags)
+	if diags.HasErrors() || !known {
+		return nil, diags
+	}
+
+	keys := make([]string, 0, len(forEachMap))
+	for k := range forEachMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	ret := make([]instances.RepetitionData, 0, len(keys))
+	for _, k := range keys {
+		ret = append(ret, instances.RepetitionData{
+			EachKey:   cty.StringVal(k),
+			EachValue: forEachMap[k],
+		})
+	}
+	return ret, diags
+}
+
+func movedCountRepetitionData(expr hcl.Expression, ctx EvalContext) ([]instances.RepetitionData, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	count, countDiags := evaluateCountExpression(expr, ctx, false)
+	diags = diags.Append(countDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	if count < 0 {
+		// Unknown counts should already produce diagnostics above because
+		// allowUnknown=false, but guard here to avoid silent expansion.
+		return nil, diags
+	}
+
+	ret := make([]instances.RepetitionData, 0, count)
+	for i := 0; i < count; i++ {
+		ret = append(ret, instances.RepetitionData{
+			CountIndex: cty.NumberIntVal(int64(i)),
+		})
+	}
+	return ret, diags
+}
+
+func moveStatementUsesRepetition(stmt *refactoring.MoveStatement) bool {
+	if stmt == nil {
+		return false
+	}
+	return stmt.ForEach != nil || stmt.Count != nil
+}
+
+func movedRepetitionKindLabel(stmt *refactoring.MoveStatement) string {
+	switch {
+	case stmt != nil && stmt.ForEach != nil:
+		return "for_each"
+	case stmt != nil && stmt.Count != nil:
+		return "count"
+	default:
+		return "repetition"
+	}
+}
+
+func validateMovedRepetitionReferences(stmt *refactoring.MoveStatement) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if stmt == nil {
+		return diags
+	}
+
+	var expr hcl.Expression
+	switch {
+	case stmt.ForEach != nil:
+		expr = stmt.ForEach
+	case stmt.Count != nil:
+		expr = stmt.Count
+	}
 	if expr == nil {
 		return diags
 	}
@@ -236,8 +316,8 @@ func validateMovedForEachReferences(expr hcl.Expression) tfdiags.Diagnostics {
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid for_each reference in moved block",
-				Detail:   "The `for_each` expression in a `moved` block may reference only input variables and local values.",
+				Summary:  fmt.Sprintf("Invalid %s reference in moved block", movedRepetitionKindLabel(stmt)),
+				Detail:   fmt.Sprintf("The `%s` expression in a `moved` block may reference only input variables and local values.", movedRepetitionKindLabel(stmt)),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 		}
@@ -257,14 +337,14 @@ func expandMoveStatementTemplate(stmt *refactoring.MoveStatement, keyData instan
 	fromTraversal, fromDiags := exprToTraversalWithRepetitionData(
 		stmt.FromExpr,
 		keyData,
-		`Only "each.key" and "each.value" can be used in moved address index expressions.`,
+		`Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`,
 		"Moved address index expression cannot be sensitive.",
 	)
 	diags = diags.Append(fromDiags)
 	toTraversal, toDiags := exprToTraversalWithRepetitionData(
 		stmt.ToExpr,
 		keyData,
-		`Only "each.key" and "each.value" can be used in moved address index expressions.`,
+		`Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`,
 		"Moved address index expression cannot be sensitive.",
 	)
 	diags = diags.Append(toDiags)
@@ -296,6 +376,7 @@ func expandMoveStatementTemplate(stmt *refactoring.MoveStatement, keyData instan
 	ret.From = fromAbs
 	ret.To = toAbs
 	ret.ForEach = nil
+	ret.Count = nil
 	ret.FromExpr = nil
 	ret.ToExpr = nil
 	return ret, diags
@@ -317,31 +398,33 @@ func movedTemplateInternalErrorDiag(stmt *refactoring.MoveStatement, detail stri
 	return diags
 }
 
-func movedForEachUnknownModuleInstancesDiag(stmt *refactoring.MoveStatement, module addrs.PartialExpandedModule) tfdiags.Diagnostics {
+func movedRepetitionUnknownModuleInstancesDiag(stmt *refactoring.MoveStatement, module addrs.PartialExpandedModule) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var subject *hcl.Range
 	if stmt != nil {
 		subject = stmt.DeclRange.ToHCL().Ptr()
 	}
+	kind := movedRepetitionKindLabel(stmt)
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  "Invalid for_each argument",
-		Detail:   fmt.Sprintf("Terraform cannot evaluate the `moved` block `for_each` expression for %s because the set of declaring module instances is not yet known.", module),
+		Summary:  fmt.Sprintf("Invalid %s argument", kind),
+		Detail:   fmt.Sprintf("Terraform cannot evaluate the `moved` block `%s` expression for %s because the set of declaring module instances is not yet known.", kind, module),
 		Subject:  subject,
 	})
 	return diags
 }
 
-func movedForEachInconsistentAcrossModuleInstancesDiag(stmt *refactoring.MoveStatement, a, b addrs.ModuleInstance) tfdiags.Diagnostics {
+func movedRepetitionInconsistentAcrossModuleInstancesDiag(stmt *refactoring.MoveStatement, a, b addrs.ModuleInstance) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var subject *hcl.Range
 	if stmt != nil {
 		subject = stmt.DeclRange.ToHCL().Ptr()
 	}
+	kind := movedRepetitionKindLabel(stmt)
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  "Inconsistent moved block for_each across module instances",
-		Detail:   fmt.Sprintf("The `for_each` expression in this `moved` block expands differently for %s and %s. A `moved` block declared in a module must expand to the same set of moves for all instances of that module.", a, b),
+		Summary:  fmt.Sprintf("Inconsistent moved block %s across module instances", kind),
+		Detail:   fmt.Sprintf("The `%s` expression in this `moved` block expands differently for %s and %s. A `moved` block declared in a module must expand to the same set of moves for all instances of that module.", kind, a, b),
 		Subject:  subject,
 	})
 	return diags

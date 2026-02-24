@@ -1787,7 +1787,157 @@ func TestContext2Plan_movedForEachInvalidEndpointIndexExpression(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected planning errors, got none")
 	}
-	if got := diags.Err().Error(); !strings.Contains(got, `Only "each.key" and "each.value" can be used in moved address index expressions.`) {
+	if got := diags.Err().Error(); !strings.Contains(got, `Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`) {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedResourceCountLocal(t *testing.T) {
+	addrOld0 := mustResourceInstanceAddr(`test_object.a[0]`)
+	addrOld1 := mustResourceInstanceAddr(`test_object.a[1]`)
+	addrNew0 := mustResourceInstanceAddr(`test_object.b[0]`)
+	addrNew1 := mustResourceInstanceAddr(`test_object.b[1]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			resource "test_object" "b" {
+				count = var.n
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOld0, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOld1, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(2),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	for _, oldAddr := range []addrs.AbsResourceInstance{addrOld0, addrOld1} {
+		if got := plan.Changes.ResourceInstance(oldAddr); got != nil {
+			t.Fatalf("unexpected plan for %s after move expansion", oldAddr)
+		}
+	}
+
+	checkMovedPlan := func(addr, prev addrs.AbsResourceInstance) {
+		t.Helper()
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s", addr)
+		}
+		if !instPlan.Addr.Equal(addr) {
+			t.Fatalf("wrong current address\ngot:  %s\nwant: %s", instPlan.Addr, addr)
+		}
+		if !instPlan.PrevRunAddr.Equal(prev) {
+			t.Fatalf("wrong previous run address\ngot:  %s\nwant: %s", instPlan.PrevRunAddr, prev)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Fatalf("wrong action for %s\ngot:  %s\nwant: %s", addr, got, want)
+		}
+	}
+
+	checkMovedPlan(addrNew0, addrOld0)
+	checkMovedPlan(addrNew1, addrOld1)
+}
+
+func TestContext2Plan_movedCountRejectsUnknownValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.UnknownVal(cty.Number),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Invalid count argument") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedCountInvalidEndpointIndexExpression(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[var.bad]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(1),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, `Only "count.index", "each.key", and "each.value" can be used in moved address index expressions.`) {
 		t.Fatalf("unexpected error:\n%s", got)
 	}
 }

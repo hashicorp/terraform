@@ -177,7 +177,7 @@ func evalImportUnknownToExpression(expr hcl.Expression) (addrs.PartialExpandedRe
 
 // exprToTraversalWithRepetitionData converts an address-like expression into a
 // traversal while evaluating any repetition-derived index expressions using the
-// provided each.key/each.value data.
+// provided repetition data (count.index and each.key/each.value).
 func exprToTraversalWithRepetitionData(
 	expr hcl.Expression,
 	keyData instances.RepetitionData,
@@ -234,12 +234,18 @@ func parseTraversalIndexKeyExpression(expr hcl.Expression, keyData instances.Rep
 	}
 
 	ctx := &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"each": cty.ObjectVal(map[string]cty.Value{
-				"key":   keyData.EachKey,
-				"value": keyData.EachValue,
-			}),
-		},
+		Variables: map[string]cty.Value{},
+	}
+	if keyData.EachKey != cty.NilVal || keyData.EachValue != cty.NilVal {
+		ctx.Variables["each"] = cty.ObjectVal(map[string]cty.Value{
+			"key":   keyData.EachKey,
+			"value": keyData.EachValue,
+		})
+	}
+	if keyData.CountIndex != cty.NilVal {
+		ctx.Variables["count"] = cty.ObjectVal(map[string]cty.Value{
+			"index": keyData.CountIndex,
+		})
 	}
 
 	val, diags := expr.Value(ctx)

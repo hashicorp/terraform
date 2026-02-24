@@ -42,7 +42,7 @@ func (c *Context) analyzeMovePhase(config *configs.Config, prevRunState *states.
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	expandedExplicit := explicitMoveStmts
 
-	if moveStatementsUseForEach(explicitMoveStmts) {
+	if moveStatementsUseRepetition(explicitMoveStmts) {
 		expandedExplicit, diags = c.expandMoveStatementsViaAnalysisGraph(config, prevRunState, rootVariableValues, explicitMoveStmts)
 		if diags.HasErrors() {
 			ret.ConcreteStatements = expandedExplicit
@@ -152,9 +152,9 @@ func normalizeMoveStatementsStable(explicit, implied []refactoring.MoveStatement
 	return dedupeMoveStatements(stmts)
 }
 
-func moveStatementsUseForEach(stmts []refactoring.MoveStatement) bool {
+func moveStatementsUseRepetition(stmts []refactoring.MoveStatement) bool {
 	for _, stmt := range stmts {
-		if stmt.ForEach != nil {
+		if stmt.ForEach != nil || stmt.Count != nil {
 			return true
 		}
 	}

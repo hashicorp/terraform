@@ -864,6 +864,76 @@ func TestContext2Apply_movedResourceForEachLocalInChildModule(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_movedResourceCount(t *testing.T) {
+	addrOld0 := mustResourceInstanceAddr(`test_object.a[0]`)
+	addrOld1 := mustResourceInstanceAddr(`test_object.a[1]`)
+	addrNew0 := mustResourceInstanceAddr(`test_object.b[0]`)
+	addrNew1 := mustResourceInstanceAddr(`test_object.b[1]`)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			resource "test_object" "b" {
+				count = var.n
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrOld0, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrOld1, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(2),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if got := state.ResourceInstance(addrOld0); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOld0)
+	}
+	if got := state.ResourceInstance(addrOld1); got != nil {
+		t.Fatalf("unexpected state at old address %s after apply", addrOld1)
+	}
+	if got := state.ResourceInstance(addrNew0); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNew0)
+	}
+	if got := state.ResourceInstance(addrNew1); got == nil {
+		t.Fatalf("missing state at new address %s after apply", addrNew1)
+	}
+}
+
 func TestContext2Apply_graphError(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
