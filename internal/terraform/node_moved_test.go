@@ -41,6 +41,32 @@ func TestNodeExpandMovedReferencesForEach(t *testing.T) {
 	}
 }
 
+func TestNodeExpandMovedReferencesCount(t *testing.T) {
+	n := &nodeExpandMoved{
+		Stmt: &refactoring.MoveStatement{
+			From: mustMoveEndpointInModuleForTest(t, "test_object.a"),
+			To:   mustMoveEndpointInModuleForTest(t, "test_object.b"),
+			Count: &hclsyntax.ScopeTraversalExpr{
+				Traversal: hcl.Traversal{
+					hcl.TraverseRoot{Name: "local"},
+					hcl.TraverseAttr{Name: "move_count"},
+				},
+			},
+		},
+	}
+
+	got := n.References()
+	if len(got) != 1 {
+		t.Fatalf("wrong number of references: got %d, want 1", len(got))
+	}
+	if got[0] == nil {
+		t.Fatal("reference is nil")
+	}
+	if got[0].DisplayString() != "local.move_count" {
+		t.Fatalf("wrong reference: got %q, want %q", got[0].DisplayString(), "local.move_count")
+	}
+}
+
 func TestNodeExpandMovedForEachUnknownModuleInstancesDiag(t *testing.T) {
 	n := &nodeExpandMoved{
 		Stmt: &refactoring.MoveStatement{

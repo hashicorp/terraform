@@ -67,11 +67,21 @@ func (n *nodeExpandMoved) Path() evalContextScope {
 }
 
 func (n *nodeExpandMoved) References() []*addrs.Reference {
-	if n.Stmt == nil || n.Stmt.ForEach == nil {
+	if n.Stmt == nil {
 		return []*addrs.Reference{}
 	}
 
-	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Stmt.ForEach)
+	var expr hcl.Expression
+	switch {
+	case n.Stmt.ForEach != nil:
+		expr = n.Stmt.ForEach
+	case n.Stmt.Count != nil:
+		expr = n.Stmt.Count
+	default:
+		return []*addrs.Reference{}
+	}
+
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 	return refs
 }
 
