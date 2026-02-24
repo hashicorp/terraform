@@ -50,6 +50,7 @@ func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings, cl
 }
 
 func (s *MockSource) Client() *http.Client {
+	s.calls = append(s.calls, []interface{}{"Client"})
 	return s.client
 }
 

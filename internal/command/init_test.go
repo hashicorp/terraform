@@ -3505,6 +3505,19 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
 		}
+
+		// Assert how the mock provider source was called.
+		gotLog := source.CallLog()
+		wantLog := [][]interface{}{
+			{"PackageMeta", mockProviderAddress, mockProviderVersion, getproviders.CurrentPlatform},
+			{"AvailableVersions", mockProviderAddress},
+			{"PackageMeta", mockProviderAddress, mockProviderVersion, getproviders.CurrentPlatform},
+			// The client was retrieved to be used during installation.
+			{"Client"},
+		}
+		if diff := cmp.Diff(wantLog, gotLog); diff != "" {
+			t.Fatalf("unexpected call log\n%s", diff)
+		}
 	})
 
 	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
