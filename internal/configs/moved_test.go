@@ -30,6 +30,7 @@ func TestMovedBlock_decode(t *testing.T) {
 	mod_foo_expr := hcltest.MockExprTraversalSrc("module.foo")
 	mod_bar_expr := hcltest.MockExprTraversalSrc("module.bar")
 	for_each_expr := hcltest.MockExprTraversalSrc("var.moves")
+	count_expr := hcltest.MockExprTraversalSrc("var.move_count")
 
 	tests := map[string]struct {
 		input *hcl.Block
@@ -145,6 +146,28 @@ func TestMovedBlock_decode(t *testing.T) {
 			},
 			``,
 		},
+		"success with count expression retained": {
+			&hcl.Block{
+				Type: "moved",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from":  {Name: "from", Expr: foo_expr},
+						"to":    {Name: "to", Expr: bar_expr},
+						"count": {Name: "count", Expr: count_expr},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Moved{
+				From:      mustMoveEndpointFromExpr(foo_expr),
+				To:        mustMoveEndpointFromExpr(bar_expr),
+				FromExpr:  foo_expr,
+				ToExpr:    bar_expr,
+				Count:     count_expr,
+				DeclRange: blockRange,
+			},
+			``,
+		},
 		"error: missing argument": {
 			&hcl.Block{
 				Type: "moved",
@@ -191,6 +214,30 @@ func TestMovedBlock_decode(t *testing.T) {
 			},
 			"Invalid \"moved\" addresses",
 		},
+		"error: count and for_each both set": {
+			&hcl.Block{
+				Type: "moved",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from":     {Name: "from", Expr: foo_expr},
+						"to":       {Name: "to", Expr: bar_expr},
+						"for_each": {Name: "for_each", Expr: for_each_expr},
+						"count":    {Name: "count", Expr: count_expr},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Moved{
+				From:      mustMoveEndpointFromExpr(foo_expr),
+				To:        mustMoveEndpointFromExpr(bar_expr),
+				FromExpr:  foo_expr,
+				ToExpr:    bar_expr,
+				ForEach:   for_each_expr,
+				Count:     count_expr,
+				DeclRange: blockRange,
+			},
+			"Invalid moved block",
+		},
 	}
 
 	for name, test := range tests {
@@ -225,6 +272,9 @@ func TestMovedBlock_decode(t *testing.T) {
 			}
 			if !exprTraversalEqual(got.ForEach, test.want.ForEach) {
 				t.Fatalf("wrong for_each expression")
+			}
+			if !exprTraversalEqual(got.Count, test.want.Count) {
+				t.Fatalf("wrong count expression")
 			}
 		})
 	}
@@ -276,6 +326,55 @@ func TestMovedBlock_decodeForEachDynamicEndpoints(t *testing.T) {
 	}
 	if got.FromExpr == nil || got.ToExpr == nil || got.ForEach == nil {
 		t.Fatal("expected raw expressions to be retained")
+	}
+}
+
+func TestMovedBlock_decodeCountDynamicEndpoints(t *testing.T) {
+	blockRange := hcl.Range{
+		Filename: "mock.tf",
+		Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		End:      hcl.Pos{Line: 6, Column: 2, Byte: 90},
+	}
+
+	parseExpr := func(src string) hcl.Expression {
+		t.Helper()
+		expr, diags := hclsyntax.ParseExpression([]byte(src), "mock.tf", hcl.InitialPos)
+		if diags.HasErrors() {
+			t.Fatalf("invalid test expression %q: %s", src, diags.Error())
+		}
+		return expr
+	}
+
+	fromExpr := parseExpr(`test_instance.old[count.index]`)
+	toExpr := parseExpr(`test_instance.new[count.index]`)
+	countExpr := hcltest.MockExprTraversalSrc("var.move_count")
+
+	got, diags := decodeMovedBlock(&hcl.Block{
+		Type: "moved",
+		Body: hcltest.MockBody(&hcl.BodyContent{
+			Attributes: hcl.Attributes{
+				"count": {Name: "count", Expr: countExpr},
+				"from":  {Name: "from", Expr: fromExpr},
+				"to":    {Name: "to", Expr: toExpr},
+			},
+		}),
+		DefRange: blockRange,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Error())
+	}
+
+	if got.From == nil || got.To == nil {
+		t.Fatalf("expected parsed move endpoints")
+	}
+	if got.From.String() != "test_instance.old" {
+		t.Fatalf("wrong shape from endpoint: %s", got.From)
+	}
+	if got.To.String() != "test_instance.new" {
+		t.Fatalf("wrong shape to endpoint: %s", got.To)
+	}
+	if got.FromExpr == nil || got.ToExpr == nil || got.Count == nil {
+		t.Fatal("expected raw expressions and count to be retained")
 	}
 }
 

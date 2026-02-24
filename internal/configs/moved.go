@@ -18,9 +18,12 @@ type Moved struct {
 	ToExpr   hcl.Expression
 
 	// ForEach is reserved for future moved-block expansion support.
-	// Terraform doesn't evaluate it yet, but we retain the expression so the
-	// moved mini-graph can eventually analyze references and evaluate it.
+	// Terraform evaluates it during the pre-plan move analysis phase.
 	ForEach hcl.Expression
+
+	// Count is evaluated during the pre-plan move analysis phase. It is
+	// mutually exclusive with ForEach.
+	Count hcl.Expression
 
 	DeclRange hcl.Range
 }
@@ -37,17 +40,29 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 	if attr, exists := content.Attributes["for_each"]; exists {
 		moved.ForEach = attr.Expr
 	}
+	if attr, exists := content.Attributes["count"]; exists {
+		moved.Count = attr.Expr
+	}
+
+	if moved.ForEach != nil && moved.Count != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid moved block",
+			Detail:   "The \"count\" and \"for_each\" meta-arguments are mutually exclusive in a \"moved\" block.",
+			Subject:  block.DefRange.Ptr(),
+		})
+	}
 
 	if attr, exists := content.Attributes["from"]; exists {
 		moved.FromExpr = attr.Expr
-		from, fromDiags := parseMoveEndpointExpr(attr.Expr, moved.ForEach != nil)
+		from, fromDiags := parseMoveEndpointExpr(attr.Expr, moved.ForEach != nil || moved.Count != nil)
 		diags = append(diags, fromDiags...)
 		moved.From = from
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
 		moved.ToExpr = attr.Expr
-		to, toDiags := parseMoveEndpointExpr(attr.Expr, moved.ForEach != nil)
+		to, toDiags := parseMoveEndpointExpr(attr.Expr, moved.ForEach != nil || moved.Count != nil)
 		diags = append(diags, toDiags...)
 		moved.To = to
 	}
@@ -109,6 +124,9 @@ var movedBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "for_each",
+		},
+		{
+			Name: "count",
 		},
 	},
 }

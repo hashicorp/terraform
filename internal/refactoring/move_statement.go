@@ -20,6 +20,7 @@ type MoveStatement struct {
 	FromExpr   hcl.Expression
 	ToExpr     hcl.Expression
 	ForEach    hcl.Expression
+	Count      hcl.Expression
 
 	// Provider is the provider configuration that applies to the "to" address
 	// of this move. As in, the provider that will manage the resource after
@@ -75,6 +76,7 @@ func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStateme
 			FromExpr: mc.FromExpr,
 			ToExpr:   mc.ToExpr,
 			ForEach:  mc.ForEach,
+			Count:    mc.Count,
 			Implied:  false,
 		}
 
