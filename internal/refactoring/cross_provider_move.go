@@ -5,6 +5,7 @@ package refactoring
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -16,47 +17,69 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// crossTypeMover is a collection of data that is needed to calculate the
+// CrossTypeMover is a collection of data that is needed to calculate the
 // cross-provider move state changes.
-type crossTypeMover struct {
-	State             *states.State
+type CrossTypeMover struct {
 	ProviderFactories map[addrs.Provider]providers.Factory
 	ProviderCache     map[addrs.Provider]providers.Interface
+	mu                sync.Mutex
 }
 
-// close ensures the cached providers are closed.
-func (m *crossTypeMover) close() tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+// NewCrossTypeMover creates a new mover with an empty provider cache.
+func NewCrossTypeMover(providerFactories map[addrs.Provider]providers.Factory) *CrossTypeMover {
+	return &CrossTypeMover{
+		ProviderFactories: providerFactories,
+		ProviderCache:     make(map[addrs.Provider]providers.Interface),
+	}
+}
+
+// Close ensures the cached providers are closed.
+func (m *CrossTypeMover) Close() tfdiags.Diagnostics {
+	if m == nil {
+		return nil
+	}
+
+	m.mu.Lock()
+	providersToClose := make([]providers.Interface, 0, len(m.ProviderCache))
 	for _, provider := range m.ProviderCache {
+		providersToClose = append(providersToClose, provider)
+	}
+	m.mu.Unlock()
+
+	var diags tfdiags.Diagnostics
+	for _, provider := range providersToClose {
 		diags = diags.Append(provider.Close())
 	}
 	return diags
 }
 
-func (m *crossTypeMover) getProvider(providers addrs.Provider) (providers.Interface, error) {
-	if provider, ok := m.ProviderCache[providers]; ok {
+func (m *CrossTypeMover) getProvider(providerAddr addrs.Provider) (providers.Interface, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if provider, ok := m.ProviderCache[providerAddr]; ok {
 		return provider, nil
 	}
 
-	if factory, ok := m.ProviderFactories[providers]; ok {
+	if factory, ok := m.ProviderFactories[providerAddr]; ok {
 		provider, err := factory()
 		if err != nil {
 			return nil, err
 		}
 
-		m.ProviderCache[providers] = provider
+		m.ProviderCache[providerAddr] = provider
 		return provider, nil
 	}
 
 	// Then we don't have a provider in the cache - this represents a bug in
 	// Terraform since we should have already loaded all the providers in the
 	// configuration and the state.
-	return nil, fmt.Errorf("provider %s implementation not found; this is a bug in Terraform - please report it", providers)
+	return nil, fmt.Errorf("provider %s implementation not found; this is a bug in Terraform - please report it", providerAddr)
 }
 
-// prepareCrossTypeMove checks if the provided MoveStatement is a cross-type
+// PrepareCrossTypeMove checks if the provided MoveStatement is a cross-type
 // move and if so, prepares the data needed to perform the move.
-func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResource) (*crossTypeMove, tfdiags.Diagnostics) {
+func (m *CrossTypeMover) PrepareCrossTypeMove(syncState *states.SyncState, stmt *MoveStatement, source, target addrs.AbsResource) (*CrossTypeMove, tfdiags.Diagnostics) {
 	if stmt.Provider == nil {
 		// This means the resource was not in the configuration at all, so we
 		// can't process this. It'll be picked up in the validation errors
@@ -65,7 +88,13 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 	}
 
 	targetProviderAddr := stmt.Provider
-	sourceProviderAddr := m.State.Resource(source).ProviderConfig
+	sourceResource := syncState.Resource(source)
+	if sourceResource == nil {
+		// The source resource disappeared before we got here, which can happen
+		// if another concurrent move statement already consumed it.
+		return nil, nil
+	}
+	sourceProviderAddr := sourceResource.ProviderConfig
 
 	if targetProviderAddr.Provider.Equals(sourceProviderAddr.Provider) {
 		if source.Resource.Type == target.Resource.Type {
@@ -100,7 +129,7 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		return nil, diags
 	}
 	targetResourceSchema := targetSchema.SchemaForResourceAddr(target.Resource)
-	return &crossTypeMove{
+	return &CrossTypeMove{
 		targetProvider:       targetProvider,
 		targetProviderAddr:   *targetProviderAddr,
 		targetResourceSchema: targetResourceSchema,
@@ -108,7 +137,8 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 	}, diags
 }
 
-type crossTypeMove struct {
+// CrossTypeMove contains prepared provider state for moving across types.
+type CrossTypeMove struct {
 	targetProvider       providers.Interface
 	targetProviderAddr   addrs.AbsProviderConfig
 	targetResourceSchema providers.Schema
@@ -116,11 +146,11 @@ type crossTypeMove struct {
 	sourceProviderAddr addrs.AbsProviderConfig
 }
 
-// applyCrossTypeMove will update the provider states.SyncState so that value
+// ApplyCrossTypeMove will update the provider states.SyncState so that value
 // at source is the result of the providers move operation. Note, that this
 // doesn't actually move the resource in the state file, it just updates the
 // value at source ready to be moved.
-func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResourceInstance, state *states.SyncState) tfdiags.Diagnostics {
+func (move *CrossTypeMove) ApplyCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResourceInstance, state *states.SyncState) tfdiags.Diagnostics {
 	if move == nil {
 		// Then we don't need to do any data transformation.
 		return nil
@@ -129,7 +159,13 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 	var diags tfdiags.Diagnostics
 
 	var sourceIdentity []byte
-	src := state.ResourceInstance(source).Current
+	srcState := state.ResourceInstance(source)
+	if srcState == nil || srcState.Current == nil {
+		// The source instance disappeared before we got here, which can happen
+		// if another concurrent move statement already consumed it.
+		return nil
+	}
+	src := srcState.Current
 	if src != nil {
 		sourceIdentity = src.IdentityJSON
 	}
