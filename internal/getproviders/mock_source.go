@@ -31,7 +31,7 @@ type MockSource struct {
 }
 
 var (
-	_ Source                = (*MockSource)(nil)
+	_ Source               = (*MockSource)(nil)
 	_ MockSourceWithClient = (*MockSource)(nil)
 )
 
@@ -41,7 +41,16 @@ var (
 // exist on disk or over the network, unless the calling test is planning to
 // use (directly or indirectly) the results for further provider installation
 // actions.
-func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings, client *http.Client) *MockSource {
+func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *MockSource {
+	return &MockSource{
+		packages: packages,
+		warnings: warns,
+	}
+}
+
+// NewMockSourceWithClient is used when the mock source is intended to resemble downloading a provider
+// via HTTP. See the newMockProviderSourceUsingTestHttpServer helper, which creates the test server needed with this mock.
+func NewMockSourceWithClient(packages []PackageMeta, warns map[addrs.Provider]Warnings, client *http.Client) *MockSource {
 	return &MockSource{
 		packages: packages,
 		warnings: warns,

@@ -1996,7 +1996,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
 	}
-	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil, nil)
+	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil)
 
 	m := Meta{
 		testingOverrides: overrides,
@@ -5894,7 +5894,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil, nil), close
+	return getproviders.NewMockSource(packages, nil), close
 }
 
 // newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
@@ -5934,7 +5934,7 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil, client), close
+	return getproviders.NewMockSourceWithClient(packages, nil, client), close
 }
 
 // newMockProviderSourceUsingTestHttpServer is a helper that makes it easier to use newMockProviderSourceViaHTTP.
