@@ -25,7 +25,7 @@ func TestMovedBlockEdgeTransformerAddsChainingEdges(t *testing.T) {
 
 	if err := (&MovedBlockTransformer{
 		Statements: stmts,
-		Runtime:    &movedExecutionRuntime{},
+		Runtime:    &movedAnalysisRuntime{},
 	}).Transform(&g); err != nil {
 		t.Fatalf("unexpected error adding moved nodes: %s", err)
 	}
@@ -64,7 +64,7 @@ func TestMovedBlockEdgeTransformerUsesInjectedPolicy(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	if err := (&MovedBlockTransformer{
 		Statements: stmts,
-		Runtime:    &movedExecutionRuntime{},
+		Runtime:    &movedAnalysisRuntime{},
 	}).Transform(&g); err != nil {
 		t.Fatalf("unexpected error adding moved nodes: %s", err)
 	}

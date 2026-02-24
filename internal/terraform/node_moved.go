@@ -18,17 +18,19 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type movedAnalysisRuntime struct {
+	Collector *moveStatementsCollector
+}
+
 type movedExecutionRuntime struct {
 	CrossTypeMover *refactoring.CrossTypeMover
 	Collector      *moveResultsCollector
-	Statements     *moveStatementsCollector
-	ExecuteMoves   bool
 }
 
 type nodeExpandMoved struct {
 	Stmt    *refactoring.MoveStatement
 	Index   int
-	Runtime *movedExecutionRuntime
+	Runtime *movedAnalysisRuntime
 }
 
 var (
@@ -90,26 +92,12 @@ func (n *nodeExpandMoved) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 		return nil, diags
 	}
 
-	if n.Runtime != nil && n.Runtime.Statements != nil {
+	if n.Runtime != nil && n.Runtime.Collector != nil {
 		for i, stmt := range expandedStmts {
-			n.Runtime.Statements.Record(n.Index, i, stmt)
+			n.Runtime.Collector.Record(n.Index, i, stmt)
 		}
 	}
-	if n.Runtime == nil || !n.Runtime.ExecuteMoves {
-		return nil, diags
-	}
-
-	var g Graph
-	for i := range expandedStmts {
-		stmt := expandedStmts[i]
-		g.Add(&nodeMovedInstance{
-			Stmt:    &stmt,
-			Index:   n.Index,
-			Runtime: n.Runtime,
-		})
-	}
-	addRootNodeToGraph(&g)
-	return &g, diags
+	return nil, diags
 }
 
 type nodeMovedInstance struct {

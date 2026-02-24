@@ -10,64 +10,71 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// MovedGraphBuilder constructs a mini-graph that applies move statements
-// before the main plan graph walk.
-type MovedGraphBuilder struct {
-	Statements []refactoring.MoveStatement
-	Runtime    *movedExecutionRuntime
-
-	// Step-2 scaffolding: when enabled, include the minimal eval graph pieces
-	// needed for moved-block expression references (for_each) to resolve.
-	EnableExpressionEval bool
-	Config               *configs.Config
-	RootVariableValues   InputValues
+// MovedAnalysisGraphBuilder constructs the move analysis mini-graph, which is
+// responsible for expanding moved statement templates into concrete statements
+// before execution.
+type MovedAnalysisGraphBuilder struct {
+	Statements        []refactoring.MoveStatement
+	Runtime           *movedAnalysisRuntime
+	Config            *configs.Config
+	RootVariableValues InputValues
 }
 
-func (b *MovedGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
+func (b *MovedAnalysisGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Name:                "MovedGraphBuilder",
+		Name:                "MovedAnalysisGraphBuilder",
 		Steps:               b.Steps(),
 		SkipGraphValidation: true,
 	}).Build(path)
 }
 
-func (b *MovedGraphBuilder) Steps() []GraphTransformer {
-	var steps []GraphTransformer
-
-	if b.EnableExpressionEval {
-		steps = append(steps,
-			&RootVariableTransformer{
-				Config:    b.Config,
-				RawValues: b.RootVariableValues,
-				Planning:  true,
-			},
-			&ModuleVariableTransformer{
-				Config:   b.Config,
-				Planning: true,
-			},
-			&LocalTransformer{Config: b.Config},
-		)
-	}
-
-	steps = append(steps,
+func (b *MovedAnalysisGraphBuilder) Steps() []GraphTransformer {
+	return []GraphTransformer{
+		&RootVariableTransformer{
+			Config:    b.Config,
+			RawValues: b.RootVariableValues,
+			Planning:  true,
+		},
+		&ModuleVariableTransformer{
+			Config:   b.Config,
+			Planning: true,
+		},
+		&LocalTransformer{Config: b.Config},
 		&MovedBlockTransformer{
 			Statements: b.Statements,
 			Runtime:    b.Runtime,
 		},
-	)
-
-	if b.EnableExpressionEval {
-		steps = append(steps,
-			&ModuleExpansionTransformer{Config: b.Config},
-			&ReferenceTransformer{},
-		)
-	}
-
-	steps = append(steps,
+		&ModuleExpansionTransformer{Config: b.Config},
+		&ReferenceTransformer{},
 		&MovedBlockEdgeTransformer{},
 		&CloseRootModuleTransformer{},
 		&TransitiveReductionTransformer{},
-	)
-
-	return steps
+	}
 }
+
+// MovedExecutionGraphBuilder constructs the move execution mini-graph from a
+// frozen execution order produced by the analysis phase.
+type MovedExecutionGraphBuilder struct {
+	OrderedStatements []refactoring.MoveStatement
+	Runtime           *movedExecutionRuntime
+}
+
+func (b *MovedExecutionGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
+	return (&BasicGraphBuilder{
+		Name:                "MovedExecutionGraphBuilder",
+		Steps:               b.Steps(),
+		SkipGraphValidation: true,
+	}).Build(path)
+}
+
+func (b *MovedExecutionGraphBuilder) Steps() []GraphTransformer {
+	return []GraphTransformer{
+		&MovedExecutionBlockTransformer{
+			OrderedStatements: b.OrderedStatements,
+			Runtime:           b.Runtime,
+		},
+		&CloseRootModuleTransformer{},
+		&TransitiveReductionTransformer{},
+	}
+}
+
