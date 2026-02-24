@@ -14,7 +14,7 @@ GoLand includes [debugging features](https://www.jetbrains.com/help/go/debugging
 
 ## Debugging automated tests
 
-Debugging an automated test is often the most straightforward workflow for debugging a section of the codebase. For example, the Go extension for VS Code](https://code.visualstudio.com/docs/languages/go#_debugging) adds `run test | debug test` options above all tests in a `*_test.go` file. These allow debugging without any prior configuration.
+Debugging an automated test is often the most straightforward workflow for debugging a section of the codebase. For example, the [Go extension for VS Code](https://code.visualstudio.com/docs/languages/go#_debugging) adds `run test | debug test` options above all tests in a `*_test.go` file. These allow debugging without any prior configuration.
 
 ### Debugging automated tests in VSCode
 
