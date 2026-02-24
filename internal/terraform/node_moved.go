@@ -77,6 +77,13 @@ func (n *nodeExpandMoved) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{}
 }
 
+func (n *nodeExpandMoved) MoveOrderingStatement() *refactoring.MoveStatement {
+	if n == nil {
+		return nil
+	}
+	return n.Stmt
+}
+
 func (n *nodeExpandMoved) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	expandedStmts, diags := n.expandStatements(ctx)
 	if diags.HasErrors() {

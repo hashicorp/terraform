@@ -9,12 +9,24 @@ import (
 )
 
 // MovedBlockEdgeTransformer adds ordering edges between moved statements.
-type MovedBlockEdgeTransformer struct{}
+type MovedBlockEdgeTransformer struct {
+	Policy refactoring.MoveOrderingPolicy
+}
+
+type moveOrderableGraphNode interface {
+	dag.Vertex
+	MoveOrderingStatement() *refactoring.MoveStatement
+}
 
 func (t *MovedBlockEdgeTransformer) Transform(g *Graph) error {
-	var movedNodes []*nodeExpandMoved
+	policy := t.Policy
+	if policy == nil {
+		policy = refactoring.DefaultMoveOrderingPolicy{}
+	}
+
+	var movedNodes []moveOrderableGraphNode
 	for _, v := range g.Vertices() {
-		if node, ok := v.(*nodeExpandMoved); ok {
+		if node, ok := v.(moveOrderableGraphNode); ok {
 			movedNodes = append(movedNodes, node)
 		}
 	}
@@ -24,7 +36,7 @@ func (t *MovedBlockEdgeTransformer) Transform(g *Graph) error {
 			if depender == dependee {
 				continue
 			}
-			if refactoring.StatementDependsOn(depender.Stmt, dependee.Stmt) {
+			if policy.DependsOn(depender.MoveOrderingStatement(), dependee.MoveOrderingStatement()) {
 				g.Connect(dag.BasicEdge(depender, dependee))
 			}
 		}

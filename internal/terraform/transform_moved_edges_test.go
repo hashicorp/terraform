@@ -55,6 +55,43 @@ func TestMovedBlockEdgeTransformerAddsChainingEdges(t *testing.T) {
 	}
 }
 
+func TestMovedBlockEdgeTransformerUsesInjectedPolicy(t *testing.T) {
+	stmts := []refactoring.MoveStatement{
+		testMovedGraphStatement(t, "test_object.a", "test_object.b"),
+		testMovedGraphStatement(t, "test_object.b", "test_object.c"),
+	}
+
+	g := Graph{Path: addrs.RootModuleInstance}
+	if err := (&MovedBlockTransformer{
+		Statements: stmts,
+		Runtime:    &movedExecutionRuntime{},
+	}).Transform(&g); err != nil {
+		t.Fatalf("unexpected error adding moved nodes: %s", err)
+	}
+
+	if err := (&MovedBlockEdgeTransformer{
+		Policy: refactoring.MoveOrderingPolicyFunc(func(depender, dependee *refactoring.MoveStatement) bool {
+			return depender == &stmts[0] && dependee == &stmts[1]
+		}),
+	}).Transform(&g); err != nil {
+		t.Fatalf("unexpected error adding moved edges: %s", err)
+	}
+
+	nodes := map[int]*nodeExpandMoved{}
+	for _, v := range g.Vertices() {
+		if node, ok := v.(*nodeExpandMoved); ok {
+			nodes[node.Index] = node
+		}
+	}
+
+	if !g.HasEdge(dag.BasicEdge(nodes[0], nodes[1])) {
+		t.Fatalf("expected injected policy edge moved[0] -> moved[1]")
+	}
+	if g.HasEdge(dag.BasicEdge(nodes[1], nodes[0])) {
+		t.Fatalf("unexpected default-policy edge moved[1] -> moved[0]")
+	}
+}
+
 func testMovedGraphStatement(t *testing.T, from, to string) refactoring.MoveStatement {
 	t.Helper()
 
