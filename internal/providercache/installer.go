@@ -577,7 +577,7 @@ NeedProvider:
 		var client *http.Client
 		if s, ok := i.source.(getproviders.MockSourceWithClient); ok {
 			// This will often be nil if the mock provider source is used
-			// in a way that isn't mocking download via HTTP.
+			// in a way that isn't specifically created to mock download via HTTP.
 			// Downstream code is written to supply a client if the passed
 			// *http.Client argument is nil.
 			client = s.Client()
