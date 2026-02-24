@@ -820,9 +820,9 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"select-workspace": "2",
-	})()
+	})
 
 	// Get the backend
 	_, diags := m.Backend(&BackendOpts{Init: true})
@@ -963,9 +963,9 @@ func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1017,9 +1017,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1070,10 +1070,10 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1139,10 +1139,10 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *test
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1200,9 +1200,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1300,10 +1300,10 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	defer backendInit.Set("local-no-default", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 		"new-state-name": "env1",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1378,9 +1378,9 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	defer backendInit.Set("local-no-default", nil)
 
 	// Ask input
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
-	})()
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)

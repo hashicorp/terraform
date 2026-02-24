@@ -107,10 +107,10 @@ func TestLogin(t *testing.T) {
 	t.Run("app.terraform.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
-		})()
+		})
 		status := c.Run([]string{"app.terraform.io"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -131,9 +131,9 @@ func TestLogin(t *testing.T) {
 
 	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
-		})()
+		})
 		status := c.Run([]string{"example.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -154,7 +154,6 @@ func TestLogin(t *testing.T) {
 	}))
 
 	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
-
 		host, _ := c.Services.Discover("example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 		if len(client.Scopes) != 0 {
@@ -164,9 +163,9 @@ func TestLogin(t *testing.T) {
 
 	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
-		})()
+		})
 		status := c.Run([]string{"with-scopes.example.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -174,7 +173,6 @@ func TestLogin(t *testing.T) {
 
 		credsSrc := c.Services.CredentialsSource()
 		creds, err := credsSrc.ForHost(svchost.Hostname("with-scopes.example.com"))
-
 		if err != nil {
 			t.Errorf("failed to retrieve credentials: %s", err)
 		}
@@ -189,7 +187,6 @@ func TestLogin(t *testing.T) {
 	}))
 
 	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
-
 		host, _ := c.Services.Discover("with-scopes.example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 
@@ -206,10 +203,10 @@ func TestLogin(t *testing.T) {
 	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
-		})()
+		})
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -231,10 +228,10 @@ func TestLogin(t *testing.T) {
 
 	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "good-tok",
-		})()
+		})
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -263,9 +260,9 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "no" at the consent prompt
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "no",
-		})()
+		})
 		status := c.Run(nil)
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -278,9 +275,9 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "y" at the consent prompt
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"approve": "y",
-		})()
+		})
 		status := c.Run(nil)
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
