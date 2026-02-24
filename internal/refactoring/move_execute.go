@@ -265,7 +265,12 @@ func snapshotModuleInstanceAddrs(syncState *states.SyncState) []addrs.ModuleInst
 // buildMoveStatementGraph doesn't do any validation of the graph, so it
 // may contain cycles and other sorts of invalidity.
 func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
+	return buildMoveStatementGraphWithPolicy(stmts, nil)
+}
+
+func buildMoveStatementGraphWithPolicy(stmts []MoveStatement, policy MoveOrderingPolicy) *dag.AcyclicGraph {
 	g := &dag.AcyclicGraph{}
+	policy = moveOrderingPolicyOrDefault(policy)
 	for i := range stmts {
 		// The graph nodes are pointers to the actual statements directly.
 		g.Add(&stmts[i])
@@ -283,7 +288,7 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 			}
 			dependee := &stmts[dependeeI]
 
-			if StatementDependsOn(depender, dependee) {
+			if policy.DependsOn(depender, dependee) {
 				g.Connect(dag.BasicEdge(depender, dependee))
 			}
 		}
