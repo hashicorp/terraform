@@ -144,6 +144,10 @@ func (n *nodeActionTriggerPlanInstance) Execute(ctx EvalContext, operation walkO
 		if valDiags.HasErrors() {
 			return diags
 		}
+
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, actionSchema.ConfigSchema, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.actionConfig.Config, ai.Addr.String()))
 	}
 
 	// with resources, the provider would be expected to strip the ephemeral

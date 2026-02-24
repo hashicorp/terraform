@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -126,6 +127,9 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		if valDiags.HasErrors() {
 			return diags
 		}
+
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmarkConfig(configVal, actionSchema.ConfigSchema, n.ActionAddr().Module)
+		diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
 	}
 
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
@@ -152,7 +156,7 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
 			},
-			ConfigValue: configVal,
+			ConfigValue: ephemeral.RemoveEphemeralValues(configVal),
 		}, providers.DeferredReasonInstanceCountUnknown)
 	}
 	return nil

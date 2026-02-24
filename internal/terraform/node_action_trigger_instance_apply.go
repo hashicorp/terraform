@@ -119,6 +119,9 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 		if valDiags.HasErrors() {
 			return diags
 		}
+
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmarkConfig(configVal, actionSchema.ConfigSchema, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.actionConfig.Config, ai.Addr.String()))
 	}
 
 	// Validate that what we planned matches the action data we have.

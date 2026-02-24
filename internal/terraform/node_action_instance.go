@@ -40,44 +40,11 @@ func (n *NodeAbstractActionInstance) Path() addrs.ModuleInstance {
 }
 
 func (n *NodeAbstractActionInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
 	deferrals := ctx.Deferrals()
 	if deferrals.DeferralAllowed() && deferrals.ShouldDeferAction(n.Dependencies) {
 		deferrals.ReportActionDeferred(n.Addr, providers.DeferredReasonDeferredPrereq)
-		return diags
 	}
-
-	// This should have been caught already
-	if n.Schema == nil {
-		panic("NodeActionDeclarationInstance.Execute called without a schema")
-	}
-
-	allInsts := ctx.InstanceExpander()
-	keyData := allInsts.GetActionInstanceRepetitionData(n.Addr)
-
-	if n.Config.Config != nil {
-		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, keyData)
-
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return diags
-		}
-
-		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
-		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
-
-		var deprecationDiags tfdiags.Diagnostics
-		_, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
-		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
-
-		if diags.HasErrors() {
-			return diags
-		}
-	}
-
-	return diags
+	return nil
 }
 
 // GraphNodeReferenceable

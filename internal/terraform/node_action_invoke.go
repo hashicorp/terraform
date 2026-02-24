@@ -164,10 +164,11 @@ func (n *nodeActionInvokeInstance) Execute(ctx EvalContext, _ walkOperation) tfd
 
 		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, actionSchema.ConfigSchema)
 		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.TargetAction.String()))
-
 		if valDiags.HasErrors() {
 			return diags
 		}
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmarkConfig(configVal, actionSchema.ConfigSchema, n.TargetAction.ConfigAction().Module)
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.TargetAction.String()))
 	}
 
 	unmarkedConfig, _ := configVal.UnmarkDeepWithPaths()
