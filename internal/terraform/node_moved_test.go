@@ -98,6 +98,37 @@ func TestNodeExpandMovedForEachUnknownModuleInstancesDiag(t *testing.T) {
 	}
 }
 
+func TestNodeExpandMovedCountUnknownModuleInstancesDiag(t *testing.T) {
+	n := &nodeExpandMoved{
+		Stmt: &refactoring.MoveStatement{
+			DeclModule: addrs.Module{"child"},
+			From:       mustMoveEndpointInModuleForTest(t, "test_object.a"),
+			To:         mustMoveEndpointInModuleForTest(t, "test_object.b"),
+			Count: &hclsyntax.ScopeTraversalExpr{
+				Traversal: hcl.Traversal{
+					hcl.TraverseRoot{Name: "local"},
+					hcl.TraverseAttr{Name: "move_count"},
+				},
+			},
+		},
+	}
+
+	exp := instances.NewExpander(nil)
+	exp.SetModuleCountUnknown(addrs.RootModuleInstance, addrs.ModuleCall{Name: "child"})
+
+	ctx := &MockEvalContext{
+		InstanceExpanderExpander: exp,
+	}
+
+	_, diags := n.expandStatements(ctx)
+	if !diags.HasErrors() {
+		t.Fatal("expected diagnostics, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "cannot evaluate the `moved` block `count` expression") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
 func mustMoveEndpointInModuleForTest(t *testing.T, expr string) *addrs.MoveEndpointInModule {
 	t.Helper()
 

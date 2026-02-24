@@ -1942,6 +1942,93 @@ func TestContext2Plan_movedCountInvalidEndpointIndexExpression(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_movedCountRejectsResourceReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "seed" {}
+			resource "test_object" "b" {}
+
+			moved {
+				count = test_object.seed
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "The `count` expression in a `moved` block may reference only input variables and local values.") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
+func TestContext2Plan_movedCountInRepeatedChildModuleMustBeConsistent(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "child_counts" {
+				type = map(number)
+			}
+
+			module "child" {
+				source   = "./child"
+				for_each = var.child_counts
+				n        = each.value
+			}
+		`,
+		"child/main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			resource "test_object" "b" {
+				count = var.n
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"child_counts": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"a": cty.NumberIntVal(1),
+					"b": cty.NumberIntVal(2),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected planning errors, got none")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Inconsistent moved block count across module instances") {
+		t.Fatalf("unexpected error:\n%s", got)
+	}
+}
+
 func TestContext2Plan_movedForEachRejectsSensitiveEndpointIndexValue(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -2072,6 +2159,65 @@ func TestContext2Plan_movedResourceForEachEmptyMap(t *testing.T) {
 	// The resource at test_object.a should still have a plan (delete, since
 	// it's not in config any more) because the empty for_each produced no
 	// moves so the old address was never relocated.
+	instPlan := plan.Changes.ResourceInstance(addrA)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addrA)
+	}
+	if got, want := instPlan.Action, plans.Delete; got != want {
+		t.Errorf("wrong planned action for %s\ngot:  %s\nwant: %s", addrA, got, want)
+	}
+}
+
+func TestContext2Plan_movedResourceCountZero(t *testing.T) {
+	// When count evaluates to zero, the moved block should produce zero move
+	// statements and planning should succeed without error.
+	addrA := mustResourceInstanceAddr("test_object.a[0]")
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "n" {
+				type = number
+			}
+
+			resource "test_object" "b" {
+				count = var.n
+			}
+
+			moved {
+				count = var.n
+				from  = test_object.a[count.index]
+				to    = test_object.b[count.index]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"n": &InputValue{
+				Value:      cty.NumberIntVal(0),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	instPlan := plan.Changes.ResourceInstance(addrA)
 	if instPlan == nil {
 		t.Fatalf("no plan for %s at all", addrA)
