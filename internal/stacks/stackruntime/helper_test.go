@@ -52,7 +52,6 @@ type TestContext struct {
 // TestCycle defines a single plan / apply cycle that should be performed within
 // a test.
 type TestCycle struct {
-
 	// Validate options
 
 	wantValidateDiags tfdiags.Diagnostics
@@ -444,7 +443,7 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 	case *stackplan.PlannedChangeActionInvocationInstancePlanned:
 		return change.ActionInvocationAddr.String()
 	case *stackplan.PlannedChangeDeferredActionInvocation:
-		return "deferred:" + change.ActionInvocationPlanned.ActionInvocationAddr.String()
+		return change.ActionInvocationPlanned.ActionInvocationAddr.String()
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
@@ -485,7 +484,6 @@ func diagnosticSortFunc(diags tfdiags.Diagnostics) func(i, j int) bool {
 			return sortDescription(id.Description(), jd.Description())
 		}
 		if id.Source().Subject != nil && jd.Source().Subject != nil {
-
 			return sortRange(id.Source().Subject, jd.Source().Subject)
 		}
 
