@@ -820,7 +820,7 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
-	_ = testInputMap(t, map[string]string{
+	terminalPrompts := testInputMap(t, map[string]string{
 		"select-workspace": "2",
 	})
 
@@ -828,6 +828,11 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	_, diags := m.Backend(&BackendOpts{Init: true})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+
+	expectedMsg := "The currently selected workspace (bar) does not exist"
+	if !strings.Contains(terminalPrompts.String(), expectedMsg) {
+		t.Errorf("expected error message to contain %q, but got %q", expectedMsg, terminalPrompts.String())
 	}
 
 	expected := "foo"
