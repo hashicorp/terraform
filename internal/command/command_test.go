@@ -734,10 +734,8 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
 //
-// Calling code:
-//   - can optionally use the returned buffer to make assertions
-//     about the prompts shown the to the user.
-//   - must call the returned cleanup function in a defer/t.Cleanup
+// Calling code can optionally use the returned buffer to make assertions
+// about the prompts shown the to the user.
 func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
 	t.Helper()
 
