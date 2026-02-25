@@ -3464,8 +3464,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
 		// This stops Terraform auto-approving the provider installation.
-		source, close := newMockProviderSourceUsingTestHttpServer(t, mockProviderAddress, mockProviderVersion)
-		t.Cleanup(close)
+		source := newMockProviderSourceUsingTestHttpServer(t, mockProviderAddress, mockProviderVersion)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5892,11 +5891,11 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 // When using `newMockProviderSourceViaHTTP` to set a value for `(Meta).ProviderSource` in a test, also set up `testOverrides`
 // in the same Meta. That way the provider source will allow the download process to complete, and when Terraform attempts to use
 // those binaries it will instead use the testOverride providers.
-func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource, close func()) {
+func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
 	var closes []func()
-	close = func() {
+	close := func() {
 		for _, f := range closes {
 			f()
 		}
@@ -5919,33 +5918,31 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), close
+	t.Cleanup(close)
+	return getproviders.NewMockSource(packages, nil)
 }
 
 // newMockProviderSourceUsingTestHttpServer is a helper that makes it easier to use newMockProviderSourceViaHTTP.
 // This helper sets up a test HTTP server for use with newMockProviderSourceViaHTTP, and configures a handler that will respond when
-// Terraform attempts to download provider binaries during installation. The mock source is returned an ready to use, and calling code
-// is expected to defer/t.Cleanup the close function.
+// Terraform attempts to download provider binaries during installation. The mock source is returned ready to use and all cleanup is
+// handled internally to this helper.
 //
 // This source is not sufficient for providers to be available to use during a test; when using this helper, also set up testOverrides in
 // the same Meta to provide the actual provider implementations for use during the test.
 //
 // Currently this helper only allows one provider/version to be mocked. In future we could extend it to allow multiple providers/versions.
-func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v getproviders.Version) (*getproviders.MockSource, func()) {
-	var closes []func() // See final return values.
-
+func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v getproviders.Version) *getproviders.MockSource {
 	// Get un-started server so we can obtain the port it'll run on.
 	server := httptest.NewUnstartedServer(nil)
 
 	// Set up mock provider source that mocks installation via HTTP.
-	source, close := newMockProviderSourceViaHTTP(
+	source := newMockProviderSourceViaHTTP(
 		t,
 		map[string][]string{
 			fmt.Sprintf("%s/%s", p.Namespace, p.Type): {v.String()},
 		},
 		server.Listener.Addr().String(),
 	)
-	closes = append(closes, close)
 
 	// Supply a download location so that the installation completes ok
 	// while Terraform still believes it's downloading a provider via HTTP.
@@ -5993,14 +5990,9 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 	})}
 
 	server.Start()
-	closes = append(closes, server.Close)
+	t.Cleanup(server.Close)
 
-	allCloses := func() {
-		for _, f := range closes {
-			f()
-		}
-	}
-	return source, allCloses
+	return source
 }
 
 // installFakeProviderPackages installs a fake package for the given provider
