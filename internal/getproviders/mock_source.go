@@ -288,7 +288,7 @@ func FakePackageMetaViaHTTP(provider addrs.Provider, version Version, protocols 
 
 		Location: PackageHTTPURL(
 			fmt.Sprintf(
-				"https://%[1]s/terraform-provider-%[2]s/%[3]s/terraform-provider-%[2]s_%[3]s_%[4]s.zip",
+				"http://%[1]s/terraform-provider-%[2]s/%[3]s/terraform-provider-%[2]s_%[3]s_%[4]s.zip",
 				locationBaseUrl,
 				provider.Type,
 				version.String(),

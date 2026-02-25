@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -5952,11 +5951,8 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 	// Get un-started server so we can obtain the port it'll run on.
 	server := httptest.NewUnstartedServer(nil)
 
-	// Prepare a client that ignores TLS errors, since the test server uses a self-signed cert when started with StartTLS.
+	// Prepare a client
 	client := httpclient.New()
-	client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
 
 	// Set up mock provider source that mocks installation via HTTP.
 	source, close := newMockProviderSourceViaHTTP(
@@ -5986,7 +5982,7 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 	server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		providerLocationPath := strings.ReplaceAll(
 			providerMetadata.Location.String(),
-			"https://"+server.Listener.Addr().String(),
+			"http://"+server.Listener.Addr().String(),
 			"",
 		)
 		// This is the URL that the init command will hit to download the provider, so we return a valid provider archive.
@@ -6014,7 +6010,7 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 		}
 	})}
 
-	server.StartTLS()
+	server.Start()
 	closes = append(closes, server.Close)
 
 	allCloses := func() {
