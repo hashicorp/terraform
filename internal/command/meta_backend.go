@@ -1281,6 +1281,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		log.Printf("[WARN] state store has changed since last init: %q", initReason.Reason)
 
+		if !m.migrateState {
+			diags = diags.Append(migrateOrReconfigStateStoreDiag)
+			return nil, diags
+		}
+
 		return m.stateStore_changed(stateStoreConfig, cHash, sMgr, opts, initReason)
 
 	default:
@@ -2614,7 +2619,7 @@ func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState 
 		return true
 	}
 	if !cachedProviderVal.RawEquals(pCfgVal) {
-		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider configuration, so migration is changed")
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider configuration changed, so migration is needed")
 		return true
 	}
 
@@ -2744,9 +2749,6 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 		return nil, diags
 	}
 
-	// We need to briefly convert away from backend.Backend interface to use the method
-	// for accessing the provider schema. In this method we _always_ expect the concrete value
-	// to be backendPluggable.Pluggable.
 	err = s.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
