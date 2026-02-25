@@ -138,7 +138,7 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *pack
 		}
 
 		into := providercache.NewDirWithPlatform(request.CacheDir, platform)
-		authResult, err := into.InstallPackage(ctx, meta, allowedHashes, nil) // nil *http.Client to allow downstream logic to create the client.
+		authResult, err := into.InstallPackage(ctx, meta, allowedHashes)
 		if err != nil {
 			// TODO: Parse the different error types so we can provide specific
 			//  error diagnostics, see commands/init.go:731.

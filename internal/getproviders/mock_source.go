@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -23,17 +22,9 @@ type MockSource struct {
 	packages []PackageMeta
 	warnings map[addrs.Provider]Warnings
 	calls    [][]interface{}
-
-	// Client is set during test-setup; it's a client created from a test http server
-	// When we set a client here the we intend to specifically test Terraform's behaviour
-	// when downloading providers via HTTP.
-	client *http.Client
 }
 
-var (
-	_ Source               = (*MockSource)(nil)
-	_ MockSourceWithClient = (*MockSource)(nil)
-)
+var _ Source = (*MockSource)(nil)
 
 // NewMockSource creates and returns a MockSource with the given packages.
 //
@@ -46,21 +37,6 @@ func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *M
 		packages: packages,
 		warnings: warns,
 	}
-}
-
-// NewMockSourceWithClient is used when the mock source is intended to resemble downloading a provider
-// via HTTP. See the newMockProviderSourceUsingTestHttpServer helper, which creates the test server needed with this mock.
-func NewMockSourceWithClient(packages []PackageMeta, warns map[addrs.Provider]Warnings, client *http.Client) *MockSource {
-	return &MockSource{
-		packages: packages,
-		warnings: warns,
-		client:   client,
-	}
-}
-
-func (s *MockSource) Client() *http.Client {
-	s.calls = append(s.calls, []interface{}{"Client"})
-	return s.client
 }
 
 // AvailableVersions returns all of the versions of the given provider that

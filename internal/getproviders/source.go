@@ -5,7 +5,6 @@ package getproviders
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -16,9 +15,4 @@ type Source interface {
 	AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error)
 	PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error)
 	ForDisplay(provider addrs.Provider) string
-}
-
-type MockSourceWithClient interface {
-	Source
-	Client() *http.Client
 }

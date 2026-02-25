@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -20,7 +19,7 @@ import (
 // in the set must match the package that "entry" refers to. If none of the
 // hashes match then the returned error message assumes that the hashes came
 // from a lock file.
-func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta, allowedHashes []getproviders.Hash, client *http.Client) (*getproviders.PackageAuthenticationResult, error) {
+func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	if meta.TargetPlatform != d.targetPlatform {
 		return nil, fmt.Errorf("can't install %s package into cache directory expecting %s", meta.TargetPlatform, d.targetPlatform)
 	}
@@ -35,7 +34,7 @@ func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta,
 	log.Printf("[TRACE] providercache.Dir.InstallPackage: installing %s v%s from %s", meta.Provider, meta.Version, meta.Location)
 	switch meta.Location.(type) {
 	case getproviders.PackageHTTPURL:
-		return installFromHTTPURL(ctx, meta, newPath, allowedHashes, client)
+		return installFromHTTPURL(ctx, meta, newPath, allowedHashes)
 	case getproviders.PackageLocalArchive:
 		return installFromLocalArchive(ctx, meta, newPath, allowedHashes)
 	case getproviders.PackageLocalDir:

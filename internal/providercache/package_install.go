@@ -6,7 +6,6 @@ package providercache
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -25,20 +24,15 @@ import (
 // specific protocol and set of expectations.)
 var unzip = getter.ZipDecompressor{}
 
-func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash, client *http.Client) (*getproviders.PackageAuthenticationResult, error) {
+func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	urlStr := meta.Location.String()
 
 	// When we're installing from an HTTP URL we expect the URL to refer to
 	// a zip file. We'll fetch that into a temporary file here and then
 	// delegate to installFromLocalArchive below to actually extract it.
 
-	if client == nil {
-		// client will only be non-nil in tests where the provider is installed
-		// from a mock source that's resembling an HTTP server/registry.
-		client = httpclient.New()
-	}
 	httpGetter := getter.HttpGetter{
-		Client:                client,
+		Client:                httpclient.New(),
 		Netrc:                 true,
 		XTerraformGetDisabled: true,
 		DoNotCheckHeadFirst:   true,

@@ -39,7 +39,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3504,19 +3503,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
 		}
-
-		// Assert how the mock provider source was called.
-		gotLog := source.CallLog()
-		wantLog := [][]interface{}{
-			{"PackageMeta", mockProviderAddress, mockProviderVersion, getproviders.CurrentPlatform},
-			{"AvailableVersions", mockProviderAddress},
-			{"PackageMeta", mockProviderAddress, mockProviderVersion, getproviders.CurrentPlatform},
-			// The client was retrieved to be used during installation.
-			{"Client"},
-		}
-		if diff := cmp.Diff(wantLog, gotLog); diff != "" {
-			t.Fatalf("unexpected call log\n%s", diff)
-		}
 	})
 
 	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
@@ -5906,7 +5892,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 // When using `newMockProviderSourceViaHTTP` to set a value for `(Meta).ProviderSource` in a test, also set up `testOverrides`
 // in the same Meta. That way the provider source will allow the download process to complete, and when Terraform attempts to use
 // those binaries it will instead use the testOverride providers.
-func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string, client *http.Client) (source *getproviders.MockSource, close func()) {
+func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource, close func()) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
 	var closes []func()
@@ -5933,7 +5919,7 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 		}
 	}
 
-	return getproviders.NewMockSourceWithClient(packages, nil, client), close
+	return getproviders.NewMockSource(packages, nil), close
 }
 
 // newMockProviderSourceUsingTestHttpServer is a helper that makes it easier to use newMockProviderSourceViaHTTP.
@@ -5951,9 +5937,6 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 	// Get un-started server so we can obtain the port it'll run on.
 	server := httptest.NewUnstartedServer(nil)
 
-	// Prepare a client
-	client := httpclient.New()
-
 	// Set up mock provider source that mocks installation via HTTP.
 	source, close := newMockProviderSourceViaHTTP(
 		t,
@@ -5961,7 +5944,6 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v 
 			fmt.Sprintf("%s/%s", p.Namespace, p.Type): {v.String()},
 		},
 		server.Listener.Addr().String(),
-		client,
 	)
 	closes = append(closes, close)
 
@@ -6076,7 +6058,7 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
 			}
-			_, err = cacheDir.InstallPackage(context.Background(), meta, nil, nil)
+			_, err = cacheDir.InstallPackage(context.Background(), meta, nil)
 			if err != nil {
 				t.Fatalf("failed to install fake package for %s %s: %s", name, versionStr, err)
 			}
