@@ -825,12 +825,6 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
 	pwd, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))

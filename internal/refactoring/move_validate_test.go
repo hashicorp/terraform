@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -519,7 +521,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -531,7 +533,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	rootCfg, diags := loader.LoadConfig(dir)
+	rootCfg, diags := loader.LoadStaticConfig(dir)
 	if diags.HasErrors() {
 		t.Fatalf("failed to load root module: %s", diags.Error())
 	}
@@ -565,7 +567,7 @@ func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleA
 			// module to be something that counts as a separate package,
 			// so we can test rules relating to crossing package boundaries
 			// even though we really just loaded the module from a local path.
-			call.SourceAddr = fakeExternalModuleSource
+			call.SourceExpr = hcltest.MockExprLiteral(cty.StringVal(fakeExternalModuleSource.String()))
 		}
 
 		// In order to get a valid, useful set of instances here we're going

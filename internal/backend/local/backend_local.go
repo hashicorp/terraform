@@ -146,38 +146,10 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backendrun.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// Load the configuration using the caller-provided configuration loader.
-	config, configSnap, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	rootMod, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
-	}
-	run.Config = config
-
-	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
-		var buf strings.Builder
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n  - %s", err.Error())
-		}
-		var suggestion string
-		switch {
-		case op.DependencyLocks == nil:
-			// If we get here then it suggests that there's a caller that we
-			// didn't yet update to populate DependencyLocks, which is a bug.
-			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
-		case op.DependencyLocks.Empty():
-			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
-		default:
-			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
-				buf.String(), suggestion,
-			),
-		))
 	}
 
 	var rawVariables map[string]arguments.UnparsedVariableValue
@@ -186,16 +158,16 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		// but unset variables with unknown values to represent that they are
 		// placeholders for values the user would need to provide for other
 		// operations.
-		rawVariables = b.stubUnsetRequiredVariables(op.Variables, config.Module.Variables)
+		rawVariables = b.stubUnsetRequiredVariables(op.Variables, rootMod.Variables)
 	} else {
 		// If interactive input is enabled, we might gather some more variable
 		// values through interactive prompts.
 		// TODO: Need to route the operation context through into here, so that
 		// the interactive prompts can be sensitive to its timeouts/etc.
-		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, op.UIIn)
+		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, rootMod.Variables, op.UIIn)
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(rawVariables, config.Module.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(rawVariables, rootMod.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -224,6 +196,52 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		return nil, nil, diags
 	}
 	run.Core = tfCtx
+
+	walkerSnapshot, configSnap := op.ConfigLoader.ModuleWalkerSnapshot()
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		walkerSnapshot,
+		variables,
+		configs.MockDataLoaderFunc(op.ConfigLoader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+	if buildDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	run.Config = config
+
+	snapDiags := op.ConfigLoader.AddRootModuleToSnapshot(configSnap, op.ConfigDir)
+	diags = diags.Append(snapDiags)
+	if snapDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		var suggestion string
+		switch {
+		case op.DependencyLocks == nil:
+			// If we get here then it suggests that there's a caller that we
+			// didn't yet update to populate DependencyLocks, which is a bug.
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+		case op.DependencyLocks.Empty():
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+		default:
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+				buf.String(), suggestion,
+			),
+		))
+	}
+
 	return run, configSnap, diags
 }
 
@@ -235,6 +253,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	// A plan file has a snapshot of configuration embedded inside it, which
 	// is used instead of whatever configuration might be already present
 	// in the filesystem.
+	//TODO why not use pf.ReadConfig?
 	snap, err := pf.ReadConfigSnapshot()
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -246,32 +265,16 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
 	loader.AllowLanguageExperiments(op.ConfigLoader.AllowsLanguageExperiments())
-	config, configDiags := loader.LoadConfig(snap.Modules[""].Dir)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		return nil, snap, diags
+	rootMod, rootDiags := loader.LoadRootModule(snap.Modules[""].Dir)
+	diags = diags.Append(rootDiags)
+	if rootDiags.HasErrors() {
+		return nil, nil, diags
 	}
-	run.Config = config
 
-	// NOTE: We're intentionally comparing the current locks with the
-	// configuration snapshot, rather than the lock snapshot in the plan file,
-	// because it's the current locks which dictate our plugin selections
-	// in coreOpts below. However, we'll also separately check that the
-	// plan file has identical locked plugins below, and thus we're effectively
-	// checking consistency with both here.
-	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
-		var buf strings.Builder
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n  - %s", err.Error())
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
-				buf.String(),
-			),
-		))
+	variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
 	}
 
 	// This check is an important complement to the check above: the locked
@@ -359,6 +362,40 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, nil, diags
 	}
 	run.Core = tfCtx
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		variables,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+	if buildDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	run.Config = config
+
+	// NOTE: We're intentionally comparing the current locks with the
+	// configuration snapshot, rather than the lock snapshot in the plan file,
+	// because it's the current locks which dictate our plugin selections
+	// in coreOpts below. However, we'll also separately check that the
+	// plan file has identical locked plugins below, and thus we're effectively
+	// checking consistency with both here.
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				buf.String(),
+			),
+		))
+	}
+
 	return run, snap, diags
 }
 

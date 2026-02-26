@@ -1,5 +1,5 @@
 
 module "test" {
-  source  = "../boop" # ERROR: Invalid registry module source address
+  source  = "---.com/HashiCorp/Consul/aws"
   version = "1.0.0" # Makes Terraform assume "source" is a module address
 }

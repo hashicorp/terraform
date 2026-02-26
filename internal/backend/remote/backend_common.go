@@ -249,11 +249,8 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backendrun.O
 // remote system's responsibility to do final validation of the input.
 func (b *Remote) hasExplicitVariableValues(op *backendrun.Operation) bool {
 	// Load the configuration using the caller-provided configuration loader.
-	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	config, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	if configDiags.HasErrors() {
-		// If we can't load the configuration then we'll assume no explicit
-		// variable values just to let the remote operation start and let
-		// the remote system return the same set of configuration errors.
 		return false
 	}
 
@@ -262,7 +259,7 @@ func (b *Remote) hasExplicitVariableValues(op *backendrun.Operation) bool {
 	// goal here is just to make a best effort count of how many variable
 	// values are coming from -var or -var-file CLI arguments so that we can
 	// hint the user that those are not supported for remote operations.
-	variables, _ := backendrun.ParseVariableValues(op.Variables, config.Module.Variables)
+	variables, _ := backendrun.ParseVariableValues(op.Variables, config.Variables)
 
 	// Check for explicitly-defined (-var and -var-file) variables, which the
 	// remote backend does not support. All other source types are okay,

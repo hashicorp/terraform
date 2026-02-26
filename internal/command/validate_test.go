@@ -5,7 +5,7 @@ package command
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -187,10 +187,6 @@ func TestModuleWithIncorrectNameShouldFail(t *testing.T) {
 	}
 
 	wantError := `Error: Invalid module instance name`
-	if !strings.Contains(output.Stderr(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
-	}
-	wantError = `Error: Variables not allowed`
 	if !strings.Contains(output.Stderr(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
@@ -406,14 +402,14 @@ func TestValidate_json(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
-			var want, got map[string]interface{}
+			var want, got map[string]any
 
 			wantFile, err := os.Open(path.Join(testFixturePath(tc.path), "output.json"))
 			if err != nil {
 				t.Fatalf("failed to open output file: %s", err)
 			}
 			defer wantFile.Close()
-			wantBytes, err := ioutil.ReadAll(wantFile)
+			wantBytes, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("failed to read output file: %s", err)
 			}
