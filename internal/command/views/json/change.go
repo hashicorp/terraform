@@ -65,7 +65,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 	}
 
 	switch trigger := aiSrc.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		ai.LifecycleTrigger = &ActionInvocationLifecycleTrigger{
 			TriggeringResource:      newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggeringEvent:         trigger.ActionTriggerEvent.String(),

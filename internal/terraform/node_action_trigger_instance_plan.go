@@ -46,8 +46,8 @@ func (at *lifecycleActionTriggerInstance) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
-func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.LifecycleActionTrigger {
-	return &plans.LifecycleActionTrigger{
+func (at *lifecycleActionTriggerInstance) ActionTrigger(triggeringEvent configs.ActionTriggerEvent) *plans.ResourceActionTrigger {
+	return &plans.ResourceActionTrigger{
 		TriggeringResourceAddr:  at.resourceAddress,
 		ActionTriggerBlockIndex: at.actionTriggerBlockIndex,
 		ActionsListIndex:        at.actionListIndex,

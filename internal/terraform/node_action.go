@@ -15,21 +15,21 @@ type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
 }
 
-// nodeExpandActionDeclaration represents an action config block in a configuration module,
-// which has not yet been expanded.
-type nodeExpandActionDeclaration struct {
+// nodeExpandAction represents an action config block in a module, which has not
+// yet been expanded.
+type nodeExpandAction struct {
 	*NodeAbstractAction
 }
 
 var (
-	_ GraphNodeDynamicExpandable = (*nodeExpandActionDeclaration)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandAction)(nil)
 )
 
-func (n *nodeExpandActionDeclaration) Name() string {
+func (n *nodeExpandAction) Name() string {
 	return n.Addr.String() + " (expand)"
 }
 
-func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
@@ -83,7 +83,7 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 		// Expand the action instances for this module.
 		for _, knownInstKey := range knownInstKeys {
-			node := NodeActionDeclarationInstance{
+			node := NodeAbstractActionInstance{
 				Addr:             absActAddr.Instance(knownInstKey),
 				Config:           &n.Config,
 				Schema:           n.Schema,
@@ -99,7 +99,7 @@ func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tf
 	return &g, diags
 }
 
-func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
+func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
