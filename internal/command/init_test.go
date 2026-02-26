@@ -4155,7 +4155,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
-	t.Run("handling changed state store config is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store config without -migrate-state flag", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4189,30 +4189,34 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			// missing -migrate-state flag
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code == 0 {
+			t.Fatalf("expected non-zero exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Error: State store configuration changed"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
 	})
 
-	t.Run("handling changed state store provider config is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store config", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -4238,22 +4242,94 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
+		expectedReason := "State store \"test_store\" (hashicorp/test) configuration changed"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatalf("expected the default workspace to exist after migration, but it is missing: %#v", mockProvider.MockStates)
+		}
 	})
 
-	t.Run("handling changed state store type in the same provider is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changed state store provider config", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+		defer close()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Terraform has been successfully initialized!"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store provider \"test\" (hashicorp/test) configuration changed"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to exist after migration, but it is missing")
+		}
+	})
+
+	t.Run("handling changed state store type in the same provider", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4261,6 +4337,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
 		storeName := "test_store"
 		otherStoreName := "test_otherstore"
 		// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -4290,22 +4370,32 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
+		expectedReason := "State store type changed from \"test_store\" to \"test_otherstore\""
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to exist after migration, but it is missing")
+		}
 	})
 
-	t.Run("handling changing the provider used for state storage is currently unimplemented", func(t *testing.T) {
+	t.Run("handling changing the provider used for state storage", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4313,7 +4403,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
 
 		// Make a mock that implies its name is test2 based on returned schemas
 		mockProvider2 := mockPluggableStateStorageProvider()
@@ -4348,18 +4441,28 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-force-copy",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store provider changed from hashicorp/test to hashicorp/test2"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to exist after migration, but it is missing")
 		}
 	})
 }
@@ -4370,7 +4473,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 // TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
 // changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage is currently unimplemented", func(t *testing.T) {
+	t.Run("handling upgrading the provider used for state storage", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4378,6 +4481,10 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider()
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
@@ -4403,21 +4510,145 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state=true",
 			"-upgrade",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
 		// Check output
 		output := testOutput.All()
-		expectedMsg := "Changing a state store configuration is not implemented yet"
+		expectedMsg := "Terraform has been successfully initialized!"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
+		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to exist after migration, but it is missing")
+		}
 	})
+}
+
+// Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
+// to result in the state store being configured in the same way. In this scenario the user isn't prompted to migrate
+// state but the backend state file is updated with a new hash to reflect the new configuration's values.
+func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
+	// Create a temporary working directory and copy in test fixtures
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-state-store"), td)
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider()
+	// Make the state store's value attribute optional in this test.
+	mockProvider.GetProviderSchemaResponse.StateStores["test_store"].Body.Attributes["value"].Required = false
+
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+	})
+	t.Cleanup(close)
+
+	var originalStateStoreConfigHash uint64
+
+	{
+		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		// Init
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_unset: first init complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if s.StateStore.Empty() {
+			t.Fatal("should have StateStore config")
+		}
+		// Store this for comparison after the 2nd init
+		originalStateStoreConfigHash = s.StateStore.Hash
+	}
+
+	{
+		log.Printf("[TRACE] TestInit_stateStore_unset: beginning second init with changed config but compensating CLI flags")
+
+		// Remove `value` attribute from config
+		cfg := `terraform {
+  state_store "test_store" {
+    provider "test" {}
+    # value attr removed here
+  }
+}`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-backend-config=value=foobar", // value = foobar, matches the line removed from config
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("Terraform either experienced an unexpected error, or suggested a state migration when this test scenario should not include migrations: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_unset: second init complete")
+		t.Logf("Second run output:\n%s", testOutput.Stdout())
+		t.Logf("Second run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if s.StateStore.Empty() {
+			t.Fatal("should have StateStore config")
+		}
+		if s.StateStore.Hash == originalStateStoreConfigHash {
+			t.Fatal("expected second init to update the state_store config hash in the backend state file, but it did not")
+		}
+	}
 }
 
 func TestInit_stateStore_unset(t *testing.T) {
@@ -6085,6 +6316,7 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	))
 }
 
+// TODO: introduce pssName as argument here to aid testing migrations
 func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 	// Create a mock provider to use for PSS
 	// Get mock provider factory to be used during init
@@ -6126,6 +6358,12 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 				},
 			},
 		},
+	}
+	mock.GetStatesFn = func(req providers.GetStatesRequest) providers.GetStatesResponse {
+		states := slices.Sorted(maps.Keys(mock.MockStates))
+		return providers.GetStatesResponse{
+			States: states,
+		}
 	}
 	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 		return providers.ConfigureStateStoreResponse{
