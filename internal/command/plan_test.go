@@ -18,6 +18,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
@@ -52,6 +54,129 @@ func TestPlan(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
+}
+
+func TestPlanTraceCommandRunSpan(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("plan"), td)
+		t.Chdir(td)
+
+		telemetry := initCommandTelemetryForTest(t)
+		parentCtx, parentSpan := otel.Tracer("internal/command/plan_test").Start(context.Background(), "test root")
+		parentSpanContext := parentSpan.SpanContext()
+
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				CallerContext:    parentCtx,
+			},
+		}
+
+		code := c.Run([]string{})
+		output := done(t)
+		parentSpan.End()
+
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		if got, want := c.CallerContext, parentCtx; got != want {
+			t.Fatalf("caller context was not restored after plan run\n got: %p\nwant: %p", got, want)
+		}
+
+		span := findSingleCommandRunSpan(t, telemetry, "plan")
+		assertCommandRunSpanParent(t, span, parentSpanContext)
+		assertCommandRunSpanAttrs(t, span, "plan")
+		assertCommandRunSpanStatusNotError(t, span)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventUserInterrupt)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventStopRequested)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventForcedCancel)
+	})
+
+	t.Run("shutdown", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("apply-shutdown"), td)
+		t.Chdir(td)
+
+		telemetry := initCommandTelemetryForTest(t)
+		parentCtx, parentSpan := otel.Tracer("internal/command/plan_test").Start(context.Background(), "test root")
+		parentSpanContext := parentSpan.SpanContext()
+
+		cancelled := make(chan struct{})
+		shutdownCh := make(chan struct{})
+
+		p := testProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				ShutdownCh:       shutdownCh,
+				CallerContext:    parentCtx,
+			},
+		}
+
+		p.StopFn = func() error {
+			close(cancelled)
+			return nil
+		}
+
+		var once sync.Once
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			once.Do(func() {
+				shutdownCh <- struct{}{}
+			})
+
+			// See TestPlan_shutdown for timing rationale.
+			time.Sleep(200 * time.Millisecond)
+
+			s := req.ProposedNewState.AsValueMap()
+			s["ami"] = cty.StringVal("bar")
+			resp.PlannedState = cty.ObjectVal(s)
+			return
+		}
+
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			},
+		}
+
+		code := c.Run([]string{})
+		output := done(t)
+		parentSpan.End()
+		if code != 1 {
+			t.Fatalf("wrong exit code %d; want 1\noutput:\n%s", code, output.Stdout())
+		}
+		if got, want := c.CallerContext, parentCtx; got != want {
+			t.Fatalf("caller context was not restored after interrupted plan run\n got: %p\nwant: %p", got, want)
+		}
+
+		select {
+		case <-cancelled:
+		default:
+			t.Fatal("command not cancelled")
+		}
+
+		span := findSingleCommandRunSpan(t, telemetry, "plan")
+		assertCommandRunSpanParent(t, span, parentSpanContext)
+		assertCommandRunSpanAttrs(t, span, "plan")
+		if got, want := span.Status.Code, codes.Error; got != want {
+			t.Fatalf("wrong status code for interrupted plan span\n got: %s\nwant: %s", got, want)
+		}
+		assertCommandRunSpanHasEvent(t, span, commandRunEventUserInterrupt)
+		assertCommandRunSpanHasEvent(t, span, commandRunEventStopRequested)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventForcedCancel)
+	})
 }
 
 func TestPlan_lockedState(t *testing.T) {
