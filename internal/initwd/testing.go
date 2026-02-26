@@ -37,7 +37,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 	var diags tfdiags.Diagnostics
 
 	loader, cleanup := configload.NewLoaderForTests(t)
-	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 
 	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
@@ -53,7 +53,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, hclDiags := loader.LoadConfigWithTests(rootDir, testsDir)
+	config, hclDiags := loader.LoadStaticConfigWithTests(rootDir, testsDir)
 	diags = diags.Append(hclDiags)
 	return config, loader, cleanup, diags
 }
