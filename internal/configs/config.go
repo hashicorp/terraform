@@ -87,6 +87,13 @@ type Config struct {
 	// This field is meaningless for the root module, where it will always
 	// be nil.
 	Version *version.Version
+
+	// VersionConstraint is the version constraint that was specified for this module.
+	// This field is nil if no version constraint was specified.
+	//
+	// This field is meaningless for the root module, where it will always
+	// be nil.
+	VersionConstraint VersionConstraint
 }
 
 // ModuleRequirements represents the provider requirements for an individual
