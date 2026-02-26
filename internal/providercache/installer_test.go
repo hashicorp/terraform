@@ -1816,8 +1816,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 		"failed install of a non-existing built-in provider": {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{},
-				nil,
-			),
+				nil),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
 				// NOTE: We're intentionally not calling
 				// inst.SetBuiltInProviderTypes to make the "terraform"

@@ -87,7 +87,6 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *p
 }
 
 func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *packages.FetchProviderPackage_Request) (*packages.FetchProviderPackage_Response, error) {
-
 	response := new(packages.FetchProviderPackage_Response)
 
 	version, err := versions.ParseVersion(request.Version)
