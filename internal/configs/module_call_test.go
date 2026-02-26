@@ -10,7 +10,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 func TestLoadModuleCall(t *testing.T) {
@@ -31,15 +31,11 @@ func TestLoadModuleCall(t *testing.T) {
 	gotModules := file.ModuleCalls
 	wantModules := []*ModuleCall{
 		{
-			Name:          "foo",
-			SourceAddr:    addrs.ModuleSourceLocal("./foo"),
-			SourceAddrRaw: "./foo",
-			SourceSet:     true,
-			SourceAddrRange: hcl.Range{
-				Filename: "module-calls.tf",
-				Start:    hcl.Pos{Line: 3, Column: 12, Byte: 27},
-				End:      hcl.Pos{Line: 3, Column: 19, Byte: 34},
-			},
+			Name: "foo",
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"./foo\""), "module-calls.tf",
+				hcl.Pos{Line: 3, Column: 12, Byte: 27},
+			)),
 			DeclRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
@@ -48,21 +44,10 @@ func TestLoadModuleCall(t *testing.T) {
 		},
 		{
 			Name: "bar",
-			SourceAddr: addrs.ModuleSourceRegistry{
-				Package: addrs.ModuleRegistryPackage{
-					Host:         addrs.DefaultModuleRegistryHost,
-					Namespace:    "hashicorp",
-					Name:         "bar",
-					TargetSystem: "aws",
-				},
-			},
-			SourceAddrRaw: "hashicorp/bar/aws",
-			SourceSet:     true,
-			SourceAddrRange: hcl.Range{
-				Filename: "module-calls.tf",
-				Start:    hcl.Pos{Line: 8, Column: 12, Byte: 113},
-				End:      hcl.Pos{Line: 8, Column: 31, Byte: 132},
-			},
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"hashicorp/bar/aws\""), "module-calls.tf",
+				hcl.Pos{Line: 8, Column: 12, Byte: 113},
+			)),
 			DeclRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 7, Column: 1, Byte: 87},
@@ -71,16 +56,10 @@ func TestLoadModuleCall(t *testing.T) {
 		},
 		{
 			Name: "baz",
-			SourceAddr: addrs.ModuleSourceRemote{
-				Package: addrs.ModulePackage("git::https://example.com/"),
-			},
-			SourceAddrRaw: "git::https://example.com/",
-			SourceSet:     true,
-			SourceAddrRange: hcl.Range{
-				Filename: "module-calls.tf",
-				Start:    hcl.Pos{Line: 15, Column: 12, Byte: 193},
-				End:      hcl.Pos{Line: 15, Column: 39, Byte: 220},
-			},
+			SourceExpr: mustExpr(hclsyntax.ParseExpression(
+				[]byte("\"git::https://example.com/\""), "module-calls.tf",
+				hcl.Pos{Line: 15, Column: 12, Byte: 193},
+			)),
 			DependsOn: []hcl.Traversal{
 				{
 					hcl.TraverseRoot{
