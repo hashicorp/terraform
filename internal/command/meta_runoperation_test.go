@@ -42,8 +42,6 @@ func TestMetaRunOperation_UsesBackgroundContextWithoutCallerContext(t *testing.T
 }
 
 func TestMetaRunOperation_UsesCallerContextWhenSet(t *testing.T) {
-	t.Skip("enabled in task 2 when RunOperation propagates Meta.CommandContext")
-
 	type ctxKey string
 
 	callerCtx := context.WithValue(context.Background(), ctxKey("k"), "v")
