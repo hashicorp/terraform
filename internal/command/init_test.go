@@ -3853,9 +3853,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Allow the test to respond to the prompt to pick an
 		// existing workspace, given the selected one doesn't exist.
-		defer testInputMap(t, map[string]string{
+		_ = testInputMap(t, map[string]string{
 			"select-workspace": "1", // foobar1 in numbered list
-		})()
+		})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
