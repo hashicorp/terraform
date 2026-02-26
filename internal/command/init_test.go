@@ -4151,76 +4151,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 	})
 
-	t.Run("handling equivalent state store config with -reconfigure flag", func(t *testing.T) {
-		// Create a temporary working directory with state store configuration
-		// that doesn't match the backend state file
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
-		t.Chdir(td)
-
-		backendState := testDataStateRead(t, filepath.Join(td, ".terraform", DefaultStateFilename))
-		initialHash := backendState.StateStore.Hash
-		t.Logf("initial hash: %d", initialHash)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		// The previous init implied by this test scenario would have created the default workspace.
-		mockProvider.MockStates = map[string]any{
-			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
-		}
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
-		})
-		defer close()
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-			"-backend-config=value=CLI-value",
-			"-reconfigure",
-		}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedMsg := "Terraform has been successfully initialized!"
-		if !strings.Contains(output, expectedMsg) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
-		}
-
-		// check state remains accessible after migration
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatalf("expected the default workspace to exist after migration, but it is missing: %#v", mockProvider.MockStates)
-		}
-
-		// check hash was updated
-		backendState = testDataStateRead(t, filepath.Join(td, ".terraform", DefaultStateFilename))
-		newHash := backendState.StateStore.Hash
-		if initialHash == newHash {
-			t.Fatal("expected hash to change after migration")
-		}
-	})
-
 	t.Run("handling changed state store config", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
@@ -4551,6 +4481,120 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 			t.Fatal("expected the default workspace to exist after migration, but it is missing")
 		}
 	})
+}
+
+// Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
+// to result in the state store being configured in the same way. In this scenario the user isn't prompted to migrate
+// state but the backend state file is updated with a new hash to reflect the new configuration's values.
+func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
+	// Create a temporary working directory and copy in test fixtures
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-state-store"), td)
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider()
+	// Make the state store's value attribute optional in this test.
+	mockProvider.GetProviderSchemaResponse.StateStores["test_store"].Body.Attributes["value"].Required = false
+
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+	})
+	t.Cleanup(close)
+
+	var originalStateStoreConfigHash uint64
+
+	{
+		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		// Init
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("bad: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_unset: first init complete")
+		t.Logf("First run output:\n%s", testOutput.Stdout())
+		t.Logf("First run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if s.StateStore.Empty() {
+			t.Fatal("should have StateStore config")
+		}
+		// Store this for comparison after the 2nd init
+		originalStateStoreConfigHash = s.StateStore.Hash
+	}
+
+	{
+		log.Printf("[TRACE] TestInit_stateStore_unset: beginning second init with changed config but compensating CLI flags")
+
+		// Remove `value` attribute from config
+		cfg := `terraform {
+  state_store "test_store" {
+    provider "test" {}
+    # value attr removed here
+  }
+}`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-backend-config=value=foobar", // value = foobar, matches the line removed from config
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("Terraform either experienced an unexpected error, or suggested a state migration when this test scenario should not include migrations: \n%s", testOutput.All())
+		}
+		log.Printf("[TRACE] TestInit_stateStore_unset: second init complete")
+		t.Logf("Second run output:\n%s", testOutput.Stdout())
+		t.Logf("Second run errors:\n%s", testOutput.Stderr())
+
+		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if s.StateStore.Empty() {
+			t.Fatal("should have StateStore config")
+		}
+		if s.StateStore.Hash == originalStateStoreConfigHash {
+			t.Fatal("expected second init to update the state_store config hash in the backend state file, but it did not")
+		}
+	}
 }
 
 func TestInit_stateStore_unset(t *testing.T) {
