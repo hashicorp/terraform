@@ -102,7 +102,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// Perform the operation
 	var op *backendrun.RunningOperation
 	commandRunSpan := c.beginCommandRunSpan("plan")
-	defer commandRunSpan.end(op, err)
+	defer func() {
+		commandRunSpan.end(op, err)
+	}()
 
 	op, err = c.RunOperation(be, opReq)
 	if err != nil {
