@@ -46,11 +46,24 @@ func (c *InitCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 	args = c.Meta.process(args)
 	initArgs, initDiags := arguments.ParseInit(args, c.Meta.AllowExperimentalFeatures)
+	diags = diags.Append(initDiags)
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
-	if initDiags.HasErrors() {
-		diags = diags.Append(initDiags)
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = initArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+
+	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
