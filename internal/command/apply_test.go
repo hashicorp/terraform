@@ -22,6 +22,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -71,6 +72,86 @@ func TestApply(t *testing.T) {
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
+}
+
+func TestApplyTraceCommandRunSpan(t *testing.T) {
+	t.Run("direct", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("apply"), td)
+		t.Chdir(td)
+
+		statePath := testTempFile(t)
+		telemetry := initCommandTelemetryForTest(t)
+		parentCtx, parentSpan := otel.Tracer("internal/command/apply_test").Start(context.Background(), "test root")
+		parentSpanContext := parentSpan.SpanContext()
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				CallerContext:    parentCtx,
+			},
+		}
+
+		code := c.Run([]string{"-state", statePath, "-auto-approve"})
+		output := done(t)
+		parentSpan.End()
+
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		if got, want := c.CallerContext, parentCtx; got != want {
+			t.Fatalf("caller context was not restored after apply run\n got: %p\nwant: %p", got, want)
+		}
+
+		span := findSingleCommandRunSpan(t, telemetry, "apply")
+		assertCommandRunSpanParent(t, span, parentSpanContext)
+		assertCommandRunSpanAttrs(t, span, "apply")
+		assertCommandRunSpanStatusNotError(t, span)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventUserInterrupt)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventStopRequested)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventForcedCancel)
+	})
+
+	t.Run("saved-plan", func(t *testing.T) {
+		td := testTempDir(t)
+		defer os.RemoveAll(td)
+		t.Chdir(td)
+
+		p := applyFixtureProvider()
+		planPath := applyFixturePlanFile(t)
+
+		telemetry := initCommandTelemetryForTest(t)
+		parentCtx, parentSpan := otel.Tracer("internal/command/apply_test").Start(context.Background(), "test root")
+		parentSpanContext := parentSpan.SpanContext()
+
+		view, done := testView(t)
+		apply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               new(cli.MockUi),
+				View:             view,
+				CallerContext:    parentCtx,
+			},
+		}
+
+		apply.Run([]string{planPath})
+		done(t)
+		parentSpan.End()
+
+		if got, want := apply.CallerContext, parentCtx; got != want {
+			t.Fatalf("caller context was not restored after saved-plan apply run\n got: %p\nwant: %p", got, want)
+		}
+
+		span := findSingleCommandRunSpan(t, telemetry, "apply")
+		assertCommandRunSpanParent(t, span, parentSpanContext)
+		assertCommandRunSpanAttrs(t, span, "apply")
+		assertCommandRunSpanNoEvent(t, span, commandRunEventUserInterrupt)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventStopRequested)
+		assertCommandRunSpanNoEvent(t, span, commandRunEventForcedCancel)
+	})
 }
 
 func TestApply_path(t *testing.T) {
