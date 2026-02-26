@@ -201,7 +201,21 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 		return true, diags
 	}
 
-	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
+	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		variables, diags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+		ctx, ctxDiags := terraform.NewContext(&terraform.ContextOpts{
+			Parallelism: 1,
+		})
+		diags = diags.Append(ctxDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		return ctx.Init(rootMod, terraform.InitOpts{
+			Walker:       walker,
+			SetVariables: variables,
+		})
+	}
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
 	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
