@@ -63,11 +63,15 @@
     "root_module": {
       "module_calls": {
         "my_module": {
-          "source": "./modules",
+          "source": {
+            "constant_value": "./modules"
+          },
           "module": {
             "module_calls": {
               "more": {
-                "source": "./more-modules",
+                "source": {
+                  "constant_value": "./more-modules"
+                },
                 "module": {
                   "resources": [
                     {

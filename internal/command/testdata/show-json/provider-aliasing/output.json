@@ -163,9 +163,7 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "foo"
@@ -184,9 +182,7 @@
       "name": "test_backup",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "foo-backup"
@@ -206,9 +202,7 @@
       "name": "test_primary",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "primary"
@@ -228,9 +222,7 @@
       "name": "test_secondary",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "secondary"
@@ -250,9 +242,7 @@
       "name": "test_primary",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "primary"
@@ -272,9 +262,7 @@
       "name": "test_secondary",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "secondary"
@@ -294,9 +282,7 @@
       "name": "test_alternate",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "secondary"
@@ -316,9 +302,7 @@
       "name": "test_main",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "main"
@@ -338,9 +322,7 @@
       "name": "test_alternate",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "secondary"
@@ -360,9 +342,7 @@
       "name": "test_main",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "main"
@@ -428,7 +408,9 @@
       ],
       "module_calls": {
         "child": {
-          "source": "./child",
+          "source": {
+            "constant_value": "./child"
+          },
           "module": {
             "resources": [
               {
@@ -460,7 +442,9 @@
             ],
             "module_calls": {
               "grandchild": {
-                "source": "./nested",
+                "source": {
+                  "constant_value": "./nested"
+                },
                 "module": {
                   "resources": [
                     {
@@ -496,7 +480,9 @@
           }
         },
         "sibling": {
-          "source": "./child",
+          "source": {
+            "constant_value": "./child"
+          },
           "module": {
             "resources": [
               {
@@ -528,7 +514,9 @@
             ],
             "module_calls": {
               "grandchild": {
-                "source": "./nested",
+                "source": {
+                  "constant_value": "./nested"
+                },
                 "module": {
                   "resources": [
                     {
