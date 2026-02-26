@@ -188,7 +188,7 @@ func (r *Reader) ReadPrevStateFile() (*statefile.File, error) {
 // This is a lower-level alternative to ReadConfig that just extracts the
 // source files, without attempting to parse them.
 func (r *Reader) ReadConfigSnapshot() (*configload.Snapshot, error) {
-	return readConfigSnapshot(&r.zip.Reader)
+	return ReadConfigSnapshot(&r.zip.Reader)
 }
 
 // ReadConfig reads the configuration embedded in the plan file.
@@ -196,6 +196,7 @@ func (r *Reader) ReadConfigSnapshot() (*configload.Snapshot, error) {
 // Internally this function delegates to the configs/configload package to
 // parse the embedded configuration and so it returns diagnostics (rather than
 // a native Go error as with other methods on Reader).
+// TODO remove?
 func (r *Reader) ReadConfig(allowLanguageExperiments bool) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -212,7 +213,7 @@ func (r *Reader) ReadConfig(allowLanguageExperiments bool) (*configs.Config, tfd
 	loader := configload.NewLoaderFromSnapshot(snap)
 	loader.AllowLanguageExperiments(allowLanguageExperiments)
 	rootDir := snap.Modules[""].Dir // Root module base directory
-	config, configDiags := loader.LoadConfig(rootDir)
+	config, configDiags := loader.LoadStaticConfig(rootDir)
 	diags = diags.Append(configDiags)
 
 	return config, diags
