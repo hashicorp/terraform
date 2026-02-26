@@ -15,6 +15,8 @@ type Show struct {
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
+
+	Vars *Vars
 }
 
 // ParseShow processes CLI arguments, returning a Show value and errors.
@@ -24,10 +26,11 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	show := &Show{
 		Path: "",
+		Vars: &Vars{},
 	}
 
 	var jsonOutput bool
-	cmdFlags := defaultFlagSet("show")
+	cmdFlags := extendedFlagSet("show", nil, nil, show.Vars)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {

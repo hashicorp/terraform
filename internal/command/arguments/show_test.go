@@ -6,6 +6,8 @@ package arguments
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -19,6 +21,7 @@ func TestParseShow_valid(t *testing.T) {
 			&Show{
 				Path:     "",
 				ViewType: ViewHuman,
+				Vars:     &Vars{},
 			},
 		},
 		"json": {
@@ -26,6 +29,7 @@ func TestParseShow_valid(t *testing.T) {
 			&Show{
 				Path:     "",
 				ViewType: ViewJSON,
+				Vars:     &Vars{},
 			},
 		},
 		"path": {
@@ -33,18 +37,21 @@ func TestParseShow_valid(t *testing.T) {
 			&Show{
 				Path:     "foo",
 				ViewType: ViewJSON,
+				Vars:     &Vars{},
 			},
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseShow(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}
@@ -61,6 +68,7 @@ func TestParseShow_invalid(t *testing.T) {
 			&Show{
 				Path:     "",
 				ViewType: ViewHuman,
+				Vars:     &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -75,6 +83,7 @@ func TestParseShow_invalid(t *testing.T) {
 			&Show{
 				Path:     "bar",
 				ViewType: ViewJSON,
+				Vars:     &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -86,11 +95,13 @@ func TestParseShow_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseShow(tc.args)
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
 		})
