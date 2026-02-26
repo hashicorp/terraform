@@ -50,6 +50,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -158,15 +159,31 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
 
-	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	rootMod, configDiags := loader.LoadRootModule(dir)
+	if configDiags.HasErrors() {
+		t.Fatal(configDiags.Error())
+	}
+
+	walkerSnapshot, snap := loader.ModuleWalkerSnapshot()
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		walkerSnapshot,
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatal(buildDiags.Err())
+	}
+
+	snapDiags := loader.AddRootModuleToSnapshot(snap, dir)
+	if snapDiags.HasErrors() {
+		t.Fatal(snapDiags.Error())
 	}
 
 	return config, snap

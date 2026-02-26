@@ -24,7 +24,7 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), configDir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatalf("unexpected module installation errors: %s", instDiags.Err().Error())
@@ -33,7 +33,7 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 		t.Fatalf("failed to refresh modules after install: %s", err)
 	}
 
-	cfg, loadDiags := loader.LoadConfig(configDir)
+	cfg, loadDiags := loader.LoadStaticConfig(configDir)
 	if loadDiags.HasErrors() {
 		t.Fatalf("unexpected configuration errors: %s", loadDiags.Error())
 	}

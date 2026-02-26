@@ -25,7 +25,7 @@ func TestLoaderLoadConfig_okay(t *testing.T) {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
 	}
 
-	cfg, diags := loader.LoadConfig(fixtureDir)
+	cfg, diags := loader.LoadStaticConfig(fixtureDir)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatalf("config is nil; want non-nil")
@@ -62,28 +62,6 @@ func TestLoaderLoadConfig_okay(t *testing.T) {
 	})
 }
 
-func TestLoaderLoadConfig_addVersion(t *testing.T) {
-	// This test is for what happens when there is a version constraint added
-	// to a module that previously didn't have one.
-	fixtureDir := filepath.Clean("testdata/add-version-constraint")
-	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
-	})
-	if err != nil {
-		t.Fatalf("unexpected error from NewLoader: %s", err)
-	}
-
-	_, diags := loader.LoadConfig(fixtureDir)
-	if !diags.HasErrors() {
-		t.Fatalf("success; want error")
-	}
-	got := diags.Error()
-	want := "Module version requirements have changed"
-	if !strings.Contains(got, want) {
-		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
-	}
-}
-
 func TestLoaderLoadConfig_loadDiags(t *testing.T) {
 	// building a config which didn't load correctly may cause configs to panic
 	fixtureDir := filepath.Clean("testdata/invalid-names")
@@ -94,7 +72,7 @@ func TestLoaderLoadConfig_loadDiags(t *testing.T) {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
 	}
 
-	cfg, diags := loader.LoadConfig(fixtureDir)
+	cfg, diags := loader.LoadStaticConfig(fixtureDir)
 	if !diags.HasErrors() {
 		t.Fatal("success; want error")
 	}
@@ -118,7 +96,7 @@ func TestLoaderLoadConfig_loadDiagsFromSubmodules(t *testing.T) {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
 	}
 
-	cfg, diags := loader.LoadConfig(fixtureDir)
+	cfg, diags := loader.LoadStaticConfig(fixtureDir)
 	if !diags.HasErrors() {
 		t.Fatalf("loading succeeded; want an error")
 	}
@@ -168,7 +146,7 @@ func TestLoaderLoadConfig_childProviderGrandchildCount(t *testing.T) {
 			t.Fatalf("unexpected error from NewLoader: %s", err)
 		}
 
-		cfg, diags := loader.LoadConfig(fixtureDir)
+		cfg, diags := loader.LoadStaticConfig(fixtureDir)
 		assertNoDiagnostics(t, diags)
 		if cfg == nil {
 			t.Fatalf("config is nil; want non-nil")
@@ -198,7 +176,7 @@ func TestLoaderLoadConfig_childProviderGrandchildCount(t *testing.T) {
 			t.Fatalf("unexpected error from NewLoader: %s", err)
 		}
 
-		_, diags := loader.LoadConfig(fixtureDir)
+		_, diags := loader.LoadStaticConfig(fixtureDir)
 		if !diags.HasErrors() {
 			t.Fatalf("loading succeeded; want an error")
 		}

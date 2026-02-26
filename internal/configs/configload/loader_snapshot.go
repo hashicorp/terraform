@@ -20,26 +20,16 @@ import (
 	"github.com/hashicorp/terraform/internal/modsdir"
 )
 
-// LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
-// creates an in-memory snapshot of the configuration files used, which can
-// be later used to create a loader that may read only from this snapshot.
-func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snapshot, hcl.Diagnostics) {
-	rootMod, diags := l.parser.LoadConfigDir(rootDir, l.parserOpts...)
-	if rootMod == nil {
-		return nil, nil, diags
-	}
-
+func (l *Loader) ModuleWalkerSnapshot() (configs.ModuleWalker, *Snapshot) {
 	snap := &Snapshot{
 		Modules: map[string]*SnapshotModule{},
 	}
-	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
-	diags = append(diags, cDiags...)
 
-	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
-	diags = append(diags, addDiags...)
+	return l.makeModuleWalkerSnapshot(snap), snap
+}
 
-	return cfg, snap, diags
+func (l *Loader) AddRootModuleToSnapshot(snap *Snapshot, rootDir string) hcl.Diagnostics {
+	return l.addModuleToSnapshot(snap, "", rootDir, "", nil)
 }
 
 // NewLoaderFromSnapshot creates a Loader that reads files only from the

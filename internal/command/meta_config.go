@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -48,8 +49,28 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfig(rootDir)
+	rootMod, hclDiags := loader.LoadRootModule(rootDir)
 	diags = diags.Append(hclDiags)
+	if rootMod == nil || diags.HasErrors() {
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+		cfg.Root = cfg // Root module is self-referential.
+		return cfg, diags
+	}
+	betterVars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		betterVars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+
 	return config, diags
 }
 
@@ -65,8 +86,28 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfigWithTests(rootDir, testDir)
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(rootDir, testDir)
 	diags = diags.Append(hclDiags)
+	if rootMod == nil || diags.HasErrors() {
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+		cfg.Root = cfg // Root module is self-referential.
+		return cfg, diags
+	}
+	betterVars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		betterVars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+
 	return config, diags
 }
 

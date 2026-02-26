@@ -267,7 +267,7 @@ func TestTest_Verbose(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	config, configDiags := loader.LoadConfigWithTests(directory, "tests")
+	config, configDiags := loader.LoadStaticConfigWithTests(directory, "tests")
 	if configDiags.HasErrors() {
 		t.Fatalf("failed to load config: %v", configDiags.Error())
 	}
@@ -664,7 +664,7 @@ func TestTest_ForceCancel(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	config, configDiags := loader.LoadConfigWithTests("testdata/test-force-cancel", "tests")
+	config, configDiags := loader.LoadStaticConfigWithTests("testdata/test-force-cancel", "tests")
 	if configDiags.HasErrors() {
 		t.Fatalf("failed to load config: %v", configDiags.Error())
 	}
