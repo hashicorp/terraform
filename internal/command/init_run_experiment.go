@@ -564,15 +564,21 @@ func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider ad
 	// If we can receive input then we prompt for ok from the user
 	lock := configLocks.Provider(stateStorageProvider)
 
+	var hashList strings.Builder
+	for _, hash := range lock.PreferredHashes() {
+		hashList.WriteString(fmt.Sprintf("- %s\n", hash))
+	}
+
 	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "approve",
 		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
-Hash: %s
+Hashes:
+%s
 `,
 			lock.Provider().Type,
 			lock.Provider(),
 			lock.Version(),
-			lock.PreferredHashes()[0], // TODO - better handle of multiple hashes
+			hashList.String(),
 		),
 		Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
 	Only 'yes' will be accepted to confirm.`, lock.Provider()),

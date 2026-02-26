@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,7 +39,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3516,7 +3514,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		_ = testInputMap(t, map[string]string{
+		inputWriter := testInputMap(t, map[string]string{
 			"approve": "yes",
 		})
 
@@ -3547,7 +3545,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		// Check output
+		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
@@ -3557,6 +3555,16 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+		// Check output when prompting for approval
+		expectedInputPromptMsg := []string{
+			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
+			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+		}
+		for _, expected := range expectedInputPromptMsg {
+			if !strings.Contains(inputWriter.String(), expected) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", expected, inputWriter.String())
 			}
 		}
 
