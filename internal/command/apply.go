@@ -119,7 +119,13 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	diags = nil
 
 	// Run the operation
-	op, err := c.RunOperation(be, opReq)
+	var op *backendrun.RunningOperation
+	commandRunSpan := c.beginCommandRunSpan("apply")
+	defer func() {
+		commandRunSpan.end(op, err)
+	}()
+
+	op, err = c.RunOperation(be, opReq)
 	if err != nil {
 		diags = diags.Append(err)
 		view.Diagnostics(diags)
