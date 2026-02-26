@@ -494,8 +494,11 @@ func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Op
 	// Wait for the operation to complete or an interrupt to occur
 	select {
 	case <-m.ShutdownCh:
+		recordCommandRunInterrupt(m.CommandContext())
+
 		// gracefully stop the operation
 		op.Stop()
+		recordCommandRunStopRequested(m.CommandContext())
 
 		// Notify the user
 		opReq.View.Interrupted()
@@ -506,6 +509,7 @@ func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Op
 			opReq.View.FatalInterrupt()
 
 			// cancel the operation completely
+			recordCommandRunForcedCancel(m.CommandContext())
 			op.Cancel()
 
 			// the operation should return asap
