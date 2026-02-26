@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -173,15 +172,6 @@ type Operation struct {
 // file.
 func (o *Operation) HasConfig() bool {
 	return o.ConfigLoader.IsConfigDir(o.ConfigDir)
-}
-
-// Config loads the configuration that the operation applies to, using the
-// ConfigDir and ConfigLoader fields within the receiving operation.
-func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
-	diags = diags.Append(hclDiags)
-	return config, diags
 }
 
 // ReportResult is a helper for the common chore of setting the status of

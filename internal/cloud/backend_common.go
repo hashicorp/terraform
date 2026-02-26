@@ -654,12 +654,12 @@ in order to capture the filesystem context the remote workspace expects:
 }
 
 func (b *Cloud) parseRunVariables(op *backendrun.Operation) ([]*tfe.RunVariable, error) {
-	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	config, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	if configDiags.HasErrors() {
 		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
 	}
 
-	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
+	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Variables)
 
 	if varDiags.HasErrors() {
 		return nil, varDiags.Err()
