@@ -2595,7 +2595,7 @@ func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState 
 		log.Printf("[TRACE] stateStoreConfigNeedsMigration: unable to determine provider version (%s), so migration is required", err)
 		return true // let the migration codepath deal with the error
 	}
-	if pVersion != cfgState.Provider.Version {
+	if 	!pVersion.Equal(cfgState.Provider.Version) {
 		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider version changed from %q to %q, so migration is required", cfgState.Provider.Version, pVersion)
 		return true
 	}
