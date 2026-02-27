@@ -80,14 +80,14 @@ func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resourc
 	return diags
 }
 
-// decodeCheckRuleBlock decodes the contents of the given block as a check rule.
+// DecodeCheckRuleBlock decodes the contents of the given block as a check rule.
 //
 // Unlike most of our "decode..." functions, this one can be applied to blocks
 // of various types as long as their body structures are "check-shaped". The
 // function takes the containing block only because some error messages will
 // refer to its location, and the returned object's DeclRange will be the
 // block's header.
-func decodeCheckRuleBlock(block *hcl.Block, override bool) (*CheckRule, hcl.Diagnostics) {
+func DecodeCheckRuleBlock(block *hcl.Block, override bool) (*CheckRule, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	cr := &CheckRule{
 		DeclRange: block.DefRange,
@@ -230,7 +230,7 @@ func decodeCheckBlock(block *hcl.Block, override bool) (*Check, hcl.Diagnostics)
 				check.DataResource = data
 			}
 		case "assert":
-			assert, moreDiags := decodeCheckRuleBlock(block, override)
+			assert, moreDiags := DecodeCheckRuleBlock(block, override)
 			diags = append(diags, moreDiags...)
 			if !moreDiags.HasErrors() {
 				check.Asserts = append(check.Asserts, assert)

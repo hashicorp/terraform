@@ -697,7 +697,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
-			cr, crDiags := decodeCheckRuleBlock(block, false)
+			cr, crDiags := DecodeCheckRuleBlock(block, false)
 			diags = append(diags, crDiags...)
 			if !crDiags.HasErrors() {
 				r.CheckRules = append(r.CheckRules, cr)

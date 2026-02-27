@@ -19,6 +19,16 @@ variable "input" {
     condition     = startswith(var.input, "H")
     error_message = "Input must start with H."
   }
+  
+  validation {
+    condition     = !contains(["bad", "invalid", "nope"], var.input)
+    error_message = "Input cannot be 'bad', 'invalid', or 'nope'."
+  }
+  
+  validation {
+    condition     = can(regex("^[A-Z]", var.input))
+    error_message = "Input must start with an uppercase letter."
+  }
 }
 
 component "self" {
@@ -29,6 +39,6 @@ component "self" {
   }
 
   inputs = {
-    id = var.id
+    input = var.input
   }
 }

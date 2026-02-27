@@ -285,7 +285,7 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 			for _, block := range lcContent.Blocks {
 				switch block.Type {
 				case "precondition", "postcondition":
-					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					cr, moreDiags := DecodeCheckRuleBlock(block, override)
 					diags = append(diags, moreDiags...)
 
 					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
@@ -497,7 +497,7 @@ func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagn
 			for _, block := range lcContent.Blocks {
 				switch block.Type {
 				case "precondition", "postcondition":
-					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					cr, moreDiags := DecodeCheckRuleBlock(block, override)
 					diags = append(diags, moreDiags...)
 
 					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
@@ -673,7 +673,7 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 			for _, block := range lcContent.Blocks {
 				switch block.Type {
 				case "precondition", "postcondition":
-					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					cr, moreDiags := DecodeCheckRuleBlock(block, override)
 					diags = append(diags, moreDiags...)
 
 					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())

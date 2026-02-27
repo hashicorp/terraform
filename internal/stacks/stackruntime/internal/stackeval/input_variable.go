@@ -6,11 +6,14 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -186,8 +189,16 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					}
 				}
 
-				// TODO: check the value against any custom validation rules
-				// declared in the configuration.
+				// Evaluate custom validation rules against the input value.
+				// Validation is skipped during ValidatePhase because:
+				// 1. Input variable values are not available during validate (only during plan/apply)
+				// 2. Validation conditions may reference resources or other runtime values
+				// This matches the behavior of core Terraform's variable validation.
+				if phase != ValidatePhase {
+					moreDiags := v.evalVariableValidations(ctx, val, phase)
+					diags = diags.Append(moreDiags)
+				}
+
 				return cfg.markValue(val), diags
 
 			default:
@@ -197,16 +208,24 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					allVals := definedByCallInst.InputVariableValues(ctx, phase)
 					val := allVals.GetAttr(v.addr.Item.Name)
 
-					// TODO: check the value against any custom validation rules
-					// declared in the configuration.
+					// Evaluate custom validation rules for values from stack call instances.
+					// Skip during ValidatePhase as values are not yet available.
+					if phase != ValidatePhase {
+						moreDiags := v.evalVariableValidations(ctx, val, phase)
+						diags = diags.Append(moreDiags)
+					}
 
 					return cfg.markValue(val), diags
 				case definedByRemovedCallInst != nil:
 					allVals, _ := definedByRemovedCallInst.InputVariableValues(ctx, phase)
 					val := allVals.GetAttr(v.addr.Item.Name)
 
-					// TODO: check the value against any custom validation rules
-					// declared in the configuration.
+					// Evaluate validation rules even for removed stack instances.
+					// Skip during ValidatePhase as values are not yet available.
+					if phase != ValidatePhase {
+						moreDiags := v.evalVariableValidations(ctx, val, phase)
+						diags = diags.Append(moreDiags)
+					}
 
 					return cfg.markValue(val), diags
 				default:
@@ -362,6 +381,200 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 func (v *InputVariable) tracingName() string {
 	return v.addr.String()
+}
+
+// evalVariableValidations evaluates all custom validation rules for this input variable
+// against the given value, returning diagnostics if any validations fail.
+//
+// This function implements runtime validation checking, which is distinct from the
+// config-time parsing done in stackconfig. The validation rules were parsed and stored
+// during config loading; this function evaluates those rules against actual input values.
+//
+// The validation process:
+// 1. Creates an HCL evaluation context with the variable's value and available functions
+// 2. Evaluates each validation rule's condition expression
+// 3. If the condition returns false, evaluates the error_message and reports a diagnostic
+//
+// This follows the same approach as core Terraform's evalVariableValidations, including
+// handling of sensitive values, unknown values, and error message evaluation.
+func (v *InputVariable) evalVariableValidations(ctx context.Context, val cty.Value, phase EvalPhase) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	rules := v.config.config.Validations
+	if len(rules) == 0 {
+		// No validation rules defined, nothing to check
+		return diags
+	}
+
+	// Get the available functions from the stack scope.
+	// This allows validation conditions to use built-in functions like length(), regex(), etc.
+	functions, moreDiags := v.stack.ExternalFunctions(ctx)
+	diags = diags.Append(moreDiags)
+
+	// Create a scope to get the function table.
+	// We don't need a full evaluation context, just the functions.
+	fakeScope := &lang.Scope{
+		Data:          nil, // not a real scope; can't actually make an evalcontext
+		BaseDir:       ".",
+		PureOnly:      phase != ApplyPhase,
+		ConsoleMode:   false,
+		PlanTimestamp: v.stack.PlanTimestamp(),
+		ExternalFuncs: functions,
+	}
+
+	// Create an HCL evaluation context with the variable value and functions.
+	// The variable is made available as var.<name> within validation expressions.
+	// This mirrors how validation conditions are evaluated in core Terraform.
+	hclCtx := &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.ObjectVal(map[string]cty.Value{
+				v.addr.Item.Name: val,
+			}),
+		},
+		Functions: fakeScope.Functions(),
+	}
+
+	// Evaluate each validation rule independently.
+	// Multiple validation failures will all be reported.
+	for _, validation := range rules {
+		moreDiags := evalVariableValidation(validation, hclCtx, v.config.config.DeclRange.ToHCL())
+		diags = diags.Append(moreDiags)
+	}
+
+	return diags
+}
+
+// evalVariableValidation evaluates a single validation rule against a variable value.
+//
+// This function handles the evaluation of one validation block's condition and error_message.
+// It follows the same logic as core Terraform's variable validation:
+//
+// 1. Evaluates the condition expression
+// 2. Handles unknown/null/invalid results appropriately
+// 3. If condition is false, evaluates the error_message
+// 4. Checks for sensitive/ephemeral values in error messages
+// 5. Constructs a diagnostic with the error message and validation rule location
+//
+// Parameters:
+//   - validation: The validation rule to evaluate (contains condition and error_message expressions)
+//   - hclCtx: The HCL evaluation context with the variable value and functions
+//   - valueRng: The source range of the variable declaration (for diagnostic reporting)
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range) tfdiags.Diagnostics {
+	const errInvalidCondition = "Invalid variable validation result"
+	const errInvalidValue = "Invalid value for variable"
+	var diags tfdiags.Diagnostics
+
+	// Evaluate the validation condition expression
+	result, moreDiags := validation.Condition.Value(hclCtx)
+	diags = diags.Append(moreDiags)
+
+	if moreDiags.HasErrors() {
+		// If we couldn't evaluate the condition at all (syntax error, etc.),
+		// return early. The error is already in diags.
+		return diags
+	}
+
+	// If the condition result is unknown, we can't determine validity yet.
+	// This can happen when the condition references computed values.
+	// Skip validation for now - it will be checked during apply if needed.
+	if !result.IsKnown() {
+		return diags
+	}
+
+	// Check if the result is null
+	if result.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      "Validation condition expression must return either true or false, not null.",
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return diags
+	}
+
+	// Convert result to boolean
+	result, err := convert.Convert(result, cty.Bool)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return diags
+	}
+
+	// Remove any marks (sensitive, ephemeral) before checking the boolean value.
+	// The marks don't affect the validation result, only how we handle the error message.
+	result, _ = result.Unmark()
+
+	// If the condition evaluated to true, the validation passed.
+	if result.True() {
+		return diags
+	}
+
+	// Validation failed - now evaluate the error_message to show to the user.
+	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
+	diags = diags.Append(errorDiags)
+
+	var errorMessage string
+	if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+		errorValue, err := convert.Convert(errorValue, cty.String)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid error message",
+				Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+			errorMessage = "Failed to evaluate condition error message."
+		} else {
+			// Check for sensitive/ephemeral marks
+			if marks.Has(errorValue, marks.Sensitive) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error message refers to sensitive values",
+					Detail:   "The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.",
+					Subject:  validation.ErrorMessage.Range().Ptr(),
+				})
+				errorMessage = "The error message included a sensitive value, so it will not be displayed."
+			} else if marks.Has(errorValue, marks.Ephemeral) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error message refers to ephemeral values",
+					Detail:   "The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.",
+					Subject:  validation.ErrorMessage.Range().Ptr(),
+				})
+				errorMessage = "The error message included an ephemeral value, so it will not be displayed."
+			} else {
+				errorMessage = strings.TrimSpace(errorValue.AsString())
+			}
+		}
+	} else {
+		errorMessage = "Failed to evaluate condition error message."
+	}
+
+	// Construct the validation failure diagnostic.
+	// The detail includes both the custom error message and a reference to where
+	// the validation rule is defined, helping users locate the validation in their config.
+	detail := fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.",
+		errorMessage,
+		validation.DeclRange.String())
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  errInvalidValue,
+		Detail:   detail,
+		Subject:  &valueRng,
+	})
+
+	return diags
 }
 
 // ExternalInputValue represents the value of an input variable provided

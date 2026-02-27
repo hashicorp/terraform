@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -21,8 +22,14 @@ type InputVariable struct {
 	DefaultValue cty.Value
 	Description  string
 
-	Sensitive bool
-	Ephemeral bool
+	Sensitive   bool
+	Ephemeral   bool
+	// Validations contains custom validation rules for this variable.
+	// These rules are evaluated at runtime during the plan phase to ensure
+	// that provided values meet the specified constraints.
+	// Each CheckRule includes a condition expression that must evaluate to true,
+	// and an error message to display if the validation fails.
+	Validations []*configs.CheckRule
 
 	DeclRange tfdiags.SourceRange
 }
@@ -89,13 +96,25 @@ func decodeInputVariableBlock(block *hcl.Block) (*InputVariable, tfdiags.Diagnos
 		diags = diags.Append(hclDiags)
 	}
 
+	// Process any nested blocks (currently only validation blocks are supported)
 	for _, block := range content.Blocks {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Custom variable validation not yet supported",
-			Detail:   "Input variables for a stack configuration do not yet support custom variable validation.",
-			Subject:  block.DefRange.Ptr(),
-		})
+		switch block.Type {
+		case "validation":
+			// Decode the validation block into a CheckRule structure.
+			// This only validates the syntax and structure of the validation block itself,
+			// not the actual runtime validation of input values.
+			vv, hclDiags := configs.DecodeCheckRuleBlock(block, false)
+			diags = diags.Append(hclDiags)
+			// Only add the validation rule if it was successfully parsed.
+			// If there were errors (e.g., missing condition or error_message),
+			// those errors are already captured in diags above.
+			if !hclDiags.HasErrors() {
+				ret.Validations = append(ret.Validations, vv)
+			}
+		default:
+			// Should not get here as the schema defines what blocks are allowed
+			panic("unhandled block type " + block.Type)
+		}
 	}
 
 	return ret, diags
@@ -109,6 +128,8 @@ var inputVariableBlockSchema = &hcl.BodySchema{
 		{Name: "sensitive", Required: false},
 		{Name: "ephemeral", Required: false},
 	},
+	// Validation blocks allow custom validation rules for input variables.
+	// Multiple validation blocks are allowed per variable.
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "validation"},
 	},
