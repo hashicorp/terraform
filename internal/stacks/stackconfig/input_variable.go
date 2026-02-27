@@ -22,8 +22,8 @@ type InputVariable struct {
 	DefaultValue cty.Value
 	Description  string
 
-	Sensitive   bool
-	Ephemeral   bool
+	Sensitive bool
+	Ephemeral bool
 	// Validations contains custom validation rules for this variable.
 	// These rules are evaluated at runtime during the plan phase to ensure
 	// that provided values meet the specified constraints.
