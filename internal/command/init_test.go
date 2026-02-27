@@ -4693,7 +4693,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 // TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
 // changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage", func(t *testing.T) {
+	t.Run("upgrading the provider used for state storage from a local archive", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4732,6 +4732,77 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 			"-enable-pluggable-state-storage-experiment=true",
 			"-migrate-state=true",
 			"-upgrade",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedMsg := "Terraform has been successfully initialized!"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
+		}
+		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
+		if !strings.Contains(output, expectedReason) {
+			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
+		}
+
+		// check state remains accessible after migration
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
+			t.Fatal("expected the default workspace to exist after migration, but it is missing")
+		}
+	})
+
+	t.Run("upgrading the provider used for state storage via HTTP", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		// The previous init implied by this test scenario would have created the default workspace.
+		mockProvider.MockStates = map[string]any{
+			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v9.9.9 via HTTP.
+		// The test fixtures include a lock file and backend state file that specify v1.2.3 of the hashicorpt/test provider.
+		// In this test scenario we perform an upgrade. This causes v9.9.9 to be downloaded.
+		source := newMockProviderSourceUsingTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("9.9.9"))
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state=true",
+			"-upgrade",
+			"-safe-init",
 		}
 		code := c.Run(args)
 		testOutput := done(t)
