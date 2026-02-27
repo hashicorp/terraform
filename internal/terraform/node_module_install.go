@@ -167,7 +167,7 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 
 	for _, ref := range refs {
 		switch ref.Subject.(type) {
-		case addrs.InputVariable, addrs.LocalValue:
+		case addrs.InputVariable, addrs.LocalValue, addrs.PathAttr:
 			// These are allowed
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
