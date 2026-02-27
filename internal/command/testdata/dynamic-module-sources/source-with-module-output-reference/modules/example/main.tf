@@ -1,0 +1,3 @@
+output "name" {
+  value = "example"
+}
