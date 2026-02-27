@@ -19,12 +19,10 @@ import (
 type NodePlannableResourceInstanceOrphan struct {
 	*NodeAbstractResourceInstance
 
-	// skipRefresh indicates that we should skip refreshing individual instances
-	skipRefresh bool
-
-	// skipPlanChanges indicates we should skip trying to plan change actions
-	// for any instances.
-	skipPlanChanges bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes).
+	// See the nodePlanContext type for details on the individual fields.
+	planCtx nodePlanContext
 
 	// forgetResources lists resources that should not be destroyed, only removed
 	// from state.
@@ -122,7 +120,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	if !n.skipRefresh && !forget {
+	if !n.planCtx.skipRefresh && !n.planCtx.lightMode && !forget {
 		// Refresh this instance even though it is going to be destroyed, in
 		// order to catch missing resources. If this is a normal plan,
 		// providers expect a Read request to remove missing resources from the
@@ -179,7 +177,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// refresh indicates the instance no longer exists, there is also nothing
 	// to plan because there is no longer any state and it doesn't exist in the
 	// config.
-	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
+	if n.planCtx.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
 		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 

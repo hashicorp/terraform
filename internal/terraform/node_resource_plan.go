@@ -29,14 +29,10 @@ type nodeExpandPlannableResource struct {
 	// on regardless of what the configuration says.
 	ForceCreateBeforeDestroy *bool
 
-	// skipRefresh indicates that we should skip refreshing individual instances
-	skipRefresh bool
-
-	preDestroyRefresh bool
-
-	// skipPlanChanges indicates we should skip trying to plan change actions
-	// for any instances.
-	skipPlanChanges bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes) that are
+	// propagated to concrete resource instance nodes.
+	planCtx nodePlanContext
 
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
@@ -507,7 +503,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	steps := []GraphTransformer{
 		// Expand the count or for_each (if present)
 		&ResourceCountTransformer{
-			Concrete:      n.concreteResource(ctx, imports, addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), n.skipPlanChanges),
+			Concrete:      n.concreteResource(ctx, imports, addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), n.planCtx),
 			Schema:        n.Schema,
 			Addr:          n.ResourceAddr(),
 			InstanceAddrs: instanceAddrs,
@@ -545,7 +541,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	return graph, diags
 }
 
-func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], skipPlanChanges bool) func(*NodeAbstractResourceInstance) dag.Vertex {
+func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], planCtx nodePlanContext) func(*NodeAbstractResourceInstance) dag.Vertex {
 	return func(a *NodeAbstractResourceInstance) dag.Vertex {
 		var m *NodePlannableResourceInstance
 
@@ -575,7 +571,6 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
 		a.Dependencies = n.dependencies
-		a.preDestroyRefresh = n.preDestroyRefresh
 		a.generateConfigPath = n.generateConfigPath
 
 		m = &NodePlannableResourceInstance{
@@ -585,8 +580,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			// to force on CreateBeforeDestroy due to dependencies on other
 			// nodes that have it.
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
-			skipRefresh:              n.skipRefresh,
-			skipPlanChanges:          skipPlanChanges,
+			planCtx:                  planCtx,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
 		}
 
@@ -629,8 +623,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,
-		skipRefresh:                  n.skipRefresh,
-		skipPlanChanges:              n.skipPlanChanges,
+		planCtx:                      n.planCtx,
 	}
 }
 

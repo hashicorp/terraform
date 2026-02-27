@@ -86,6 +86,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	// Light plan mode: skip refreshing unchanged resources
+	opReq.PlanLight = args.Light
+
 	// Collect variable value and add them to the operation request
 	var varDiags tfdiags.Diagnostics
 	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
@@ -150,6 +153,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
+	opReq.PlanLight = args.Light
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
@@ -211,6 +215,14 @@ Plan Customization Options:
                       while creating the plan. This can potentially make
                       planning faster, but at the expense of possibly planning
                       against a stale record of the remote system state.
+
+  -light              Enable light plan mode. In this mode, Terraform skips
+                      reading remote state for resources that have not changed
+                      in the local configuration or local state. This is useful
+                      when you trust that nothing has been modified outside of
+                      the local Terraform configuration, and can significantly
+                      speed up planning for large configurations. Incompatible
+                      with -refresh-only and -destroy.
 
   -replace=resource   Force replacement of a particular resource instance using
                       its resource address. If the plan would've normally
