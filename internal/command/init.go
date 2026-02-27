@@ -1124,7 +1124,11 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 				safeInitAction = SafeInitActionProceed
 			case getproviders.PackageHTTPURL:
 				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionPromptForInput
+				if c.input {
+					safeInitAction = SafeInitActionPromptForInput
+				} else {
+					safeInitAction = SafeInitActionExitEarly
+				}
 			default:
 				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
 			}

@@ -223,6 +223,41 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 			return 1
 		}
 		view.Output(views.UserApprovedStateStoreProviderMessage)
+	case SafeInitActionExitEarly:
+		if !initArgs.SafeInitWithPluggableStateStore {
+			// If the -safe-init flag isn't present we prompt the user to re-run init so they're opting into the security UX.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "State storage providers must be downloaded using -safe-init flag",
+				Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+			})
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		// If we're in automation we need to write the config-derived providers to lock file
+		lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, nil, initArgs.Lockfile, view)
+		diags = diags.Append(lockFileDiags)
+		if lockFileDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+		if lockFileOutput {
+			// If we outputted information, then we need to output a newline
+			// so that our success message is nicely spaced out from prior text.
+			view.Output(views.EmptyMessage)
+		}
+
+		// ... and prompt the user to look at the values.
+		lock := configLocks.Provider(config.Module.StateStore.ProviderAddr)
+
+		view.Diagnostics(diags) // display any warnings
+		view.Output(views.ExitEarlyForStateStoreProviderConfirmationMessage,
+			lock.Provider().Type,
+			lock.Provider(),
+			lock.Version(),
+		)
+		return 0
 	default:
 		// Handle SafeInitActionInvalid or unexpected action types
 		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
