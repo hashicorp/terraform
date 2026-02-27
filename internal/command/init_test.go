@@ -4756,7 +4756,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		}
 	})
 
-	t.Run("upgrading the provider used for state storage via HTTP", func(t *testing.T) {
+	t.Run("upgrading the provider used for state storage via HTTP requires -safe-init flag", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that doesn't match the backend state file
 		td := t.TempDir()
@@ -4775,12 +4775,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		// In this test scenario we perform an upgrade. This causes v9.9.9 to be downloaded.
 		source := newMockProviderSourceUsingTestHttpServer(t, addrs.NewDefaultProvider("test"), getproviders.MustParseVersion("9.9.9"))
 
-		// Allow the test to respond to the pause in provider installation for
-		// checking the state storage provider.
-		_ = testInputMap(t, map[string]string{
-			"approve": "yes",
-		})
-
+		// INIT #1 - fail upgrade due to needing -safe-init flag
 		ui := new(cli.MockUi)
 		view, done := testView(t)
 		meta := Meta{
@@ -4802,28 +4797,46 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 			"-enable-pluggable-state-storage-experiment=true",
 			"-migrate-state=true",
 			"-upgrade",
-			"-safe-init",
+			// -safe-init not present
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		if code != 1 {
+			t.Fatalf("expected 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
-
-		// Check output
 		output := testOutput.All()
-		expectedMsg := "Terraform has been successfully initialized!"
+		expectedMsg := "Error: State storage providers must be downloaded using -safe-init flag"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
-		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
-		if !strings.Contains(output, expectedReason) {
-			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
-		}
 
-		// check state remains accessible after migration
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to exist after migration, but it is missing")
+		// INIT #2 - successful upgrade due to presence of -safe-init flag
+		//
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
+
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Meta.View = view
+		c.Meta.Ui = ui
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-migrate-state=true",
+			"-upgrade",
+			"-safe-init",
+		}
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output = testOutput.All()
+		expectedMsg = "Terraform has been successfully initialized!"
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}
 	})
 }
