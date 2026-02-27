@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: add entry for module lifecycle ignore_changes
+time: 2026-02-15T20:09:07.395154651+01:00
+custom:
+    Issue: "27360"
