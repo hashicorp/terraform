@@ -1885,3 +1885,177 @@ func TestTranspose(t *testing.T) {
 		})
 	}
 }
+
+func TestContains(t *testing.T) {
+	tests := []struct {
+		Collection cty.Value
+		Value      cty.Value
+		Want       cty.Value
+		Err        bool
+	}{
+		// Basic list tests
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.StringVal("b"),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.StringVal("z"),
+			cty.False,
+			false,
+		},
+		// Null value tests - find null in list
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NullVal(cty.String),
+				cty.StringVal("c"),
+			}),
+			cty.NullVal(cty.String),
+			cty.True,
+			false,
+		},
+		// Null value tests - null not in list
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.NullVal(cty.String),
+			cty.False,
+			false,
+		},
+		// Empty list
+		{
+			cty.ListValEmpty(cty.String),
+			cty.StringVal("a"),
+			cty.False,
+			false,
+		},
+		// Empty list with null search
+		{
+			cty.ListValEmpty(cty.String),
+			cty.NullVal(cty.String),
+			cty.False,
+			false,
+		},
+		// Set contains
+		{
+			cty.SetVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			cty.StringVal("a"),
+			cty.True,
+			false,
+		},
+		// Set with null
+		{
+			cty.SetVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NullVal(cty.String),
+			}),
+			cty.NullVal(cty.String),
+			cty.True,
+			false,
+		},
+		// Map keys
+		{
+			cty.MapVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"baz": cty.StringVal("qux"),
+			}),
+			cty.StringVal("foo"),
+			cty.True,
+			false,
+		},
+		// Map keys - not found
+		{
+			cty.MapVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			cty.StringVal("missing"),
+			cty.False,
+			false,
+		},
+		// Unknown collection
+		{
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.StringVal("a"),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
+			false,
+		},
+		// Unknown search value
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			}),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
+			false,
+		},
+		// Numbers
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+				cty.NumberIntVal(3),
+			}),
+			cty.NumberIntVal(2),
+			cty.True,
+			false,
+		},
+		// Numbers - with null
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NullVal(cty.Number),
+				cty.NumberIntVal(3),
+			}),
+			cty.NullVal(cty.Number),
+			cty.True,
+			false,
+		},
+		// Mixed types - nulls of different types
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NullVal(cty.String),
+			}),
+			cty.NullVal(cty.Number),
+			cty.False,
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("contains(%#v, %#v)", test.Collection, test.Value), func(t *testing.T) {
+			got, err := Contains(test.Collection, test.Value)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

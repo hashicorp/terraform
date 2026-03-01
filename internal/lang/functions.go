@@ -196,7 +196,7 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"coalescelist":     stdlib.CoalesceListFunc,
 		"compact":          stdlib.CompactFunc,
 		"concat":           stdlib.ConcatFunc,
-		"contains":         stdlib.ContainsFunc,
+		"contains":         funcs.ContainsFunc,
 		"convert":          funcs.ConvertFunc,
 		"csvdecode":        stdlib.CSVDecodeFunc,
 		"dirname":          funcs.DirnameFunc,

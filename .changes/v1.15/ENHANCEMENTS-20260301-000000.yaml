@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: The contains() function now supports null values as the search argument, allowing users to check if a collection contains null values
+time: 2026-03-01T00:00:00.000000-00:00
+custom:
+    Issue: "38216"
