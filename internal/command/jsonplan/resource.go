@@ -105,6 +105,30 @@ type ResourceChange struct {
 	ActionReason string `json:"action_reason,omitempty"`
 }
 
+func (change ResourceChange) Redacted() (ResourceChange, error) {
+	output := change
+
+	output.Name = "(sensitive value)"
+	output.Address = "(sensitive value)"
+	if len(output.PreviousAddress) > 0 {
+		output.PreviousAddress = "(sensitive value)"
+	}
+	if len(output.ModuleAddress) > 0 {
+		output.ModuleAddress = "(sensitive value)"
+	}
+	if len(output.Index) > 0 {
+		output.Index = json.RawMessage(`"(sensitive value)"`)
+	}
+
+	redacted, err := change.Change.Redacted()
+	if err != nil {
+		return ResourceChange{}, err
+	}
+	output.Change = redacted
+
+	return output, nil
+}
+
 // DeferredResourceChange is a description of a resource change that has been
 // deferred for some reason.
 type DeferredResourceChange struct {

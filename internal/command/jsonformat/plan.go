@@ -40,6 +40,56 @@ type Plan struct {
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
+func (plan Plan) Redacted() (Plan, error) {
+	outputChanges := make(map[string]jsonplan.Change, len(plan.OutputChanges))
+	for key, change := range plan.OutputChanges {
+		redacted, err := change.Redacted()
+		if err != nil {
+			return Plan{}, err
+		}
+		outputChanges[key] = redacted
+	}
+
+	resourceChanges := make([]jsonplan.ResourceChange, len(plan.ResourceChanges))
+	for i, change := range plan.ResourceChanges {
+		redacted, err := change.Redacted()
+		if err != nil {
+			return Plan{}, err
+		}
+		resourceChanges[i] = redacted
+	}
+
+	resourceDrift := make([]jsonplan.ResourceChange, len(plan.ResourceDrift))
+	for i, change := range plan.ResourceDrift {
+		redacted, err := change.Redacted()
+		if err != nil {
+			return Plan{}, err
+		}
+		resourceDrift[i] = redacted
+	}
+
+	deferredChanges := make([]jsonplan.DeferredResourceChange, len(plan.DeferredChanges))
+	for i, change := range plan.DeferredChanges {
+		deferredChanges[i] = change
+		redacted, err := change.ResourceChange.Redacted()
+		if err != nil {
+			return Plan{}, err
+		}
+		deferredChanges[i].ResourceChange = redacted
+	}
+
+	return Plan{
+		PlanFormatVersion: plan.PlanFormatVersion,
+		OutputChanges: outputChanges,
+		ResourceChanges: resourceChanges,
+		ResourceDrift: resourceDrift,
+		RelevantAttributes: plan.RelevantAttributes,
+		DeferredChanges: deferredChanges,
+		ProviderFormatVersion: plan.ProviderFormatVersion,
+		ProviderSchemas: plan.ProviderSchemas,
+	}, nil
+}
+
 func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
 	switch change.Mode {
 	case jsonstate.ManagedResourceMode:
