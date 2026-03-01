@@ -19,7 +19,12 @@ func configFile() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(dir, ".terraformrc"), nil
+	xdgdir, err := configDirXDG()
+	if err != nil {
+		return filepath.Join(dir, ".terraformrc"), nil
+	}
+
+	return filepath.Join(xdgdir, "terraformrc"), nil
 }
 
 func configDir() (string, error) {
@@ -28,7 +33,12 @@ func configDir() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(dir, ".terraform.d"), nil
+	xdgdir, err := configDirXDG()
+	if err != nil {
+		return filepath.Join(dir, ".terraform.d"), nil
+	}
+
+	return filepath.Join(xdgdir, "terraform.d"), nil
 }
 
 func homeDir() (string, error) {
@@ -53,4 +63,19 @@ func homeDir() (string, error) {
 	}
 
 	return user.HomeDir, nil
+}
+
+func configDirXDG() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	terraformConfigDir := filepath.Join(configDir, "terraform")
+
+	if _, err := os.Stat(terraformConfigDir); err != nil {
+		return "", err
+	}
+
+	return terraformConfigDir, nil
 }
