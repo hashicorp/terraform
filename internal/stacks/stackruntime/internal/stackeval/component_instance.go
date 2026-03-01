@@ -44,10 +44,12 @@ type ComponentInstance struct {
 	inputVariableValues perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
-var _ Applyable = (*ComponentInstance)(nil)
-var _ Plannable = (*ComponentInstance)(nil)
-var _ ExpressionScope = (*ComponentInstance)(nil)
-var _ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
+var (
+	_ Applyable                                                       = (*ComponentInstance)(nil)
+	_ Plannable                                                       = (*ComponentInstance)(nil)
+	_ ExpressionScope                                                 = (*ComponentInstance)(nil)
+	_ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
+)
 
 func newComponentInstance(call *Component, addr stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, mode plans.Mode, deferred bool) *ComponentInstance {
 	component := &ComponentInstance{
@@ -138,7 +140,6 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 		}
 	}
 	return ret
-
 }
 
 func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipRefresh bool) (*terraform.PlanOpts, tfdiags.Diagnostics) {
@@ -810,6 +811,25 @@ func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr
 	ret := providerSchema.SchemaForResourceType(mode, typ)
 	if ret.Body == nil {
 		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
+	}
+	return ret, nil
+}
+
+// ActionSchema implements stackplan.PlanProducer.
+func (c *ComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, typ string) (providers.ActionSchema, error) {
+	// This should not be able to fail with an error because we should
+	// be retrieving the same schema that was already used to encode
+	// the object we're working with. The error handling here is for
+	// robustness but any error here suggests a bug in Terraform.
+
+	providerType := c.main.ProviderType(providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return providers.ActionSchema{}, err
+	}
+	ret := providerSchema.SchemaForActionType(typ)
+	if ret.ConfigSchema == nil {
+		return providers.ActionSchema{}, fmt.Errorf("schema does not include %q", typ)
 	}
 	return ret, nil
 }

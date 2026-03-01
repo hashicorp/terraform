@@ -26,8 +26,10 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-const tfplanFormatVersion = 3
-const tfplanFilename = "tfplan"
+const (
+	tfplanFormatVersion = 3
+	tfplanFilename      = "tfplan"
+)
 
 // ---------------------------------------------------------------------------
 // This file deals with the internal structure of the "tfplan" sub-file within
@@ -410,7 +412,6 @@ func ActionFromProto(rawAction planproto.Action) (plans.Action, error) {
 	default:
 		return plans.NoOp, fmt.Errorf("invalid change action %s", rawAction)
 	}
-
 }
 
 func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
@@ -1393,6 +1394,10 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 
 	return ret, nil
+}
+
+func ActionInvocationToProto(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
+	return actionInvocationToTfPlan(action)
 }
 
 func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planproto.ActionInvocationInstance, error) {
