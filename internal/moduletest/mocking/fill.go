@@ -22,53 +22,12 @@ func FillAttribute(in cty.Value, attribute *configschema.Attribute) (cty.Value, 
 }
 
 func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+	ty := attribute.Type
 	if attribute.NestedType != nil {
-
-		// Then the in value must be an object.
-		if !in.Type().IsObjectType() {
-			return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
-		}
-
-		switch attribute.NestedType.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			var names []string
-			for name := range attribute.NestedType.Attributes {
-				names = append(names, name)
-			}
-			if len(names) == 0 {
-				return cty.EmptyObjectVal, nil
-			}
-
-			// Make the order we iterate through the attributes deterministic. We
-			// are generating random strings in here so it's worth making the
-			// operation repeatable.
-			sort.Strings(names)
-
-			children := make(map[string]cty.Value)
-			for _, name := range names {
-				if in.Type().HasAttribute(name) {
-					child, err := fillAttribute(in.GetAttr(name), attribute.NestedType.Attributes[name], path.GetAttr(name))
-					if err != nil {
-						return cty.NilVal, err
-					}
-					children[name] = child
-					continue
-				}
-				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
-			}
-			return cty.ObjectVal(children), nil
-		case configschema.NestingSet:
-			return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
-		case configschema.NestingList:
-			return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
-		case configschema.NestingMap:
-			return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
-		default:
-			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
-		}
+		ty = attribute.NestedType.ConfigType()
 	}
 
-	return fillType(in, attribute.Type, path)
+	return fillType(in, ty, path)
 }
 
 // FillType makes the input value match the target type by adding attributes

@@ -24,12 +24,17 @@ variable "child_instances" {
 
 resource "test_resource" "primary" {
   provider = test.primary
-  count = var.instances
+  count    = var.instances
+}
+
+resource "test_complex_resource" "primary" {
+  provider = test.primary
+  count    = var.instances
 }
 
 resource "test_resource" "secondary" {
   provider = test.secondary
-  count = var.instances
+  count    = var.instances
 }
 
 module "child" {
@@ -38,7 +43,7 @@ module "child" {
   source = "./child"
 
   providers = {
-    test.primary = test.primary
+    test.primary   = test.primary
     test.secondary = test.secondary
   }
 

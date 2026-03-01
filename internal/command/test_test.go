@@ -292,7 +292,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"10 passed, 0 failed."},
+			expectedOut: []string{"11 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
@@ -5671,6 +5671,62 @@ func TestTest_TeardownOrder(t *testing.T) {
 
 	if provider.ResourceCount() > 0 {
 		t.Logf("Resources remaining after test completion (this might indicate the teardown issue): %v", provider.ResourceString())
+	}
+}
+
+func TestTest_OverrideData(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "override_data_attribute")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer closeFn()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code %d but got %d:\n\n%s", 0, code, output.All())
+	}
+
+	if !strings.Contains(output.Stdout(), "6 passed, 0 failed.") {
+		t.Errorf("expected passing test output but got:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
+	}
+	if output.Stderr() != "" {
+		t.Errorf("unexpected stderr output:\n%s", output.Stderr())
 	}
 }
 

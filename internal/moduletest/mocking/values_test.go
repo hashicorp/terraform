@@ -544,6 +544,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingList,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_list_attribute_computed_err": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -565,6 +599,9 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: []string{
+				`Terraform could not compute a value for the target type list of object with the mocked data defined at :0,0-0 with the attribute ".nested": incompatible types; expected list of object, found object.`,
+			},
 		},
 		"nested_set_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
@@ -641,6 +678,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingSet,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_set_attribute_computed_err": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -662,6 +733,9 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: []string{
+				`Terraform could not compute a value for the target type set of object with the mocked data defined at :0,0-0 with the attribute ".nested": incompatible types; expected set of object, found object.`,
+			},
 		},
 		"nested_map_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
@@ -738,6 +812,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingMap,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_map_attribute_computed_err": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -759,6 +867,9 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: []string{
+				`Terraform could not compute a value for the target type map of object with the mocked data defined at :0,0-0 with the attribute ".nested[\"id\"]": incompatible types; expected object, found string.`,
+			},
 		},
 		"invalid_replacement_path": {
 			target: cty.ObjectVal(map[string]cty.Value{

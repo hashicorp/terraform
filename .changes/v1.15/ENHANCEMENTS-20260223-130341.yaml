@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "mocking: computed values are now correctly filled for nested list, set, and map attributes when using mock and override data in tests."
+time: 2026-02-23T13:03:41.913383+01:00
+custom:
+  Issue: "37939"
