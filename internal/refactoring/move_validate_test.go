@@ -533,9 +533,22 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	rootCfg, diags := loader.LoadStaticConfig(dir)
+	// Note: This test uses BuildConfig instead of
+	// terraform.BuildConfigWithGraph to avoid an import cycle (terraform
+	// imports the refactoring package). Since this test only needs basic config
+	// structure without expression evaluation, the static loader is appropriate.
+	rootMod, diags := loader.LoadRootModule(dir)
 	if diags.HasErrors() {
-		t.Fatalf("failed to load root module: %s", diags.Error())
+		t.Fatalf("invalid root module: %s", diags.Error())
+	}
+
+	rootCfg, buildDiags := configs.BuildConfig(
+		rootMod,
+		loader.ModuleWalker(),
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", buildDiags.Error())
 	}
 
 	expander := instances.NewExpander(nil)

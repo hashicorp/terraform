@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
 )
@@ -29,9 +30,22 @@ func TestChecksHappyPath(t *testing.T) {
 
 	/////////////////////////////////////////////////////////////////////////
 
-	cfg, hclDiags := loader.LoadStaticConfig(fixtureDir)
+	// Note: This test uses BuildConfig instead of
+	// terraform.BuildConfigWithGraph to avoid an import cycle (terraform
+	// imports the checks package). Since this test only needs basic config
+	// structure without expression evaluation, the static loader is appropriate.
+	rootMod, hclDiags := loader.LoadRootModule(fixtureDir)
 	if hclDiags.HasErrors() {
-		t.Fatalf("invalid configuration: %s", hclDiags.Error())
+		t.Fatalf("invalid root module: %s", hclDiags.Error())
+	}
+
+	cfg, buildDiags := configs.BuildConfig(
+		rootMod,
+		loader.ModuleWalker(),
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", buildDiags.Error())
 	}
 
 	resourceA := addrs.Resource{
