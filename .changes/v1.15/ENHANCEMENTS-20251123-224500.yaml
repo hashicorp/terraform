@@ -1,0 +1,3 @@
+kind: ENHANCEMENTS
+body: 'core: Improved error message when an action trigger references an action expanded with count or for_each without specifying an instance'
+time: 2025-11-23T22:45:00.000000+00:00
