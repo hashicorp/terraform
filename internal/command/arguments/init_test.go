@@ -40,19 +40,22 @@ func TestParseInit_basicValid(t *testing.T) {
 					FlagName: "-backend-config",
 					Items:    &flagNameValue,
 				},
-				Vars:                   &Vars{},
-				InputEnabled:           true,
-				CompactWarnings:        false,
-				TargetFlags:            nil,
-				CreateDefaultWorkspace: true,
+				Vars:                            &Vars{},
+				InputEnabled:                    true,
+				CompactWarnings:                 false,
+				TargetFlags:                     nil,
+				CreateDefaultWorkspace:          true,
+				SafeInitWithPluggableStateStore: false,
 			},
 		},
 		"setting multiple options": {
-			[]string{"-backend=false", "-force-copy=true",
+			[]string{
+				"-backend=false", "-force-copy=true",
 				"-from-module=./main-dir", "-json", "-get=false",
 				"-lock=false", "-lock-timeout=10s", "-reconfigure=true",
 				"-upgrade=true", "-lockfile=readonly", "-compact-warnings=true",
-				"-ignore-remote-version=true", "-test-directory=./test-dir"},
+				"-ignore-remote-version=true", "-test-directory=./test-dir",
+			},
 			&Init{
 				FromModule:          "./main-dir",
 				Lockfile:            "readonly",
@@ -156,6 +159,21 @@ func TestParseInit_invalid(t *testing.T) {
 			wantErr:      "The -migrate-state and -reconfigure options are mutually-exclusive.",
 			wantViewType: ViewHuman,
 		},
+		"with both -safe-init and -backend=false options set": {
+			args:         []string{"-safe-init", "-backend=false"},
+			wantErr:      "The -safe-init and -backend=false options are mutually-exclusive",
+			wantViewType: ViewHuman,
+		},
+		"with both -safe-init and -plugin-dir options set": {
+			args:         []string{"-safe-init", "-plugin-dir=./my/path/to/dir"},
+			wantErr:      "The -safe-init and -plugin-dir options are mutually-exclusive",
+			wantViewType: ViewHuman,
+		},
+		"with both -safe-init and -lockfile=readonly options set": {
+			args:         []string{"-safe-init", `-lockfile=readonly`},
+			wantErr:      "The -safe-init and -lockfile=readonly options are mutually-exclusive",
+			wantViewType: ViewHuman,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -217,6 +235,16 @@ func TestParseInit_experimentalFlags(t *testing.T) {
 			},
 			experimentsEnabled: true,
 			wantErr:            "Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
+		},
+		"error: -safe-init and experiments are disabled": {
+			args:               []string{"-safe-init"},
+			experimentsEnabled: false,
+			wantErr:            "Cannot use -safe-init flag without experiments enabled: Terraform cannot use the -safe-init flag unless experiments are enabled.",
+		},
+		"error: -safe-init used without -enable-pluggable-state-storage-experiment": {
+			args:               []string{"-safe-init"},
+			experimentsEnabled: true,
+			wantErr:            "Cannot use -safe-init flag unless the pluggable state storage experiment is enabled",
 		},
 	}
 

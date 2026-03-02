@@ -83,6 +83,13 @@ type Init struct {
 	// CreateDefaultWorkspace indicates whether the default workspace should be created by
 	// Terraform when initializing a state store for the first time.
 	CreateDefaultWorkspace bool
+
+	// SafeInitWithPluggableStateStore indicates whether the user has opted into the process of downloading and approving
+	// a new provider binary to use for pluggable state storage.
+	// When false and `init` detects that a provider for PSS needs to be downloaded, `init` will return early and prompt the user to re-run with `-safe init`.
+	// When true and `init` detects that a provider for PSS needs to be downloaded then the user will experience a new UX.
+	// Details of the new UX depending on whether Terraform is being run in automation or not.
+	SafeInitWithPluggableStateStore bool
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
@@ -117,6 +124,7 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&init.CreateDefaultWorkspace, "create-default-workspace", true, "when -input=false, use this flag to block creation of the default workspace")
+	cmdFlags.BoolVar(&init.SafeInitWithPluggableStateStore, "safe-init", false, `Enable the "safe init" workflow when downloading a provider binary for use with pluggable state storage.`)
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
@@ -158,6 +166,13 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 				"Terraform cannot use the -create-default-workspace flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless experiments are enabled.",
 			))
 		}
+		if init.SafeInitWithPluggableStateStore {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -safe-init flag without experiments enabled",
+				"Terraform cannot use the -safe-init flag unless experiments are enabled.",
+			))
+		}
 	} else {
 		// Errors using flags despite experiments being enabled.
 		if !init.CreateDefaultWorkspace && !init.EnablePssExperiment {
@@ -165,6 +180,38 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 				tfdiags.Error,
 				"Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
 				"Terraform cannot use the -create-default-workspace=false flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless you also supply the -enable-pluggable-state-storage-experiment flag (or set the TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable).",
+			))
+		}
+		if init.SafeInitWithPluggableStateStore && !init.EnablePssExperiment {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -safe-init flag unless the pluggable state storage experiment is enabled",
+				"Terraform cannot use the -safe-init flag unless you also supply the -enable-pluggable-state-storage-experiment flag (or set the TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable).",
+			))
+		}
+	}
+
+	// Manage all flag interactions with -safe-init
+	if init.SafeInitWithPluggableStateStore {
+		if !init.Backend {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"The -safe-init and -backend=false options are mutually-exclusive",
+				"When -backend=false is set Terraform uses information from the last successful init to launch a backend or state store. Any providers used for pluggable state storage should already be downloaded, so -safe-init is unnecessary.",
+			))
+		}
+		if len(init.PluginPath) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"The -safe-init and -plugin-dir options are mutually-exclusive",
+				"Providers sourced through -plugin-dir have already been vetted by the user, so -safe-init is unnecessary. Please re-run the command without the -safe-init flag.",
+			))
+		}
+		if init.Lockfile == "readonly" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				`The -safe-init and -lockfile=readonly options are mutually-exclusive`,
+				"The -safe-init flag is intended to help when first downloading or upgrading a provider to use for state storage, and in those scenarios the lockfile cannot be treated as read-only.",
 			))
 		}
 	}

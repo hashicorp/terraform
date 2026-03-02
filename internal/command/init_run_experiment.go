@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -188,7 +189,7 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configProvidersOutput, configLocks, safeInitAction, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -196,6 +197,35 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	}
 	if configProvidersOutput {
 		header = true
+	}
+
+	switch safeInitAction {
+	case SafeInitActionNotRelevant:
+		// do nothing; security features aren't relevant.
+	case SafeInitActionProceed:
+		// do nothing; provider is considered safe and there's no need for notifying the user.
+	case SafeInitActionPromptForInput:
+		if !initArgs.SafeInitWithPluggableStateStore {
+			// If the -safe-init flag isn't present we prompt the user to re-run init so they're opting into the security UX.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "State storage providers must be downloaded using -safe-init flag",
+				Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+			})
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks))
+		if diags.HasErrors() {
+			view.Output(views.UserRejectedStateStoreProviderMessage)
+			view.Diagnostics(diags)
+			return 1
+		}
+		view.Output(views.UserApprovedStateStoreProviderMessage)
+	default:
+		// Handle SafeInitActionInvalid or unexpected action types
+		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
 	}
 
 	// If we outputted information, then we need to output a newline
@@ -524,4 +554,45 @@ the backend configuration is present and valid.
 	back, backDiags := c.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
+}
+
+// promptStateStorageProviderApproval is used when Terraform is unsure about the safety of the provider downloaded for state storage
+// purposes, and we need to prompt the user to approve or reject using it.
+func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// If we can receive input then we prompt for ok from the user
+	lock := configLocks.Provider(stateStorageProvider)
+
+	var hashList strings.Builder
+	for _, hash := range lock.PreferredHashes() {
+		hashList.WriteString(fmt.Sprintf("- %s\n", hash))
+	}
+
+	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id: "approve",
+		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
+Hashes:
+%s
+`,
+			lock.Provider().Type,
+			lock.Provider(),
+			lock.Version(),
+			hashList.String(),
+		),
+		Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
+	Only 'yes' will be accepted to confirm.`, lock.Provider()),
+	})
+	if err != nil {
+		return diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
+	}
+	if v != "yes" {
+		return diags.Append(
+			fmt.Errorf("State storage provider %q (%s) was not approved by the user",
+				lock.Provider().Type,
+				lock.Provider(),
+			),
+		)
+	}
+	return diags
 }
