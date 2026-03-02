@@ -12,20 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
-// LoadConfig reads the Terraform module in the given directory and uses it as the
-// root module to build the static module tree that represents a configuration,
-// assuming that all required descendant modules have already been installed.
-//
-// If error diagnostics are returned, the returned configuration may be either
-// nil or incomplete. In the latter case, cautious static analysis is possible
-// in spite of the errors.
-//
-// LoadConfig performs the basic syntax and uniqueness validations that are
-// required to process the individual modules
-func (l *Loader) LoadStaticConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
-	return l.loadConfig(l.parser.LoadConfigDir(rootDir, l.parserOpts...))
-}
-
 // LoadConfigWithTests matches LoadConfig, except the configs.Config contains
 // any relevant .tftest.hcl files.
 func (l *Loader) LoadStaticConfigWithTests(rootDir string, testDir string) (*configs.Config, hcl.Diagnostics) {
