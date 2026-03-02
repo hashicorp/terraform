@@ -6,9 +6,7 @@ package command
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -27,37 +25,17 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	var force bool
-	var stateLock bool
-	var stateLockTimeout time.Duration
-	cmdFlags := c.Meta.defaultFlagSet("workspace delete")
-	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty workspace")
-	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseWorkspaceDelete(args)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: NAME.\n")
-		return cli.RunResultHelp
-	}
-	if args[0] == "" {
-		// Disallowing empty string identifiers more explicitly, versus "Workspace "" doesn't exist."
-		c.Ui.Error(fmt.Sprintf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
-		return cli.RunResultHelp
-	}
-
-	configPath, err := ModulePath(args[1:])
+	configPath, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	view := arguments.ViewHuman
@@ -80,7 +58,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	c.showDiagnostics(diags) // output warnings, if any
 
 	// Is the user attempting to delete a workspace that doesn't exist?
-	workspace := args[0]
+	workspace := parsedArgs.Name
 	exists := false
 	for _, ws := range workspaces {
 		if workspace == ws {
@@ -119,8 +97,8 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	var stateLocker clistate.Locker
-	if stateLock {
-		stateLocker = clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+	if parsedArgs.StateLock {
+		stateLocker = clistate.NewLocker(parsedArgs.StateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-replace-provider"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
@@ -138,7 +116,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	hasResources := stateMgr.State().HasManagedResourceInstanceObjects()
 
-	if hasResources && !force {
+	if hasResources && !parsedArgs.Force {
 		// We'll collect a list of what's being managed here as extra context
 		// for the message.
 		var buf strings.Builder
@@ -176,7 +154,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	dwDiags := b.DeleteWorkspace(workspace, force)
+	dwDiags := b.DeleteWorkspace(workspace, parsedArgs.Force)
 	diags = diags.Append(dwDiags)
 	if dwDiags.HasErrors() {
 		c.Ui.Error(dwDiags.Err().Error())
