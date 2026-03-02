@@ -5,9 +5,9 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -18,16 +18,10 @@ type GetCommand struct {
 }
 
 func (c *GetCommand) Run(args []string) int {
-	var update bool
-	var testsDirectory string
-
 	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("get")
-	cmdFlags.BoolVar(&update, "update", false, "update")
-	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseGet(args)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -35,7 +29,7 @@ func (c *GetCommand) Run(args []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	path, err := ModulePath(cmdFlags.Args())
+	path, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -43,7 +37,7 @@ func (c *GetCommand) Run(args []string) int {
 
 	path = c.normalizePath(path)
 
-	abort, diags := getModules(ctx, &c.Meta, path, testsDirectory, update)
+	abort, diags := getModules(ctx, &c.Meta, path, parsedArgs.TestsDirectory, parsedArgs.Update)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
