@@ -77,7 +77,7 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 	var version configs.VersionConstraint
 	if n.ModuleCall.VersionExpr != nil {
 		var versionDiags tfdiags.Diagnostics
-		version, versionDiags = decodeVersionConstraint(n.ModuleCall.VersionExpr, ctx)
+		version, versionDiags = evalVersionConstraint(n.ModuleCall.VersionExpr, ctx)
 		diags = diags.Append(versionDiags)
 		if diags.HasErrors() {
 			return diags
@@ -85,7 +85,7 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 	}
 
 	hasVersion := n.ModuleCall.VersionExpr != nil
-	source, sourceDiags := decodeSource(n.ModuleCall.SourceExpr, hasVersion, ctx)
+	source, sourceRaw, sourceDiags := evalSource(n.ModuleCall.SourceExpr, hasVersion, ctx)
 	diags = diags.Append(sourceDiags)
 	if diags.HasErrors() {
 		return diags
@@ -115,6 +115,7 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		Children:          map[string]*configs.Config{},
 		CallRange:         n.ModuleCall.DeclRange,
 		SourceAddr:        source,
+		SourceAddrRaw:     sourceRaw,
 		SourceAddrRange:   n.ModuleCall.SourceExpr.Range(),
 		Version:           v,
 		VersionConstraint: version,
@@ -153,7 +154,7 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	return &g, nil
 }
 
-func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (addrs.ModuleSource, tfdiags.Diagnostics) {
+func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (addrs.ModuleSource, string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var addr addrs.ModuleSource
 	var err error
@@ -161,7 +162,7 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 	refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, sourceExpr)
 	diags = diags.Append(refsDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, "", diags
 	}
 
 	for _, ref := range refs {
@@ -175,14 +176,14 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 				Detail:   "The module source can only reference input variables and local values.",
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
-			return nil, diags
+			return nil, "", diags
 		}
 	}
 
 	value, valueDiags := ctx.EvaluateExpr(sourceExpr, cty.String, nil)
 	diags = diags.Append(valueDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, "", diags
 	}
 
 	if !value.IsWhollyKnown() {
@@ -194,20 +195,20 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 				Detail:   "The module source contains a reference that is unknown during init.",
 				Subject:  sourceExpr.Range().Ptr(),
 			})
-			return nil, diags
+			return nil, "", diags
 		}
 		for _, part := range tExpr.Parts {
 			partVal, partDiags := ctx.EvaluateExpr(part, cty.DynamicPseudoType, nil)
 			diags = diags.Append(partDiags)
 			if diags.HasErrors() {
-				return nil, diags
+				return nil, "", diags
 			}
 
 			scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 			hclCtx, evalDiags := scope.EvalContext(refs)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
-				return nil, diags
+				return nil, "", diags
 			}
 			if !partVal.IsKnown() {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -219,7 +220,7 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 					EvalContext: hclCtx,
 					Extra:       diagnosticCausedByUnknown(true),
 				})
-				return nil, diags
+				return nil, "", diags
 			}
 		}
 		diags = diags.Append(&hcl.Diagnostic{
@@ -228,13 +229,14 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 			Detail:   "The module source contains a reference that is unknown.",
 			Subject:  sourceExpr.Range().Ptr(),
 		})
-		return nil, diags
+		return nil, "", diags
 	}
 
+	rawSource := value.AsString()
 	if hasVersion {
-		addr, err = moduleaddrs.ParseModuleSourceRegistry(value.AsString())
+		addr, err = moduleaddrs.ParseModuleSourceRegistry(rawSource)
 	} else {
-		addr, err = moduleaddrs.ParseModuleSource(value.AsString())
+		addr, err = moduleaddrs.ParseModuleSource(rawSource)
 	}
 	if err != nil {
 		// NOTE: We leave add as nil for any situation where the
@@ -283,10 +285,10 @@ func decodeSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (
 		}
 	}
 
-	return addr, diags
+	return addr, rawSource, diags
 }
 
-func decodeVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs.VersionConstraint, tfdiags.Diagnostics) {
+func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs.VersionConstraint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rng := versionExpr.Range()
 
