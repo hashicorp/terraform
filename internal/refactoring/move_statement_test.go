@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package refactoring
+package refactoring_test
 
 import (
 	"sort"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -114,9 +115,9 @@ func TestImpliedMoveStatements(t *testing.T) {
 		)
 	})
 
-	explicitStmts := FindMoveStatements(rootCfg)
-	got := ImpliedMoveStatements(rootCfg, prevRunState, explicitStmts)
-	want := []MoveStatement{
+	explicitStmts := refactoring.FindMoveStatements(rootCfg)
+	got := refactoring.ImpliedMoveStatements(rootCfg, prevRunState, explicitStmts)
+	want := []refactoring.MoveStatement{
 		{
 			From: addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
 			To:   addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
@@ -199,7 +200,7 @@ func TestImpliedMoveStatements(t *testing.T) {
 
 	sort.Slice(got, func(i, j int) bool {
 		// This is just an arbitrary sort to make the result consistent
-		// regardless of what order the ImpliedMoveStatements function
+		// regardless of what order the refactoring.ImpliedMoveStatements function
 		// visits the entries in the state/config.
 		return got[i].DeclRange.Start.Line < got[j].DeclRange.Start.Line
 	})
