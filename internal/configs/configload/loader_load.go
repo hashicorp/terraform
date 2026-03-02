@@ -12,12 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
-// LoadConfigWithTests matches LoadConfig, except the configs.Config contains
-// any relevant .tftest.hcl files.
-func (l *Loader) LoadStaticConfigWithTests(rootDir string, testDir string) (*configs.Config, hcl.Diagnostics) {
-	return l.loadConfig(l.parser.LoadConfigDir(rootDir, append(l.parserOpts, configs.MatchTestFiles(testDir))...))
-}
-
 // LoadRootModule reads the root module using the loader's parser options.
 func (l *Loader) LoadRootModule(rootDir string) (*configs.Module, hcl.Diagnostics) {
 	return l.parser.LoadConfigDir(rootDir, l.parserOpts...)
@@ -26,23 +20,6 @@ func (l *Loader) LoadRootModule(rootDir string) (*configs.Module, hcl.Diagnostic
 // LoadRootModuleWithTests reads the root module and includes test files from the given directory.
 func (l *Loader) LoadRootModuleWithTests(rootDir string, testDir string) (*configs.Module, hcl.Diagnostics) {
 	return l.parser.LoadConfigDir(rootDir, append(l.parserOpts, configs.MatchTestFiles(testDir))...)
-}
-
-func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*configs.Config, hcl.Diagnostics) {
-	if rootMod == nil || diags.HasErrors() {
-		// Ensure we return any parsed modules here so that required_version
-		// constraints can be verified even when encountering errors.
-		cfg := &configs.Config{
-			Module: rootMod,
-		}
-
-		return cfg, diags
-	}
-
-	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad), configs.MockDataLoaderFunc(l.LoadExternalMockData))
-	diags = append(diags, cDiags...)
-
-	return cfg, diags
 }
 
 // LoadExternalMockData reads the external mock data files for the given
