@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -21,34 +22,18 @@ type LogoutCommand struct {
 
 // Run implements cli.Command.
 func (c *LogoutCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("logout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
+	parsedArgs, diags := arguments.ParseLogout(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"The logout command expects at most one argument: the host to log out of.")
-		cmdFlags.Usage()
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	givenHostname := "app.terraform.io"
-	if len(args) != 0 {
-		givenHostname = args[0]
-	}
-
-	hostname, err := svchost.ForComparison(givenHostname)
+	hostname, err := svchost.ForComparison(parsedArgs.Hostname)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid hostname",
-			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
+			fmt.Sprintf("The given hostname %q is not valid: %s.", parsedArgs.Hostname, err.Error()),
 		))
 		c.showDiagnostics(diags)
 		return 1
