@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package http
@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -102,23 +101,21 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
 	case http.StatusConflict, http.StatusLocked:
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", &statemgr.LockError{
-				Info: info,
-				Err:  fmt.Errorf("HTTP remote state already locked, failed to read body"),
+				Err: fmt.Errorf("HTTP remote state already locked, failed to read body"),
 			}
 		}
 		existing := statemgr.LockInfo{}
 		err = json.Unmarshal(body, &existing)
 		if err != nil {
 			return "", &statemgr.LockError{
-				Info: info,
-				Err:  fmt.Errorf("HTTP remote state already locked, failed to unmarshal body"),
+				Err: fmt.Errorf("HTTP remote state already locked, failed to unmarshal body"),
 			}
 		}
 		return "", &statemgr.LockError{
-			Info: info,
+			Info: &existing,
 			Err:  fmt.Errorf("HTTP remote state already locked: ID=%s", existing.ID),
 		}
 	default:

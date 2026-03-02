@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -153,7 +152,7 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
 func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
-	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
+	f, err := os.CreateTemp("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
 	}
@@ -206,6 +205,79 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// (At the time of writing, no caller actually does that, but who
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+
+		Authentication: NewArchiveChecksumAuthentication(target, checksum),
+	}
+	return meta, close, nil
+}
+
+// This is basically the same as FakePackageMeta, except that we'll use a PackageHTTPURL instead of a PackageLocalArchive when creating metadata for the provider.
+// By doing so, we create a mock source that makes Terraform believe it's downloading the provider via HTTP, instead of from a local archive.
+//
+// The caller is responsible for calling the close callback to clean up the temporary file.
+// The temporary file is only used to calculate checksums and isn't actually used to install the provider in the test.
+func FakePackageMetaViaHTTP(provider addrs.Provider, version Version, protocols VersionList, target Platform, locationBaseUrl string, execFilename string) (PackageMeta, func(), error) {
+	f, err := os.CreateTemp("", "terraform-getproviders-fake-package-")
+	if err != nil {
+		return PackageMeta{}, func() {}, err
+	}
+
+	// After this point, all of our return paths should include this as the
+	// close callback.
+	close := func() {
+		f.Close()
+		os.Remove(f.Name())
+	}
+
+	if execFilename == "" {
+		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		if target.OS == "windows" {
+			// For a little more (technically unnecessary) realism...
+			execFilename += ".exe"
+		}
+	}
+
+	zw := zip.NewWriter(f)
+	fw, err := zw.Create(execFilename)
+	if err != nil {
+		return PackageMeta{}, close, fmt.Errorf("failed to add %s to mock zip file: %s", execFilename, err)
+	}
+	fmt.Fprintf(fw, "This is a fake provider package for %s %s, not a real provider.\n", provider, version)
+	err = zw.Close()
+	if err != nil {
+		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
+	}
+
+	// Compute the SHA256 checksum of the generated file, to allow package
+	// authentication code to be exercised.
+	f.Seek(0, io.SeekStart)
+	h := sha256.New()
+	io.Copy(h, f)
+	checksum := [32]byte{}
+	h.Sum(checksum[:0])
+
+	meta := PackageMeta{
+		Provider:         provider,
+		Version:          version,
+		ProtocolVersions: protocols,
+		TargetPlatform:   target,
+
+		Location: PackageHTTPURL(
+			fmt.Sprintf(
+				"http://%[1]s/terraform-provider-%[2]s/%[3]s/terraform-provider-%[2]s_%[3]s_%[4]s.zip",
+				locationBaseUrl,
+				provider.Type,
+				version.String(),
+				target.String(),
+			),
+		),
+
+		// This is a fake filename that mimics what a real registry might
+		// indicate as a good filename for this package, in case some caller
+		// intends to use it to name a local copy of the temporary file.
+		// (At the time of writing, no caller actually does that, but who
+		// knows what the future holds?)
+		Filename: f.Name(),
 
 		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}

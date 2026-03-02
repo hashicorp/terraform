@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package planfile
@@ -322,7 +322,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.ResourceActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        0,
@@ -336,7 +336,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.ResourceActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -353,7 +353,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "baz"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.ResourceActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -458,7 +458,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				DeferredReason: providers.DeferredReasonDeferredPrereq,
 				ActionInvocationInstanceSrc: &plans.ActionInvocationInstanceSrc{
 					Addr: addrs.Action{Type: "test_action", Name: "example"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
-					ActionTrigger: &plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.ResourceActionTrigger{
 						TriggeringResourceAddr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package providercache
@@ -30,6 +30,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	// When we're installing from an HTTP URL we expect the URL to refer to
 	// a zip file. We'll fetch that into a temporary file here and then
 	// delegate to installFromLocalArchive below to actually extract it.
+
 	httpGetter := getter.HttpGetter{
 		Client:                httpclient.New(),
 		Netrc:                 true,

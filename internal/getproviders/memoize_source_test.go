@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -88,7 +88,6 @@ func TestMemoizeSource(t *testing.T) {
 		if warns[0] != "WARNING!" {
 			t.Fatalf("wrong result! Got %s, expected \"WARNING!\"", warns[0])
 		}
-
 	})
 	t.Run("PackageMeta for existing provider", func(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, nil)

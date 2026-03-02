@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
@@ -21,19 +20,14 @@ type StateListCommand struct {
 }
 
 func (c *StateListCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var statePath string
-	cmdFlags := c.Meta.defaultFlagSet("state list")
-	cmdFlags.StringVar(&statePath, "state", "", "path")
-	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return cli.RunResultHelp
+	parsedArgs, diags := arguments.ParseStateList(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
-	args = cmdFlags.Args()
 
-	if statePath != "" {
-		c.Meta.statePath = statePath
+	if parsedArgs.StatePath != "" {
+		c.Meta.statePath = parsedArgs.StatePath
 	}
 
 	// Load the backend
@@ -69,10 +63,10 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	var addrs []addrs.AbsResourceInstance
-	if len(args) == 0 {
+	if len(parsedArgs.Addrs) == 0 {
 		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
 	} else {
-		addrs, diags = c.lookupResourceInstanceAddrs(state, args...)
+		addrs, diags = c.lookupResourceInstanceAddrs(state, parsedArgs.Addrs...)
 	}
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -81,7 +75,7 @@ func (c *StateListCommand) Run(args []string) int {
 
 	for _, addr := range addrs {
 		if is := state.ResourceInstance(addr); is != nil {
-			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
+			if parsedArgs.ID == "" || parsedArgs.ID == states.LegacyInstanceObjectID(is.Current) {
 				c.Ui.Output(addr.String())
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package deprecation
@@ -6,10 +6,25 @@ package deprecation
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func deprecationMarkAtPath(pathMarks []cty.PathValueMarks, path cty.Path) (marks.DeprecationMark, bool) {
+	for _, pvm := range pathMarks {
+		if !pvm.Path.Equals(path) {
+			continue
+		}
+		for mark := range pvm.Marks {
+			if depMark, ok := mark.(marks.DeprecationMark); ok {
+				return depMark, true
+			}
+		}
+	}
+	return marks.DeprecationMark{}, false
+}
 
 func TestMarkDeprecatedValues_NilSchema(t *testing.T) {
 	val := cty.ObjectVal(map[string]cty.Value{
@@ -57,6 +72,245 @@ func TestMarkDeprecatedValues_NoDeprecations(t *testing.T) {
 
 	if !unmarkedResult.RawEquals(val) {
 		t.Errorf("expected unmarked value to equal original value")
+	}
+}
+
+func TestMarkDeprecatedValues_DeprecationMessages(t *testing.T) {
+	tests := map[string]struct {
+		schema          *configschema.Block
+		val             cty.Value
+		path            cty.Path
+		expectedMessage string
+	}{
+		"resource without message": {
+			schema: &configschema.Block{
+				Deprecated: true,
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{}),
+			path:            cty.Path{},
+			expectedMessage: "Deprecated resource used as value. Refer to the provider documentation for details.",
+		},
+		"resource with message": {
+			schema: &configschema.Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated, use test_new_resource",
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{}),
+			path:            cty.Path{},
+			expectedMessage: "resource is deprecated, use test_new_resource",
+		},
+		"attribute without message": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:       cty.String,
+						Optional:   true,
+						Deprecated: true,
+					},
+				},
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+			path:            cty.GetAttrPath("foo"),
+			expectedMessage: `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+		},
+		"attribute with message": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "foo is deprecated, use bar",
+					},
+				},
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+			path:            cty.GetAttrPath("foo"),
+			expectedMessage: "foo is deprecated, use bar",
+		},
+		"block without message": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated: true,
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			val: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+			}),
+			path:            cty.GetAttrPath("nested"),
+			expectedMessage: `Deprecated resource block "nested" used. Refer to the provider documentation for details.`,
+		},
+		"block with message": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			val: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+			}),
+			path:            cty.GetAttrPath("nested"),
+			expectedMessage: "nested block is deprecated",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := MarkDeprecatedValues(test.val, test.schema, "origin")
+			_, pathMarks := result.UnmarkDeepWithPaths()
+
+			depMark, ok := deprecationMarkAtPath(pathMarks, test.path)
+			if !ok {
+				t.Fatalf("expected deprecation mark at path %#v", test.path)
+			}
+			if depMark.Message != test.expectedMessage {
+				t.Fatalf("wrong deprecation message %q; want %q", depMark.Message, test.expectedMessage)
+			}
+		})
+	}
+}
+
+func TestMarkDeprecatedValues_DiagnosticMessages(t *testing.T) {
+	tests := map[string]struct {
+		schema          *configschema.Block
+		val             cty.Value
+		expectedMessage string
+	}{
+		"resource without message": {
+			schema: &configschema.Block{
+				Deprecated: true,
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{}),
+			expectedMessage: "Deprecated resource used as value. Refer to the provider documentation for details.",
+		},
+		"resource with message": {
+			schema: &configschema.Block{
+				Deprecated:         true,
+				DeprecationMessage: "resource is deprecated, use test_new_resource",
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{}),
+			expectedMessage: "resource is deprecated, use test_new_resource",
+		},
+		"attribute without message": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:       cty.String,
+						Optional:   true,
+						Deprecated: true,
+					},
+				},
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+			expectedMessage: `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+		},
+		"attribute with message": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						Deprecated:         true,
+						DeprecationMessage: "foo is deprecated, use bar",
+					},
+				},
+			},
+			val:             cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+			expectedMessage: "foo is deprecated, use bar",
+		},
+		"block without message": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated: true,
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			val: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+			}),
+			expectedMessage: `Deprecated resource block "nested" used. Refer to the provider documentation for details.`,
+		},
+		"block with message": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "nested block is deprecated",
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			val: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+			}),
+			expectedMessage: "nested block is deprecated",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			marked := MarkDeprecatedValues(test.val, test.schema, "origin")
+			_, diags := NewDeprecations().ValidateAndUnmarkConfig(marked, test.schema, addrs.RootModule)
+			warnings := diags.Warnings()
+
+			if len(warnings) != 1 {
+				t.Fatalf("expected exactly one warning, got %d", len(warnings))
+			}
+
+			got := warnings[0].Description().Detail
+			if got != test.expectedMessage {
+				t.Fatalf("wrong deprecation message %q; want %q", got, test.expectedMessage)
+			}
+		})
 	}
 }
 

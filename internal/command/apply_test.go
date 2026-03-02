@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -111,9 +111,9 @@ func TestApply_approveNo(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "no",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -156,9 +156,9 @@ func TestApply_approveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "yes",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -319,7 +319,6 @@ func TestApply_parallelism(t *testing.T) {
 			}
 		}
 		provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-
 			// If we ever have more than our intended parallelism number of
 			// apply operations running concurrently, the semaphore will fail.
 			select {
@@ -1943,6 +1942,7 @@ func TestApply_refreshFalse(t *testing.T) {
 		t.Fatal("should not call ReadResource when refresh=false")
 	}
 }
+
 func TestApply_shutdown(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()

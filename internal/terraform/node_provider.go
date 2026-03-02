@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -84,7 +84,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	}
 
 	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, configSchema, n.Addr.Module)
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, configSchema, n.Addr.Module)
 	diags = diags.Append(deprecationDiags.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags

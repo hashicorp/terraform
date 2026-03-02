@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package workdir
@@ -18,9 +18,11 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-var _ ConfigState = &StateStoreConfigState{}
-var _ DeepCopier[StateStoreConfigState] = &StateStoreConfigState{}
-var _ PlanDataProvider[plans.StateStore] = &StateStoreConfigState{}
+var (
+	_ ConfigState                        = &StateStoreConfigState{}
+	_ DeepCopier[StateStoreConfigState]  = &StateStoreConfigState{}
+	_ PlanDataProvider[plans.StateStore] = &StateStoreConfigState{}
+)
 
 // StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
@@ -39,7 +41,6 @@ func (s *StateStoreConfigState) Empty() bool {
 // important values have been validated, e.g. FQNs. When the config is
 // invalid an error will be returned.
 func (s *StateStoreConfigState) Validate() error {
-
 	// Are any bits of data totally missing?
 	if s.Empty() {
 		return fmt.Errorf("attempted to encode a malformed backend state file; data is empty")
@@ -129,7 +130,21 @@ func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, provid
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode state_store's nested provider config: %w", err)
 	}
-	return plans.NewStateStore(s.Type, s.Provider.Version, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, providerSchema, workspaceName)
+
+	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		return nil, fmt.Errorf("Unable to determine if state storage provider is reattached while saving state store data to a plan file. This is a bug in Terraform and should be reported: %w", err)
+	}
+
+	var providerVersion *version.Version
+	if s.Provider.Source.IsBuiltIn() || isReattached {
+		// For built-in providers and reattached providers, we don't require version information to be present in the state file, so we should be tolerant of it being missing. In this case we can just use a placeholder version that will never actually be used for anything, but allows us to avoid returning an error when trying to save state store data to a plan file.
+		providerVersion = version.Must(version.NewVersion("0.0.0"))
+	} else {
+		providerVersion = s.Provider.Version
+	}
+
+	return plans.NewStateStore(s.Type, providerVersion, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, providerSchema, workspaceName)
 }
 
 func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {

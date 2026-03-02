@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -102,7 +102,7 @@ func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiag
 		}
 	}
 	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateConfig(configVal, schema.ConfigSchema, n.ModulePath())
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.ConfigSchema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, schema.ConfigSchema)

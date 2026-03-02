@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -102,7 +102,7 @@ resource "test_object" "a" {
 				}
 
 				evaluateHook := func(got HookActionIdentity, wantAddr string, wantEvent configs.ActionTriggerEvent) {
-					trigger := got.ActionTrigger.(*plans.LifecycleActionTrigger)
+					trigger := got.ActionTrigger.(*plans.ResourceActionTrigger)
 
 					if trigger.ActionTriggerEvent != wantEvent {
 						t.Errorf("wrong event, got %s, want %s", trigger.ActionTriggerEvent, wantEvent)

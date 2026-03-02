@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -43,14 +43,6 @@ func (c *InitCommand) runPssInit(initArgs *arguments.Init, view views.Init) int 
 	c.Meta.input = initArgs.InputEnabled
 	c.Meta.targetFlags = initArgs.TargetFlags
 	c.Meta.compactWarnings = initArgs.CompactWarnings
-
-	varArgs := initArgs.Vars.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
-	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state
@@ -437,7 +429,6 @@ func (c *InitCommand) initPssBackend(ctx context.Context, root *configs.Module, 
 
 		opts = &BackendOpts{
 			StateStoreConfig:       root.StateStore,
-			ProviderRequirements:   root.ProviderRequirements,
 			Locks:                  configLocks,
 			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
 			ConfigOverride:         configOverride,

@@ -9,6 +9,8 @@ NEW FEATURES:
 
 * backend/s3: Support authentication via `aws login` ([#37967](https://github.com/hashicorp/terraform/issues/37967))
 
+* validate: The validate command now checks the `backend` block. This ensures the backend type exists, that all required attributes are present, and that the backend's own validation logic passes. ([#38021](https://github.com/hashicorp/terraform/issues/38021))
+
 
 ENHANCEMENTS:
 
@@ -43,9 +45,11 @@ BUG FIXES:
 
 * stacks: send progress events if the plan fails for better UI integration ([#38039](https://github.com/hashicorp/terraform/issues/38039))
 
-* cloud: terraform cloud and registry discovery network requests are now more resilient, making temporary network or service related errors less common ([#38064](https://github.com/hashicorp/terraform/issues/38064))
-
 * stacks: component instances should report no-op plan/apply. This solves a UI inconsistency with convergence destroy plans  ([#38049](https://github.com/hashicorp/terraform/issues/38049))
+
+* backend/http: Return conflicting lock info from HTTP backend instead of the lock that failed to be taken ([#38144](https://github.com/hashicorp/terraform/issues/38144))
+
+* states: fixed a bug that caused Terraform to be unable to identify when two states had different output values. This may have caused issues in specific circumstances like backend migrations. ([#38181](https://github.com/hashicorp/terraform/issues/38181))
 
 
 UPGRADE NOTES:

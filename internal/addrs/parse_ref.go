@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -407,6 +407,17 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "action"
 		return parseActionRef(rootRange, remain)
+
+	case "string", "number", "bool", "any":
+		if len(traversal) == 1 {
+			// A standalone word is a primitive type constraint.
+			return nil, diags
+		}
+
+		// There could technically be providers that implement resources by
+		// these names, so if the traversal has more parts we still fallthrough
+		// to the default resource parsing.
+		fallthrough
 	default:
 		return parseResourceRef(ManagedResourceMode, rootRange, traversal)
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -260,8 +259,8 @@ type TestRunnerSetup struct {
 	Args          *arguments.Test
 	View          views.Test
 	Config        *configs.Config
-	Variables     map[string]backendrun.UnparsedVariableValue
-	TestVariables map[string]backendrun.UnparsedVariableValue
+	Variables     map[string]arguments.UnparsedVariableValue
+	TestVariables map[string]arguments.UnparsedVariableValue
 	Opts          *terraform.ContextOpts
 }
 
@@ -378,23 +377,25 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
-	// Users can also specify variables via the command line, so we'll parse
-	// all that here.
-	var items []arguments.FlagNameValue
-	for _, variable := range preparation.Args.Vars.All() {
-		items = append(items, arguments.FlagNameValue{
-			Name:  variable.Name,
-			Value: variable.Value,
-		})
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(nil, nil, diags)
+		return
 	}
-	m.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+
+	registerFileSource := func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	}
 
 	// Collect variables for "terraform test"
-	preparation.TestVariables, moreDiags = m.collectVariableValuesForTests(preparation.Args.TestDirectory)
+	preparation.TestVariables, moreDiags = arguments.CollectValuesForTests(preparation.Args.TestDirectory, registerFileSource)
 	diags = diags.Append(moreDiags)
 
-	preparation.Variables, moreDiags = m.collectVariableValues()
-	diags = diags.Append(moreDiags)
+	// Collect variable value and add them to the operation request
+	var varDiags tfdiags.Diagnostics
+	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(registerFileSource)
+	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return

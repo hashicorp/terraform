@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -21,10 +21,9 @@ type StatePullCommand struct {
 }
 
 func (c *StatePullCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("state pull")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	_, diags := arguments.ParseStatePull(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 

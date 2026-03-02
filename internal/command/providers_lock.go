@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -39,44 +39,18 @@ func (c *ProvidersLockCommand) Synopsis() string {
 }
 
 func (c *ProvidersLockCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("providers lock")
-	var optPlatforms arguments.FlagStringSlice
-	var fsMirrorDir string
-	var netMirrorURL string
-	var testDirectory string
-
-	cmdFlags.Var(&optPlatforms, "platform", "target platform")
-	cmdFlags.StringVar(&fsMirrorDir, "fs-mirror", "", "filesystem mirror directory")
-	cmdFlags.StringVar(&netMirrorURL, "net-mirror", "", "network mirror base URL")
-	cmdFlags.StringVar(&testDirectory, "test-directory", "tests", "test-directory")
-	pluginCache := cmdFlags.Bool("enable-plugin-cache", false, "")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	if fsMirrorDir != "" && netMirrorURL != "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid installation method options",
-			"The -fs-mirror and -net-mirror command line options are mutually-exclusive.",
-		))
+	parsedArgs, diags := arguments.ParseProvidersLock(c.Meta.process(args))
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	providerStrs := cmdFlags.Args()
-
 	var platforms []getproviders.Platform
-	if len(optPlatforms) == 0 {
+	if len(parsedArgs.Platforms) == 0 {
 		platforms = []getproviders.Platform{getproviders.CurrentPlatform}
 	} else {
-		platforms = make([]getproviders.Platform, 0, len(optPlatforms))
-		for _, platformStr := range optPlatforms {
+		platforms = make([]getproviders.Platform, 0, len(parsedArgs.Platforms))
+		for _, platformStr := range parsedArgs.Platforms {
 			platform, err := getproviders.ParsePlatform(platformStr)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -104,10 +78,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// against the upstream checksums.
 	var source getproviders.Source
 	switch {
-	case fsMirrorDir != "":
-		source = getproviders.NewFilesystemMirrorSource(fsMirrorDir)
-	case netMirrorURL != "":
-		u, err := url.Parse(netMirrorURL)
+	case parsedArgs.FSMirrorDir != "":
+		source = getproviders.NewFilesystemMirrorSource(parsedArgs.FSMirrorDir)
+	case parsedArgs.NetMirrorURL != "":
+		u, err := url.Parse(parsedArgs.NetMirrorURL)
 		if err != nil || u.Scheme != "https" {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -125,7 +99,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		source = getproviders.NewRegistrySource(c.Services)
 	}
 
-	config, confDiags := c.loadConfigWithTests(".", testDirectory)
+	config, confDiags := c.loadConfigWithTests(".", parsedArgs.TestsDirectory)
 	diags = diags.Append(confDiags)
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
@@ -134,9 +108,9 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// we'll modify "reqs" to only include those. Modifying this is okay
 	// because config.ProviderRequirements generates a fresh map result
 	// for each call.
-	if len(providerStrs) != 0 {
+	if len(parsedArgs.Providers) != 0 {
 		providers := map[addrs.Provider]struct{}{}
-		for _, raw := range providerStrs {
+		for _, raw := range parsedArgs.Providers {
 			addr, moreDiags := addrs.ParseProviderSourceString(raw)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
@@ -253,7 +227,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 		// Use global plugin cache for extra speed if present and flag is set
 		globalCacheDir := c.providerGlobalCacheDir()
-		if *pluginCache && globalCacheDir != nil {
+		if parsedArgs.EnablePluginCache && globalCacheDir != nil {
 			installer.SetGlobalCacheDir(globalCacheDir.WithPlatform(platform))
 			installer.SetGlobalCacheDirMayBreakDependencyLockFile(c.PluginCacheMayBreakDependencyLockFile)
 		}

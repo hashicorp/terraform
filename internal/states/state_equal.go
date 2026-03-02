@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package states
@@ -101,7 +101,7 @@ func (s *State) RootOutputValuesEqual(s2 *State) bool {
 		return false
 	}
 
-	for k, v1 := range s2.RootOutputValues {
+	for k, v1 := range s.RootOutputValues {
 		v2, ok := s2.RootOutputValues[k]
 		if !ok || !v1.Equal(v2) {
 			return false
