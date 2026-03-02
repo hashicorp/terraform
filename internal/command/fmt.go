@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -56,29 +57,26 @@ func (c *FmtCommand) Run(args []string) int {
 		fmtSupportedExts = append(fmtSupportedExts, ".tfquery.hcl")
 	}
 
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("fmt")
-	cmdFlags.BoolVar(&c.list, "list", true, "list")
-	cmdFlags.BoolVar(&c.write, "write", true, "write")
-	cmdFlags.BoolVar(&c.diff, "diff", false, "diff")
-	cmdFlags.BoolVar(&c.check, "check", false, "check")
-	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseFmt(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
+	c.list = parsedArgs.List
+	c.write = parsedArgs.Write
+	c.diff = parsedArgs.Diff
+	c.check = parsedArgs.Check
+	c.recursive = parsedArgs.Recursive
 
 	var paths []string
-	if len(args) == 0 {
+	if len(parsedArgs.Paths) == 0 {
 		paths = []string{"."}
-	} else if args[0] == stdinArg {
+	} else if parsedArgs.Paths[0] == stdinArg {
 		c.list = false
 		c.write = false
 	} else {
-		paths = args
+		paths = parsedArgs.Paths
 	}
 
 	var output io.Writer
@@ -93,9 +91,9 @@ func (c *FmtCommand) Run(args []string) int {
 		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
-	diags := c.fmt(paths, c.input, output)
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	fmtDiags := c.fmt(paths, c.input, output)
+	c.showDiagnostics(fmtDiags)
+	if fmtDiags.HasErrors() {
 		return 2
 	}
 
