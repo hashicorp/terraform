@@ -48,7 +48,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "foo"
@@ -68,7 +70,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp2/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "bar"
@@ -116,9 +120,7 @@
       ],
       "module_calls": {
         "child": {
-          "source": {
-            "constant_value": "./child"
-          },
+          "source": "./child",
           "module": {
             "resources": [
               {
