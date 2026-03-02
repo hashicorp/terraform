@@ -7,7 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -201,7 +200,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
-		Actions:                 actions.NewActions(),
 		Deprecations:            deprecation.NewDeprecations(),
 	}
 }

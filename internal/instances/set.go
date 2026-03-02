@@ -52,3 +52,15 @@ func (s Set) HasResource(want addrs.AbsResource) bool {
 func (s Set) InstancesForModule(modAddr addrs.Module, includeDirectOverrides bool) []addrs.ModuleInstance {
 	return s.exp.expandModule(modAddr, true, includeDirectOverrides)
 }
+
+// HasActionInstance returns true if and only if the set contains the actions
+// instance with the given address.
+func (s Set) HasActionInstance(want addrs.AbsActionInstance) bool {
+	return s.exp.knowsActionInstance(want)
+}
+
+// HasAction returns true if and only if the set contains the actions with
+// the given address, even if that action has no instances.
+func (s Set) HasAction(want addrs.AbsAction) bool {
+	return s.exp.knowsAction(want)
+}

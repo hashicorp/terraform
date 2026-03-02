@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeActionDeclarationPartialExpanded is a graph node that stands in for
@@ -59,22 +58,20 @@ func (n *NodeActionDeclarationPartialExpanded) ActionAddr() addrs.ConfigAction {
 func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	ctx.Deferrals().ReportActionExpansionDeferred(n.addr)
-	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.config.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, instances.TotallyUnknownRepetitionData)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, instances.TotallyUnknownRepetitionData)
 
 		diags = diags.Append(configDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 		var deprecationDiags tfdiags.Diagnostics
-		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
+		_, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
 		diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.ActionAddr().String()))
 		if diags.HasErrors() {
 			return diags
 		}
 	}
-	ctx.Actions().AddPartialExpandedAction(n.addr, configVal, n.resolvedProvider)
 	return nil
 }

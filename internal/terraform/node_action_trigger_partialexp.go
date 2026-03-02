@@ -7,9 +7,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -84,25 +86,54 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		return nil
 	}
 
-	actionInstance, ok := ctx.Actions().GetPartialExpandedAction(n.addr)
-	if !ok {
-		panic("action is nil")
-	}
-
-	provider, _, err := getProvider(ctx, actionInstance.ProviderAddr)
+	provider, schema, err := getProvider(ctx, n.resolvedProvider)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Failed to get provider",
+			Summary:  fmt.Sprintf("Failed to get provider for %s", n.addr),
 			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
-			Subject:  n.lifecycleActionTrigger.invokingSubject,
+			Subject:  &n.config.DeclRange,
 		})
-
 		return diags
 	}
 
+	actionSchema, ok := schema.Actions[n.addr.ConfigAction().Action.Type]
+	if !ok {
+		// This should have been caught earlier
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Action %s not found in provider schema", n.addr),
+			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", n.addr.ConfigAction().Action.Type, n.resolvedProvider),
+			Subject:  &n.config.DeclRange,
+		})
+		return diags
+	}
+
+	expander := ctx.InstanceExpander()
+	keyData := expander.GetActionInstanceRepetitionData(n.addr.UnknownActionInstance())
+	configVal := cty.NullVal(actionSchema.ConfigSchema.ImpliedType())
+	if n.config.Config != nil {
+		var configDiags tfdiags.Diagnostics
+		configVal, _, configDiags = ctx.EvaluateBlock(n.config.Config, actionSchema.ConfigSchema, nil, keyData)
+
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return diags
+		}
+
+		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, actionSchema.ConfigSchema)
+		diags = diags.Append(valDiags.InConfigBody(n.config.Config, n.addr.String()))
+
+		if valDiags.HasErrors() {
+			return diags
+		}
+
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmarkConfig(configVal, actionSchema.ConfigSchema, n.ActionAddr().Module)
+		diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
+	}
+
 	// We remove the marks for planning, we will record the sensitive values in the plans.ActionInvocationInstance
-	unmarkedConfig, _ := actionInstance.ConfigValue.UnmarkDeepWithPaths()
+	unmarkedConfig, _ := configVal.UnmarkDeepWithPaths()
 
 	resp := provider.PlanAction(providers.PlanActionRequest{
 		ActionType:         n.addr.ConfigAction().Action.Type,
@@ -125,7 +156,7 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,
 				ActionsListIndex:        n.lifecycleActionTrigger.actionListIndex,
 			},
-			ConfigValue: actionInstance.ConfigValue,
+			ConfigValue: ephemeral.RemoveEphemeralValues(configVal),
 		}, providers.DeferredReasonInstanceCountUnknown)
 	}
 	return nil

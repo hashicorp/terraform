@@ -590,6 +590,20 @@ func (e *Expander) knowsResource(want addrs.AbsResource) bool {
 	return e.exps.knowsResource(want)
 }
 
+func (e *Expander) knowsActionInstance(want addrs.AbsActionInstance) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsActionInstance(want)
+}
+
+func (e *Expander) knowsAction(want addrs.AbsAction) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsAction(want)
+}
+
 type expanderModule struct {
 	moduleCalls    map[addrs.ModuleCall]expansion
 	resources      map[addrs.Resource]expansion
@@ -1055,7 +1069,7 @@ func (m *expanderModule) onlyActionInstances(actionAddr addrs.Action, parentAddr
 
 // GetActionInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
-// the definition block for the given resource instance.
+// the definition block for the given action instance.
 func (e *Expander) GetActionInstanceRepetitionData(addr addrs.AbsActionInstance) RepetitionData {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -1099,4 +1113,31 @@ func (e *Expander) ActionInstanceKeys(addr addrs.AbsAction) (keyType addrs.Insta
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
 	}
 	return exp.instanceKeys()
+}
+
+func (m *expanderModule) knowsActionInstance(want addrs.AbsActionInstance) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	resourceExp := modInst.actions[want.Action.Action]
+	if resourceExp == nil {
+		return false
+	}
+	_, knownKeys, _ := resourceExp.instanceKeys()
+	for _, key := range knownKeys {
+		if key == want.Action.Key {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *expanderModule) knowsAction(want addrs.AbsAction) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	_, ret := modInst.actions[want.Action]
+	return ret
 }

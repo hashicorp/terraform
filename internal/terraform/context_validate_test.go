@@ -2870,6 +2870,14 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				"main.tf": `
             resource "aws_instance" "test" {
             }
+			resource "aws_instance" "other" {
+							lifecycle {
+					action_trigger {
+						events = [ before_create ]
+						actions = [ action.aws_register.example]
+					}
+				}
+			}
             action "aws_register" "example" {
               config {
                 host = aws_instance.test.foo
@@ -2884,8 +2892,8 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 24, Byte: 152},
-						End:      hcl.Pos{Line: 6, Column: 45, Byte: 173},
+						Start:    hcl.Pos{Line: 14, Column: 24, Byte: 328},
+						End:      hcl.Pos{Line: 14, Column: 45, Byte: 349},
 					},
 				})
 			},
