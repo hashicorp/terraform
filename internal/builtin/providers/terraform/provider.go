@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,6 +10,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -26,7 +27,7 @@ func NewProvider() providers.Interface {
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp := providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{},
+		Provider: providers.Schema{Body: &configschema.Block{}},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: true,
 		},

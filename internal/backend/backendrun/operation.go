@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendrun
@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -120,7 +121,7 @@ type Operation struct {
 	Targets              []addrs.Targetable
 	ActionTargets        []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
-	Variables            map[string]UnparsedVariableValue
+	Variables            map[string]arguments.UnparsedVariableValue
 	StatePersistInterval int
 
 	// Some operations use root module variables only opportunistically or

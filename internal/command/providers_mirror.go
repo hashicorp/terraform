@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -32,41 +32,18 @@ func (c *ProvidersMirrorCommand) Synopsis() string {
 }
 
 func (c *ProvidersMirrorCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("providers mirror")
-
-	var optPlatforms arguments.FlagStringSlice
-	cmdFlags.Var(&optPlatforms, "platform", "target platform")
-
-	var optLockFile bool
-	cmdFlags.BoolVar(&optLockFile, "lock-file", true, "use lock file")
-
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"No output directory specified",
-			"The providers mirror command requires an output directory as a command-line argument.",
-		))
+	parsedArgs, diags := arguments.ParseProvidersMirror(c.Meta.process(args))
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	outputDir := args[0]
 
 	var platforms []getproviders.Platform
-	if len(optPlatforms) == 0 {
+	if len(parsedArgs.Platforms) == 0 {
 		platforms = []getproviders.Platform{getproviders.CurrentPlatform}
 	} else {
-		platforms = make([]getproviders.Platform, 0, len(optPlatforms))
-		for _, platformStr := range optPlatforms {
+		platforms = make([]getproviders.Platform, 0, len(parsedArgs.Platforms))
+		for _, platformStr := range parsedArgs.Platforms {
 			platform, err := getproviders.ParsePlatform(platformStr)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -94,7 +71,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	diags = diags.Append(lockedDepsDiags)
 
 	// If lock file is present, validate it against configuration
-	if !lockedDeps.Empty() && optLockFile {
+	if !lockedDeps.Empty() && parsedArgs.LockFile {
 		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -166,7 +143,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if !lockedDeps.Empty() && optLockFile {
+		if !lockedDeps.Empty() && parsedArgs.LockFile {
 			selected = lockedDeps.Provider(provider).Version()
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
 		} else if len(constraintsStr) > 0 {
@@ -214,7 +191,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			// so we can verify its checksums and signatures before making
 			// it discoverable to mirror clients. (stagingPath intentionally
 			// does not follow the filesystem mirror file naming convention.)
-			targetPath := meta.PackedFilePath(outputDir)
+			targetPath := meta.PackedFilePath(parsedArgs.OutputDir)
 			stagingPath := filepath.Join(filepath.Dir(targetPath), "."+filepath.Base(targetPath))
 			err = httpGetter.GetFile(stagingPath, urlObj)
 			if err != nil {
@@ -255,7 +232,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	// by relying on the selections we made above, because we want to still
 	// include in the indices any packages that were already present and
 	// not affected by the changes we just made.
-	available, err := getproviders.SearchLocalDirectory(outputDir)
+	available, err := getproviders.SearchLocalDirectory(parsedArgs.OutputDir)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -273,7 +250,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		// we'll ask the getproviders package to build an archive filename
 		// for a fictitious package and then use the directory portion of it.
 		indexDir := filepath.Dir(getproviders.PackedFilePathForPackage(
-			outputDir, provider, versions.Unspecified, getproviders.CurrentPlatform,
+			parsedArgs.OutputDir, provider, versions.Unspecified, getproviders.CurrentPlatform,
 		))
 		indexVersions := map[string]interface{}{}
 		indexArchives := map[getproviders.Version]map[string]interface{}{}

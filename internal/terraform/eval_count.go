@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -102,7 +102,7 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		})
 	}
 
-	countVal, deprecationDiags := ctx.Deprecations().Validate(countVal, ctx.Path().Module(), expr.Range().Ptr())
+	countVal, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(countVal, ctx.Path().Module(), expr.Range().Ptr())
 	diags = diags.Append(deprecationDiags)
 
 	// Sensitive values are allowed in count but not for_each. This is a

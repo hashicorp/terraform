@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -530,7 +530,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 	} else if n.Config.Expr != nil {
 		var deprecationDiags tfdiags.Diagnostics
-		val, deprecationDiags = ctx.Deprecations().ValidateExpressionDeep(val, n.ModulePath(), n.Config.Expr)
+		val, deprecationDiags = ctx.Deprecations().ValidateExpressionDeepAndUnmark(val, n.ModulePath(), n.Config.Expr)
 		diags = diags.Append(deprecationDiags)
 	}
 

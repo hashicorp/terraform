@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 // Terraform Plugin RPC protocol version 5.10
@@ -2428,15 +2428,16 @@ func (x *ResourceIdentitySchema_IdentityAttribute) GetDescription() string {
 }
 
 type Schema_Block struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Version         int64                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Attributes      []*Schema_Attribute    `protobuf:"bytes,2,rep,name=attributes,proto3" json:"attributes,omitempty"`
-	BlockTypes      []*Schema_NestedBlock  `protobuf:"bytes,3,rep,name=block_types,json=blockTypes,proto3" json:"block_types,omitempty"`
-	Description     string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	DescriptionKind StringKind             `protobuf:"varint,5,opt,name=description_kind,json=descriptionKind,proto3,enum=tfplugin5.StringKind" json:"description_kind,omitempty"`
-	Deprecated      bool                   `protobuf:"varint,6,opt,name=deprecated,proto3" json:"deprecated,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Version            int64                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Attributes         []*Schema_Attribute    `protobuf:"bytes,2,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	BlockTypes         []*Schema_NestedBlock  `protobuf:"bytes,3,rep,name=block_types,json=blockTypes,proto3" json:"block_types,omitempty"`
+	Description        string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	DescriptionKind    StringKind             `protobuf:"varint,5,opt,name=description_kind,json=descriptionKind,proto3,enum=tfplugin5.StringKind" json:"description_kind,omitempty"`
+	Deprecated         bool                   `protobuf:"varint,6,opt,name=deprecated,proto3" json:"deprecated,omitempty"`
+	DeprecationMessage string                 `protobuf:"bytes,7,opt,name=deprecation_message,json=deprecationMessage,proto3" json:"deprecation_message,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Schema_Block) Reset() {
@@ -2511,20 +2512,28 @@ func (x *Schema_Block) GetDeprecated() bool {
 	return false
 }
 
+func (x *Schema_Block) GetDeprecationMessage() string {
+	if x != nil {
+		return x.DeprecationMessage
+	}
+	return ""
+}
+
 type Schema_Attribute struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Type            []byte                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Required        bool                   `protobuf:"varint,4,opt,name=required,proto3" json:"required,omitempty"`
-	Optional        bool                   `protobuf:"varint,5,opt,name=optional,proto3" json:"optional,omitempty"`
-	Computed        bool                   `protobuf:"varint,6,opt,name=computed,proto3" json:"computed,omitempty"`
-	Sensitive       bool                   `protobuf:"varint,7,opt,name=sensitive,proto3" json:"sensitive,omitempty"`
-	DescriptionKind StringKind             `protobuf:"varint,8,opt,name=description_kind,json=descriptionKind,proto3,enum=tfplugin5.StringKind" json:"description_kind,omitempty"`
-	Deprecated      bool                   `protobuf:"varint,9,opt,name=deprecated,proto3" json:"deprecated,omitempty"`
-	WriteOnly       bool                   `protobuf:"varint,10,opt,name=write_only,json=writeOnly,proto3" json:"write_only,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type               []byte                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Description        string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Required           bool                   `protobuf:"varint,4,opt,name=required,proto3" json:"required,omitempty"`
+	Optional           bool                   `protobuf:"varint,5,opt,name=optional,proto3" json:"optional,omitempty"`
+	Computed           bool                   `protobuf:"varint,6,opt,name=computed,proto3" json:"computed,omitempty"`
+	Sensitive          bool                   `protobuf:"varint,7,opt,name=sensitive,proto3" json:"sensitive,omitempty"`
+	DescriptionKind    StringKind             `protobuf:"varint,8,opt,name=description_kind,json=descriptionKind,proto3,enum=tfplugin5.StringKind" json:"description_kind,omitempty"`
+	Deprecated         bool                   `protobuf:"varint,9,opt,name=deprecated,proto3" json:"deprecated,omitempty"`
+	WriteOnly          bool                   `protobuf:"varint,10,opt,name=write_only,json=writeOnly,proto3" json:"write_only,omitempty"`
+	DeprecationMessage string                 `protobuf:"bytes,11,opt,name=deprecation_message,json=deprecationMessage,proto3" json:"deprecation_message,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Schema_Attribute) Reset() {
@@ -2625,6 +2634,13 @@ func (x *Schema_Attribute) GetWriteOnly() bool {
 		return x.WriteOnly
 	}
 	return false
+}
+
+func (x *Schema_Attribute) GetDeprecationMessage() string {
+	if x != nil {
+		return x.DeprecationMessage
+	}
+	return ""
 }
 
 type Schema_NestedBlock struct {
@@ -6980,10 +6996,10 @@ const file_tfplugin5_proto_rawDesc = "" +
 	"\x14ResourceIdentityData\x12<\n" +
 	"\ridentity_data\x18\x01 \x01(\v2\x17.tfplugin5.DynamicValueR\fidentityData\"9\n" +
 	"\fActionSchema\x12)\n" +
-	"\x06schema\x18\x01 \x01(\v2\x11.tfplugin5.SchemaR\x06schema\"\xeb\a\n" +
+	"\x06schema\x18\x01 \x01(\v2\x11.tfplugin5.SchemaR\x06schema\"\xcd\b\n" +
 	"\x06Schema\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x03R\aversion\x12-\n" +
-	"\x05block\x18\x02 \x01(\v2\x17.tfplugin5.Schema.BlockR\x05block\x1a\xa2\x02\n" +
+	"\x05block\x18\x02 \x01(\v2\x17.tfplugin5.Schema.BlockR\x05block\x1a\xd3\x02\n" +
 	"\x05Block\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x03R\aversion\x12;\n" +
 	"\n" +
@@ -6995,7 +7011,8 @@ const file_tfplugin5_proto_rawDesc = "" +
 	"\x10description_kind\x18\x05 \x01(\x0e2\x15.tfplugin5.StringKindR\x0fdescriptionKind\x12\x1e\n" +
 	"\n" +
 	"deprecated\x18\x06 \x01(\bR\n" +
-	"deprecated\x1a\xc8\x02\n" +
+	"deprecated\x12/\n" +
+	"\x13deprecation_message\x18\a \x01(\tR\x12deprecationMessage\x1a\xf9\x02\n" +
 	"\tAttribute\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\fR\x04type\x12 \n" +
@@ -7010,7 +7027,8 @@ const file_tfplugin5_proto_rawDesc = "" +
 	"deprecated\x12\x1d\n" +
 	"\n" +
 	"write_only\x18\n" +
-	" \x01(\bR\twriteOnly\x1a\xa7\x02\n" +
+	" \x01(\bR\twriteOnly\x12/\n" +
+	"\x13deprecation_message\x18\v \x01(\tR\x12deprecationMessage\x1a\xa7\x02\n" +
 	"\vNestedBlock\x12\x1b\n" +
 	"\ttype_name\x18\x01 \x01(\tR\btypeName\x12-\n" +
 	"\x05block\x18\x02 \x01(\v2\x17.tfplugin5.Schema.BlockR\x05block\x12C\n" +

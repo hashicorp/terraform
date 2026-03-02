@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -118,7 +119,7 @@ func (n *NodeActionTriggerPartialExpanded) Execute(ctx EvalContext, op walkOpera
 		ctx.Deferrals().ReportActionInvocationDeferred(plans.ActionInvocationInstance{
 			Addr:         n.addr.UnknownActionInstance(),
 			ProviderAddr: n.resolvedProvider,
-			ActionTrigger: &plans.LifecycleActionTrigger{
+			ActionTrigger: &plans.ResourceActionTrigger{
 				TriggeringResourceAddr:  n.lifecycleActionTrigger.resourceAddress.UnknownResourceInstance(),
 				ActionTriggerEvent:      triggeringEvent,
 				ActionTriggerBlockIndex: n.lifecycleActionTrigger.actionTriggerBlockIndex,

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -232,7 +232,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	}
 
 	if n.Expr != nil {
-		_, deprecationDiags := ctx.Deprecations().Validate(val, n.ModulePath(), n.Expr.Range().Ptr())
+		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Expr.Range().Ptr())
 		diags = diags.Append(deprecationDiags)
 	}
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package format
@@ -88,7 +88,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 			lines := strings.Split(diag.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(paraWidth))
+					line = wordwrap.WrapString(color.Color(line), uint(paraWidth))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
@@ -162,7 +162,7 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 			lines := strings.Split(diag.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width-1))
+					line = wordwrap.WrapString(disabledColorize.Color(line), uint(width-1))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}

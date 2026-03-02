@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package remote
@@ -203,6 +203,10 @@ func TestRemote_versionConstraints(t *testing.T) {
 			result:  "downgrade Terraform to <= 10.0.0",
 		},
 	}
+
+	// Ensure CHECKPOINT_DISABLE is not set, as it causes the disco library
+	// to skip version constraint checks.
+	t.Setenv("CHECKPOINT_DISABLE", "")
 
 	// Save and restore the actual version.
 	p := tfversion.Prerelease

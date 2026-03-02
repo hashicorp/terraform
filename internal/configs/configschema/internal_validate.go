@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -29,6 +29,10 @@ func (b *Block) InternalValidate() error {
 func (b *Block) internalValidate(prefix string) error {
 	var multiErr error
 
+	if prefix == "" && !b.Deprecated && b.DeprecationMessage != "" {
+		multiErr = errors.Join(multiErr, fmt.Errorf("top-level block: DeprecationMessage must not be set when Deprecated is false"))
+	}
+
 	for name, attrS := range b.Attributes {
 		if attrS == nil {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
@@ -47,6 +51,9 @@ func (b *Block) internalValidate(prefix string) error {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: name defined as both attribute and child block type", prefix, name))
 		} else if !validName.MatchString(name) {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
+		}
+		if !blockS.Deprecated && blockS.DeprecationMessage != "" {
+			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: DeprecationMessage must not be set when Deprecated is false", prefix, name))
 		}
 
 		if blockS.MinItems < 0 || blockS.MaxItems < 0 {
@@ -125,6 +132,9 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 	}
 	if a.Computed && a.Required {
 		err = errors.Join(err, fmt.Errorf("%s%s: cannot set both Computed and Required", prefix, name))
+	}
+	if !a.Deprecated && a.DeprecationMessage != "" {
+		err = errors.Join(err, fmt.Errorf("%s%s: DeprecationMessage must not be set when Deprecated is false", prefix, name))
 	}
 
 	if a.Type == cty.NilType && a.NestedType == nil {

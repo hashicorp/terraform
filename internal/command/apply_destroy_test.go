@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -151,9 +151,9 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "no",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -219,9 +219,9 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "yes",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks

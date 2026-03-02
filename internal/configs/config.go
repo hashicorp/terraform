@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -232,23 +232,6 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 	default:
 		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
 	}
-}
-
-// EntersNewPackage returns true if this call is to an external module, either
-// directly via a remote source address or indirectly via a registry source
-// address.
-//
-// Other behaviors in Terraform may treat package crossings as a special
-// situation, because that indicates that the caller and callee can change
-// independently of one another and thus we should disallow using any features
-// where the caller assumes anything about the callee other than its input
-// variables, required provider configurations, and output values.
-//
-// It's not meaningful to ask if the Config representing the root module enters
-// a new package because the root module is always outside of all module
-// packages, and so this function will arbitrarily return false in that case.
-func (c *Config) EntersNewPackage() bool {
-	return moduleSourceAddrEntersNewPackage(c.SourceAddr)
 }
 
 // VerifyDependencySelections checks whether the given locked dependencies

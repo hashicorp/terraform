@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -374,7 +375,7 @@ func (h *MockHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return h.PostEphemeralOpReturn, h.PostEphemeralOpReturnError
 }
 
-func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
+func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

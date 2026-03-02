@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -344,7 +345,7 @@ func TestWorkspace_createAndList(t *testing.T) {
 
 	// make sure a vars file doesn't interfere
 	err := os.WriteFile(
-		DefaultVarsFilename,
+		arguments.DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
 	)
@@ -392,7 +393,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 
 	// make sure a vars file doesn't interfere
 	err := os.WriteFile(
-		DefaultVarsFilename,
+		arguments.DefaultVarsFilename,
 		[]byte(`foo = "bar"`),
 		0644,
 	)

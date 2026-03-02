@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -227,19 +227,6 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	return mc, diags
 }
 
-// EntersNewPackage returns true if this call is to an external module, either
-// directly via a remote source address or indirectly via a registry source
-// address.
-//
-// Other behaviors in Terraform may treat package crossings as a special
-// situation, because that indicates that the caller and callee can change
-// independently of one another and thus we should disallow using any features
-// where the caller assumes anything about the callee other than its input
-// variables, required provider configurations, and output values.
-func (mc *ModuleCall) EntersNewPackage() bool {
-	return moduleSourceAddrEntersNewPackage(mc.SourceAddr)
-}
-
 // PassedProviderConfig represents a provider config explicitly passed down to
 // a child module, possibly giving it a new local address in the process.
 type PassedProviderConfig struct {
@@ -317,28 +304,4 @@ var moduleBlockSchema = &hcl.BodySchema{
 		{Type: "locals"},
 		{Type: "provider", LabelNames: []string{"type"}},
 	},
-}
-
-func moduleSourceAddrEntersNewPackage(addr addrs.ModuleSource) bool {
-	switch addr.(type) {
-	case nil:
-		// There are only two situations where we should get here:
-		// - We've been asked about the source address of the root module,
-		//   which is always nil.
-		// - We've been asked about a ModuleCall that is part of the partial
-		//   result of a failed decode.
-		// The root module exists outside of all module packages, so we'll
-		// just return false for that case. For the error case it doesn't
-		// really matter what we return as long as we don't panic, because
-		// we only make a best-effort to allow careful inspection of objects
-		// representing invalid configuration.
-		return false
-	case addrs.ModuleSourceLocal:
-		// Local source addresses are the only address type that remains within
-		// the same package.
-		return false
-	default:
-		// All other address types enter a new package.
-		return true
-	}
 }

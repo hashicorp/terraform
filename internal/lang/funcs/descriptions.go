@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
@@ -140,6 +140,10 @@ var DescriptionList = map[string]descriptionEntry{
 	},
 	"contains": {
 		Description:      "`contains` determines whether a given list or set contains a given single value as one of its elements.",
+		ParamDescription: []string{"", ""},
+	},
+	"convert": {
+		Description:      "`convert` converts a value to the given type constraint.",
 		ParamDescription: []string{"", ""},
 	},
 	"csvdecode": {

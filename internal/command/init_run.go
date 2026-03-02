@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -34,14 +34,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	c.Meta.input = initArgs.InputEnabled
 	c.Meta.targetFlags = initArgs.TargetFlags
 	c.Meta.compactWarnings = initArgs.CompactWarnings
-
-	varArgs := initArgs.Vars.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
-	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state

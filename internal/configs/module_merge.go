@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -52,6 +52,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.EphemeralSet {
 		v.Ephemeral = ov.Ephemeral
 		v.EphemeralSet = ov.EphemeralSet
+	}
+	if ov.ConstSet {
+		v.Const = ov.Const
+		v.ConstSet = ov.ConstSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default

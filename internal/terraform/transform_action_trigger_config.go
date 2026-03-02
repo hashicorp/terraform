@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -127,10 +127,10 @@ func (t *ActionTriggerConfigTransformer) transformSingle(g *Graph, config *confi
 					panic(fmt.Sprintf("Could not find node for %s", resourceAddr))
 				}
 
-				abstract := &nodeAbstractActionTriggerExpand{
+				abstract := &nodeAbstractActionTrigger{
 					Addr:   configAction,
 					Config: actionConfig,
-					lifecycleActionTrigger: &lifecycleActionTrigger{
+					triggerConfig: &actionTriggerConfig{
 						events:                  at.Events,
 						resourceAddress:         resourceAddr,
 						actionExpr:              action.Expr,

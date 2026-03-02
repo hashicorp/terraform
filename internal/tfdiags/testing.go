@@ -1,8 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 package tfdiags
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -52,6 +53,52 @@ func assertDiagnosticMatch(got, want Diagnostic) string {
 	want = makeRPCFriendlyDiag(want)
 
 	return cmp.Diff(want, got, DiagnosticComparer)
+}
+
+// AssertDiagnosticsAndExtrasMatch fails the test in progress (using t.Fatal) if the
+// two sets of diagnostics don't match after being normalized using the
+// "ForRPC" processing step, AND also checks that the extra information on each
+// diagnostic matches.
+//
+// This is similar to AssertDiagnosticsMatch but additionally verifies that the
+// extra information (ExtraInfo) on diagnostics is equal, using DiagnosticExtrasEqual.
+//
+// AssertDiagnosticsAndExtrasMatch sorts the two sets of diagnostics in the usual way
+// before comparing them, though diagnostics only have a partial order so that
+// will not totally normalize the ordering of all diagnostics sets.
+func AssertDiagnosticsAndExtrasMatch(t *testing.T, got, want Diagnostics) {
+	t.Helper()
+
+	if diff := assertDiagnosticsAndExtrasMatch(got, want); diff != "" {
+		t.Fatalf("unexpected diagnostics difference:\n%s", diff)
+	}
+}
+
+func assertDiagnosticsAndExtrasMatch(got, want Diagnostics) string {
+	// First check that the basic diagnostic info matches
+	if diff := assertDiagnosticsMatch(got, want); diff != "" {
+		return diff
+	}
+
+	// Now check extras - we need to compare the original diagnostics
+	// since ForRPC discards extra info
+	gotSorted := make(Diagnostics, len(got))
+	copy(gotSorted, got)
+	gotSorted.Sort()
+
+	wantSorted := make(Diagnostics, len(want))
+	copy(wantSorted, want)
+	wantSorted.Sort()
+
+	// Length should already match if assertDiagnosticsMatch passed
+	for i := range gotSorted {
+		if !DiagnosticExtrasEqual(gotSorted[i], wantSorted[i]) {
+			return fmt.Sprintf("diagnostic[%d] extras do not match:\n  got extra: %#v\n  want extra: %#v",
+				i, gotSorted[i].ExtraInfo(), wantSorted[i].ExtraInfo())
+		}
+	}
+
+	return ""
 }
 
 // AssertNoDiagnostics will fail a test if any diagnostics are present.

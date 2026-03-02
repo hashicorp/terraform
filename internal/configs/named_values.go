@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -38,9 +38,14 @@ type Variable struct {
 	Sensitive   bool
 	Ephemeral   bool
 
+	// Const indicates that this variable can be used during early evaluation
+	// work and configuration loading, for example in module sources
+	Const bool
+
 	DescriptionSet bool
 	SensitiveSet   bool
 	EphemeralSet   bool
+	ConstSet       bool
 
 	// Nullable indicates that null is a valid value for this variable. Setting
 	// Nullable to false means that the module can expect this variable to
@@ -131,6 +136,12 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Ephemeral)
 		diags = append(diags, valDiags...)
 		v.EphemeralSet = true
+	}
+
+	if attr, exists := content.Attributes["const"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Const)
+		diags = append(diags, valDiags...)
+		v.ConstSet = true
 	}
 
 	if attr, exists := content.Attributes["nullable"]; exists {
@@ -524,6 +535,9 @@ var variableBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "deprecated",
+		},
+		{
+			Name: "const",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

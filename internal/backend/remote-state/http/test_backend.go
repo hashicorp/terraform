@@ -1,13 +1,16 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 package http
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"reflect"
+
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 type TestRequestHandleFunc func(w http.ResponseWriter, r *http.Request)
@@ -15,6 +18,10 @@ type TestRequestHandleFunc func(w http.ResponseWriter, r *http.Request)
 type TestHTTPBackend struct {
 	Data   []byte
 	Locked bool
+
+	// LockInfo is set by the calling test code and is not
+	// set when tests use the Lock method on an http backend.
+	LockInfo *statemgr.LockInfo
 
 	methodFuncs map[string]TestRequestHandleFunc
 	methodCalls map[string]int
@@ -46,6 +53,17 @@ func (h *TestHTTPBackend) Handle(w http.ResponseWriter, r *http.Request) {
 	case "LOCK":
 		if h.Locked {
 			w.WriteHeader(423)
+			if h.LockInfo != nil {
+				// Write lock info to response, but only if
+				// the test http backend server with lock info present.
+				jsonLockInfo, err := json.Marshal(h.LockInfo)
+				if err != nil {
+					w.WriteHeader(500)
+					w.Write([]byte("Failed to marshal lock info in test http backend server: " + err.Error()))
+					return
+				}
+				w.Write(jsonLockInfo)
+			}
 		} else {
 			h.Locked = true
 		}

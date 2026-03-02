@@ -1,11 +1,12 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package command
+package arguments
 
 import (
 	"fmt"
 	"io/ioutil"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -24,77 +24,59 @@ import (
 // for root module input variables.
 const VarEnvPrefix = "TF_VAR_"
 
-// collectVariableValuesForTests inspects the various places that test
-// values can come from and constructs a map ready to be passed to the
-// backend as part of a backendrun.Operation.
+// DefaultVarsFilename is the default filename used for vars
+const DefaultVarsFilename = "terraform.tfvars"
+
+// UnparsedVariableValue represents a variable value provided by the caller
+// whose parsing must be deferred until configuration is available.
 //
-// This method returns diagnostics relating to the collection of the values,
-// but the values themselves may produce additional diagnostics when finally
-// parsed.
-func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	ret := map[string]backendrun.UnparsedVariableValue{}
-
-	// We collect the variables from the ./tests directory
-	// there is no other need to process environmental variables
-	// as this is done via collectVariableValues function
-	if testsFilePath == "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Missing test directory",
-			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
-		return ret, diags
-	}
-
-	// Firstly we collect variables from .tfvars file
-	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
-	if _, err := os.Stat(testVarsFilename); err == nil {
-		moreDiags := m.addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret)
-		diags = diags.Append(moreDiags)
-
-	}
-
-	// Then we collect variables from .tfvars.json file
-	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
-	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
-
-	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
-		moreDiags := m.addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
-		diags = diags.Append(moreDiags)
-	}
-
-	// Also, load any variables from the *.auto.tfvars files.
-	if infos, err := os.ReadDir(testsFilePath); err == nil {
-		for _, info := range infos {
-			if info.IsDir() {
-				continue
-			}
-
-			if !isAutoVarFile(info.Name()) {
-				continue
-			}
-
-			moreDiags := m.addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, ret)
-			diags = diags.Append(moreDiags)
-		}
-	}
-
-	// Also, no need to additionally process variables from command line,
-	// as this is also done via collectVariableValues
-
-	return ret, diags
+// This exists to allow processing of variable-setting arguments (e.g. in the
+// command package) to be separated from parsing (in the backend package).
+type UnparsedVariableValue interface {
+	// ParseVariableValue information in the provided variable configuration
+	// to parse (if necessary) and return the variable value encapsulated in
+	// the receiver.
+	//
+	// If error diagnostics are returned, the resulting value may be invalid
+	// or incomplete.
+	ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics)
 }
 
-// collectVariableValues inspects the various places that root module input variable
-// values can come from and constructs a map ready to be passed to the
-// backend as part of a backendrun.Operation.
-//
-// This method returns diagnostics relating to the collection of the values,
-// but the values themselves may produce additional diagnostics when finally
-// parsed.
-func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
+// Vars describes arguments which specify non-default variable values. This
+// interface is unfortunately obscure, because the order of the CLI arguments
+// determines the final value of the gathered variables. In future it might be
+// desirable for the arguments package to handle the gathering of variables
+// directly, returning a map of variable values.
+type Vars struct {
+	vars     *FlagNameValueSlice
+	varFiles *FlagNameValueSlice
+}
+
+func (v *Vars) All() []FlagNameValue {
+	if v.vars == nil {
+		return nil
+	}
+	return v.vars.AllItems()
+}
+
+func (v *Vars) Empty() bool {
+	if v.vars == nil {
+		return true
+	}
+	return v.vars.Empty()
+}
+
+func (v *Vars) CollectValues(onFileLoad func(filename string, src []byte)) (map[string]UnparsedVariableValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := map[string]backendrun.UnparsedVariableValue{}
+	ret := map[string]UnparsedVariableValue{}
+
+	varArgs := v.All()
+	items := make([]FlagNameValue, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	variableArgs := FlagNameValueSlice{Items: &items}
 
 	// First we'll deal with environment variables, since they have the lowest
 	// precedence.
@@ -128,12 +110,14 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 	// (DefaultVarsFilename) along with the later-added search for all files
 	// ending in .auto.tfvars.
 	if _, err := os.Stat(DefaultVarsFilename); err == nil {
-		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, ret)
+		varsFromFile, moreDiags := addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 	}
 	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
 	if _, err := os.Stat(defaultVarsFilenameJSON); err == nil {
-		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
+		varsFromFile, moreDiags := addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
 		diags = diags.Append(moreDiags)
 	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
@@ -143,14 +127,15 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 			if !isAutoVarFile(name) {
 				continue
 			}
-			moreDiags := m.addVarsFromFile(name, terraform.ValueFromAutoFile, ret)
+			varsFromFile, moreDiags := addVarsFromFile(name, terraform.ValueFromAutoFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
 			diags = diags.Append(moreDiags)
 		}
 	}
 
 	// Finally we process values given explicitly on the command line, either
 	// as individual literal settings or as additional files to read.
-	for _, flagNameValue := range m.variableArgs.AllItems() {
+	for _, flagNameValue := range variableArgs.AllItems() {
 		switch flagNameValue.Name {
 		case "-var":
 			// Value should be in the form "name=value", where value is a
@@ -183,7 +168,8 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 			}
 
 		case "-var-file":
-			moreDiags := m.addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, ret)
+			varsFromFile, moreDiags := addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
 			diags = diags.Append(moreDiags)
 
 		default:
@@ -196,7 +182,65 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 	return ret, diags
 }
 
-func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backendrun.UnparsedVariableValue) tfdiags.Diagnostics {
+func CollectValuesForTests(testsFilePath string, onFileLoad func(filename string, src []byte)) (map[string]UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := map[string]UnparsedVariableValue{}
+
+	// We collect the variables from the ./tests directory
+	// there is no other need to process environmental variables
+	// as this is done via collectVariableValues function
+	if testsFilePath == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Missing test directory",
+			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret, diags
+	}
+
+	// Firstly we collect variables from .tfvars file
+	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
+	if _, err := os.Stat(testVarsFilename); err == nil {
+		varsFromFile, moreDiags := addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
+		diags = diags.Append(moreDiags)
+
+	}
+
+	// Then we collect variables from .tfvars.json file
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
+
+	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
+		varsFromFile, moreDiags := addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, onFileLoad)
+		maps.Copy(ret, varsFromFile)
+		diags = diags.Append(moreDiags)
+	}
+
+	// Also, load any variables from the *.auto.tfvars files.
+	if infos, err := os.ReadDir(testsFilePath); err == nil {
+		for _, info := range infos {
+			if info.IsDir() {
+				continue
+			}
+
+			if !isAutoVarFile(info.Name()) {
+				continue
+			}
+
+			varsFromFile, moreDiags := addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, onFileLoad)
+			maps.Copy(ret, varsFromFile)
+			diags = diags.Append(moreDiags)
+		}
+	}
+
+	// Also, no need to additionally process variables from command line,
+	// as this is also done via collectVariableValues
+
+	return ret, diags
+}
+
+func addVarsFromFile(filename string, sourceType terraform.ValueSourceType, onFileLoad func(filename string, src []byte)) (map[string]UnparsedVariableValue, tfdiags.Diagnostics) {
+	to := map[string]UnparsedVariableValue{}
 	var diags tfdiags.Diagnostics
 
 	src, err := ioutil.ReadFile(filename)
@@ -214,17 +258,11 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 				fmt.Sprintf("Error while reading %s: %s.", filename, err),
 			))
 		}
-		return diags
-	}
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
+		return to, diags
 	}
 
 	// Record the file source code for snippets in diagnostic messages.
-	loader.Parser().ForceFileSource(filename, src)
+	onFileLoad(filename, src)
 
 	var f *hcl.File
 	if strings.HasSuffix(filename, ".json") {
@@ -232,14 +270,14 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		f, hclDiags = hcljson.Parse(src, filename)
 		diags = diags.Append(hclDiags)
 		if f == nil || f.Body == nil {
-			return diags
+			return to, diags
 		}
 	} else {
 		var hclDiags hcl.Diagnostics
 		f, hclDiags = hclsyntax.ParseConfig(src, filename, hcl.Pos{Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if f == nil || f.Body == nil {
-			return diags
+			return to, diags
 		}
 	}
 
@@ -270,7 +308,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 			// If we already found problems then JustAttributes below will find
 			// the same problems with less-helpful messages, so we'll bail for
 			// now to let the user focus on the immediate problem.
-			return diags
+			return to, diags
 		}
 	}
 
@@ -283,7 +321,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 			sourceType: sourceType,
 		}
 	}
-	return diags
+	return to, diags
 }
 
 // unparsedVariableValueLiteral is a backendrun.UnparsedVariableValue
@@ -328,4 +366,10 @@ func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariablePar
 		Value:      val,
 		SourceType: v.sourceType,
 	}, diags
+}
+
+// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
+func isAutoVarFile(path string) bool {
+	return strings.HasSuffix(path, ".auto.tfvars") ||
+		strings.HasSuffix(path, ".auto.tfvars.json")
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package remote
@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -315,9 +316,9 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 	}, tfdiags.Diagnostics{}
 }
 
-// testVariable returns a backendrun.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
-	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
+// testVariable returns a arguments.UnparsedVariableValue used for testing.
+func testVariables(s terraform.ValueSourceType, vs ...string) map[string]arguments.UnparsedVariableValue {
+	vars := make(map[string]arguments.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{
 			value:  v,

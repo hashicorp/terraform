@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -329,7 +329,7 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	}
 
 	// We don't care about the returned value here, only the diagnostics
-	forEachVal, deprecationDiags := ev.ctx.Deprecations().Validate(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
+	forEachVal, deprecationDiags := ev.ctx.Deprecations().ValidateAndUnmark(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
 
 	diags = diags.Append(deprecationDiags)
 

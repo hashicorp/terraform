@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -25,6 +24,7 @@ import (
 // StateStore represents a "state_store" block inside a "terraform" block
 // in a module or file.
 type StateStore struct {
+	// Type is a state store type name
 	Type string
 
 	// Config is the full configuration of the state_store block, including the
@@ -139,62 +139,130 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 	}
 }
 
-func (ss *StateStore) VerifyDependencySelections(depLocks *depsfile.Locks, reqs *RequiredProviders) []error {
-	var errs []error
+// VerifyDependencySelection checks whether the provider used for state storage has a valid version in the
+// dependency lock file that matches the constraints in required_providers.
+// There is also special handling for providers that cannot be represented in the lock file (built-in providers, dev overrides)
+// and also special handling when the provider is re-attached and not managed by Terraform.
+func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *RequiredProviders) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-	for _, reqProvider := range reqs.RequiredProviders {
-		providerAddr := reqProvider.Type
-		constraints := providerreqs.MustParseVersionConstraints(reqProvider.Requirement.Required.String())
-
-		if !depsfile.ProviderIsLockable(providerAddr) {
-			continue // disregard builtin providers, and such
-		}
-		if depLocks != nil && depLocks.ProviderIsOverridden(providerAddr) {
-			// The "overridden" case is for unusual special situations like
-			// dev overrides, so we'll explicitly note it in the logs just in
-			// case we see bug reports with these active and it helps us
-			// understand why we ended up using the "wrong" plugin.
-			log.Printf("[DEBUG] StateStore.VerifyDependencySelections: skipping %s because it's overridden by a special configuration setting", providerAddr)
-			continue
-		}
-
-		var lock *depsfile.ProviderLock
-		if depLocks != nil { // Should always be true in main code, but unfortunately sometimes not true in old tests that don't fill out arguments completely
-			lock = depLocks.Provider(providerAddr)
-		}
-		if lock == nil {
-			log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", providerAddr, providerreqs.VersionConstraintsString(constraints))
-			errs = append(errs, fmt.Errorf("provider %s: required by this configuration but no version is selected", providerAddr))
-			continue
-		}
-
-		selectedVersion := lock.Version()
-		allowedVersions := providerreqs.MeetingConstraints(constraints)
-		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has %s to satisfy %q", providerAddr, selectedVersion.String(), providerreqs.VersionConstraintsString(constraints))
-		if !allowedVersions.Has(selectedVersion) {
-			// The most likely cause of this is that the author of a module
-			// has changed its constraints, but this could also happen in
-			// some other unusual situations, such as the user directly
-			// editing the lock file to record something invalid. We'll
-			// distinguish those cases here in order to avoid the more
-			// specific error message potentially being a red herring in
-			// the edge-cases.
-			currentConstraints := providerreqs.VersionConstraintsString(constraints)
-			lockedConstraints := providerreqs.VersionConstraintsString(lock.VersionConstraints())
-			switch {
-			case currentConstraints != lockedConstraints:
-				errs = append(errs, fmt.Errorf("provider %s: locked version selection %s doesn't match the updated version constraints %q", providerAddr, selectedVersion.String(), currentConstraints))
-			default:
-				errs = append(errs, fmt.Errorf("provider %s: version constraints %q don't match the locked version selection %s", providerAddr, currentConstraints, selectedVersion.String()))
-			}
-		}
+	// If we get nil arguments it suggests that there's a bug in the calling code.
+	if depLocks == nil {
+		panic("This run has no dependency lock information provided at all. This is a bug in Terraform and should be reported.")
+	}
+	if reqs == nil {
+		panic("This run has no required providers information provided at all. This is a bug in Terraform and should be reported.")
 	}
 
-	// Return multiple errors in an arbitrary-but-deterministic order.
-	sort.Slice(errs, func(i, j int) bool {
-		return errs[i].Error() < errs[j].Error()
-	})
-	return errs
+	if !depsfile.ProviderIsLockable(ss.ProviderAddr) {
+		// If it's not lockable we don't raise errors about it not being in the lock file!
+		return diags
+	}
+
+	if depLocks.ProviderIsOverridden(ss.ProviderAddr) {
+		// The "overridden" case is for unusual special situations like
+		// dev overrides, so we'll explicitly note it in the logs just in
+		// case we see bug reports with these active and it helps us
+		// understand why we ended up using the "wrong" plugin.
+		log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's overridden by a special configuration setting", ss.ProviderAddr)
+		return diags
+	}
+
+	isReattached, err := reattach.IsProviderReattached(ss.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		return diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while verifying required_providers are available to launch a state store. This is a bug in Terraform and should be reported: %w", err))
+	}
+	if isReattached {
+		// Having an empty lock file may be valid if the only provider used is a re-attached provider in use for the state store that's receiver for this method.
+		// An empty lock file might be an issue if other providers are used, but we'll let existing downstream code handle that.
+		//
+		// Note this in the logs to help with any bug reports.
+		log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's not managed by Terraform", ss.ProviderAddr)
+		return diags
+	}
+
+	// From this point on the state storage provider should be present in the lock file, and the lock file should not be empty or missing.
+
+	if depLocks.Empty() && !isReattached {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(`The provider dependency used for state storage is missing from the lock file despite being present in the current configuration:
+  - provider %s: required by this configuration but no version is selected
+
+To make the initial dependency selections that will initialize the dependency lock file, run:
+  terraform init`,
+				ss.ProviderAddr,
+			),
+		))
+		return diags
+	}
+
+	req, ok := reqs.RequiredProviders[ss.ProviderAddr.Type]
+	if !ok {
+		// The provider used for state storage is not in the required providers list.
+		// This should have been identified when the block was parsed, so if we get here
+		// it suggests that upstream code is swallowing that error.
+		panic("State store provider is missing from required providers but this was not caught during config parsing, which is a bug in Terraform; please report it!")
+	}
+
+	// Is the provider in the lock file, and is it an appropriate version matching the constraints in required_providers?
+
+	lock := depLocks.Provider(ss.ProviderAddr)
+	constraints := providerreqs.MustParseVersionConstraints(req.Requirement.Required.String())
+	if lock == nil {
+		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", ss.ProviderAddr, providerreqs.VersionConstraintsString(constraints))
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(`The provider dependency used for state storage recorded in the lock file is inconsistent with the current configuration:
+  - provider %s: required by this configuration but no version is selected
+
+To make the initial dependency selections that will initialize the dependency lock file, run:
+  terraform init`,
+				ss.ProviderAddr,
+			),
+		))
+	}
+
+	selectedVersion := lock.Version()
+	allowedVersions := providerreqs.MeetingConstraints(constraints)
+	log.Printf("[TRACE] StateStore.VerifyDependencySelection: provider %s has %s to satisfy %q", ss.ProviderAddr, selectedVersion.String(), providerreqs.VersionConstraintsString(constraints))
+	if !allowedVersions.Has(selectedVersion) {
+		currentConstraints := providerreqs.VersionConstraintsString(constraints)
+		lockedConstraints := providerreqs.VersionConstraintsString(lock.VersionConstraints())
+		switch {
+		case currentConstraints != lockedConstraints:
+			return diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf(`The provider dependency used for state storage recorded in the lock file is inconsistent with the current configuration:
+  - provider %s: locked version selection %s doesn't match the updated version constraints %q
+
+To update the locked dependency selections to match a changed configuration, run:
+  terraform init -upgrade`,
+					ss.ProviderAddr,
+					selectedVersion.String(),
+					currentConstraints,
+				),
+			))
+		default:
+			return diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf(`The provider dependency used for state storage recorded in the lock file is inconsistent with the current configuration:
+  - provider %s: version constraints %q don't match the locked version selection %s
+
+To make the initial dependency selections that will initialize the dependency lock file, run:
+  terraform init`,
+					ss.ProviderAddr,
+					selectedVersion.String(),
+					currentConstraints,
+				),
+			))
+		}
+	}
+	return diags
 }
 
 // Hash produces a hash value for the receiver that covers:

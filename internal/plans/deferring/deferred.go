@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package deferring
@@ -749,7 +749,7 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 	var diags tfdiags.Diagnostics
 
 	// We only want to defer actions that are lifecycle triggered
-	at, ok := ai.ActionTrigger.(*plans.LifecycleActionTrigger)
+	at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 	if !ok {
 		return false, diags
 	}

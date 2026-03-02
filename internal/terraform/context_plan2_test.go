@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -7236,7 +7236,7 @@ module "mod2" {
 
 	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
 
-	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
 		&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated value used",
@@ -7245,6 +7245,9 @@ module "mod2" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 6, Column: 12, Byte: 84},
 				End:      hcl.Pos{Line: 6, Column: 26, Byte: 98},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7257,6 +7260,9 @@ module "mod2" {
 				Start:    hcl.Pos{Line: 12, Column: 12, Byte: 225},
 				End:      hcl.Pos{Line: 12, Column: 26, Byte: 239},
 			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
 		},
 	).Append(
 		&hcl.Diagnostic{
@@ -7267,6 +7273,9 @@ module "mod2" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 15, Column: 10, Byte: 284},
 				End:      hcl.Pos{Line: 15, Column: 24, Byte: 298},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7279,6 +7288,9 @@ module "mod2" {
 				Start:    hcl.Pos{Line: 18, Column: 10, Byte: 355},
 				End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
 			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
 		},
 	).Append(
 		&hcl.Diagnostic{
@@ -7289,6 +7301,9 @@ module "mod2" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 22, Column: 10, Byte: 451},
 				End:      hcl.Pos{Line: 22, Column: 24, Byte: 465},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	))
@@ -7399,6 +7414,9 @@ output "test_output_no_warning" {
 				Start:    hcl.Pos{Line: 17, Column: 10, Byte: 180},
 				End:      hcl.Pos{Line: 17, Column: 24, Byte: 194},
 			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
 		},
 		&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
@@ -7408,6 +7426,9 @@ output "test_output_no_warning" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 21, Column: 10, Byte: 250},
 				End:      hcl.Pos{Line: 21, Column: 28, Byte: 268},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod2.old",
 			},
 		},
 		&hcl.Diagnostic{
@@ -7419,10 +7440,13 @@ output "test_output_no_warning" {
 				Start:    hcl.Pos{Line: 25, Column: 10, Byte: 324},
 				End:      hcl.Pos{Line: 25, Column: 24, Byte: 338},
 			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.new",
+			},
 		},
 	)
 
-	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, expectedDiags)
 }
 
 func TestContext2Plan_deprecated_output_expansion_with_splat(t *testing.T) {
@@ -7466,7 +7490,7 @@ output "test_output2" {
 
 	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
 
-	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
 		&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated value used",
@@ -7475,6 +7499,9 @@ output "test_output2" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
 				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7486,6 +7513,9 @@ output "test_output2" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
 				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	))
@@ -7540,7 +7570,7 @@ check "deprecated_check" {
 	})
 
 	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
-	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
 		&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated value used",
@@ -7549,6 +7579,9 @@ check "deprecated_check" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 7, Column: 21, Byte: 97},
 				End:      hcl.Pos{Line: 7, Column: 64, Byte: 140},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7560,6 +7593,9 @@ check "deprecated_check" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 8, Column: 21, Byte: 161},
 				End:      hcl.Pos{Line: 8, Column: 108, Byte: 248},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	))
@@ -7623,7 +7659,7 @@ resource "test_resource" "test" {
 
 	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
 
-	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
 		&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated value used",
@@ -7632,6 +7668,9 @@ resource "test_resource" "test" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 16, Column: 29, Byte: 207},
 				End:      hcl.Pos{Line: 16, Column: 52, Byte: 230},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	).Append(
@@ -7643,6 +7682,9 @@ resource "test_resource" "test" {
 				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 				Start:    hcl.Pos{Line: 22, Column: 29, Byte: 389},
 				End:      hcl.Pos{Line: 22, Column: 89, Byte: 449},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
 			},
 		},
 	))
@@ -7880,7 +7922,7 @@ locals {
 
 	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
 
-	tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
 		Summary:  "Deprecated value used",
 		Detail:   "Please stop using this",
@@ -7888,6 +7930,9 @@ locals {
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start:    hcl.Pos{Line: 12, Column: 24, Byte: 259},
 			End:      hcl.Pos{Line: 12, Column: 46, Byte: 281},
+		},
+		Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+			OriginDescription: "module.silenced.old",
 		},
 	}))
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package json
@@ -65,7 +65,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 	}
 
 	switch trigger := aiSrc.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		ai.LifecycleTrigger = &ActionInvocationLifecycleTrigger{
 			TriggeringResource:      newResourceAddr(trigger.TriggeringResourceAddr),
 			TriggeringEvent:         trigger.ActionTriggerEvent.String(),
