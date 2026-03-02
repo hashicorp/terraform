@@ -5,7 +5,6 @@ package command
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -21,15 +20,13 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.defaultFlagSet("workspace list")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseWorkspaceList(args)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	configPath, err := ModulePath(args)
+	configPath, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
