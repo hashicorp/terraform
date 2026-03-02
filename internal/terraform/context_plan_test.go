@@ -1748,6 +1748,7 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            false,
 			WriteOnlyAttributesAllowed: true,
+			StorePlannedPrivate:        true,
 		},
 	}
 	if !cmp.Equal(got, want, valueTrans) {

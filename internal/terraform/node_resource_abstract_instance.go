@@ -835,10 +835,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	if n.preDestroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
-
+	var plannedPrivate []byte
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
+
+		plannedPrivate = plannedChange.Private
 	}
 
 	// Evaluate the configuration
@@ -991,6 +993,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
 			PriorIdentity:      priorIdentity,
+			PlannedPrivate:     plannedPrivate,
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -1012,7 +1015,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	plannedNewVal := resp.PlannedState
-	plannedPrivate := resp.PlannedPrivate
+	plannedPrivate = resp.PlannedPrivate
 	plannedIdentity := resp.PlannedIdentity
 
 	// These checks are only relevant if the provider is not deferring the

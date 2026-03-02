@@ -660,6 +660,7 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 	return providers.ClientCapabilities{
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
+		StorePlannedPrivate:        true,
 	}
 }
 
