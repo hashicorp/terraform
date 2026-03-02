@@ -117,7 +117,7 @@ module "example" {
 			}},
 		},
 
-		"local with non-static variables": {
+		"local with non-const variables": {
 			module: map[string]string{
 				"main.tf": `
 variable "name" {
@@ -134,7 +134,7 @@ module "example" {
 
 			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
 				// TODO: We should try to somehow add an "extra" into the diagnostics to indicate
-				// that this may be caused by a non-static variable used during init.
+				// that this may be caused by a non-const variable used during init.
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid module source`,
@@ -513,7 +513,7 @@ output "name" {
 			}},
 		},
 
-		"static variable with no value and no default": {
+		"const variable with no value and no default": {
 			module: map[string]string{"main.tf": `
 variable "name" {
   type = string
@@ -538,7 +538,7 @@ module "example" {
 			},
 		},
 
-		"static variable with default": {
+		"const variable with default": {
 			module: map[string]string{"main.tf": `
 variable "name" {
   type = string
@@ -555,7 +555,7 @@ module "example" {
 			}},
 		},
 
-		"non-static variable passed into static module variable": {
+		"non-const variable passed into const module variable": {
 			module: map[string]string{"main.tf": `
 variable "name" {
   type = string
@@ -583,8 +583,8 @@ variable "name" {
 			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  `Static variables must be known`,
-					Detail:   `Only a static value can be passed into a static module variable.`,
+					Summary:  `Const variables must be known`,
+					Detail:   `Only a constant value can be passed into a constant module variable.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 8, Column: 10, Byte: 118},
@@ -621,7 +621,7 @@ module "nested" {
 			}},
 			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
 				// TODO: We should try to somehow add an "extra" into the diagnostics to indicate
-				// that this may be caused by a non-static variable used during init.
+				// that this may be caused by a non-const variable used during init.
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid module source`,

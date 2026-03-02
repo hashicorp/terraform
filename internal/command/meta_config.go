@@ -58,7 +58,7 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 		cfg.Root = cfg // Root module is self-referential.
 		return cfg, diags
 	}
-	betterVars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables)
+	vars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables)
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return nil, diags
@@ -66,7 +66,7 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	config, buildDiags := terraform.BuildConfigWithGraph(
 		rootMod,
 		loader.ModuleWalker(),
-		betterVars,
+		vars,
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	diags = diags.Append(buildDiags)
@@ -95,7 +95,7 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 		cfg.Root = cfg // Root module is self-referential.
 		return cfg, diags
 	}
-	betterVars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+	vars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return nil, diags
@@ -103,7 +103,7 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 	config, buildDiags := terraform.BuildConfigWithGraph(
 		rootMod,
 		loader.ModuleWalker(),
-		betterVars,
+		vars,
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	diags = diags.Append(buildDiags)
