@@ -621,6 +621,103 @@ var TransposeFunc = function.New(&function.Spec{
 	},
 })
 
+// ContainsFunc constructs a function that returns true if the given collection
+// contains the specified value, including support for null values.
+var ContainsFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:             "list",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+		},
+		{
+			Name:             "value",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+			AllowNull:        true,
+		},
+	},
+	Type:         function.StaticReturnType(cty.Bool),
+	RefineResult: refineNotNull,
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		collection := args[0]
+		searchVal := args[1]
+
+		if !collection.IsKnown() {
+			return cty.UnknownVal(cty.Bool), nil
+		}
+
+		// If searchVal is unknown, we can't determine if it's in the collection
+		if !searchVal.IsKnown() {
+			return cty.UnknownVal(cty.Bool), nil
+		}
+
+		// Check if the collection is iterable
+		if !collection.CanIterateElements() {
+			return cty.False, nil
+		}
+
+		var hasUnknown bool
+		collTy := collection.Type()
+		isMapType := collTy.IsMapType()
+
+		// Iterate through collection to find matching element
+		for it := collection.ElementIterator(); it.Next(); {
+			idx, element := it.Element()
+
+			// For maps, we're checking keys (idx is the key)
+			// For lists/sets, we're checking values (element)
+			var toCheck cty.Value
+			if isMapType {
+				toCheck = idx
+			} else {
+				toCheck = element
+			}
+
+			// If element is not known, we can't say for certain
+			if !toCheck.IsKnown() {
+				hasUnknown = true
+				continue
+			}
+
+			// Handle null comparison specially
+			if searchVal.IsNull() && toCheck.IsNull() {
+				// Both are null - but check if types match
+				if searchVal.Type().Equals(toCheck.Type()) {
+					return cty.True, nil
+				}
+				// Types don't match, continue searching
+				continue
+			}
+
+			if searchVal.IsNull() || toCheck.IsNull() {
+				// One is null, the other isn't
+				continue
+			}
+
+			// Both are known and non-null, perform comparison
+			eq, err := stdlib.Equal(toCheck, searchVal)
+			if err != nil {
+				// If comparison failed, continue searching
+				continue
+			}
+
+			if eq.IsKnown() && eq.True() {
+				return cty.True, nil
+			}
+		}
+
+		// If we encountered an unknown and didn't find a definite match
+		if hasUnknown {
+			return cty.UnknownVal(cty.Bool), nil
+		}
+
+		return cty.False, nil
+	},
+})
+
 // ListFunc constructs a function that takes an arbitrary number of arguments
 // and returns a list containing those values in the same order.
 //
@@ -733,4 +830,10 @@ func Sum(list cty.Value) (cty.Value, error) {
 // produce a new map of lists of strings.
 func Transpose(values cty.Value) (cty.Value, error) {
 	return TransposeFunc.Call([]cty.Value{values})
+}
+
+// Contains checks if the given collection contains the specified value,
+// including support for null values.
+func Contains(collection, value cty.Value) (cty.Value, error) {
+	return ContainsFunc.Call([]cty.Value{collection, value})
 }
