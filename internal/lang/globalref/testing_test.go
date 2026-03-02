@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package globalref
+package globalref_test
 
 import (
 	"context"
@@ -15,11 +15,15 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
+// testAnalyzer creates an analyzer for testing by loading a configuration
+// and setting up provider schemas.
+func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 	configDir := filepath.Join("testdata", fixtureName)
 
 	loader, cleanup := configload.NewLoaderForTests(t)
@@ -34,22 +38,19 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 		t.Fatalf("failed to refresh modules after install: %s", err)
 	}
 
-	// Note: This test uses BuildConfig instead of
-	// terraform.BuildConfigWithGraph to avoid an import cycle (terraform
-	// imports the lang package). Since this test only needs basic config
-	// structure without expression evaluation, the static loader is appropriate.
 	rootMod, loadDiags := loader.LoadRootModule(configDir)
 	if loadDiags.HasErrors() {
 		t.Fatalf("invalid root module: %s", loadDiags.Error())
 	}
 
-	cfg, buildDiags := configs.BuildConfig(
+	cfg, buildDiags := terraform.BuildConfigWithGraph(
 		rootMod,
 		loader.ModuleWalker(),
+		nil,
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	if buildDiags.HasErrors() {
-		t.Fatalf("invalid configuration: %s", buildDiags.Error())
+		t.Fatalf("invalid configuration: %s", buildDiags.Err())
 	}
 
 	resourceTypeSchema := &configschema.Block{
@@ -83,6 +84,14 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 					},
 				},
 			},
+			"list_dynamic": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"z": {Type: cty.DynamicPseudoType, Optional: true},
+					},
+				},
+			},
 			"map": {
 				Nesting: configschema.NestingMap,
 				Block: configschema.Block{
@@ -101,6 +110,13 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 			},
 		},
 	}
+	dataSourceTypeSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"string": {Type: cty.String, Optional: true},
+			"number": {Type: cty.Number, Optional: true},
+			"any":    {Type: cty.DynamicPseudoType, Optional: true},
+		},
+	}
 	schemas := map[addrs.Provider]providers.ProviderSchema{
 		addrs.MustParseProviderSourceString("hashicorp/test"): {
 			ResourceTypes: map[string]providers.Schema{
@@ -110,11 +126,10 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 			},
 			DataSources: map[string]providers.Schema{
 				"test_thing": {
-					Body: resourceTypeSchema,
+					Body: dataSourceTypeSchema,
 				},
 			},
 		},
 	}
-
-	return NewAnalyzer(cfg, schemas)
+	return globalref.NewAnalyzer(cfg, schemas)
 }
