@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -33,9 +34,22 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 		t.Fatalf("failed to refresh modules after install: %s", err)
 	}
 
-	cfg, loadDiags := loader.LoadStaticConfig(configDir)
+	// Note: This test uses BuildConfig instead of
+	// terraform.BuildConfigWithGraph to avoid an import cycle (terraform
+	// imports the lang package). Since this test only needs basic config
+	// structure without expression evaluation, the static loader is appropriate.
+	rootMod, loadDiags := loader.LoadRootModule(configDir)
 	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected configuration errors: %s", loadDiags.Error())
+		t.Fatalf("invalid root module: %s", loadDiags.Error())
+	}
+
+	cfg, buildDiags := configs.BuildConfig(
+		rootMod,
+		loader.ModuleWalker(),
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", buildDiags.Error())
 	}
 
 	resourceTypeSchema := &configschema.Block{
