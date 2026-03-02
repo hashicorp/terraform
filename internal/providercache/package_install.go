@@ -6,11 +6,16 @@ package providercache
 import (
 	"context"
 	"fmt"
+	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"io/fs"
+	"log"
+	"math/rand"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
-
-	getter "github.com/hashicorp/go-getter"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -124,7 +129,65 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 	// match the allowed hashes and so our caller should catch that after
 	// we return if so.
 
-	err := unzip.Decompress(targetDir, filename, true, 0000)
+	// Create the destination directory
+	err := os.MkdirAll(targetDir, 0777)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to create new directory: %w", err)
+	}
+
+	// Acquire a file lock to avoid that two terraform processes try to install the same provider at the same time
+	lockfilePath := filepath.Join(targetDir, ".lock")
+	filesystem := statemgr.NewFilesystem(lockfilePath)
+	lockId, err := tryFileLock(filesystem, 10, 10000)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to acquire lock: %w", err)
+	}
+	log.Printf("[DEBUG] Filelock %s acquired", lockfilePath)
+	defer filesystem.Unlock(lockId)
+	defer log.Printf("[DEBUG] Filelock %s released", lockfilePath)
+
+	// Create a unique temporary directory for unpacking
+	stagingDir, err := os.MkdirTemp(path.Dir(targetDir), ".terraform-temp-*")
+	if err != nil {
+		return authResult, fmt.Errorf("failed to create temporary directory for provider installation: %s", err)
+	}
+	defer os.RemoveAll(stagingDir)
+
+	err = unzip.Decompress(stagingDir, filename, true, 0000)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to decompress: %w", err)
+	}
+
+	// Try to atomically move the files from stagingDir to targetDir.
+	err = filepath.Walk(stagingDir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("failed to copy path %s to target directory: %w", path, err)
+		}
+		relPath, err := filepath.Rel(stagingDir, path)
+		if err != nil {
+			return fmt.Errorf("failed to calculate relative path: %w", err)
+		}
+
+		if info.IsDir() {
+			// Create the directory
+			err := os.MkdirAll(filepath.Join(targetDir, relPath), info.Mode().Perm())
+			if err != nil {
+				return fmt.Errorf("failed to create path: %w", err)
+			}
+		} else {
+			// On supported platforms, this should perform atomic replacement of the file.
+			if err != nil {
+				return fmt.Errorf("failed to lock target directory: %w", err)
+			}
+
+			err = os.Rename(path, filepath.Join(targetDir, relPath))
+			if err != nil {
+				return fmt.Errorf("failed to move '%s': %w", path, err)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return authResult, err
 	}
@@ -249,4 +312,20 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 
 	// If we got here then apparently our copy succeeded, so we're done.
 	return nil, nil
+}
+
+func tryFileLock(filesystem *statemgr.Filesystem, maxRetries int, sleepIntervalMs int) (string, error) {
+	for i := 0; i < maxRetries; i++ {
+		lockId, err := filesystem.Lock(statemgr.NewLockInfo())
+		if err == nil {
+			return lockId, nil
+		}
+		log.Printf("[DEBUG] Failed to acquire file lock, retrying: %s", err)
+		if i == maxRetries-1 {
+			return "", fmt.Errorf("failed to acquire lock after %d attempts: %w", maxRetries, err)
+		}
+		sleepDuration := time.Duration(rand.Intn(sleepIntervalMs)) * time.Millisecond
+		time.Sleep(sleepDuration)
+	}
+	return "", fmt.Errorf("failed to acquire lock")
 }
