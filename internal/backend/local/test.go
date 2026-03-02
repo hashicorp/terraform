@@ -74,6 +74,9 @@ type TestSuiteRunner struct {
 
 	CommandMode moduletest.CommandMode
 
+	// Strict tells the runner to fail tests that produce warnings.
+	Strict bool
+
 	// Repair is used to indicate whether the test cleanup command should run in
 	// "repair" mode. In this mode, the cleanup command will only remove state
 	// files that are a result of failed destroy operations, leaving any
@@ -291,6 +294,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		CancelCtx:         runner.Suite.CancelledCtx,
 		StopCtx:           runner.Suite.StoppedCtx,
 		Verbose:           runner.Suite.Verbose,
+		Strict:            runner.Suite.Strict,
 		Render:            runner.Suite.View,
 		UnparsedVariables: currentGlobalVariables,
 		FileStates:        states,

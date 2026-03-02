@@ -794,6 +794,157 @@ func TestRun_ValidateExpectedFailures(t *testing.T) {
 	}
 }
 
+func TestPromoteWarningsToErrors(t *testing.T) {
+	type output struct {
+		Description tfdiags.Description
+		Severity    tfdiags.Severity
+	}
+
+	tcs := map[string]struct {
+		Input  tfdiags.Diagnostics
+		Output []output
+	}{
+		"empty": {
+			Input:  nil,
+			Output: nil,
+		},
+		"warnings_only": {
+			Input: createDiagnostics(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "first warning",
+					Detail:   "should become an error",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "second warning",
+					Detail:   "should also become an error",
+				})
+				return diags
+			}),
+			Output: []output{
+				{
+					Description: tfdiags.Description{
+						Summary: "first warning",
+						Detail:  "should become an error",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "second warning",
+						Detail:  "should also become an error",
+					},
+					Severity: tfdiags.Error,
+				},
+			},
+		},
+		"errors_unchanged": {
+			Input: createDiagnostics(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "existing error",
+					Detail:   "should pass through untouched",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "another error",
+					Detail:   "should also pass through untouched",
+				})
+				return diags
+			}),
+			Output: []output{
+				{
+					Description: tfdiags.Description{
+						Summary: "existing error",
+						Detail:  "should pass through untouched",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "another error",
+						Detail:  "should also pass through untouched",
+					},
+					Severity: tfdiags.Error,
+				},
+			},
+		},
+		"mixed": {
+			Input: createDiagnostics(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "first warning",
+					Detail:   "should become an error",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "original error",
+					Detail:   "should pass through untouched",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "second warning",
+					Detail:   "should also become an error",
+				})
+				return diags
+			}),
+			Output: []output{
+				{
+					Description: tfdiags.Description{
+						Summary: "first warning",
+						Detail:  "should become an error",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "original error",
+						Detail:  "should pass through untouched",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "second warning",
+						Detail:  "should also become an error",
+					},
+					Severity: tfdiags.Error,
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			out := PromoteWarningsToErrors(tc.Input)
+			ix := 0
+			for ; ix < len(tc.Output); ix++ {
+				expected := tc.Output[ix]
+
+				if ix >= len(out) {
+					t.Errorf("missing diagnostic at %d, expected: [%s] %s, %s", ix, expected.Severity, expected.Description.Summary, expected.Description.Detail)
+					continue
+				}
+
+				actual := output{
+					Description: out[ix].Description(),
+					Severity:    out[ix].Severity(),
+				}
+
+				if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+					t.Errorf("mismatched diagnostic at %d:\n%s", ix, diff)
+				}
+			}
+
+			for ; ix < len(out); ix++ {
+				actual := out[ix]
+				t.Errorf("additional diagnostic at %d: [%s] %s, %s", ix, actual.Severity(), actual.Description().Summary, actual.Description().Detail)
+			}
+		})
+	}
+}
+
 func createDiagnostics(populate func(diags tfdiags.Diagnostics) tfdiags.Diagnostics) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	diags = populate(diags)

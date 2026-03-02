@@ -441,6 +441,21 @@ func ValidateExpectedFailures(config *configs.TestRun, originals tfdiags.Diagnos
 	return diags
 }
 
+// PromoteWarningsToErrors converts all warning-severity diagnostics into
+// errors using tfdiags.Override. This is used by strict mode to make tests
+// fail when warnings are produced.
+func PromoteWarningsToErrors(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+	var result tfdiags.Diagnostics
+	for _, diag := range diags {
+		if diag.Severity() == tfdiags.Warning {
+			result = result.Append(tfdiags.Override(diag, tfdiags.Error, nil))
+		} else {
+			result = result.Append(diag)
+		}
+	}
+	return result
+}
+
 // DiagnosticExtraFromMissingExpectedFailure provides an interface for diagnostic ExtraInfo to
 // denote that a diagnostic was generated as a result of a missing expected failure.
 type DiagnosticExtraFromMissingExpectedFailure interface {
