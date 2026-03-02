@@ -359,7 +359,7 @@ Options:
                          Defaults to 10.
 
   -replace=resource      Terraform will plan to replace this resource instance
-                         instead of doing an update or no-op action. 
+                         instead of doing an update or no-op action.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
@@ -372,7 +372,7 @@ Options:
                          Legacy option for the local backend only. See the local
                          backend's documentation for more information.
 
-                         
+
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than
                          once to set more than one variable.

@@ -86,6 +86,54 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Load the backend
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// We require a backendrun.Local to build a context.
+	// This isn't necessarily a "local.Local" backend, which provides local
+	// operations, however that is the only current implementation. A
+	// "local.Local" backend also doesn't necessarily provide local state, as
+	// that may be delegated to a "remotestate.Backend".
+	local, ok := b.(backendrun.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	var err error
+	opReq := c.Operation(b, arguments.ViewHuman)
+	opReq.ConfigDir = parsedArgs.ConfigPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
+
+	{
+		// Collect variable value and add them to the operation request
+		var varDiags tfdiags.Diagnostics
+		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+		})
+		diags = diags.Append(varDiags)
+
+		if varDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		c.VariableValues = opReq.Variables
+	}
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
+
 	// Load the full config, so we can verify that the target resource is
 	// already configured.
 	config, configDiags := c.loadConfig(parsedArgs.ConfigPath)
@@ -144,56 +192,10 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Check for user-supplied plugin path
-	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
-
-	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	// We require a backendrun.Local to build a context.
-	// This isn't necessarily a "local.Local" backend, which provides local
-	// operations, however that is the only current implementation. A
-	// "local.Local" backend also doesn't necessarily provide local state, as
-	// that may be delegated to a "remotestate.Backend".
-	local, ok := b.(backendrun.Local)
-	if !ok {
-		c.Ui.Error(ErrUnsupportedLocalOp)
-		return 1
-	}
-
-	// Build the operation
-	opReq := c.Operation(b, arguments.ViewHuman)
-	opReq.ConfigDir = parsedArgs.ConfigPath
-	opReq.ConfigLoader, err = c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
-	}
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
-
-	{
-		// Collect variable value and add them to the operation request
-		var varDiags tfdiags.Diagnostics
-		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
-			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
-		})
-		diags = diags.Append(varDiags)
-
-		if varDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	}
-	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)

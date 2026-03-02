@@ -81,19 +81,18 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 	ret.InputState = stateMgr.State()
 
 	log.Printf("[TRACE] backend/remote: loading configuration for the current working directory")
-	config, configDiags := op.ConfigLoader.LoadConfig(op.ConfigDir)
+	rootMod, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
 	}
-	ret.Config = config
 
 	if op.AllowUnsetVariables {
 		// If we're not going to use the variables in an operation we'll be
 		// more lax about them, stubbing out any unset ones as unknown.
 		// This gives us enough information to produce a consistent context,
 		// but not enough information to run a real operation (plan, apply, etc)
-		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, config.Module.Variables)
+		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, rootMod.Variables)
 	} else {
 		// The underlying API expects us to use the opaque workspace id to request
 		// variables, so we'll need to look that up using our organization name
@@ -136,7 +135,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 		}
 
 		if op.Variables != nil {
-			variables, varDiags := backendrun.ParseVariableValues(op.Variables, config.Module.Variables)
+			variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
 			diags = diags.Append(varDiags)
 			if diags.HasErrors() {
 				return nil, nil, diags
@@ -148,6 +147,24 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
 	ret.Core = tfCtx
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	log.Printf("[TRACE] backend/remote: building configuration for the current working directory")
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		op.ConfigLoader.ModuleWalker(),
+		ret.PlanOpts.SetVariables,
+		configs.MockDataLoaderFunc(op.ConfigLoader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	ret.Config = config
 
 	log.Printf("[TRACE] backend/remote: finished building terraform.Context")
 

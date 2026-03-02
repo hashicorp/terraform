@@ -166,6 +166,10 @@ var _ lang.Data = (*evaluationStateData)(nil)
 // the evaluator embedded in this data object, using this data object's
 // static module path.
 func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	if d.Operation == walkInit {
+		// Skip static validation during init walks
+		return tfdiags.Diagnostics{}
+	}
 	return d.Evaluator.StaticValidateReferences(refs, d.ModulePath.Module(), self, source)
 }
 
@@ -174,6 +178,12 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 	switch addr.Name {
 
 	case "index":
+		if d.Operation == walkInit {
+			// During init walks we don't have any state or prior knowledge
+			// about resources, so we just return unknown.
+			return cty.DynamicVal, diags
+		}
+
 		idxVal := d.InstanceKeyData.CountIndex
 		if idxVal == cty.NilVal {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -223,6 +233,12 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 			Detail:   fmt.Sprintf(`The "each" object does not have an attribute named %q. The supported attributes are each.key and each.value, the current key and value pair of the "for_each" attribute set.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
+		return cty.DynamicVal, diags
+	}
+
+	if d.Operation == walkInit {
+		// During init walks we don't have any state or prior knowledge
+		// about resources, so we just return unknown.
 		return cty.DynamicVal, diags
 	}
 
@@ -384,6 +400,12 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			Detail:   fmt.Sprintf(`The configuration contains no %s.`, moduleAddr),
 			Subject:  rng.ToHCL().Ptr(),
 		})
+		return cty.DynamicVal, diags
+	}
+
+	if d.Operation == walkInit {
+		// During init walks we don't have any state or prior knowledge
+		// about resources, so we just return unknown.
 		return cty.DynamicVal, diags
 	}
 
@@ -561,6 +583,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
+	if d.Operation == walkInit {
+		// During init walks we don't have any state or prior knowledge
+		// about resources, so we just return unknown.
+		return cty.DynamicVal, diags
+	}
 	// Much of this function was written before we had factored out the handling
 	// of instance keys into the separate instance expander model, and so it
 	// does a bunch of instance-related work itself below.
@@ -1000,7 +1027,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if d.Operation == walkValidate || d.Operation == walkEval {
+	if d.Operation == walkValidate || d.Operation == walkEval || d.Operation == walkInit {
 		// Ephemeral instances are never live during the validate walk. Eval is
 		// similarly offline, and since there is no value stored we can't return
 		// anything other than dynamic.
@@ -1119,6 +1146,12 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 
 func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if d.Operation == walkInit {
+		// During init walks we don't have any state or prior knowledge
+		// about resources, so we just return unknown.
+		return cty.DynamicVal, diags
+	}
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.

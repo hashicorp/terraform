@@ -11,11 +11,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -66,8 +68,20 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 	// Set up view
 	view := views.NewShow(args.ViewType, c.View)
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+
 	// Check for user-supplied plugin path
-	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
 		view.Diagnostics(diags)
@@ -267,7 +281,7 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 	}
 
 	if lp, ok := pf.Local(); ok {
-		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures)
+		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures, c.Meta.VariableValues)
 	} else if cp, ok := pf.Cloud(); ok {
 		redacted := c.viewType != arguments.ViewJSON
 		jsonPlan, err = c.getDataFromCloudPlan(cp, redacted)
@@ -297,7 +311,7 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 }
 
 // getDataFromPlanfileReader returns a plan, statefile, and config, extracted from a local plan file.
-func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperiments bool) (*plans.Plan, *statefile.File, *configs.Config, error) {
+func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperiments bool, variableValues map[string]arguments.UnparsedVariableValue) (*plans.Plan, *statefile.File, *configs.Config, error) {
 	// Get plan
 	plan, err := planReader.ReadPlan()
 	if err != nil {
@@ -311,12 +325,53 @@ func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperim
 	}
 
 	// Get config
-	config, diags := planReader.ReadConfig(allowLanguageExperiments)
+	config, diags := readConfig(planReader, allowLanguageExperiments, variableValues)
 	if diags.HasErrors() {
 		return nil, nil, nil, errUnusable(diags.Err(), "local plan")
 	}
 
 	return plan, stateFile, config, err
+}
+
+func readConfig(r *planfile.Reader, allowLanguageExperiments bool, variableValues map[string]arguments.UnparsedVariableValue) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	snap, err := r.ReadConfigSnapshot()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to read configuration from plan file",
+			fmt.Sprintf("The configuration file snapshot in the plan file could not be read: %s.", err),
+		))
+		return nil, diags
+	}
+
+	loader := configload.NewLoaderFromSnapshot(snap)
+	loader.AllowLanguageExperiments(allowLanguageExperiments)
+	rootMod, rootDiags := loader.LoadRootModule(snap.Modules[""].Dir)
+	diags = diags.Append(rootDiags)
+	if rootDiags.HasErrors() {
+		return nil, diags
+	}
+
+	variables, varDiags := backendrun.ParseVariableValues(variableValues, rootMod.Variables)
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		variables,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+	if buildDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return config, diags
 }
 
 // getStateFromPath returns a statefile if the user-supplied path points to a statefile.

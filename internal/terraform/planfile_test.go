@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package planfile
+package terraform
 
 import (
 	"path/filepath"
@@ -16,13 +16,14 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestRoundtrip(t *testing.T) {
-	fixtureDir := filepath.Join("testdata", "test-config")
+	fixtureDir := filepath.Join("testdata", "planfile", "test-config")
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform", "modules"),
 	})
@@ -30,9 +31,9 @@ func TestRoundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, snapIn, diags := loader.LoadConfigWithSnapshot(fixtureDir)
+	_, snapIn, diags := testLoadWithSnapshot(fixtureDir, loader, nil)
 	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+		t.Fatal(diags.Err())
 	}
 
 	// Just a minimal state file so we can test that it comes out again at all.
@@ -92,7 +93,7 @@ func TestRoundtrip(t *testing.T) {
 
 	planFn := filepath.Join(t.TempDir(), "tfplan")
 
-	err = Create(planFn, CreateArgs{
+	err = planfile.Create(planFn, planfile.CreateArgs{
 		ConfigSnapshot:       snapIn,
 		PreviousRunStateFile: prevStateFileIn,
 		StateFile:            stateFileIn,
@@ -103,7 +104,7 @@ func TestRoundtrip(t *testing.T) {
 		t.Fatalf("failed to create plan file: %s", err)
 	}
 
-	wpf, err := OpenWrapped(planFn)
+	wpf, err := planfile.OpenWrapped(planFn)
 	if err != nil {
 		t.Fatalf("failed to open plan file for reading: %s", err)
 	}
@@ -181,14 +182,14 @@ func TestRoundtrip(t *testing.T) {
 func TestWrappedError(t *testing.T) {
 	// Open something that isn't a cloud or local planfile: should error
 	wrongFile := "not a valid zip file"
-	_, err := OpenWrapped(filepath.Join("testdata", "test-config", "root.tf"))
+	_, err := planfile.OpenWrapped(filepath.Join("testdata", "planfile", "test-config", "root.tf"))
 	if !strings.Contains(err.Error(), wrongFile) {
 		t.Fatalf("expected  %q, got %q", wrongFile, err)
 	}
 
 	// Open something that doesn't exist: should error
 	missingFile := "no such file or directory"
-	_, err = OpenWrapped(filepath.Join("testdata", "absent.tfplan"))
+	_, err = planfile.OpenWrapped(filepath.Join("testdata", "planfile", "absent.tfplan"))
 	if !strings.Contains(err.Error(), missingFile) {
 		t.Fatalf("expected  %q, got %q", missingFile, err)
 	}
@@ -196,7 +197,7 @@ func TestWrappedError(t *testing.T) {
 
 func TestWrappedCloud(t *testing.T) {
 	// Loading valid cloud plan results in a wrapped cloud plan
-	wpf, err := OpenWrapped(filepath.Join("testdata", "cloudplan.json"))
+	wpf, err := planfile.OpenWrapped(filepath.Join("testdata", "planfile", "cloudplan.json"))
 	if err != nil {
 		t.Fatalf("failed to open valid cloud plan: %s", err)
 	}
