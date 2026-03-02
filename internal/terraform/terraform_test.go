@@ -170,9 +170,19 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadStaticConfigWithTests(cfgPath, "tests")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil, // no variables needed for this helper
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatal(buildDiags.Err())
 	}
 
 	return config

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -77,7 +78,15 @@ func TestModuleInstaller(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -410,7 +419,15 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -608,7 +625,15 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -738,7 +763,15 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -800,7 +833,15 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfigWithTests(".", "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["tests/main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
@@ -909,7 +950,15 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfigWithTests(".", "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
