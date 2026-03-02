@@ -49,12 +49,12 @@ type module struct {
 }
 
 type moduleCall struct {
-	SourceExpression  *expression            `json:"source,omitempty"`
+	Source            string                 `json:"source,omitempty"`
 	Expressions       map[string]interface{} `json:"expressions,omitempty"`
 	CountExpression   *expression            `json:"count_expression,omitempty"`
 	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
-	VersionConstraint *expression            `json:"version_constraint,omitempty"`
+	VersionConstraint string                 `json:"version_constraint,omitempty"`
 	DependsOn         []string               `json:"depends_on,omitempty"`
 }
 
@@ -415,18 +415,15 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 		return moduleCall{}
 	}
 
-	ret := moduleCall{}
-	// We're intentionally echoing back exactly what the user entered
-	// here, rather than the normalized version in SourceAddr, because
-	// historically we only _had_ the raw address and thus it would be
-	// a (admittedly minor) breaking change to start normalizing them
-	// now, in case consumers of this data are expecting a particular
-	// non-normalized syntax.
-	sExp := marshalExpression(mc.SourceExpr)
-	ret.SourceExpression = &sExp
-	if mc.VersionExpr != nil {
-		vExp := marshalExpression(mc.VersionExpr)
-		ret.VersionConstraint = &vExp
+	ret := moduleCall{
+		// We're intentionally echoing back exactly what the user entered
+		// here, rather than the normalized version in SourceAddr, because
+		// historically we only _had_ the raw address and thus it would be
+		// a (admittedly minor) breaking change to start normalizing them
+		// now, in case consumers of this data are expecting a particular
+		// non-normalized syntax.
+		Source:            c.SourceAddrRaw,
+		VersionConstraint: c.VersionConstraint.Required.String(),
 	}
 
 	cExp := marshalExpression(mc.Count)

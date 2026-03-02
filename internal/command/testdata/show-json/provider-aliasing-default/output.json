@@ -84,7 +84,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "foo"
@@ -104,7 +106,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "bar"
@@ -124,7 +128,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "qux"
@@ -144,7 +150,9 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": ["create"],
+        "actions": [
+          "create"
+        ],
         "before": null,
         "after": {
           "ami": "baz"
@@ -197,9 +205,7 @@
       ],
       "module_calls": {
         "child": {
-          "source": {
-            "constant_value": "./child"
-          },
+          "source": "./child",
           "module": {
             "resources": [
               {
@@ -218,9 +224,7 @@
             ],
             "module_calls": {
               "no_requirements": {
-                "source": {
-                  "constant_value": "./nested-no-requirements"
-                },
+                "source": "./nested-no-requirements",
                 "module": {
                   "resources": [
                     {
@@ -240,9 +244,7 @@
                 }
               },
               "with_requirement": {
-                "source": {
-                  "constant_value": "./nested"
-                },
+                "source": "./nested",
                 "depends_on": ["module.no_requirements"],
                 "module": {
                   "resources": [
