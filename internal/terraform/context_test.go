@@ -810,7 +810,25 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		return nil, nil, nil, err
 	}
 
-	config, diags := pr.ReadConfig(false)
+	snap, err := pr.ReadConfigSnapshot()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	loader := configload.NewLoaderFromSnapshot(snap)
+	rootMod, hclDiags := loader.LoadRootModule(snap.Modules[""].Dir)
+	diags := tfdiags.Diagnostics(nil).Append(hclDiags)
+	if diags.HasErrors() {
+		return nil, nil, nil, diags.Err()
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags.Err()
 	}
