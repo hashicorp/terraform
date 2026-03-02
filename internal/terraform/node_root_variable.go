@@ -110,7 +110,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	// During init we only want to prepare the final value for static variables.
+	// During init we only want to prepare the final value for const variables.
 	if op == walkInit {
 		var finalVal cty.Value
 		if n.Config.Const {
@@ -127,7 +127,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 				return diags
 			}
 		} else {
-			// All non-static variables are unknown during init.
+			// All non-const variables are unknown during init.
 			finalVal = cty.UnknownVal(n.Config.Type)
 		}
 		ctx.NamedValues().SetInputVariableValue(addr, finalVal)
