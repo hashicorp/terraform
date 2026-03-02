@@ -251,8 +251,8 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	if op == walkInit && n.Config.Const && !val.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Static variables must be known",
-			Detail:   "Only a static value can be passed into a static module variable.",
+			Summary:  "Const variables must be known",
+			Detail:   "Only a constant value can be passed into a constant module variable.",
 			Subject:  errSourceRange.ToHCL().Ptr(),
 		})
 	}
