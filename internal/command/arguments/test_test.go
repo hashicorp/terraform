@@ -191,6 +191,19 @@ func TestParseTest(t *testing.T) {
 			},
 			wantDiags: nil,
 		},
+		"strict": {
+			args: []string{"-strict"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Strict:               true,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+				RunParallelism:       10,
+			},
+			wantDiags: nil,
+		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{

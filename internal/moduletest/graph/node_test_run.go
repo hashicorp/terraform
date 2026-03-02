@@ -186,6 +186,9 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	}
 
 	variables, variableDiags := GetVariables(ctx, run.Config, run.ModuleConfig, true)
+	if ctx.Strict() {
+		variableDiags = moduletest.PromoteWarningsToErrors(variableDiags)
+	}
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error

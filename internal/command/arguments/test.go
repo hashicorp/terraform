@@ -52,6 +52,10 @@ type Test struct {
 	// the same-named flag in the Operation struct.
 	DeferralAllowed bool
 
+	// Strict causes test runs to fail if any warnings are produced during
+	// plan or apply operations.
+	Strict bool
+
 	// These flags are only relevant to the "test cleanup" command.
 	Repair bool
 }
@@ -73,6 +77,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
 	cmdFlags.BoolVar(&test.DeferralAllowed, "allow-deferral", false, "allow-deferral")
+	cmdFlags.BoolVar(&test.Strict, "strict", false, "strict")
 	cmdFlags.BoolVar(&test.Repair, "repair", false, "repair")
 
 	// TODO: Finalise the name of this flag.

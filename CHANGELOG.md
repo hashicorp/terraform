@@ -22,6 +22,8 @@ ENHANCEMENTS:
 
 * Terraform Test: Allow functions within mock blocks ([#34672](https://github.com/hashicorp/terraform/issues/34672))
 
+* Terraform Test: Add strict mode ([#38224](https://github.com/hashicorp/terraform/pull/38224))
+
 * improve detection of deprecated resource attributes / blocks ([#38077](https://github.com/hashicorp/terraform/issues/38077))
 
 

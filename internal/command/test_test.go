@@ -432,6 +432,36 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
+		"strict_mode_no_warnings_passes": {
+			override:    "simple_pass",
+			args:        []string{"-strict"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+			description: "strict mode does not affect tests with no warnings",
+		},
+		"strict_mode_warnings_fail": {
+			override:    "invalid-cleanup-warnings",
+			args:        []string{"-strict"},
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Error: Value for undeclared variable"},
+			code:        1,
+			description: "strict mode causes warnings to fail the test",
+		},
+		"strict_mode_plan_warnings_fail": {
+			override:    "strict-warnings-plan",
+			args:        []string{"-strict"},
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Error: Value for undeclared variable"},
+			code:        1,
+			description: "strict mode causes warnings to fail a plan-only test",
+		},
+		"strict_mode_expect_failures_still_pass": {
+			override:    "expect_failures_checks",
+			args:        []string{"-strict"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+			description: "strict mode does not interfere with expected failures",
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

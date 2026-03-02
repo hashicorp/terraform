@@ -73,6 +73,7 @@ type EvalContext struct {
 	config        *configs.Config
 	renderer      views.Test
 	verbose       bool
+	strict        bool
 
 	// mode and repair affect the behaviour of the cleanup process of the graph.
 	//
@@ -98,6 +99,7 @@ type EvalContext struct {
 
 type EvalContextOpts struct {
 	Verbose           bool
+	Strict            bool
 	Repair            bool
 	Render            views.Test
 	CancelCtx         context.Context
@@ -135,6 +137,7 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		stopFunc:          stop,
 		config:            opts.Config,
 		verbose:           opts.Verbose,
+		strict:            opts.Strict,
 		repair:            opts.Repair,
 		renderer:          opts.Render,
 		mode:              opts.Mode,
@@ -174,6 +177,12 @@ func (ec *EvalContext) Stopped() bool {
 // Verbose returns true if the context is in verbose mode.
 func (ec *EvalContext) Verbose() bool {
 	return ec.verbose
+}
+
+// Strict returns true if the context is in strict mode,
+// meaning warnings should be treated as errors.
+func (ec *EvalContext) Strict() bool {
+	return ec.strict
 }
 
 func (ec *EvalContext) HclContext(references []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
