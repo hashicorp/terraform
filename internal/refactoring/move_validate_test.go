@@ -1,25 +1,17 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package refactoring
+package refactoring_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/hcl/v2/hcltest"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -27,7 +19,7 @@ func TestValidateMoves(t *testing.T) {
 	rootCfg, instances := loadRefactoringFixture(t, "testdata/move-validate-zoo")
 
 	tests := map[string]struct {
-		Statements []MoveStatement
+		Statements []refactoring.MoveStatement
 		WantError  string
 	}{
 		"no move statements": {
@@ -35,7 +27,7 @@ func TestValidateMoves(t *testing.T) {
 			WantError:  ``,
 		},
 		"some valid statements": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				// This is just a grab bag of various valid cases that don't
 				// generate any errors at all.
 				makeTestMoveStmt(t,
@@ -112,7 +104,7 @@ func TestValidateMoves(t *testing.T) {
 			WantError: ``,
 		},
 		"two statements with the same endpoints": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.a`,
@@ -127,7 +119,7 @@ func TestValidateMoves(t *testing.T) {
 			WantError: ``,
 		},
 		"moving nowhere": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.a`,
@@ -137,7 +129,7 @@ func TestValidateMoves(t *testing.T) {
 			WantError: `Redundant move statement: This statement declares a move from module.a to the same address, which is the same as not declaring this move at all.`,
 		},
 		"cyclic chain": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.a`,
@@ -162,7 +154,7 @@ func TestValidateMoves(t *testing.T) {
 A chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.`,
 		},
 		"module.single as a call still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.single`,
@@ -174,7 +166,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 Change your configuration so that this call will be declared as module.other instead.`,
 		},
 		"module.single as an instance still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.single`,
@@ -186,7 +178,7 @@ Change your configuration so that this call will be declared as module.other ins
 Change your configuration so that this instance will be declared as module.other[0] instead.`,
 		},
 		"module.count[0] still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.count[0]`,
@@ -198,7 +190,7 @@ Change your configuration so that this instance will be declared as module.other
 Change your configuration so that this instance will be declared as module.other instead.`,
 		},
 		`module.for_each["a"] still exists in configuration`: {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.for_each["a"]`,
@@ -210,7 +202,7 @@ Change your configuration so that this instance will be declared as module.other
 Change your configuration so that this instance will be declared as module.other instead.`,
 		},
 		"test.single as a resource still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.single`,
@@ -222,7 +214,7 @@ Change your configuration so that this instance will be declared as module.other
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},
 		"test.single as an instance still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.single`,
@@ -234,7 +226,7 @@ Change your configuration so that this resource will be declared as test.other i
 Change your configuration so that this instance will be declared as test.other[0] instead.`,
 		},
 		"module.single.test.single as a resource still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.single.test.single`,
@@ -246,7 +238,7 @@ Change your configuration so that this instance will be declared as test.other[0
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},
 		"module.single.test.single as a resource declared in module.single still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					`single`,
 					`test.single`,
@@ -258,7 +250,7 @@ Change your configuration so that this resource will be declared as test.other i
 Change your configuration so that this resource will be declared as module.single.test.other instead.`,
 		},
 		"module.single.test.single as an instance still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.single.test.single`,
@@ -270,7 +262,7 @@ Change your configuration so that this resource will be declared as module.singl
 Change your configuration so that this instance will be declared as test.other[0] instead.`,
 		},
 		"module.count[0].test.single still exists in configuration": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.count[0].test.single`,
@@ -282,7 +274,7 @@ Change your configuration so that this instance will be declared as test.other[0
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},
 		"two different moves from test.nonexist": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.nonexist`,
@@ -299,7 +291,7 @@ Change your configuration so that this resource will be declared as test.other i
 Each resource can move to only one destination resource.`,
 		},
 		"two different moves to test.single": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.other1`,
@@ -316,7 +308,7 @@ Each resource can move to only one destination resource.`,
 Each resource can have moved from only one source resource.`,
 		},
 		"two different moves to module.count[0].test.single across two modules": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.other1`,
@@ -333,7 +325,7 @@ Each resource can have moved from only one source resource.`,
 Each resource can have moved from only one source resource.`,
 		},
 		"move from resource in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.fake_external.test.thing`,
@@ -343,7 +335,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"move to resource in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`test.thing`,
@@ -353,7 +345,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"move from module call in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.fake_external.module.a`,
@@ -363,7 +355,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"move to module call in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.a`,
@@ -373,7 +365,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"implied move from resource in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestImpliedMoveStmt(t,
 					``,
 					`module.fake_external.test.thing`,
@@ -384,7 +376,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"implied move to resource in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestImpliedMoveStmt(t,
 					``,
 					`test.thing`,
@@ -395,7 +387,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"implied move from module call in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestImpliedMoveStmt(t,
 					``,
 					`module.fake_external.module.a`,
@@ -406,7 +398,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"implied move to module call in another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestImpliedMoveStmt(t,
 					``,
 					`module.a`,
@@ -417,7 +409,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``,
 		},
 		"move to a call that refers to another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.nonexist`,
@@ -427,7 +419,7 @@ Each resource can have moved from only one source resource.`,
 			WantError: ``, // This is okay because the call itself is not considered to be inside the package it refers to
 		},
 		"move to instance of a call that refers to another module package": {
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t,
 					``,
 					`module.nonexist`,
@@ -438,7 +430,7 @@ Each resource can have moved from only one source resource.`,
 		},
 		"crossing nested statements": {
 			// overlapping nested moves will result in a cycle.
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t, ``,
 					`module.nonexist.test.single`,
 					`module.count[0].test.count[0]`,
@@ -458,7 +450,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 			// we have to avoid a cycle because the nested moves appear in both
 			// the from and to address of the parent when only the module index
 			// is changing.
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t, `count`,
 					`test.count`,
 					`test.count[0]`,
@@ -473,7 +465,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 			// we have to avoid a cycle because the nested moves appear in both
 			// the from and to address of the parent when only the module index
 			// is changing.
-			Statements: []MoveStatement{
+			Statements: []refactoring.MoveStatement{
 				makeTestMoveStmt(t, `count`,
 					`module.count`,
 					`module.count[0]`,
@@ -492,7 +484,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			gotDiags := ValidateMoves(test.Statements, rootCfg, instances)
+			gotDiags := refactoring.ValidateMoves(test.Statements, rootCfg, instances)
 
 			switch {
 			case test.WantError != "":
@@ -511,149 +503,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 	}
 }
 
-// loadRefactoringFixture reads a configuration from the given directory and
-// does some naive static processing on any count and for_each expressions
-// inside, in order to get a realistic-looking instances.Set for what it
-// declares without having to run a full Terraform plan.
-func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instances.Set) {
-	t.Helper()
-
-	loader, cleanup := configload.NewLoaderForTests(t)
-	defer cleanup()
-
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
-	if instDiags.HasErrors() {
-		t.Fatal(instDiags.Err())
-	}
-
-	// Since module installer has modified the module manifest on disk, we need
-	// to refresh the cache of it in the loader.
-	if err := loader.RefreshModules(); err != nil {
-		t.Fatalf("failed to refresh modules after installation: %s", err)
-	}
-
-	// Note: This test uses BuildConfig instead of
-	// terraform.BuildConfigWithGraph to avoid an import cycle (terraform
-	// imports the refactoring package). Since this test only needs basic config
-	// structure without expression evaluation, the static loader is appropriate.
-	rootMod, diags := loader.LoadRootModule(dir)
-	if diags.HasErrors() {
-		t.Fatalf("invalid root module: %s", diags.Error())
-	}
-
-	rootCfg, buildDiags := configs.BuildConfig(
-		rootMod,
-		loader.ModuleWalker(),
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	if buildDiags.HasErrors() {
-		t.Fatalf("invalid configuration: %s", buildDiags.Error())
-	}
-
-	expander := instances.NewExpander(nil)
-	staticPopulateExpanderModule(t, rootCfg, addrs.RootModuleInstance, expander)
-	return rootCfg, expander.AllInstances()
-}
-
-func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleAddr addrs.ModuleInstance, expander *instances.Expander) {
-	t.Helper()
-
-	modCfg := rootCfg.DescendantForInstance(moduleAddr)
-	if modCfg == nil {
-		t.Fatalf("no configuration for %s", moduleAddr)
-	}
-
-	if len(modCfg.Path) > 0 && modCfg.Path[len(modCfg.Path)-1] == "fake_external" {
-		// As a funny special case we modify the source address of this
-		// module to be something that counts as a separate package,
-		// so we can test rules relating to crossing package boundaries
-		// even though we really just loaded the module from a local path.
-		modCfg.SourceAddr = fakeExternalModuleSource
-	}
-
-	for _, call := range modCfg.Module.ModuleCalls {
-		callAddr := addrs.ModuleCall{Name: call.Name}
-
-		if call.Name == "fake_external" {
-			// As a funny special case we modify the source address of this
-			// module to be something that counts as a separate package,
-			// so we can test rules relating to crossing package boundaries
-			// even though we really just loaded the module from a local path.
-			call.SourceExpr = hcltest.MockExprLiteral(cty.StringVal(fakeExternalModuleSource.String()))
-		}
-
-		// In order to get a valid, useful set of instances here we're going
-		// to just statically evaluate the count and for_each expressions.
-		// Normally it's valid to use references and functions there, but for
-		// our unit tests we'll just limit it to literal values to avoid
-		// bringing all of the core evaluator complexity.
-		switch {
-		case call.ForEach != nil:
-			val, diags := call.ForEach.Value(nil)
-			if diags.HasErrors() {
-				t.Fatalf("invalid for_each: %s", diags.Error())
-			}
-			expander.SetModuleForEach(moduleAddr, callAddr, val.AsValueMap())
-		case call.Count != nil:
-			val, diags := call.Count.Value(nil)
-			if diags.HasErrors() {
-				t.Fatalf("invalid count: %s", diags.Error())
-			}
-			var count int
-			err := gocty.FromCtyValue(val, &count)
-			if err != nil {
-				t.Fatalf("invalid count at %s: %s", call.Count.Range(), err)
-			}
-			expander.SetModuleCount(moduleAddr, callAddr, count)
-		default:
-			expander.SetModuleSingle(moduleAddr, callAddr)
-		}
-
-		// We need to recursively analyze the child modules too.
-		calledMod := modCfg.Path.Child(call.Name)
-		for _, inst := range expander.ExpandModule(calledMod, false) {
-			staticPopulateExpanderModule(t, rootCfg, inst, expander)
-		}
-	}
-
-	for _, rc := range modCfg.Module.ManagedResources {
-		staticPopulateExpanderResource(t, moduleAddr, rc, expander)
-	}
-	for _, rc := range modCfg.Module.DataResources {
-		staticPopulateExpanderResource(t, moduleAddr, rc, expander)
-	}
-
-}
-
-func staticPopulateExpanderResource(t *testing.T, moduleAddr addrs.ModuleInstance, rCfg *configs.Resource, expander *instances.Expander) {
-	t.Helper()
-
-	addr := rCfg.Addr()
-	switch {
-	case rCfg.ForEach != nil:
-		val, diags := rCfg.ForEach.Value(nil)
-		if diags.HasErrors() {
-			t.Fatalf("invalid for_each: %s", diags.Error())
-		}
-		expander.SetResourceForEach(moduleAddr, addr, val.AsValueMap())
-	case rCfg.Count != nil:
-		val, diags := rCfg.Count.Value(nil)
-		if diags.HasErrors() {
-			t.Fatalf("invalid count: %s", diags.Error())
-		}
-		var count int
-		err := gocty.FromCtyValue(val, &count)
-		if err != nil {
-			t.Fatalf("invalid count at %s: %s", rCfg.Count.Range(), err)
-		}
-		expander.SetResourceCount(moduleAddr, addr, count)
-	default:
-		expander.SetResourceSingle(moduleAddr, addr)
-	}
-}
-
-func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatement {
+func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) refactoring.MoveStatement {
 	t.Helper()
 
 	module := addrs.RootModule
@@ -684,7 +534,7 @@ func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatem
 		t.Fatalf("incompatible move endpoints")
 	}
 
-	return MoveStatement{
+	return refactoring.MoveStatement{
 		From: fromInModule,
 		To:   toInModule,
 		DeclRange: tfdiags.SourceRange{
@@ -695,13 +545,9 @@ func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatem
 	}
 }
 
-func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatement {
+func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) refactoring.MoveStatement {
 	t.Helper()
 	ret := makeTestMoveStmt(t, moduleStr, fromStr, toStr)
 	ret.Implied = true
 	return ret
-}
-
-var fakeExternalModuleSource = addrs.ModuleSourceRemote{
-	Package: addrs.ModulePackage("fake-external:///"),
 }
