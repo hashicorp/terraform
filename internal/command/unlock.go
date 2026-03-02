@@ -11,9 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks
@@ -23,34 +21,19 @@ type UnlockCommand struct {
 }
 
 func (c *UnlockCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var force bool
-	cmdFlags := c.Meta.defaultFlagSet("force-unlock")
-	cmdFlags.BoolVar(&force, "force", false, "force")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseForceUnlock(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: LOCK_ID")
-		return cli.RunResultHelp
-	}
-
-	lockID := args[0]
-	args = args[1:]
-
 	// assume everything is initialized. The user can manually init if this is
 	// required.
-	configPath, err := ModulePath(args)
+	configPath, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	view := arguments.ViewHuman
@@ -77,7 +60,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 	_, isLocal := stateMgr.(*statemgr.Filesystem)
 
-	if !force {
+	if !parsedArgs.Force {
 		// Forcing this doesn't do anything, but doesn't break anything either,
 		// and allows us to run the basic command test too.
 		if isLocal {
@@ -104,7 +87,7 @@ func (c *UnlockCommand) Run(args []string) int {
 		}
 	}
 
-	if err := stateMgr.Unlock(lockID); err != nil {
+	if err := stateMgr.Unlock(parsedArgs.LockID); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
 		return 1
 	}

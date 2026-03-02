@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
@@ -21,22 +20,13 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	var orCreate bool
-	cmdFlags := c.Meta.defaultFlagSet("workspace select")
-	cmdFlags.BoolVar(&orCreate, "or-create", false, "create workspace if it does not exist")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseWorkspaceSelect(args)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: NAME.\n")
-		return cli.RunResultHelp
-	}
-
-	configPath, err := ModulePath(args[1:])
+	configPath, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -50,21 +40,16 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	// Load the backend
 	view := arguments.ViewHuman
-	b, diags := c.backend(configPath, view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+	b, bDiags := c.backend(configPath, view)
+	if bDiags.HasErrors() {
+		c.showDiagnostics(bDiags)
 		return 1
 	}
 
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	name := args[0]
+	name := parsedArgs.Name
 	if !validWorkspaceName(name) {
 		c.Ui.Error(fmt.Sprintf(envInvalidName, name))
 		return 1
@@ -75,7 +60,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
-	c.showDiagnostics(diags) // output warnings, if any
+	c.showDiagnostics(bDiags) // output warnings, if any
 
 	if name == current {
 		// already using this workspace
@@ -93,7 +78,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	var newState bool
 
 	if !found {
-		if orCreate {
+		if parsedArgs.OrCreate {
 			_, sDiags := b.StateMgr(name)
 			if sDiags.HasErrors() {
 				c.Ui.Error(sDiags.Err().Error())

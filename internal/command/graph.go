@@ -25,26 +25,13 @@ type GraphCommand struct {
 }
 
 func (c *GraphCommand) Run(args []string) int {
-	var drawCycles bool
-	var graphTypeStr string
-	var moduleDepth int
-	var verbose bool
-	var planPath string
-
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("graph")
-	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
-	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
-	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
-	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
-	cmdFlags.StringVar(&planPath, "plan", "", "plan")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseGraph(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
+	configPath, err := ModulePath(parsedArgs.Args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -58,15 +45,13 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Try to load plan if path is specified
 	var planFile *planfile.WrappedPlanFile
-	if planPath != "" {
-		planFile, err = c.PlanFile(planPath)
+	if parsedArgs.PlanPath != "" {
+		planFile, err = c.PlanFile(parsedArgs.PlanPath)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
 		}
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	b, backendDiags := c.backend(".", arguments.ViewHuman)
@@ -106,8 +91,9 @@ func (c *GraphCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: drawCycles})
+	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: parsedArgs.DrawCycles})
 
+	graphTypeStr := parsedArgs.GraphType
 	if graphTypeStr == "" {
 		if planFile == nil {
 			// Simple resource dependency mode:
@@ -178,9 +164,9 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	graphStr, err := terraform.GraphDot(g, &dag.DotOpts{
-		DrawCycles: drawCycles,
-		MaxDepth:   moduleDepth,
-		Verbose:    verbose,
+		DrawCycles: parsedArgs.DrawCycles,
+		MaxDepth:   parsedArgs.ModuleDepth,
+		Verbose:    parsedArgs.Verbose,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
