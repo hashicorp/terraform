@@ -968,7 +968,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		assertNoDiagnostics(t, diags)
 		return rawPlan, nil
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1013,7 +1012,8 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 					expectedString := cty.StringVal("through-local-aloha-foo-foo")
 					expectedList := []cty.Value{
 						cty.StringVal("through-local-aloha-foo"),
-						cty.StringVal("foo")}
+						cty.StringVal("foo"),
+					}
 
 					expectedMap := map[string]cty.Value{
 						"key":   cty.StringVal("through-local-aloha-foo"),
@@ -1040,7 +1040,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 
 		return state, nil
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1173,8 +1172,8 @@ func TestPlanning_ActionInvocationLifecycle(t *testing.T) {
 	if foundActionChange.Invocation == nil {
 		t.Fatal("invocation is nil")
 	}
-	if _, ok := foundActionChange.Invocation.ActionTrigger.(*plans.LifecycleActionTrigger); !ok {
-		t.Errorf("wrong action trigger type\ngot:  %T\nwant: *plans.LifecycleActionTrigger", foundActionChange.Invocation.ActionTrigger)
+	if _, ok := foundActionChange.Invocation.ActionTrigger.(*plans.ResourceActionTrigger); !ok {
+		t.Errorf("wrong action trigger type\ngot:  %T\nwant: *plans.ResourceActionTrigger", foundActionChange.Invocation.ActionTrigger)
 	}
 
 	// Verify we can convert to proto successfully

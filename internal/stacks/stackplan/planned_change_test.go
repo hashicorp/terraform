@@ -964,7 +964,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 							Key: addrs.NoKey,
 						},
 					},
-					ActionTrigger: &plans.LifecycleActionTrigger{
+					ActionTrigger: &plans.ResourceActionTrigger{
 						TriggeringResourceAddr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
 							Type: "example_resource",
@@ -993,8 +993,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Invocation: &planproto.ActionInvocationInstance{
 							Addr:     "action.webhook.notify",
 							Provider: `provider["example.com/webhooks/http"]`,
-							ActionTrigger: &planproto.ActionInvocationInstance_LifecycleActionTrigger{
-								LifecycleActionTrigger: &planproto.LifecycleActionTrigger{
+							ActionTrigger: &planproto.ActionInvocationInstance_ResourceActionTrigger{
+								ResourceActionTrigger: &planproto.ResourceActionTrigger{
 									TriggeringResourceAddr:  "example_resource.main",
 									TriggerEvent:            planproto.ActionTriggerEvent_AFTER_CREATE,
 									ActionTriggerBlockIndex: 0,
