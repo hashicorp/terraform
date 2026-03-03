@@ -343,7 +343,6 @@ const (
 	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginMessage           InitMessageCode = "initializing_provider_plugin_message"
 	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
 	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
