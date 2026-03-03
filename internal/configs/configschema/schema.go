@@ -40,6 +40,11 @@ type Block struct {
 	// DeprecationMessage is a human-readable message explaining the deprecation.
 	// This is valid only when Deprecated is true.
 	DeprecationMessage string
+
+	// Computed, if set to true, specifies that data in this block can be
+	// computed by the provider. Since the decoding of HCL always results in
+	// block values, blocks are considered optional regardless of Computed.
+	Computed bool
 }
 
 // Attribute represents a configuration attribute, within a block.
