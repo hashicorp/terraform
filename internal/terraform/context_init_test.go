@@ -235,7 +235,7 @@ module "example" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid module source`,
-					Detail:   `The module source can only reference input variables and local values.`,
+					Detail:   `The module source can only reference constant input variables and local values.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 4, Column: 31, Byte: 95},
@@ -317,7 +317,7 @@ module "example" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid module source",
-					Detail:   "The module source can only reference input variables and local values.",
+					Detail:   "The module source can only reference constant input variables and local values.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 33, Byte: 91},
@@ -402,7 +402,7 @@ output "id" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid module source",
-					Detail:   "The module source can only reference input variables and local values.",
+					Detail:   "The module source can only reference constant input variables and local values.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 7, Column: 33, Byte: 107},

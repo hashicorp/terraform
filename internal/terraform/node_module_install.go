@@ -173,7 +173,7 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid module source",
-				Detail:   "The module source can only reference input variables and local values.",
+				Detail:   "The module source can only reference constant input variables and local values.",
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, "", diags
@@ -310,7 +310,7 @@ func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid module version",
-				Detail:   "The module version can only reference input variables and local values.",
+				Detail:   "The module version can only reference constant input variables and local values.",
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return ret, diags
