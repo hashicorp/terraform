@@ -396,7 +396,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
+	evts := c.prepareInstallerEvents(ctx, reqs, &diags, inst, view, views.InitializingProviderPluginFromConfigMessage, views.ReusingPreviousVersionInfo)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -513,7 +513,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
-	evts := c.prepareInstallerEvents(ctx, reqs, diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
+	evts := c.prepareInstallerEvents(ctx, reqs, &diags, inst, view, views.InitializingProviderPluginFromStateMessage, views.ReusingVersionIdentifiedFromConfig)
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
@@ -617,7 +617,7 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 // prepareInstallerEvents returns an instance of *providercache.InstallerEvents. This struct defines callback functions that will be executed
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
-func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
+func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags *tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -635,7 +635,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 			view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
 		},
 		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
+			*diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid dependency on built-in provider",
 				fmt.Sprintf("Cannot use %s: %s.", provider.ForDisplay(), err),
@@ -666,7 +666,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				for i, source := range sources {
 					displaySources[i] = fmt.Sprintf("  - %s", source)
 				}
-				diags = diags.Append(tfdiags.Sourceless(
+				*diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
 					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s",
@@ -685,7 +685,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					)
 				}
 
-				diags = diags.Append(tfdiags.Sourceless(
+				*diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
 					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
@@ -703,7 +703,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					// provider registry, to allow for the (admittedly currently
 					// rather unlikely) possibility that github.com starts being
 					// a real Terraform provider registry in the future.
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
 						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
@@ -712,7 +712,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					))
 
 				case errorTy.HasOtherVersion:
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
 						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
@@ -721,7 +721,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					))
 
 				default:
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
 						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
@@ -737,7 +737,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 
 			default:
 				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
-				diags = diags.Append(tfdiags.Sourceless(
+				*diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
 					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
@@ -753,7 +753,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				displayWarnings[i] = fmt.Sprintf("- %s", warning)
 			}
 
-			diags = diags.Append(tfdiags.Sourceless(
+			*diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Additional provider information from registry",
 				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
@@ -763,7 +763,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 			))
 		},
 		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
+			*diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install provider from shared cache",
 				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
@@ -776,13 +776,13 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				closestAvailable := err.Suggestion
 				switch {
 				case closestAvailable == getproviders.UnspecifiedVersion:
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(errProviderVersionIncompatible, provider.String()),
 					))
 				case version.GreaterThan(closestAvailable):
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(providerProtocolTooNew, provider.ForDisplay(),
@@ -791,7 +791,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 						),
 					))
 				default: // version is less than closestAvailable
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(providerProtocolTooOld, provider.ForDisplay(),
@@ -806,7 +806,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					// If we're installing from a mirror then it may just be
 					// the mirror lacking the package, rather than it being
 					// unavailable from upstream.
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(
@@ -816,7 +816,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 						),
 					))
 				default:
-					diags = diags.Append(tfdiags.Sourceless(
+					*diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(
@@ -841,7 +841,7 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 				// as a cancellation after the installer returns and do the
 				// normal cancellation handling.
 
-				diags = diags.Append(tfdiags.Sourceless(
+				*diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to install provider",
 					fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
