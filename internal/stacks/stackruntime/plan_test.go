@@ -6460,7 +6460,7 @@ func TestPlanWithActionInvocationHooks(t *testing.T) {
 			{
 				Addr:         testActionInvocationAddr,
 				ProviderAddr: addrs.NewBuiltInProvider("testing"),
-				Trigger: &plans.LifecycleActionTrigger{
+				Trigger: &plans.ResourceActionTrigger{
 					TriggeringResourceAddr:  testResourceInstance,
 					ActionTriggerEvent:      configs.AfterCreate,
 					ActionTriggerBlockIndex: 0,

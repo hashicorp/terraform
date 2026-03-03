@@ -1345,7 +1345,7 @@ func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangePro
 	}
 
 	switch trig := ai.Trigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger{
 			LifecycleActionTrigger: &stacks.StackChangeProgress_LifecycleActionTrigger{
 				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(

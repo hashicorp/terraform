@@ -927,7 +927,7 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 
 	// Convert the action trigger information
 	switch at := pc.Invocation.ActionTrigger.(type) {
-	case *plans.LifecycleActionTrigger:
+	case *plans.ResourceActionTrigger:
 		triggerEvent := stacks.PlannedChange_INVALID_EVENT
 		switch at.ActionTriggerEvent {
 		case configs.BeforeCreate:
