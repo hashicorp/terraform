@@ -158,19 +158,6 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 	var opts *BackendOpts
 	switch {
-	case root.StateStore != nil && root.Backend != nil:
-		// We expect validation during config parsing to prevent mutually exclusive backend and state_store blocks,
-		// but checking here just in case.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Conflicting backend and state_store configurations present during init",
-			Detail: fmt.Sprintf("When initializing the backend there was configuration data present for both backend %q and state store %q. This is a bug in Terraform and should be reported.",
-				root.Backend.Type,
-				root.StateStore.Type,
-			),
-			Subject: &root.Backend.TypeRange,
-		})
-		return nil, true, diags
 	case root.StateStore != nil:
 		// state_store config present
 		factory, fDiags := c.Meta.StateStoreProviderFactoryFromConfig(root.StateStore, configLocks)
@@ -243,32 +230,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	case root.Backend != nil:
 		// backend config present
 		backendType := root.Backend.Type
-		if backendType == "cloud" {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
-				Subject:  &root.Backend.TypeRange,
-			})
-			return nil, true, diags
-		}
-
 		bf := backendInit.Backend(backendType)
-		if bf == nil {
-			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
-			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
-				detail = msg
-			}
-
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported backend type",
-				Detail:   detail,
-				Subject:  &root.Backend.TypeRange,
-			})
-			return nil, true, diags
-		}
-
 		b := bf()
 		backendSchema := b.ConfigSchema()
 		backendConfig := root.Backend
@@ -294,6 +256,61 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 	default:
 		// No config; defaults to local state storage
+		opts = &BackendOpts{
+			Init:     true,
+			Locks:    configLocks,
+			ViewType: initArgs.ViewType,
+		}
+	}
+
+	back, backDiags := c.Backend(opts)
+	diags = diags.Append(backDiags)
+	return back, true, diags
+}
+
+func (c *InitCommand) earlyValidateBackend(root *configs.Module, initArgs *arguments.Init) (diags tfdiags.Diagnostics) {
+	switch {
+	case root.StateStore != nil && root.Backend != nil:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Conflicting backend and state_store configurations present during init",
+			Detail: fmt.Sprintf("When initializing the backend there was configuration data present for both backend %q and state store %q. This is a bug in Terraform and should be reported.",
+				root.Backend.Type,
+				root.StateStore.Type,
+			),
+			Subject: &root.Backend.TypeRange,
+		})
+		return diags
+	case root.StateStore != nil:
+		// validation requires the provider to be installed so cannot be done early
+	case root.Backend != nil:
+		backendType := root.Backend.Type
+		if backendType == "cloud" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return diags
+		}
+
+		if !backendInit.BackendExists(backendType) {
+			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+				detail = msg
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   detail,
+				Subject:  &root.Backend.TypeRange,
+			})
+			return diags
+		}
+	default:
+		// No config; defaults to local state storage
 
 		// If the user supplied a -backend-config on the CLI but no backend
 		// block was found in the configuration, it's likely - but not
@@ -317,17 +334,8 @@ the backend configuration is present and valid.
 `,
 			))
 		}
-
-		opts = &BackendOpts{
-			Init:     true,
-			Locks:    configLocks,
-			ViewType: initArgs.ViewType,
-		}
 	}
-
-	back, backDiags := c.Backend(opts)
-	diags = diags.Append(backDiags)
-	return back, true, diags
+	return diags
 }
 
 // getProvidersFromConfig determines what providers are required by the given configuration data.

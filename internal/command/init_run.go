@@ -192,9 +192,12 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
+	earlyBdiags := c.earlyValidateBackend(rootModEarly, initArgs)
+	diags = diags.Append(earlyBdiags)
+
 	// We've passed the core version check, now we can show errors from the early configuration.
 	// This prevents trying to initialise the backend with faulty configuration.
-	if earlyConfDiags.HasErrors() {
+	if earlyConfDiags.HasErrors() || earlyBdiags.HasErrors() {
 		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
 		view.Diagnostics(diags)
 		return 1
