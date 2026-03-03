@@ -755,12 +755,15 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema.Body)
-	if !newState.RawEquals(resp.NewState) {
-		// We had to fix up this object in some way, and we still need to
-		// accept any changes for compatibility, so all we can do is log a
-		// warning about the change.
-		log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks for %q during refresh\n", n.ResolvedProvider.Provider, n.Addr)
+	newState := resp.NewState
+	if !schema.Body.NoLegacyBehaviors() {
+		newState = objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema.Body)
+		if !newState.RawEquals(resp.NewState) {
+			// We had to fix up this object in some way, and we still need to
+			// accept any changes for compatibility, so all we can do is log a
+			// warning about the change.
+			log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks for %q during refresh\n", n.ResolvedProvider.Provider, n.Addr)
+		}
 	}
 
 	ret := state.DeepCopy()
