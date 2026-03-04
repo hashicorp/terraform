@@ -6,7 +6,6 @@ package initwd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
@@ -59,7 +59,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// The target directory must exist but be empty.
 	{
-		entries, err := ioutil.ReadDir(rootDir)
+		entries, err := os.ReadDir(rootDir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg)
+	inst := NewModuleInstaller(instDir, loader, reg, nil)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -129,24 +129,17 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	sourceAddr, err := moduleaddrs.ParseModuleSource(sourceAddrStr)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid module source address",
-			fmt.Sprintf("Failed to parse module source address: %s", err),
-		))
+	fakeRange := hcl.Range{
+		Filename: initFromModuleRootFilename,
+		Start:    hcl.InitialPos,
+		End:      hcl.InitialPos,
 	}
 	fakeRootModule := &configs.Module{
 		ModuleCalls: map[string]*configs.ModuleCall{
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
-				SourceAddr: sourceAddr,
-				DeclRange: hcl.Range{
-					Filename: initFromModuleRootFilename,
-					Start:    hcl.InitialPos,
-					End:      hcl.InitialPos,
-				},
+				SourceExpr: hcl.StaticExpr(cty.StringVal(sourceAddrStr), fakeRange),
+				DeclRange:  fakeRange,
 			},
 		},
 		ProviderRequirements: &configs.RequiredProviders{},
@@ -167,9 +160,18 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	fetcher := getmodules.NewPackageFetcher()
 
 	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
-	_, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true)
+	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)
+	}
+
+	err = instManifest.WriteSnapshotToDir(instDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to update module manifest",
+			fmt.Sprintf("Unable to write the module manifest file: %s", err),
+		))
 	}
 
 	// If all of that succeeded then we'll now migrate what was installed
@@ -215,9 +217,12 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			mod, _ := loader.Parser().LoadConfigDir(rootDir) // ignore diagnostics since we're just doing value-add here anyway
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
-					if pathTraversesUp(mc.SourceAddrRaw) {
+					// TODO improve this
+					sourceVal, _ := mc.SourceExpr.Value(nil)
+					sourceRaw := sourceVal.AsString()
+					if pathTraversesUp(sourceRaw) {
 						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)
-						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
+						newSubdir := filepath.Join(givenSubdir, sourceRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable
 							// configuration since this suggests a path that

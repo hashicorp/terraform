@@ -1,0 +1,15 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": ""
+        },
+        {
+            "Key": "child",
+            "Source": "hashicorp/module-installer-acctest/aws",
+            "Version": "0.0.1",
+            "Dir": ".terraform/modules/child"
+        }
+    ]
+}

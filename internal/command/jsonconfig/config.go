@@ -422,9 +422,10 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 		// a (admittedly minor) breaking change to start normalizing them
 		// now, in case consumers of this data are expecting a particular
 		// non-normalized syntax.
-		Source:            mc.SourceAddrRaw,
-		VersionConstraint: mc.Version.Required.String(),
+		Source:            c.SourceAddrRaw,
+		VersionConstraint: c.VersionConstraint.Required.String(),
 	}
+
 	cExp := marshalExpression(mc.Count)
 	if !cExp.Empty() {
 		ret.CountExpression = &cExp
