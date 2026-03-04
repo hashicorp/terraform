@@ -6607,6 +6607,85 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 			},
 			wantErrorMessages: []string{"Tag values must be 1-256 characters."},
 		},
+
+		// Invalid error message tests - these verify that invalid error messages
+		// are caught even when validation passes or fails
+		"invalid-error-message-sensitive-in-error": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("short"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.NumberIntVal(5),
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to sensitive values",
+			},
+		},
+		"invalid-error-message-ephemeral-in-error": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("short_token"),
+				"count_value": cty.NumberIntVal(5),
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to ephemeral values",
+			},
+		},
+		"invalid-error-message-not-string": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.NumberIntVal(-5),
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			// When error_message is not a string type, we get the raw value in the validation failure
+			wantErrorMessages: []string{
+				"-5",
+			},
+		},
+		"invalid-error-message-sensitive-even-when-passing": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.NumberIntVal(5),
+				"api_key":     cty.StringVal("abcdef0123456789abcdef0123456789abcdef0123456789"),
+			},
+			// This tests that we evaluate error_message even when validation passes
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to sensitive values",
+			},
+		},
+
+		// Provider function tests
+		"provider-functions-pass": {
+			configPath: path.Join("with-single-input", "validation-provider-functions"),
+			planInputVars: map[string]cty.Value{
+				"input":      cty.StringVal("test"),
+				"echo_value": cty.StringVal("test_value"),
+				"combined":   cty.StringVal("long_enough"),
+			},
+			wantErrorMessages: nil,
+		},
+		"provider-functions-fail": {
+			configPath: path.Join("with-single-input", "validation-provider-functions"),
+			planInputVars: map[string]cty.Value{
+				"input":      cty.StringVal("test"),
+				"echo_value": cty.StringVal("test"),
+				"combined":   cty.StringVal("short"),
+			},
+			wantErrorMessages: []string{
+				"Combined value must be longer than 5 characters after echo",
+			},
+		},
 	}
 
 	for name, tc := range testCases {

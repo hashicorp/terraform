@@ -212,7 +212,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		switch block.Type {
 
 		case "validation":
-			vv, moreDiags := DecodeCheckRuleBlock(block, override)
+			vv, moreDiags := decodeCheckRuleBlock(block, override)
 			diags = append(diags, moreDiags...)
 			diags = append(diags, checkVariableValidationBlock(v.Name, vv)...)
 
@@ -443,7 +443,7 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "precondition":
-			cr, moreDiags := DecodeCheckRuleBlock(block, override)
+			cr, moreDiags := decodeCheckRuleBlock(block, override)
 			diags = append(diags, moreDiags...)
 			o.Preconditions = append(o.Preconditions, cr)
 		case "postcondition":

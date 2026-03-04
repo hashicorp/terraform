@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -29,7 +28,7 @@ type InputVariable struct {
 	// that provided values meet the specified constraints.
 	// Each CheckRule includes a condition expression that must evaluate to true,
 	// and an error message to display if the validation fails.
-	Validations []*configs.CheckRule
+	Validations []*CheckRule
 
 	DeclRange tfdiags.SourceRange
 }
@@ -103,7 +102,7 @@ func decodeInputVariableBlock(block *hcl.Block) (*InputVariable, tfdiags.Diagnos
 			// Decode the validation block into a CheckRule structure.
 			// This only validates the syntax and structure of the validation block itself,
 			// not the actual runtime validation of input values.
-			vv, hclDiags := configs.DecodeCheckRuleBlock(block, false)
+			vv, hclDiags := decodeCheckRuleBlock(block)
 			diags = diags.Append(hclDiags)
 			// Only add the validation rule if it was successfully parsed.
 			// If there were errors (e.g., missing condition or error_message),
