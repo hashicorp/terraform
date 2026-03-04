@@ -1,4 +1,4 @@
-## 1.15.0 (Unreleased)
+## 1.15.0-alpha20260304 (March 04, 2026)
 
 
 NEW FEATURES:
@@ -7,9 +7,13 @@ NEW FEATURES:
 
 * You can set a `deprecated` attribute on variable and output blocks to indicate that they are deprecated. This will produce warnings when passing in a value for a deprecated variable or when referencing a deprecated output. ([#38001](https://github.com/hashicorp/terraform/issues/38001))
 
-* backend/s3: Support authentication via `aws login` ([#37967](https://github.com/hashicorp/terraform/issues/37967))
+* backend/s3: Support authentication via `aws login` ([#37976](https://github.com/hashicorp/terraform/issues/37976))
 
 * validate: The validate command now checks the `backend` block. This ensures the backend type exists, that all required attributes are present, and that the backend's own validation logic passes. ([#38021](https://github.com/hashicorp/terraform/issues/38021))
+
+* `convert` function, which allows for precise inline type conversions ([#38160](https://github.com/hashicorp/terraform/issues/38160))
+
+* Terraform now supports variables and locals in module source and version attributes ([#38217](https://github.com/hashicorp/terraform/issues/38217))
 
 
 ENHANCEMENTS:
@@ -23,6 +27,10 @@ ENHANCEMENTS:
 * Terraform Test: Allow functions within mock blocks ([#34672](https://github.com/hashicorp/terraform/issues/34672))
 
 * improve detection of deprecated resource attributes / blocks ([#38077](https://github.com/hashicorp/terraform/issues/38077))
+
+* Deprecation messages providers set on resources / blocks / attributes are now part of the deprecation warning ([#38135](https://github.com/hashicorp/terraform/issues/38135))
+
+* Include which attribute paths are marked as sensitive in list_start JSON logs ([#38197](https://github.com/hashicorp/terraform/issues/38197))
 
 
 BUG FIXES:
@@ -50,6 +58,11 @@ BUG FIXES:
 * backend/http: Return conflicting lock info from HTTP backend instead of the lock that failed to be taken ([#38144](https://github.com/hashicorp/terraform/issues/38144))
 
 * states: fixed a bug that caused Terraform to be unable to identify when two states had different output values. This may have caused issues in specific circumstances like backend migrations. ([#38181](https://github.com/hashicorp/terraform/issues/38181))
+
+
+NOTES:
+
+* command/init: Provider installation was refactored to enable future enhancements in the area. This results in different order of operations during init and 2 new log messages replacing one (`initializing_provider_plugin_message`). The change should not have any end-user impact aside from the `init` command output. ([#38227](https://github.com/hashicorp/terraform/issues/38227))
 
 
 UPGRADE NOTES:
