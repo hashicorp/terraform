@@ -118,10 +118,7 @@ func TestMovedBlock_decode(t *testing.T) {
 				}),
 				DefRange: blockRange,
 			},
-			&Moved{
-				From:      mustMoveEndpointFromExpr(foo_expr),
-				DeclRange: blockRange,
-			},
+			nil,
 			"Missing required argument",
 		},
 		"error: type mismatch": {

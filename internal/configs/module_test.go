@@ -131,6 +131,16 @@ func TestModule_required_providers_multiple(t *testing.T) {
 	}
 }
 
+// Moved blocks with invalid (e.g. quoted) addresses combined with import
+// blocks should produce errors but must not panic.
+// https://github.com/hashicorp/terraform/issues/34041
+func TestModule_moved_with_invalid_addresses_no_panic(t *testing.T) {
+	_, diags := testModuleFromDir("testdata/invalid-modules/moved-with-invalid-addresses")
+	if !diags.HasErrors() {
+		t.Fatal("module should have error diags, but does not")
+	}
+}
+
 // A module may have required_providers configured in files loaded later than
 // resources. These provider settings should still be reflected in the
 // resources' configuration.
