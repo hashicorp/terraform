@@ -225,7 +225,7 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	},
 	"reusing_version_during_state_provider_init": {
 		HumanValue: "- Reusing previous version of %s",
-		JSONValue:  "%s: Reusing previous version of %s",
+		JSONValue:  "Reusing previous version of %s",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
@@ -331,31 +331,26 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
-	EmptyMessage                      InitMessageCode = "empty_message"
-	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
-	DefaultWorkspaceCreatedMessage    InitMessageCode = "default_workspace_created_message"
-	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                          InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage                 InitMessageCode = "copying_configuration_message"
+	EmptyMessage                                InitMessageCode = "empty_message"
+	OutputInitEmptyMessage                      InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage                    InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage               InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage                 InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage            InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage                     InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage           InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
+	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
+	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
+	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
+	DefaultWorkspaceCreatedMessage              InitMessageCode = "default_workspace_created_message"
+	LockInfo                                    InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
-
-	// InitializingProviderPluginFromConfigMessage indicates the beginning of installing of providers described in configuration
-	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
-	// InitializingProviderPluginFromStateMessage indicates the beginning of installing of providers described in state
-	InitializingProviderPluginFromStateMessage InitMessageCode = "initializing_provider_plugin_from_state_message"
-	// DependenciesLockPendingChangesInfo indicates when a provider installation step will reuse a provider from a previous installation step in the current operation
-	ReusingVersionIdentifiedFromConfig InitMessageCode = "reusing_version_during_state_provider_init"
 
 	// InitConfigError indicates problems encountered during initialisation
 	InitConfigError InitMessageCode = "init_config_error"
