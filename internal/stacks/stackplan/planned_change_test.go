@@ -1020,8 +1020,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ConfigValue: &stacks.DynamicValue{
 									Msgpack: emptyObjectForPlan,
 								},
-								ActionTrigger: &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
-									LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
+								ActionTrigger: &stacks.PlannedChange_ActionInvocationInstance_ResourceActionTrigger{
+									ResourceActionTrigger: &stacks.PlannedChange_ResourceActionTrigger{
 										TriggeringResourceAddress: &stacks.ResourceInstanceInStackAddr{
 											ComponentInstanceAddr: "component.web",
 											ResourceInstanceAddr:  "example_resource.main",
