@@ -87,6 +87,27 @@ func NewState(config *configs.Config) *State {
 	}
 }
 
+// RegisterModule registers all checkable objects declared in the given module
+// configuration that are not already known to this State.
+//
+// This supports incremental config discovery, such as during init walks where
+// child modules are loaded step by step rather than all at once.
+func (c *State) RegisterModule(cfg *configs.Config) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Collect statuses for the new module (non-recursively — children will
+	// register themselves when they are loaded).
+	fresh := addrs.MakeMap[addrs.ConfigCheckable, *configCheckableState]()
+	collectInitialStatuses(fresh, cfg)
+
+	for _, elem := range fresh.Elems {
+		if !c.statuses.Has(elem.Key) {
+			c.statuses.Put(elem.Key, elem.Value)
+		}
+	}
+}
+
 // ConfigHasChecks returns true if and only if the given address refers to
 // a configuration object that this State object is expecting to recieve
 // statuses for.
