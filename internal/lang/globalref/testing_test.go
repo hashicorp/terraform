@@ -84,14 +84,6 @@ func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 					},
 				},
 			},
-			"list_dynamic": {
-				Nesting: configschema.NestingList,
-				Block: configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"z": {Type: cty.DynamicPseudoType, Optional: true},
-					},
-				},
-			},
 			"map": {
 				Nesting: configschema.NestingMap,
 				Block: configschema.Block{
@@ -110,13 +102,6 @@ func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 			},
 		},
 	}
-	dataSourceTypeSchema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"string": {Type: cty.String, Optional: true},
-			"number": {Type: cty.Number, Optional: true},
-			"any":    {Type: cty.DynamicPseudoType, Optional: true},
-		},
-	}
 	schemas := map[addrs.Provider]providers.ProviderSchema{
 		addrs.MustParseProviderSourceString("hashicorp/test"): {
 			ResourceTypes: map[string]providers.Schema{
@@ -126,7 +111,7 @@ func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 			},
 			DataSources: map[string]providers.Schema{
 				"test_thing": {
-					Body: dataSourceTypeSchema,
+					Body: resourceTypeSchema,
 				},
 			},
 		},
