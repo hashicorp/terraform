@@ -19,9 +19,8 @@ type RootVariableTransformer struct {
 
 	RawValues InputValues
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for root module variables
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -44,10 +43,10 @@ func (t *RootVariableTransformer) Transform(g *Graph) error {
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Config:       v,
-			RawValue:     t.RawValues[v.Name],
-			Planning:     t.Planning,
-			DestroyApply: t.DestroyApply,
+			Config:         v,
+			RawValue:       t.RawValues[v.Name],
+			ValidateChecks: t.ValidateChecks,
+			DestroyApply:   t.DestroyApply,
 		}
 		g.Add(node)
 	}

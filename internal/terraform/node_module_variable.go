@@ -26,9 +26,8 @@ type nodeExpandModuleVariable struct {
 	Config *configs.Variable
 	Expr   hcl.Expression
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for this variable
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
@@ -55,7 +54,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	// We should only do this during planning as the apply phase starts with
 	// all the same checkable objects that were registered during the plan.
 	var checkableAddrs addrs.Set[addrs.Checkable]
-	if n.Planning {
+	if n.ValidateChecks {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
 			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
 		}

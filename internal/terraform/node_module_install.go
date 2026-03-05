@@ -125,6 +125,12 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 	currentModuleKey := n.Addr[len(n.Addr)-1].Name
 	n.Parent.Children[currentModuleKey] = config
 
+	// During init, modules are loaded incrementally so the checks state
+	// built at walk start only knows about the root module. Register all
+	// checkable objects from the newly loaded module so that validation
+	// nodes added by DynamicExpand can find their check entries.
+	ctx.Checks().RegisterModule(config)
+
 	n.Config = config
 	n.Version = v
 
