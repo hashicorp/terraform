@@ -477,12 +477,8 @@ func evalVariableValidation(validation *stackconfig.CheckRule, hclCtx *hcl.EvalC
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
 
-	// Evaluate both condition and error message up front. The error message is
-	// always inspected for structural problems (sensitive/ephemeral marks), not only
-	// when the condition fails.
 	result, moreDiags := validation.Condition.Value(hclCtx)
 	diags = diags.Append(moreDiags)
-	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
 
 	if moreDiags.HasErrors() {
 		// If we couldn't evaluate the condition at all (syntax error, etc.),
@@ -529,27 +525,24 @@ func evalVariableValidation(validation *stackconfig.CheckRule, hclCtx *hcl.EvalC
 	// The marks don't affect the validation result, only how we handle the error message.
 	result, _ = result.Unmark()
 
-	// Always process and validate the error_message expression, even when the condition
-	// passes — an invalid error message (sensitive, ephemeral, non-string, etc.) should
-	// be flagged regardless of whether the check succeeds or fails.
+	// Always evaluate the error_message expression, even when the condition passes —
+	// unknown, sensitive, or ephemeral values in the message are structural problems
+	// regardless of whether the check succeeds or fails.
+	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
 	diags = diags.Append(errorDiags)
 
 	var errorMessage string
 	if !errorDiags.HasErrors() {
 		if !errorValue.IsKnown() {
-			if !result.True() {
-				// An unknown error message is only a problem when the condition actually
-				// fails, since we need to display it to the user.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid error message",
-					Detail:      "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
-					Subject:     validation.ErrorMessage.Range().Ptr(),
-					Expression:  validation.ErrorMessage,
-					EvalContext: hclCtx,
-				})
-				return diags
-			}
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid error message",
+				Detail:      "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+			return diags
 		} else if !errorValue.IsNull() {
 			errorValue, err = convert.Convert(errorValue, cty.String)
 			if err != nil {

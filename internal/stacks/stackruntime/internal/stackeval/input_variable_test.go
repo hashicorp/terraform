@@ -665,9 +665,12 @@ func TestEvalVariableValidation(t *testing.T) {
 
 	// --- Unknown error message ---
 
-	t.Run("error message unknown, condition fails → Invalid error message (no failure diag)", func(t *testing.T) {
-		// We must flag the unknown error message but must NOT also emit
-		// "Invalid value for variable" because we return early.
+	t.Run("error message unknown, condition fails → Invalid error message only", func(t *testing.T) {
+		// An unknown error_message is always a structural problem: the validation
+		// block is invalid regardless of whether the condition passes or fails,
+		// because Terraform can never safely display the message.
+		// We return early on the unknown message, so "Invalid value for variable"
+		// must NOT also be emitted.
 		rule := makeFakeRule(
 			hcltest.MockExprLiteral(cty.False),
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
@@ -684,16 +687,26 @@ func TestEvalVariableValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("error message unknown, condition passes → no diagnostic about error message", func(t *testing.T) {
-		// Unknown error message is only a problem when the condition actually
-		// fails (because we'd need to display it).  When the condition passes
-		// the unknown error message must be silently ignored.
+	t.Run("error message unknown, condition passes → Invalid error message only", func(t *testing.T) {
+		// An unknown error_message is always a structural problem: the validation
+		// block is invalid regardless of whether the condition passes or fails,
+		// because Terraform can never safely display the message.
+		// We return early on the unknown message, so "Invalid value for variable"
+		// must NOT be emitted even though the condition passed.
 		rule := makeFakeRule(
 			hcltest.MockExprLiteral(cty.True),
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
 		)
 		diags := evalVariableValidation(rule, makeVarCtx(cty.StringVal("good")), valueRange)
-		assertNoDiags(t, diags)
+		assertMatchingDiag(t, diags, func(d tfdiags.Diagnostic) bool {
+			return d.Severity() == tfdiags.Error &&
+				d.Description().Summary == "Invalid error message"
+		})
+		for _, d := range diags {
+			if d.Description().Summary == "Invalid value for variable" {
+				t.Errorf("unexpected 'Invalid value for variable' when error message is unknown")
+			}
+		}
 	})
 
 	// --- Sensitive variable value in condition expression ---
