@@ -96,6 +96,22 @@ func (b Block) NoLegacyBehaviors() bool {
 	return false
 }
 
+// Contains computed blocks will return true if the argument is computed, or any
+// of the NestedBlock are computed recursively.
+func (b Block) ContainsComputedBlocks() bool {
+	if b.Computed {
+		return true
+	}
+
+	for _, nb := range b.BlockTypes {
+		if nb.ContainsComputedBlocks() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Attribute represents a configuration attribute, within a block.
 type Attribute struct {
 	// Type is a type specification that the attribute's value must conform to.

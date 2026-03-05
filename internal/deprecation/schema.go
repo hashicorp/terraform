@@ -43,9 +43,9 @@ func MarkDeprecatedValues(val cty.Value, schema *configschema.Block, origin stri
 				v = v.Mark(marks.NewDeprecation(attributeDeprecationMessage(attr, p), fmt.Sprintf("%s%s", origin, format.CtyPath(p))))
 			}
 
-			block := schema.BlockByPath(p)
-			if block != nil && block.Deprecated {
-				v = v.Mark(marks.NewDeprecation(blockDeprecationMessage(block, p), fmt.Sprintf("%s%s", origin, format.CtyPath(p))))
+			nestedBlock := schema.NestedBlockByPath(p)
+			if nestedBlock != nil && nestedBlock.Deprecated {
+				v = v.Mark(marks.NewDeprecation(blockDeprecationMessage(&nestedBlock.Block, p), fmt.Sprintf("%s%s", origin, format.CtyPath(p))))
 			}
 
 			return v, nil
