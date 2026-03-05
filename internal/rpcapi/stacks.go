@@ -1346,6 +1346,10 @@ func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangePro
 
 	switch trig := ai.Trigger.(type) {
 	case *plans.ResourceActionTrigger:
+		triggerEvent, err := stacks.ActionTriggerEventForStackChangeProgress(trig.TriggerEvent())
+		if err != nil {
+			return nil, err
+		}
 		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger{
 			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
 				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
@@ -1354,7 +1358,7 @@ func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangePro
 						Item:      trig.TriggeringResourceAddr,
 					},
 				),
-				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				TriggerEvent:            triggerEvent,
 				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
 				ActionsListIndex:        int64(trig.ActionsListIndex),
 			},

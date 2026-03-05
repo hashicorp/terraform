@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -928,20 +927,9 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 	// Convert the action trigger information
 	switch at := pc.Invocation.ActionTrigger.(type) {
 	case *plans.ResourceActionTrigger:
-		triggerEvent := stacks.PlannedChange_INVALID_EVENT
-		switch at.ActionTriggerEvent {
-		case configs.BeforeCreate:
-			triggerEvent = stacks.PlannedChange_BEFORE_CREATE
-		case configs.AfterCreate:
-			triggerEvent = stacks.PlannedChange_AFTER_CREATE
-		case configs.BeforeUpdate:
-			triggerEvent = stacks.PlannedChange_BEFORE_UPDATE
-		case configs.AfterUpdate:
-			triggerEvent = stacks.PlannedChange_AFTER_UPDATE
-		case configs.BeforeDestroy:
-			triggerEvent = stacks.PlannedChange_BEFORE_DESTROY
-		case configs.AfterDestroy:
-			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
+		triggerEvent, err := stacks.ActionTriggerEventForPlannedChange(at.ActionTriggerEvent)
+		if err != nil {
+			return nil, err
 		}
 
 		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_ResourceActionTrigger{
