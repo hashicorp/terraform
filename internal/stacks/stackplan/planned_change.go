@@ -944,8 +944,8 @@ func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*st
 			triggerEvent = stacks.PlannedChange_AFTER_DESTROY
 		}
 
-		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_LifecycleActionTrigger{
-			LifecycleActionTrigger: &stacks.PlannedChange_LifecycleActionTrigger{
+		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.PlannedChange_ResourceActionTrigger{
 				TriggerEvent: triggerEvent,
 				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
 					Component: addr.Component,
