@@ -6616,7 +6616,7 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 				"input":       cty.StringVal("test"),
 				"password":    cty.StringVal("short"),
 				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
-				"count_value": cty.NumberIntVal(5),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
 				"api_key":     cty.StringVal("abcdef0123456789"),
 			},
 			wantErrorMessages: []string{
@@ -6629,7 +6629,7 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 				"input":       cty.StringVal("test"),
 				"password":    cty.StringVal("SecurePass123"),
 				"token":       cty.StringVal("short_token"),
-				"count_value": cty.NumberIntVal(5),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
 				"api_key":     cty.StringVal("abcdef0123456789"),
 			},
 			wantErrorMessages: []string{
@@ -6642,12 +6642,13 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 				"input":       cty.StringVal("test"),
 				"password":    cty.StringVal("SecurePass123"),
 				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
-				"count_value": cty.NumberIntVal(-5),
+				"count_value": cty.SetValEmpty(cty.String), // empty set fails condition; a set cannot be converted to a string
 				"api_key":     cty.StringVal("abcdef0123456789"),
 			},
-			// When error_message is not a string type, we get the raw value in the validation failure
+			// A set value cannot be converted to a string, so we get an "Invalid error message" diagnostic
+			// rather than the condition failure message.
 			wantErrorMessages: []string{
-				"-5",
+				"Unsuitable value for error message",
 			},
 		},
 		"invalid-error-message-sensitive-even-when-passing": {
@@ -6656,7 +6657,7 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 				"input":       cty.StringVal("test"),
 				"password":    cty.StringVal("SecurePass123"),
 				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
-				"count_value": cty.NumberIntVal(5),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
 				"api_key":     cty.StringVal("abcdef0123456789abcdef0123456789abcdef0123456789"),
 			},
 			// This tests that we evaluate error_message even when validation passes

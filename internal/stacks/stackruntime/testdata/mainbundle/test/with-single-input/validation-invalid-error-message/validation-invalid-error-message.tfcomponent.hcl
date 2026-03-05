@@ -32,13 +32,13 @@ variable "token" {
   }
 }
 
-# Test case: error_message that is not a string
+# Test case: error_message that is not a string (and cannot be converted to one)
 variable "count_value" {
-  type = number
-  
+  type = set(string)
+
   validation {
-    condition     = var.count_value > 0
-    error_message = var.count_value  # Invalid: should be a string
+    condition     = length(var.count_value) > 0
+    error_message = var.count_value  # Invalid: a set cannot be converted to a string
   }
 }
 
