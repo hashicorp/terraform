@@ -690,3 +690,125 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 	// This test just asserts that `terraform providers schema` can read state
 	// via the state store, and therefore detects all 3 providers needed for the output.
 }
+
+func TestInit_pluggableStateStore_providerUpgrade(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+	fixturePath := filepath.Join("testdata", "full-workflow-with-unconfigured-state-store-fs")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// Add a state file describing a resource from the simple (v5) provider, so
+	// we can test that the state is read and used to get all the provider schemas
+	fakeState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "simple_resource",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("simple6"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	fakeStateFile := &statefile.File{
+		Lineage:          "boop",
+		Serial:           4,
+		TerraformVersion: version.Must(version.NewVersion("1.0.0")),
+		State:            fakeState,
+	}
+	var fakeStateBuf bytes.Buffer
+	err := statefile.WriteForTest(fakeStateFile, &fakeStateBuf)
+	if err != nil {
+		t.Error(err)
+	}
+	fakeStateBytes := fakeStateBuf.Bytes()
+
+	stateDirName := "old"
+
+	if err := os.MkdirAll(filepath.Join(tf.WorkDir(), stateDirName, "default"), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tf.WorkDir(), stateDirName, "default", "terraform.tfstate"), fakeStateBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	platform := getproviders.CurrentPlatform.String()
+	cachePath := tf.Path("cache")
+	fsMirrorPath := filepath.Join(cachePath, "registry.terraform.io/hashicorp/simple6")
+
+	// build old version
+	oldProviderTmp := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	oldPath := filepath.Join(fsMirrorPath, "1.2.3", platform)
+	oldProviderExe := e2e.GoBuild(
+		"github.com/hashicorp/terraform/internal/provider-simple-v6/main", oldProviderTmp,
+		"-ldflags", "-X 'main.parentStateDir=old'")
+	if err := os.MkdirAll(oldPath, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	targetPath := filepath.Join(oldPath, "terraform-provider-simple6")
+	t.Logf("moving executable from %q to %q", oldProviderExe, targetPath)
+	if err := os.Rename(oldProviderExe, targetPath); err != nil {
+		t.Fatal(err)
+	}
+
+	// first init with old version
+	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir="+cachePath, "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	// expectedMsg := "Installed hashicorp/simple6 v1.2.3"
+	// "Using previously-installed hashicorp/simple6 v1.2.3"
+	// t.Fatalf("stdout:\n%s", stdout)
+
+	// build new version
+	newProviderTmp := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	newPath := filepath.Join(fsMirrorPath, "1.5.0", platform)
+	newProviderExe := e2e.GoBuild(
+		"github.com/hashicorp/terraform/internal/provider-simple-v6/main", newProviderTmp,
+		"-ldflags", "-X 'main.parentStateDir=new'")
+	if err := os.MkdirAll(newPath, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	targetPath = filepath.Join(newPath, "terraform-provider-simple6")
+	t.Logf("moving executable from %q to %q", newProviderExe, targetPath)
+	if err := os.Rename(newProviderExe, targetPath); err != nil {
+		t.Fatal(err)
+	}
+
+	backendStateFile := filepath.Join(tf.WorkDir(), ".terraform", "terraform.tfstate")
+	b, err := os.ReadFile(backendStateFile)
+	if err != nil {
+		t.Fatalf("failed to open backend state file: %s", err)
+	}
+	t.Logf("backend state file contents: %q", string(b))
+
+	// second init with new version in place
+	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir="+cachePath, "-no-color", "-upgrade", "-force-copy")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+	}
+	t.Logf("second init stdout:\n%s", stdout)
+	fi, err := os.Stat(path.Join(tf.WorkDir(), "new", "default", "terraform.tfstate"))
+	if err != nil {
+		t.Fatalf("failed to open default workspace's state file: %s", err)
+	}
+	if fi.Size() == 0 {
+		t.Fatal("default workspace's state file should not have size 0 bytes")
+	}
+}

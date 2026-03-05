@@ -25,6 +25,8 @@ import (
 const fsStoreName = "simple6_fs"
 const defaultStatesDir = "terraform.tfstate.d"
 
+var parentDir = ""
+
 // FsStore allows storing state in the local filesystem.
 //
 // This state storage implementation differs from the old "local" backend in core,
@@ -77,6 +79,10 @@ func (f *FsStore) ConfigureStateStore(req providers.ConfigureStateStoreRequest) 
 		f.statesDir = v.AsString()
 	} else {
 		f.statesDir = defaultStatesDir
+	}
+
+	if parentDir != "" {
+		f.statesDir = filepath.Join(parentDir, f.statesDir)
 	}
 
 	if f.states == nil {
