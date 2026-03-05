@@ -10,12 +10,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 )
 
 func TestChecksHappyPath(t *testing.T) {
 	const fixtureDir = "testdata/happypath"
 
-	cfg := LoadConfigForTests(t, fixtureDir, "tests")
+	cfg, _, configCleanup := tftesting.MustLoadConfigForTests(t, fixtureDir, "tests")
+	t.Cleanup(configCleanup)
 
 	resourceA := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
