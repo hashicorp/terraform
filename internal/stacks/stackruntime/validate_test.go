@@ -71,6 +71,22 @@ var (
 
 	// invalidConfigurations are shared between the validate and plan tests.
 	invalidConfigurations = map[string]validateTestInput{
+		"const-variable-in-component": {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Const variable not supported in stacks",
+					Detail:   "Variables with const = true are not supported in modules used as stack components. Const variables are evaluated during configuration loading, which is not supported in the stacks runtime.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("const-variable-in-component/const-variable-in-component.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 1, Byte: 124},
+						End:      hcl.Pos{Line: 10, Column: 17, Byte: 140},
+					},
+				})
+				return diags
+			},
+		},
 		"validate-undeclared-variable": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
