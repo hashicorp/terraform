@@ -75,23 +75,32 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 
 		if !configV.IsKnown() {
 			// An unknown config block represents a dynamic block where the
-			// for_each value is unknown, and therefor cannot be altered by the
+			// for_each value is unknown, and therefore cannot be altered by the
 			// provider.
 			errs = append(errs, path.NewErrorf("planned value %#v for unknown dynamic block", plannedV))
 			continue
 		}
 
 		if !plannedV.IsKnown() {
-			// Only dynamic configuration can set blocks to unknown, so this is
-			// not allowed from the provider. This means that either the config
-			// and plan should match, or we have an error where the plan
-			// changed the config value, both of which have been checked.
-			errs = append(errs, path.NewErrorf("attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
+			if !blockS.Computed {
+				// we check individual block type constraints of what can be
+				// computed in the cases below
+				errs = append(errs, path.NewErrorf("planned unknown value for non-computed block"))
+			}
 			continue
 		}
 
 		switch blockS.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
+		case configschema.NestingGroup:
+			// NestingGroup objects cannot be computed or unknown
+			moreErrs := assertPlanValid(&blockS.Block, priorV, configV, plannedV, path)
+			errs = append(errs, moreErrs...)
+
+		case configschema.NestingSingle:
+			if blockS.Computed && configV.IsNull() {
+				continue
+			}
+
 			moreErrs := assertPlanValid(&blockS.Block, priorV, configV, plannedV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
@@ -110,6 +119,12 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				// provider and inserted via ignore_changes. Fix the value in
 				// place so the length can still be compared.
 				configV = cty.ListValEmpty(configV.Type().ElementType())
+			}
+
+			// NestingList cannot be null, but a length of 0 signifies that it is
+			// eligible to be computed
+			if blockS.Computed && configV.LengthInt() == 0 {
+				continue
 			}
 
 			plannedL := plannedV.LengthInt()
@@ -139,6 +154,12 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				errs = append(errs, moreErrs...)
 			}
 		case configschema.NestingMap:
+			// NestingMap cannot be null, but a length of 0 signifies that it is
+			// eligible to be computed
+			if blockS.Computed && configV.LengthInt() == 0 {
+				continue
+			}
+
 			if plannedV.IsNull() {
 				errs = append(errs, path.NewErrorf("attribute representing a map of nested blocks must be empty to indicate no blocks, not null"))
 				continue
@@ -213,6 +234,12 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				}
 			}
 		case configschema.NestingSet:
+			// NestingSet cannot be null, but a length of 0 signifies that it is
+			// eligible to be computed
+			if blockS.Computed && configV.LengthInt() == 0 {
+				continue
+			}
+
 			if plannedV.IsNull() {
 				errs = append(errs, path.NewErrorf("attribute representing a set of nested blocks must be empty to indicate no blocks, not null"))
 				continue

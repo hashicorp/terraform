@@ -2027,6 +2027,261 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			[]string{},
 		},
+
+		"computed blocks": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"single": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"list": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"map": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"set": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"map": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"map": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"c": cty.StringVal("c value"),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"k": cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+
+		"configured computed block attr change": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("new c value"),
+					}),
+				}),
+			}),
+			[]string{`.b[0].c: planned value cty.StringVal("new c value") does not match config value cty.StringVal("c value")`},
+		},
+		"configured computed block change": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			[]string{`.b: block count in plan (2) disagrees with count in config (1)`},
+		},
+		"planned unknown computed block": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			nil,
+		},
+		"planned unknown uncomputed block": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			[]string{`.b: planned unknown value for non-computed block`},
+		},
 	}
 
 	for name, test := range tests {
