@@ -10,8 +10,67 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
+
+func TestActionTriggerEventForStackChangeProgress(t *testing.T) {
+	tests := []struct {
+		event   configs.ActionTriggerEvent
+		want    StackChangeProgress_ActionTriggerEvent
+		wantErr bool
+	}{
+		{configs.BeforeCreate, StackChangeProgress_BEFORE_CREATE, false},
+		{configs.AfterCreate, StackChangeProgress_AFTER_CREATE, false},
+		{configs.BeforeUpdate, StackChangeProgress_BEFORE_UPDATE, false},
+		{configs.AfterUpdate, StackChangeProgress_AFTER_UPDATE, false},
+		{configs.BeforeDestroy, StackChangeProgress_BEFORE_DESTROY, false},
+		{configs.AfterDestroy, StackChangeProgress_AFTER_DESTROY, false},
+		{configs.Invoke, StackChangeProgress_INVOKE, false},
+		{configs.Unknown, StackChangeProgress_INVALID_EVENT, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.event.String(), func(t *testing.T) {
+			got, err := ActionTriggerEventForStackChangeProgress(tt.event)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ActionTriggerEventForStackChangeProgress(%v) error = %v, wantErr %v", tt.event, err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("ActionTriggerEventForStackChangeProgress(%v) = %v, want %v", tt.event, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestActionTriggerEventForPlannedChange(t *testing.T) {
+	tests := []struct {
+		event   configs.ActionTriggerEvent
+		want    PlannedChange_ActionTriggerEvent
+		wantErr bool
+	}{
+		{configs.BeforeCreate, PlannedChange_BEFORE_CREATE, false},
+		{configs.AfterCreate, PlannedChange_AFTER_CREATE, false},
+		{configs.BeforeUpdate, PlannedChange_BEFORE_UPDATE, false},
+		{configs.AfterUpdate, PlannedChange_AFTER_UPDATE, false},
+		{configs.BeforeDestroy, PlannedChange_BEFORE_DESTROY, false},
+		{configs.AfterDestroy, PlannedChange_AFTER_DESTROY, false},
+		{configs.Invoke, PlannedChange_INVOKE, false},
+		{configs.Unknown, PlannedChange_INVALID_EVENT, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.event.String(), func(t *testing.T) {
+			got, err := ActionTriggerEventForPlannedChange(tt.event)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ActionTriggerEventForPlannedChange(%v) error = %v, wantErr %v", tt.event, err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("ActionTriggerEventForPlannedChange(%v) = %v, want %v", tt.event, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestNewActionInvocationInStackAddr(t *testing.T) {
 	tests := []struct {
