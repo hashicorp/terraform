@@ -111,31 +111,39 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	}
 
 	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
+	// if run "b" depends on run "a", the dependency should be reversed (cleanup of "a" should depend on cleanup of "b").
 	// If an edge would create a cycle, we skip it.
+	//
+	// The visited map tracks nodes that have been visited globally across all cleanup nodes.
+	// The localVisited map tracks nodes that have been visited locally starting from the current cleanup node.
+	// The allows us to deal with parallel run nodes, where the sequence of runs is not fixed, so an
+	//
 	visited := make(map[string]bool)
 	for _, node := range arr {
-		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
+		localVisited := make(map[string]bool)
+		t.depthFirstTraverse(g, node, localVisited, visited, cleanupMap, depStateKeys)
 	}
 	return nil
 }
 
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	if visited[node.stateKey] {
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, localVisited, globalVisited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
+	if globalVisited[node.stateKey] {
 		return
 	}
 	// don't mark the node as visited if it's a leaf node, this ensures that other dependencies are still added to it
 	if len(depStateKeys[node.stateKey]) == 0 {
 		return
 	}
-	visited[node.stateKey] = true
+	globalVisited[node.stateKey] = true
+	localVisited[node.stateKey] = true
 
 	for _, refStateKey := range depStateKeys[node.stateKey] {
-		// If the reference node has already been visited, skip it.
-		if visited[refStateKey] {
+		// If the reference node has already been visited along this path, skip it.
+		if localVisited[refStateKey] {
 			continue
 		}
 		refNode := cleanupNodes[refStateKey]
 		g.Connect(dag.BasicEdge(refNode, node))
-		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
+		t.depthFirstTraverse(g, refNode, localVisited, globalVisited, cleanupNodes, depStateKeys)
 	}
 }

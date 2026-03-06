@@ -36,6 +36,7 @@ func (n *NodeStateCleanup) Name() string {
 
 // Execute destroys the resources created in the state file.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
+	fmt.Printf("Cleaning up state for %s\n", n.stateKey)
 	file := n.opts.File
 	state := evalCtx.GetState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
