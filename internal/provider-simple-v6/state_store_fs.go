@@ -178,6 +178,7 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
 	path := f.getStatePath(req.StateId)
+	log.Printf("[DEBUG] ReadStateBytes: reading data from path %q", path)
 	file, err := os.Open(path)
 
 	fileExists := true
@@ -230,6 +231,8 @@ func (f *FsStore) WriteStateBytes(req providers.WriteStateBytesRequest) provider
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
 	path := f.getStatePath(req.StateId)
+
+	log.Printf("[DEBUG] WriteStateBytes: writing data to path %q", path)
 
 	// Create or open state file
 	dir := f.getStateDir(req.StateId)

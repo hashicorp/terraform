@@ -2159,7 +2159,12 @@ func TestBackendFromState(t *testing.T) {
 	// them to match just for this test.
 	wd.OverrideDataDir(".")
 
-	stateBackend, diags := m.backendFromState(context.Background())
+	locks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	stateBackend, diags := m.backendFromState(context.Background(), locks)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -2419,8 +2424,13 @@ func TestSavedStateStore(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
+		locks, diags := m.lockedDependencies()
+		if diags.HasErrors() {
+			t.Fatal(diags.Err())
+		}
+
 		// Code under test
-		b, diags := m.savedStateStore(sMgr)
+		b, diags := m.savedStateStore(sMgr, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
@@ -2459,7 +2469,12 @@ func TestSavedStateStore(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		_, diags := m.savedStateStore(sMgr)
+		locks, dDiags := m.lockedDependencies()
+		if dDiags.HasErrors() {
+			t.Fatal(dDiags.Err())
+		}
+
+		_, diags := m.savedStateStore(sMgr, locks)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}
@@ -2496,7 +2511,12 @@ func TestSavedStateStore(t *testing.T) {
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		_, diags := m.savedStateStore(sMgr)
+		locks, dDiags := m.lockedDependencies()
+		if dDiags.HasErrors() {
+			t.Fatal(dDiags.Err())
+		}
+
+		_, diags := m.savedStateStore(sMgr, locks)
 		if !diags.HasErrors() {
 			t.Fatal("expected errors but got none")
 		}

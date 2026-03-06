@@ -799,11 +799,12 @@ func TestInit_pluggableStateStore_providerUpgrade(t *testing.T) {
 	t.Logf("backend state file contents: %q", string(b))
 
 	// second init with new version in place
+	tf.AddEnv("TF_LOG=DEBUG")
 	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir="+cachePath, "-no-color", "-upgrade", "-force-copy")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-	t.Logf("second init stdout:\n%s", stdout)
+	t.Logf("second init stdout:\n%s\n\nstderr:\n%s", stdout, stderr)
 	fi, err := os.Stat(path.Join(tf.WorkDir(), "new", "default", "terraform.tfstate"))
 	if err != nil {
 		t.Fatalf("failed to open default workspace's state file: %s", err)
