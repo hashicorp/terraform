@@ -131,7 +131,7 @@ func (c *MigrateApplyCommand) dryRun(view views.MigrateApply, id string, results
 	return 0
 }
 
-func (c *MigrateApplyCommand) step(view views.MigrateApply, dir string, m migrate.Migration, results []migrate.SubMigrationResult) int {
+func (c *MigrateApplyCommand) step(view views.MigrateApply, dir string, _ migrate.Migration, results []migrate.SubMigrationResult) int {
 	totalChanges := 0
 	allFiles := map[string]bool{}
 
