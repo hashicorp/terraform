@@ -28,11 +28,6 @@ Usage: terraform [global options] migrate <subcommand> [options] [args]
   Migrations transform your Terraform configuration files to accommodate
   breaking changes introduced by provider upgrades or Terraform Core updates.
 
-Subcommands:
-
-    list     List available migrations for the current working directory
-    run      Run a specific migration (e.g. terraform migrate run hashicorp/aws/v3-to-v4)
-
 `
 	return strings.TrimSpace(helpText)
 }
