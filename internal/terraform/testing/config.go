@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package initwd
+package testing
 
 import (
 	"context"
@@ -9,27 +9,31 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // LoadConfigForTests is a convenience wrapper around configload.NewLoaderForTests,
-// ModuleInstaller.InstallModules and configload.Loader.LoadConfig that allows
-// a test configuration to be loaded in a single step.
+// initwd.ModuleInstaller.InstallModules and terraform.BuildConfigWithGraph that
+// allows a test configuration to be loaded in a single step using the graph-based
+// configuration loading mechanism.
 //
 // If module installation fails, t.Fatal (or similar) is called to halt
 // execution of the test, under the assumption that installation failures are
 // not expected. If installation failures _are_ expected then use
-// NewLoaderForTests and work with the loader object directly. If module
-// installation succeeds but generates warnings, these warnings are discarded.
+// configload.NewLoaderForTests and work with the loader object directly. If
+// module installation succeeds but generates warnings, these warnings are
+// discarded.
 //
 // If installation succeeds but errors are detected during loading then a
 // possibly-incomplete config is returned along with error diagnostics. The
 // test run is not aborted in this case, so that the caller can make assertions
 // against the returned diagnostics.
 //
-// As with NewLoaderForTests, a cleanup function is returned which must be
-// called before the test completes in order to remove the temporary
+// As with configload.NewLoaderForTests, a cleanup function is returned which
+// must be called before the test completes in order to remove the temporary
 // modules directory.
 func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs.Config, *configload.Loader, func(), tfdiags.Diagnostics) {
 	t.Helper()
@@ -37,9 +41,9 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 	var diags tfdiags.Diagnostics
 
 	loader, cleanup := configload.NewLoaderForTests(t)
-	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 
-	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, initwd.ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()
@@ -53,8 +57,20 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, hclDiags := loader.LoadStaticConfigWithTests(rootDir, testsDir)
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(rootDir, testsDir)
 	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, loader, cleanup, diags
+	}
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil, // No input variables for test configs
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+
 	return config, loader, cleanup, diags
 }
 

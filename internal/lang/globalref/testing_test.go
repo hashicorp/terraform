@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package globalref
+package globalref_test
 
 import (
 	"context"
@@ -11,14 +11,19 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
+// testAnalyzer creates an analyzer for testing by loading a configuration
+// and setting up provider schemas.
+func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 	configDir := filepath.Join("testdata", fixtureName)
 
 	loader, cleanup := configload.NewLoaderForTests(t)
@@ -33,9 +38,19 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 		t.Fatalf("failed to refresh modules after install: %s", err)
 	}
 
-	cfg, loadDiags := loader.LoadStaticConfig(configDir)
+	rootMod, loadDiags := loader.LoadRootModule(configDir)
 	if loadDiags.HasErrors() {
-		t.Fatalf("unexpected configuration errors: %s", loadDiags.Error())
+		t.Fatalf("invalid root module: %s", loadDiags.Error())
+	}
+
+	cfg, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", buildDiags.Err())
 	}
 
 	resourceTypeSchema := &configschema.Block{
@@ -101,6 +116,5 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 			},
 		},
 	}
-
-	return NewAnalyzer(cfg, schemas)
+	return globalref.NewAnalyzer(cfg, schemas)
 }
