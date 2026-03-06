@@ -154,7 +154,7 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	return &g, nil
 }
 
-const constVariableDetail = "\nOnly literal values and constant variables (with const = true) are allowed for this attribute, as well as values derived from these."
+const constVariableDetail = "\n\nOnly literal values and constant variables (with const = true) are allowed for this attribute, as well as values derived from these."
 
 func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (addrs.ModuleSource, string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
