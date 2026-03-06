@@ -4,6 +4,7 @@
 package views
 
 import (
+	"bufio"
 	encJson "encoding/json"
 	"fmt"
 	"strings"
@@ -241,7 +242,8 @@ func NewMigrateApply(vt arguments.ViewType, view *View) MigrateApply {
 
 // MigrateApplyHuman renders migrate apply output for human consumption.
 type MigrateApplyHuman struct {
-	view *View
+	view    *View
+	scanner *bufio.Scanner // lazily initialized for StepPrompt
 }
 
 var _ MigrateApply = (*MigrateApplyHuman)(nil)
@@ -325,13 +327,18 @@ func (v *MigrateApplyHuman) StepHeader(index, total int, sm migrate.SubMigration
 func (v *MigrateApplyHuman) StepPrompt(streams *terminal.Streams) byte {
 	fmt.Fprint(streams.Stdout.File, "Apply this change? [y]es / [n]o / [q]uit: ")
 
-	buf := make([]byte, 1)
-	n, err := streams.Stdin.File.Read(buf)
-	if err != nil || n == 0 {
+	if v.scanner == nil {
+		v.scanner = bufio.NewScanner(streams.Stdin.File)
+	}
+	if !v.scanner.Scan() {
+		return 'n'
+	}
+	line := strings.TrimSpace(v.scanner.Text())
+	if len(line) == 0 {
 		return 'n'
 	}
 
-	switch buf[0] {
+	switch line[0] {
 	case 'y', 'Y':
 		return 'y'
 	case 'n', 'N':

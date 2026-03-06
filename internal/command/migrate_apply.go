@@ -23,6 +23,10 @@ type MigrateApplyCommand struct {
 func (c *MigrateApplyCommand) Run(rawArgs []string) int {
 	rawArgs = c.Meta.process(rawArgs)
 	common, rawArgs := arguments.ParseView(rawArgs)
+	// process() may have already consumed -no-color; propagate to view
+	if !c.Color {
+		common.NoColor = true
+	}
 	c.View.Configure(common)
 
 	args, diags := arguments.ParseMigrateApply(rawArgs)

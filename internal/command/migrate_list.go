@@ -21,6 +21,9 @@ func (c *MigrateListCommand) Run(rawArgs []string) int {
 	// Process global flags
 	rawArgs = c.Meta.process(rawArgs)
 	common, rawArgs := arguments.ParseView(rawArgs)
+	if !c.Color {
+		common.NoColor = true
+	}
 	c.View.Configure(common)
 
 	// Parse command flags
