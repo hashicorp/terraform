@@ -22,24 +22,27 @@ type SubMigrationResult struct {
 	Files        []FileResult // only files that actually changed
 }
 
-// Apply runs all sub-migrations against .tf files in dir.
+// Apply runs all sub-migrations against .tf files in dir (recursively).
 // It does NOT write files — returns results for the caller to inspect/write.
 // Sub-migrations chain: each sees the output of the previous one.
 func Apply(dir string, m Migration) ([]SubMigrationResult, error) {
-	entries, err := os.ReadDir(dir)
+	// Collect .tf files recursively
+	var tfFiles []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".tf" {
+			rel, err := filepath.Rel(dir, path)
+			if err != nil {
+				return err
+			}
+			tfFiles = append(tfFiles, rel)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
-	}
-
-	// Collect .tf filenames
-	var tfFiles []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if filepath.Ext(e.Name()) == ".tf" {
-			tfFiles = append(tfFiles, e.Name())
-		}
 	}
 
 	if len(tfFiles) == 0 {
@@ -104,7 +107,11 @@ func WriteResults(dir string, results []SubMigrationResult) error {
 	}
 
 	for name, data := range final {
-		if err := os.WriteFile(filepath.Join(dir, name), data, 0644); err != nil {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, data, 0644); err != nil {
 			return err
 		}
 	}
