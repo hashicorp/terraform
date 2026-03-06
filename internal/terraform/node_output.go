@@ -563,16 +563,29 @@ func evalOutputValue(ctx EvalContext, expr hcl.Expression, wantType cty.Type, de
 		val = defaults.Apply(val)
 	}
 
+	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	diags = diags.Append(moreDiags)
+
+	scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+	var hclCtx *hcl.EvalContext
+	if scope != nil {
+		hclCtx, moreDiags = scope.EvalContext(refs)
+	} else {
+		// This shouldn't happen in real code, but it can unfortunately arise
+		// in unit tests due to incompletely-implemented mocks. :(
+		hclCtx = &hcl.EvalContext{}
+	}
+	diags = diags.Append(moreDiags)
+
 	val, err := convert.Convert(val, wantType)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid output value",
-			Detail:   fmt.Sprintf("The value expression does not match this output value's type constraint: %s.", tfdiags.FormatError(err)),
-			Subject:  expr.Range().Ptr(),
-			// TODO: Populate EvalContext and Expression, but we can't do that
-			// as long as we're using the ctx.EvaluateExpr helper above because
-			// the EvalContext is hidden from us in that case.
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid output value",
+			Detail:      fmt.Sprintf("The value expression does not match this output value's type constraint: %s.", tfdiags.FormatError(err)),
+			Subject:     expr.Range().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
 		})
 		return cty.UnknownVal(wantType), diags
 	}
