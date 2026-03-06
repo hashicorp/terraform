@@ -612,8 +612,9 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 					Module: &configs.Module{
 						Outputs: map[string]*configs.Output{
 							"out": {
-								Name:      "out",
-								Sensitive: true,
+								Name:           "out",
+								Sensitive:      true,
+								ConstraintType: cty.DynamicPseudoType,
 							},
 						},
 					},
