@@ -385,6 +385,18 @@ func initCommands(
 			}, nil
 		},
 
+		"migrate": func() (cli.Command, error) {
+			return &command.MigrateCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"migrate list": func() (cli.Command, error) {
+			return &command.MigrateListCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{}, nil
 		},

@@ -64,18 +64,37 @@ type MigrateApply struct {
 }
 
 // ParseMigrateApply parses command-line flags for "terraform migrate".
+// The migration ID (containing /) can appear before or after flags.
 func ParseMigrateApply(args []string) (*MigrateApply, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var jsonOutput bool
 
 	migrateApply := &MigrateApply{}
 
+	// Extract the migration ID from args before flag parsing, since Go's
+	// flag package stops at the first non-flag argument.
+	var flagArgs []string
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") && strings.Contains(arg, "/") {
+			if migrateApply.MigrationID != "" {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Too many migration IDs",
+					"Expected exactly one migration ID argument.",
+				))
+			}
+			migrateApply.MigrationID = arg
+		} else {
+			flagArgs = append(flagArgs, arg)
+		}
+	}
+
 	cmdFlags := defaultFlagSet("migrate")
 	cmdFlags.BoolVar(&migrateApply.DryRun, "dry-run", false, "dry-run")
 	cmdFlags.BoolVar(&migrateApply.Step, "step", false, "step")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := cmdFlags.Parse(flagArgs); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
@@ -83,16 +102,21 @@ func ParseMigrateApply(args []string) (*MigrateApply, tfdiags.Diagnostics) {
 		))
 	}
 
-	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if remaining := cmdFlags.Args(); len(remaining) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Invalid number of command line arguments",
-			"Expected exactly one positional argument: the migration ID (namespace/provider/name)",
+			"Unexpected arguments",
+			"Unexpected positional arguments after flags.",
+		))
+	}
+
+	if migrateApply.MigrationID == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Missing migration ID",
+			"Usage: terraform migrate <namespace/provider/name> [-dry-run] [-step]",
 		))
 	} else {
-		migrateApply.MigrationID = args[0]
-
 		parts := strings.SplitN(migrateApply.MigrationID, "/", 4)
 		if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 			diags = diags.Append(tfdiags.Sourceless(

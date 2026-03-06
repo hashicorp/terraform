@@ -17,11 +17,13 @@ type MigrateCommand struct {
 }
 
 func (c *MigrateCommand) Run(args []string) int {
-	// If the first arg looks like a migration ID (contains /), delegate
-	// directly to the apply command for convenience.
-	if len(args) > 0 && strings.Contains(args[0], "/") {
-		apply := &MigrateApplyCommand{Meta: c.Meta}
-		return apply.Run(args)
+	// If any arg looks like a migration ID (contains / and doesn't start
+	// with -), delegate to the apply command.
+	for _, arg := range args {
+		if strings.Contains(arg, "/") && !strings.HasPrefix(arg, "-") {
+			apply := &MigrateApplyCommand{Meta: c.Meta}
+			return apply.Run(args)
+		}
 	}
 
 	return cli.RunResultHelp
