@@ -14,13 +14,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// MigrateApplyCommand is a Command implementation that applies a specific
-// migration to the Terraform configuration in the current working directory.
-type MigrateApplyCommand struct {
+// MigrateRunCommand is a Command implementation that runs a specific
+// migration against the Terraform configuration in the current working directory.
+type MigrateRunCommand struct {
 	Meta
 }
 
-func (c *MigrateApplyCommand) Run(rawArgs []string) int {
+func (c *MigrateRunCommand) Run(rawArgs []string) int {
 	rawArgs = c.Meta.process(rawArgs)
 	common, rawArgs := arguments.ParseView(rawArgs)
 	// process() may have already consumed -no-color; propagate to view
@@ -74,7 +74,7 @@ func (c *MigrateApplyCommand) Run(rawArgs []string) int {
 	}
 }
 
-func (c *MigrateApplyCommand) apply(view views.MigrateApply, dir, id string, results []migrate.SubMigrationResult) int {
+func (c *MigrateRunCommand) apply(view views.MigrateApply, dir, id string, results []migrate.SubMigrationResult) int {
 	view.Applying(id)
 
 	// Write all results
@@ -106,7 +106,7 @@ func (c *MigrateApplyCommand) apply(view views.MigrateApply, dir, id string, res
 	return 0
 }
 
-func (c *MigrateApplyCommand) dryRun(view views.MigrateApply, id string, results []migrate.SubMigrationResult) int {
+func (c *MigrateRunCommand) dryRun(view views.MigrateApply, id string, results []migrate.SubMigrationResult) int {
 	view.DryRunHeader(id)
 
 	totalChanges := 0
@@ -135,7 +135,7 @@ func (c *MigrateApplyCommand) dryRun(view views.MigrateApply, id string, results
 	return 0
 }
 
-func (c *MigrateApplyCommand) step(view views.MigrateApply, dir string, _ migrate.Migration, results []migrate.SubMigrationResult) int {
+func (c *MigrateRunCommand) step(view views.MigrateApply, dir string, _ migrate.Migration, results []migrate.SubMigrationResult) int {
 	totalChanges := 0
 	allFiles := map[string]bool{}
 
@@ -179,11 +179,11 @@ func (c *MigrateApplyCommand) step(view views.MigrateApply, dir string, _ migrat
 	return 0
 }
 
-func (c *MigrateApplyCommand) Help() string {
+func (c *MigrateRunCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] migrate <migration-id> [options]
+Usage: terraform [global options] migrate run <migration-id> [options]
 
-  Applies the specified migration to the Terraform configuration in the
+  Runs the specified migration against the Terraform configuration in the
   current working directory. The migration ID is in the format
   namespace/provider/name (e.g. hashicorp/aws/v3-to-v4).
 
@@ -199,6 +199,6 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *MigrateApplyCommand) Synopsis() string {
-	return "Apply a specific migration"
+func (c *MigrateRunCommand) Synopsis() string {
+	return "Run a specific migration"
 }

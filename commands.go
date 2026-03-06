@@ -397,6 +397,12 @@ func initCommands(
 			}, nil
 		},
 
+		"migrate run": func() (cli.Command, error) {
+			return &command.MigrateRunCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{}, nil
 		},

@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestMigrateApply_default(t *testing.T) {
+func TestMigrateRun_default(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "main.tf"), []byte(`resource "aws_s3_bucket" "test" {
   bucket = "my-bucket"
@@ -20,7 +20,7 @@ func TestMigrateApply_default(t *testing.T) {
 	t.Chdir(dir)
 
 	view, done := testView(t)
-	c := &MigrateApplyCommand{
+	c := &MigrateRunCommand{
 		Meta: Meta{View: view},
 	}
 
@@ -45,7 +45,7 @@ func TestMigrateApply_default(t *testing.T) {
 	}
 }
 
-func TestMigrateApply_dryRun(t *testing.T) {
+func TestMigrateRun_dryRun(t *testing.T) {
 	dir := t.TempDir()
 	input := `resource "aws_s3_bucket" "test" {
   bucket = "my-bucket"
@@ -56,7 +56,7 @@ func TestMigrateApply_dryRun(t *testing.T) {
 	t.Chdir(dir)
 
 	view, done := testView(t)
-	c := &MigrateApplyCommand{
+	c := &MigrateRunCommand{
 		Meta: Meta{View: view},
 	}
 
@@ -84,12 +84,12 @@ func TestMigrateApply_dryRun(t *testing.T) {
 	}
 }
 
-func TestMigrateApply_notFound(t *testing.T) {
+func TestMigrateRun_notFound(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 
 	view, done := testView(t)
-	c := &MigrateApplyCommand{
+	c := &MigrateRunCommand{
 		Meta: Meta{View: view},
 	}
 
@@ -105,7 +105,7 @@ func TestMigrateApply_notFound(t *testing.T) {
 	}
 }
 
-func TestMigrateApply_noChanges(t *testing.T) {
+func TestMigrateRun_noChanges(t *testing.T) {
 	dir := t.TempDir()
 	// A file with no applicable changes for the AWS migration
 	os.WriteFile(filepath.Join(dir, "main.tf"), []byte(`resource "null_resource" "test" {
@@ -114,7 +114,7 @@ func TestMigrateApply_noChanges(t *testing.T) {
 	t.Chdir(dir)
 
 	view, done := testView(t)
-	c := &MigrateApplyCommand{
+	c := &MigrateRunCommand{
 		Meta: Meta{View: view},
 	}
 
