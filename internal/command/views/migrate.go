@@ -271,27 +271,45 @@ func (v *MigrateApplyHuman) Diff(filename string, before, after []byte) {
 	beforeLines := splitLines(before)
 	afterLines := splitLines(after)
 
-	// Simple LCS-based diff.
-	lcs := computeLCS(beforeLines, afterLines)
+	// Build a list of diff operations using LCS.
+	ops := computeDiffOps(beforeLines, afterLines)
 
-	bi, ai, li := 0, 0, 0
-	for bi < len(beforeLines) || ai < len(afterLines) {
-		if li < len(lcs) && bi < len(beforeLines) && beforeLines[bi] == lcs[li] &&
-			ai < len(afterLines) && afterLines[ai] == lcs[li] {
-			// Common line — skip (context not shown for compactness).
-			bi++
-			ai++
-			li++
-		} else if bi < len(beforeLines) && (li >= len(lcs) || beforeLines[bi] != lcs[li]) {
-			// Removed line.
-			line := v.view.colorize.Color(fmt.Sprintf("[red]-%s[reset]", beforeLines[bi]))
+	// Render with context: show up to 3 lines of context around changes,
+	// and print "..." separators when skipping more than 6 unchanged lines.
+	const contextSize = 3
+
+	// First, mark which operations should be visible (changed lines + context).
+	visible := make([]bool, len(ops))
+	for i, op := range ops {
+		if op.kind != diffKeep {
+			// Mark this line and up to contextSize lines before/after.
+			for j := max(0, i-contextSize); j <= min(len(ops)-1, i+contextSize); j++ {
+				visible[j] = true
+			}
+		}
+	}
+
+	// Render visible operations, inserting "..." for gaps.
+	lastPrinted := -1
+	for i, op := range ops {
+		if !visible[i] {
+			continue
+		}
+		// If there's a gap since the last printed line, show a separator.
+		if lastPrinted >= 0 && i > lastPrinted+1 {
+			v.view.streams.Println("...")
+		}
+		lastPrinted = i
+
+		switch op.kind {
+		case diffKeep:
+			v.view.streams.Println(fmt.Sprintf(" %s", op.text))
+		case diffRemove:
+			line := v.view.colorize.Color(fmt.Sprintf("[red]-%s[reset]", op.text))
 			v.view.streams.Println(line)
-			bi++
-		} else if ai < len(afterLines) && (li >= len(lcs) || afterLines[ai] != lcs[li]) {
-			// Added line.
-			line := v.view.colorize.Color(fmt.Sprintf("[green]+%s[reset]", afterLines[ai]))
+		case diffAdd:
+			line := v.view.colorize.Color(fmt.Sprintf("[green]+%s[reset]", op.text))
 			v.view.streams.Println(line)
-			ai++
 		}
 	}
 }
@@ -416,6 +434,46 @@ func splitLines(data []byte) []string {
 		lines = lines[:len(lines)-1]
 	}
 	return lines
+}
+
+// diffOpKind represents the type of a diff operation.
+type diffOpKind int
+
+const (
+	diffKeep   diffOpKind = iota // Unchanged line
+	diffRemove                   // Line removed from before
+	diffAdd                      // Line added in after
+)
+
+// diffOp is a single line-level diff operation.
+type diffOp struct {
+	kind diffOpKind
+	text string
+}
+
+// computeDiffOps produces a sequence of keep/remove/add operations by walking
+// the before and after lines against their LCS.
+func computeDiffOps(before, after []string) []diffOp {
+	lcs := computeLCS(before, after)
+	var ops []diffOp
+
+	bi, ai, li := 0, 0, 0
+	for bi < len(before) || ai < len(after) {
+		if li < len(lcs) && bi < len(before) && before[bi] == lcs[li] &&
+			ai < len(after) && after[ai] == lcs[li] {
+			ops = append(ops, diffOp{kind: diffKeep, text: before[bi]})
+			bi++
+			ai++
+			li++
+		} else if bi < len(before) && (li >= len(lcs) || before[bi] != lcs[li]) {
+			ops = append(ops, diffOp{kind: diffRemove, text: before[bi]})
+			bi++
+		} else if ai < len(after) && (li >= len(lcs) || after[ai] != lcs[li]) {
+			ops = append(ops, diffOp{kind: diffAdd, text: after[ai]})
+			ai++
+		}
+	}
+	return ops
 }
 
 // computeLCS returns the longest common subsequence of two string slices.
