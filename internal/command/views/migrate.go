@@ -336,8 +336,8 @@ type MigrateApplyJSON struct {
 
 var _ MigrateApply = (*MigrateApplyJSON)(nil)
 
-func (v *MigrateApplyJSON) output(eventType string, data interface{}) {
-	payload := map[string]interface{}{
+func (v *MigrateApplyJSON) output(eventType string, data any) {
+	payload := map[string]any{
 		"type": eventType,
 		"data": data,
 	}
@@ -350,7 +350,7 @@ func (v *MigrateApplyJSON) Applying(id string) {
 }
 
 func (v *MigrateApplyJSON) Progress(sm migrate.SubMigration, filenames []string) {
-	v.output("progress", map[string]interface{}{
+	v.output("progress", map[string]any{
 		"name":  sm.Name,
 		"files": filenames,
 	})
@@ -383,7 +383,7 @@ func (v *MigrateApplyJSON) DryRunSummary(changes int, files int) {
 }
 
 func (v *MigrateApplyJSON) StepHeader(index, total int, sm migrate.SubMigration) {
-	v.output("step_header", map[string]interface{}{
+	v.output("step_header", map[string]any{
 		"index":       index,
 		"total":       total,
 		"name":        sm.Name,
