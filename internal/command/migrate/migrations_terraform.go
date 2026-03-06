@@ -6,6 +6,7 @@ package migrate
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 func terraformMigrations() []Migration {
@@ -123,13 +124,8 @@ func splitLines(s string) []string {
 }
 
 func joinLines(lines []string) string {
-	result := ""
-	for _, line := range lines {
-		result += "\n" + line
-	}
-	return result
+	return "\n" + strings.Join(lines, "\n")
 }
-
 
 var backendRemoteBlockRe = regexp.MustCompile(`(?s)([ \t]*)backend\s+"remote"\s*\{`)
 
