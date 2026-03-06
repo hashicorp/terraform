@@ -928,7 +928,6 @@ func (s *stacksServer) CloseTerraformState(ctx context.Context, request *stacks.
 }
 
 func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformState_Request, server stacks.Stacks_MigrateTerraformStateServer) error {
-
 	previousStateHandle := handle[*states.State](request.StateHandle)
 	previousState := s.handles.TerraformState(previousStateHandle)
 	if previousState == nil {
@@ -1207,6 +1206,26 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationPlanned: func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
+			span.(trace.Span).AddEvent("planned action invocation", trace.WithAttributes(
+				attribute.String("component_instance", ai.Addr.Component.String()),
+				attribute.String("action_invocation_instance", ai.Addr.Item.String()),
+			))
+
+			inv, err := actionInvocationPlanned(ai)
+			if err != nil {
+				return span
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationPlanned_{
+					ActionInvocationPlanned: inv,
+				},
+			})
+
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
@@ -1241,14 +1260,15 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
-						Defer:  int32(cic.Defer),
-						Move:   int32(cic.Move),
-						Forget: int32(cic.Forget),
+						Total:            int32(cic.Total()),
+						Add:              int32(cic.Add),
+						Change:           int32(cic.Change),
+						Import:           int32(cic.Import),
+						Remove:           int32(cic.Remove),
+						Defer:            int32(cic.Defer),
+						Move:             int32(cic.Move),
+						Forget:           int32(cic.Forget),
+						ActionInvocation: int32(cic.ActionInvocation),
 					},
 				},
 			})
@@ -1268,14 +1288,15 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
-						Defer:  int32(cic.Defer),
-						Move:   int32(cic.Move),
-						Forget: int32(cic.Forget),
+						Total:            int32(cic.Total()),
+						Add:              int32(cic.Add),
+						Change:           int32(cic.Change),
+						Import:           int32(cic.Import),
+						Remove:           int32(cic.Remove),
+						Defer:            int32(cic.Defer),
+						Move:             int32(cic.Move),
+						Forget:           int32(cic.Forget),
+						ActionInvocation: int32(cic.ActionInvocation),
 					},
 				},
 			})
@@ -1315,6 +1336,42 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackCh
 		Imported:     imported,
 		ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
 	}, nil
+}
+
+func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangeProgress_ActionInvocationPlanned, error) {
+	res := &stacks.StackChangeProgress_ActionInvocationPlanned{
+		Addr:         stacks.NewActionInvocationInStackAddr(ai.Addr),
+		ProviderAddr: ai.ProviderAddr.String(),
+	}
+
+	switch trig := ai.Trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		triggerEvent, err := stacks.ActionTriggerEventForStackChangeProgress(trig.TriggerEvent())
+		if err != nil {
+			return nil, err
+		}
+		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: ai.Addr.Component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            triggerEvent,
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	default:
+		return nil, fmt.Errorf("unsupported action invocation trigger type")
+	}
+
+	return res, nil
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {

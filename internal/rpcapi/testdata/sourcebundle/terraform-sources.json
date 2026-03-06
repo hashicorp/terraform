@@ -45,6 +45,11 @@
       "source": "git::https://example.com/empty.git",
       "local": "empty",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/action_invocations.git",
+      "local": "action_invocations",
+      "meta": {}
     }
   ]
 }

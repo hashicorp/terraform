@@ -17,10 +17,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -187,7 +187,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
@@ -410,7 +410,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)

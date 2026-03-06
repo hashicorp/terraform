@@ -363,6 +363,20 @@ func (r *RemovedComponentInstance) ResourceSchema(ctx context.Context, providerT
 	return ret, nil
 }
 
+// ActionSchema implements stackplan.PlanProducer.
+func (r *RemovedComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error) {
+	providerType := r.main.ProviderType(providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return providers.ActionSchema{}, err
+	}
+	ret := providerSchema.SchemaForActionType(actionType)
+	if ret.ConfigSchema == nil {
+		return providers.ActionSchema{}, fmt.Errorf("schema does not include action type %q", actionType)
+	}
+	return ret, nil
+}
+
 // tracingName implements Plannable.
 func (r *RemovedComponentInstance) tracingName() string {
 	return r.Addr().String() + " (removed)"

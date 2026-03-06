@@ -847,9 +847,19 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadStaticConfigWithTests(cfgPath, "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, diags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+		t.Fatal(diags.Err())
 	}
 
 	return config
