@@ -111,11 +111,7 @@ func ParseMigrateApply(args []string) (*MigrateApply, tfdiags.Diagnostics) {
 	}
 
 	if migrateApply.MigrationID == "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Missing migration ID",
-			"Usage: terraform migrate <namespace/provider/name> [-dry-run] [-step]",
-		))
+		// No migration ID is OK — the command will launch interactive selection.
 	} else {
 		parts := strings.SplitN(migrateApply.MigrationID, "/", 4)
 		if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
