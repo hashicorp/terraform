@@ -72,6 +72,9 @@ func (b *Block) internalValidate(prefix string) error {
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
 				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems and MaxItems cannot be used in NestingGroup mode", prefix, name))
 			}
+			if blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingGroup blocks cannot be computed", prefix, name))
+			}
 		case NestingList, NestingSet:
 			if blockS.MinItems > blockS.MaxItems && blockS.MaxItems != 0 {
 				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems must be less than or equal to MaxItems in %s mode", prefix, name, blockS.Nesting))
@@ -91,9 +94,15 @@ func (b *Block) internalValidate(prefix string) error {
 					multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingSet blocks may not contain WriteOnly attributes", prefix, name))
 				}
 			}
+			if blockS.MinItems > 0 && blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: Computed cannot be used when MinItems > 0", prefix, name))
+			}
 		case NestingMap:
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
 				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems and MaxItems must both be 0 in NestingMap mode", prefix, name))
+			}
+			if blockS.MinItems > 0 && blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: Computed cannot be used when MinItems > 0", prefix, name))
 			}
 		default:
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: invalid nesting mode %s", prefix, name, blockS.Nesting))
