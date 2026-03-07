@@ -1565,7 +1565,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						value = test_resource.foo.value
 					}
 					`,
-				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				// c2 => a2, b1 => a1, a2 => b1, b2 => c2
 				"parallel.tftest.hcl": `
 					test {
 						parallel = true
@@ -1608,7 +1608,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "a2" {
 						state_key = "a"
 						variables {
-							foo = run.b1.value
+							foo = run.b2.value
 						}
 
 						providers = {
@@ -1638,7 +1638,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "c2" {
 						state_key = "c"
 						variables {
-							foo = run.a1.value
+							foo = run.a2.value
 						}
 					}
 					`,
