@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Surface checkpoint alerts in CLI and JSON output
+time: 2026-03-08T22:44:14.7751762+05:30
+custom:
+    Issue: "38248"
