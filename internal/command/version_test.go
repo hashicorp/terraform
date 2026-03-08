@@ -112,6 +112,32 @@ func TestVersion_outdated(t *testing.T) {
 	}
 }
 
+func TestVersion_alerts(t *testing.T) {
+	ui := new(cli.MockUi)
+	m := Meta{Ui: ui}
+
+	c := &VersionCommand{
+		Meta: m,
+		Version: "4.5.6",
+		CheckFunc: func() (VersionCheckInfo, error) {
+			return VersionCheckInfo{
+				Alerts: []string{"First alert", "Second alert"},
+			}, nil
+		},
+		Platform: getproviders.Platform{OS: "aros", Arch: "riscv64"},
+	}
+
+	if code := c.Run([]string{}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "Terraform v4.5.6\non aros_riscv64\n\nAlert: First alert\n\nAlert: Second alert"
+	if actual != expected {
+		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
+	}
+}
+
 func TestVersion_json(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
@@ -220,12 +246,47 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 }
 
+func TestVersion_jsonalerts(t *testing.T) {
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui: ui,
+	}
+
+	c := &VersionCommand{
+		Meta:    m,
+		Version: "4.5.6",
+		CheckFunc: func() (VersionCheckInfo, error) {
+			return VersionCheckInfo{Alerts: []string{"Checkpoint alert"}}, nil
+		},
+		Platform: getproviders.Platform{OS: "aros", Arch: "riscv64"},
+	}
+
+	if code := c.Run([]string{"-json"}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := strings.TrimSpace(`
+{
+  "terraform_version": "4.5.6",
+  "platform": "aros_riscv64",
+  "provider_selections": {},
+  "terraform_outdated": false,
+  "alerts": [
+    "Checkpoint alert"
+  ]
+}
+`)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Fatalf("wrong output\n%s", diff)
+	}
+}
+
 func mockVersionCheckFunc(outdated bool, latest string) VersionCheckFunc {
 	return func() (VersionCheckInfo, error) {
 		return VersionCheckInfo{
 			Outdated: outdated,
 			Latest:   latest,
-			// Alerts is not used by version command
 		}, nil
 	}
 }

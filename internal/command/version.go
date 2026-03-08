@@ -30,6 +30,7 @@ type VersionOutput struct {
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
+	Alerts             []string          `json:"alerts,omitempty"`
 }
 
 // VersionCheckFunc is the callback called by the Version command to
@@ -61,6 +62,7 @@ Options:
 func (c *VersionCommand) Run(args []string) int {
 	var outdated bool
 	var latest string
+	var alerts []string
 	var versionString bytes.Buffer
 	args = c.Meta.process(args)
 	var jsonOutput bool
@@ -118,6 +120,7 @@ func (c *VersionCommand) Run(args []string) int {
 			outdated = true
 			latest = info.Latest
 		}
+		alerts = append(alerts, info.Alerts...)
 	}
 
 	if jsonOutput {
@@ -139,6 +142,7 @@ func (c *VersionCommand) Run(args []string) int {
 			Platform:           c.Platform.String(),
 			ProviderSelections: selectionsOutput,
 			Outdated:           outdated,
+			Alerts:             alerts,
 		}
 
 		jsonOutput, err := json.MarshalIndent(output, "", "  ")
@@ -164,7 +168,9 @@ func (c *VersionCommand) Run(args []string) int {
 					"is %s. You can update by downloading from https://developer.hashicorp.com/terraform/install",
 				latest))
 		}
-
+		for _, alert := range alerts {
+			c.Ui.Output(fmt.Sprintf("\nAlert: %s", alert))
+		}
 	}
 
 	return 0
