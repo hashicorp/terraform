@@ -3451,7 +3451,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("init: error if -safe-init isn't set when downloading the state storage provider via HTTP", func(t *testing.T) {
+	t.Run("init: error if -safe-init isn't set when downloading the state store provider via HTTP", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3490,7 +3490,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Error: State storage providers must be downloaded using -safe-init flag",
+			"Error: State store providers must be downloaded using -safe-init flag",
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {
@@ -3760,7 +3760,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Error: State storage providers must be downloaded using -safe-init flag",
+			"Error: State store providers must be downloaded using -safe-init flag",
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {
@@ -4880,7 +4880,7 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 			t.Fatalf("expected 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 		output := testOutput.All()
-		expectedMsg := "Error: State storage providers must be downloaded using -safe-init flag"
+		expectedMsg := "Error: State store providers must be downloaded using -safe-init flag"
 		if !strings.Contains(output, expectedMsg) {
 			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
 		}

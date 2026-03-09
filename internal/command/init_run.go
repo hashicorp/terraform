@@ -234,7 +234,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			// If the -safe-init flag isn't present we prompt the user to re-run init so they're opting into the security UX.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "State storage providers must be downloaded using -safe-init flag",
+				Summary:  "State store providers must be downloaded using -safe-init flag",
 				Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
 			})
 			view.Diagnostics(diags)
@@ -430,7 +430,7 @@ Hashes:
 	}
 	if v != "yes" {
 		return diags.Append(
-			fmt.Errorf("State storage provider %q (%s) was not approved by the user",
+			fmt.Errorf("State store provider %q (%s) was not approved, so init cannot continue.",
 				lock.Provider().Type,
 				lock.Provider(),
 			),
