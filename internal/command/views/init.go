@@ -199,13 +199,13 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
 	},
-	"user_approved_state_store_provider_message": {
-		HumanValue: "\n[reset][bold]User approved the state storage provider.",
-		JSONValue:  "User approved the state storage provider.",
+	"state_store_provider_approved_message": {
+		HumanValue: "\n[reset][bold]The state store provider was approved.",
+		JSONValue:  "The state store provider was approved.",
 	},
-	"user_rejected_state_store_provider_message": {
-		HumanValue: "\n[reset][bold]User rejected the state storage provider.",
-		JSONValue:  "User rejected the state storage provider.",
+	"state_store_provider_rejected_message": {
+		HumanValue: "\n[reset][bold]The state store provider was rejected.",
+		JSONValue:  "The state store provider was rejected.",
 	},
 	"default_workspace_created_message": {
 		HumanValue: defaultWorkspaceCreatedInfo,
@@ -351,8 +351,8 @@ const (
 	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
-	UserApprovedStateStoreProviderMessage       InitMessageCode = "user_approved_state_store_provider_message"
-	UserRejectedStateStoreProviderMessage       InitMessageCode = "user_rejected_state_store_provider_message"
+	StateStoreProviderApprovedMessage           InitMessageCode = "state_store_provider_approved_message"
+	StateStoreProviderRejectedMessage           InitMessageCode = "state_store_provider_rejected_message"
 	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
 	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
 	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"

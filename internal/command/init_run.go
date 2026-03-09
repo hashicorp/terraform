@@ -243,11 +243,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks))
 		if diags.HasErrors() {
-			view.Output(views.UserRejectedStateStoreProviderMessage)
+			view.Output(views.StateStoreProviderRejectedMessage)
 			view.Diagnostics(diags)
 			return 1
 		}
-		view.Output(views.UserApprovedStateStoreProviderMessage)
+		view.Output(views.StateStoreProviderApprovedMessage)
 	default:
 		// Handle SafeInitActionInvalid or unexpected action types
 		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
