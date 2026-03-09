@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'core: correct typos in user-facing error diagnostics (occurred/structure) for state serialization and crypto functions'
+time: 2026-03-09T20:10:00Z
+custom:
+    Issue: "38251"
