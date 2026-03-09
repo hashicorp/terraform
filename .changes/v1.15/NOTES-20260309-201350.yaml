@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'internal/lang/funcs: fix minor comment typos in number, cidr and crypto packages; no functional changes'
+time: 2026-03-09T20:13:50Z
+custom:
+    Issue: "38253"
