@@ -422,8 +422,8 @@ Hashes:
 			getproviders.CurrentPlatform.String(),
 			hashList.String(),
 		),
-		Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.
-	Only 'yes' will be accepted to confirm.`, lock.Provider()),
+		Description: fmt.Sprintf(`Check the details above for provider %q and confirm that you trust the provider.
+	Only 'yes' will be accepted to confirm.`, lock.Provider().Type),
 	})
 	if err != nil {
 		return diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
