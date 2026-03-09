@@ -10,7 +10,7 @@ import "fmt"
 // non-primary state.
 //
 // Graph nodes can declare themselves referenceable via an instance phase
-// or can declare that they reference an instance phase in order to accomodate
+// or can declare that they reference an instance phase in order to accommodate
 // secondary graph nodes dealing with, for example, destroy actions.
 //
 // This special reference type cannot be accessed directly by end-users, and
@@ -23,7 +23,7 @@ type ResourceInstancePhase struct {
 
 var _ Referenceable = ResourceInstancePhase{}
 
-// Phase returns a special "phase address" for the receving instance. See the
+// Phase returns a special "phase address" for the receiving instance. See the
 // documentation of ResourceInstancePhase for the limited situations where this
 // is intended to be used.
 func (r ResourceInstance) Phase(rpt ResourceInstancePhaseType) ResourceInstancePhase {
@@ -76,7 +76,7 @@ func (rpt ResourceInstancePhaseType) String() string {
 // non-primary state.
 //
 // Graph nodes can declare themselves referenceable via a resource phase
-// or can declare that they reference a resource phase in order to accomodate
+// or can declare that they reference a resource phase in order to accommodate
 // secondary graph nodes dealing with, for example, destroy actions.
 //
 // Since resources (as opposed to instances) aren't actually phased, this
