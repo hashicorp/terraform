@@ -773,7 +773,11 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if config.Module.StateStore != nil {
 		location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
 		if !ok {
-			// The provider was not processed in the FetchPackageBegin callback, so it was already present.
+			// The provider was not processed in the FetchPackageBegin callback.
+			// A provider that wasn't downloaded during this init could be because:
+			// * It was already present from a previous installation.
+			// * If upgrading, no newer version was available that matched version constraints.
+			// * Or, the provider is unmanaged/reattached and so download was skipped.
 			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
 			safeInitAction = SafeInitActionProceed
 		} else {
