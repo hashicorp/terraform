@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -411,12 +412,14 @@ func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider ad
 	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "approve",
 		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
+Platform: %s
 Hashes:
 %s
 `,
 			lock.Provider().Type,
 			lock.Provider(),
 			lock.Version(),
+			getproviders.CurrentPlatform.String(),
 			hashList.String(),
 		),
 		Description: fmt.Sprintf(`Check the dependency lockfile's entry for %q.

@@ -3560,6 +3560,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		// Check output when prompting for approval
 		expectedInputPromptMsg := []string{
 			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
+			getproviders.CurrentPlatform.String(),
 			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
 		}
 		for _, expected := range expectedInputPromptMsg {
