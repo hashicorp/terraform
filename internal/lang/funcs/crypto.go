@@ -192,7 +192,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 	},
 })
 
-// Sha1Func contructs a function that computes the SHA1 hash of a given string
+// Sha1Func constructs a function that computes the SHA1 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha1Func = makeStringHashFunction(sha1.New, hex.EncodeToString)
 
@@ -202,7 +202,7 @@ func MakeFileSha1Func(baseDir string, wrap ImplWrapper) function.Function {
 	return makeFileHashFunction(baseDir, sha1.New, hex.EncodeToString, wrap)
 }
 
-// Sha256Func contructs a function that computes the SHA256 hash of a given string
+// Sha256Func constructs a function that computes the SHA256 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha256Func = makeStringHashFunction(sha256.New, hex.EncodeToString)
 
@@ -212,7 +212,7 @@ func MakeFileSha256Func(baseDir string, wrap ImplWrapper) function.Function {
 	return makeFileHashFunction(baseDir, sha256.New, hex.EncodeToString, wrap)
 }
 
-// Sha512Func contructs a function that computes the SHA512 hash of a given string
+// Sha512Func constructs a function that computes the SHA512 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha512Func = makeStringHashFunction(sha512.New, hex.EncodeToString)
 

@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// CidrHostFunc contructs a function that calculates a full host IP address
+// CidrHostFunc constructs a function that calculates a full host IP address
 // within a given IP network address prefix.
 var CidrHostFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -48,7 +48,7 @@ var CidrHostFunc = function.New(&function.Spec{
 	},
 })
 
-// CidrNetmaskFunc contructs a function that converts an IPv4 address prefix given
+// CidrNetmaskFunc constructs a function that converts an IPv4 address prefix given
 // in CIDR notation into a subnet mask address.
 var CidrNetmaskFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -73,7 +73,7 @@ var CidrNetmaskFunc = function.New(&function.Spec{
 	},
 })
 
-// CidrSubnetFunc contructs a function that calculates a subnet address within
+// CidrSubnetFunc constructs a function that calculates a subnet address within
 // a given IP network address prefix.
 var CidrSubnetFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
