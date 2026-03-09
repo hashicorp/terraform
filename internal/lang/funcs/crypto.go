@@ -126,7 +126,7 @@ var BcryptFunc = function.New(&function.Spec{
 		input := args[0].AsString()
 		out, err := bcrypt.GenerateFromPassword([]byte(input), defaultCost)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("error occured generating password %s", err.Error())
+			return cty.UnknownVal(cty.String), fmt.Errorf("error occurred generating password %s", err.Error())
 		}
 
 		return cty.StringVal(string(out)), nil
@@ -172,7 +172,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 			case asn1.SyntaxError:
 				errStr = strings.ReplaceAll(e.Error(), "asn1: syntax error", "invalid ASN1 data in the given private key")
 			case asn1.StructuralError:
-				errStr = strings.ReplaceAll(e.Error(), "asn1: struture error", "invalid ASN1 data in the given private key")
+				errStr = strings.ReplaceAll(e.Error(), "asn1: structure error", "invalid ASN1 data in the given private key")
 			default:
 				errStr = fmt.Sprintf("invalid private key: %s", e)
 			}
