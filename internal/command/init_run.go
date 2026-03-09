@@ -235,7 +235,10 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "State store providers must be downloaded using -safe-init flag",
-				Detail:   "The provider used for state storage needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+				Detail: fmt.Sprintf(
+					"The provider used for state storage (%s) needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
+					config.Module.StateStore.ProviderAddr.ForDisplay(),
+				),
 			})
 			view.Diagnostics(diags)
 			return 1
