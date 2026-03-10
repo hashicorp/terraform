@@ -677,31 +677,35 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	return providers
 }
 
-// resolveStateStoreProviderType gets tfaddr.Provider data for the provider used for pluggable state storage
-// and assigns it to the ProviderAddr field in the config's root module's state store data.
+// resolveStateStoreProviderData gets tfaddr.Provider data for the provider used for state storage,
+// and data about the declaration range for the paired required_providers entry. These values are
+// assigned to the relevant fields in the config's state store representation.
 //
-// See the reused function resolveStateStoreProviderType for details about logic.
+// See the reused function resolveStateStoreProviderData for details about logic.
 // If no match is found, an error diagnostic is returned.
-func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
+func (c *Config) resolveStateStoreProviderData() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	providerType, typeDiags := resolveStateStoreProviderType(c.Root.Module.ProviderRequirements.RequiredProviders,
-		*c.Root.Module.StateStore)
+	providerType, reqDeclRange, typeDiags := resolveStateStoreProviderData(
+		c.Root.Module.ProviderRequirements.RequiredProviders,
+		*c.Root.Module.StateStore,
+	)
 
 	if typeDiags.HasErrors() {
 		diags = append(diags, typeDiags...)
 		return diags
 	}
+	diags = append(diags, typeDiags...) // capture any warnings
 
 	c.Root.Module.StateStore.ProviderAddr = providerType
-	return nil
+	c.Root.Module.StateStore.RequiredProviderDeclRange = reqDeclRange
+	return diags
 }
 
 // resolveProviderTypesForTests matches resolveProviderTypes except it uses
 // the information from resolveProviderTypes to resolve the provider types for
 // providers defined within the configs test files.
 func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provider) {
-
 	for _, test := range c.Module.Tests {
 
 		// testProviders contains the configuration blocks for all the providers
@@ -780,7 +784,6 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 						}
 					}
 				}
-
 			} else {
 				// This provider is going to load all the providers it can using
 				// simple name matching.
@@ -833,7 +836,6 @@ func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provide
 		}
 
 	}
-
 }
 
 // ProviderTypes returns the FQNs of each distinct provider type referenced
@@ -895,7 +897,6 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 	default:
 		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
 	}
-
 }
 
 // ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first

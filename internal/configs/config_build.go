@@ -59,7 +59,7 @@ func FinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoader) hcl
 		cfg.resolveProviderTypesForTests(providers)
 
 		if cfg.Module != nil && cfg.Module.StateStore != nil {
-			stateProviderDiags := cfg.resolveStateStoreProviderType()
+			stateProviderDiags := cfg.resolveStateStoreProviderData()
 			diags = append(diags, stateProviderDiags...)
 		}
 	}

@@ -38,8 +38,12 @@ type StateStore struct {
 	// and is used in diagnostics
 	ProviderAddr tfaddr.Provider
 
-	TypeRange hcl.Range
-	DeclRange hcl.Range
+	// hcl.Range data is stored for use in diagnostics.
+	// Different ranges are relevant for different error types,
+	// e.g. unknown store type, invalid configuration, missing required_provider entry.
+	TypeRange                 hcl.Range
+	DeclRange                 hcl.Range
+	RequiredProviderDeclRange hcl.Range
 }
 
 func decodeStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
@@ -104,10 +108,11 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 	},
 }
 
-// resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
-// The only exception is the builtin terraform provider, which we return source data for without using required_providers.
+// resolveStateStoreProviderData updates the provided StateStore used to include data from required_providers.
+// The StateStore struct is updated to include the provider address and the decl range of the matching required_providers entry.
+// Special handling is required for the builtin terraform provider, which we don't expect to be in required_providers.
 // This code is reused in code for parsing config and modules.
-func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvider, stateStore StateStore) (tfaddr.Provider, hcl.Diagnostics) {
+func resolveStateStoreProviderData(requiredProviders map[string]*RequiredProvider, stateStore StateStore) (tfaddr.Provider, hcl.Range, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// We intentionally don't look for entries in required_providers under different local names and match them
@@ -118,7 +123,7 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 		// We do not expect users to include built in providers in required_providers
 		// So, if we don't find an entry in required_providers under local name 'terraform' we assume
 		// that the builtin provider is intended.
-		return addrs.NewBuiltInProvider("terraform"), nil
+		return addrs.NewBuiltInProvider("terraform"), hcl.Range{}, diags
 	case !foundReqProviderEntry:
 		diags = diags.Append(
 			&hcl.Diagnostic{
@@ -130,12 +135,12 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 				Subject: &stateStore.DeclRange,
 			},
 		)
-		return tfaddr.Provider{}, diags
+		return tfaddr.Provider{}, hcl.Range{}, diags
 	default:
 		// We've got a required_providers entry to use
 		// This code path is used for both re-attached providers
-		// providers that are fully managed by Terraform.
-		return addr.Type, nil
+		// and providers that are fully managed by Terraform.
+		return addr.Type, addr.DeclRange, diags
 	}
 }
 

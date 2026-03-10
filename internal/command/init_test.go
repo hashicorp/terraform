@@ -3491,6 +3491,11 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Error: State store providers must be downloaded using -safe-init flag",
+
+			// The required_providers entry is referenced in the error message.
+			// These lines are impacted if the test fixture is altered
+			"on main.tf line 4, in terraform:",
+			"4:     test = {",
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {

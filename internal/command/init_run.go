@@ -239,6 +239,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 					"The provider used for state storage (%s) needs to be installed safely. Please re-run the \"init\" command with the -safe-init flag.",
 					config.Module.StateStore.ProviderAddr.ForDisplay(),
 				),
+				Subject: &config.Module.StateStore.RequiredProviderDeclRange,
 			})
 			view.Diagnostics(diags)
 			return 1
