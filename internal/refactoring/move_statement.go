@@ -48,11 +48,6 @@ func FindMoveStatements(rootCfg *configs.Config) []MoveStatement {
 func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStatement {
 	modAddr := cfg.Path
 	for _, mc := range cfg.Module.Moved {
-		if mc.From == nil || mc.To == nil {
-			// Invalid addresses should've been caught during original
-			// configuration decoding, in the configs package.
-			continue
-		}
 		fromAddr, toAddr := addrs.UnifyMoveEndpoints(modAddr, mc.From, mc.To)
 		if fromAddr == nil || toAddr == nil {
 			// Invalid combination should've been caught during original
