@@ -86,7 +86,7 @@ func TestProviderDevOverrides(t *testing.T) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 
-	stdout, _, _ = tf.Run("init")
+	stdout, _, err = tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected error: %e", err)
 	}
@@ -143,7 +143,7 @@ func TestProviderDevOverridesWithProviderToDownload(t *testing.T) {
 
 	tf.AddEnv("TF_CLI_CONFIG_FILE=dev.tfrc")
 
-	stdout, stderr, _ := tf.Run("providers")
+	stdout, stderr, err := tf.Run("providers")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
 	}
