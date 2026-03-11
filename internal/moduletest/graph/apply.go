@@ -30,15 +30,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := FilterVariablesToModule(run.ModuleConfig, variables)
-	if ctx.Strict() {
-		setVariableDiags = moduletest.PromoteWarningsToErrors(setVariableDiags)
-	}
-	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
-	if setVariableDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return
-	}
+	setVariables, testOnlyVariables := FilterVariablesToModule(run.ModuleConfig, variables)
 
 	// ignore diags because validate has covered it
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
