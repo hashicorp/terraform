@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -223,6 +223,10 @@ func TestStaticValidateTraversal(t *testing.T) {
 		{
 			`obj.nested_map["key"].optional`,
 			``,
+		},
+		{
+			`obj.deprecated`,
+			`Deprecated attribute: The attribute "deprecated" is deprecated. Refer to the provider documentation for details.`,
 		},
 	}
 

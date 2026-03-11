@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -99,10 +99,6 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 
 // GetTerraformAttr implements lang.Data.
 func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	if d.Evaluator.Operation == walkInit {
-		return cty.DynamicVal, tfdiags.Diagnostics{}
-	}
-
 	var diags tfdiags.Diagnostics
 	switch addr.Name {
 
@@ -158,10 +154,6 @@ func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.
 
 // StaticValidateReferences implements lang.Data.
 func (d *evaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	if d.Evaluator.Operation == walkInit {
-		// Skip static validation during init walks
-		return tfdiags.Diagnostics{}
-	}
 	return d.Evaluator.StaticValidateReferences(refs, d.Module, self, source)
 }
 

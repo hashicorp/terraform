@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -254,14 +253,14 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 
 				// Let's make a little fake module call that we can use to call
 				// into validateProviderConfigs.
-				sourceExpr := hcl.StaticExpr(cty.StringVal(run.Module.Source.String()), run.Module.SourceDeclRange)
-				versionExpr := hcl.StaticExpr(cty.StringVal(run.Module.Version.Required.String()), run.Module.Version.DeclRange)
 				mc := &ModuleCall{
-					Name:        run.Name,
-					SourceExpr:  sourceExpr,
-					VersionExpr: versionExpr,
-					Providers:   providers,
-					DeclRange:   run.Module.DeclRange,
+					Name:            run.Name,
+					SourceAddr:      run.Module.Source,
+					SourceAddrRange: run.Module.SourceDeclRange,
+					SourceSet:       true,
+					Version:         run.Module.Version,
+					Providers:       providers,
+					DeclRange:       run.Module.DeclRange,
 				}
 
 				diags = append(diags, validateProviderConfigs(mc, run.ConfigUnderTest, nil)...)

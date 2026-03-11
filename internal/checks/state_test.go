@@ -1,23 +1,38 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package checks_test
+package checks
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
 )
 
 func TestChecksHappyPath(t *testing.T) {
 	const fixtureDir = "testdata/happypath"
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, nil)
+	_, instDiags := inst.InstallModules(context.Background(), fixtureDir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
 
-	cfg, _, configCleanup := tftesting.MustLoadConfigForTests(t, fixtureDir, "tests")
-	t.Cleanup(configCleanup)
+	/////////////////////////////////////////////////////////////////////////
+
+	cfg, hclDiags := loader.LoadConfig(fixtureDir)
+	if hclDiags.HasErrors() {
+		t.Fatalf("invalid configuration: %s", hclDiags.Error())
+	}
 
 	resourceA := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -75,36 +90,36 @@ func TestChecksHappyPath(t *testing.T) {
 
 	/////////////////////////////////////////////////////////////////////////
 
-	state := checks.NewState(cfg)
+	checks := NewState(cfg)
 
 	missing := 0
-	if addr := resourceA; !state.ConfigHasChecks(addr) {
+	if addr := resourceA; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
-	if addr := resourceB; !state.ConfigHasChecks(addr) {
+	if addr := resourceB; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
-	if addr := resourceC; !state.ConfigHasChecks(addr) {
+	if addr := resourceC; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
-	if addr := rootOutput; !state.ConfigHasChecks(addr) {
+	if addr := rootOutput; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
-	if addr := childOutput; !state.ConfigHasChecks(addr) {
+	if addr := childOutput; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
-	if addr := resourceNoChecks; state.ConfigHasChecks(addr) {
+	if addr := resourceNoChecks; checks.ConfigHasChecks(addr) {
 		t.Errorf("checks detected for %s, even though it has none", addr)
 	}
-	if addr := resourceNonExist; state.ConfigHasChecks(addr) {
+	if addr := resourceNonExist; checks.ConfigHasChecks(addr) {
 		t.Errorf("checks detected for %s, even though it doesn't exist", addr)
 	}
-	if addr := checkBlock; !state.ConfigHasChecks(addr) {
+	if addr := checkBlock; !checks.ConfigHasChecks(addr) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
@@ -125,13 +140,13 @@ func TestChecksHappyPath(t *testing.T) {
 			childOutput,
 			checkBlock,
 		)
-		gotConfigAddrs := state.AllConfigAddrs()
+		gotConfigAddrs := checks.AllConfigAddrs()
 		if diff := cmp.Diff(wantConfigAddrs, gotConfigAddrs); diff != "" {
 			t.Errorf("wrong detected config addresses\n%s", diff)
 		}
 
 		for _, configAddr := range gotConfigAddrs {
-			if got, want := state.AggregateCheckStatus(configAddr), checks.StatusUnknown; got != want {
+			if got, want := checks.AggregateCheckStatus(configAddr), StatusUnknown; got != want {
 				t.Errorf("incorrect initial aggregate check status for %s: %s, but want %s", configAddr, got, want)
 			}
 		}
@@ -155,26 +170,26 @@ func TestChecksHappyPath(t *testing.T) {
 	childOutputInst := childOutput.OutputValue.Absolute(moduleChildInst)
 	checkBlockInst := checkBlock.Check.Absolute(addrs.RootModuleInstance)
 
-	state.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
-	state.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, checks.StatusPass)
-	state.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 1, checks.StatusPass)
-	state.ReportCheckResult(resourceInstA, addrs.ResourcePostcondition, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusPass)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 1, StatusPass)
+	checks.ReportCheckResult(resourceInstA, addrs.ResourcePostcondition, 0, StatusPass)
 
-	state.ReportCheckableObjects(resourceB, addrs.MakeSet[addrs.Checkable](resourceInstB))
-	state.ReportCheckResult(resourceInstB, addrs.ResourcePrecondition, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(resourceB, addrs.MakeSet[addrs.Checkable](resourceInstB))
+	checks.ReportCheckResult(resourceInstB, addrs.ResourcePrecondition, 0, StatusPass)
 
-	state.ReportCheckableObjects(resourceC, addrs.MakeSet[addrs.Checkable](resourceInstC0, resourceInstC1))
-	state.ReportCheckResult(resourceInstC0, addrs.ResourcePostcondition, 0, checks.StatusPass)
-	state.ReportCheckResult(resourceInstC1, addrs.ResourcePostcondition, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(resourceC, addrs.MakeSet[addrs.Checkable](resourceInstC0, resourceInstC1))
+	checks.ReportCheckResult(resourceInstC0, addrs.ResourcePostcondition, 0, StatusPass)
+	checks.ReportCheckResult(resourceInstC1, addrs.ResourcePostcondition, 0, StatusPass)
 
-	state.ReportCheckableObjects(childOutput, addrs.MakeSet[addrs.Checkable](childOutputInst))
-	state.ReportCheckResult(childOutputInst, addrs.OutputPrecondition, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(childOutput, addrs.MakeSet[addrs.Checkable](childOutputInst))
+	checks.ReportCheckResult(childOutputInst, addrs.OutputPrecondition, 0, StatusPass)
 
-	state.ReportCheckableObjects(rootOutput, addrs.MakeSet[addrs.Checkable](rootOutputInst))
-	state.ReportCheckResult(rootOutputInst, addrs.OutputPrecondition, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(rootOutput, addrs.MakeSet[addrs.Checkable](rootOutputInst))
+	checks.ReportCheckResult(rootOutputInst, addrs.OutputPrecondition, 0, StatusPass)
 
-	state.ReportCheckableObjects(checkBlock, addrs.MakeSet[addrs.Checkable](checkBlockInst))
-	state.ReportCheckResult(checkBlockInst, addrs.CheckAssertion, 0, checks.StatusPass)
+	checks.ReportCheckableObjects(checkBlock, addrs.MakeSet[addrs.Checkable](checkBlockInst))
+	checks.ReportCheckResult(checkBlockInst, addrs.CheckAssertion, 0, StatusPass)
 
 	/////////////////////////////////////////////////////////////////////////
 
@@ -183,9 +198,9 @@ func TestChecksHappyPath(t *testing.T) {
 
 	{
 		configCount := 0
-		for _, configAddr := range state.AllConfigAddrs() {
+		for _, configAddr := range checks.AllConfigAddrs() {
 			configCount++
-			if got, want := state.AggregateCheckStatus(configAddr), checks.StatusPass; got != want {
+			if got, want := checks.AggregateCheckStatus(configAddr), StatusPass; got != want {
 				t.Errorf("incorrect final aggregate check status for %s: %s, but want %s", configAddr, got, want)
 			}
 		}
@@ -205,7 +220,7 @@ func TestChecksHappyPath(t *testing.T) {
 			checkBlockInst,
 		)
 		for _, addr := range objAddrs {
-			if got, want := state.ObjectCheckStatus(addr), checks.StatusPass; got != want {
+			if got, want := checks.ObjectCheckStatus(addr), StatusPass; got != want {
 				t.Errorf("incorrect final check status for object %s: %s, but want %s", addr, got, want)
 			}
 		}

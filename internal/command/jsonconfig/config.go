@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonconfig
@@ -422,10 +422,9 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 		// a (admittedly minor) breaking change to start normalizing them
 		// now, in case consumers of this data are expecting a particular
 		// non-normalized syntax.
-		Source:            c.SourceAddrRaw,
-		VersionConstraint: c.VersionConstraint.Required.String(),
+		Source:            mc.SourceAddrRaw,
+		VersionConstraint: mc.Version.Required.String(),
 	}
-
 	cExp := marshalExpression(mc.Count)
 	if !cExp.Empty() {
 		ret.CountExpression = &cExp

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
@@ -68,7 +67,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -80,42 +79,12 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, snap, diags := testLoadWithSnapshot(dir, loader, nil)
+	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
 	if diags.HasErrors() {
-		t.Fatal(diags.Err())
+		t.Fatal(diags.Error())
 	}
 
 	return config, snap
-}
-
-func testLoadWithSnapshot(dir string, loader *configload.Loader, vars InputValues) (*configs.Config, *configload.Snapshot, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	rootMod, configDiags := loader.LoadRootModule(dir)
-	if configDiags.HasErrors() {
-		diags = diags.Append(configDiags)
-		return nil, nil, diags
-	}
-
-	walkerSnapshot, snap := loader.ModuleWalkerSnapshot()
-	config, buildDiags := BuildConfigWithGraph(
-		rootMod,
-		walkerSnapshot,
-		vars,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	if buildDiags.HasErrors() {
-		diags = diags.Append(buildDiags)
-		return nil, nil, diags
-	}
-
-	snapDiags := loader.AddRootModuleToSnapshot(snap, dir)
-	if snapDiags.HasErrors() {
-		diags = diags.Append(snapDiags)
-		return nil, nil, diags
-	}
-
-	return config, snap, nil
 }
 
 // testModuleInline takes a map of path -> config strings and yields a config
@@ -158,7 +127,7 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -170,65 +139,12 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
-	if hclDiags.HasErrors() {
-		t.Fatal(hclDiags.Error())
-	}
-
-	config, buildDiags := BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil, // no variables needed for this helper
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	if buildDiags.HasErrors() {
-		t.Fatal(buildDiags.Err())
-	}
-
-	return config
-}
-
-func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {
-	t.Helper()
-
-	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for path, configStr := range sources {
-		dir := filepath.Dir(path)
-		if dir != "." {
-			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
-			if err != nil {
-				t.Fatalf("Error creating subdir: %s", err)
-			}
-		}
-		// Write the configuration
-		cfgF, err := os.Create(filepath.Join(cfgPath, path))
-		if err != nil {
-			t.Fatalf("Error creating temporary file for config: %s", err)
-		}
-
-		_, err = io.Copy(cfgF, strings.NewReader(configStr))
-		cfgF.Close()
-		if err != nil {
-			t.Fatalf("Error creating temporary file for config: %s", err)
-		}
-	}
-
-	loader, cleanup := configload.NewLoaderForTests(t)
-	defer cleanup()
-
-	// We need to be able to exercise experimental features in our integration tests.
-	loader.AllowLanguageExperiments(true)
-
-	mod, diags := loader.Parser().LoadConfigDir(cfgPath)
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	return mod
+	return config
 }
 
 // testSetResourceInstanceCurrent is a helper function for tests that sets a Current,
@@ -343,22 +259,6 @@ func mustModuleInstance(s string) addrs.ModuleInstance {
 		panic(diags.Err())
 	}
 	return p
-}
-
-func mustActionInstanceAddr(s string) addrs.AbsActionInstance {
-	addr, diags := addrs.ParseAbsActionInstanceStr(s)
-	if diags.HasErrors() {
-		panic(diags.Err())
-	}
-	return addr
-}
-
-func mustActionAddr(s string) addrs.AbsAction {
-	addr, diags := addrs.ParseAbsActionStr(s)
-	if diags.HasErrors() {
-		panic(diags.Err())
-	}
-	return addr
 }
 
 // HookRecordApplyOrder is a test hook that records the order of applies

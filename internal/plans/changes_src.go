@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package plans
@@ -622,11 +622,11 @@ func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc)
 // of action invocations has already been filtered to invocations against the
 // same resource as the current invocation.
 func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
-	needleLat := acs.ActionTrigger.(*ResourceActionTrigger)
+	needleLat := acs.ActionTrigger.(*LifecycleActionTrigger)
 
 	var laterInvocations []*ActionInvocationInstanceSrc
 	for _, invocation := range actionInvocations {
-		if lat, ok := invocation.ActionTrigger.(*ResourceActionTrigger); ok {
+		if lat, ok := invocation.ActionTrigger.(*LifecycleActionTrigger); ok {
 			if sameTriggerEvent(lat, needleLat) && triggersLater(lat, needleLat) {
 				laterInvocations = append(laterInvocations, invocation)
 			}
@@ -635,10 +635,10 @@ func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvoc
 	return laterInvocations
 }
 
-func sameTriggerEvent(one, two *ResourceActionTrigger) bool {
+func sameTriggerEvent(one, two *LifecycleActionTrigger) bool {
 	return one.ActionTriggerEvent == two.ActionTriggerEvent
 }
 
-func triggersLater(one, two *ResourceActionTrigger) bool {
+func triggersLater(one, two *LifecycleActionTrigger) bool {
 	return one.ActionTriggerBlockIndex > two.ActionTriggerBlockIndex || (one.ActionTriggerBlockIndex == two.ActionTriggerBlockIndex && one.ActionsListIndex > two.ActionsListIndex)
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ProvidersCommand is a Command implementation that prints out information
@@ -27,13 +28,23 @@ func (c *ProvidersSchemaCommand) Synopsis() string {
 }
 
 func (c *ProvidersSchemaCommand) Run(args []string) int {
-	_, diags := arguments.ParseProvidersSchema(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("providers schema")
+	var jsonOutput bool
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	viewType := arguments.ViewJSON // See above; enforced use of JSON output
+	if !jsonOutput {
+		c.Ui.Error(
+			"The `terraform providers schema` command requires the `-json` flag.\n")
+		cmdFlags.Usage()
+		return 1
+	}
 
 	// Check for user-supplied plugin path
 	var err error
@@ -41,8 +52,11 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
+
+	var diags tfdiags.Diagnostics
+
 	// Load the backend
-	b, backendDiags := c.backend(".", viewType)
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

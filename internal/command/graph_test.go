@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -224,7 +224,7 @@ func TestGraph_resourcesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -325,13 +325,12 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 		},
 	})
 
-	plan.Backend = &plans.Backend{
+	plan.Backend = plans.Backend{
 		// Doesn't actually matter since we aren't going to activate the backend
 		// for this command anyway, but we need something here for the plan
 		// file writer to succeed.
-		Type:      "placeholder",
-		Config:    emptyObj,
-		Workspace: "default",
+		Type:   "placeholder",
+		Config: emptyObj,
 	}
 	_, configSnap := testModuleWithSnapshot(t, "graph")
 

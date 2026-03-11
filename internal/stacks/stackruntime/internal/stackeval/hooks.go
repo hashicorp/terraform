@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -129,8 +129,6 @@ type Hooks struct {
 	// inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstanceDeferred hooks.MoreFunc[*hooks.DeferredResourceInstanceChange]
-
-	ReportActionInvocationPlanned hooks.MoreFunc[*hooks.ActionInvocation]
 
 	// ReportComponentInstancePlanned is called after a component instance
 	// is planned. It should be called inside a tracing context established by

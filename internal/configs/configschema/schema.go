@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -36,10 +36,6 @@ type Block struct {
 	DescriptionKind StringKind
 
 	Deprecated bool
-
-	// DeprecationMessage is a human-readable message explaining the deprecation.
-	// This is valid only when Deprecated is true.
-	DeprecationMessage string
 }
 
 // Attribute represents a configuration attribute, within a block.
@@ -82,10 +78,6 @@ type Attribute struct {
 	Sensitive bool
 
 	Deprecated bool
-
-	// DeprecationMessage is a human-readable message explaining the deprecation.
-	// This is valid only when Deprecated is true.
-	DeprecationMessage string
 
 	// WriteOnly, if set to true, indicates that the attribute is not presisted
 	// in the state.

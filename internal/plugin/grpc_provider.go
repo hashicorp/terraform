@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package plugin
@@ -1447,22 +1447,6 @@ func (p *GRPCProvider) ValidateStateStoreConfig(r providers.ValidateStateStoreCo
 }
 
 func (p *GRPCProvider) ConfigureStateStore(r providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) ReadStateBytes(r providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) WriteStateBytes(r providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) LockState(r providers.LockStateRequest) providers.LockStateResponse {
-	panic("not implemented")
-}
-
-func (p *GRPCProvider) UnlockState(r providers.UnlockStateRequest) providers.UnlockStateResponse {
 	panic("not implemented")
 }
 

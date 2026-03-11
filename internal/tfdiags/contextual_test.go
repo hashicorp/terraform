@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -38,7 +38,6 @@ parent {
   nested_map = {
     first_key  = "first_value"
     second_key = "2nd value"
-    third_key = [{ num = 1}, {num = 2, value = { another_level = ["no", "yes"]}}]
   }
 }
 tuple_of_one = ["one"]
@@ -239,8 +238,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 19, Column: 22, Byte: 174},
-				End:      SourcePos{Line: 19, Column: 43, Byte: 195},
+				Start:    SourcePos{Line: 19, Column: 3, Byte: 155},
+				End:      SourcePos{Line: 19, Column: 19, Byte: 171},
 			},
 		},
 		{
@@ -324,8 +323,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 22, Column: 18, Byte: 265},
-				End:      SourcePos{Line: 22, Column: 31, Byte: 278},
+				Start:    SourcePos{Line: 22, Column: 19, Byte: 266},
+				End:      SourcePos{Line: 22, Column: 30, Byte: 277},
 			},
 		},
 		{
@@ -341,28 +340,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 23, Column: 18, Byte: 296},
-				End:      SourcePos{Line: 23, Column: 29, Byte: 307},
-			},
-		},
-		{
-			AttributeValue(
-				Error,
-				"parent.nested_map.third_key[1].value[1]",
-				"detail",
-				cty.Path{
-					cty.GetAttrStep{Name: "parent"},
-					cty.GetAttrStep{Name: "nested_map"},
-					cty.IndexStep{Key: cty.StringVal("third_key")},
-					cty.IndexStep{Key: cty.NumberIntVal(1)},
-					cty.GetAttrStep{Name: "value"},
-					cty.IndexStep{Key: cty.NumberIntVal(1)},
-				},
-			),
-			&SourceRange{
-				Filename: "test.tf",
-				Start:    SourcePos{Line: 24, Column: 48, Byte: 355},
-				End:      SourcePos{Line: 24, Column: 80, Byte: 387},
+				Start:    SourcePos{Line: 23, Column: 19, Byte: 297},
+				End:      SourcePos{Line: 23, Column: 28, Byte: 306},
 			},
 		},
 		{
@@ -378,8 +357,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 21, Column: 16, Byte: 246},
-				End:      SourcePos{Line: 25, Column: 4, Byte: 393},
+				Start:    SourcePos{Line: 21, Column: 3, Byte: 233},
+				End:      SourcePos{Line: 21, Column: 13, Byte: 243},
 			},
 		},
 
@@ -396,8 +375,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 27, Column: 17, Byte: 412},
-				End:      SourcePos{Line: 27, Column: 22, Byte: 417},
+				Start:    SourcePos{Line: 26, Column: 17, Byte: 330},
+				End:      SourcePos{Line: 26, Column: 22, Byte: 335},
 			},
 		},
 		{
@@ -412,8 +391,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 28, Column: 17, Byte: 435},
-				End:      SourcePos{Line: 28, Column: 24, Byte: 442},
+				Start:    SourcePos{Line: 27, Column: 17, Byte: 353},
+				End:      SourcePos{Line: 27, Column: 24, Byte: 360},
 			},
 		},
 		{
@@ -428,8 +407,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 28, Column: 26, Byte: 444},
-				End:      SourcePos{Line: 28, Column: 33, Byte: 451},
+				Start:    SourcePos{Line: 27, Column: 26, Byte: 362},
+				End:      SourcePos{Line: 27, Column: 33, Byte: 369},
 			},
 		},
 		{
@@ -444,8 +423,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 27, Column: 16, Byte: 411},
-				End:      SourcePos{Line: 27, Column: 23, Byte: 418},
+				Start:    SourcePos{Line: 26, Column: 1, Byte: 314},
+				End:      SourcePos{Line: 26, Column: 13, Byte: 326},
 			},
 		},
 		{
@@ -461,8 +440,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 28, Column: 16, Byte: 434},
-				End:      SourcePos{Line: 28, Column: 34, Byte: 452},
+				Start:    SourcePos{Line: 27, Column: 1, Byte: 337},
+				End:      SourcePos{Line: 27, Column: 13, Byte: 349},
 			},
 		},
 		{
@@ -477,8 +456,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 30, Column: 12, Byte: 477},
-				End:      SourcePos{Line: 30, Column: 17, Byte: 482},
+				Start:    SourcePos{Line: 29, Column: 13, Byte: 396},
+				End:      SourcePos{Line: 29, Column: 16, Byte: 399},
 			},
 		},
 		{
@@ -493,8 +472,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 31, Column: 12, Byte: 494},
-				End:      SourcePos{Line: 31, Column: 17, Byte: 499},
+				Start:    SourcePos{Line: 30, Column: 13, Byte: 413},
+				End:      SourcePos{Line: 30, Column: 16, Byte: 416},
 			},
 		},
 		{
@@ -509,8 +488,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 29, Column: 12, Byte: 464},
-				End:      SourcePos{Line: 32, Column: 2, Byte: 501},
+				Start:    SourcePos{Line: 28, Column: 1, Byte: 371},
+				End:      SourcePos{Line: 28, Column: 9, Byte: 379},
 			},
 		},
 		{
@@ -524,8 +503,8 @@ simple_attr = "val"
 			),
 			&SourceRange{
 				Filename: "test.tf",
-				Start:    SourcePos{Line: 33, Column: 15, Byte: 516},
-				End:      SourcePos{Line: 33, Column: 20, Byte: 521},
+				Start:    SourcePos{Line: 32, Column: 15, Byte: 434},
+				End:      SourcePos{Line: 32, Column: 20, Byte: 439},
 			},
 		},
 		{

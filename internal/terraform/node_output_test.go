@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -32,24 +32,21 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 		"a": cty.StringVal("b"),
 	})
 	ctx.EvaluateExprResult = val
-	scopedCtx := ctx.withScope(evalContextModuleInstance{
-		Addr: addrs.RootModuleInstance,
-	}).(*MockEvalContext)
 
-	err := node.Execute(scopedCtx, walkApply)
+	err := node.Execute(ctx, walkApply)
 	if err != nil {
 		t.Fatalf("unexpected execute error: %s", err)
 	}
 
-	outputVal := scopedCtx.StateState.OutputValue(addr)
+	outputVal := ctx.StateState.OutputValue(addr)
 	if got, want := outputVal.Value, val; !got.RawEquals(want) {
 		t.Errorf("wrong output value in state\n got: %#v\nwant: %#v", got, want)
 	}
 
-	if !scopedCtx.RefreshStateCalled {
+	if !ctx.RefreshStateCalled {
 		t.Fatal("should have called RefreshState, but didn't")
 	}
-	refreshOutputVal := scopedCtx.RefreshStateState.OutputValue(addr)
+	refreshOutputVal := ctx.RefreshStateState.OutputValue(addr)
 	if got, want := refreshOutputVal.Value, val; !got.RawEquals(want) {
 		t.Fatalf("wrong output value in refresh state\n got: %#v\nwant: %#v", got, want)
 	}

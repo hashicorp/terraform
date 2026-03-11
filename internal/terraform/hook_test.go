@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -52,14 +51,14 @@ func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreDiff", id.Addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostDiff", id.Addr.String()})
@@ -170,7 +169,7 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})

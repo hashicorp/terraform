@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
@@ -127,7 +127,7 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 	}
 
 	switch at := action.ActionTrigger.(type) {
-	case *plans.ResourceActionTrigger:
+	case *plans.LifecycleActionTrigger:
 		ai.LifecycleActionTrigger = &LifecycleActionTrigger{
 			TriggeringResourceAddress: at.TriggeringResourceAddr.String(),
 			ActionTriggerEvent:        at.TriggerEvent().String(),

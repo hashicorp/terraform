@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -782,16 +782,14 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 	// backend configuration if they didn't set one, since the backend is
 	// usually dealt with in a calling package and so tests in this package
 	// don't really care about it.
-	if plan.Backend == nil {
+	if plan.Backend.Config == nil {
 		cfg, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 		if err != nil {
 			panic(fmt.Sprintf("NewDynamicValue failed: %s", err)) // shouldn't happen because we control the inputs
 		}
-		plan.Backend = &plans.Backend{
-			Type:      "local",
-			Config:    cfg,
-			Workspace: "default",
-		}
+		plan.Backend.Type = "local"
+		plan.Backend.Config = cfg
+		plan.Backend.Workspace = "default"
 	}
 
 	filename := filepath.Join(dir, "tfplan")
@@ -810,25 +808,7 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		return nil, nil, nil, err
 	}
 
-	snap, err := pr.ReadConfigSnapshot()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	loader := configload.NewLoaderFromSnapshot(snap)
-	rootMod, hclDiags := loader.LoadRootModule(snap.Modules[""].Dir)
-	diags := tfdiags.Diagnostics(nil).Append(hclDiags)
-	if diags.HasErrors() {
-		return nil, nil, nil, diags.Err()
-	}
-
-	config, buildDiags := BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	diags = diags.Append(buildDiags)
+	config, diags := pr.ReadConfig(false)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags.Err()
 	}

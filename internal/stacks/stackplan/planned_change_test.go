@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackplan
@@ -16,8 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -929,117 +927,6 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 			},
 		},
-		"action invocation lifecycle trigger": {
-			Receiver: &PlannedChangeActionInvocationInstancePlanned{
-				ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
-					Component: stackaddrs.AbsComponentInstance{
-						Stack: stackaddrs.RootStackInstance,
-						Item: stackaddrs.ComponentInstance{
-							Component: stackaddrs.Component{Name: "web"},
-						},
-					},
-					Item: addrs.AbsActionInstance{
-						Module: addrs.RootModuleInstance,
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "webhook",
-								Name: "notify",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-				},
-				ProviderConfigAddr: addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("example.com/webhooks/http"),
-				},
-				Invocation: &plans.ActionInvocationInstanceSrc{
-					Addr: addrs.AbsActionInstance{
-						Module: addrs.RootModuleInstance,
-						Action: addrs.ActionInstance{
-							Action: addrs.Action{
-								Type: "webhook",
-								Name: "notify",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-					ActionTrigger: &plans.ResourceActionTrigger{
-						TriggeringResourceAddr: addrs.Resource{
-							Mode: addrs.ManagedResourceMode,
-							Type: "example_resource",
-							Name: "main",
-						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ActionTriggerEvent:      configs.AfterCreate,
-						ActionTriggerBlockIndex: 0,
-						ActionsListIndex:        0,
-					},
-					ConfigValue: emptyObjectForPlan,
-					ProviderAddr: addrs.AbsProviderConfig{
-						Module:   addrs.RootModule,
-						Provider: addrs.MustParseProviderSourceString("example.com/webhooks/http"),
-					},
-				},
-				Schema: providers.ActionSchema{
-					ConfigSchema: &configschema.Block{},
-				},
-			},
-			Want: &stacks.PlannedChange{
-				Raw: []*anypb.Any{
-					mustMarshalAnyPb(&tfstackdata1.PlanActionInvocationPlanned{
-						ComponentInstanceAddr: "component.web",
-						ActionInvocationAddr:  "action.webhook.notify",
-						ProviderConfigAddr:    "example.com/webhooks/http",
-						Invocation: &planproto.ActionInvocationInstance{
-							Addr:     "action.webhook.notify",
-							Provider: `provider["example.com/webhooks/http"]`,
-							ActionTrigger: &planproto.ActionInvocationInstance_ResourceActionTrigger{
-								ResourceActionTrigger: &planproto.ResourceActionTrigger{
-									TriggeringResourceAddr:  "example_resource.main",
-									TriggerEvent:            planproto.ActionTriggerEvent_AFTER_CREATE,
-									ActionTriggerBlockIndex: 0,
-									ActionsListIndex:        0,
-								},
-							},
-							ConfigValue: &planproto.DynamicValue{
-								Msgpack: emptyObjectForPlan,
-							},
-						},
-					}),
-				},
-				Descriptions: []*stacks.PlannedChange_ChangeDescription{
-					{
-						Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
-							ActionInvocationPlanned: &stacks.PlannedChange_ActionInvocationInstance{
-								Addr: &stacks.ActionInvocationInstanceInStackAddr{
-									ComponentInstanceAddr:        "component.web",
-									ActionInvocationInstanceAddr: "action.webhook.notify",
-								},
-								ProviderAddr: "example.com/webhooks/http",
-								ActionType:   "webhook",
-								ConfigValue: &stacks.DynamicValue{
-									Msgpack: emptyObjectForPlan,
-								},
-								ActionTrigger: &stacks.PlannedChange_ActionInvocationInstance_ResourceActionTrigger{
-									ResourceActionTrigger: &stacks.PlannedChange_ResourceActionTrigger{
-										TriggeringResourceAddress: &stacks.ResourceInstanceInStackAddr{
-											ComponentInstanceAddr: "component.web",
-											ResourceInstanceAddr:  "example_resource.main",
-										},
-										TriggerEvent:            stacks.PlannedChange_AFTER_CREATE,
-										ActionTriggerBlockIndex: 0,
-										ActionsListIndex:        0,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		// TODO: Add test for "action invocation invoke trigger" when implementing
-		// direct action invocation in a later iteration. The InvokeActionTrigger
-		// case is mentioned in the interface for completeness but not yet implemented.
 	}
 
 	for name, test := range tests {

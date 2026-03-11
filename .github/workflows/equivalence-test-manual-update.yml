@@ -21,12 +21,15 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   run-equivalence-tests:
     name: "Run equivalence tests"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ inputs.target-branch }}
 
@@ -35,7 +38,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
@@ -49,4 +52,3 @@ jobs:
           new-branch: ${{ inputs.new-branch }}
           reviewers: ${{ github.actor }}
           message: "Update equivalence test golden files."
-          github-token: ${{ github.token }}

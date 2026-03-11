@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -149,22 +149,16 @@ func (b *Local) opPlan(
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
-		switch {
-		case op.PlanOutStateStore != nil:
-			plan.StateStore = op.PlanOutStateStore
-		case op.PlanOutBackend != nil:
-			plan.Backend = op.PlanOutBackend
-		default:
+		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
-			// to set PlanOutPath without also setting PlanOutStateStore or PlanOutBackend.
-			// Even when there is no state_store or backend block in the configuration, there should be a PlanOutBackend
-			// describing the implied local backend.
+			// to set PlanOutPath without also setting PlanOutBackend.
 			diags = diags.Append(fmt.Errorf(
-				"PlanOutPath set without also setting PlanOutStateStore or PlanOutBackend (this is a bug in Terraform)"),
+				"PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"),
 			)
 			op.ReportResult(runningOp, diags)
 			return
 		}
+		plan.Backend = *op.PlanOutBackend
 
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and

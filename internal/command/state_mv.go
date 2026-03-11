@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -6,6 +6,8 @@ package command
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -24,17 +26,28 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(args))
-	if parseDiags.HasErrors() {
-		c.showDiagnostics(parseDiags)
+	args = c.Meta.process(args)
+	// We create two metas to track the two states
+	var backupPathOut, statePathOut string
+
+	var dryRun bool
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state mv")
+	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
+	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
+	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.StringVar(&c.statePath, "state", "", "path")
+	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
-
-	c.backupPath = parsedArgs.BackupPath
-	c.Meta.stateLock = parsedArgs.StateLock
-	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
-	c.statePath = parsedArgs.StatePath
-	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+	args = cmdFlags.Args()
+	if len(args) != 2 {
+		c.Ui.Error("Exactly two arguments expected.\n")
+		return cli.RunResultHelp
+	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
@@ -45,7 +58,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	// and the state option is not set, make sure
 	// the backend is local
 	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.statePath == ""
-	backupOutOptionSetWithoutStateOption := parsedArgs.BackupOutPath != "-" && c.statePath == ""
+	backupOutOptionSetWithoutStateOption := backupPathOut != "-" && c.statePath == ""
 
 	var setLegacyLocalBackendOptions []string
 	if backupOptionSetWithoutStateOption {
@@ -79,8 +92,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Read the from state
-	view := arguments.ViewHuman
-	stateFromMgr, err := c.State(view)
+	stateFromMgr, err := c.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -114,11 +126,11 @@ func (c *StateMvCommand) Run(args []string) int {
 	stateToMgr := stateFromMgr
 	stateTo := stateFrom
 
-	if parsedArgs.StateOutPath != "" {
-		c.statePath = parsedArgs.StateOutPath
-		c.backupPath = parsedArgs.BackupOutPath
+	if statePathOut != "" {
+		c.statePath = statePathOut
+		c.backupPath = backupPathOut
 
-		stateToMgr, err = c.State(view)
+		stateToMgr, err = c.State()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
@@ -149,9 +161,9 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	var diags tfdiags.Diagnostics
-	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.SourceAddr)
+	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[0])
 	diags = diags.Append(moreDiags)
-	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)
+	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[1])
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -159,7 +171,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	prefix := "Move"
-	if parsedArgs.DryRun {
+	if dryRun {
 		prefix = "Would move"
 	}
 
@@ -218,7 +230,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 			moved++
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
-			if !parsedArgs.DryRun {
+			if !dryRun {
 				ssFrom.RemoveModule(addrFrom)
 
 				// Update the address before adding it to the state.
@@ -263,7 +275,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 			moved++
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
-			if !parsedArgs.DryRun {
+			if !dryRun {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
@@ -316,8 +328,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 
 			moved++
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), parsedArgs.DestAddr))
-			if !parsedArgs.DryRun {
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
+			if !dryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
 				fromResource := ssFrom.Resource(fromResourceAddr)
 				fromProviderAddr := fromResource.ProviderConfig
@@ -372,15 +384,14 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	if parsedArgs.DryRun {
+	if dryRun {
 		if moved == 0 {
 			c.Ui.Output("Would have moved nothing.")
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

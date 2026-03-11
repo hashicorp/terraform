@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package graph
@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
@@ -17,14 +16,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -43,7 +41,7 @@ type EvalContext struct {
 	// required by this test file. The parsedVariables will be populated as the
 	// test graph is executed, while the unparsedVariables will be lazily
 	// evaluated by each run block that needs them.
-	unparsedVariables map[string]arguments.UnparsedVariableValue
+	unparsedVariables map[string]backendrun.UnparsedVariableValue
 	parsedVariables   terraform.InputValues
 	variableStatus    map[string]moduletest.Status
 	variablesLock     sync.Mutex
@@ -91,9 +89,6 @@ type EvalContext struct {
 	// repair is true if the test suite is being run in cleanup repair mode.
 	// It is only set when in test cleanup mode.
 	repair bool
-
-	overrides    map[string]*mocking.Overrides
-	overrideLock sync.Mutex
 }
 
 type EvalContextOpts struct {
@@ -102,7 +97,7 @@ type EvalContextOpts struct {
 	Render            views.Test
 	CancelCtx         context.Context
 	StopCtx           context.Context
-	UnparsedVariables map[string]arguments.UnparsedVariableValue
+	UnparsedVariables map[string]backendrun.UnparsedVariableValue
 	Config            *configs.Config
 	FileStates        map[string]*teststates.TestRunState
 	Concurrency       int
@@ -140,7 +135,6 @@ func NewEvalContext(opts EvalContextOpts) *EvalContext {
 		mode:              opts.Mode,
 		deferralAllowed:   opts.DeferralAllowed,
 		evalSem:           terraform.NewSemaphore(opts.Concurrency),
-		overrides:         make(map[string]*mocking.Overrides),
 	}
 }
 
@@ -328,9 +322,6 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, nil)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
-		errorMessage, _ = errorMessage.Unmark()
-		errorMessageStr := strings.TrimSpace(errorMessage.AsString())
-
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
 		ruleDiags = ruleDiags.Append(hclDiags)
 
@@ -394,7 +385,7 @@ func (ec *EvalContext) EvaluateRun(run *configs.TestRun, module *configs.Module,
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Test assertion failed",
-				Detail:      errorMessageStr,
+				Detail:      errorMessage,
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
@@ -727,18 +718,6 @@ func (ec *EvalContext) PriorRunsCompleted(runs map[string]*moduletest.Run) bool 
 		}
 	}
 	return true
-}
-
-func (ec *EvalContext) SetOverrides(run *moduletest.Run, overrides *mocking.Overrides) {
-	ec.overrideLock.Lock()
-	defer ec.overrideLock.Unlock()
-	ec.overrides[run.Name] = overrides
-}
-
-func (ec *EvalContext) GetOverrides(runName string) *mocking.Overrides {
-	ec.overrideLock.Lock()
-	defer ec.overrideLock.Unlock()
-	return ec.overrides[runName]
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

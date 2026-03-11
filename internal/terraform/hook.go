@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -7,7 +7,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -63,8 +62,8 @@ type Hook interface {
 	// PreDiff and PostDiff are called before and after a provider is given
 	// the opportunity to customize the proposed new state to produce the
 	// planned new state.
-	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error)
-	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error)
+	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error)
+	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
 
 	// The provisioning hooks signal both the overall start end end of
 	// provisioning for a particular instance and of each of the individual
@@ -118,7 +117,7 @@ type Hook interface {
 
 	// PreListQuery and PostListQuery are called during a query operation before and after
 	// resources are queried from the provider.
-	PreListQuery(id HookResourceIdentity, inputConfig cty.Value, configSchema *configschema.Block) (HookAction, error)
+	PreListQuery(id HookResourceIdentity, inputConfig cty.Value) (HookAction, error)
 	PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error)
 
 	// StartAction, ProgressAction, and CompleteAction are called during the
@@ -166,11 +165,11 @@ func (*NilHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
@@ -233,7 +232,7 @@ func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, 
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

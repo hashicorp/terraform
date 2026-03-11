@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -94,7 +93,6 @@ type BuiltinEvalContext struct {
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
-	DeprecationsValue       *deprecation.Deprecations
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -428,27 +426,6 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	// Validate the attribute reference against the target resource's schema.
-	// We use schema-based validation rather than value-based validation because
-	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
-	// actual type can change between plans. Schema validation ensures we only
-	// error on truly invalid attribute references.
-	// We use change.ProviderAddr rather than resolving from config because
-	// the provider configuration may not be local to the current module.
-	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
-	if err == nil {
-		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
-		if schema.Body != nil {
-			moreDiags := schema.Body.StaticValidateTraversal(ref.Remaining)
-			diags = diags.Append(moreDiags)
-			if diags.HasErrors() {
-				return nil, false, diags
-			}
-		}
-	}
-	// If we couldn't get the schema, we skip validation and let the value
-	// comparison below handle it. This is a graceful degradation for edge cases.
-
 	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
 	attrAfter, _ := path.Apply(change.After)
@@ -665,8 +642,4 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 
 func (ctx *BuiltinEvalContext) Actions() *actions.Actions {
 	return ctx.ActionsValue
-}
-
-func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {
-	return ctx.DeprecationsValue
 }

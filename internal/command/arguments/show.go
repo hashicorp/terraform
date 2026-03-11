@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package arguments
@@ -15,8 +15,6 @@ type Show struct {
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
-
-	Vars *Vars
 }
 
 // ParseShow processes CLI arguments, returning a Show value and errors.
@@ -26,11 +24,10 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	show := &Show{
 		Path: "",
-		Vars: &Vars{},
 	}
 
 	var jsonOutput bool
-	cmdFlags := extendedFlagSet("show", nil, nil, show.Vars)
+	cmdFlags := defaultFlagSet("show")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {

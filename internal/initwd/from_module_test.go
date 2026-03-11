@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package initwd
@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -108,16 +107,8 @@ func TestDirFromModule_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	tfdiags.AssertNoDiagnostics(t, buildDiags)
+	config, loadDiags := loader.LoadConfig(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                     "in example",
@@ -196,16 +187,8 @@ func TestDirFromModule_submodules(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	tfdiags.AssertNoDiagnostics(t, buildDiags)
+	config, loadDiags := loader.LoadConfig(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -329,16 +312,8 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	tfdiags.AssertNoDiagnostics(t, buildDiags)
+	config, loadDiags := loader.LoadConfig(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                "in root module",

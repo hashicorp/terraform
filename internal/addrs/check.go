@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -104,11 +104,6 @@ func (c AbsCheck) CheckRule(typ CheckRuleType, i int) CheckRule {
 		Type:      typ,
 		Index:     i,
 	}
-}
-
-// ModuleInstance returns the module instance portion of the address.
-func (c AbsCheck) ModuleInstance() ModuleInstance {
-	return c.Module
 }
 
 // ConfigCheckable returns the ConfigCheck address for this absolute reference.

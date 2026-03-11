@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
@@ -108,8 +108,8 @@ message Plan {
     repeated string target_addrs = 5;
 
     // An unordered set of action addresses that must be invoked when applying.
-    // If no actions are specified then only resource-triggered actions should
-    // be executed.
+    // If no actions are specified then only lifecycle actions should be
+    // executed.
     repeated string action_target_addrs = 32;
 
     // An unordered set of force-replace addresses to include when applying.
@@ -169,7 +169,6 @@ message StateStore {
 message Provider {
     string source = 1;
     string version = 2;
-    DynamicValue config = 3;
 }
 
 // Action describes the type of action planned for an object.
@@ -478,14 +477,14 @@ message ActionInvocationInstance {
     repeated Path sensitive_config_paths = 5;
 
     oneof action_trigger {
-        ResourceActionTrigger resource_action_trigger = 6;
+        LifecycleActionTrigger lifecycle_action_trigger = 6;
         InvokeActionTrigger invoke_action_trigger = 7;
     }
 }
 
-// ResourceActionTrigger contains details on the conditions that led to the
+// LifecycleActionTrigger contains details on the conditions that led to the
 // triggering of an action.
-message ResourceActionTrigger {
+message LifecycleActionTrigger {
   string triggering_resource_addr = 1;
   ActionTriggerEvent trigger_event = 2;
   int64 action_trigger_block_index = 3;

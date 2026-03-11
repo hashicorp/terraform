@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -15,21 +15,21 @@ type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
 }
 
-// nodeExpandAction represents an action config block in a module, which has not
-// yet been expanded.
-type nodeExpandAction struct {
+// nodeExpandActionDeclaration represents an action config block in a configuration module,
+// which has not yet been expanded.
+type nodeExpandActionDeclaration struct {
 	*NodeAbstractAction
 }
 
 var (
-	_ GraphNodeDynamicExpandable = (*nodeExpandAction)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandActionDeclaration)(nil)
 )
 
-func (n *nodeExpandAction) Name() string {
+func (n *nodeExpandActionDeclaration) Name() string {
 	return n.Addr.String() + " (expand)"
 }
 
-func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+func (n *nodeExpandActionDeclaration) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
@@ -83,7 +83,7 @@ func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 
 		// Expand the action instances for this module.
 		for _, knownInstKey := range knownInstKeys {
-			node := NodeAbstractActionInstance{
+			node := NodeActionDeclarationInstance{
 				Addr:             absActAddr.Instance(knownInstKey),
 				Config:           &n.Config,
 				Schema:           n.Schema,
@@ -99,7 +99,7 @@ func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 	return &g, diags
 }
 
-func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
+func (n *nodeExpandActionDeclaration) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)

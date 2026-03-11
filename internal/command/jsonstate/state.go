@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
@@ -537,7 +537,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
-	if marks.Has(val, marks.Sensitive) {
+	if val.HasMark(marks.Sensitive) {
 		return cty.True
 	}
 
@@ -620,7 +620,6 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 func unmarkValueForMarshaling(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
 	sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
-	_, otherMarks = marks.PathsWithMark(otherMarks, marks.Deprecation)
 	if len(otherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",

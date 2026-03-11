@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -138,9 +138,8 @@ func (o *Object) specType() cty.Type {
 	} else {
 		ret = cty.Object(attrTys)
 	}
-
 	switch o.Nesting {
-	case NestingSingle, NestingGroup:
+	case NestingSingle:
 		return ret
 	case NestingList:
 		return cty.List(ret)

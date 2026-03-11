@@ -1,1 +1,0 @@
-module_name = "example"

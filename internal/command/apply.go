@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -103,11 +103,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Collect variable value and add them to the operation request
-	var varDiags tfdiags.Diagnostics
-	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
-		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
-	})
-	diags = diags.Append(varDiags)
+	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -214,24 +210,28 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
-
-		if plan.Backend == nil && plan.StateStore == nil {
+		if plan.Backend.Config == nil {
 			// Should never happen; always indicates a bug in the creation of the plan file
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to read plan from plan file",
-				"The given plan file has neither a valid backend nor state store configuration. This is a bug in the Terraform command that generated this plan file.",
+				"The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file.",
 			))
 			return nil, diags
 		}
-		be, beDiags = c.BackendForLocalPlan(plan)
+		be, beDiags = c.BackendForLocalPlan(plan.Backend)
 	} else {
+		// Both new plans and saved cloud plans load their backend from config.
+		backendConfig, configDiags := c.loadBackendConfig(".")
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
 
-		// Load the backend
-		//
-		// Note: Both new plans and saved cloud plans load their backend from config,
-		// hence the config parsing in the method below.
-		be, beDiags = c.backend(".", viewType)
+		be, beDiags = c.Backend(&BackendOpts{
+			BackendConfig: backendConfig,
+			ViewType:      viewType,
+		})
 	}
 
 	diags = diags.Append(beDiags)
@@ -300,6 +300,28 @@ func (c *ApplyCommand) OperationRequest(
 	return opReq, diags
 }
 
+func (c *ApplyCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME the arguments package currently trivially gathers variable related
+	// arguments in a heterogenous slice, in order to minimize the number of
+	// code paths gathering variables during the transition to this structure.
+	// Once all commands that gather variables have been converted to this
+	// structure, we could move the variable gathering code to the arguments
+	// package directly, removing this shim layer.
+
+	varArgs := args.All()
+	items := make([]arguments.FlagNameValue, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+	opReq.Variables, diags = c.collectVariableValues()
+
+	return diags
+}
+
 func (c *ApplyCommand) Help() string {
 	if c.Destroy {
 		return c.helpDestroy()
@@ -359,7 +381,7 @@ Options:
                          Defaults to 10.
 
   -replace=resource      Terraform will plan to replace this resource instance
-                         instead of doing an update or no-op action.
+                         instead of doing an update or no-op action. 
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
@@ -372,7 +394,7 @@ Options:
                          Legacy option for the local backend only. See the local
                          backend's documentation for more information.
 
-
+                         
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than
                          once to set more than one variable.

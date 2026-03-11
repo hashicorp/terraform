@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -42,7 +42,7 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 		t.Log("Test: ", name)
 		m := testMetaBackend(t, nil)
 		input := map[string]string{}
-		_ = testInputMap(t, input)
+		cleanup := testInputMap(t, input)
 		if tc.renamePrompt != "" {
 			input["backend-migrate-multistate-to-tfc"] = tc.renamePrompt
 		}
@@ -58,5 +58,7 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 		if tc.expectedErr != "" && tc.expectedErr != err.Error() {
 			t.Fatalf("expected error to eq %s but got %s", tc.expectedErr, err.Error())
 		}
+
+		cleanup()
 	}
 }

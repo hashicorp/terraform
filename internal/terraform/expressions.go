@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -116,7 +116,7 @@ func (e *ExprEvaluator[T, U]) evaluateExpr(ctx EvalContext, expression hcl.Expre
 			Extra:    diagnosticCausedByUnknown(true),
 		})
 		return val, diags
-	case marks.Has(val, marks.Ephemeral) && !e.allowEphemeral:
+	case val.HasMark(marks.Ephemeral) && !e.allowEphemeral:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("Invalid %q argument", e.argName),

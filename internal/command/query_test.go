@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -13,12 +13,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	tfversion "github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestQuery(t *testing.T) {
@@ -687,70 +687,6 @@ func TestQuery_JSON(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:      "success with sensitive variables",
-			directory: "with-sensitive-variables",
-			opts:      []string{"-var", "sensitive_foo=test-instance"},
-			expectedRes: []map[string]any{
-				{
-					"@level":   "info",
-					"@message": "list.test_instance.example: Starting query...",
-					"list_start": map[string]any{
-						"address":                   "list.test_instance.example",
-						"resource_type":             "test_instance",
-						"input_config":              map[string]any{"ami": "ami-12345", "foo": "test-instance"},
-						"sensitive_attribute_paths": []any{string(".foo")},
-					},
-					"type": "list_start",
-				},
-				{
-					"@level":   "info",
-					"@message": "list.test_instance.example: Result found",
-					"list_resource_found": map[string]any{
-						"address":      "list.test_instance.example",
-						"display_name": "Test Instance 1",
-						"identity": map[string]any{
-							"id": "test-instance-1",
-						},
-						"identity_version": float64(1),
-						"resource_type":    "test_instance",
-						"resource_object": map[string]any{
-							"ami": "ami-12345",
-							"id":  "test-instance-1",
-						},
-					},
-					"type": "list_resource_found",
-				},
-				{
-					"@level":   "info",
-					"@message": "list.test_instance.example: Result found",
-					"list_resource_found": map[string]any{
-						"address":      "list.test_instance.example",
-						"display_name": "Test Instance 2",
-						"identity": map[string]any{
-							"id": "test-instance-2",
-						},
-						"identity_version": float64(1),
-						"resource_type":    "test_instance",
-						"resource_object": map[string]any{
-							"ami": "ami-67890",
-							"id":  "test-instance-2",
-						},
-					},
-					"type": "list_resource_found",
-				},
-				{
-					"@level":   "info",
-					"@message": "list.test_instance.example: List complete",
-					"list_complete": map[string]any{
-						"address":       "list.test_instance.example",
-						"resource_type": "test_instance",
-						"total":         float64(2),
-					},
-					"type": "list_complete",
-				},
-			},
-		},
 	}
 
 	for _, ts := range tests {
@@ -836,7 +772,6 @@ func TestQuery_JSON(t *testing.T) {
 }
 
 func TestQuery_JSON_Raw(t *testing.T) {
-
 	tfVer := tfversion.String()
 	tests := []struct {
 		name        string
@@ -849,7 +784,7 @@ func TestQuery_JSON_Raw(t *testing.T) {
 		{
 			name:      "basic query",
 			directory: "basic",
-			expectedOut: `{"@level":"info","@message":"Terraform ` + tfVer + `","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"` + views.JSON_UI_VERSION + `"}
+			expectedOut: `{"@level":"info","@message":"Terraform ` + tfVer + `","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"1.2"}
 {"@level":"info","@message":"list.test_instance.example: Starting query...","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600609+02:00","list_start":{"address":"list.test_instance.example","resource_type":"test_instance","input_config":{"ami":"ami-12345","foo":null}},"type":"list_start"}
 {"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600729+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 1","identity":{"id":"test-instance-1"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-12345","id":"test-instance-1"}},"type":"list_resource_found"}
 {"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600759+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 2","identity":{"id":"test-instance-2"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-67890","id":"test-instance-2"}},"type":"list_resource_found"}
@@ -859,7 +794,7 @@ func TestQuery_JSON_Raw(t *testing.T) {
 		{
 			name:      "empty result",
 			directory: "empty-result",
-			expectedOut: `{"@level":"info","@message":"Terraform ` + tfVer + `","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"` + views.JSON_UI_VERSION + `"}
+			expectedOut: `{"@level":"info","@message":"Terraform ` + tfVer + `","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.596469+02:00","terraform":"1.14.0-dev","type":"version","ui":"1.2"}
 {"@level":"info","@message":"list.test_instance.example: Starting query...","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600609+02:00","list_start":{"address":"list.test_instance.example","resource_type":"test_instance","input_config":{"ami":"ami-12345","foo":null}},"type":"list_start"}
 {"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600729+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 1","identity":{"id":"test-instance-1"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-12345","id":"test-instance-1"}},"type":"list_resource_found"}
 {"@level":"info","@message":"list.test_instance.example: Result found","@module":"terraform.ui","@timestamp":"2025-09-12T16:52:57.600759+02:00","list_resource_found":{"address":"list.test_instance.example","display_name":"Test Instance 2","identity":{"id":"test-instance-2"},"identity_version":1,"resource_type":"test_instance","resource_object":{"ami":"ami-67890","id":"test-instance-2"}},"type":"list_resource_found"}

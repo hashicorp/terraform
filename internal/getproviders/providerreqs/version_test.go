@@ -1,12 +1,10 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package providerreqs
 
 import (
 	"testing"
-
-	"github.com/hashicorp/go-version"
 )
 
 func TestVersionConstraintsString(t *testing.T) {
@@ -97,22 +95,5 @@ func TestVersionConstraintsString(t *testing.T) {
 				t.Errorf("wrong\n got: %q\nwant: %q", got, tc.want)
 			}
 		})
-	}
-}
-
-func TestGoVersionFromVersion(t *testing.T) {
-	versionString := "1.0.0"
-	v := MustParseVersion(versionString)
-
-	var goV *version.Version
-	goV, err := GoVersionFromVersion(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if goV.String() != versionString {
-		t.Fatalf("unexpected version, expected string representation to be %q but got %q",
-			versionString,
-			goV.String(),
-		)
 	}
 }

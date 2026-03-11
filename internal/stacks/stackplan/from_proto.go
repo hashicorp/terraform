@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackplan
@@ -300,9 +300,6 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			ChangeSrc:      riPlan,
 			DeferredReason: deferredReason,
 		})
-
-	case *tfstackdata1.PlanActionInvocationPlanned:
-		// TODO: Implemented in a future apply-related PR.
 
 	default:
 		// Should not get here, because a stack plan can only be loaded by

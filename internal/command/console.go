@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -27,30 +27,43 @@ type ConsoleCommand struct {
 }
 
 func (c *ConsoleCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseConsole(c.Meta.process(args))
-
-	// Copy parsed flags back to Meta
-	c.Meta.statePath = parsedArgs.StatePath
-	c.Meta.input = parsedArgs.InputEnabled
-	c.Meta.compactWarnings = parsedArgs.CompactWarnings
-	c.Meta.targetFlags = parsedArgs.TargetFlags
-
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	args = c.Meta.process(args)
+	var evalFromPlan bool
+	cmdFlags := c.Meta.extendedFlagSet("console")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.BoolVar(&evalFromPlan, "plan", false, "evaluate from plan")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	configPath := c.Meta.normalizePath(parsedArgs.ConfigPath)
+	configPath, err := ModulePath(cmdFlags.Args())
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+	configPath = c.Meta.normalizePath(configPath)
 
 	// Check for user-supplied plugin path
-	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
-	b, backendDiags := c.backend(configPath, arguments.ViewHuman)
+	b, backendDiags := c.Backend(&BackendOpts{
+		BackendConfig: backendConfig,
+	})
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -80,13 +93,10 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	{
-		// Collect variable value and add them to the operation request
-		var varDiags tfdiags.Diagnostics
-		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
-			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
-		})
-		diags = diags.Append(varDiags)
-		if varDiags.HasErrors() {
+		var moreDiags tfdiags.Diagnostics
+		opReq.Variables, moreDiags = c.collectVariableValues()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -115,7 +125,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	var scope *lang.Scope
-	if parsedArgs.EvalFromPlan {
+	if evalFromPlan {
 		var planDiags tfdiags.Diagnostics
 		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(planDiags)

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -45,10 +45,9 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 
 func (b *Block) filter(path cty.Path, filterAttribute FilterT[*Attribute], filterBlock FilterT[*NestedBlock]) *Block {
 	ret := &Block{
-		Description:        b.Description,
-		DescriptionKind:    b.DescriptionKind,
-		Deprecated:         b.Deprecated,
-		DeprecationMessage: b.DeprecationMessage,
+		Description:     b.Description,
+		DescriptionKind: b.DescriptionKind,
+		Deprecated:      b.Deprecated,
 	}
 
 	if b.Attributes != nil {

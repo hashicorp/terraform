@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -68,7 +69,7 @@ Options:
 
   -junit-xml=path       Saves a test report in JUnit XML format to the specified
                         file. This is currently incompatible with remote test
-                        execution using the -cloud-run option. The file path
+                        execution using the the -cloud-run option. The file path
                         must be relative or absolute.
 
   -no-color             If specified, output won't contain any color.
@@ -259,8 +260,8 @@ type TestRunnerSetup struct {
 	Args          *arguments.Test
 	View          views.Test
 	Config        *configs.Config
-	Variables     map[string]arguments.UnparsedVariableValue
-	TestVariables map[string]arguments.UnparsedVariableValue
+	Variables     map[string]backendrun.UnparsedVariableValue
+	TestVariables map[string]backendrun.UnparsedVariableValue
 	Opts          *terraform.ContextOpts
 }
 
@@ -377,25 +378,23 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(nil, nil, diags)
-		return
+	// Users can also specify variables via the command line, so we'll parse
+	// all that here.
+	var items []arguments.FlagNameValue
+	for _, variable := range preparation.Args.Vars.All() {
+		items = append(items, arguments.FlagNameValue{
+			Name:  variable.Name,
+			Value: variable.Value,
+		})
 	}
-
-	registerFileSource := func(filename string, src []byte) {
-		loader.Parser().ForceFileSource(filename, src)
-	}
+	m.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 
 	// Collect variables for "terraform test"
-	preparation.TestVariables, moreDiags = arguments.CollectValuesForTests(preparation.Args.TestDirectory, registerFileSource)
+	preparation.TestVariables, moreDiags = m.collectVariableValuesForTests(preparation.Args.TestDirectory)
 	diags = diags.Append(moreDiags)
 
-	// Collect variable value and add them to the operation request
-	var varDiags tfdiags.Diagnostics
-	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(registerFileSource)
-	diags = diags.Append(varDiags)
+	preparation.Variables, moreDiags = m.collectVariableValues()
+	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return

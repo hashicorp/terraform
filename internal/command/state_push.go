@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,12 +9,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StatePushCommand is a Command implementation that allows
@@ -25,15 +27,22 @@ type StatePushCommand struct {
 }
 
 func (c *StatePushCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStatePush(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	args = c.Meta.process(args)
+	var flagForce bool
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state push")
+	cmdFlags.BoolVar(&flagForce, "force", false, "")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
+	args = cmdFlags.Args()
 
-	c.Meta.stateLock = parsedArgs.StateLock
-	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
-	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+	if len(args) != 1 {
+		c.Ui.Error("Exactly one argument expected.\n")
+		return cli.RunResultHelp
+	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
@@ -43,8 +52,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	// Determine our reader for the input state. This is the filepath
 	// or stdin if "-" is given.
 	var r io.Reader = os.Stdin
-	if parsedArgs.Path != "-" {
-		f, err := os.Open(parsedArgs.Path)
+	if args[0] != "-" {
+		f, err := os.Open(args[0])
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
@@ -63,15 +72,14 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Close()
 	}
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err))
+		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
@@ -120,13 +128,14 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Import it, forcing through the lineage/serial if requested and possible.
-	if err := statemgr.Import(srcStateFile, stateMgr, parsedArgs.Force); err != nil {
+	if err := statemgr.Import(srcStateFile, stateMgr, flagForce); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
 
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
+	var diags tfdiags.Diagnostics
 	if isCloudMode(b) {
 		schemas, diags = c.MaybeGetSchemas(srcStateFile.State, nil)
 	}

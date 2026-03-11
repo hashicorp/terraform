@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package repl
@@ -14,11 +14,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
@@ -275,7 +275,7 @@ func testSession(t *testing.T, test testSessionTest) {
 		},
 	}
 
-	config, _, cleanup, configDiags := tftesting.LoadConfigForTests(t, "testdata/config-fixture", "tests")
+	config, _, cleanup, configDiags := initwd.LoadConfigForTests(t, "testdata/config-fixture", "tests")
 	defer cleanup()
 	if configDiags.HasErrors() {
 		t.Fatalf("unexpected problems loading config: %s", configDiags.Err())

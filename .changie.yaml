@@ -1,8 +1,8 @@
-# Copyright IBM Corp. 2014, 2026
+# Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
 changesDir: .changes
-unreleasedDir: v1.15
+unreleasedDir: v1.14
 versionFooterPath: version_footer.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md

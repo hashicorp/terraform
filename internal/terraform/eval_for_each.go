@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -90,7 +90,6 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 		return res, false, diags
 	}
 
-	forEachVal = marks.RemoveDeprecationMarks(forEachVal)
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set returns a nil map which will panic below
 		return res, true, diags
@@ -264,7 +263,7 @@ func (ev *forEachEvaluator) ensureNotEphemeral(forEachVal cty.Value) tfdiags.Dia
 	// Ephemeral values are not allowed because instance keys persist from
 	// plan to apply and between plan/apply rounds, whereas ephemeral values
 	// do not.
-	if marks.Has(forEachVal, marks.Ephemeral) {
+	if forEachVal.HasMark(marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",
@@ -316,7 +315,7 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 	if blocktype == "action" {
 		msg = "an action"
 	}
-	if marks.Has(forEachVal, marks.Sensitive) {
+	if forEachVal.HasMark(marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",
@@ -327,11 +326,6 @@ func (ev *forEachEvaluator) validateResourceOrActionForEach(forEachVal cty.Value
 			Extra:       diagnosticCausedBySensitive(true),
 		})
 	}
-
-	// We don't care about the returned value here, only the diagnostics
-	forEachVal, deprecationDiags := ev.ctx.Deprecations().ValidateAndUnmark(forEachVal, ev.ctx.Path().Module(), ev.expr.Range().Ptr())
-
-	diags = diags.Append(deprecationDiags)
 
 	diags = diags.Append(ev.ensureNotEphemeral(forEachVal))
 

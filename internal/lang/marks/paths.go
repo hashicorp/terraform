@@ -1,10 +1,9 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package marks
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -29,36 +28,16 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 	}
 
 	for _, pvm := range pvms {
-		pathHasMark := false
-		pathHasOtherMarks := false
-		for mark := range pvm.Marks {
-			switch wantMark.(type) {
-			case valueMark, string:
-				if mark == wantMark {
-					pathHasMark = true
-				} else {
-					pathHasOtherMarks = true
-				}
-
-			// For data marks we check if a mark of the type exists
-			case DeprecationMark:
-				if _, ok := mark.(DeprecationMark); ok {
-					pathHasMark = true
-				} else {
-					pathHasOtherMarks = true
-				}
-
-			default:
-				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
-			}
-		}
-
-		if pathHasMark {
+		if _, ok := pvm.Marks[wantMark]; ok {
 			withWanted = append(withWanted, pvm.Path)
 		}
 
-		if pathHasOtherMarks {
-			withOthers = append(withOthers, pvm)
+		for mark := range pvm.Marks {
+			if mark != wantMark {
+				withOthers = append(withOthers, pvm)
+				// only add a path with unwanted marks a single time
+				break
+			}
 		}
 	}
 
@@ -78,21 +57,7 @@ func RemoveAll(pvms []cty.PathValueMarks, remove any) []cty.PathValueMarks {
 	var res []cty.PathValueMarks
 
 	for _, pvm := range pvms {
-		switch remove.(type) {
-		case valueMark, string:
-			delete(pvm.Marks, remove)
-
-		case DeprecationMark:
-			// We want to delete all marks of this type
-			for mark := range pvm.Marks {
-				if _, ok := mark.(DeprecationMark); ok {
-					delete(pvm.Marks, mark)
-				}
-			}
-
-		default:
-			panic(fmt.Sprintf("unexpected mark type %T", remove))
-		}
+		delete(pvm.Marks, remove)
 		if len(pvm.Marks) > 0 {
 			res = append(res, pvm)
 		}

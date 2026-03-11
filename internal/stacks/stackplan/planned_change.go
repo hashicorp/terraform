@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackplan
@@ -493,12 +493,12 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 			},
 		},
 	}, nil
+
 }
 
 func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
 	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
-	_, withOtherMarks = marks.PathsWithMark(withOtherMarks, marks.Sensitive)
 	if len(withOtherMarks) != 0 {
 		return nil, withOtherMarks[0].Path.NewErrorf(
 			"can't serialize value marked with %#v (this is a bug in Terraform)",
@@ -851,205 +851,5 @@ func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.Pl
 
 	return &stacks.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-	}, nil
-}
-
-// PlannedChangeActionInvocationInstancePlanned represents a planned action
-// invocation within a component instance.
-type PlannedChangeActionInvocationInstancePlanned struct {
-	ActionInvocationAddr stackaddrs.AbsActionInvocationInstance
-
-	// Invocation describes the planned invocation.
-	Invocation *plans.ActionInvocationInstanceSrc
-
-	// ProviderConfigAddr is the address of the provider configuration
-	// that planned this change, resolved in terms of the configuration for
-	// the component this action invocation belongs to.
-	ProviderConfigAddr addrs.AbsProviderConfig
-
-	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside Invocation.
-	//
-	// Can be empty if and only if Invocation is nil.
-	Schema providers.ActionSchema
-}
-
-var _ PlannedChange = (*PlannedChangeActionInvocationInstancePlanned)(nil)
-
-// PlanActionInvocationProto converts the planned action invocation to the
-// internal protobuf representation for persistence.
-func (pc *PlannedChangeActionInvocationInstancePlanned) PlanActionInvocationProto() (*tfstackdata1.PlanActionInvocationPlanned, error) {
-	addr := pc.ActionInvocationAddr
-
-	if pc.Invocation == nil {
-		// Return a minimal placeholder if there's no actual invocation
-		return &tfstackdata1.PlanActionInvocationPlanned{
-			ComponentInstanceAddr: addr.Component.String(),
-			ActionInvocationAddr:  addr.Item.String(),
-			ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
-		}, nil
-	}
-
-	invocationProto, err := planfile.ActionInvocationToProto(pc.Invocation)
-	if err != nil {
-		return nil, fmt.Errorf("converting action invocation to proto: %w", err)
-	}
-
-	return &tfstackdata1.PlanActionInvocationPlanned{
-		ComponentInstanceAddr: addr.Component.String(),
-		ActionInvocationAddr:  addr.Item.String(),
-		ProviderConfigAddr:    pc.ProviderConfigAddr.Provider.String(),
-		Invocation:            invocationProto,
-	}, nil
-}
-
-// ChangeDescription implements PlannedChange by producing an external
-// description of the action invocation for the RPC API.
-func (pc *PlannedChangeActionInvocationInstancePlanned) ChangeDescription() (*stacks.PlannedChange_ChangeDescription, error) {
-	addr := pc.ActionInvocationAddr
-
-	// We only emit an external description if there's an invocation to describe.
-	if pc.Invocation == nil {
-		return nil, nil
-	}
-
-	invoke := stacks.PlannedChange_ActionInvocationInstance{
-		Addr:         stacks.NewActionInvocationInStackAddr(addr),
-		ProviderAddr: pc.Invocation.ProviderAddr.Provider.String(),
-		ActionType:   pc.Invocation.Addr.Action.Action.Type,
-
-		ConfigValue: stacks.NewDynamicValue(
-			pc.Invocation.ConfigValue,
-			pc.Invocation.SensitiveConfigPaths,
-		),
-	}
-
-	// Convert the action trigger information
-	switch at := pc.Invocation.ActionTrigger.(type) {
-	case *plans.ResourceActionTrigger:
-		triggerEvent, err := stacks.ActionTriggerEventForPlannedChange(at.ActionTriggerEvent)
-		if err != nil {
-			return nil, err
-		}
-
-		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_ResourceActionTrigger{
-			ResourceActionTrigger: &stacks.PlannedChange_ResourceActionTrigger{
-				TriggerEvent: triggerEvent,
-				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
-					Component: addr.Component,
-					Item:      at.TriggeringResourceAddr,
-				}),
-				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
-				ActionsListIndex:        int64(at.ActionsListIndex),
-			},
-		}
-	case *plans.InvokeActionTrigger:
-		// TODO Implement this when implementing Stacks support for Direct Action Invocation
-		invoke.ActionTrigger = &stacks.PlannedChange_ActionInvocationInstance_InvokeActionTrigger{
-			InvokeActionTrigger: &stacks.PlannedChange_InvokeActionTrigger{},
-		}
-	default:
-		// This should be exhaustive
-		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
-	}
-
-	return &stacks.PlannedChange_ChangeDescription{
-		Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationPlanned{
-			ActionInvocationPlanned: &invoke,
-		},
-	}, nil
-}
-
-// PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeActionInvocationInstancePlanned) PlannedChangeProto() (*stacks.PlannedChange, error) {
-	paip, err := pc.PlanActionInvocationProto()
-	if err != nil {
-		return nil, err
-	}
-	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, paip, proto.MarshalOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	if pc.Invocation == nil {
-		// We only emit a "raw" in this case, because this is a relatively
-		// uninteresting edge-case. The PlanActionInvocationProto
-		// function should have returned a placeholder value for this use case.
-
-		return &stacks.PlannedChange{
-			Raw: []*anypb.Any{&raw},
-		}, nil
-	}
-
-	var descs []*stacks.PlannedChange_ChangeDescription
-	desc, err := pc.ChangeDescription()
-	if err != nil {
-		return nil, err
-	}
-	if desc != nil {
-		descs = append(descs, desc)
-	}
-
-	return &stacks.PlannedChange{
-		Raw:          []*anypb.Any{&raw},
-		Descriptions: descs,
-	}, nil
-}
-
-// PlannedChangeDeferredActionInvocation represents an action invocation
-// that was deferred due to incomplete information.
-type PlannedChangeDeferredActionInvocation struct {
-	// ActionInvocationPlanned is the planned action invocation that is being deferred.
-	ActionInvocationPlanned PlannedChangeActionInvocationInstancePlanned
-
-	// DeferredReason is the reason why the action invocation is being deferred.
-	DeferredReason providers.DeferredReason
-}
-
-var _ PlannedChange = (*PlannedChangeDeferredActionInvocation)(nil)
-
-// PlannedChangeProto implements PlannedChange.
-func (dpc *PlannedChangeDeferredActionInvocation) PlannedChangeProto() (*stacks.PlannedChange, error) {
-	action, err := dpc.ActionInvocationPlanned.PlanActionInvocationProto()
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert the deferred reason to proto format
-	deferredReason, _ := planfile.DeferredReasonToProto(dpc.DeferredReason)
-
-	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredActionInvocation{
-		Invocation: action,
-		Deferred: &planproto.Deferred{
-			Reason: deferredReason,
-		},
-	}, proto.MarshalOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	// Build the change description
-	aicd, err := dpc.ActionInvocationPlanned.ChangeDescription()
-	if err != nil {
-		return nil, err
-	}
-
-	var descs []*stacks.PlannedChange_ChangeDescription
-	if aicd != nil {
-		descs = append(descs, &stacks.PlannedChange_ChangeDescription{
-			Description: &stacks.PlannedChange_ChangeDescription_ActionInvocationDeferred{
-				ActionInvocationDeferred: &stacks.PlannedChange_ActionInvocationDeferred{
-					ActionInvocation: aicd.GetActionInvocationPlanned(),
-					Deferred:         EncodeDeferred(dpc.DeferredReason),
-				},
-			},
-		})
-	}
-
-	return &stacks.PlannedChange{
-		Raw:          []*anypb.Any{&raw},
-		Descriptions: descs,
 	}, nil
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -182,19 +182,6 @@ func validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tf
 				Summary:  "Inline provider configuration not allowed",
 				Detail:   "This module is not compatible with Terraform Stacks, because it declares an inline provider configuration.\n\nTo be used with stacks, this module must instead accept provider configurations from its caller.",
 				Subject:  pc.DeclRange.Ptr(),
-			})
-		}
-	}
-
-	// Const variables are not supported in stacks, because stacks does not
-	// perform the early evaluation phase that const variables rely on.
-	for _, v := range module.Variables {
-		if v.ConstSet {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Const variable not supported in stacks",
-				Detail:   "Variables with const = true are not supported in modules used as stack components. Const variables are evaluated during configuration loading, which is not supported in the stacks runtime.",
-				Subject:  v.DeclRange.Ptr(),
 			})
 		}
 	}

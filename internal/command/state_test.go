@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,7 +9,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -32,8 +31,7 @@ func TestStateDefaultBackupExtension(t *testing.T) {
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 
-	view := arguments.ViewHuman
-	s, err := (&StateMeta{}).State(view)
+	s, err := (&StateMeta{}).State()
 	if err != nil {
 		t.Fatal(err)
 	}

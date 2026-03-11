@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -300,25 +300,6 @@ func TestObjectImpliedType(t *testing.T) {
 		"attributes": {
 			&Object{
 				Nesting: NestingSingle,
-				Attributes: map[string]*Attribute{
-					"optional":          {Type: cty.String, Optional: true},
-					"required":          {Type: cty.Number, Required: true},
-					"computed":          {Type: cty.List(cty.Bool), Computed: true},
-					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true, Computed: true},
-				},
-			},
-			cty.Object(
-				map[string]cty.Type{
-					"optional":          cty.String,
-					"required":          cty.Number,
-					"computed":          cty.List(cty.Bool),
-					"optional_computed": cty.Map(cty.Bool),
-				},
-			),
-		},
-		"nesting-group-attributes": {
-			&Object{
-				Nesting: NestingGroup,
 				Attributes: map[string]*Attribute{
 					"optional":          {Type: cty.String, Optional: true},
 					"required":          {Type: cty.Number, Required: true},

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -167,9 +167,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Operation:     b.Operation,
 			ActionTargets: b.ActionTargets,
 
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, timing RelativeActionTiming) dag.Vertex {
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTriggerExpand, timing RelativeActionTiming) dag.Vertex {
 				return &nodeActionTriggerApplyExpand{
-					nodeAbstractActionTrigger: node,
+					nodeAbstractActionTriggerExpand: node,
 
 					relativeTiming: timing,
 				}

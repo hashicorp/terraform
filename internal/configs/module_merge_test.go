@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -92,11 +91,23 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	got := mod.ModuleCalls["example"]
 	want := &ModuleCall{
-		Name: "example",
-		SourceExpr: mustExpr(hclsyntax.ParseExpression(
-			[]byte("\"./example2-a_override\""), "testdata/valid-modules/override-module/a_override.tf",
-			hcl.Pos{Line: 3, Column: 12, Byte: 31},
-		)),
+		Name:          "example",
+		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
+		SourceAddrRaw: "./example2-a_override",
+		SourceAddrRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-module/a_override.tf",
+			Start: hcl.Pos{
+				Line:   3,
+				Column: 12,
+				Byte:   31,
+			},
+			End: hcl.Pos{
+				Line:   3,
+				Column: 35,
+				Byte:   54,
+			},
+		},
+		SourceSet: true,
 		DeclRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-module/primary.tf",
 			Start: hcl.Pos{
@@ -297,117 +308,7 @@ func TestModuleOverrideSensitiveVariable(t *testing.T) {
 			}
 
 			if got[v].SensitiveSet != want.sensitiveSet {
-				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].SensitiveSet, want.sensitiveSet)
-			}
-		})
-	}
-}
-
-func TestModuleOverrideEphemeralVariable(t *testing.T) {
-	type testCase struct {
-		ephemeral    bool
-		ephemeralSet bool
-	}
-	cases := map[string]testCase{
-		"false_true": {
-			ephemeral:    true,
-			ephemeralSet: true,
-		},
-		"true_false": {
-			ephemeral:    false,
-			ephemeralSet: true,
-		},
-		"false_false_true": {
-			ephemeral:    true,
-			ephemeralSet: true,
-		},
-		"true_true_false": {
-			ephemeral:    false,
-			ephemeralSet: true,
-		},
-		"false_true_false": {
-			ephemeral:    false,
-			ephemeralSet: true,
-		},
-		"true_false_true": {
-			ephemeral:    true,
-			ephemeralSet: true,
-		},
-	}
-
-	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-ephemeral")
-
-	assertNoDiagnostics(t, diags)
-
-	if mod == nil {
-		t.Fatalf("module is nil")
-	}
-
-	got := mod.Variables
-
-	for v, want := range cases {
-		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
-			if got[v].Ephemeral != want.ephemeral {
-				t.Errorf("wrong result for ephemeral\ngot: %t want: %t", got[v].Ephemeral, want.ephemeral)
-			}
-
-			if got[v].EphemeralSet != want.ephemeralSet {
-				t.Errorf("wrong result for ephemeral set\ngot: %t want: %t", got[v].EphemeralSet, want.ephemeralSet)
-			}
-		})
-	}
-}
-
-func TestModuleOverrideConstVariable(t *testing.T) {
-	type testCase struct {
-		constV   bool
-		constSet bool
-	}
-	cases := map[string]testCase{
-		"false_true": {
-			constV:   true,
-			constSet: true,
-		},
-		"true_false": {
-			constV:   false,
-			constSet: true,
-		},
-		"false_false_true": {
-			constV:   true,
-			constSet: true,
-		},
-		"true_true_false": {
-			constV:   false,
-			constSet: true,
-		},
-		"false_true_false": {
-			constV:   false,
-			constSet: true,
-		},
-		"true_false_true": {
-			constV:   true,
-			constSet: true,
-		},
-	}
-
-	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-const")
-
-	assertNoDiagnostics(t, diags)
-
-	if mod == nil {
-		t.Fatalf("module is nil")
-	}
-
-	got := mod.Variables
-
-	for v, want := range cases {
-		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
-			if got[v].Const != want.constV {
-				t.Errorf("wrong result for const\ngot: %t want: %t", got[v].Const, want.constV)
-			}
-
-			if got[v].ConstSet != want.constSet {
-				t.Errorf("wrong result for const set\ngot: %t want: %t", got[v].ConstSet, want.constSet)
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
 			}
 		})
 	}

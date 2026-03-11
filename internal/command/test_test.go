@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -37,7 +37,6 @@ import (
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -298,6 +297,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"mocking-invalid": {
 			expectedErr: []string{
+				"Invalid outputs attribute",
 				"The override_during attribute must be a value of plan or apply.",
 			},
 			initCode: 1,
@@ -417,21 +417,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"no-tests": {
 			code: 0,
-		},
-		"simple_pass_function": {
-			expectedOut:           []string{"2 passed, 0 failed."},
-			code:                  0,
-			expectedResourceCount: 0,
-		},
-		"mocking-invalid-outputs": {
-			expectedErr: []string{
-				"Invalid outputs attribute",
-			},
-			code: 1,
-		},
-		"mock-sources-inline": {
-			expectedOut: []string{"2 passed, 0 failed."},
-			code:        0,
 		},
 	}
 	for name, tc := range tcs {
@@ -1271,6 +1256,9 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 }
 
 func TestTest_Parallel(t *testing.T) {
+	// Skipped due to flakiness - see https://github.com/hashicorp/terraform/issues/37593
+	t.Skip()
+
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
 	t.Chdir(td)
@@ -5675,6 +5663,76 @@ func TestTest_TeardownOrder(t *testing.T) {
 	}
 }
 
+// TestTest_ProviderConfigError reproduces
+// https://github.com/hashicorp/terraform/issues/38084
+// This tests that an invalid provider configuration within the test
+// file should result in a failure.
+func TestTest_ProviderConfigError(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "provider_config_error")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer closeFn()
+
+	view, done := testView(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset streams for the test command.
+	view, done = testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	expected := `
+Error: Unsupported argument
+
+  on main.tftest.hcl line 2, in provider "test":
+   2:   resource_prefix_aaa = "foo" // this is decoded during the test runtime, and we should
+
+An argument named "resource_prefix_aaa" is not expected here.
+
+main.tftest.hcl... in progress
+  run "test-1"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 0 failed, 1 skipped.
+`
+
+	out := output.Stderr() + "\n" + output.Stdout()
+	if diff := cmp.Diff(expected, out); diff != "" {
+		t.Errorf("expected output:\n%s, got:\n%s, diff: %s", expected, out, diff)
+	}
+
+	if code < 1 {
+		t.Errorf("expected non-zero exit code but got 0")
+	}
+}
+
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config, string, func()) {
@@ -5708,7 +5766,7 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -5720,19 +5778,9 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
-	if hclDiags.HasErrors() {
-		t.Fatal(hclDiags.Error())
-	}
-
-	config, diags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
-		t.Fatal(diags.Err())
+		t.Fatal(diags.Error())
 	}
 
 	return config, cfgPath, func() {

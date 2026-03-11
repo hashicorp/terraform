@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package pluggable
@@ -397,61 +397,4 @@ func TestPluggable_DeleteWorkspace(t *testing.T) {
 	if !strings.Contains(dwDiags.Err().Error(), wantError) {
 		t.Fatalf("expected error %q but got: %q", wantError, err)
 	}
-}
-
-func TestPluggable_ProviderSchema(t *testing.T) {
-	t.Run("Returns the expected provider schema", func(t *testing.T) {
-		mock := &testing_provider.MockProvider{
-			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-				Provider: providers.Schema{
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"custom_attr": {Type: cty.String, Optional: true},
-						},
-					},
-				},
-			},
-		}
-		p, err := NewPluggable(mock, "foobar")
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		providerSchema := p.ProviderSchema()
-
-		if !mock.GetProviderSchemaCalled {
-			t.Fatal("expected ProviderSchema to call the GetProviderSchema RPC")
-		}
-		if providerSchema == nil {
-			t.Fatal("ProviderSchema returned an unexpected nil schema")
-		}
-		if val := providerSchema.Attributes["custom_attr"]; val == nil {
-			t.Fatalf("expected the returned schema to include an attr called %q, but it was missing. Schema contains attrs: %v",
-				"custom_attr",
-				slices.Sorted(maps.Keys(providerSchema.Attributes)))
-		}
-	})
-
-	t.Run("Returns a nil schema when the provider has an empty schema", func(t *testing.T) {
-		mock := &testing_provider.MockProvider{
-			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-				Provider: providers.Schema{
-					// empty schema
-				},
-			},
-		}
-		p, err := NewPluggable(mock, "foobar")
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		providerSchema := p.ProviderSchema()
-
-		if !mock.GetProviderSchemaCalled {
-			t.Fatal("expected ProviderSchema to call the GetProviderSchema RPC")
-		}
-		if providerSchema != nil {
-			t.Fatalf("expected ProviderSchema to return a nil schema but got: %#v", providerSchema)
-		}
-	})
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -47,7 +47,7 @@ type ConcreteActionNodeFunc func(*NodeAbstractAction) dag.Vertex
 // DefaultConcreteActionNodeFunc is the default ConcreteActionNodeFunc used by
 // everything except validate.
 func DefaultConcreteActionNodeFunc(a *NodeAbstractAction) dag.Vertex {
-	return &nodeExpandAction{
+	return &nodeExpandActionDeclaration{
 		NodeAbstractAction: a,
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
 // Terraform Plugin RPC protocol version 6.10
@@ -158,7 +158,6 @@ message Schema {
         string description = 4;
         StringKind description_kind = 5;
         bool deprecated = 6;
-        string deprecation_message = 7;
     }
 
     message Attribute {
@@ -173,7 +172,6 @@ message Schema {
         StringKind description_kind = 8;
         bool deprecated = 9;
         bool write_only = 11;
-        string deprecation_message = 12;
     }
 
     message NestedBlock {
@@ -391,16 +389,6 @@ service Provider {
     rpc ValidateStateStoreConfig(ValidateStateStore.Request) returns (ValidateStateStore.Response);
     // ConfigureStateStore configures the state store, such as S3 connection in the context of already configured provider
     rpc ConfigureStateStore(ConfigureStateStore.Request) returns (ConfigureStateStore.Response);
-
-    // ReadStateBytes streams byte chunks of a given state file from a state store
-    rpc ReadStateBytes(ReadStateBytes.Request) returns (stream ReadStateBytes.Response);
-    // WriteStateBytes streams byte chunks of a given state file into a state store
-    rpc WriteStateBytes(stream WriteStateBytes.RequestChunk) returns (WriteStateBytes.Response);
-
-    // LockState locks a given state (i.e. CE workspace)
-    rpc LockState(LockState.Request) returns (LockState.Response);
-    // UnlockState unlocks a given state (i.e. CE workspace)
-    rpc UnlockState(UnlockState.Request) returns (UnlockState.Response);
 
     // GetStates returns a list of all states (i.e. CE workspaces) managed by a given state store
     rpc GetStates(GetStates.Request) returns (GetStates.Response);
@@ -908,6 +896,7 @@ message ValidateListResourceConfig {
     }
 }
 
+
 message ValidateStateStore {
     message Request {
         string type_name = 1;
@@ -922,83 +911,6 @@ message ConfigureStateStore {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
-        StateStoreClientCapabilities capabilities = 3;
-    }
-    message Response {
-        repeated Diagnostic diagnostics = 1;
-        StateStoreServerCapabilities capabilities = 2;
-    }
-}
-
-message StateStoreClientCapabilities {
-    int64 chunk_size = 1; // suggested chunk size by Core
-}
-
-message StateStoreServerCapabilities {
-    int64 chunk_size = 1; // chosen chunk size by plugin
-}
-
-message ReadStateBytes {
-    message Request {
-        string type_name = 1;
-        string state_id = 2;
-    }
-    message Response {
-        bytes bytes = 1;
-        // total_length is the overall size of all of the state byte chunks that will be received
-        int64 total_length = 2;
-        StateRange range = 3;
-        repeated Diagnostic diagnostics = 4;
-    }
-}
-
-message WriteStateBytes {
-    message RequestChunk {
-        // meta is sent with the first chunk only
-        optional RequestChunkMeta meta = 1;
-
-        bytes bytes = 2;
-        // total_length is the overall size of all of the state byte chunks that will be sent.
-        int64 total_length = 3;
-        StateRange range = 4;
-    }
-    message Response {
-        repeated Diagnostic diagnostics = 1;
-    }
-}
-
-message RequestChunkMeta {
-    string type_name = 1;
-    string state_id = 2;
-}
-
-message StateRange {
-    // start is the starting byte index for a chunk of state byte data.
-    // This index is in relation to the entire byte array that will be sent or received.
-    int64 start = 1;
-    // end is the ending byte index for a chunk of state byte data.
-    // This index is in relation to the entire byte array that will be sent or received.
-    int64 end = 2;
-}
-
-message LockState {
-    message Request {
-        string type_name = 1;
-        string state_id = 2;
-        // operation represents an ongoing operation due to which lock is held (e.g. refresh, plan, apply)
-        string operation = 3;
-    }
-    message Response {
-        string lock_id = 1;
-        repeated Diagnostic diagnostics = 2;
-    }
-}
-
-message UnlockState {
-    message Request {
-        string type_name = 1;
-        string state_id = 2;
-        string lock_id = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;

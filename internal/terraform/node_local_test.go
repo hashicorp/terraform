@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -59,11 +59,8 @@ func TestNodeLocalExecute(t *testing.T) {
 
 				EvaluateExprResult: test.Want,
 			}
-			scopedCtx := ctx.withScope(evalContextModuleInstance{
-				Addr: addrs.RootModuleInstance,
-			})
 
-			err := n.Execute(scopedCtx, walkApply)
+			err := n.Execute(ctx, walkApply)
 			if (err != nil) != test.Err {
 				if err != nil {
 					t.Errorf("unexpected error: %s", err)

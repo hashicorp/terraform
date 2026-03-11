@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -34,7 +34,7 @@ func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResour
 func testJSONLifecycleHook(actionAddr addrs.AbsActionInstance, triggeringResourceAddr addrs.AbsResourceInstance, actionTriggerIndex int, actionsListIndex int) terraform.HookActionIdentity {
 	return terraform.HookActionIdentity{
 		Addr: actionAddr,
-		ActionTrigger: &plans.ResourceActionTrigger{
+		ActionTrigger: &plans.LifecycleActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddr,
 			ActionTriggerBlockIndex: actionTriggerIndex,
 			ActionsListIndex:        actionsListIndex,

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -88,14 +88,9 @@ func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.Depose
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
-
-	// Skip counting if there was an error
-	if err != nil {
-		return terraform.HookActionContinue, nil
-	}
 
 	// We don't count anything for data resources
 	if id.Addr.Resource.Resource.Mode == addrs.DataResourceMode {

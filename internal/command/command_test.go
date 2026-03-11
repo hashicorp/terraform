@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -50,7 +50,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -159,31 +158,15 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
 
-	rootMod, configDiags := loader.LoadRootModule(dir)
-	if configDiags.HasErrors() {
-		t.Fatal(configDiags.Error())
-	}
-
-	walkerSnapshot, snap := loader.ModuleWalkerSnapshot()
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		walkerSnapshot,
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	if buildDiags.HasErrors() {
-		t.Fatal(buildDiags.Err())
-	}
-
-	snapDiags := loader.AddRootModuleToSnapshot(snap, dir)
-	if snapDiags.HasErrors() {
-		t.Fatal(snapDiags.Error())
+	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
 	}
 
 	return config, snap
@@ -205,13 +188,12 @@ func testPlan(t *testing.T) *plans.Plan {
 	}
 
 	return &plans.Plan{
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			// This is just a placeholder so that the plan file can be written
 			// out. Caller may wish to override it to something more "real"
 			// where the plan will actually be subsequently applied.
-			Type:      "local",
-			Config:    backendConfigRaw,
-			Workspace: "default",
+			Type:   "local",
+			Config: backendConfigRaw,
 		},
 		Changes: plans.NewChangesSrc(),
 
@@ -675,10 +657,7 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	// Copy the data from the reader to the pipe
 	go func() {
 		defer w.Close()
-		_, err := io.Copy(w, src)
-		if err != nil {
-			t.Errorf("error when copying data from testStdinPipe reader argument to stdin: %s", err)
-		}
+		io.Copy(w, src)
 	}()
 
 	return func() {
@@ -750,10 +729,7 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 // testInputMap configures tests so that the given answers are returned
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
-//
-// Calling code can optionally use the returned buffer to make assertions
-// about the prompts shown the to the user.
-func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
+func testInputMap(t *testing.T, answers map[string]string) func() {
 	t.Helper()
 
 	// Disable test mode so input is called
@@ -761,16 +737,15 @@ func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
 
 	// Set up reader/writers
 	defaultInputReader = bytes.NewBufferString("")
-	inputWriter := new(bytes.Buffer)
-	defaultInputWriter = inputWriter
+	defaultInputWriter = new(bytes.Buffer)
 
 	// Setup answers
 	testInputResponse = nil
 	testInputResponseMap = answers
 
-	// Queue the cleanup for the end of the test
-	t.Cleanup(func() {
-		unusedAnswers := testInputResponseMap
+	// Return the cleanup
+	return func() {
+		var unusedAnswers = testInputResponseMap
 
 		// First, clean up!
 		test = true
@@ -779,9 +754,7 @@ func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
 		if len(unusedAnswers) > 0 {
 			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
 		}
-	})
-
-	return inputWriter
+	}
 }
 
 // testBackendState is used to make a test HTTP server to test a configured

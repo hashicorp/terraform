@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package grpcwrap
@@ -29,8 +29,6 @@ func Provisioner(p provisioners.Interface) tfplugin5.ProvisionerServer {
 type provisioner struct {
 	provisioner provisioners.Interface
 	schema      *configschema.Block
-
-	tfplugin5.UnimplementedProvisionerServer
 }
 
 func (p *provisioner) GetSchema(_ context.Context, req *tfplugin5.GetProvisionerSchema_Request) (*tfplugin5.GetProvisionerSchema_Response, error) {

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -18,9 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 )
 
 func testOperationQuery(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
@@ -32,7 +32,7 @@ func testOperationQuery(t *testing.T, configDir string) (*backendrun.Operation, 
 func testOperationQueryWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

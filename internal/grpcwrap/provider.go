@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package grpcwrap
@@ -34,8 +34,6 @@ type provider struct {
 	provider        providers.Interface
 	schema          providers.GetProviderSchemaResponse
 	identitySchemas providers.GetResourceIdentitySchemasResponse
-
-	tfplugin5.UnimplementedProviderServer
 }
 
 func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Request) (*tfplugin5.GetMetadata_Response, error) {

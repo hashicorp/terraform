@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -315,7 +315,7 @@ func TestInit_fromModule(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	cmd := tf.Cmd("init", "-from-module=hashicorp/vault-starter/aws")
+	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package plugin
@@ -90,7 +90,7 @@ func TestGRPCProvisioner_ProvisionResource(t *testing.T) {
 		gomock.Any(),
 	).Return(provisionerProtoSchema(), nil)
 
-	stream := mockproto.NewMockProvisioner_ProvisionResourceClient[provisioners.ProvisionResourceResponse](ctrl)
+	stream := mockproto.NewMockProvisioner_ProvisionResourceClient(ctrl)
 	stream.EXPECT().Recv().Return(&proto.ProvisionResource_Response{
 		Output: "provisioned",
 	}, io.EOF)

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -654,12 +654,12 @@ in order to capture the filesystem context the remote workspace expects:
 }
 
 func (b *Cloud) parseRunVariables(op *backendrun.Operation) ([]*tfe.RunVariable, error) {
-	config, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
+	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
 	if configDiags.HasErrors() {
 		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
 	}
 
-	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Variables)
+	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
 
 	if varDiags.HasErrors() {
 		return nil, varDiags.Err()

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -12,7 +12,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -20,13 +19,13 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 )
 
 func TestLocal_planBasic(t *testing.T) {
@@ -207,9 +206,8 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -264,9 +262,8 @@ func TestLocal_planModuleOutputsChanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	op.PlanOutBackend = &plans.Backend{
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -307,9 +304,8 @@ func TestLocal_planTainted(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -387,9 +383,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -479,9 +474,8 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -571,9 +565,8 @@ func TestLocal_planDestroy(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 
 	run, err := b.Operation(context.Background(), op)
@@ -624,9 +617,8 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 
 	run, err := b.Operation(context.Background(), op)
@@ -697,9 +689,8 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 	op.PlanOutBackend = &plans.Backend{
 		// Just a placeholder so that we can generate a valid plan file.
-		Type:      "local",
-		Config:    cfgRaw,
-		Workspace: "default",
+		Type:   "local",
+		Config: cfgRaw,
 	}
 	op.PlanRefresh = true
 
@@ -726,7 +717,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 func testOperationPlan(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -920,157 +911,5 @@ func TestLocal_invalidOptions(t *testing.T) {
 
 	if errOutput := done(t).Stderr(); errOutput == "" {
 		t.Fatal("expected error output")
-	}
-}
-
-// Checks if the state store info set on an Operation makes it into the resulting Plan
-func TestLocal_plan_withStateStore(t *testing.T) {
-	b := TestLocal(t)
-
-	// Note: the mock provider doesn't include an implementation of
-	// pluggable state storage, but that's not needed for this test.
-	TestLocalProvider(t, b, "test", planFixtureSchema())
-	mockAddr := addrs.NewDefaultProvider("test")
-	providerVersion := version.Must(version.NewSemver("0.0.1"))
-	storeType := "test_foobar"
-	defaultWorkspace := "default"
-
-	testStateFile(t, b.StatePath, testPlanState_withDataSource())
-
-	outDir := t.TempDir()
-	planPath := filepath.Join(outDir, "plan.tfplan")
-
-	// Note: the config doesn't include a state_store block. Instead,
-	// that data is provided below when assigning a value to op.PlanOutStateStore.
-	// Usually that data is set as a result of parsing configuration.
-	op, configCleanup, _ := testOperationPlan(t, "./testdata/plan")
-	defer configCleanup()
-	op.PlanMode = plans.NormalMode
-	op.PlanRefresh = true
-	op.PlanOutPath = planPath
-	storeCfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
-	})
-	storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
-	if err != nil {
-		t.Fatal(err)
-	}
-	providerCfg := cty.ObjectVal(map[string]cty.Value{}) // Empty as the mock provider has no schema for the provider
-	providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
-	if err != nil {
-		t.Fatal(err)
-	}
-	op.PlanOutStateStore = &plans.StateStore{
-		Type:   storeType,
-		Config: storeCfgRaw,
-		Provider: &plans.Provider{
-			Source:  &mockAddr,
-			Version: providerVersion,
-			Config:  providerCfgRaw,
-		},
-		Workspace: defaultWorkspace,
-	}
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-	if run.Result != backendrun.OperationSuccess {
-		t.Fatalf("plan operation failed")
-	}
-
-	if run.PlanEmpty {
-		t.Fatal("plan should not be empty")
-	}
-
-	plan := testReadPlan(t, planPath)
-
-	// The plan should contain details about the state store
-	if plan.StateStore == nil {
-		t.Fatalf("Expected plan to describe a state store, but data was missing")
-	}
-	// The plan should NOT contain details about a backend
-	if plan.Backend != nil {
-		t.Errorf("Expected plan to not describe a backend because a state store is in use, but data was present:\n plan.Backend = %v", plan.Backend)
-	}
-
-	if plan.StateStore.Type != storeType {
-		t.Errorf("Expected plan to describe a state store with type %s, but got %s", storeType, plan.StateStore.Type)
-	}
-	if plan.StateStore.Workspace != defaultWorkspace {
-		t.Errorf("Expected plan to describe a state store with workspace %s, but got %s", defaultWorkspace, plan.StateStore.Workspace)
-	}
-	if !plan.StateStore.Provider.Source.Equals(mockAddr) {
-		t.Errorf("Expected plan to describe a state store with provider address %s, but got %s", mockAddr, plan.StateStore.Provider.Source)
-	}
-	if !plan.StateStore.Provider.Version.Equal(providerVersion) {
-		t.Errorf("Expected plan to describe a state store with provider version %s, but got %s", providerVersion, plan.StateStore.Provider.Version)
-	}
-}
-
-// Checks if the backend info set on an Operation makes it into the resulting Plan
-func TestLocal_plan_withBackend(t *testing.T) {
-	b := TestLocal(t)
-
-	TestLocalProvider(t, b, "test", planFixtureSchema())
-
-	testStateFile(t, b.StatePath, testPlanState_withDataSource())
-
-	outDir := t.TempDir()
-	planPath := filepath.Join(outDir, "plan.tfplan")
-
-	// Note: the config doesn't include a backend block. Instead,
-	// that data is provided below when assigning a value to op.PlanOutBackend.
-	// Usually that data is set as a result of parsing configuration.
-	op, configCleanup, _ := testOperationPlan(t, "./testdata/plan")
-	defer configCleanup()
-	op.PlanMode = plans.NormalMode
-	op.PlanRefresh = true
-	op.PlanOutPath = planPath
-	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
-	})
-	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
-	if err != nil {
-		t.Fatal(err)
-	}
-	backendType := "foobar"
-	defaultWorkspace := "default"
-	op.PlanOutBackend = &plans.Backend{
-		Type:      backendType,
-		Config:    cfgRaw,
-		Workspace: defaultWorkspace,
-	}
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-	if run.Result != backendrun.OperationSuccess {
-		t.Fatalf("plan operation failed")
-	}
-
-	if run.PlanEmpty {
-		t.Fatal("plan should not be empty")
-	}
-
-	plan := testReadPlan(t, planPath)
-
-	// The plan should contain details about the backend
-	if plan.Backend == nil {
-		t.Fatalf("Expected plan to describe a backend, but data was missing")
-	}
-	// The plan should NOT contain details about a state store
-	if plan.StateStore != nil {
-		t.Errorf("Expected plan to not describe a state store because a backend is in use, but data was present:\n plan.StateStore = %v", plan.StateStore)
-	}
-
-	if plan.Backend.Type != backendType {
-		t.Errorf("Expected plan to describe a backend with type %s, but got %s", backendType, plan.Backend.Type)
-	}
-	if plan.Backend.Workspace != defaultWorkspace {
-		t.Errorf("Expected plan to describe a backend with workspace %s, but got %s", defaultWorkspace, plan.Backend.Workspace)
 	}
 }

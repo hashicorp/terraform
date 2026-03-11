@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -11,7 +11,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -34,10 +33,7 @@ func TestEvaluateCountExpression(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			scopedCtx := ctx.withScope(evalContextModuleInstance{
-				Addr: addrs.RootModuleInstance,
-			})
-			countVal, diags := evaluateCountExpression(test.Expr, scopedCtx, false)
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -57,10 +53,7 @@ func TestEvaluateCountExpression_ephemeral(t *testing.T) {
 	expr := hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Ephemeral))
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	scopedCtx := ctx.withScope(evalContextModuleInstance{
-		Addr: addrs.RootModuleInstance,
-	})
-	_, diags := evaluateCountExpression(expr, scopedCtx, false)
+	_, diags := evaluateCountExpression(expr, ctx, false)
 	if !diags.HasErrors() {
 		t.Fatalf("unexpected success; want error")
 	}
@@ -89,10 +82,7 @@ func TestEvaluateCountExpression_allowUnknown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			scopedCtx := ctx.withScope(evalContextModuleInstance{
-				Addr: addrs.RootModuleInstance,
-			})
-			countVal, diags := evaluateCountExpression(test.Expr, scopedCtx, true)
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, true)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -15,7 +15,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -146,28 +145,56 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backendrun.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	rootMod, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
+	// Load the configuration using the caller-provided configuration loader.
+	config, configSnap, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
 	}
+	run.Config = config
 
-	var rawVariables map[string]arguments.UnparsedVariableValue
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		var suggestion string
+		switch {
+		case op.DependencyLocks == nil:
+			// If we get here then it suggests that there's a caller that we
+			// didn't yet update to populate DependencyLocks, which is a bug.
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+		case op.DependencyLocks.Empty():
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+		default:
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+				buf.String(), suggestion,
+			),
+		))
+	}
+
+	var rawVariables map[string]backendrun.UnparsedVariableValue
 	if op.AllowUnsetVariables {
 		// Rather than prompting for input, we'll just stub out the required
 		// but unset variables with unknown values to represent that they are
 		// placeholders for values the user would need to provide for other
 		// operations.
-		rawVariables = b.stubUnsetRequiredVariables(op.Variables, rootMod.Variables)
+		rawVariables = b.stubUnsetRequiredVariables(op.Variables, config.Module.Variables)
 	} else {
 		// If interactive input is enabled, we might gather some more variable
 		// values through interactive prompts.
 		// TODO: Need to route the operation context through into here, so that
 		// the interactive prompts can be sensitive to its timeouts/etc.
-		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, rootMod.Variables, op.UIIn)
+		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, op.UIIn)
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(rawVariables, rootMod.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(rawVariables, config.Module.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -196,52 +223,6 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		return nil, nil, diags
 	}
 	run.Core = tfCtx
-
-	walkerSnapshot, configSnap := op.ConfigLoader.ModuleWalkerSnapshot()
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		walkerSnapshot,
-		variables,
-		configs.MockDataLoaderFunc(op.ConfigLoader.LoadExternalMockData),
-	)
-	diags = diags.Append(buildDiags)
-	if buildDiags.HasErrors() {
-		return nil, nil, diags
-	}
-	run.Config = config
-
-	snapDiags := op.ConfigLoader.AddRootModuleToSnapshot(configSnap, op.ConfigDir)
-	diags = diags.Append(snapDiags)
-	if snapDiags.HasErrors() {
-		return nil, nil, diags
-	}
-
-	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
-		var buf strings.Builder
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n  - %s", err.Error())
-		}
-		var suggestion string
-		switch {
-		case op.DependencyLocks == nil:
-			// If we get here then it suggests that there's a caller that we
-			// didn't yet update to populate DependencyLocks, which is a bug.
-			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
-		case op.DependencyLocks.Empty():
-			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
-		default:
-			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
-				buf.String(), suggestion,
-			),
-		))
-	}
-
 	return run, configSnap, diags
 }
 
@@ -253,7 +234,6 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	// A plan file has a snapshot of configuration embedded inside it, which
 	// is used instead of whatever configuration might be already present
 	// in the filesystem.
-	//TODO why not use pf.ReadConfig?
 	snap, err := pf.ReadConfigSnapshot()
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -265,16 +245,32 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
 	loader.AllowLanguageExperiments(op.ConfigLoader.AllowsLanguageExperiments())
-	rootMod, rootDiags := loader.LoadRootModule(snap.Modules[""].Dir)
-	diags = diags.Append(rootDiags)
-	if rootDiags.HasErrors() {
-		return nil, nil, diags
+	config, configDiags := loader.LoadConfig(snap.Modules[""].Dir)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, snap, diags
 	}
+	run.Config = config
 
-	variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, nil, diags
+	// NOTE: We're intentionally comparing the current locks with the
+	// configuration snapshot, rather than the lock snapshot in the plan file,
+	// because it's the current locks which dictate our plugin selections
+	// in coreOpts below. However, we'll also separately check that the
+	// plan file has identical locked plugins below, and thus we're effectively
+	// checking consistency with both here.
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				buf.String(),
+			),
+		))
 	}
 
 	// This check is an important complement to the check above: the locked
@@ -362,40 +358,6 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, nil, diags
 	}
 	run.Core = tfCtx
-
-	config, buildDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		variables,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
-	diags = diags.Append(buildDiags)
-	if buildDiags.HasErrors() {
-		return nil, nil, diags
-	}
-	run.Config = config
-
-	// NOTE: We're intentionally comparing the current locks with the
-	// configuration snapshot, rather than the lock snapshot in the plan file,
-	// because it's the current locks which dictate our plugin selections
-	// in coreOpts below. However, we'll also separately check that the
-	// plan file has identical locked plugins below, and thus we're effectively
-	// checking consistency with both here.
-	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
-		var buf strings.Builder
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n  - %s", err.Error())
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Inconsistent dependency lock file",
-			fmt.Sprintf(
-				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
-				buf.String(),
-			),
-		))
-	}
-
 	return run, snap, diags
 }
 
@@ -419,7 +381,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 // messages that variables are not set rather than reporting that input failed:
 // the primary resolution to missing variables is to provide them by some other
 // means.
-func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]arguments.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]arguments.UnparsedVariableValue {
+func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backendrun.UnparsedVariableValue {
 	var needed []string
 	if b.OpInput && uiInput != nil {
 		for name, vc := range vcs {
@@ -442,7 +404,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	// If we get here then we're planning to prompt for at least one additional
 	// variable's value.
 	sort.Strings(needed) // prompt in lexical order
-	ret := make(map[string]arguments.UnparsedVariableValue, len(vcs))
+	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
 	maps.Copy(ret, existing) // don't use clone here, so we can have a non-nil map
 
 	for _, name := range needed {
@@ -493,7 +455,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 // the given map unchanged if no additions are required. If additions are
 // required then the result will be a new map containing everything in the
 // given map plus additional elements.
-func (b *Local) stubUnsetRequiredVariables(existing map[string]arguments.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]arguments.UnparsedVariableValue {
+func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]backendrun.UnparsedVariableValue {
 	var missing bool // Do we need to add anything?
 	for name, vc := range vcs {
 		if !vc.Required() {
@@ -508,7 +470,7 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]arguments.Unparse
 	}
 
 	// If we get down here then there's at least one variable value to add.
-	ret := make(map[string]arguments.UnparsedVariableValue, len(vcs))
+	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
 	maps.Copy(ret, existing) // don't use clone here, so we can return a non-nil map
 
 	for name, vc := range vcs {
@@ -526,7 +488,7 @@ type unparsedInteractiveVariableValue struct {
 	Name, RawValue string
 }
 
-var _ arguments.UnparsedVariableValue = unparsedInteractiveVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedInteractiveVariableValue{}
 
 func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -546,7 +508,7 @@ type unparsedUnknownVariableValue struct {
 	WantType cty.Type
 }
 
-var _ arguments.UnparsedVariableValue = unparsedUnknownVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedUnknownVariableValue{}
 
 func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
@@ -559,7 +521,7 @@ type unparsedTestVariableValue struct {
 	Expr hcl.Expression
 }
 
-var _ arguments.UnparsedVariableValue = unparsedTestVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedTestVariableValue{}
 
 func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

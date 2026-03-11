@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonprovider
@@ -33,7 +33,6 @@ func TestMarshalProvider(t *testing.T) {
 				ResourceIdentitySchemas:  map[string]*IdentitySchema{},
 				ListResourceSchemas:      map[string]*Schema{},
 				ActionSchemas:            map[string]*ActionSchema{},
-				StateStoreSchemas:        map[string]*Schema{},
 			},
 		},
 		{
@@ -251,7 +250,6 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
-				StateStoreSchemas: map[string]*Schema{},
 			},
 		},
 	}

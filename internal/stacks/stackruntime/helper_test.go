@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -52,6 +52,7 @@ type TestContext struct {
 // TestCycle defines a single plan / apply cycle that should be performed within
 // a test.
 type TestCycle struct {
+
 	// Validate options
 
 	wantValidateDiags tfdiags.Diagnostics
@@ -440,10 +441,6 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		// There should only be a single timestamp in a plan, so we can just
 		// return a simple string.
 		return "function-results"
-	case *stackplan.PlannedChangeActionInvocationInstancePlanned:
-		return change.ActionInvocationAddr.String()
-	case *stackplan.PlannedChangeDeferredActionInvocation:
-		return change.ActionInvocationPlanned.ActionInvocationAddr.String()
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
@@ -484,6 +481,7 @@ func diagnosticSortFunc(diags tfdiags.Diagnostics) func(i, j int) bool {
 			return sortDescription(id.Description(), jd.Description())
 		}
 		if id.Source().Subject != nil && jd.Source().Subject != nil {
+
 			return sortRange(id.Source().Subject, jd.Source().Subject)
 		}
 

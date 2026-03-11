@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -359,20 +359,6 @@ func (r *RemovedComponentInstance) ResourceSchema(ctx context.Context, providerT
 	ret := providerSchema.SchemaForResourceType(mode, typ)
 	if ret.Body == nil {
 		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
-	}
-	return ret, nil
-}
-
-// ActionSchema implements stackplan.PlanProducer.
-func (r *RemovedComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error) {
-	providerType := r.main.ProviderType(providerTypeAddr)
-	providerSchema, err := providerType.Schema(ctx)
-	if err != nil {
-		return providers.ActionSchema{}, err
-	}
-	ret := providerSchema.SchemaForActionType(actionType)
-	if ret.ConfigSchema == nil {
-		return providers.ActionSchema{}, fmt.Errorf("schema does not include action type %q", actionType)
 	}
 	return ret, nil
 }

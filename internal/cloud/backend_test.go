@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -261,7 +261,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		s := TestServer(t)
+		s := testServer(t)
 		b := New(testDisco(s))
 
 		// Validate
@@ -794,7 +794,7 @@ func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 			w.Header().Set("TFP-API-Version", "2.4")
 		},
 	}
-	s := TestServerWithHandlers(t, handlers)
+	s := testServerWithHandlers(handlers)
 
 	b := New(testDisco(s))
 
@@ -831,7 +831,7 @@ func TestCloud_configVerifyMinimumTFEVersionInAutomation(t *testing.T) {
 			w.Header().Set("TFP-API-Version", "2.4")
 		},
 	}
-	s := TestServerWithHandlers(t, handlers)
+	s := testServerWithHandlers(handlers)
 
 	b := New(testDisco(s))
 	b.runningInAutomation = true
@@ -1680,7 +1680,7 @@ func TestCloudBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
 }
 
 func TestCloud_ServiceDiscoveryAliases(t *testing.T) {
-	s := TestServer(t)
+	s := testServer(t)
 	b := New(testDisco(s))
 
 	diag := b.Configure(cty.ObjectVal(map[string]cty.Value{

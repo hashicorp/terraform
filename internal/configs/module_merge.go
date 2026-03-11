@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -52,10 +52,6 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.EphemeralSet {
 		v.Ephemeral = ov.Ephemeral
 		v.EphemeralSet = ov.EphemeralSet
-	}
-	if ov.ConstSet {
-		v.Const = ov.Const
-		v.ConstSet = ov.ConstSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -178,8 +174,11 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	if omc.SourceExpr != nil {
-		mc.SourceExpr = omc.SourceExpr
+	if omc.SourceSet {
+		mc.SourceAddr = omc.SourceAddr
+		mc.SourceAddrRaw = omc.SourceAddrRaw
+		mc.SourceAddrRange = omc.SourceAddrRange
+		mc.SourceSet = omc.SourceSet
 	}
 
 	if omc.Count != nil {
@@ -190,8 +189,8 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.ForEach = omc.ForEach
 	}
 
-	if omc.VersionExpr != nil {
-		mc.VersionExpr = omc.VersionExpr
+	if len(omc.Version.Required) != 0 {
+		mc.Version = omc.Version
 	}
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)

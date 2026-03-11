@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackaddrs
@@ -86,10 +86,6 @@ type AbsResourceInstance = InAbsComponentInstance[addrs.AbsResourceInstance]
 // AbsResourceInstanceObject represents an object associated with an instance
 // of a resource from inside a particular component instance.
 type AbsResourceInstanceObject = InAbsComponentInstance[addrs.AbsResourceInstanceObject]
-
-// AbsActionInvocationInstance represents an instance of an action from inside a
-// particular component instance.
-type AbsActionInvocationInstance = InAbsComponentInstance[addrs.AbsActionInstance]
 
 // AbsModuleInstance represents an instance of a module from inside a
 // particular component instance.

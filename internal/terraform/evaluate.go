@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -166,10 +165,6 @@ var _ lang.Data = (*evaluationStateData)(nil)
 // the evaluator embedded in this data object, using this data object's
 // static module path.
 func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	if d.Operation == walkInit {
-		// Skip static validation during init walks
-		return tfdiags.Diagnostics{}
-	}
 	return d.Evaluator.StaticValidateReferences(refs, d.ModulePath.Module(), self, source)
 }
 
@@ -178,12 +173,6 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 	switch addr.Name {
 
 	case "index":
-		if d.Operation == walkInit {
-			// During init walks we don't have any state or prior knowledge
-			// about resources, so we just return unknown.
-			return cty.DynamicVal, diags
-		}
-
 		idxVal := d.InstanceKeyData.CountIndex
 		if idxVal == cty.NilVal {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -233,12 +222,6 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 			Detail:   fmt.Sprintf(`The "each" object does not have an attribute named %q. The supported attributes are each.key and each.value, the current key and value pair of the "for_each" attribute set.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
-		return cty.DynamicVal, diags
-	}
-
-	if d.Operation == walkInit {
-		// During init walks we don't have any state or prior knowledge
-		// about resources, so we just return unknown.
 		return cty.DynamicVal, diags
 	}
 
@@ -403,12 +386,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
-	if d.Operation == walkInit {
-		// During init walks we don't have any state or prior knowledge
-		// about resources, so we just return unknown.
-		return cty.DynamicVal, diags
-	}
-
 	// We'll consult the configuration to see what output names we are
 	// expecting, so we can ensure the resulting object is of the expected
 	// type even if our data is incomplete for some reason.
@@ -434,19 +411,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// structural type of similar kind, so that it can be considered as
 	// valid during both the validate and plan walks.
 	if d.Operation == walkValidate {
-		// In case of non-expanded module calls we return a known object with unknonwn values
-		// In case of an expanded module call we return unknown list/map
-		// This means deprecation can only for non-expanded modules be detected during validate
-		// since we don't want false positives. The plan walk will give definitive warnings.
 		atys := make(map[string]cty.Type, len(outputConfigs))
-		as := make(map[string]cty.Value, len(outputConfigs))
-		for name, c := range outputConfigs {
+		for name := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
-			val := cty.UnknownVal(cty.DynamicPseudoType)
-			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
-			}
-			as[name] = val
 		}
 		instTy := cty.Object(atys)
 
@@ -456,8 +423,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		case callConfig.ForEach != nil:
 			return cty.UnknownVal(cty.Map(instTy)), diags
 		default:
-			val := cty.ObjectVal(as)
-			return val, diags
+			return cty.UnknownVal(instTy), diags
 		}
 	}
 
@@ -502,10 +468,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			outputVal := namedVals.GetOutputValue(outputAddr)
 			if cfg.Sensitive {
 				outputVal = outputVal.Mark(marks.Sensitive)
-			}
-
-			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, moduleInstAddr.OutputValue(name).ConfigOutputValue().ForDisplay()))
 			}
 			attrs[name] = outputVal
 		}
@@ -583,11 +545,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
-	if d.Operation == walkInit {
-		// During init walks we don't have any state or prior knowledge
-		// about resources, so we just return unknown.
-		return cty.DynamicVal, diags
-	}
 	// Much of this function was written before we had factored out the handling
 	// of instance keys into the separate instance expander model, and so it
 	// does a bunch of instance-related work itself below.
@@ -670,13 +627,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// resource has (using d.Evaluator.Instances.ResourceInstanceKeys) and
 		// then retrieving the value for each instance to assemble into the
 		// result, using some per-resource-mode logic maintained elsewhere.
-		val, epehemeralDiags := d.getEphemeralResource(addr, rng)
-		diags = diags.Append(epehemeralDiags)
-		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String()), diags
+		return d.getEphemeralResource(addr, rng)
 	case addrs.ListResourceMode:
-		val, listDiags := d.getListResource(config, rng)
-		diags = diags.Append(listDiags)
-		return deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String()), diags
+		return d.getListResource(config, rng)
 	default:
 		// continue with the rest of the function
 	}
@@ -821,21 +774,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// We should only end up here during the validate walk (or
 			// console/eval), since later walks should have at least partial
 			// states populated for all resources in the configuration.
-			switch {
-			case config.Count != nil:
-				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.Absolute(d.ModulePath).String()), diags
-			case config.ForEach != nil:
-				return deprecation.MarkDeprecatedValues(cty.DynamicVal, schema.Body, addr.Absolute(d.ModulePath).String()), diags
-			default:
-				// We don't know the values of the single resource instance, but we know the general
-				// shape these values will take.
-				content := map[string]cty.Value{}
-				for attr, attrType := range ty.AttributeTypes() {
-					content[attr] = cty.UnknownVal(attrType)
-				}
-
-				return deprecation.MarkDeprecatedValues(cty.ObjectVal(content), schema.Body, addr.Absolute(d.ModulePath).String()), diags
-			}
+			return cty.DynamicVal, diags
 		}
 	}
 
@@ -865,7 +804,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 					continue
 				}
 
-				vals[int(intKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Absolute(d.ModulePath).Instance(key).String())
+				vals[int(intKey)] = instance
 			}
 
 			// Insert unknown values where there are any missing instances
@@ -887,7 +826,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// old key that is being dropped and not used for evaluation
 				continue
 			}
-			vals[string(strKey)] = deprecation.MarkDeprecatedValues(instance, schema.Body, addr.Absolute(d.ModulePath).Instance(key).String())
+			vals[string(strKey)] = instance
 		}
 
 		if len(vals) > 0 {
@@ -907,7 +846,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			val = cty.UnknownVal(ty)
 		}
 
-		ret = deprecation.MarkDeprecatedValues(val, schema.Body, addr.Absolute(d.ModulePath).String())
+		ret = val
 	}
 
 	return ret, diags
@@ -1027,7 +966,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if d.Operation == walkValidate || d.Operation == walkEval || d.Operation == walkInit {
+	if d.Operation == walkValidate || d.Operation == walkEval {
 		// Ephemeral instances are never live during the validate walk. Eval is
 		// similarly offline, and since there is no value stored we can't return
 		// anything other than dynamic.
@@ -1147,12 +1086,6 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if d.Operation == walkInit {
-		// During init walks we don't have any state or prior knowledge
-		// about resources, so we just return unknown.
-		return cty.DynamicVal, diags
-	}
-
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
 	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
@@ -1194,9 +1127,6 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	}
 	if config.Ephemeral {
 		value = value.Mark(marks.Ephemeral)
-	}
-	if config.DeprecatedSet {
-		value = value.Mark(marks.NewDeprecation(config.Deprecated, addr.InModule(d.Module).ForDisplay()))
 	}
 
 	return value, diags

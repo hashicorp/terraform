@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package plans
@@ -46,12 +46,11 @@ type ActionTrigger interface {
 }
 
 var (
-	_ ActionTrigger = (*ResourceActionTrigger)(nil)
+	_ ActionTrigger = (*LifecycleActionTrigger)(nil)
 	_ ActionTrigger = (*InvokeActionTrigger)(nil)
 )
 
-// ResourceActionTrigger contains the action trigger configuration from the resource.
-type ResourceActionTrigger struct {
+type LifecycleActionTrigger struct {
 	TriggeringResourceAddr addrs.AbsResourceInstance
 	// Information about the trigger
 	// The event that triggered this action invocation.
@@ -62,18 +61,18 @@ type ResourceActionTrigger struct {
 	ActionsListIndex int
 }
 
-func (t *ResourceActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
+func (t *LifecycleActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 	return t.ActionTriggerEvent
 }
 
-func (t *ResourceActionTrigger) actionTriggerSigil() {}
+func (t *LifecycleActionTrigger) actionTriggerSigil() {}
 
-func (t *ResourceActionTrigger) String() string {
+func (t *LifecycleActionTrigger) String() string {
 	return t.TriggeringResourceAddr.String()
 }
 
-func (t *ResourceActionTrigger) Equals(other ActionTrigger) bool {
-	o, ok := other.(*ResourceActionTrigger)
+func (t *LifecycleActionTrigger) Equals(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
 	if !ok {
 		return false
 	}
@@ -84,8 +83,8 @@ func (t *ResourceActionTrigger) Equals(other ActionTrigger) bool {
 		t.ActionTriggerEvent == o.ActionTriggerEvent
 }
 
-func (t *ResourceActionTrigger) Less(other ActionTrigger) bool {
-	o, ok := other.(*ResourceActionTrigger)
+func (t *LifecycleActionTrigger) Less(other ActionTrigger) bool {
+	o, ok := other.(*LifecycleActionTrigger)
 	if !ok {
 		return false // We always want to show non-lifecycle actions first
 	}
@@ -99,8 +98,6 @@ func (t *ResourceActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionTriggerEvent < o.ActionTriggerEvent)
 }
 
-// InvokeActionTrigger contains the configuration for an action triggered
-// (invoked) directly via CLI command.
 type InvokeActionTrigger struct{}
 
 func (t *InvokeActionTrigger) actionTriggerSigil() {}

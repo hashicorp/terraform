@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package states
@@ -16,20 +16,4 @@ type OutputValue struct {
 	Addr      addrs.AbsOutputValue
 	Value     cty.Value
 	Sensitive bool
-}
-
-func (o *OutputValue) Equal(other *OutputValue) bool {
-	if o == other {
-		return true
-	}
-	if o == nil || other == nil {
-		return false
-	}
-	if !o.Addr.Equal(other.Addr) {
-		return false
-	}
-	if o.Sensitive != other.Sensitive {
-		return false
-	}
-	return o.Value.RawEquals(other.Value)
 }

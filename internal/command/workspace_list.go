@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
 
@@ -35,10 +35,21 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(configPath, view)
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(configPath)
+	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Load the backend
+	b, backendDiags := c.Backend(&BackendOpts{
+		BackendConfig: backendConfig,
+	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -47,7 +58,6 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	states, wDiags := b.Workspaces()
-	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
 		c.Ui.Error(wDiags.Err().Error())
 		return 1
@@ -56,22 +66,17 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 
 	env, isOverridden := c.WorkspaceOverridden()
 
-	if len(states) != 0 {
-		var out bytes.Buffer
-		for _, s := range states {
-			if s == env {
-				out.WriteString("* ")
-			} else {
-				out.WriteString("  ")
-			}
-			out.WriteString(s + "\n")
+	var out bytes.Buffer
+	for _, s := range states {
+		if s == env {
+			out.WriteString("* ")
+		} else {
+			out.WriteString("  ")
 		}
-
-		c.Ui.Output(out.String())
-	} else {
-		// Warn that no states exist
-		c.showDiagnostics(warnNoEnvsExistDiag(env))
+		out.WriteString(s + "\n")
 	}
+
+	c.Ui.Output(out.String())
 
 	if isOverridden {
 		c.Ui.Output(envIsOverriddenNote)

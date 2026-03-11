@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package inmem
@@ -71,27 +71,22 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
-	// Some tests may configure this backend multiple times
-	// and expect the same state from memory afterwards.
-	_, ok := states.m[backend.DefaultStateName]
-	if !ok {
-		defaultClient := &RemoteClient{
-			Name: backend.DefaultStateName,
-		}
+	defaultClient := &RemoteClient{
+		Name: backend.DefaultStateName,
+	}
 
-		states.m[backend.DefaultStateName] = &remote.State{
-			Client: defaultClient,
-		}
+	states.m[backend.DefaultStateName] = &remote.State{
+		Client: defaultClient,
+	}
 
-		// set the default client lock info per the test config
-		if v := configVal.GetAttr("lock_id"); !v.IsNull() {
-			info := statemgr.NewLockInfo()
-			info.ID = v.AsString()
-			info.Operation = "test"
-			info.Info = "test config"
+	// set the default client lock info per the test config
+	if v := configVal.GetAttr("lock_id"); !v.IsNull() {
+		info := statemgr.NewLockInfo()
+		info.ID = v.AsString()
+		info.Operation = "test"
+		info.Info = "test config"
 
-			locks.lock(backend.DefaultStateName, info)
-		}
+		locks.lock(backend.DefaultStateName, info)
 	}
 
 	return nil

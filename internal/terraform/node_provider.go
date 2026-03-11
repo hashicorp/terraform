@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -78,17 +78,10 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	}
 
 	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
+	if evalDiags.HasErrors() {
+		return diags.Append(evalDiags)
+	}
 	diags = diags.Append(evalDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, configSchema, n.Addr.Module)
-	diags = diags.Append(deprecationDiags.InConfigBody(configBody, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
 
 	// If our config value contains any marked values, ensure those are
 	// stripped out before sending this to the provider

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package planfile
@@ -30,7 +30,7 @@ type configSnapshotModuleRecord struct {
 }
 type configSnapshotModuleManifest []configSnapshotModuleRecord
 
-func ReadConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
+func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 	// Errors from this function are expected to be reported with some
 	// additional prefix context about them being in a config snapshot,
 	// so they should not themselves refer to the config snapshot.
@@ -145,13 +145,13 @@ func ReadConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 	return snap, nil
 }
 
-// WriteConfigSnapshot adds to the given zip.Writer one or more files
+// writeConfigSnapshot adds to the given zip.Writer one or more files
 // representing the given snapshot.
 //
 // This file creates new files in the writer, so any already-open writer
 // for the file will be invalidated by this call. The writer remains open
 // when this function returns.
-func WriteConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
+func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	// Errors from this function are expected to be reported with some
 	// additional prefix context about them being in a config snapshot,
 	// so they should not themselves refer to the config snapshot.

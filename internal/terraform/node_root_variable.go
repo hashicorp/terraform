@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -92,16 +92,6 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	if n.Config.DeprecatedSet && !givenVal.Value.IsNull() && givenVal.Value.IsKnown() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated variable got a value",
-			Detail:   n.Config.Deprecated,
-			Subject:  &n.Config.DeprecatedRange,
-			Context:  &n.Config.DeclRange,
-		})
-	}
-
 	if n.Planning {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(addrs.RootModule)) {
 			ctx.Checks().ReportCheckableObjects(
@@ -110,43 +100,19 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	// During init we only want to prepare the final value for const variables.
-	if op == walkInit {
-		var finalVal cty.Value
-		if n.Config.Const {
-			var moreDiags tfdiags.Diagnostics
-			finalVal, moreDiags = PrepareFinalInputVariableValue(
-				addr,
-				givenVal,
-				n.Config,
-			)
-			diags = diags.Append(moreDiags)
-			if moreDiags.HasErrors() {
-				// No point in proceeding to validations then, because they'll
-				// probably fail trying to work with a value of the wrong type.
-				return diags
-			}
-		} else {
-			// All non-const variables are unknown during init.
-			finalVal = cty.UnknownVal(n.Config.Type)
-		}
-		ctx.NamedValues().SetInputVariableValue(addr, finalVal)
-
-	} else {
-		finalVal, moreDiags := PrepareFinalInputVariableValue(
-			addr,
-			givenVal,
-			n.Config,
-		)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			// No point in proceeding to validations then, because they'll
-			// probably fail trying to work with a value of the wrong type.
-			return diags
-		}
-
-		ctx.NamedValues().SetInputVariableValue(addr, finalVal)
+	finalVal, moreDiags := PrepareFinalInputVariableValue(
+		addr,
+		givenVal,
+		n.Config,
+	)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		// No point in proceeding to validations then, because they'll
+		// probably fail trying to work with a value of the wrong type.
+		return diags
 	}
+
+	ctx.NamedValues().SetInputVariableValue(addr, finalVal)
 
 	// Custom validation rules are handled by a separate graph node of type
 	// nodeVariableValidation, added by variableValidationTransformer.

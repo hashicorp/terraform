@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendrun
@@ -11,9 +11,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -73,19 +73,13 @@ type Operation struct {
 
 	// PlanId is an opaque value that backends can use to execute a specific
 	// plan for an apply operation.
-	PlanId      string
-	PlanRefresh bool   // PlanRefresh will do a refresh before a plan
-	PlanOutPath string // PlanOutPath is the path to save the plan
-
+	//
 	// PlanOutBackend is the backend to store with the plan. This is the
 	// backend that will be used when applying the plan.
-	// Only one of PlanOutBackend or PlanOutStateStore may be set.
+	PlanId         string
+	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
+	PlanOutPath    string // PlanOutPath is the path to save the plan
 	PlanOutBackend *plans.Backend
-
-	// PlanOutStateStore is the state_store to store with the plan. This is the
-	// state store that will be used when applying the plan.
-	// Only one of PlanOutBackend or PlanOutStateStore may be set
-	PlanOutStateStore *plans.StateStore
 
 	// ConfigDir is the path to the directory containing the configuration's
 	// root module.
@@ -120,7 +114,7 @@ type Operation struct {
 	Targets              []addrs.Targetable
 	ActionTargets        []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
-	Variables            map[string]arguments.UnparsedVariableValue
+	Variables            map[string]UnparsedVariableValue
 	StatePersistInterval int
 
 	// Some operations use root module variables only opportunistically or
@@ -172,6 +166,15 @@ type Operation struct {
 // file.
 func (o *Operation) HasConfig() bool {
 	return o.ConfigLoader.IsConfigDir(o.ConfigDir)
+}
+
+// Config loads the configuration that the operation applies to, using the
+// ConfigDir and ConfigLoader fields within the receiving operation.
+func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
 }
 
 // ReportResult is a helper for the common chore of setting the status of

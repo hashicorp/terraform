@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -10,7 +10,6 @@ import (
 
 	"github.com/xlab/treeprint"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -31,19 +30,26 @@ func (c *ProvidersCommand) Synopsis() string {
 }
 
 func (c *ProvidersCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseProviders(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	var testsDirectory string
+
+	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("providers")
+	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	configPath, err := ModulePath(nil)
+	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	empty, err := configs.IsEmptyDir(configPath, parsedArgs.TestsDirectory)
+	var diags tfdiags.Diagnostics
+
+	empty, err := configs.IsEmptyDir(configPath, testsDirectory)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -67,7 +73,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	config, configDiags := c.loadConfigWithTests(configPath, parsedArgs.TestsDirectory)
+	config, configDiags := c.loadConfigWithTests(configPath, testsDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -75,7 +81,9 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	b, backendDiags := c.Backend(&BackendOpts{
+		BackendConfig: config.Module.Backend,
+	})
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)

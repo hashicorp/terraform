@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendrun
@@ -9,11 +9,25 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// UnparsedVariableValue represents a variable value provided by the caller
+// whose parsing must be deferred until configuration is available.
+//
+// This exists to allow processing of variable-setting arguments (e.g. in the
+// command package) to be separated from parsing (in the backend package).
+type UnparsedVariableValue interface {
+	// ParseVariableValue information in the provided variable configuration
+	// to parse (if necessary) and return the variable value encapsulated in
+	// the receiver.
+	//
+	// If error diagnostics are returned, the resulting value may be invalid
+	// or incomplete.
+	ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics)
+}
 
 // ParseUndeclaredVariableValues processes a map of unparsed variable values
 // and returns an input values map of the ones not declared in the specified
@@ -21,7 +35,7 @@ import (
 // variables being present, depending on the source of these values. If more
 // than two undeclared values are present in file form (config, auto, -var-file)
 // the remaining errors are summarized to avoid a massive list of errors.
-func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 	seenUndeclaredInFile := 0
@@ -92,7 +106,7 @@ func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue
 // and returns an input values map of the ones declared in the specified
 // variable declaration mapping. Diagnostics will be populating with
 // any variable parsing errors encountered within this collection.
-func ParseDeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseDeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 
@@ -146,7 +160,7 @@ func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 // InputValues may be incomplete but will include the subset of variables
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
-func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	ret, diags := ParseDeclaredVariableValues(vv, decls)
 	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 
@@ -174,63 +188,6 @@ func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls ma
 				Subject:  vc.DeclRange.Ptr(),
 			})
 
-			// We'll include a placeholder value anyway, just so that our
-			// result is complete for any calling code that wants to cautiously
-			// analyze it for diagnostic purposes. Since our diagnostics now
-			// includes an error, normal processing will ignore this result.
-			ret[name] = &terraform.InputValue{
-				Value:       cty.DynamicVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
-			}
-		} else {
-			// We're still required to put an entry for this variable
-			// in the mapping to be explicit to Terraform Core that we
-			// visited it, but its value will be cty.NilVal to represent
-			// that it wasn't set at all at this layer, and so Terraform Core
-			// should substitute a default if available, or generate an error
-			// if not.
-			ret[name] = &terraform.InputValue{
-				Value:       cty.NilVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
-			}
-		}
-	}
-
-	return ret, diags
-}
-
-func ParseConstVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
-	ret, diags := ParseDeclaredVariableValues(vv, decls)
-	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
-
-	diags = diags.Append(diagsUndeclared)
-
-	// By this point we should've gathered all of the required root module
-	// variables from one of the many possible sources. We'll now populate
-	// any we haven't gathered as unset placeholders which Terraform Core
-	// can then react to.
-	for name, vc := range decls {
-		if isDefinedAny(name, ret, undeclared) {
-			continue
-		}
-
-		// This check is redundant with a check made in Terraform Core when
-		// processing undeclared variables, but allows us to generate a more
-		// specific error message which mentions -var and -var-file command
-		// line options, whereas the one in Terraform Core is more general
-		// due to supporting both root and child module variables.
-		if vc.Const && vc.Required() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "No value for required variable",
-				Detail:   fmt.Sprintf("The root module input variable %q is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.", name),
-				Subject:  vc.DeclRange.Ptr(),
-			})
-		}
-
-		if vc.Required() {
 			// We'll include a placeholder value anyway, just so that our
 			// result is complete for any calling code that wants to cautiously
 			// analyze it for diagnostic purposes. Since our diagnostics now

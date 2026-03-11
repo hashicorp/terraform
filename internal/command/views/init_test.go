@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -129,10 +129,10 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginFromConfigMessage)
+		newInit.Output(InitializingProviderPluginMessage)
 
 		version := tfversion.String()
-		want := []map[string]any{
+		want := []map[string]interface{}{
 			{
 				"@level":    "info",
 				"@message":  fmt.Sprintf("Terraform %s", version),
@@ -143,8 +143,8 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     "Initializing provider plugins found in the configuration...",
-				"message_code": "initializing_provider_plugin_from_config_message",
+				"@message":     "Initializing provider plugins...",
+				"message_code": "initializing_provider_plugin_message",
 				"@module":      "terraform.ui",
 				"type":         "init_output",
 			},
@@ -231,7 +231,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginFromConfigMessage)
+	newInit.LogInitMessage(InitializingProviderPluginMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -245,7 +245,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		},
 		{
 			"@level":   "info",
-			"@message": "Initializing provider plugins found in the configuration...",
+			"@message": "Initializing provider plugins...",
 			"@module":  "terraform.ui",
 			"type":     "log",
 		},
@@ -282,10 +282,10 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginFromConfigMessage)
+		newInit.Output(InitializingProviderPluginMessage)
 
 		actual := done(t).All()
-		expected := "Initializing provider plugins found in the configuration..."
+		expected := "Initializing provider plugins..."
 		if !strings.Contains(actual, expected) {
 			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
 		}

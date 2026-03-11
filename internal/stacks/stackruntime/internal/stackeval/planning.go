@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -102,18 +102,6 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 				},
 				Change: rsrcChange.ChangeSrc,
 			},
-		})
-	}
-
-	for _, actInvoke := range plan.Changes.ActionInvocations {
-		cic.ActionInvocation++
-		hookMore(ctx, seq, h.ReportActionInvocationPlanned, &hooks.ActionInvocation{
-			Addr: stackaddrs.AbsActionInvocationInstance{
-				Component: addr,
-				Item:      actInvoke.Addr,
-			},
-			ProviderAddr: actInvoke.ProviderAddr.Provider,
-			Trigger:      actInvoke.ActionTrigger,
 		})
 	}
 

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -16,10 +16,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -186,7 +186,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)
@@ -253,12 +253,12 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 	varValue3 := "value3"
 
 	tests := map[string]struct {
-		localVariables    map[string]arguments.UnparsedVariableValue
+		localVariables    map[string]backendrun.UnparsedVariableValue
 		remoteVariables   []*tfe.VariableCreateOptions
 		expectedVariables terraform.InputValues
 	}{
 		"no local variables": {
-			map[string]arguments.UnparsedVariableValue{},
+			map[string]backendrun.UnparsedVariableValue{},
 			[]*tfe.VariableCreateOptions{
 				{
 					Key:      &varName1,
@@ -307,7 +307,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"single conflicting local variable": {
-			map[string]arguments.UnparsedVariableValue{
+			map[string]backendrun.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{
@@ -356,7 +356,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			},
 		},
 		"no conflicting local variable": {
-			map[string]arguments.UnparsedVariableValue{
+			map[string]backendrun.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{
@@ -409,7 +409,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)

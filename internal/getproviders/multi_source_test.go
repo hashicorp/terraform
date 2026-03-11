@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -182,6 +182,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		if err.Error() != wantErr {
 			t.Fatalf("wrong error.\ngot:  %s\nwant: %s\n", err, wantErr)
 		}
+
 	})
 
 	t.Run("merging with warnings", func(t *testing.T) {

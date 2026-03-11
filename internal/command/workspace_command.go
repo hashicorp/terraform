@@ -1,16 +1,13 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/hashicorp/cli"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // WorkspaceCommand is a Command Implementation that manipulates workspaces,
@@ -132,33 +129,3 @@ to match the workspace name you are trying to create, and then run this command
 again.
 `
 )
-
-// warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
-// and provides guidance about how to create the workspace based on whether the workspace is
-// custom or not.
-func warnNoEnvsExistDiag(currentWorkspace string) tfdiags.Diagnostic {
-	summary := "Terraform cannot find any existing workspaces."
-
-	if currentWorkspace == backend.DefaultStateName {
-		// Recommended actions for the user includes running `init` if they're using the default workspace.
-		msg := fmt.Sprintf(
-			"The %q workspace is selected in your working directory. You can create this workspace by running \"terraform init\", by using the \"terraform workspace new\" subcommand or by including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
-			currentWorkspace,
-		)
-		return tfdiags.Sourceless(
-			tfdiags.Warning,
-			summary,
-			msg,
-		)
-	}
-
-	msg := fmt.Sprintf(
-		"The %q workspace is selected in your working directory. You can create this workspace by using the \"terraform workspace new\" subcommand or including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
-		currentWorkspace,
-	)
-	return tfdiags.Sourceless(
-		tfdiags.Warning,
-		summary,
-		msg,
-	)
-}

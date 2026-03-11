@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -241,7 +241,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 		return idx, diags
 	}
 
-	if marks.Has(val, marks.Sensitive) {
+	if val.HasMark(marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid index expression",

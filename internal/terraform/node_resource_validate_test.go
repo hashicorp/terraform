@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -277,9 +277,6 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 	ctx.installSimpleEval()
 	ctx.ProviderSchemaSchema = mp.GetProviderSchema()
 	ctx.ProviderProvider = p
-	scopedCtx := ctx.withScope(evalContextModuleInstance{
-		Addr: addrs.RootModuleInstance,
-	})
 
 	tests := []struct {
 		name  string
@@ -314,7 +311,7 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 				},
 			}
 
-			diags := node.validateResource(scopedCtx)
+			diags := node.validateResource(ctx)
 			if diags.HasErrors() {
 				t.Fatalf("err: %s", diags.Err())
 			}

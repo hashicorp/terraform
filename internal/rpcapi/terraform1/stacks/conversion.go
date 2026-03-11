@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stacks
@@ -9,7 +9,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -43,52 +42,6 @@ func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 		return []ChangeType{ChangeType_CREATE, ChangeType_FORGET}, nil
 	default:
 		return nil, fmt.Errorf("unsupported action %s", action)
-	}
-}
-
-// ActionTriggerEventForStackChangeProgress converts a [configs.ActionTriggerEvent]
-// to its [StackChangeProgress_ActionTriggerEvent] protobuf equivalent.
-func ActionTriggerEventForStackChangeProgress(event configs.ActionTriggerEvent) (StackChangeProgress_ActionTriggerEvent, error) {
-	switch event {
-	case configs.BeforeCreate:
-		return StackChangeProgress_BEFORE_CREATE, nil
-	case configs.AfterCreate:
-		return StackChangeProgress_AFTER_CREATE, nil
-	case configs.BeforeUpdate:
-		return StackChangeProgress_BEFORE_UPDATE, nil
-	case configs.AfterUpdate:
-		return StackChangeProgress_AFTER_UPDATE, nil
-	case configs.BeforeDestroy:
-		return StackChangeProgress_BEFORE_DESTROY, nil
-	case configs.AfterDestroy:
-		return StackChangeProgress_AFTER_DESTROY, nil
-	case configs.Invoke:
-		return StackChangeProgress_INVOKE, nil
-	default:
-		return StackChangeProgress_INVALID_EVENT, fmt.Errorf("unsupported trigger event %s", event)
-	}
-}
-
-// ActionTriggerEventForPlannedChange converts a [configs.ActionTriggerEvent]
-// to its [PlannedChange_ActionTriggerEvent] protobuf equivalent.
-func ActionTriggerEventForPlannedChange(event configs.ActionTriggerEvent) (PlannedChange_ActionTriggerEvent, error) {
-	switch event {
-	case configs.BeforeCreate:
-		return PlannedChange_BEFORE_CREATE, nil
-	case configs.AfterCreate:
-		return PlannedChange_AFTER_CREATE, nil
-	case configs.BeforeUpdate:
-		return PlannedChange_BEFORE_UPDATE, nil
-	case configs.AfterUpdate:
-		return PlannedChange_AFTER_UPDATE, nil
-	case configs.BeforeDestroy:
-		return PlannedChange_BEFORE_DESTROY, nil
-	case configs.AfterDestroy:
-		return PlannedChange_AFTER_DESTROY, nil
-	case configs.Invoke:
-		return PlannedChange_INVOKE, nil
-	default:
-		return PlannedChange_INVALID_EVENT, fmt.Errorf("unsupported trigger event %s", event)
 	}
 }
 
@@ -222,12 +175,5 @@ func NewResourceInstanceObjectInStackAddr(addr stackaddrs.AbsResourceInstanceObj
 		ComponentInstanceAddr: addr.Component.String(),
 		ResourceInstanceAddr:  addr.Item.ResourceInstance.String(),
 		DeposedKey:            addr.Item.DeposedKey.String(),
-	}
-}
-
-func NewActionInvocationInStackAddr(addr stackaddrs.AbsActionInvocationInstance) *ActionInvocationInstanceInStackAddr {
-	return &ActionInvocationInstanceInStackAddr{
-		ComponentInstanceAddr:        addr.Component.String(),
-		ActionInvocationInstanceAddr: addr.Item.String(),
 	}
 }

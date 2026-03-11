@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -211,7 +210,7 @@ func (h *MockHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -223,7 +222,7 @@ func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorSt
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -375,7 +374,7 @@ func (h *MockHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return h.PostEphemeralOpReturn, h.PostEphemeralOpReturnError
 }
 
-func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

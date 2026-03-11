@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -75,11 +75,6 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 			Name: name,
 		},
 	}
-}
-
-// ModuleInstance returns the module instance portion of the address.
-func (v AbsOutputValue) ModuleInstance() ModuleInstance {
-	return v.Module
 }
 
 func (v AbsOutputValue) CheckRule(t CheckRuleType, i int) CheckRule {
@@ -224,13 +219,6 @@ func (v ConfigOutputValue) String() string {
 		return v.OutputValue.String()
 	}
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.String())
-}
-
-func (v ConfigOutputValue) ForDisplay() string {
-	if v.Module.IsRoot() {
-		return v.OutputValue.Name
-	}
-	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.Name)
 }
 
 func (v ConfigOutputValue) configCheckableSigil() {

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package inmem
@@ -65,7 +65,7 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateLocks(t, b1, b2)
 }
 
-// use this backend to test the remote.State implementation
+// use the this backen to test the remote.State implementation
 func TestRemoteState(t *testing.T) {
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())

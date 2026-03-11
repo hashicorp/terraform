@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -508,7 +507,7 @@ func (h *UiHook) PostEphemeralOp(rId terraform.HookResourceIdentity, action plan
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (terraform.HookAction, error) {
+func (h *UiHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
 }
 

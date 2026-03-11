@@ -8,6 +8,9 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   check:
     name: "Should run equivalence tests?"
@@ -20,19 +23,19 @@ jobs:
         run: |
           merged='${{ github.event.pull_request.merged }}'
           target_branch='${{ github.event.pull_request.base.ref }}'
-
+          
           targets_release_branch=false
           if [ "$target_branch" == "main" ]; then
             targets_release_branch=true
           elif [ "$target_branch" =~ ^v[0-9]+\.[0-9]+$ ]; then
             targets_release_branch=true
           fi
-
+          
           should_run=false
           if [ "$merged" == "true" ] && [ "$targets_release_branch" == "true" ]; then
             should_run=true
           fi
-
+          
           echo "should_run=$should_run" >> ${GITHUB_OUTPUT}
   run-equivalence-tests:
     name: "Run equivalence tests"
@@ -41,7 +44,7 @@ jobs:
     if: needs.check.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ inputs.target-branch }}
 
@@ -50,7 +53,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
@@ -64,4 +67,3 @@ jobs:
           new-branch: equivalence-testing/${{ github.event.pull_request.head.ref }}
           reviewers: ${{ github.event.pull_request.merged_by.login }}
           message: "Update equivalence test golden files after ${{ github.event.pull_request.html_url }}."
-          github-token: ${{ github.token }}

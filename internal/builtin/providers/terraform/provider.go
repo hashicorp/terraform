@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,14 +10,11 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // Provider is an implementation of providers.Interface
 type Provider struct{}
-
-var _ providers.Interface = &Provider{}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
@@ -27,7 +24,7 @@ func NewProvider() providers.Interface {
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp := providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Body: &configschema.Block{}},
+		Provider: providers.Schema{},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: true,
 		},
@@ -102,6 +99,9 @@ func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRe
 
 // ValidateDataResourceConfig is used to validate the data source configuration values.
 func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+	// FIXME: move the backend configuration validate call that's currently
+	// inside the read method  into here so that we can catch provider configuration
+	// errors in terraform validate as well as during terraform plan.
 	var res providers.ValidateDataResourceConfigResponse
 
 	// This should not happen
@@ -291,30 +291,6 @@ func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConf
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	var resp providers.ConfigureStateStoreResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-	var resp providers.ReadStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
-	var resp providers.WriteStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
-	var resp providers.LockStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
-	return resp
-}
-
-func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
-	var resp providers.UnlockStateResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package planfile
@@ -39,16 +39,14 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
 				// remove backend data from example plan
-				rawPlan.Backend = nil
-
-				// add state store instead
+				rawPlan.Backend = plans.Backend{}
 				ver, err := version.NewVersion("9.9.9")
 				if err != nil {
 					t.Fatalf("error encountered during test setup: %s", err)
 				}
 
 				// add state store instead
-				rawPlan.StateStore = &plans.StateStore{
+				rawPlan.StateStore = plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
@@ -57,13 +55,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 							Namespace: "foobar",
 							Type:      "foo",
 						},
-						// Imagining a provider that has nothing in its schema
-						Config: mustNewDynamicValue(
-							cty.EmptyObjectVal,
-							cty.Object(nil),
-						),
 					},
-					// Imagining a state store with a field called `foo` in its schema
 					Config: mustNewDynamicValue(
 						cty.ObjectVal(map[string]cty.Value{
 							"foo": cty.StringVal("bar"),
@@ -118,7 +110,8 @@ func Test_writeTfplan_validation(t *testing.T) {
 			plan: func() *plans.Plan {
 				rawPlan := examplePlanForTest(t)
 				// remove backend from example plan
-				rawPlan.Backend = nil
+				rawPlan.Backend.Type = ""
+				rawPlan.Backend.Config = nil
 				return rawPlan
 			}(),
 			wantWriteErrMsg: "plan does not have a backend or state_store configuration",
@@ -133,7 +126,7 @@ func Test_writeTfplan_validation(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error encountered during test setup: %s", err)
 				}
-				rawPlan.StateStore = &plans.StateStore{
+				rawPlan.StateStore = plans.StateStore{
 					Type: "foo_bar",
 					Provider: &plans.Provider{
 						Version: ver,
@@ -142,14 +135,6 @@ func Test_writeTfplan_validation(t *testing.T) {
 							Namespace: "foobar",
 							Type:      "foo",
 						},
-						Config: mustNewDynamicValue(
-							cty.ObjectVal(map[string]cty.Value{
-								"foo": cty.StringVal("bar"),
-							}),
-							cty.Object(map[string]cty.Type{
-								"foo": cty.String,
-							}),
-						),
 					},
 					Config: mustNewDynamicValue(
 						cty.ObjectVal(map[string]cty.Value{
@@ -322,7 +307,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.ResourceActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        0,
@@ -336,7 +321,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "bar"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.ResourceActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -353,7 +338,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				{
 					Addr:         addrs.Action{Type: "example", Name: "baz"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: provider,
-					ActionTrigger: &plans.ResourceActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						ActionTriggerEvent:      configs.BeforeCreate,
 						ActionTriggerBlockIndex: 2,
 						ActionsListIndex:        1,
@@ -458,7 +443,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				DeferredReason: providers.DeferredReasonDeferredPrereq,
 				ActionInvocationInstanceSrc: &plans.ActionInvocationInstanceSrc{
 					Addr: addrs.Action{Type: "test_action", Name: "example"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
-					ActionTrigger: &plans.ResourceActionTrigger{
+					ActionTrigger: &plans.LifecycleActionTrigger{
 						TriggeringResourceAddr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",
@@ -540,7 +525,7 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
 		},
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			Type: "local",
 			Config: mustNewDynamicValue(
 				cty.ObjectVal(map[string]cty.Value{
@@ -644,7 +629,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
 		},
-		Backend: &plans.Backend{
+		Backend: plans.Backend{
 			Type: "local",
 			Config: mustNewDynamicValue(
 				cty.ObjectVal(map[string]cty.Value{

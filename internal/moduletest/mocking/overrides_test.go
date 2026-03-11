@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package mocking
@@ -75,7 +75,7 @@ func TestPackageOverrides(t *testing.T) {
 		},
 	}
 
-	overrides, _ := PackageOverrides(nil, run, file, mocks)
+	overrides := PackageOverrides(run, file, mocks)
 
 	// We now expect that the run and file overrides took precedence.
 	first, fOk := overrides.GetResourceOverride(primary, addrs.AbsProviderConfig{

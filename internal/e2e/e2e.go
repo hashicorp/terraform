@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2e
@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -176,7 +177,7 @@ func (b *binary) OpenFile(path ...string) (*os.File, error) {
 // directory.
 func (b *binary) ReadFile(path ...string) ([]byte, error) {
 	flatPath := b.Path(path...)
-	return os.ReadFile(flatPath)
+	return ioutil.ReadFile(flatPath)
 }
 
 // FileExists is a helper for easily testing whether a particular file
@@ -246,7 +247,7 @@ func (b *binary) SetLocalState(state *states.State) error {
 
 func GoBuild(pkgPath, tmpPrefix string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
-	tmpFile, err := os.CreateTemp(dir, prefix)
+	tmpFile, err := ioutil.TempFile(dir, prefix)
 	if err != nil {
 		panic(err)
 	}

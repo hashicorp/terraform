@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package json
@@ -48,7 +48,6 @@ func TestNewDiagnostic(t *testing.T) {
   var.k,
 ]
 `),
-		"deprecation.tf": []byte(`resource "test_resource" "deprecated" {}`),
 	}
 	testCases := map[string]struct {
 		diag interface{} // allow various kinds of diags
@@ -866,49 +865,6 @@ func TestNewDiagnostic(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-
-		"warning with deprecation origin": {
-			&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Deprecated value caught in action",
-				Detail:   "Oh no - don't do it!",
-				Subject: &hcl.Range{
-					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
-					End:      hcl.Pos{Line: 1, Column: 25, Byte: 24},
-				},
-				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
-					OriginDescription: "aws_s3_bucket.hello.acl",
-				},
-			},
-			&Diagnostic{
-				Severity: "warning",
-				Summary:  "Deprecated value caught in action",
-				Detail:   "Oh no - don't do it!",
-				Range: &DiagnosticRange{
-					Filename: "test.tf",
-					Start: Pos{
-						Line:   1,
-						Column: 10,
-						Byte:   9,
-					},
-					End: Pos{
-						Line:   1,
-						Column: 25,
-						Byte:   24,
-					},
-				},
-				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 `resource "test_resource" "test" {`,
-					StartLine:            1,
-					HighlightStartOffset: 9,
-					HighlightEndOffset:   24,
-					Values:               []DiagnosticExpressionValue{},
-				},
-				DeprecationOriginDescription: "aws_s3_bucket.hello.acl",
 			},
 		},
 	}

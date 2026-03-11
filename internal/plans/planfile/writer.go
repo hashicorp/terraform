@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package planfile
@@ -111,7 +111,7 @@ func Create(filename string, args CreateArgs) error {
 
 	// tfconfig directory
 	{
-		err := WriteConfigSnapshot(args.ConfigSnapshot, zw)
+		err := writeConfigSnapshot(args.ConfigSnapshot, zw)
 		if err != nil {
 			return fmt.Errorf("failed to write config snapshot: %s", err)
 		}

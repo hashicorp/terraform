@@ -1,75 +1,127 @@
-## 1.15.0 (Unreleased)
+## 1.14.8 (Unreleased)
 
-
-NEW FEATURES:
-
-* We now produce builds for Windows ARM64 ([#32719](https://github.com/hashicorp/terraform/issues/32719))
-
-* You can set a `deprecated` attribute on variable and output blocks to indicate that they are deprecated. This will produce warnings when passing in a value for a deprecated variable or when referencing a deprecated output. ([#38001](https://github.com/hashicorp/terraform/issues/38001))
-
-* backend/s3: Support authentication via `aws login` ([#37976](https://github.com/hashicorp/terraform/issues/37976))
-
-* validate: The validate command now checks the `backend` block. This ensures the backend type exists, that all required attributes are present, and that the backend's own validation logic passes. ([#38021](https://github.com/hashicorp/terraform/issues/38021))
-
-* `convert` function, which allows for precise inline type conversions ([#38160](https://github.com/hashicorp/terraform/issues/38160))
-
-* Terraform now supports variables and locals in module source and version attributes ([#38217](https://github.com/hashicorp/terraform/issues/38217))
-
-
-ENHANCEMENTS:
-
-* ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell ([#37794](https://github.com/hashicorp/terraform/issues/37794))
-
-* terraform init log timestamps include millisecond precision ([#37818](https://github.com/hashicorp/terraform/issues/37818))
-
-* init: skip dependencies declared in development override. This allows you to use `terraform init` with developer overrides and install dependencies that are not declared in the override file. ([#37884](https://github.com/hashicorp/terraform/issues/37884))
-
-* Terraform Test: Allow functions within mock blocks ([#34672](https://github.com/hashicorp/terraform/issues/34672))
-
-* improve detection of deprecated resource attributes / blocks ([#38077](https://github.com/hashicorp/terraform/issues/38077))
-
-* Deprecation messages providers set on resources / blocks / attributes are now part of the deprecation warning ([#38135](https://github.com/hashicorp/terraform/issues/38135))
-
-* Include which attribute paths are marked as sensitive in list_start JSON logs ([#38197](https://github.com/hashicorp/terraform/issues/38197))
-
-
-BUG FIXES:
-
-* testing: File-level error diagnostics are now included in JUnit XML skipped test elements, ensuring CI/CD pipelines can detect validation failures ([#37801](https://github.com/hashicorp/terraform/issues/37801))
-
-* A refresh-only plan could result in a non-zero exit code with no changes ([#37406](https://github.com/hashicorp/terraform/issues/37406))
-
-* cli: Fixed crash in `terraform show -json` when plan contains ephemeral resources with preconditions or postconditions ([#37834](https://github.com/hashicorp/terraform/issues/37834))
-
-* cli: Fixed `terraform init -json` to properly format all backend configuration messages as JSON instead of plain text ([#37911](https://github.com/hashicorp/terraform/issues/37911))
-
-* `state show`: The `state show` command will now explicitly fail and return code 1 when it fails to render the named resources state ([#37933](https://github.com/hashicorp/terraform/issues/37933))
-
-* apply: Terraform will raise an explicit error if a plan file intended for one workspace is applied against another workspace ([#37954](https://github.com/hashicorp/terraform/issues/37954))
-
-* lifecycle: `replace_triggered_by` now reports an error when given an invalid attribute reference that does not exist in the target resource ([#36740](https://github.com/hashicorp/terraform/issues/36740))
-
-* backend: Fix nil pointer dereference crash during `terraform init` when the destination backend returns an error ([#38027](https://github.com/hashicorp/terraform/issues/38027))
-
-* stacks: send progress events if the plan fails for better UI integration ([#38039](https://github.com/hashicorp/terraform/issues/38039))
-
-* stacks: component instances should report no-op plan/apply. This solves a UI inconsistency with convergence destroy plans  ([#38049](https://github.com/hashicorp/terraform/issues/38049))
-
-* backend/http: Return conflicting lock info from HTTP backend instead of the lock that failed to be taken ([#38144](https://github.com/hashicorp/terraform/issues/38144))
-
-* states: fixed a bug that caused Terraform to be unable to identify when two states had different output values. This may have caused issues in specific circumstances like backend migrations. ([#38181](https://github.com/hashicorp/terraform/issues/38181))
+## 1.14.7 (March 11, 2026)
 
 
 NOTES:
 
-* command/init: Provider installation was refactored to enable future enhancements in the area. This results in different order of operations during init and 2 new log messages replacing one (`initializing_provider_plugin_message`). The change should not have any end-user impact aside from the `init` command output. ([#38227](https://github.com/hashicorp/terraform/issues/38227))
+* Bump Go version to 1.25.8 to suppress security scanner false positives ([#38249](https://github.com/hashicorp/terraform/issues/38249))
+
+
+## 1.14.6 (February 25, 2026)
+
+
+BUG FIXES:
+
+* terraform test: return error when provider config is invalid ([#38084](https://github.com/hashicorp/terraform/issues/38084))
+
+
+## 1.14.5 (February 11, 2026)
+
+
+BUG FIXES:
+
+* Fixed an issue where terraform stacks validate was failing to resolve relative paths for modules ([#38025](https://github.com/hashicorp/terraform/issues/38025))
+
+
+## 1.14.4 (January 28, 2026)
+
+
+BUG FIXES:
+
+* backend: Fix nil pointer dereference crash during `terraform init` when the destination backend returns an error ([#38027](https://github.com/hashicorp/terraform/issues/38027))
+
+* Fixes an issue where any warning diagnostics generated during terraform query execution failed to render in the cloud backend session ([#38040](https://github.com/hashicorp/terraform/issues/38040))
+
+* actions in modules without instances failed the plan graph ([#38089](https://github.com/hashicorp/terraform/issues/38089))
+
+
+## 1.14.3 (December 17, 2025)
+
+
+BUG FIXES:
+
+* stacks: change absolute paths in path.module/path.root to be relative, as documented ([#37982](https://github.com/hashicorp/terraform/issues/37982))
+
+
+## 1.14.2 (December 11, 2025)
+
+
+ENHANCEMENTS:
+
+* Add component registry source resolution support to Terraform Stacks ([#37888](https://github.com/hashicorp/terraform/issues/37888))
+
+
+BUG FIXES:
+
+* stacks: surface runtime issues with local values to user during plan ([#37980](https://github.com/hashicorp/terraform/issues/37980))
+
+* resource instance apply failures should not cause the resource instance state to be empty. ([#37981](https://github.com/hashicorp/terraform/issues/37981))
+## 1.14.1 (December 3, 2025)
+
+
+BUG FIXES:
+
+* test: allow ephemeral outputs in root modules ([#37813](https://github.com/hashicorp/terraform/issues/37813))
+
+* Combinations of replace_triggered_by and -replace could result in some instances not being replaced ([#37833](https://github.com/hashicorp/terraform/issues/37833))
+
+* providers lock: include providers required by terraform test ([#37851](https://github.com/hashicorp/terraform/issues/37851))
+
+* Set state information in the proto request for the `GenerateResourceConfig` RPC ([#37896](https://github.com/hashicorp/terraform/issues/37896))
+
+* actions: make after_create & after_update actions run after the resource has applied ([#37936](https://github.com/hashicorp/terraform/issues/37936))
+
+
+## 1.14.0 (November 19, 2025)
+
+
+NEW FEATURES:
+
+* **List Resources**: List resources can be defined in `*.tfquery.hcl` files and allow querying and filterting existing infrastructure.
+
+* A new Terraform command `terraform query`: Executes list operations against existing infrastructure and displays the results. The command can optionally generate configuration for importing results into Terraform.
+
+* A new GenerateResourceConfiguration RPC allows providers to create more precise configuration values during import. ([#37515](https://github.com/hashicorp/terraform/issues/37515))
+
+* New top-level Actions block: Actions are provider defined and meant to codify use cases outside the normal CRUD model in your Terraform configuration. Providers can define Actions like `aws_lambda_invoke` or `aws_cloudfront_create_invalidation` that do something imparative outside of Terraforms normal CRUD model. You can configure such a side-effect with an action block and have actions triggered through the lifecycle of a resource or through passing the `-invoke` CLI flag. ([#37553](https://github.com/hashicorp/terraform/issues/37553))
+
+
+ENHANCEMENTS:
+
+* terraform test: expected diagnostics will be included in test output when running in verbose mode" ([#37362](https://github.com/hashicorp/terraform/issues/37362))
+
+* terraform test: ignore prevent_destroy attribute during when cleaning up tests" ([#37364](https://github.com/hashicorp/terraform/issues/37364))
+
+* `terraform stacks` command support for `-help` flag ([#37645](https://github.com/hashicorp/terraform/issues/37645))
+
+* query: support offline validation of query files via -query flag in the validate command ([#37671](https://github.com/hashicorp/terraform/issues/37671))
+
+* Updates to support the AWS European Sovereign Cloud ([#37721](https://github.com/hashicorp/terraform/issues/37721))
+
+
+BUG FIXES:
+
+* Retrieve all workspace variables while doing a `terraform import`, include variables inherited from variable sets but not overwritten by the workspace. ([#37241](https://github.com/hashicorp/terraform/issues/37241))
+
+* Fix OSS backend proxy support by adding a proxy layer for OSS backend operations. Resolves hashicorp/terraform#36897. ([#36897](https://github.com/hashicorp/terraform/issues/36897))
+
+* console and test: return explicit diagnostics when referencing resources that were not included in the most recent operation. ([#37663](https://github.com/hashicorp/terraform/issues/37663))
+
+* query: generate unique resource identifiers for results of expanded list resources ([#37681](https://github.com/hashicorp/terraform/issues/37681))
+
+* The CLI now summarizes the number of actions invoked during `terraform apply`, matching the plan output. ([#37689](https://github.com/hashicorp/terraform/issues/37689))
+
+* Allow filesystem functions to return inconsistent results when evaluated within provider configuration ([#37854](https://github.com/hashicorp/terraform/issues/37854))
+
+* query: improve error handling for missing identity schemas ([#37863](https://github.com/hashicorp/terraform/issues/37863))
 
 
 UPGRADE NOTES:
 
-* backend/s3: The `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables now only respect `true` or `false` values, aligning with the AWS SDK for Go. This replaces the previous behavior which treated any non-empty value as `true`. ([#37601](https://github.com/hashicorp/terraform/issues/37601))
+* The parallelism of Terraform operations within container runtimes may be reduced depending on the CPU bandwidth limit setting. ([#37436](https://github.com/hashicorp/terraform/issues/37436))
 
-
+* Building Terraform 1.14 requires macOS Monterey or later (due to being built on Go 1.25 which imposes these requirements) ([#37436](https://github.com/hashicorp/terraform/issues/37436))
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
@@ -84,7 +136,6 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
 For information on prior major and minor releases, refer to their changelogs:
 
-- [v1.14](https://github.com/hashicorp/terraform/blob/v1.14/CHANGELOG.md)
 - [v1.13](https://github.com/hashicorp/terraform/blob/v1.13/CHANGELOG.md)
 - [v1.12](https://github.com/hashicorp/terraform/blob/v1.12/CHANGELOG.md)
 - [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)

@@ -59,8 +59,8 @@ digraph update {
 
 Order of operations:
 1. `A` is created
-1. `B` is updated
-1. `C` is updated
+1. `B` is created
+1. `C` is created
 
 ## Simple Resource Destruction
 
@@ -87,7 +87,7 @@ digraph destroy {
 Order of operations:
 1. `C` is destroyed
 1. `B` is destroyed
-1. `A` is destroyed
+1. `A` is Destroyed
 
 ## Resource Replacement
 

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package hooks
@@ -53,15 +53,14 @@ func (s ComponentInstanceStatus) ForProtobuf() stacks.StackChangeProgress_Compon
 // ComponentInstanceChange is the argument type for hook callbacks which
 // signal a set of planned or applied changes for a component instance.
 type ComponentInstanceChange struct {
-	Addr             stackaddrs.AbsComponentInstance
-	Add              int
-	Change           int
-	Import           int
-	Remove           int
-	Defer            int
-	Move             int
-	Forget           int
-	ActionInvocation int
+	Addr   stackaddrs.AbsComponentInstance
+	Add    int
+	Change int
+	Import int
+	Remove int
+	Defer  int
+	Move   int
+	Forget int
 }
 
 // Total sums all of the change counts as a forwards-compatibility measure. If
@@ -69,7 +68,7 @@ type ComponentInstanceChange struct {
 // that the component instance has some unknown changes, rather than falsely
 // stating that there are no changes at all.
 func (cic ComponentInstanceChange) Total() int {
-	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget + cic.ActionInvocation
+	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget
 }
 
 // CountNewAction increments zero or more of the count fields based on the

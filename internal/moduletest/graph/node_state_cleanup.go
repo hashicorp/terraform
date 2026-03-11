@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package graph
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -116,7 +117,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	// we ignore the diagnostics from here, because we will have reported them
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
-	providers, _, _ := getProviders(ctx, file, run, module)
+	providers, mocks, _ := getProviders(ctx, file, run, module)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -127,7 +128,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.NormalMode,
 		SetVariables:              setVariables,
-		Overrides:                 ctx.GetOverrides(run.Name),
+		Overrides:                 mocking.PackageOverrides(run, file, mocks),
 		ExternalProviders:         providers,
 		SkipRefresh:               true,
 		OverridePreventDestroy:    true,
@@ -168,7 +169,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	// we ignore the diagnostics from here, because we will have reported them
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
-	providers, _, _ := getProviders(ctx, file, run, module)
+	providers, mocks, _ := getProviders(ctx, file, run, module)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -179,7 +180,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.DestroyMode,
 		SetVariables:              setVariables,
-		Overrides:                 ctx.GetOverrides(run.Name),
+		Overrides:                 mocking.PackageOverrides(run, file, mocks),
 		ExternalProviders:         providers,
 		SkipRefresh:               true,
 		OverridePreventDestroy:    true,

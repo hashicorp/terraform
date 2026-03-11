@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -65,12 +65,6 @@ func (n *NodeActionDeclarationPartialExpanded) Execute(ctx EvalContext, op walkO
 		configVal, _, configDiags = ctx.EvaluateBlock(n.config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, instances.TotallyUnknownRepetitionData)
 
 		diags = diags.Append(configDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-		var deprecationDiags tfdiags.Diagnostics
-		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ActionAddr().Module)
-		diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.ActionAddr().String()))
 		if diags.HasErrors() {
 			return diags
 		}

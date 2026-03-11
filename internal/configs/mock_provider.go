@@ -181,7 +181,6 @@ type MockResource struct {
 	Type string
 
 	Defaults cty.Value
-	RawExpr  hcl.Expression
 
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
@@ -208,11 +207,6 @@ const (
 type Override struct {
 	Target *addrs.Target
 	Values cty.Value
-
-	BlockName string
-
-	// The raw expression of the values/outputs block
-	RawExpr hcl.Expression
 
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
@@ -331,12 +325,14 @@ func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*MockRes
 	}
 
 	if defaults, exists := content.Attributes["defaults"]; exists {
+		var defaultDiags hcl.Diagnostics
 		resource.DefaultsRange = defaults.Range
-		resource.RawExpr = defaults.Expr
+		resource.Defaults, defaultDiags = defaults.Expr.Value(nil)
+		diags = append(diags, defaultDiags...)
 	} else {
 		// It's fine if we don't have any defaults, just means we'll generate
 		// values for everything ourselves.
-		resource.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
+		resource.Defaults = cty.NilVal
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
@@ -457,7 +453,6 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		Source:    source,
 		Range:     block.DefRange,
 		TypeRange: block.TypeRange,
-		BlockName: blockName,
 	}
 
 	if target, exists := content.Attributes["target"]; exists {
@@ -477,19 +472,40 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 			Subject:  override.Range.Ptr(),
 		})
 	}
+
 	if attribute, exists := content.Attributes[attributeName]; exists {
+		var valueDiags hcl.Diagnostics
 		override.ValuesRange = attribute.Range
-		override.RawExpr = attribute.Expr
+		override.Values, valueDiags = attribute.Expr.Value(nil)
+		diags = append(diags, valueDiags...)
 	} else {
 		// It's fine if we don't have any values, just means we'll generate
 		// values for everything ourselves. We set this to an empty object so
 		// it's equivalent to `values = {}` which makes later processing easier.
-		override.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
+		override.Values = cty.EmptyObjectVal
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
 	diags = append(diags, useForPlanDiags...)
 	override.UseForPlan = useForPlan
+
+	if !override.Values.Type().IsObjectType() {
+
+		var attributePreposition string
+		switch attributeName {
+		case "outputs":
+			attributePreposition = "an"
+		default:
+			attributePreposition = "a"
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Invalid %s attribute", attributeName),
+			Detail:   fmt.Sprintf("%s blocks must specify %s %s attribute that is an object.", blockName, attributePreposition, attributeName),
+			Subject:  override.ValuesRange.Ptr(),
+		})
+	}
 
 	return override, diags
 }

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -17,5 +17,4 @@ const (
 	walkDestroy
 	walkImport
 	walkEval // used just to prepare EvalContext for expression evaluation, with no other actions
-	walkInit
 )

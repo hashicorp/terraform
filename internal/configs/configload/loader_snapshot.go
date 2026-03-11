@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configload
@@ -20,16 +20,26 @@ import (
 	"github.com/hashicorp/terraform/internal/modsdir"
 )
 
-func (l *Loader) ModuleWalkerSnapshot() (configs.ModuleWalker, *Snapshot) {
+// LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
+// creates an in-memory snapshot of the configuration files used, which can
+// be later used to create a loader that may read only from this snapshot.
+func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snapshot, hcl.Diagnostics) {
+	rootMod, diags := l.parser.LoadConfigDir(rootDir, l.parserOpts...)
+	if rootMod == nil {
+		return nil, nil, diags
+	}
+
 	snap := &Snapshot{
 		Modules: map[string]*SnapshotModule{},
 	}
+	walker := l.makeModuleWalkerSnapshot(snap)
+	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
+	diags = append(diags, cDiags...)
 
-	return l.makeModuleWalkerSnapshot(snap), snap
-}
+	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
+	diags = append(diags, addDiags...)
 
-func (l *Loader) AddRootModuleToSnapshot(snap *Snapshot, rootDir string) hcl.Diagnostics {
-	return l.addModuleToSnapshot(snap, "", rootDir, "", nil)
+	return cfg, snap, diags
 }
 
 // NewLoaderFromSnapshot creates a Loader that reads files only from the

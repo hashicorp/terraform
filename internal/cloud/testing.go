@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -25,7 +25,6 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -246,9 +245,9 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, *MockClient, func()) {
 	var s *httptest.Server
 	if handlers != nil {
-		s = TestServerWithHandlers(t, handlers)
+		s = testServerWithHandlers(handlers)
 	} else {
-		s = TestServer(t)
+		s = testServer(t)
 	}
 	b := New(testDisco(s))
 
@@ -325,7 +324,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 // testUnconfiguredBackend is used for testing the configuration of the backend
 // with the mock client
 func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
-	s := TestServer(t)
+	s := testServer(t)
 	b := New(testDisco(s))
 
 	// Normally, the client is created during configuration, but the configuration uses the
@@ -396,15 +395,15 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
 	return b
 }
 
-// TestServer returns a started *httptest.Server used for local testing with the default set of
+// testServer returns a started *httptest.Server used for local testing with the default set of
 // request handlers.
-func TestServer(t *testing.T) *httptest.Server {
-	return TestServerWithHandlers(t, testDefaultRequestHandlers)
+func testServer(t *testing.T) *httptest.Server {
+	return testServerWithHandlers(testDefaultRequestHandlers)
 }
 
-// TestServerWithHandlers returns a started *httptest.Server with the given set of request handlers
+// testServerWithHandlers returns a started *httptest.Server with the given set of request handlers
 // overriding any default request handlers (testDefaultRequestHandlers).
-func TestServerWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) *httptest.Server {
+func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	mux := http.NewServeMux()
 	for route, handler := range handlers {
 		mux.HandleFunc(route, handler)
@@ -414,11 +413,6 @@ func TestServerWithHandlers(t *testing.T, handlers map[string]func(http.Response
 			mux.HandleFunc(route, handler)
 		}
 	}
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		t.Logf("unexpected %s request received for %q", req.Method, req.URL.String())
-		w.WriteHeader(http.StatusBadRequest)
-	})
 
 	return httptest.NewServer(mux)
 }
@@ -625,9 +619,9 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 	}, tfdiags.Diagnostics{}
 }
 
-// testVariable returns a arguments.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]arguments.UnparsedVariableValue {
-	vars := make(map[string]arguments.UnparsedVariableValue, len(vs))
+// testVariable returns a backendrun.UnparsedVariableValue used for testing.
+func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
+	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{
 			value:  v,

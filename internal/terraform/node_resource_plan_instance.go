@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -255,10 +255,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
 		diags = diags.Append(readDiags)
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 	}
@@ -271,20 +267,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// refresh step below.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, prevRunState))
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 		// Also the refreshState, because that should still reflect schema upgrades
 		// even if it doesn't reflect upstream changes.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 	}
@@ -331,10 +319,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 	}
@@ -345,10 +329,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// sure we still update any changes to CreateBeforeDestroy.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 	}
@@ -369,10 +349,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		diags = diags.Append(n.replaceTriggered(ctx, repData))
 		if diags.HasErrors() {
-			// Pre-Diff error hook
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
-			}))
 			return diags
 		}
 
@@ -662,13 +638,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			diags = diags.Append(configDiags)
 			return nil, deferred, diags
 		}
-		var deprecationDiags tfdiags.Diagnostics
-		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
-		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, absAddr.String()))
-		if diags.HasErrors() {
-			return nil, deferred, diags
-		}
-
 		configVal, _ = configVal.UnmarkDeep()
 
 		// Let's pretend we're reading the value as a data source so we

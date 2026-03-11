@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -6,7 +6,7 @@ package e2etest
 import (
 	"context"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -53,8 +53,6 @@ type providerServer struct {
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
 	listResourceCalled        bool
-	readStateBytesCalled      bool
-	writeStateBytesCalled     bool
 }
 
 func (p *providerServer) PlanResourceChange(ctx context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
@@ -73,22 +71,6 @@ func (p *providerServer) ApplyResourceChange(ctx context.Context, req *proto.App
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
 }
 
-func (p *providerServer) WriteStateBytes(server proto.Provider_WriteStateBytesServer) error {
-	p.Lock()
-	defer p.Unlock()
-
-	p.writeStateBytesCalled = true
-	return p.ProviderServer.WriteStateBytes(server)
-}
-
-func (p *providerServer) ReadStateBytes(req *proto.ReadStateBytes_Request, server proto.Provider_ReadStateBytesServer) error {
-	p.Lock()
-	defer p.Unlock()
-
-	p.readStateBytesCalled = true
-	return p.ProviderServer.ReadStateBytes(req, server)
-}
-
 func (p *providerServer) ListResource(req *proto.ListResource_Request, res proto.Provider_ListResourceServer) error {
 	p.Lock()
 	defer p.Unlock()
@@ -103,7 +85,6 @@ func (p *providerServer) PlanResourceChangeCalled() bool {
 
 	return p.planResourceChangeCalled
 }
-
 func (p *providerServer) ResetPlanResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -117,7 +98,6 @@ func (p *providerServer) ApplyResourceChangeCalled() bool {
 
 	return p.applyResourceChangeCalled
 }
-
 func (p *providerServer) ResetApplyResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -130,34 +110,6 @@ func (p *providerServer) ListResourceCalled() bool {
 	defer p.Unlock()
 
 	return p.listResourceCalled
-}
-
-func (p *providerServer) ReadStateBytesCalled() bool {
-	p.Lock()
-	defer p.Unlock()
-
-	return p.readStateBytesCalled
-}
-
-func (p *providerServer) ResetReadStateBytesCalled() {
-	p.Lock()
-	defer p.Unlock()
-
-	p.readStateBytesCalled = false
-}
-
-func (p *providerServer) WriteStateBytesCalled() bool {
-	p.Lock()
-	defer p.Unlock()
-
-	return p.writeStateBytesCalled
-}
-
-func (p *providerServer) ResetWriteStateBytesCalled() {
-	p.Lock()
-	defer p.Unlock()
-
-	p.writeStateBytesCalled = false
 }
 
 type providerServer5 struct {
@@ -199,7 +151,6 @@ func (p *providerServer5) PlanResourceChangeCalled() bool {
 
 	return p.planResourceChangeCalled
 }
-
 func (p *providerServer5) ResetPlanResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -213,7 +164,6 @@ func (p *providerServer5) ApplyResourceChangeCalled() bool {
 
 	return p.applyResourceChangeCalled
 }
-
 func (p *providerServer5) ResetApplyResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -245,7 +195,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: io.Discard,
+			Output: ioutil.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -350,7 +300,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: io.Discard,
+			Output: ioutil.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,

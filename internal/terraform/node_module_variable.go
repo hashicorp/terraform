@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -217,44 +217,18 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	log.Printf("[TRACE] nodeModuleVariable: evaluating %s", n.Addr)
 
 	var val cty.Value
-	var errSourceRange tfdiags.SourceRange
 	var err error
 
 	switch op {
 	case walkValidate:
-		val, errSourceRange, err = n.evalModuleVariable(ctx, true)
+		val, err = n.evalModuleVariable(ctx, true)
 		diags = diags.Append(err)
-	case walkInit:
-		// During init we only want to record the value if it's static;
-		// otherwise we record it as dynamic to prevent its use in
-		// static contexts.
-		// We still evaluate it fully here to catch any errors early.
-		if n.Config.Const {
-			val, errSourceRange, err = n.evalModuleVariable(ctx, false)
-			diags = diags.Append(err)
-		} else {
-			val = cty.DynamicVal
-		}
 	default:
-		val, errSourceRange, err = n.evalModuleVariable(ctx, false)
+		val, err = n.evalModuleVariable(ctx, false)
 		diags = diags.Append(err)
 	}
 	if diags.HasErrors() {
 		return diags
-	}
-
-	if n.Expr != nil {
-		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Expr.Range().Ptr())
-		diags = diags.Append(deprecationDiags)
-	}
-
-	if op == walkInit && n.Config.Const && !val.IsWhollyKnown() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Const variables must be known",
-			Detail:   "Only a constant value can be passed into a constant module variable.",
-			Subject:  errSourceRange.ToHCL().Ptr(),
-		})
 	}
 
 	// Set values for arguments of a child module call, for later retrieval
@@ -284,7 +258,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, tfdiags.SourceRange, error) {
+func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange
@@ -310,7 +284,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+			return cty.DynamicVal, diags.ErrWithWarnings()
 		}
 		givenVal = val
 		errSourceRange = tfdiags.SourceRangeFromHCL(expr.Range())
@@ -332,16 +306,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 	finalVal, moreDiags := PrepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
 
-	if n.Config.DeprecatedSet && !givenVal.IsNull() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated variable got a value",
-			Detail:   n.Config.Deprecated,
-			Subject:  n.Expr.Range().Ptr(),
-		})
-	}
-
-	return finalVal, errSourceRange, diags.ErrWithWarnings()
+	return finalVal, diags.ErrWithWarnings()
 }
 
 // nodeModuleVariableInPartialModule represents an infinite set of possible

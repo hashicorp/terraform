@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -1718,18 +1718,6 @@ func TestApplyDestroy(t *testing.T) {
 								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
 							},
 						},
-						PendingComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						BeginComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						EndComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						ReportComponentInstancePlanned: []*hooks.ComponentInstanceChange{{
-							Addr: mustAbsComponentInstance("component.self"),
-						}},
 					},
 					wantAppliedHooks: &ExpectedHooks{
 						ComponentExpanded: []*hooks.ComponentInstances{
@@ -1738,18 +1726,6 @@ func TestApplyDestroy(t *testing.T) {
 								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
 							},
 						},
-						PendingComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						BeginComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						EndComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
-							mustAbsComponentInstance("component.self"),
-						),
-						ReportComponentInstanceApplied: []*hooks.ComponentInstanceChange{{
-							Addr: mustAbsComponentInstance("component.self"),
-						}},
 					},
 				},
 			},

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonprovider
@@ -31,7 +31,6 @@ type Provider struct {
 	Functions                map[string]*jsonfunction.FunctionSignature `json:"functions,omitempty"`
 	ResourceIdentitySchemas  map[string]*IdentitySchema                 `json:"resource_identity_schemas,omitempty"`
 	ActionSchemas            map[string]*ActionSchema                   `json:"action_schemas,omitempty"`
-	StateStoreSchemas        map[string]*Schema                         `json:"state_store_schemas,omitempty"`
 }
 
 func newProviders() *Providers {
@@ -70,7 +69,6 @@ func marshalProvider(tps providers.ProviderSchema) *Provider {
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
 		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
 		ActionSchemas:            marshalActionSchemas(tps.Actions),
-		StateStoreSchemas:        marshalSchemas(tps.StateStores),
 	}
 
 	// List resource schemas are nested under a "config" block, so we need to

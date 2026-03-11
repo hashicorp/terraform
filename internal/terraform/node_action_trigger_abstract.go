@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -23,17 +23,17 @@ const (
 
 // ConcreteActionTriggerNodeFunc is a callback type used to convert an
 // abstract action trigger to a concrete one of some type.
-type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTrigger, RelativeActionTiming) dag.Vertex
+type ConcreteActionTriggerNodeFunc func(*nodeAbstractActionTriggerExpand, RelativeActionTiming) dag.Vertex
 
-type nodeAbstractActionTrigger struct {
+type nodeAbstractActionTriggerExpand struct {
 	Addr             addrs.ConfigAction
 	resolvedProvider addrs.AbsProviderConfig
 	Config           *configs.Action
 
-	triggerConfig *actionTriggerConfig
+	lifecycleActionTrigger *lifecycleActionTrigger
 }
 
-type actionTriggerConfig struct {
+type lifecycleActionTrigger struct {
 	resourceAddress         addrs.ConfigResource
 	events                  []configs.ActionTriggerEvent
 	actionTriggerBlockIndex int
@@ -43,43 +43,50 @@ type actionTriggerConfig struct {
 	conditionExpr           hcl.Expression
 }
 
-func (at *actionTriggerConfig) Name() string {
+func (at *lifecycleActionTrigger) Name() string {
 	return fmt.Sprintf("%s.lifecycle.action_trigger[%d].actions[%d]", at.resourceAddress.String(), at.actionTriggerBlockIndex, at.actionListIndex)
 }
 
 var (
-	_ GraphNodeReferencer       = (*nodeAbstractActionTrigger)(nil)
-	_ GraphNodeProviderConsumer = (*nodeAbstractActionTrigger)(nil)
-	_ GraphNodeModulePath       = (*nodeAbstractActionTrigger)(nil)
+	_ GraphNodeReferencer       = (*nodeAbstractActionTriggerExpand)(nil)
+	_ GraphNodeProviderConsumer = (*nodeAbstractActionTriggerExpand)(nil)
+	_ GraphNodeModulePath       = (*nodeAbstractActionTriggerExpand)(nil)
 )
 
-func (n *nodeAbstractActionTrigger) Name() string {
-	return fmt.Sprintf("%s triggered by %s", n.Addr.String(), n.triggerConfig.resourceAddress.String())
+func (n *nodeAbstractActionTriggerExpand) Name() string {
+	triggeredBy := "triggered by "
+	if n.lifecycleActionTrigger != nil {
+		triggeredBy += n.lifecycleActionTrigger.resourceAddress.String()
+	} else {
+		triggeredBy += "unknown"
+	}
+
+	return fmt.Sprintf("%s %s", n.Addr.String(), triggeredBy)
 }
 
-func (n *nodeAbstractActionTrigger) ModulePath() addrs.Module {
+func (n *nodeAbstractActionTriggerExpand) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-func (n *nodeAbstractActionTrigger) References() []*addrs.Reference {
+func (n *nodeAbstractActionTriggerExpand) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 	refs = append(refs, &addrs.Reference{
 		Subject: n.Addr.Action,
 	})
 
-	if n.triggerConfig != nil {
+	if n.lifecycleActionTrigger != nil {
 		refs = append(refs, &addrs.Reference{
-			Subject: n.triggerConfig.resourceAddress.Resource,
+			Subject: n.lifecycleActionTrigger.resourceAddress.Resource,
 		})
 
-		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.triggerConfig.conditionExpr)
+		conditionRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.lifecycleActionTrigger.conditionExpr)
 		refs = append(refs, conditionRefs...)
 	}
 
 	return refs
 }
 
-func (n *nodeAbstractActionTrigger) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *nodeAbstractActionTriggerExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
 	if n.resolvedProvider.Provider.Type != "" {
 		return n.resolvedProvider, true
 	}
@@ -92,10 +99,10 @@ func (n *nodeAbstractActionTrigger) ProvidedBy() (addr addrs.ProviderConfig, exa
 	}, false
 }
 
-func (n *nodeAbstractActionTrigger) Provider() (provider addrs.Provider) {
+func (n *nodeAbstractActionTriggerExpand) Provider() (provider addrs.Provider) {
 	return n.Config.Provider
 }
 
-func (n *nodeAbstractActionTrigger) SetProvider(config addrs.AbsProviderConfig) {
+func (n *nodeAbstractActionTriggerExpand) SetProvider(config addrs.AbsProviderConfig) {
 	n.resolvedProvider = config
 }

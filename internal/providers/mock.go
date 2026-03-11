@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providers
 
 import (
@@ -431,22 +434,6 @@ func (m *Mock) ValidateStateStoreConfig(req ValidateStateStoreConfigRequest) Val
 
 func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStateStoreResponse {
 	return m.Provider.ConfigureStateStore(req)
-}
-
-func (m *Mock) ReadStateBytes(req ReadStateBytesRequest) ReadStateBytesResponse {
-	return m.Provider.ReadStateBytes(req)
-}
-
-func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesResponse {
-	return m.Provider.WriteStateBytes(req)
-}
-
-func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
-	return m.Provider.LockState(req)
-}
-
-func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
-	return m.Provider.UnlockState(req)
 }
 
 func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {

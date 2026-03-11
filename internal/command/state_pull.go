@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -21,9 +20,10 @@ type StatePullCommand struct {
 }
 
 func (c *StatePullCommand) Run(args []string) int {
-	_, diags := arguments.ParseStatePull(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("state pull")
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -33,10 +33,9 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 

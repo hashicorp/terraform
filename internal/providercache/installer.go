@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package providercache
@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"slices"
 	"sort"
 	"strings"
 
@@ -206,7 +205,13 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 		if provider.IsBuiltIn() {
 			// Built in providers do not require installation but we'll still
 			// verify that the requested provider name is valid.
-			valid := slices.Contains(i.builtInProviderTypes, provider.Type)
+			valid := false
+			for _, name := range i.builtInProviderTypes {
+				if name == provider.Type {
+					valid = true
+					break
+				}
+			}
 			var err error
 			if valid {
 				if len(versionConstraints) == 0 {

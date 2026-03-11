@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonprovider
@@ -19,20 +19,12 @@ func TestMarshalAttribute(t *testing.T) {
 		Want  *Attribute
 	}{
 		{
-			&configschema.Attribute{
-				Type:               cty.String,
-				Optional:           true,
-				Computed:           true,
-				Deprecated:         true,
-				DeprecationMessage: "This is a deprecated attribute",
-			},
+			&configschema.Attribute{Type: cty.String, Optional: true, Computed: true},
 			&Attribute{
-				AttributeType:      json.RawMessage(`"string"`),
-				Optional:           true,
-				Computed:           true,
-				DescriptionKind:    "plain",
-				Deprecated:         true,
-				DeprecationMessage: "This is a deprecated attribute",
+				AttributeType:   json.RawMessage(`"string"`),
+				Optional:        true,
+				Computed:        true,
+				DescriptionKind: "plain",
 			},
 		},
 		{ // collection types look a little odd.

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package rpcapi
@@ -23,6 +23,7 @@ import (
 )
 
 func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
+
 	tcs := map[string]struct {
 		source           string
 		expectedVersions []string
@@ -125,6 +126,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 			}
 		})
 	}
+
 }
 
 func TestPackagesServer_FetchProviderPackage(t *testing.T) {

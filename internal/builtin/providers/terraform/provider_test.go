@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -65,15 +65,5 @@ func TestMoveResourceState_NonExistentResource(t *testing.T) {
 
 	if !resp.Diagnostics.HasErrors() {
 		t.Fatal("expected diagnostics")
-	}
-}
-
-func TestGetProviderSchema_ProviderConfigNotNil(t *testing.T) {
-	provider := &Provider{}
-	resp := provider.GetProviderSchema()
-
-	if resp.Provider.Body == nil {
-		t.Fatal("provider config schema body should not be nil; a nil body causes " +
-			"a spurious ERROR-level log message in AttachSchemaTransformer")
 	}
 }

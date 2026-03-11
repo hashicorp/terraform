@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package configload
@@ -186,9 +186,4 @@ func (l *Loader) AllowLanguageExperiments(allowed bool) {
 // called on this object.
 func (l *Loader) AllowsLanguageExperiments() bool {
 	return l.parser.AllowsLanguageExperiments()
-}
-
-// ModuleWalker returns a walker suitable for loading already-installed modules.
-func (l *Loader) ModuleWalker() configs.ModuleWalker {
-	return configs.ModuleWalkerFunc(l.moduleWalkerLoad)
 }

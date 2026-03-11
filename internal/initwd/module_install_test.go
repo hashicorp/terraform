@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package initwd
@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -46,7 +45,7 @@ func TestModuleInstaller(t *testing.T) {
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -78,15 +77,7 @@ func TestModuleInstaller(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfig(".")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -118,7 +109,7 @@ func TestModuleInstaller_error(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -139,7 +130,7 @@ func TestModuleInstaller_emptyModuleName(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -160,7 +151,7 @@ func TestModuleInstaller_invalidModuleName(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -198,7 +189,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -236,7 +227,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if diags.HasErrors() {
@@ -259,7 +250,7 @@ func TestModuleInstaller_ExactMatchPrerelease(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	cfg, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if diags.HasErrors() {
@@ -286,7 +277,7 @@ func TestModuleInstaller_PartialMatchPrerelease(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	cfg, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if diags.HasErrors() {
@@ -309,7 +300,7 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -335,7 +326,7 @@ func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -361,7 +352,7 @@ func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -387,7 +378,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -419,15 +410,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfig(".")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -471,7 +454,7 @@ func TestLoaderInstallModules_invalidRegistry(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -510,7 +493,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -625,15 +608,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfig(".")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -681,7 +656,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -763,15 +738,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModule(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfig(".")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -807,7 +774,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil)
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -833,15 +800,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["tests/main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
@@ -872,7 +831,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), nil)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -950,15 +909,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
-
-	config, loadDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
@@ -69,7 +69,7 @@ func TestSensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if !marks.Has(got, marks.Sensitive) {
+			if !got.HasMark(marks.Sensitive) {
 				t.Errorf("result is not marked sensitive")
 			}
 
@@ -152,7 +152,7 @@ func TestNonsensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if marks.Has(got, marks.Sensitive) {
+			if got.HasMark(marks.Sensitive) {
 				t.Errorf("result is still marked sensitive")
 			}
 			wantRaw, _ := test.Input.Unmark()

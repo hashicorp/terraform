@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -49,12 +49,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	if diags.HasErrors() {
 		return diags
 	}
-	var deprecationDiags tfdiags.Diagnostics
-	blockVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(blockVal, schema.FullSchema, n.ModulePath())
-	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return diags
-	}
 
 	// Unmark before sending to provider
 	unmarkedBlockVal, _ := blockVal.UnmarkDeepWithPaths()
@@ -70,22 +64,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	if config.List.Limit != nil {
-		var limitDeprecationDiags tfdiags.Diagnostics
-		limitCty, limitDeprecationDiags = ctx.Deprecations().ValidateAndUnmark(limitCty, ctx.Path().Module(), config.List.Limit.Range().Ptr())
-		diags = diags.Append(limitDeprecationDiags)
-	}
-
 	includeRscCty, includeRsc, includeDiags := newIncludeRscEvaluator(false).EvaluateExpr(ctx, config.List.IncludeResource)
 	diags = diags.Append(includeDiags)
 	if includeDiags.HasErrors() {
 		return diags
-	}
-
-	if config.List.IncludeResource != nil {
-		var includeDeprecationDiags tfdiags.Diagnostics
-		includeRscCty, includeDeprecationDiags = ctx.Deprecations().ValidateAndUnmark(includeRscCty, ctx.Path().Module(), config.List.IncludeResource.Range().Ptr())
-		diags = diags.Append(includeDeprecationDiags)
 	}
 
 	rId := HookResourceIdentity{
@@ -93,7 +75,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		ProviderAddr: n.ResolvedProvider.Provider,
 	}
 	ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreListQuery(rId, blockVal.GetAttr("config"), schema.ConfigSchema)
+		return h.PreListQuery(rId, unmarkedBlockVal.GetAttr("config"))
 	})
 
 	// if we are generating config, we implicitly set include_resource to true

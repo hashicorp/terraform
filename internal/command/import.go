@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -28,28 +29,41 @@ type ImportCommand struct {
 }
 
 func (c *ImportCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseImport(c.Meta.process(args))
-
-	// Copy parsed flags back to Meta
-	c.Meta.statePath = parsedArgs.State.StatePath
-	c.Meta.stateOutPath = parsedArgs.State.StateOutPath
-	c.Meta.backupPath = parsedArgs.State.BackupPath
-	c.Meta.stateLock = parsedArgs.State.Lock
-	c.Meta.stateLockTimeout = parsedArgs.State.LockTimeout
-	c.Meta.parallelism = parsedArgs.Parallelism
-	c.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
-	c.Meta.input = parsedArgs.InputEnabled
-	c.Meta.compactWarnings = parsedArgs.CompactWarnings
-	c.Meta.targetFlags = parsedArgs.TargetFlags
-
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		c.Ui.Error(c.Help())
+	// Get the pwd since its our default -config flag value
+	pwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
 		return 1
 	}
 
+	var configPath string
+	args = c.Meta.process(args)
+
+	cmdFlags := c.Meta.extendedFlagSet("import")
+	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
+	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.StringVar(&configPath, "config", pwd, "path")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		return 1
+	}
+
+	args = cmdFlags.Args()
+	if len(args) != 2 {
+		c.Ui.Error("The import command expects two arguments.")
+		cmdFlags.Usage()
+		return 1
+	}
+
+	var diags tfdiags.Diagnostics
+
 	// Parse the provided resource address.
-	traversalSrc := []byte(parsedArgs.Addr)
+	traversalSrc := []byte(args[0])
 	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(travDiags)
 	if travDiags.HasErrors() {
@@ -73,70 +87,22 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	if !c.dirIsConfigPath(parsedArgs.ConfigPath) {
+	if !c.dirIsConfigPath(configPath) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No Terraform configuration files",
 			Detail: fmt.Sprintf(
 				"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
-				parsedArgs.ConfigPath,
+				configPath,
 			),
 		})
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	// We require a backendrun.Local to build a context.
-	// This isn't necessarily a "local.Local" backend, which provides local
-	// operations, however that is the only current implementation. A
-	// "local.Local" backend also doesn't necessarily provide local state, as
-	// that may be delegated to a "remotestate.Backend".
-	local, ok := b.(backendrun.Local)
-	if !ok {
-		c.Ui.Error(ErrUnsupportedLocalOp)
-		return 1
-	}
-
-	// Build the operation
-	var err error
-	opReq := c.Operation(b, arguments.ViewHuman)
-	opReq.ConfigDir = parsedArgs.ConfigPath
-	opReq.ConfigLoader, err = c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
-	}
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
-
-	{
-		// Collect variable value and add them to the operation request
-		var varDiags tfdiags.Diagnostics
-		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
-			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
-		})
-		diags = diags.Append(varDiags)
-
-		if varDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-
-		c.VariableValues = opReq.Variables
-	}
-	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
-
 	// Load the full config, so we can verify that the target resource is
 	// already configured.
-	config, configDiags := c.loadConfig(parsedArgs.ConfigPath)
+	config, configDiags := c.loadConfig(configPath)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -197,6 +163,48 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Load the backend
+	b, backendDiags := c.Backend(&BackendOpts{
+		BackendConfig: config.Module.Backend,
+	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// We require a backendrun.Local to build a context.
+	// This isn't necessarily a "local.Local" backend, which provides local
+	// operations, however that is the only current implementation. A
+	// "local.Local" backend also doesn't necessarily provide local state, as
+	// that may be delegated to a "remotestate.Backend".
+	local, ok := b.(backendrun.Local)
+	if !ok {
+		c.Ui.Error(ErrUnsupportedLocalOp)
+		return 1
+	}
+
+	// Build the operation
+	opReq := c.Operation(b, arguments.ViewHuman)
+	opReq.ConfigDir = configPath
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
+	{
+		var moreDiags tfdiags.Diagnostics
+		opReq.Variables, moreDiags = c.collectVariableValues()
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
+
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
@@ -228,7 +236,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				LegacyID:   parsedArgs.ID,
+				LegacyID:   args[1],
 			},
 		},
 

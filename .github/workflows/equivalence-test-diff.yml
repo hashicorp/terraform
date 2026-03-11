@@ -12,6 +12,9 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   equivalence-test-diff:
     name: "Equivalence Test Diff"
@@ -19,14 +22,14 @@ jobs:
 
     steps:
       - name: Fetch source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
@@ -57,8 +60,6 @@ jobs:
       - name: Equivalence tests failed
         if: steps.equivalence-tests.outputs.exit-code == 1 # 1 is the exit code for failure
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "The equivalence tests failed. Please investigate [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
@@ -67,8 +68,6 @@ jobs:
       - name: Equivalence tests changed
         if: steps.equivalence-tests.outputs.exit-code == 2 # 2 is the exit code for changed
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "The equivalence tests will be updated. Please verify the changes [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."

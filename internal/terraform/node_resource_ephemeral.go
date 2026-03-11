@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -76,13 +76,6 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, ctx.Path().Module())
-	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, inp.addr.String()))
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
 	if !unmarkedConfigVal.IsWhollyKnown() {

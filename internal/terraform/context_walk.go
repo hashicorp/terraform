@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -202,6 +201,5 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
 		Actions:                 actions.NewActions(),
-		Deprecations:            deprecation.NewDeprecations(),
 	}
 }

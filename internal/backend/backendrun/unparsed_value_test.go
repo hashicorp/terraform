@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendrun
@@ -11,14 +11,13 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestUnparsedValue(t *testing.T) {
-	vv := map[string]arguments.UnparsedVariableValue{
+	vv := map[string]UnparsedVariableValue{
 		"undeclared0": testUnparsedVariableValue("0"),
 		"undeclared1": testUnparsedVariableValue("1"),
 		"undeclared2": testUnparsedVariableValue("2"),

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package initwd
@@ -30,8 +30,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type Initializer func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics)
-
 type ModuleInstaller struct {
 	modsDir string
 	loader  *configload.Loader
@@ -44,8 +42,6 @@ type ModuleInstaller struct {
 	// The keys in moduleVersionsUrl are the moduleVersion struct below and
 	// addresses and the values are underlying remote source addresses.
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
-
-	initializer Initializer
 }
 
 type moduleVersion struct {
@@ -53,14 +49,13 @@ type moduleVersion struct {
 	version string
 }
 
-func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client, initializer Initializer) *ModuleInstaller {
+func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
 		modsDir:                 modsDir,
 		loader:                  loader,
 		reg:                     reg,
 		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
-		initializer:             initializer,
 	}
 }
 
@@ -142,31 +137,8 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	var cfg *configs.Config
-	var instDiags tfdiags.Diagnostics
-	if i.initializer != nil {
-		cfg, instDiags = i.initializer(rootMod, walker)
-		diags = diags.Append(instDiags)
-	} else {
-		cfg, instDiags = i.installDescendantModules(rootMod, walker, installErrsOnly)
-		diags = diags.Append(instDiags)
-	}
-
-	finalDiags := configs.FinalizeConfig(cfg, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-	diags = diags.Append(finalDiags)
-
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	err = manifest.WriteSnapshotToDir(i.modsDir)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to update module manifest",
-			fmt.Sprintf("Unable to write the module manifest file: %s", err),
-		))
-	}
+	cfg, instDiags := i.installDescendantModules(rootMod, manifest, walker, installErrsOnly)
+	diags = append(diags, instDiags...)
 
 	return cfg, diags
 }
@@ -320,7 +292,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// When attempting to initialize the current directory with a module
@@ -358,6 +330,15 @@ func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, inst
 		// We continue below because writing the manifest is required to finish
 		// module installation.
 		diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
+	}
+
+	err := manifest.WriteSnapshotToDir(i.modsDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to update module manifest",
+			fmt.Sprintf("Unable to write the module manifest file: %s", err),
+		))
 	}
 
 	return cfg, diags

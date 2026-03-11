@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -25,13 +27,18 @@ type StateShowCommand struct {
 }
 
 func (c *StateShowCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStateShow(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("state show")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Streams.Eprintf("Error parsing command-line flags: %s\n", err.Error())
 		return 1
 	}
-
-	c.Meta.statePath = parsedArgs.StatePath
+	args = cmdFlags.Args()
+	if len(args) != 1 {
+		c.Streams.Eprint("Exactly one argument expected.\n")
+		return cli.RunResultHelp
+	}
 
 	// Check for user-supplied plugin path
 	var err error
@@ -41,10 +48,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(backendDiags)
 		return 1
 	}
 
@@ -59,9 +65,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	// Check if the address can be parsed
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
 	if addrDiags.HasErrors() {
-		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, parsedArgs.Address))
+		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, args[0]))
 		return 1
 	}
 
@@ -142,7 +148,6 @@ func (c *StateShowCommand) Run(args []string) int {
 	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
 	if err != nil {
 		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
-		return 1
 	}
 
 	jstate := jsonformat.State{

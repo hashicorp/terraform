@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -6,7 +6,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -107,15 +106,7 @@ func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalCo
 	errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, &addr)
 	diags = diags.Append(moreDiags)
 
-	_, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(errorMessage, ctx.Path().Module(), rule.ErrorMessage.Range().Ptr())
-	diags = diags.Append(deprecationDiags)
-
-	// NOTE: We've discarded any other marks the string might have been carrying,
-	// aside from the sensitive mark.
-	errorMessage, _ = errorMessage.Unmark()
-	errorMessageStr := strings.TrimSpace(errorMessage.AsString())
-
-	return errorMessageStr, hclCtx, diags
+	return errorMessage, hclCtx, diags
 }
 
 func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContext, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
@@ -168,10 +159,6 @@ func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContex
 		})
 		return checkResult{Status: checks.StatusError}, diags
 	}
-
-	resultVal, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(resultVal, addr.ModuleInstance().Module(), rule.Condition.Range().Ptr())
-	diags = diags.Append(deprecationDiags)
-
 	var err error
 	resultVal, err = convert.Convert(resultVal, cty.Bool)
 	if err != nil {

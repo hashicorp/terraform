@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
@@ -71,7 +71,7 @@ var IssensitiveFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		switch v := args[0]; {
-		case marks.Has(v, marks.Sensitive):
+		case v.HasMark(marks.Sensitive):
 			return cty.True, nil
 		case !v.IsKnown():
 			return cty.UnknownVal(cty.Bool), nil

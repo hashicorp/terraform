@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -13,13 +13,13 @@ import (
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -169,7 +169,7 @@ func TestShowJSON(t *testing.T) {
 		},
 	}
 
-	config, _, configCleanup := tftesting.MustLoadConfigForTests(t, "./testdata/show", "tests")
+	config, _, configCleanup := initwd.MustLoadConfigForTests(t, "./testdata/show", "tests")
 	defer configCleanup()
 
 	for name, testCase := range testCases {

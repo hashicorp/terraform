@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package hooks
@@ -116,10 +116,4 @@ type ResourceInstanceChange struct {
 type DeferredResourceInstanceChange struct {
 	Reason providers.DeferredReason
 	Change *ResourceInstanceChange
-}
-
-type ActionInvocation struct {
-	Addr         stackaddrs.AbsActionInvocationInstance
-	ProviderAddr addrs.Provider
-	Trigger      plans.ActionTrigger
 }

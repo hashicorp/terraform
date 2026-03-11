@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -13,10 +13,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -269,19 +267,9 @@ func TestTest_Verbose(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	rootMod, hclDiags := loader.LoadRootModuleWithTests(directory, "tests")
-	if hclDiags.HasErrors() {
-		t.Fatalf("failed to load root module: %v", hclDiags.Error())
-	}
-
-	config, configDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, configDiags := loader.LoadConfigWithTests(directory, "tests")
 	if configDiags.HasErrors() {
-		t.Fatalf("failed to load config: %v", configDiags.Err())
+		t.Fatalf("failed to load config: %v", configDiags.Error())
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
@@ -676,19 +664,9 @@ func TestTest_ForceCancel(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	rootMod, hclDiags := loader.LoadRootModuleWithTests("testdata/test-force-cancel", "tests")
-	if hclDiags.HasErrors() {
-		t.Fatalf("failed to load root module: %v", hclDiags.Error())
-	}
-
-	config, configDiags := terraform.BuildConfigWithGraph(
-		rootMod,
-		loader.ModuleWalker(),
-		nil,
-		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
-	)
+	config, configDiags := loader.LoadConfigWithTests("testdata/test-force-cancel", "tests")
 	if configDiags.HasErrors() {
-		t.Fatalf("failed to load config: %v", configDiags.Err())
+		t.Fatalf("failed to load config: %v", configDiags.Error())
 	}
 
 	streams, outputFn := terminal.StreamsForTesting(t)

@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -171,9 +170,6 @@ type MockEvalContext struct {
 
 	ActionsCalled bool
 	ActionsState  *actions.Actions
-
-	DeprecationCalled bool
-	DeprecationState  *deprecation.Deprecations
 }
 
 // MockEvalContext implements EvalContext
@@ -454,12 +450,4 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 func (c *MockEvalContext) Actions() *actions.Actions {
 	c.ActionsCalled = true
 	return c.ActionsState
-}
-
-func (c *MockEvalContext) Deprecations() *deprecation.Deprecations {
-	c.DeprecationCalled = true
-	if c.DeprecationState != nil {
-		return c.DeprecationState
-	}
-	return deprecation.NewDeprecations()
 }

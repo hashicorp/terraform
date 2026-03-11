@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2014, 2026
+// Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -42,7 +42,7 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 
 	if n.ConditionExpr != nil {
 		// We know this must be a lifecycle action, otherwise we would have no condition
-		at := actionInvocation.ActionTrigger.(*plans.ResourceActionTrigger)
+		at := actionInvocation.ActionTrigger.(*plans.LifecycleActionTrigger)
 		condition, conditionDiags := evaluateActionCondition(ctx, actionConditionContext{
 			// For applying the triggering event is sufficient, if the condition could not have
 			// been evaluated due to in invalid mix of events we would have caught it durin planning.
