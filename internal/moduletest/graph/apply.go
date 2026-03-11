@@ -52,9 +52,6 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// Note: we intentionally do NOT promote warnings here in strict mode.
 	// The plan phase of an apply is a stepping stone — check block warnings
 	// from planning are filtered out below and re-evaluated during apply.
-	// Promoting them here would break the expect_failures mechanism.
-	// Strict promotion for apply diagnostics happens in
-	// checkForMissingExpectedFailures instead.
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -77,6 +74,11 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 	// execute the apply operation
 	applyScope, updated, applyDiags := apply(tfCtx, run.Config, run.ModuleConfig, plan, moduletest.Running, variables, providers, waiter)
+
+	// Apply strictness to diags if needed
+	if ctx.Strict() {
+		applyDiags = moduletest.PromoteWarningsToErrors(applyDiags)
+	}
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.
@@ -187,10 +189,6 @@ func checkForMissingExpectedFailures(ctx *EvalContext, config *configs.TestRun, 
 	// Retrieve and append diagnostics that are either unrelated to expected failures
 	// or report missing expected failures.
 	unexpectedDiags := moduletest.ValidateExpectedFailures(config, originals)
-
-	if ctx.Strict() {
-		unexpectedDiags = moduletest.PromoteWarningsToErrors(unexpectedDiags)
-	}
 
 	status := moduletest.Pass
 	for _, diag := range unexpectedDiags {
