@@ -9,6 +9,9 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // schema command.
 type ProvidersSchema struct {
 	JSON bool
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseProvidersSchema processes CLI arguments, returning a ProvidersSchema
@@ -16,9 +19,11 @@ type ProvidersSchema struct {
 // still returned representing the best effort interpretation of the arguments.
 func ParseProvidersSchema(args []string) (*ProvidersSchema, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	providersSchema := &ProvidersSchema{}
+	providersSchema := &ProvidersSchema{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("providers schema")
+	cmdFlags := extendedFlagSet("providers schema", nil, nil, providersSchema.Vars)
 	cmdFlags.BoolVar(&providersSchema.JSON, "json", false, "produce JSON output")
 
 	if err := cmdFlags.Parse(args); err != nil {
