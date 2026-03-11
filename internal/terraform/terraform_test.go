@@ -121,6 +121,12 @@ func testLoadWithSnapshot(dir string, loader *configload.Loader, vars InputValue
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...configs.Option) *configs.Config {
+	return testModuleInlineWithVars(t, sources, nil, parserOpts...)
+}
+
+// testModuleInlineWithVars is the same as testModuleInline but also allows passing in variable values to be used when loading the config.
+func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars InputValues, parserOpts ...configs.Option) *configs.Config {
+
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -178,7 +184,7 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 	config, buildDiags := BuildConfigWithGraph(
 		rootMod,
 		loader.ModuleWalker(),
-		nil, // no variables needed for this helper
+		vars,
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	if buildDiags.HasErrors() {

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -633,6 +634,86 @@ module "nested" {
 					},
 				})
 			},
+		},
+
+		"const variable with passing validation": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.name != ""
+    error_message = "must not be empty"
+  }
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("example"), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"const variable with failing validation": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.name != "bad"
+    error_message = "must not be bad"
+  }
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("bad"), SourceType: ValueFromCLIArg},
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail:   fmt.Sprintf("must not be bad\n\nThis was checked by the validation rule at %s.", m.Variables["name"].Validations[0].DeclRange.String()),
+					Subject:  m.Variables["name"].DeclRange.Ptr(),
+				})
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/bad"),
+			}},
+		},
+
+		"non-const variable validation does not run during init": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type    = string
+  default = "bad"
+
+  validation {
+    condition     = var.name != "bad"
+    error_message = "must not be bad"
+  }
+}
+module "example" {
+    source = "./modules/fixed"
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/fixed"),
+			}},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

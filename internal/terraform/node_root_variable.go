@@ -27,9 +27,8 @@ type NodeRootVariable struct {
 	// set at all.
 	RawValue *InputValue
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for this variable
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -102,7 +101,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		})
 	}
 
-	if n.Planning {
+	if n.ValidateChecks {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(addrs.RootModule)) {
 			ctx.Checks().ReportCheckableObjects(
 				n.Addr.InModule(addrs.RootModule),

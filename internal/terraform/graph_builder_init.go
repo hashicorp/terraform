@@ -36,13 +36,15 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 
 	if b.Config.Parent == nil {
 		steps = append(steps, &RootVariableTransformer{
-			Config:    b.Config,
-			RawValues: b.RootVariableValues,
+			Config:         b.Config,
+			RawValues:      b.RootVariableValues,
+			ValidateChecks: true,
 		})
 	} else {
 		steps = append(steps, &ModuleVariableTransformer{
-			Config:     b.Config,
-			ModuleOnly: true,
+			Config:         b.Config,
+			ModuleOnly:     true,
+			ValidateChecks: true,
 		})
 	}
 
@@ -73,6 +75,8 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 				}
 			},
 		},
+
+		&variableValidationTransformer{},
 
 		&RootTransformer{},
 
