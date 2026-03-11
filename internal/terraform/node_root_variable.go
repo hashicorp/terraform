@@ -110,19 +110,43 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	finalVal, moreDiags := PrepareFinalInputVariableValue(
-		addr,
-		givenVal,
-		n.Config,
-	)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		// No point in proceeding to validations then, because they'll
-		// probably fail trying to work with a value of the wrong type.
-		return diags
-	}
+	// During init we only want to prepare the final value for const variables.
+	if op == walkInit {
+		var finalVal cty.Value
+		if n.Config.Const {
+			var moreDiags tfdiags.Diagnostics
+			finalVal, moreDiags = PrepareFinalInputVariableValue(
+				addr,
+				givenVal,
+				n.Config,
+			)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				// No point in proceeding to validations then, because they'll
+				// probably fail trying to work with a value of the wrong type.
+				return diags
+			}
+		} else {
+			// All non-const variables are unknown during init.
+			finalVal = cty.UnknownVal(n.Config.Type)
+		}
+		ctx.NamedValues().SetInputVariableValue(addr, finalVal)
 
-	ctx.NamedValues().SetInputVariableValue(addr, finalVal)
+	} else {
+		finalVal, moreDiags := PrepareFinalInputVariableValue(
+			addr,
+			givenVal,
+			n.Config,
+		)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			// No point in proceeding to validations then, because they'll
+			// probably fail trying to work with a value of the wrong type.
+			return diags
+		}
+
+		ctx.NamedValues().SetInputVariableValue(addr, finalVal)
+	}
 
 	// Custom validation rules are handled by a separate graph node of type
 	// nodeVariableValidation, added by variableValidationTransformer.

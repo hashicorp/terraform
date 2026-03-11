@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: Terraform now supports variables and locals in module source and version attributes
+time: 2026-02-26T17:54:31.157412+01:00
+custom:
+    Issue: "38217"

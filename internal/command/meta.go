@@ -186,6 +186,8 @@ type Meta struct {
 	// flag is set, to reinforce that experiments are not for production use.
 	AllowExperimentalFeatures bool
 
+	VariableValues map[string]arguments.UnparsedVariableValue
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
@@ -823,19 +825,13 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
 	pwd, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
 		return diags
 	}
 
-	config, configDiags := loader.LoadConfig(pwd)
+	config, configDiags := m.loadConfig(pwd)
 	if configDiags.HasErrors() {
 		diags = diags.Append(configDiags)
 		return diags

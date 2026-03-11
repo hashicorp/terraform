@@ -29,6 +29,10 @@ import (
 type ModuleVariableTransformer struct {
 	Config *configs.Config
 
+	// ModuleOnly, if true, makes the transformer only process the
+	// variables in the current module, skipping any child modules.
+	ModuleOnly bool
+
 	// Planning must be set to true when building a planning graph, and must be
 	// false when building an apply graph.
 	Planning bool
@@ -39,7 +43,11 @@ type ModuleVariableTransformer struct {
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
-	return t.transform(g, nil, t.Config)
+	if t.ModuleOnly && t.Config.Parent != nil {
+		return t.transformSingle(g, t.Config.Parent, t.Config)
+	} else {
+		return t.transform(g, nil, t.Config)
+	}
 }
 
 func (t *ModuleVariableTransformer) transform(g *Graph, parent, c *configs.Config) error {

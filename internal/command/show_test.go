@@ -6,6 +6,7 @@ package command
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -533,7 +534,7 @@ func TestShow_state(t *testing.T) {
 
 func TestShow_json_output(t *testing.T) {
 	fixtureDir := "testdata/show-json"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -584,7 +585,7 @@ func TestShow_json_output(t *testing.T) {
 				t.Fatalf("unexpected err: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}

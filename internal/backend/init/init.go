@@ -93,6 +93,13 @@ func Backend(name string) backend.InitFn {
 	return backends[name]
 }
 
+func BackendExists(name string) bool {
+	backendsLock.Lock()
+	defer backendsLock.Unlock()
+	_, ok := backends[name]
+	return ok
+}
+
 // Set sets a new backend in the list of backends. If f is nil then the
 // backend will be removed from the map. If this backend already exists
 // then it will be overwritten.
