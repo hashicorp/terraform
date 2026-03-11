@@ -24,6 +24,9 @@ type Graph struct {
 
 	// Plan is the path to a saved plan file to render as a graph.
 	Plan string
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseGraph processes CLI arguments, returning a Graph value and errors.
@@ -33,9 +36,10 @@ func ParseGraph(args []string) (*Graph, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	graph := &Graph{
 		ModuleDepth: -1,
+		Vars:        &Vars{},
 	}
 
-	cmdFlags := defaultFlagSet("graph")
+	cmdFlags := extendedFlagSet("graph", nil, nil, graph.Vars)
 	cmdFlags.BoolVar(&graph.DrawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.StringVar(&graph.GraphType, "type", "", "type")
 	cmdFlags.IntVar(&graph.ModuleDepth, "module-depth", -1, "module-depth")

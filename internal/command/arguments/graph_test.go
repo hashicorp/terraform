@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -19,6 +20,7 @@ func TestParseGraph_valid(t *testing.T) {
 			nil,
 			&Graph{
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"plan type": {
@@ -26,6 +28,7 @@ func TestParseGraph_valid(t *testing.T) {
 			&Graph{
 				GraphType:   "plan",
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"apply type": {
@@ -33,6 +36,7 @@ func TestParseGraph_valid(t *testing.T) {
 			&Graph{
 				GraphType:   "apply",
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"draw-cycles": {
@@ -41,6 +45,7 @@ func TestParseGraph_valid(t *testing.T) {
 				DrawCycles:  true,
 				GraphType:   "plan",
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"plan file": {
@@ -48,6 +53,7 @@ func TestParseGraph_valid(t *testing.T) {
 			&Graph{
 				Plan:        "tfplan",
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"verbose": {
@@ -55,12 +61,14 @@ func TestParseGraph_valid(t *testing.T) {
 			&Graph{
 				Verbose:     true,
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 		},
 		"module-depth": {
 			[]string{"-module-depth=2"},
 			&Graph{
 				ModuleDepth: 2,
+				Vars:        &Vars{},
 			},
 		},
 		"all flags": {
@@ -71,9 +79,12 @@ func TestParseGraph_valid(t *testing.T) {
 				Plan:        "tfplan",
 				Verbose:     true,
 				ModuleDepth: 3,
+				Vars:        &Vars{},
 			},
 		},
 	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -81,7 +92,7 @@ func TestParseGraph_valid(t *testing.T) {
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n%s", diff)
 			}
 		})
@@ -98,6 +109,7 @@ func TestParseGraph_invalid(t *testing.T) {
 			[]string{"-wat"},
 			&Graph{
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -111,6 +123,7 @@ func TestParseGraph_invalid(t *testing.T) {
 			[]string{"extra"},
 			&Graph{
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -124,6 +137,7 @@ func TestParseGraph_invalid(t *testing.T) {
 			[]string{"bad", "bad"},
 			&Graph{
 				ModuleDepth: -1,
+				Vars:        &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -135,13 +149,59 @@ func TestParseGraph_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseGraph(tc.args)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n%s", diff)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
+		})
+	}
+}
+
+func TestParseGraph_vars(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want []FlagNameValue
+	}{
+		"var": {
+			args: []string{"-var", "foo=bar"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+			},
+		},
+		"var-file": {
+			args: []string{"-var-file", "cool.tfvars"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
+			},
+		},
+		"both": {
+			args: []string{
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
+			},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseGraph(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected vars: %#v", vars)
+			}
 		})
 	}
 }
