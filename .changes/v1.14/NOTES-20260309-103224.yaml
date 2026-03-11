@@ -1,5 +1,0 @@
-kind: NOTES
-body: Bump Go version to 1.25.8 to suppress security scanner false positives
-time: 2026-03-09T10:32:24.001091+01:00
-custom:
-    Issue: "38249"
