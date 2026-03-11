@@ -61,6 +61,23 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	reqs, moreDiags := config.ProviderRequirements()
@@ -350,21 +367,30 @@ Usage: terraform [global options] providers mirror [options] <target-dir>
 
 Options:
 
-  -platform=os_arch  Choose which target platform to build a mirror for.
-                     By default Terraform will obtain plugin packages
-                     suitable for the platform where you run this command.
-                     Use this flag multiple times to include packages for
-                     multiple target systems.
+  -platform=os_arch   Choose which target platform to build a mirror for.
+                      By default Terraform will obtain plugin packages
+                      suitable for the platform where you run this command.
+                      Use this flag multiple times to include packages for
+                      multiple target systems.
 
-                     Target names consist of an operating system and a CPU
-                     architecture. For example, "linux_amd64" selects the
-                     Linux operating system running on an AMD64 or x86_64
-                     CPU. Each provider is available only for a limited
-                     set of target platforms.
+                      Target names consist of an operating system and a CPU
+                      architecture. For example, "linux_amd64" selects the
+                      Linux operating system running on an AMD64 or x86_64
+                      CPU. Each provider is available only for a limited
+                      set of target platforms.
 
-  -lock-file=false  Ignore the provider lock file when fetching providers.
-                    By default the mirror command will use the version info
-                    in the lock file if the configuration directory has been
-                    previously initialized.
+  -lock-file=false    Ignore the provider lock file when fetching providers.
+                      By default the mirror command will use the version info
+                      in the lock file if the configuration directory has been
+                      previously initialized.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `
 }
