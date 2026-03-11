@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -37,6 +38,11 @@ type StateStore struct {
 	// This is required for accessing provider factories during Terraform command logic,
 	// and is used in diagnostics
 	ProviderAddr tfaddr.Provider
+
+	// ProviderSupplyMode describes how the provider used for state storage was supplied to Terraform.
+	// This is needed when handling provider version data; unmanaged and builtin providers have no version data available.
+	// This value is ultimately recorded in the backend state file alongside the provider version data (which may be null).
+	ProviderSupplyMode supplymode.ProviderSupplyMode
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
@@ -102,6 +108,24 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 			LabelNames: []string{"type"},
 		},
 	},
+}
+
+func (s *StateStore) SetProviderSupplyMode(isDevOverride bool) {
+	isReattached, err := reattach.IsProviderReattached(s.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", s.ProviderAddr.ForDisplay(), err))
+	}
+	switch {
+	case s.ProviderAddr.IsBuiltIn():
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeBuiltIn
+	case isReattached:
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeReattached
+	case isDevOverride:
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeDevOverride
+	default:
+		// assume provider is managed if nothing indicates otherwise.
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+	}
 }
 
 // resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
