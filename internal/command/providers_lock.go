@@ -99,6 +99,23 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		source = getproviders.NewRegistrySource(c.Services)
 	}
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	config, confDiags := c.loadConfigWithTests(".", parsedArgs.TestsDirectory)
 	diags = diags.Append(confDiags)
 	reqs, hclDiags := config.ProviderRequirements()
@@ -393,7 +410,16 @@ Options:
                          This will speed up the locking process, but the providers
                          won't be loaded from an authoritative source.
 
-  -test-directory=path	 Set the Terraform test directory, defaults to "tests".
+  -test-directory=path   Set the Terraform test directory, defaults to "tests".
+
+  -var 'foo=bar'         Set a value for one of the input variables in the root
+                         module of the configuration. Use this option more than
+                         once to set more than one variable.
+
+  -var-file=filename     Load variable values from the given file, in addition
+                         to the default files terraform.tfvars and *.auto.tfvars.
+                         Use this option more than once to include more than one
+                         variables file.
 `
 }
 
