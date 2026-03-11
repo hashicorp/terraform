@@ -196,10 +196,7 @@ func GetVariables(ctx *EvalContext, run *configs.TestRun, module *configs.Config
 // This function is essentially the opposite of AddVariablesToConfig which
 // makes the config match the variables rather than the variables match the
 // config.
-//
-// This function can only return warnings, and the callers can rely on this so
-// please check the callers of this function if you add any error diagnostics.
-func FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
+func FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues) {
 	moduleVars = make(terraform.InputValues)
 	testOnlyVars = make(terraform.InputValues)
 	for name, value := range values {
@@ -212,5 +209,5 @@ func FilterVariablesToModule(config *configs.Config, values terraform.InputValue
 
 		moduleVars[name] = value
 	}
-	return moduleVars, testOnlyVars, diags
+	return moduleVars, testOnlyVars
 }

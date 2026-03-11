@@ -174,6 +174,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			CancelledCtx:        cancelCtx,
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
+			Strict:              args.Strict,
 			Concurrency:         args.RunParallelism,
 			DeferralAllowed:     args.DeferralAllowed,
 		}

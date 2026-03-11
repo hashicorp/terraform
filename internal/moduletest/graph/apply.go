@@ -30,8 +30,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := FilterVariablesToModule(run.ModuleConfig, variables)
-	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
+	setVariables, testOnlyVariables := FilterVariablesToModule(run.ModuleConfig, variables)
 
 	// ignore diags because validate has covered it
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
@@ -42,6 +41,9 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// Any error during the planning prevents our apply from
 	// continuing which is an error.
 	planDiags = moduletest.ExplainExpectedFailures(run.Config, planDiags)
+	// Note: we intentionally do NOT promote warnings here in strict mode.
+	// The plan phase of an apply is a stepping stone — check block warnings
+	// from planning are filtered out below and re-evaluated during apply.
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -64,6 +66,11 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 	// execute the apply operation
 	applyScope, updated, applyDiags := apply(tfCtx, run.Config, run.ModuleConfig, plan, moduletest.Running, variables, providers, waiter)
+
+	// Apply strictness to diags if needed
+	if ctx.Strict() {
+		applyDiags = moduletest.PromoteWarningsToErrors(applyDiags)
+	}
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.

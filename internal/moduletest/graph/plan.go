@@ -29,8 +29,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := FilterVariablesToModule(run.ModuleConfig, variables)
-	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
+	setVariables, testOnlyVariables := FilterVariablesToModule(run.ModuleConfig, variables)
 
 	// ignore diags because validate has covered it
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
@@ -40,6 +39,10 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	// We exclude the diagnostics that are expected to fail from the plan
 	// diagnostics, and if an expected failure is not found, we add a new error diagnostic.
 	planDiags := moduletest.ValidateExpectedFailures(run.Config, originalDiags)
+
+	if ctx.Strict() {
+		planDiags = moduletest.PromoteWarningsToErrors(planDiags)
+	}
 
 	if ctx.Verbose() {
 		// in verbose mode, we still add all the original diagnostics for

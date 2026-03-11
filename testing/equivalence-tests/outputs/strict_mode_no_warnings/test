@@ -1,0 +1,3 @@
+main.tftest.hcl... pass
+  run "test"... pass
+Success! 1 passed, 0 failed.

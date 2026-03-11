@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'Terraform Test: Add strict mode'
+time: 2026-03-03T08:35:43.709504+01:00
+custom:
+    Issue: "38224"

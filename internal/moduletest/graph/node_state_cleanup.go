@@ -122,7 +122,7 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	// Anything that would have been reported here was already reported during
 	// the original plan, and a successful destroy operation is the only thing
 	// we care about.
-	setVariables, _, _ := FilterVariablesToModule(module, variables)
+	setVariables, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.NormalMode,
@@ -174,7 +174,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	// Anything that would have been reported here was already reported during
 	// the original plan, and a successful destroy operation is the only thing
 	// we care about.
-	setVariables, _, _ := FilterVariablesToModule(module, variables)
+	setVariables, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
 		Mode:                      plans.DestroyMode,

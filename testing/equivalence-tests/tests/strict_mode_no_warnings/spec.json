@@ -1,0 +1,20 @@
+{
+  "description": "tests that terraform test -strict passes cleanly when no warnings are produced",
+  "include_files": [],
+  "ignore_fields": {},
+  "commands": [
+    {
+      "name": "init",
+      "arguments": ["init"],
+      "capture_output": false
+    },
+    {
+      "name": "test_strict",
+      "arguments": ["test", "-strict", "-no-color"],
+      "capture_output": true,
+      "output_file_name": "test",
+      "has_json_output": false,
+      "streams_json_output": false
+    }
+  ]
+}
