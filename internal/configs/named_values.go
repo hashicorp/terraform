@@ -144,6 +144,25 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		v.ConstSet = true
 	}
 
+	if v.Const {
+		if v.Sensitive {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Const variable cannot be sensitive",
+				Detail:   "A variable that is marked as \"const\" cannot also be marked as \"sensitive\".",
+				Subject:  v.DeclRange.Ptr(),
+			})
+		}
+		if v.Ephemeral {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Const variable cannot be ephemeral",
+				Detail:   "A variable that is marked as \"const\" cannot also be marked as \"ephemeral\".",
+				Subject:  v.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	if attr, exists := content.Attributes["nullable"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Nullable)
 		diags = append(diags, valDiags...)
