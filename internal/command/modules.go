@@ -48,6 +48,23 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 	// Set up the command's view
 	view := views.NewModules(c.viewType, c.View)
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	rootModPath, err := ModulePath([]string{})
 	if err != nil {
 		diags = diags.Append(err)
@@ -127,6 +144,15 @@ Usage: terraform [global options] modules [options]
 
 Options:
 
-  -json            If specified, output declared Terraform modules and
-                   their resolved versions in a machine-readable format.
+  -json               If specified, output declared Terraform modules and
+                      their resolved versions in a machine-readable format.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `
