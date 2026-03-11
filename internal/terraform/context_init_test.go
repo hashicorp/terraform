@@ -138,7 +138,7 @@ module "example" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid module source`,
-					Detail:   `The value of a reference in the module source is unknown.`,
+					Detail:   "The value of a reference in the module source is unknown." + constVariableDetail,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 6, Column: 27, Byte: 82},
@@ -625,7 +625,7 @@ module "nested" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Invalid module source`,
-					Detail:   `The value of a reference in the module source is unknown.`,
+					Detail:   "The value of a reference in the module source is unknown." + constVariableDetail,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(mc["./modules/example"].SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 7, Column: 27, Byte: 82},
