@@ -15,9 +15,11 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-var _ ConfigState = &BackendConfigState{}
-var _ DeepCopier[BackendConfigState] = &BackendConfigState{}
-var _ PlanDataProvider[plans.Backend] = &BackendConfigState{}
+var (
+	_ ConfigState                     = &BackendConfigState{}
+	_ DeepCopier[BackendConfigState]  = &BackendConfigState{}
+	_ PlanDataProvider[plans.Backend] = &BackendConfigState{}
+)
 
 // BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.
@@ -74,7 +76,7 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 // encode the backend-specific configuration settings.
 //
 // As backends are not implemented by providers, the provider schema argument should always be nil
-func (s *BackendConfigState) PlanData(schema *configschema.Block, _ *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *BackendConfigState) PlanData(schema *configschema.Block, _ *configschema.Block, workspaceName string, _ bool) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}

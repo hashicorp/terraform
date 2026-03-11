@@ -280,7 +280,7 @@ To make the initial dependency selections that will initialize the dependency lo
 // for the purpose of hashing, so that an incomplete configuration can still
 // be hashed. Other errors, such as extraneous attributes, have no such special
 // case.
-func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version) (int, tfdiags.Diagnostics) {
+func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version, isDevOverride bool) (int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// 1. Prepare the state_store hash
@@ -347,7 +347,8 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		}
 
 		if (b.ProviderAddr.Hostname != tfaddr.BuiltInProviderHost) &&
-			!isReattached {
+			!isReattached &&
+			!isDevOverride {
 			return 0, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unable to calculate hash of state store configuration",

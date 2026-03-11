@@ -232,7 +232,7 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		},
 	}
 
-	plan, err := s.PlanData(ssSchema, pSchema, workspace)
+	plan, err := s.PlanData(ssSchema, pSchema, workspace, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -285,5 +285,4 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		attrs := slices.Sorted(maps.Keys(valMap))
 		t.Fatalf("expected plan's provider config data to include one attribute called \"credentials\", instead got attribute(s): %s", attrs)
 	}
-
 }
