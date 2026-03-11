@@ -66,6 +66,7 @@ func (s *StateStoreConfigState) Validate() error {
 	if err != nil {
 		return fmt.Errorf("Unable to determine if state storage provider is reattached while validating backend state file contents. This is a bug in Terraform and should be reported: %w", err)
 	}
+	// TODO - how do we determine if s.Provider.Source is a dev override? Only the Meta has that data.
 	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
 		!isReattached {
 		if s.Provider.Version == nil {
@@ -113,7 +114,7 @@ func (s *StateStoreConfigState) SetConfig(val cty.Value, schema *configschema.Bl
 //
 // The state_store configuration schema is required in order to properly
 // encode the state store-specific configuration settings.
-func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string) (*plans.StateStore, error) {
+func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, providerSchema *configschema.Block, workspaceName string, isDeveloperOverride bool) (*plans.StateStore, error) {
 	if s == nil {
 		panic("PlanData called on a nil *StateStoreConfigState receiver. This is a bug in Terraform and should be reported.")
 	}
@@ -137,8 +138,9 @@ func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, provid
 	}
 
 	var providerVersion *version.Version
-	if s.Provider.Source.IsBuiltIn() || isReattached {
-		// For built-in providers and reattached providers, we don't require version information to be present in the state file, so we should be tolerant of it being missing. In this case we can just use a placeholder version that will never actually be used for anything, but allows us to avoid returning an error when trying to save state store data to a plan file.
+	if s.Provider.Source.IsBuiltIn() || isReattached || isDeveloperOverride {
+		// For built-in providers, reattached providers, and developer overrides, we don't require version information to be present in the state file, so we should be tolerant of it being missing.
+		// In this case we can just use a placeholder version that will never actually be used for anything, but allows us to avoid returning an error when trying to save state store data to a plan file.
 		providerVersion = version.Must(version.NewVersion("0.0.0"))
 	} else {
 		providerVersion = s.Provider.Version

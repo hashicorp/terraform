@@ -659,7 +659,8 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		p := lb.Backend.(*backendPluggable.Pluggable)
 		providerSchema = p.ProviderSchema()
 
-		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
+		isDeveloperOverride := m.isProviderDevOverride(*m.stateStoreConfigState.Provider.Source)
+		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace, isDeveloperOverride)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the state_store configuration
@@ -669,7 +670,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		}
 	default:
 		// Either backendConfigState is set, or it's nil; PlanData method can handle either.
-		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace, false)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the backend configuration
@@ -801,7 +802,8 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 
 	// Get the provider version from locks, as this impacts the hash
 	// NOTE: this assumes that we will never allow users to override config defining which provider is used for state storage
-	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks)
+	isDevOverride := m.isProviderDevOverride(c.ProviderAddr)
+	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks, isDevOverride)
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
 		return nil, 0, diags
@@ -859,7 +861,7 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 	// > Apply any overrides
 
 	configBody := c.Config
-	hash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body, stateStoreProviderVersion)
+	hash, diags := c.Hash(stateStoreSchema.Body, resp.Provider.Body, stateStoreProviderVersion, isDevOverride)
 
 	// If we have an override configuration body then we must apply it now.
 	if opts.ConfigOverride != nil {
@@ -2173,11 +2175,18 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 	// Store the state_store metadata in our saved state location
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
+	isDevOverride := m.isProviderDevOverride(c.ProviderAddr)
 	if c.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "State storage is using a builtin provider",
+			Summary:  "State store is from a builtin provider",
 			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	} else if isDevOverride {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store is from a developer override provider",
+			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 		})
 	} else {
 		isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
@@ -2188,14 +2197,14 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 		if isReattached {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "State storage provider is not managed by Terraform",
+				Summary:  "State store provider is not managed by Terraform",
 				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 			})
 		} else {
 			// The provider is not built in and is being managed by Terraform
 			// This is the most common scenario, by far.
 			var vDiags tfdiags.Diagnostics
-			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
+			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks, isDevOverride)
 			diags = diags.Append(vDiags)
 			if vDiags.HasErrors() {
 				return nil, diags
@@ -2405,11 +2414,18 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	}
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
+	isDevOverride := m.isProviderDevOverride(c.ProviderAddr)
 	if c.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "State storage is using a builtin provider",
+			Summary:  "State store is from a builtin provider",
 			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	} else if isDevOverride {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store is from a developer override provider",
+			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 		})
 	} else {
 		isReattached, err := reattach.IsProviderReattached(c.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
@@ -2420,14 +2436,14 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		if isReattached {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "State storage provider is not managed by Terraform",
+				Summary:  "State store provider is not managed by Terraform",
 				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 			})
 		} else {
 			// The provider is not built in and is being managed by Terraform
 			// This is the most common scenario, by far.
 			var vDiags tfdiags.Diagnostics
-			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
+			pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks, isDevOverride)
 			diags = diags.Append(vDiags)
 			if vDiags.HasErrors() {
 				return nil, diags
@@ -2699,29 +2715,36 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 	}
 
 	var pVersion *version.Version // This will remain nil for builtin providers or unmanaged providers.
+	isDevOverride := m.isProviderDevOverride(cfg.ProviderAddr)
 	if cfg.ProviderAddr.IsBuiltIn() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "State storage is using a builtin provider",
+			Summary:  "State store is from a builtin provider",
 			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	} else if isDevOverride {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store is from a developer override provider",
+			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 		})
 	} else {
 		isReattached, err := reattach.IsProviderReattached(cfg.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
 		if err != nil {
-			diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while initializing state store for the first time. This is a bug in Terraform and should be reported: %w", err))
+			diags = diags.Append(fmt.Errorf("Unable to determine if state store provider is reattached while initializing state store for the first time. This is a bug in Terraform and should be reported: %w", err))
 			return nil, diags
 		}
 		if isReattached {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
-				Summary:  "State storage provider is not managed by Terraform",
+				Summary:  "State store provider is not managed by Terraform",
 				Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
 			})
 		} else {
 			// The provider is not built in and is being managed by Terraform
 			// This is the most common scenario, by far.
 			var vDiags tfdiags.Diagnostics
-			pVersion, vDiags = getStateStorageProviderVersion(cfg, opts.Locks)
+			pVersion, vDiags = getStateStorageProviderVersion(cfg, opts.Locks, isDevOverride)
 			diags = diags.Append(vDiags)
 			if vDiags.HasErrors() {
 				return nil, diags
@@ -2772,7 +2795,7 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 //
 // This function assumes that calling code has checked whether the provider is fully managed by Terraform,
 // or is built-in, before using this method and is prepared to receive a nil Version.
-func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks) (*version.Version, tfdiags.Diagnostics) {
+func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks, isDevOverride bool) (*version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
 
@@ -2781,7 +2804,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 		diags = diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while determining the version in use. This is a bug in Terraform and should be reported: %w", err))
 		return nil, diags
 	}
-	if c.ProviderAddr.IsBuiltIn() || isReattached {
+	if c.ProviderAddr.IsBuiltIn() || isReattached || isDevOverride {
 		return nil, nil // nil Version returned
 	}
 
