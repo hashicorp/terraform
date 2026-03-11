@@ -84,6 +84,16 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get the context
 	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
@@ -296,23 +306,32 @@ Usage: terraform [global options] graph [options]
 
 Options:
 
-  -plan=tfplan     Render graph using the specified plan file instead of the
-                   configuration in the current directory. Implies -type=apply.
+  -plan=tfplan        Render graph using the specified plan file instead of the
+                      configuration in the current directory. Implies -type=apply.
 
-  -draw-cycles     Highlight any cycles in the graph with colored edges.
-                   This helps when diagnosing cycle errors. This option is
-                   supported only when illustrating a real evaluation graph,
-                   selected using the -type=TYPE option.
+  -draw-cycles        Highlight any cycles in the graph with colored edges.
+                      This helps when diagnosing cycle errors. This option is
+                      supported only when illustrating a real evaluation graph,
+                      selected using the -type=TYPE option.
 
-  -type=TYPE       Type of operation graph to output. Can be: plan,
-                   plan-refresh-only, plan-destroy, or apply. By default
-                   Terraform just summarizes the relationships between the
-                   resources in your configuration, without any particular
-                   operation in mind. Full operation graphs are more detailed
-                   but therefore often harder to read.
+  -type=TYPE          Type of operation graph to output. Can be: plan,
+                      plan-refresh-only, plan-destroy, or apply. By default
+                      Terraform just summarizes the relationships between the
+                      resources in your configuration, without any particular
+                      operation in mind. Full operation graphs are more detailed
+                      but therefore often harder to read.
 
-  -module-depth=n  (deprecated) In prior versions of Terraform, specified the
-                   depth of modules to show in the output.
+  -module-depth=n     (deprecated) In prior versions of Terraform, specified the
+                      depth of modules to show in the output.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `
 	return strings.TrimSpace(helpText)
 }
