@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -19,9 +20,12 @@ func TestParseProvidersSchema_valid(t *testing.T) {
 			[]string{"-json"},
 			&ProvidersSchema{
 				JSON: true,
+				Vars: &Vars{},
 			},
 		},
 	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -29,7 +33,7 @@ func TestParseProvidersSchema_valid(t *testing.T) {
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n%s", diff)
 			}
 		})
@@ -44,7 +48,9 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 	}{
 		"missing json": {
 			nil,
-			&ProvidersSchema{},
+			&ProvidersSchema{
+				Vars: &Vars{},
+			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -57,6 +63,7 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 			[]string{"-json", "extra"},
 			&ProvidersSchema{
 				JSON: true,
+				Vars: &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -68,7 +75,9 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		},
 		"unknown flag and missing json": {
 			[]string{"-wat"},
-			&ProvidersSchema{},
+			&ProvidersSchema{
+				Vars: &Vars{},
+			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -84,13 +93,60 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseProvidersSchema(tc.args)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n%s", diff)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
+		})
+	}
+}
+
+func TestParseProvidersSchema_vars(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want []FlagNameValue
+	}{
+		"var": {
+			args: []string{"-json", "-var", "foo=bar"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+			},
+		},
+		"var-file": {
+			args: []string{"-json", "-var-file", "cool.tfvars"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
+			},
+		},
+		"both": {
+			args: []string{
+				"-json",
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
+			},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseProvidersSchema(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected vars: %#v", vars)
+			}
 		})
 	}
 }
