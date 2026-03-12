@@ -57,14 +57,8 @@ func (f *File) FindBlocks(blockType, firstLabel string) []*Block {
 			continue
 		}
 		labels := block.Labels()
-		if firstLabel == "" {
-			if len(labels) == 0 {
-				result = append(result, &Block{block: block})
-			}
-		} else {
-			if len(labels) > 0 && labels[0] == firstLabel {
-				result = append(result, &Block{block: block})
-			}
+		if (firstLabel == "" && len(labels) == 0) || (len(labels) > 0 && labels[0] == firstLabel) {
+			result = append(result, &Block{block: block})
 		}
 	}
 	return result

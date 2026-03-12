@@ -40,7 +40,7 @@ func NewModule(files []*File, path string, editable bool, schemas *schemarepo.Sc
 	}
 }
 
-// Path returns the module path (e.g., "" for root, "child", "child.nested").
+// Path returns the filesystem directory this module was loaded from.
 func (m *Module) Path() string {
 	return m.path
 }
@@ -168,7 +168,8 @@ func isEditable(cfg *configs.Config) bool {
 	return isLocal
 }
 
-// parseModuleFiles discovers and parses all .tf files in a directory.
+// parseModuleFiles discovers and parses all .tf files in a directory,
+// skipping editor swap files and other ignored files.
 func parseModuleFiles(dir string) ([]*File, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -181,7 +182,7 @@ func parseModuleFiles(dir string) ([]*File, error) {
 			continue
 		}
 		name := entry.Name()
-		if !strings.HasSuffix(name, ".tf") {
+		if !strings.HasSuffix(name, ".tf") || configs.IsIgnoredFile(name) {
 			continue
 		}
 		path := filepath.Join(dir, name)
