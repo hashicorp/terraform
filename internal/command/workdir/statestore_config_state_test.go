@@ -264,12 +264,12 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		t.Fatal("expected plan to include provider data, but it was nil")
 	}
 	if plan.Provider.Version != s.Provider.Version {
-		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Provider.Version, s.Provider.Version)
 	}
 	if plan.Provider.Source.Hostname != s.Provider.Source.Hostname ||
 		plan.Provider.Source.Namespace != s.Provider.Source.Namespace ||
 		plan.Provider.Source.Type != s.Provider.Source.Type {
-		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+		t.Fatalf("incorrect provider Source value, got %q, want %q", plan.Provider.Source, s.Provider.Source)
 	}
 	// Config
 	imType, err = plan.Provider.Config.ImpliedType()
