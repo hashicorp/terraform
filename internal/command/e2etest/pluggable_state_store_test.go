@@ -106,7 +106,6 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	t.Chdir(tf.WorkDir())
 
 	//// INIT
-	t.Setenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE", "1")
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
