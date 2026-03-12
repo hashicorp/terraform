@@ -304,7 +304,7 @@ To make the initial dependency selections that will initialize the dependency lo
 // for the purpose of hashing, so that an incomplete configuration can still
 // be hashed. Other errors, such as extraneous attributes, have no such special
 // case.
-func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version, isDevOverride bool) (int, tfdiags.Diagnostics) {
+func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *configschema.Block, stateStoreProviderVersion *version.Version) (int, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// 1. Prepare the state_store hash
@@ -364,26 +364,23 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	}
 
 	var providerVersionString string
-	if stateStoreProviderVersion == nil {
-		isReattached, err := reattach.IsProviderReattached(b.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
-		if err != nil {
-			return 0, diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while hashing state store configuration. This is a bug in Terraform and should be reported: %w", err))
-		}
-
-		if (b.ProviderAddr.Hostname != tfaddr.BuiltInProviderHost) &&
-			!isReattached &&
-			!isDevOverride {
+	switch b.ProviderSupplyMode {
+	case supplymode.ProviderSupplyModeBuiltIn, supplymode.ProviderSupplyModeDevOverride, supplymode.ProviderSupplyModeReattached:
+		// We expect to not have version information in these situations.
+		// We'll use an empty string for the hash.
+		providerVersionString = ""
+	case supplymode.ProviderSupplyModeManaged:
+		if stateStoreProviderVersion == nil {
+			// Lack of version information indicates a problem; error
 			return 0, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unable to calculate hash of state store configuration",
 				Detail:   "Provider version data was missing during hash generation. This is a bug in Terraform and should be reported.",
 			})
 		}
-
-		// Version information can be empty but only if the provider is builtin or unmanaged by Terraform
-		providerVersionString = ""
-	} else {
 		providerVersionString = stateStoreProviderVersion.String()
+	default:
+		panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", b.ProviderAddr.Type, b.ProviderAddr.ForDisplay(), b.ProviderSupplyMode))
 	}
 
 	toHash := cty.TupleVal([]cty.Value{
