@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -3573,9 +3574,10 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
-			Type:      "test_store",
-			ConfigRaw: []byte("{\n      \"value\": \"foobar\"\n    }"),
-			Hash:      uint64(4158988729),
+			Type:               "test_store",
+			ConfigRaw:          []byte("{\n      \"value\": \"foobar\"\n    }"),
+			Hash:               uint64(4158988729),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 			Provider: &workdir.ProviderConfigState{
 				Version: v1_2_3,
 				Source: &tfaddr.Provider{
@@ -3905,9 +3907,10 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 	// This matches the backend state test fixture in "state-store-unchanged"
 	v1_2_3, _ := version.NewVersion("1.2.3")
 	expectedState := &workdir.StateStoreConfigState{
-		Type:      "test_store",
-		ConfigRaw: []byte("{\n            \"value\": \"foobar\"\n        }"),
-		Hash:      uint64(4158988729),
+		Type:               "test_store",
+		ConfigRaw:          []byte("{\n            \"value\": \"foobar\"\n        }"),
+		Hash:               uint64(4158988729),
+		ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 		Provider: &workdir.ProviderConfigState{
 			Version: v1_2_3,
 			Source: &tfaddr.Provider{
@@ -4076,9 +4079,10 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 		v1_2_3, _ := version.NewVersion("1.2.3")
 		expectedState := &workdir.StateStoreConfigState{
-			Type:      "test_store",
-			ConfigRaw: []byte("{\n      \"value\": \"changed-value\"\n    }"),
-			Hash:      uint64(1157855489), // The new hash after reconfiguring; this doesn't match the backend state test fixture
+			Type:               "test_store",
+			ConfigRaw:          []byte("{\n      \"value\": \"changed-value\"\n    }"),
+			Hash:               uint64(1157855489), // The new hash after reconfiguring; this doesn't match the backend state test fixture
+			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 			Provider: &workdir.ProviderConfigState{
 				Version: v1_2_3,
 				Source: &tfaddr.Provider{

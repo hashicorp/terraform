@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -89,7 +90,8 @@ func TestParseBackendStateFile(t *testing.T) {
 						},
 						"hash" : 12345
 					},
-					"hash" : 12345
+					"hash" : 12345,
+					"provider_supply_mode": "managed_by_terraform"
 				}
 			}`,
 			Want: &BackendStateFile{
@@ -105,7 +107,8 @@ func TestParseBackendStateFile(t *testing.T) {
 						"bucket": "my-bucket",
 						"region": "saturn"
 					}`),
-					Hash: 12345,
+					Hash:               12345,
+					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 				},
 			},
 		},
@@ -133,6 +136,26 @@ func TestParseBackendStateFile(t *testing.T) {
 				}
 			}`,
 			WantErr: `encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block`,
+		},
+		"detection of malformed state: missing 'provider_supply_mode' when state store is in use": {
+			Input: `{
+				"version": 3,
+				"terraform_version": "9.9.9",
+				"state_store": {
+					"type": "foobar_baz",
+					"config": {
+						"provider": "foobar",
+						"bucket": "my-bucket"
+					},
+					"provider": {
+						"version": "1.2.3",
+						"source": "registry.terraform.io/my-org/foobar",
+						"hash" : 12345
+					},
+					"hash" : 12345
+				}
+			}`,
+			WantErr: `encountered a malformed backend state file with a 'state_store' block that is missing the required 'provider_supply_mode' property`,
 		},
 	}
 
@@ -166,68 +189,144 @@ func TestEncodeBackendStateFile(t *testing.T) {
 	tfVersion := version.Version
 	tests := map[string]struct {
 		Input   *BackendStateFile
-		Envs    map[string]string
 		Want    []byte
 		WantErr string
 	}{
 		"encoding a backend state file when state_store is in use": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{"foo": "bar"}`),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
+					Type:               "foobar_baz",
+					Provider:           getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{"foo": "bar"}`),
+					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:               123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": \"1.2.3\",\n      \"source\": \"registry.terraform.io/my-org/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte(`{
+  "version": 3,
+  "terraform_version": "` + tfVersion + `",
+  "state_store": {
+    "type": "foobar_baz",
+    "provider": {
+      "version": "1.2.3",
+      "source": "registry.terraform.io/my-org/foobar",
+      "config": {
+        "foo": "bar"
+      }
+    },
+    "config": {
+      "foo": "bar"
+    },
+    "hash": 123,
+    "provider_supply_mode": "managed_by_terraform"
+  }
+}`),
 		},
-		"it's valid to record no version data when a builtin provider used for state store": {
+		"it's valid to record no version data when a builtin provider is used for state store": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, string(tfaddr.BuiltInProviderHost), string(tfaddr.BuiltInProviderNamespace), "foobar", `{"foo": "bar"}`),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
+					Type:               "foobar_baz",
+					Provider:           getTestProviderState(t, noVersionData, string(tfaddr.BuiltInProviderHost), string(tfaddr.BuiltInProviderNamespace), "foobar", `{"foo": "bar"}`),
+					ProviderSupplyMode: supplymode.ProviderSupplyModeBuiltIn,
+					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:               123,
 				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"terraform.io/builtin/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte(`{
+  "version": 3,
+  "terraform_version": "` + tfVersion + `",
+  "state_store": {
+    "type": "foobar_baz",
+    "provider": {
+      "version": null,
+      "source": "terraform.io/builtin/foobar",
+      "config": {
+        "foo": "bar"
+      }
+    },
+    "config": {
+      "foo": "bar"
+    },
+    "hash": 123,
+    "provider_supply_mode": "built_in"
+  }
+}`),
 		},
-		"it's valid to record no version data when a re-attached provider used for state store": {
+		"it's valid to record no version data when a re-attached provider is used for state store": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
+					Type:               "foobar_baz",
+					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
+					ProviderSupplyMode: supplymode.ProviderSupplyModeReattached,
+					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:               123,
 				},
 			},
-			Envs: map[string]string{
-				"TF_REATTACH_PROVIDERS": `{
-				"foobar": {
-					"Protocol": "grpc",
-					"ProtocolVersion": 6,
-					"Pid": 12345,
-					"Test": true,
-					"Addr": {
-						"Network": "unix",
-						"String":"/var/folders/xx/abcde12345/T/plugin12345"
-					}
-				}
-			}`,
+			Want: []byte(`{
+  "version": 3,
+  "terraform_version": "` + tfVersion + `",
+  "state_store": {
+    "type": "foobar_baz",
+    "provider": {
+      "version": null,
+      "source": "registry.terraform.io/hashicorp/foobar",
+      "config": {
+        "foo": "bar"
+      }
+    },
+    "config": {
+      "foo": "bar"
+    },
+    "hash": 123,
+    "provider_supply_mode": "reattached"
+  }
+}`),
+		},
+		"it's valid to record no version data when a developer override provider is used for state store": {
+			Input: &BackendStateFile{
+				StateStore: &StateStoreConfigState{
+					Type:               "foobar_baz",
+					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
+					ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:               123,
+				},
 			},
-			Want: []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\",\n  \"state_store\": {\n    \"type\": \"foobar_baz\",\n    \"provider\": {\n      \"version\": null,\n      \"source\": \"registry.terraform.io/hashicorp/foobar\",\n      \"config\": {\n        \"foo\": \"bar\"\n      }\n    },\n    \"config\": {\n      \"foo\": \"bar\"\n    },\n    \"hash\": 123\n  }\n}"),
+			Want: []byte(`{
+  "version": 3,
+  "terraform_version": "` + tfVersion + `",
+  "state_store": {
+    "type": "foobar_baz",
+    "provider": {
+      "version": null,
+      "source": "registry.terraform.io/hashicorp/foobar",
+      "config": {
+        "foo": "bar"
+      }
+    },
+    "config": {
+      "foo": "bar"
+    },
+    "hash": 123,
+    "provider_supply_mode": "dev_override"
+  }
+}`),
 		},
 		"error when neither backend nor state_store config state are present": {
 			Input: &BackendStateFile{},
-			Want:  []byte("{\n  \"version\": 3,\n  \"terraform_version\": \"" + tfVersion + "\"\n}"),
+			Want: []byte(`{
+  "version": 3,
+  "terraform_version": "` + tfVersion + `"
+}`),
 		},
-		"error when the provider is neither builtin nor reattached and the provider version is missing": {
+		"error when the provider is managed by Terraform and the provider version is missing": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:      "foobar_baz",
-					Provider:  getTestProviderState(t, noVersionData, "registry.terraform.io", "my-org", "foobar", ""),
-					ConfigRaw: json.RawMessage([]byte(`{"foo":"bar"}`)),
-					Hash:      123,
+					Type:               "foobar_baz",
+					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "my-org", "foobar", ""),
+					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
+					Hash:               123,
 				},
 			},
 			WantErr: `state store is not valid: provider version data is missing`,
@@ -285,11 +384,6 @@ func TestEncodeBackendStateFile(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Some test cases depend on ENVs, not all
-			for k, v := range test.Envs {
-				t.Setenv(k, v)
-			}
-
 			got, err := EncodeBackendStateFile(test.Input)
 
 			if test.WantErr != "" {
@@ -309,12 +403,10 @@ func TestEncodeBackendStateFile(t *testing.T) {
 				t.Errorf("wrong result\n%s", diff)
 			}
 		})
-
 	}
 }
 
 func TestBackendStateFile_DeepCopy(t *testing.T) {
-
 	tests := map[string]struct {
 		file *BackendStateFile
 	}{

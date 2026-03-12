@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -210,8 +211,9 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		ConfigRaw: []byte(`{
 			"foo": "bar"
 		}`),
-		Hash:     123,
-		Provider: provider,
+		Hash:               123,
+		Provider:           provider,
+		ProviderSupplyMode: supplymode.ProviderSupplyModeManaged, // not reflected in plan data, but required to generate it
 	}
 
 	ssSchema := &configschema.Block{
@@ -232,7 +234,7 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		},
 	}
 
-	plan, err := s.PlanData(ssSchema, pSchema, workspace, false)
+	plan, err := s.PlanData(ssSchema, pSchema, workspace)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
