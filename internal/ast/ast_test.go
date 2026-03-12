@@ -816,7 +816,6 @@ func TestFile_RenameBlockType(t *testing.T) {
 		input      string
 		oldType    string
 		newType    string
-		wantCount  int
 		wantSubstr string
 		wantAbsent string
 	}{
@@ -835,18 +834,16 @@ data "aws_ami" "latest" {
 `,
 			oldType:    "resource",
 			newType:    "moved",
-			wantCount:  2,
 			wantSubstr: "moved",
 			wantAbsent: "resource",
 		},
-		"no matches returns zero": {
+		"no matches is no-op": {
 			input: `resource "aws_instance" "a" {
   ami = "abc"
 }
 `,
 			oldType:    "data",
 			newType:    "moved",
-			wantCount:  0,
 			wantSubstr: "resource",
 		},
 		"leaves non-matching blocks untouched": {
@@ -860,7 +857,6 @@ data "aws_ami" "latest" {
 `,
 			oldType:    "resource",
 			newType:    "moved",
-			wantCount:  1,
 			wantSubstr: "data",
 		},
 	}
@@ -870,10 +866,7 @@ data "aws_ami" "latest" {
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			got := f.RenameBlockType(tc.oldType, tc.newType)
-			if got != tc.wantCount {
-				t.Errorf("RenameBlockType() = %d, want %d", got, tc.wantCount)
-			}
+			f.RenameBlockType(tc.oldType, tc.newType)
 			output := string(f.Bytes())
 			if !strings.Contains(output, tc.wantSubstr) {
 				t.Errorf("output missing %q\n%s", tc.wantSubstr, output)
@@ -982,6 +975,30 @@ func TestFile_AddBlock(t *testing.T) {
 				t.Errorf("output missing %q\n%s", tc.wantSubstr, output)
 			}
 		})
+	}
+}
+
+func TestFile_FindBlocks_noLabel(t *testing.T) {
+	input := `terraform {
+  required_version = ">= 1.0"
+}
+
+resource "aws_instance" "web" {
+  ami = "abc-123"
+}
+`
+
+	f, err := ParseFile([]byte(input), "main.tf", nil)
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err)
+	}
+
+	blocks := f.FindBlocks("terraform", "")
+	if len(blocks) != 1 {
+		t.Fatalf("got %d blocks, want 1", len(blocks))
+	}
+	if blocks[0].Type() != "terraform" {
+		t.Errorf("Type() = %q, want %q", blocks[0].Type(), "terraform")
 	}
 }
 

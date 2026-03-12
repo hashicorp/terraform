@@ -5,4 +5,11 @@
 // top of hclwrite. It supports comment-preserving, roundtrip-safe mutations
 // such as renaming attributes and blocks, changing values, and restructuring
 // configuration to automate provider version migrations.
+//
+// The package operates at two levels:
+//
+//   - File and Block provide single-file, block-level mutations.
+//   - Config, ModuleNode, and Module mirror configs.Config to provide
+//     cross-file and cross-module operations, respecting the distinction
+//     between editable (local) and non-editable (registry/remote) modules.
 package ast

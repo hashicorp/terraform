@@ -57,8 +57,14 @@ func (f *File) FindBlocks(blockType, firstLabel string) []*Block {
 			continue
 		}
 		labels := block.Labels()
-		if len(labels) > 0 && labels[0] == firstLabel {
-			result = append(result, &Block{block: block})
+		if firstLabel == "" {
+			if len(labels) == 0 {
+				result = append(result, &Block{block: block})
+			}
+		} else {
+			if len(labels) > 0 && labels[0] == firstLabel {
+				result = append(result, &Block{block: block})
+			}
 		}
 	}
 	return result
@@ -186,16 +192,13 @@ func (b *Block) RenameReferencePrefix(old, new hcl.Traversal) {
 }
 
 // RenameBlockType changes the type of all top-level blocks matching oldType
-// to newType and returns the number of blocks renamed.
-func (f *File) RenameBlockType(oldType, newType string) int {
-	count := 0
+// to newType.
+func (f *File) RenameBlockType(oldType, newType string) {
 	for _, block := range f.file.Body().Blocks() {
 		if block.Type() == oldType {
 			block.SetType(newType)
-			count++
 		}
 	}
-	return count
 }
 
 // RemoveBlock removes the first top-level block matching blockType and labels.
