@@ -1226,6 +1226,66 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationStatus: func(ctx context.Context, span any, statusData *hooks.ActionInvocationStatusHookData) any {
+			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
+				attribute.String("component_instance", statusData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", statusData.Addr.Item.String()),
+				attribute.String("status", statusData.Status.String()),
+			))
+
+			providerAddr := ""
+			if !statusData.ProviderAddr.IsZero() {
+				providerAddr = statusData.ProviderAddr.String()
+			}
+
+			protoStatus := &stacks.StackChangeProgress_ActionInvocationStatus{
+				Addr:         stacks.NewActionInvocationInStackAddr(statusData.Addr),
+				Status:       statusData.Status.ForProtobuf(),
+				ProviderAddr: providerAddr,
+			}
+
+			// Set the action trigger oneof
+			setActionInvocationStatusTrigger(protoStatus, statusData.Addr.Component, statusData.Trigger)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
+					ActionInvocationStatus: protoStatus,
+				},
+			})
+
+			return span
+		},
+
+		ReportActionInvocationProgress: func(ctx context.Context, span any, progressData *hooks.ActionInvocationProgressHookData) any {
+			span.(trace.Span).AddEvent("action invocation progress", trace.WithAttributes(
+				attribute.String("component_instance", progressData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", progressData.Addr.Item.String()),
+				attribute.String("message", progressData.Message),
+			))
+
+			providerAddr := ""
+			if !progressData.ProviderAddr.IsZero() {
+				providerAddr = progressData.ProviderAddr.String()
+			}
+
+			protoProgress := &stacks.StackChangeProgress_ActionInvocationProgress{
+				Addr:         stacks.NewActionInvocationInStackAddr(progressData.Addr),
+				Message:      progressData.Message,
+				ProviderAddr: providerAddr,
+			}
+
+			// Set the action trigger oneof
+			setActionInvocationProgressTrigger(protoProgress, progressData.Addr.Component, progressData.Trigger)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationProgress_{
+					ActionInvocationProgress: protoProgress,
+				},
+			})
+
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
@@ -1344,34 +1404,81 @@ func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangePro
 		ProviderAddr: ai.ProviderAddr.String(),
 	}
 
-	switch trig := ai.Trigger.(type) {
+	setActionInvocationPlannedTrigger(res, ai.Addr.Component, ai.Trigger)
+
+	return res, nil
+}
+
+// setActionInvocationStatusTrigger sets the ActionTrigger oneof field on an ActionInvocationStatus message.
+func setActionInvocationStatusTrigger(msg *stacks.StackChangeProgress_ActionInvocationStatus, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
 	case *plans.ResourceActionTrigger:
-		triggerEvent, err := stacks.ActionTriggerEventForStackChangeProgress(trig.TriggerEvent())
-		if err != nil {
-			return nil, err
-		}
-		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger{
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger{
 			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
 				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
 					stackaddrs.AbsResourceInstance{
-						Component: ai.Addr.Component,
+						Component: component,
 						Item:      trig.TriggeringResourceAddr,
 					},
 				),
-				TriggerEvent:            triggerEvent,
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
 				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
 				ActionsListIndex:        int64(trig.ActionsListIndex),
 			},
 		}
 	case *plans.InvokeActionTrigger:
-		res.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger{
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger{
 			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
 		}
-	default:
-		return nil, fmt.Errorf("unsupported action invocation trigger type")
 	}
+}
 
-	return res, nil
+// setActionInvocationProgressTrigger sets the ActionTrigger oneof field on an ActionInvocationProgress message.
+func setActionInvocationProgressTrigger(msg *stacks.StackChangeProgress_ActionInvocationProgress, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	}
+}
+
+// setActionInvocationPlannedTrigger sets the ActionTrigger oneof field on an ActionInvocationPlanned message.
+func setActionInvocationPlannedTrigger(msg *stacks.StackChangeProgress_ActionInvocationPlanned, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	}
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {

@@ -15,6 +15,7 @@ const (
 	MessageResourceDrift           MessageType = "resource_drift"
 	MessagePlannedChange           MessageType = "planned_change"
 	MessagePlannedActionInvocation MessageType = "planned_action_invocation"
+	MessageAppliedActionInvocation MessageType = "applied_action_invocation"
 	MessageChangeSummary           MessageType = "change_summary"
 	MessageOutputs                 MessageType = "outputs"
 

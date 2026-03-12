@@ -127,6 +127,24 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
 
+	// Fire PENDING status for all planned action invocations
+	// These actions are queued and ready to execute during the apply phase
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		for _, action := range plan.Changes.ActionInvocations {
+			absActionAddr := stackaddrs.AbsActionInvocationInstance{
+				Component: inst.Addr(),
+				Item:      action.Addr,
+			}
+
+			hookMore(ctx, seq, h.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+				Addr:         absActionAddr,
+				ProviderAddr: action.ProviderAddr.Provider,
+				Status:       hooks.ActionInvocationPending,
+				Trigger:      action.ActionTrigger,
+			})
+		}
+	}
+
 	moduleTree := inst.ModuleTree(ctx)
 	if moduleTree == nil {
 		// We should not get here because if the configuration was statically
@@ -174,6 +192,15 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		hooks: hooksFromContext(ctx),
 		addr:  inst.Addr(),
 	}
+
+	// Populate action invocation provider address map for hook callbacks
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		tfHook.actionInvocationProviderAddr = addrs.MakeMap[addrs.AbsActionInstance, addrs.Provider]()
+		for _, action := range plan.Changes.ActionInvocations {
+			tfHook.actionInvocationProviderAddr.Put(action.Addr, action.ProviderAddr.Provider)
+		}
+	}
+
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
 			tfHook,

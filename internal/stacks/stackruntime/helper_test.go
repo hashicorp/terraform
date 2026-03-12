@@ -527,6 +527,14 @@ func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
 	return ret
 }
 
+func mustAbsActionInvocationInstance(addr string) stackaddrs.AbsActionInvocationInstance {
+	ret, diags := stackaddrs.ParseActionInvocationInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse action invocation instance address %q: %s", addr, diags))
+	}
+	return ret
+}
+
 func mustAbsComponent(addr string) stackaddrs.AbsComponent {
 	ret, diags := stackaddrs.ParsePartialComponentInstanceStr(addr)
 	if len(diags) > 0 {

@@ -1321,6 +1321,15 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	}
 }
 
+// ActionInvocationFromProto decodes an isolated action invocation from
+// its representation as a protocol buffers message.
+//
+// This is used by the stackplan package, which includes planproto messages
+// in its own wire format while using a different overall container.
+func ActionInvocationFromProto(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
+	return actionInvocationFromTfplan(rawAction)
+}
+
 func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (*plans.ActionInvocationInstanceSrc, error) {
 	if rawAction == nil {
 		// Should never happen in practice, since protobuf can't represent

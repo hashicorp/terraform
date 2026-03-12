@@ -1,0 +1,103 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package stackeval
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+	"github.com/hashicorp/terraform/internal/terraform"
+)
+
+func TestActionHookForwarding(t *testing.T) {
+	var statusCount int
+	var statuses []hooks.ActionInvocationStatus
+
+	hks := &Hooks{}
+	hks.ReportActionInvocationStatus = func(ctx context.Context, span any, data *hooks.ActionInvocationStatusHookData) any {
+		statusCount++
+		statuses = append(statuses, data.Status)
+		return nil
+	}
+
+	// Create a simple concrete component instance address for the hook
+	compAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{Name: "testcomp"},
+			Key:       addrs.NoKey,
+		},
+	}
+
+	// Create the componentInstanceTerraformHook with our Hooks
+	c := &componentInstanceTerraformHook{
+		ctx:   context.Background(),
+		seq:   &hookSeq{},
+		hooks: hks,
+		addr:  compAddr,
+	}
+
+	// Prepare a HookActionIdentity with an invoke trigger
+	actionAddr := addrs.AbsActionInstance{}
+	id := terraform.HookActionIdentity{
+		Addr:          actionAddr,
+		ActionTrigger: &plans.InvokeActionTrigger{},
+	}
+
+	// Pre-populate the provider address map
+	providerAddr := addrs.Provider{
+		Type:      "test",
+		Namespace: "hashicorp",
+		Hostname:  "registry.terraform.io",
+	}
+	c.actionInvocationProviderAddr = addrs.MakeMap[addrs.AbsActionInstance, addrs.Provider]()
+	c.actionInvocationProviderAddr.Put(actionAddr, providerAddr)
+
+	// StartAction should trigger a status hook with "Running" status
+	_, _ = c.StartAction(id)
+	if statusCount != 1 {
+		t.Fatalf("expected StartAction to trigger status hook once, got %d", statusCount)
+	}
+	if statuses[0] != hooks.ActionInvocationRunning {
+		t.Fatalf("expected ActionInvocationRunning status from StartAction, got %s", statuses[0].String())
+	}
+
+	// ProgressAction should not trigger status hooks
+	_, _ = c.ProgressAction(id, "in-progress")
+	if statusCount != 1 {
+		t.Fatalf("expected ProgressAction to avoid status hooks, got %d total", statusCount)
+	}
+
+	// ProgressAction with "pending" should still avoid status hooks
+	_, _ = c.ProgressAction(id, "pending")
+	if statusCount != 1 {
+		t.Fatalf("expected ProgressAction to avoid status hooks, got %d total", statusCount)
+	}
+
+	// CompleteAction with no error should complete successfully
+	_, _ = c.CompleteAction(id, nil)
+	if statusCount != 2 {
+		t.Fatalf("expected CompleteAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[1] != hooks.ActionInvocationCompleted {
+		t.Fatalf("expected ActionInvocationCompleted status, got %s", statuses[1].String())
+	}
+
+	// Test error case
+	statusCount = 0
+	statuses = statuses[:0]
+
+	// CompleteAction with error should mark as errored
+	_, _ = c.CompleteAction(id, context.DeadlineExceeded)
+	if statusCount != 1 {
+		t.Fatalf("expected CompleteAction to trigger status hook, got %d total", statusCount)
+	}
+	if statuses[0] != hooks.ActionInvocationErrored {
+		t.Fatalf("expected ActionInvocationErrored status, got %s", statuses[0].String())
+	}
+}
