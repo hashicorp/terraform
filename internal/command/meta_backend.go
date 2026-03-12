@@ -653,8 +653,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		p := lb.Backend.(*backendPluggable.Pluggable)
 		providerSchema = p.ProviderSchema()
 
-		isDeveloperOverride := m.isProviderDevOverride(*m.stateStoreConfigState.Provider.Source)
-		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace, isDeveloperOverride)
+		planOutStateStore, err = m.stateStoreConfigState.PlanData(schema, providerSchema, workspace)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the state_store configuration
@@ -664,7 +663,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		}
 	default:
 		// Either backendConfigState is set, or it's nil; PlanData method can handle either.
-		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace, false)
+		planOutBackend, err = m.backendConfigState.PlanData(schema, nil, workspace)
 		if err != nil {
 			// Always indicates an implementation error in practice, because
 			// errors here indicate invalid encoding of the backend configuration
@@ -2235,6 +2234,7 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 			Source:  &c.ProviderAddr,
 			Version: pVersion,
 		},
+		ProviderSupplyMode: c.ProviderSupplyMode,
 	}
 	err = s.StateStore.SetConfig(storeConfigVal, ssBackend.ConfigSchema())
 	if err != nil {
@@ -2465,6 +2465,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 			Source:  &c.ProviderAddr,
 			Version: pVersion,
 		},
+		ProviderSupplyMode: c.ProviderSupplyMode,
 	}
 	err := s.StateStore.SetConfig(storeConfigVal, b.ConfigSchema())
 	if err != nil {
@@ -2754,6 +2755,7 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 			Source:  &cfg.ProviderAddr,
 			Version: pVersion,
 		},
+		ProviderSupplyMode: cfg.ProviderSupplyMode,
 	}
 	err = s.StateStore.SetConfig(storeConfigVal, dstB.ConfigSchema())
 	if err != nil {

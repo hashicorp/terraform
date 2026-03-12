@@ -110,6 +110,11 @@ func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 	if stateFile.Backend != nil && stateFile.StateStore != nil {
 		return nil, fmt.Errorf("encountered a malformed backend state file that contains state for both a 'backend' and a 'state_store' block")
 	}
+	if stateFile.StateStore != nil && stateFile.StateStore.ProviderSupplyMode == "" {
+		// Check for this, as lacking this data can cause problems later when an empty provider version
+		// is encountered. This error will make debugging much easier.
+		return nil, fmt.Errorf("encountered a malformed backend state file with a 'state_store' block that is missing the required 'provider_supply_mode' property")
+	}
 
 	return &stateFile, nil
 }
