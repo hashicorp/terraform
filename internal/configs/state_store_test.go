@@ -12,13 +12,13 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // The Hash method assumes that the state_store schema doesn't include a provider block,
 // and it requires calling code to remove the nested provider block from state_store config data.
 func TestStateStore_Hash(t *testing.T) {
-
 	// Normally these schemas would come from a provider's GetProviderSchema data
 	exampleStateStoreSchema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -65,6 +65,7 @@ func TestStateStore_Hash(t *testing.T) {
 			t.Fatalf("unexpected diagnostics: %s", ssDiags)
 		}
 		s.ProviderAddr = exampleProviderAddr
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
 
 		// Test Hash method.
 		gotHash, diags := s.Hash(exampleStateStoreSchema, exampleProviderSchema, exampleProviderVersion)
@@ -149,6 +150,7 @@ func TestStateStore_Hash(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
 			s.ProviderAddr = providerAddr
+			s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
 
 			// Test Hash method.
 			gotHash, diags := s.Hash(schema, exampleProviderSchema, providerVersion)
@@ -195,10 +197,10 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 			}`)
 
 	cases := map[string]struct {
-		config          hcl.Body
-		providerAddr    tfaddr.Provider
-		providerVersion *version.Version
-		reattachConfig  string
+		config             hcl.Body
+		providerAddr       tfaddr.Provider
+		providerVersion    *version.Version
+		providerSupplyMode supplymode.ProviderSupplyMode
 	}{
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
 			config: configBodyForTest(t, `state_store "foobar_fs" {
@@ -224,36 +226,27 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 			providerVersion: providerVersion,
 		},
 		"tolerates missing provider version data when using a builtin provider": {
-			config:          config,
-			providerAddr:    tfaddr.NewProvider(tfaddr.BuiltInProviderHost, "hashicorp", "foobar"), // Builtin
-			providerVersion: nil,                                                                   // No version
+			config:             config,
+			providerAddr:       tfaddr.NewProvider(tfaddr.BuiltInProviderHost, "hashicorp", "foobar"),
+			providerVersion:    nil,                                  // No version
+			providerSupplyMode: supplymode.ProviderSupplyModeBuiltIn, // Builtin
 		},
 		"tolerates missing provider version data when using a reattached provider": {
-			config:          config,
-			providerAddr:    providerAddr,
-			providerVersion: nil, // No version
-			reattachConfig: `{
-				"foobar": {
-					"Protocol": "grpc",
-					"ProtocolVersion": 6,
-					"Pid": 12345,
-					"Test": true,
-					"Addr": {
-						"Network": "unix",
-						"String":"/var/folders/xx/abcde12345/T/plugin12345"
-					}
-				}
-			}`,
+			config:             config,
+			providerAddr:       providerAddr,
+			providerVersion:    nil, // No version
+			providerSupplyMode: supplymode.ProviderSupplyModeReattached,
+		},
+		"tolerates missing provider version data when using a dev_override provider": {
+			config:             config,
+			providerAddr:       providerAddr,
+			providerVersion:    nil, // No version
+			providerSupplyMode: supplymode.ProviderSupplyModeDevOverride,
 		},
 	}
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-
-			if tc.reattachConfig != "" {
-				t.Setenv("TF_REATTACH_PROVIDERS", tc.reattachConfig)
-			}
-
 			// Construct a configs.StateStore for the test.
 			content, _, cfgDiags := config.PartialContent(terraformBlockSchema)
 			if len(cfgDiags) > 0 {
@@ -265,6 +258,12 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
 			s.ProviderAddr = tc.providerAddr
+
+			if tc.providerSupplyMode != "" {
+				s.ProviderSupplyMode = tc.providerSupplyMode
+			} else {
+				s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+			}
 
 			// Test Hash method.
 			_, diags := s.Hash(stateStoreSchema, providerSchema, tc.providerVersion)
@@ -301,10 +300,11 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 
 	// Cases where an error would occur
 	cases := map[string]struct {
-		config           hcl.Body
-		stateStoreSchema *configschema.Block
-		providerVersion  *version.Version
-		wantErrorString  string
+		config             hcl.Body
+		stateStoreSchema   *configschema.Block
+		providerVersion    *version.Version
+		providerSupplyMode supplymode.ProviderSupplyMode
+		wantErrorString    string
 	}{
 		"returns errors when the state_store config doesn't match the schema": {
 			providerVersion:  exampleProviderVersion,
@@ -383,9 +383,10 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 			}`),
 			wantErrorString: `Protected argument name "provider" in state store schema`,
 		},
-		"returns an error if the provider version is missing when using a non-builtin, non-reattached provider": {
-			providerVersion:  nil, // No value provided in this test case
-			stateStoreSchema: exampleStateStoreSchema,
+		"returns an error if the provider version is missing when using a managed provider": {
+			providerVersion:    nil, // No value provided in this test case
+			providerSupplyMode: supplymode.ProviderSupplyModeManaged,
+			stateStoreSchema:   exampleStateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
 					  foobar = "foobar"
@@ -410,6 +411,12 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
 			s.ProviderAddr = tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "hashicorp", "foobar")
+
+			if tc.providerSupplyMode != "" {
+				s.ProviderSupplyMode = tc.providerSupplyMode
+			} else {
+				s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+			}
 
 			// Test Hash method.
 			_, diags := s.Hash(tc.stateStoreSchema, exampleProviderSchema, tc.providerVersion)
