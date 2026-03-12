@@ -146,7 +146,6 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	if len(stateResources) != 0 {
 		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
 	}
-
 }
 
 func TestPrimaryChdirOption(t *testing.T) {
@@ -236,7 +235,6 @@ func TestPrimaryChdirOption(t *testing.T) {
 }
 
 func TestPrimary_stateStore(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -270,7 +268,7 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -315,7 +313,6 @@ func TestPrimary_stateStore(t *testing.T) {
 }
 
 func TestPrimary_stateStore_planFile(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -348,7 +345,7 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 	}
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -432,7 +429,7 @@ func TestPrimary_stateStore_inMem(t *testing.T) {
 	//
 	// Note - the inmem PSS implementation means that the default workspace state created during init
 	// is lost as soon as the command completes.
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
