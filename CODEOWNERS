@@ -32,3 +32,7 @@
 builtin/provisioners/file               @hashicorp/terraform-core
 builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
+
+# Actions
+/internal/command/jsonplan/action_invocations.go @hashicorp/team-tf-actions @hashicorp/terraform-core
+/internal/plans/action_invocation.go @hashicorp/team-tf-actions @hashicorp/terraform-core
