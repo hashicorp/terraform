@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: When comparing a container value to null, only top level marks are now considered for the result.
+time: 2026-03-12T14:04:23.868546-04:00
+custom:
+    Issue: "38270"
