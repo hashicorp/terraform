@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewsJson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -40,6 +41,11 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+type jsonLine struct {
+	Type    string                   `json:"type"`
+	TestRun *viewsJson.TestRunStatus `json:"test_run,omitempty"`
+}
 
 func TestTest_Runs(t *testing.T) {
 	tcs := map[string]struct {
@@ -1535,7 +1541,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						value = test_resource.foo.value
 					}
 					`,
-				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				// c2 => a2, b1 => a1, a2 => b1, b2 => c2
 				"parallel.tftest.hcl": `
 					test {
 						parallel = true
@@ -1578,7 +1584,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "a2" {
 						state_key = "a"
 						variables {
-							foo = run.b1.value
+							foo = run.b2.value
 						}
 
 						providers = {
@@ -1608,7 +1614,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "c2" {
 						state_key = "c"
 						variables {
-							foo = run.a1.value
+							foo = run.a2.value
 						}
 					}
 					`,
@@ -5953,6 +5959,126 @@ func TestTest_TeardownOrder(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		t.Logf("Resources remaining after test completion (this might indicate the teardown issue): %v", provider.ResourceString())
 	}
+}
+
+func TestTest_ParallelDeps(t *testing.T) {
+	// This tests that parallel dependencies are handled correctly during teardown.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(provider.Provider),
+		Ui:                        ui,
+		View:                      view,
+		Streams:                   streams,
+		ProviderSource:            providerSource,
+		AllowExperimentalFeatures: true,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color", "-json"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	actual := output.All()
+
+	var teardownOrder []string
+	lines, err := parseJSONLines(t, actual)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, parsed := range lines {
+		if parsed.Type != "test_run" || parsed.TestRun == nil {
+			continue
+		}
+		if parsed.TestRun.Progress != "teardown" {
+			continue
+		}
+
+		// We only care about teardowns with elapsed time of 0, indicating the start
+		// of the teardown phase.
+		if parsed.TestRun.Elapsed == nil || *parsed.TestRun.Elapsed != 0 {
+			continue
+		}
+		teardownOrder = append(teardownOrder, parsed.TestRun.Run)
+	}
+
+	// test_two depends on test_three (via run.test_three.id), so during
+	// teardown the dependency order should be reversed, i.e test_two must
+	// be torn down before test_three.
+	testThreeIdx := -1
+	testTwoIdx := -1
+	for i, name := range teardownOrder {
+		switch name {
+		case "test_three":
+			testThreeIdx = i
+		case "test_two":
+			testTwoIdx = i
+		}
+	}
+
+	if testThreeIdx == -1 {
+		t.Fatalf("expected test_three teardown (elapsed=0) in output but did not find it.\nteardown order: %v\nfull output:\n%s", teardownOrder, actual)
+	}
+	if testTwoIdx == -1 {
+		t.Fatalf("expected test_two teardown (elapsed=0) in output but did not find it.\nteardown order: %v\nfull output:\n%s", teardownOrder, actual)
+	}
+	if testThreeIdx <= testTwoIdx {
+		t.Errorf("expected test_two teardown to come before test_three teardown, but got test_three at index %d and test_two at index %d.\nteardown order: %v\nfull output:\n%s",
+			testThreeIdx, testTwoIdx, teardownOrder, actual)
+	}
+
+	if provider.ResourceCount() != 0 {
+		t.Errorf("should have deleted all resources")
+	}
+}
+
+func parseJSONLines(t *testing.T, actual string) ([]jsonLine, error) {
+	t.Helper()
+	var lines []jsonLine
+	for line := range strings.SplitSeq(strings.TrimSpace(actual), "\n") {
+		if line == "" {
+			continue
+		}
+		var parsed jsonLine
+		if err := json.Unmarshal([]byte(line), &parsed); err != nil {
+			return nil, err
+		}
+		lines = append(lines, parsed)
+	}
+	return lines, nil
 }
 
 // testModuleInline takes a map of path -> config strings and yields a config
