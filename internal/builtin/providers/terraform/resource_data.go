@@ -17,7 +17,6 @@ import (
 
 func dataStoreResourceSchema() providers.Schema {
 	return providers.Schema{
-		Version: 1,
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id": {Type: cty.String, Computed: true},
