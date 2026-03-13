@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -34,6 +35,60 @@ import (
 func (m *Meta) normalizePath(path string) string {
 	m.fixupMissingWorkingDir()
 	return m.WorkingDir.NormalizePath(path)
+}
+
+// resolveConstVariables checks whether the root module in rootDir declares any
+// const variables that are required but not yet provided via CLI flags. If so,
+// it attempts to fetch them from the configured backend (e.g. HCP Terraform
+// workspace variables). This must be called before loadConfig or
+// loadConfigWithTests so that const variable values are available during
+// module source resolution.
+//
+// If no const variables are unsatisfied, or if the backend does not support
+// supplying variables, this method is a no-op.
+func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
+	rootMod, diags := m.loadSingleModule(rootDir)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	if !backendrun.HasUnsatisfiedConstVariables(m.VariableValues, rootMod.Variables) {
+		return nil
+	}
+
+	b, backendDiags := m.backend(rootDir, viewType)
+	if backendDiags.HasErrors() {
+		// Don't report backend init errors here; they'll surface later.
+		return nil
+	}
+
+	supplier, ok := b.(backendrun.ConstVariableSupplier)
+	if !ok {
+		return nil
+	}
+
+	workspace, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	vars, fetchDiags := supplier.FetchVariables(context.Background(), workspace)
+	diags = diags.Append(fetchDiags)
+	if fetchDiags.HasErrors() {
+		return diags
+	}
+
+	if m.VariableValues == nil {
+		m.VariableValues = make(map[string]arguments.UnparsedVariableValue)
+	}
+	for k, v := range vars {
+		if _, exists := m.VariableValues[k]; !exists {
+			m.VariableValues[k] = v
+		}
+	}
+
+	return diags
 }
 
 // loadConfig reads a configuration from the given directory, which should
