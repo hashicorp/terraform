@@ -162,7 +162,7 @@ func TestUnparsedValue(t *testing.T) {
 	})
 
 	t.Run("ParseVariableValues", func(t *testing.T) {
-		gotVals, diags := ParseVariableValues(vv, decls, false)
+		gotVals, diags := ParseVariableValues(vv, decls)
 		for _, diag := range diags {
 			t.Logf("%s: %s", diag.Description().Summary, diag.Description().Detail)
 		}
@@ -278,7 +278,7 @@ func TestUnparsedValue(t *testing.T) {
 			},
 		}
 
-		gotVals, diags := ParseVariableValues(vv, decls, true)
+		gotVals, diags := ParseConstVariableValues(vv, decls)
 
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)

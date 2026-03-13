@@ -146,13 +146,20 @@ func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 // InputValues may be incomplete but will include the subset of variables
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
-//
-// constOnly will only raise a diagnostic error if a required variable is
-// missing and is marked as const. Since configuration loading will always
-// require values for constant variables, this allows us to use this
-// function in both configuration loading and plan/apply contexts where all
-// variables are required.
-func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable, constOnly bool) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, false)
+}
+
+// ParseConstVariableValues is like ParseVariableValues but only produces
+// errors for missing const variables. Non-const required variables that are
+// missing will still receive placeholder values but won't produce errors.
+// This is used during early configuration loading (e.g. module installation)
+// where only const variables are needed for module source resolution.
+func ParseConstVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, true)
+}
+
+func parseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable, constOnly bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	ret, diags := ParseDeclaredVariableValues(vv, decls)
 	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 
