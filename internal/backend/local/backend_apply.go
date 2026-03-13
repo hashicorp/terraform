@@ -266,7 +266,7 @@ func (b *Local) opApply(
 		// same parsing logic from the plan to generate the diagnostics.
 		undeclaredVariables := map[string]arguments.UnparsedVariableValue{}
 
-		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables, false)
+		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables)
 
 		for varName := range op.Variables {
 			parsedVar, parsed := parsedVars[varName]
