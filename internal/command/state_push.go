@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StatePushCommand is a Command implementation that allows
@@ -34,6 +35,22 @@ func (c *StatePushCommand) Run(args []string) int {
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
 	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
+		return 1
+	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
@@ -172,6 +189,15 @@ Options:
                       against the same workspace.
 
   -lock-timeout=0s    Duration to retry a state lock.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 
 `
 	return strings.TrimSpace(helpText)
