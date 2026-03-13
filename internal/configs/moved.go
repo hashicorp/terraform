@@ -44,18 +44,20 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 		}
 	}
 
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	// we can only move from a module to a module, resource to resource, etc.
-	if !diags.HasErrors() {
-		if !moved.From.MightUnifyWith(moved.To) {
-			// We can catch some obviously-wrong combinations early here,
-			// but we still have other dynamic validation to do at runtime.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid \"moved\" addresses",
-				Detail:   "The \"from\" and \"to\" addresses must either both refer to resources or both refer to modules.",
-				Subject:  &moved.DeclRange,
-			})
-		}
+	if !moved.From.MightUnifyWith(moved.To) {
+		// We can catch some obviously-wrong combinations early here,
+		// but we still have other dynamic validation to do at runtime.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid \"moved\" addresses",
+			Detail:   "The \"from\" and \"to\" addresses must either both refer to resources or both refer to modules.",
+			Subject:  &moved.DeclRange,
+		})
 	}
 
 	return moved, diags
