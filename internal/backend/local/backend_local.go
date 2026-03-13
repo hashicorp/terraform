@@ -496,8 +496,8 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 func (b *Local) stubUnsetRequiredVariables(existing map[string]arguments.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]arguments.UnparsedVariableValue {
 	var missing bool // Do we need to add anything?
 	for name, vc := range vcs {
-		if !vc.Required() {
-			continue // We only stub required variables
+		if !vc.Required() || vc.Const {
+			continue // We only stub non-const required variables
 		}
 		if _, exists := existing[name]; !exists {
 			missing = true
@@ -512,7 +512,7 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]arguments.Unparse
 	maps.Copy(ret, existing) // don't use clone here, so we can return a non-nil map
 
 	for name, vc := range vcs {
-		if !vc.Required() {
+		if !vc.Required() || vc.Const {
 			continue
 		}
 		if _, exists := existing[name]; !exists {
