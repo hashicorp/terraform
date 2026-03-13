@@ -26,7 +26,7 @@ type Suite struct {
 }
 
 type TestSuiteRunner interface {
-	Test(experimentsAllowed bool) (Status, tfdiags.Diagnostics)
+	Test() (Status, tfdiags.Diagnostics)
 	Stop()
 	Cancel()
 
