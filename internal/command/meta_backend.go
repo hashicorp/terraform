@@ -66,6 +66,10 @@ type BackendOpts struct {
 	// version in use currently.
 	Locks *depsfile.Locks
 
+	// PreviousLocks allows state-migration logic to use the older version of the provider
+	// during upgrade-triggered migrations.
+	PreviousLocks *depsfile.Locks
+
 	// ConfigOverride is an hcl.Body that, if non-nil, will be used with
 	// configs.MergeBodies to override the type-specific backend configuration
 	// arguments in Config.
@@ -1049,7 +1053,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		v := views.NewInit(opts.ViewType, m.View)
 		v.Output(views.InitMessageCode("state_store_unset"), s.StateStore.Type)
 
-		return m.stateStore_to_backend(sMgr, "local", localB, nil, opts.ViewType)
+		return m.stateStore_to_backend(sMgr, "local", localB, nil, opts)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -1123,7 +1127,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		newBackendCfgState.SetConfig(configVal, b.ConfigSchema())
 		newBackendCfgState.Hash = uint64(cHash)
 
-		return m.stateStore_to_backend(sMgr, backendConfig.Type, b, newBackendCfgState, opts.ViewType)
+		return m.stateStore_to_backend(sMgr, backendConfig.Type, b, newBackendCfgState, opts)
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1225,7 +1229,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
 		if (uint64(cHash) == s.StateStore.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q state_store configuration", stateStoreConfig.Type)
-			savedStateStore, sssDiags := m.savedStateStore(sMgr)
+			savedStateStore, sssDiags := m.savedStateStore(sMgr, opts.Locks)
 			diags = diags.Append(sssDiags)
 			// Verify that selected workspace exist. Otherwise prompt user to create one
 			if opts.Init && savedStateStore != nil {
@@ -1243,7 +1247,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// don't need to migrate, we update the state store cache hash value.
 		if !m.stateStoreConfigNeedsMigration(stateStoreConfig, s.StateStore, opts) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized %q state store configuration", stateStoreConfig.Type)
-			savedStateStore, moreDiags := m.savedStateStore(sMgr)
+			savedStateStore, moreDiags := m.savedStateStore(sMgr, opts.Locks)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil, diags
@@ -1448,7 +1452,7 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 // from the backend state. This should be used only when a user runs
 // `terraform init -backend=false`. This function returns a local backend if
 // there is no backend state or no backend configured.
-func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backendFromState(_ context.Context, locks *depsfile.Locks) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// Get the path to where we store a local cache of backend configuration
 	// if we're using a remote backend. This may not yet exist which means
@@ -1474,7 +1478,7 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 		// state_store
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q state store", s.StateStore.Type)
 		var ssDiags tfdiags.Diagnostics
-		b, ssDiags = m.savedStateStore(sMgr) // Relies on the state manager's internal state being refreshed above.
+		b, ssDiags = m.savedStateStore(sMgr, locks) // Relies on the state manager's internal state being refreshed above.
 		diags = diags.Append(ssDiags)
 		if ssDiags.HasErrors() {
 			return nil, diags
@@ -2523,17 +2527,17 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 }
 
 // Migrating a state store to backend (including local).
-func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := ssSMgr.State()
 	stateStoreType := s.StateStore.Type
 
-	view := views.NewInit(viewType, m.View)
+	view := views.NewInit(opts.ViewType, m.View)
 	view.Output(views.StateMigrateLocalMessage, stateStoreType)
 
 	// Initialize the configured state store
-	ss, moreDiags := m.savedStateStore(ssSMgr)
+	ss, moreDiags := m.savedStateStore(ssSMgr, opts.Locks)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
@@ -2545,7 +2549,7 @@ func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType
 		DestinationType: dstBackendType,
 		Source:          ss,
 		Destination:     dstBackend,
-		ViewType:        viewType,
+		ViewType:        opts.ViewType,
 	})
 	if err != nil {
 		diags = diags.Append(err)
@@ -2660,7 +2664,7 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 	}
 
 	// Grab the source state store
-	srcB, srcBDiags := m.savedStateStore(sMgr)
+	srcB, srcBDiags := m.savedStateStore(sMgr, opts.PreviousLocks)
 	diags = diags.Append(srcBDiags)
 	if srcBDiags.HasErrors() {
 		return nil, diags
@@ -2843,7 +2847,7 @@ func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) 
 }
 
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
-func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) savedStateStore(sMgr *clistate.LocalState, locks *depsfile.Locks) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
 	//
 	// The provider and state store will be configured using the backend state file.
@@ -2852,7 +2856,7 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 
 	s := sMgr.State()
 
-	factory, pDiags := m.StateStoreProviderFactoryFromConfigState(s.StateStore)
+	factory, pDiags := m.StateStoreProviderFactoryFromConfigState(s.StateStore, locks)
 	diags = diags.Append(pDiags)
 	if pDiags.HasErrors() {
 		return nil, diags
@@ -3366,7 +3370,7 @@ func (m *Meta) StateStoreProviderFactoryFromConfig(config *configs.StateStore, l
 	return factory, diags
 }
 
-func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateStoreConfigState) (providers.Factory, tfdiags.Diagnostics) {
+func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateStoreConfigState, locks *depsfile.Locks) (providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if cfgState == nil {
@@ -3382,7 +3386,7 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 		})
 	}
 
-	factories, err := m.ProviderFactories()
+	factories, err := m.providerFactoriesFromLocks(locks)
 	if err != nil {
 		// This may happen if the provider isn't present in the provider cache.
 		// This should be caught earlier by logic that diffs the config against the backend state file.

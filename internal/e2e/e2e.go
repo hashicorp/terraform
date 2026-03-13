@@ -244,7 +244,7 @@ func (b *binary) SetLocalState(state *states.State) error {
 	return statefile.Write(sf, f)
 }
 
-func GoBuild(pkgPath, tmpPrefix string) string {
+func GoBuild(pkgPath, tmpPrefix string, buildArgs ...string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
 	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
@@ -259,6 +259,7 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 	if exp := os.Getenv(TestExperimentFlag); exp != "" && exp != "false" {
 		args = append(args, "-ldflags", "-X 'main.experimentsAllowed=yes'")
 	}
+	args = append(args, buildArgs...)
 	args = append(args, pkgPath)
 	cmd := exec.Command("go", args...)
 	cmd.Stderr = os.Stderr
