@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
@@ -607,9 +609,16 @@ func TestBlock_SetAttributeRaw(t *testing.T) {
 }
 
 func TestBlock_SetLabels(t *testing.T) {
-	input := `resource "aws_instance" "old_name" {
-  ami = "abc-123"
-}
+	input := `
+/**
+    * This is a comment that should be preserved when changing labels.
+    * It is intentionally formatted in a weird way to make sure that we preserve formatting as well.
+    */
+resource "aws_instance" "old_name" { // yet another comment
+  ami = "abc-123"                    // inline commment
+}                                    // we have high quality, we comment a lot!
+// and one to finish the file with a bang!
+
 `
 	f, err := ParseFile([]byte(input), "main.tf", nil)
 	if err != nil {
@@ -624,12 +633,23 @@ func TestBlock_SetLabels(t *testing.T) {
 	blocks[0].SetLabels([]string{"aws_instance", "new_name"})
 
 	output := string(f.Bytes())
-	if !strings.Contains(output, "new_name") {
-		t.Errorf("output missing new_name\n%s", output)
+
+	expected := `
+/**
+    * This is a comment that should be preserved when changing labels.
+    * It is intentionally formatted in a weird way to make sure that we preserve formatting as well.
+    */
+resource "aws_instance" "new_name" { // yet another comment
+  ami = "abc-123"                    // inline commment
+}                                    // we have high quality, we comment a lot!
+// and one to finish the file with a bang!
+
+`
+
+	if diff := cmp.Diff(expected, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
-	if strings.Contains(output, "old_name") {
-		t.Errorf("output should not contain old_name\n%s", output)
-	}
+
 }
 
 func TestBlock_RemoveNestedBlock(t *testing.T) {
