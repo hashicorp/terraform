@@ -2923,10 +2923,11 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Error reading state store configuration state",
-				Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q)",
+				Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q): %s",
 					s.StateStore.Type,
 					s.StateStore.Provider.Source.Type,
 					s.StateStore.Provider.Source,
+					err,
 				),
 			},
 		)
@@ -3403,7 +3404,7 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 			Severity: hcl.DiagError,
 			Summary:  "Provider unavailable",
 			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-				cfgState.Type,
+				cfgState.Provider.Source.Type,
 				cfgState.Provider.Source,
 				cfgState.Type,
 			),
