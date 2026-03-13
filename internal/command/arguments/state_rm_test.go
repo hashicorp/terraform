@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -18,6 +21,7 @@ func TestParseStateRm_valid(t *testing.T) {
 		"single address": {
 			[]string{"test_instance.foo"},
 			&StateRm{
+				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
 				Addrs:      []string{"test_instance.foo"},
@@ -26,6 +30,7 @@ func TestParseStateRm_valid(t *testing.T) {
 		"multiple addresses": {
 			[]string{"test_instance.foo", "test_instance.bar"},
 			&StateRm{
+				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
 				Addrs:      []string{"test_instance.foo", "test_instance.bar"},
@@ -34,6 +39,7 @@ func TestParseStateRm_valid(t *testing.T) {
 		"all options": {
 			[]string{"-dry-run", "-backup=backup.tfstate", "-lock=false", "-lock-timeout=5s", "-state=state.tfstate", "-ignore-remote-version", "test_instance.foo"},
 			&StateRm{
+				Vars:                &Vars{},
 				DryRun:              true,
 				BackupPath:          "backup.tfstate",
 				StateLock:           false,
@@ -45,27 +51,64 @@ func TestParseStateRm_valid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmp.Options{
+		cmpopts.IgnoreUnexported(Vars{}),
+		cmpopts.EquateEmpty(),
+	}
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseStateRm(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if got.DryRun != tc.want.DryRun ||
-				got.BackupPath != tc.want.BackupPath ||
-				got.StateLock != tc.want.StateLock ||
-				got.StateLockTimeout != tc.want.StateLockTimeout ||
-				got.StatePath != tc.want.StatePath ||
-				got.IgnoreRemoteVersion != tc.want.IgnoreRemoteVersion {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
-			if len(got.Addrs) != len(tc.want.Addrs) {
-				t.Fatalf("unexpected Addrs length\n got: %d\nwant: %d", len(got.Addrs), len(tc.want.Addrs))
+		})
+	}
+}
+
+func TestParseStateRm_vars(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want []FlagNameValue
+	}{
+		"var": {
+			args: []string{"-var", "foo=bar", "test_instance.foo"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+			},
+		},
+		"var-file": {
+			args: []string{"-var-file", "cool.tfvars", "test_instance.foo"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
+			},
+		},
+		"both": {
+			args: []string{
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
+				"test_instance.foo",
+			},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseStateRm(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
 			}
-			for i := range got.Addrs {
-				if got.Addrs[i] != tc.want.Addrs[i] {
-					t.Fatalf("unexpected Addrs[%d]\n got: %q\nwant: %q", i, got.Addrs[i], tc.want.Addrs[i])
-				}
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected vars: %#v", vars)
 			}
 		})
 	}
@@ -74,12 +117,16 @@ func TestParseStateRm_valid(t *testing.T) {
 func TestParseStateRm_invalid(t *testing.T) {
 	testCases := map[string]struct {
 		args      []string
-		wantAddrs int
+		want      *StateRm
 		wantDiags tfdiags.Diagnostics
 	}{
 		"no arguments": {
 			nil,
-			0,
+			&StateRm{
+				Vars:       &Vars{},
+				BackupPath: "-",
+				StateLock:  true,
+			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -90,7 +137,11 @@ func TestParseStateRm_invalid(t *testing.T) {
 		},
 		"unknown flag": {
 			[]string{"-boop"},
-			0,
+			&StateRm{
+				Vars:       &Vars{},
+				BackupPath: "-",
+				StateLock:  true,
+			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -106,11 +157,16 @@ func TestParseStateRm_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmp.Options{
+		cmpopts.IgnoreUnexported(Vars{}),
+		cmpopts.EquateEmpty(),
+	}
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseStateRm(tc.args)
-			if len(got.Addrs) != tc.wantAddrs {
-				t.Fatalf("unexpected Addrs length\n got: %d\nwant: %d", len(got.Addrs), tc.wantAddrs)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
 		})
