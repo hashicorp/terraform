@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -37,6 +38,11 @@ type StateStore struct {
 	// This is required for accessing provider factories during Terraform command logic,
 	// and is used in diagnostics
 	ProviderAddr tfaddr.Provider
+
+	// ProviderSupplyMode describes how the provider used for state storage was supplied to Terraform.
+	// This is needed when handling provider version data; unmanaged and builtin providers have no version data available.
+	// This value is ultimately recorded in the backend state file alongside the provider version data (which may be null).
+	ProviderSupplyMode supplymode.ProviderSupplyMode
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
@@ -102,6 +108,24 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 			LabelNames: []string{"type"},
 		},
 	},
+}
+
+func (s *StateStore) SetProviderSupplyMode(isDevOverride bool) {
+	isReattached, err := reattach.IsProviderReattached(s.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", s.ProviderAddr.ForDisplay(), err))
+	}
+	switch {
+	case s.ProviderAddr.IsBuiltIn():
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeBuiltIn
+	case isReattached:
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeReattached
+	case isDevOverride:
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeDevOverride
+	default:
+		// assume provider is managed if nothing indicates otherwise.
+		s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+	}
 }
 
 // resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
@@ -340,25 +364,23 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 	}
 
 	var providerVersionString string
-	if stateStoreProviderVersion == nil {
-		isReattached, err := reattach.IsProviderReattached(b.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
-		if err != nil {
-			return 0, diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while hashing state store configuration. This is a bug in Terraform and should be reported: %w", err))
-		}
-
-		if (b.ProviderAddr.Hostname != tfaddr.BuiltInProviderHost) &&
-			!isReattached {
+	switch b.ProviderSupplyMode {
+	case supplymode.ProviderSupplyModeBuiltIn, supplymode.ProviderSupplyModeDevOverride, supplymode.ProviderSupplyModeReattached:
+		// We expect to not have version information in these situations.
+		// We'll use an empty string for the hash.
+		providerVersionString = ""
+	case supplymode.ProviderSupplyModeManaged:
+		if stateStoreProviderVersion == nil {
+			// Lack of version information indicates a problem; error
 			return 0, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unable to calculate hash of state store configuration",
 				Detail:   "Provider version data was missing during hash generation. This is a bug in Terraform and should be reported.",
 			})
 		}
-
-		// Version information can be empty but only if the provider is builtin or unmanaged by Terraform
-		providerVersionString = ""
-	} else {
 		providerVersionString = stateStoreProviderVersion.String()
+	default:
+		panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", b.ProviderAddr.Type, b.ProviderAddr.ForDisplay(), b.ProviderSupplyMode))
 	}
 
 	toHash := cty.TupleVal([]cty.Value{

@@ -15,9 +15,11 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-var _ ConfigState = &BackendConfigState{}
-var _ DeepCopier[BackendConfigState] = &BackendConfigState{}
-var _ PlanDataProvider[plans.Backend] = &BackendConfigState{}
+var (
+	_ ConfigState                     = &BackendConfigState{}
+	_ DeepCopier[BackendConfigState]  = &BackendConfigState{}
+	_ PlanDataProvider[plans.Backend] = &BackendConfigState{}
+)
 
 // BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.

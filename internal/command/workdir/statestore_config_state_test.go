@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -210,8 +211,9 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		ConfigRaw: []byte(`{
 			"foo": "bar"
 		}`),
-		Hash:     123,
-		Provider: provider,
+		Hash:               123,
+		Provider:           provider,
+		ProviderSupplyMode: supplymode.ProviderSupplyModeManaged, // not reflected in plan data, but required to generate it
 	}
 
 	ssSchema := &configschema.Block{
@@ -264,12 +266,12 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		t.Fatal("expected plan to include provider data, but it was nil")
 	}
 	if plan.Provider.Version != s.Provider.Version {
-		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Provider.Version, s.Provider.Version)
 	}
 	if plan.Provider.Source.Hostname != s.Provider.Source.Hostname ||
 		plan.Provider.Source.Namespace != s.Provider.Source.Namespace ||
 		plan.Provider.Source.Type != s.Provider.Source.Type {
-		t.Fatalf("incorrect provider Version value, got %q, want %q", plan.Workspace, workspace)
+		t.Fatalf("incorrect provider Source value, got %q, want %q", plan.Provider.Source, s.Provider.Source)
 	}
 	// Config
 	imType, err = plan.Provider.Config.ImpliedType()
@@ -285,5 +287,4 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		attrs := slices.Sorted(maps.Keys(valMap))
 		t.Fatalf("expected plan's provider config data to include one attribute called \"credentials\", instead got attribute(s): %s", attrs)
 	}
-
 }

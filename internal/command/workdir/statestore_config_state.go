@@ -7,12 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders/reattach"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -26,10 +25,11 @@ var (
 
 // StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
-	Type      string               `json:"type"`     // State store type name
-	Provider  *ProviderConfigState `json:"provider"` // Details about the state-storage provider
-	ConfigRaw json.RawMessage      `json:"config"`   // state_store block raw config, barring provider details
-	Hash      uint64               `json:"hash"`     // Hash of the state_store block's configuration, including the nested provider block
+	Type               string                        `json:"type"`                 // State store type name
+	Provider           *ProviderConfigState          `json:"provider"`             // Details about the state-storage provider
+	ConfigRaw          json.RawMessage               `json:"config"`               // state_store block raw config, barring provider details
+	Hash               uint64                        `json:"hash"`                 // Hash of the state_store block's configuration, including the nested provider block
+	ProviderSupplyMode supplymode.ProviderSupplyMode `json:"provider_supply_mode"` // How the provider was supplied to Terraform during the init operation that created this config state.
 }
 
 // Empty returns true if there is no active state store.
@@ -62,15 +62,15 @@ func (s *StateStoreConfigState) Validate() error {
 	}
 
 	// Version information is required if the provider isn't builtin or unmanaged by Terraform
-	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
-	if err != nil {
-		return fmt.Errorf("Unable to determine if state storage provider is reattached while validating backend state file contents. This is a bug in Terraform and should be reported: %w", err)
-	}
-	if (s.Provider.Source.Hostname != tfaddr.BuiltInProviderHost) &&
-		!isReattached {
+	switch s.ProviderSupplyMode {
+	case supplymode.ProviderSupplyModeBuiltIn, supplymode.ProviderSupplyModeReattached, supplymode.ProviderSupplyModeDevOverride:
+		// These modes do not require version information
+	case supplymode.ProviderSupplyModeManaged:
 		if s.Provider.Version == nil {
-			return fmt.Errorf("state store is not valid: provider version data is missing")
+			return fmt.Errorf("state store is not valid: provider version data is missing despite provider %s being managed by Terraform.", s.Provider.Source.ForDisplay())
 		}
+	default:
+		panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", s.Provider.Source.Type, s.Provider.Source.ForDisplay(), s.ProviderSupplyMode))
 	}
 
 	return nil
@@ -131,17 +131,16 @@ func (s *StateStoreConfigState) PlanData(storeSchema *configschema.Block, provid
 		return nil, fmt.Errorf("failed to decode state_store's nested provider config: %w", err)
 	}
 
-	isReattached, err := reattach.IsProviderReattached(*s.Provider.Source, os.Getenv("TF_REATTACH_PROVIDERS"))
-	if err != nil {
-		return nil, fmt.Errorf("Unable to determine if state storage provider is reattached while saving state store data to a plan file. This is a bug in Terraform and should be reported: %w", err)
-	}
-
 	var providerVersion *version.Version
-	if s.Provider.Source.IsBuiltIn() || isReattached {
-		// For built-in providers and reattached providers, we don't require version information to be present in the state file, so we should be tolerant of it being missing. In this case we can just use a placeholder version that will never actually be used for anything, but allows us to avoid returning an error when trying to save state store data to a plan file.
+	switch s.ProviderSupplyMode {
+	case supplymode.ProviderSupplyModeBuiltIn, supplymode.ProviderSupplyModeReattached, supplymode.ProviderSupplyModeDevOverride:
+		// For built-in providers, reattached providers, and developer overrides, we don't require version information to be present in the state file, so we should be tolerant of it being missing.
+		// In this case we can just use a placeholder version that will never actually be used for anything, but allows us to avoid returning an error when trying to save state store data to a plan file.
 		providerVersion = version.Must(version.NewVersion("0.0.0"))
-	} else {
+	case supplymode.ProviderSupplyModeManaged:
 		providerVersion = s.Provider.Version
+	default:
+		panic(fmt.Sprintf("State store provider %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", s.Provider.Source.Type, s.Provider.Source.ForDisplay(), s.ProviderSupplyMode))
 	}
 
 	return plans.NewStateStore(s.Type, providerVersion, s.Provider.Source, storeConfigVal, storeSchema, providerConfigVal, providerSchema, workspaceName)
@@ -161,9 +160,10 @@ func (s *StateStoreConfigState) DeepCopy() *StateStoreConfigState {
 	}
 
 	ret := &StateStoreConfigState{
-		Type:     s.Type,
-		Provider: provider,
-		Hash:     s.Hash,
+		Type:               s.Type,
+		Provider:           provider,
+		ProviderSupplyMode: s.ProviderSupplyMode,
+		Hash:               s.Hash,
 	}
 
 	if s.ConfigRaw != nil {

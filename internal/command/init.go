@@ -231,6 +231,10 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 			}
 		}
 
+		// Annotate state_store config representation with info about how the provider
+		// is supplied to Terraform.
+		root.StateStore.SetProviderSupplyMode(c.Meta.isProviderDevOverride(root.StateStore.ProviderAddr))
+
 		opts = &BackendOpts{
 			StateStoreConfig:       root.StateStore,
 			Locks:                  configLocks,

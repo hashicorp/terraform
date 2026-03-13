@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -2542,6 +2543,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 				Name: "foobar",
 			},
 			Type: "store",
+			// ProviderSupplyMode not necessary
 		}
 
 		// Setup the meta and test providerFactoriesDuringInit
@@ -2572,6 +2574,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 
 		config := &configs.StateStore{
 			ProviderAddr: tfaddr.Provider{}, // Empty
+			// ProviderSupplyMode not necessary
 		}
 
 		// Setup the meta and test providerFactoriesDuringInit
@@ -2602,6 +2605,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, expectedRegionAttr)),
 		},
 		ProviderAddr: addrs.NewDefaultProvider("test"),
+		// ProviderSupplyMode not necessary
 	}
 
 	t.Run("the returned state store is configured with the provided config and expected chunk size", func(t *testing.T) {
@@ -2746,13 +2750,16 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 
 func TestMetaBackend_stateStoreConfig(t *testing.T) {
 	// Reused in tests
-	config := &configs.StateStore{
-		Type:   "test_store",
-		Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, "foobar")),
-		Provider: &configs.Provider{
-			Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, "foobar")),
-		},
-		ProviderAddr: addrs.NewDefaultProvider("test"),
+	testConfig := func(mode supplymode.ProviderSupplyMode) *configs.StateStore {
+		return &configs.StateStore{
+			Type:   "test_store",
+			Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, "foobar")),
+			Provider: &configs.Provider{
+				Config: configBodyForTest(t, fmt.Sprintf(`region = "%s"`, "foobar")),
+			},
+			ProviderAddr:       addrs.NewDefaultProvider("test"),
+			ProviderSupplyMode: mode,
+		}
 	}
 
 	locks := depsfile.NewLocks()
@@ -2772,7 +2779,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig: config,
+			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
 			ConfigOverride:   configOverride,
 			Init:             true,
 			Locks:            locks,
@@ -2831,7 +2838,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
+			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
 			Init:             true,
 			Locks:            locks,
 		}
@@ -2859,7 +2866,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig: config,
+			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
 			Init:             true,
 			Locks:            locks,
 		}
@@ -2889,7 +2896,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - locks are empty and the provider required by the state_store block isn't present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig: config,
+			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
 			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
 			Locks:            depsfile.NewLocks(), // empty!
 		}
@@ -2917,22 +2924,8 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 	})
 
 	t.Run("ok - locks are empty but reattach config supplies the provider required by state_store block", func(t *testing.T) {
-		reattachConfig := `{
-				"hashicorp/test": {
-					"Protocol": "grpc",
-					"ProtocolVersion": 5,
-					"Pid": 12345,
-					"Test": true,
-					"Addr": {
-						"Network": "unix",
-						"String":"/var/folders/xx/abcde12345/T/plugin12345"
-					}
-				}
-			}`
-		t.Setenv("TF_REATTACH_PROVIDERS", reattachConfig)
-
 		opts := &BackendOpts{
-			StateStoreConfig: config,
+			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeReattached),
 			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
 			Locks:            depsfile.NewLocks(), // empty!
 		}
@@ -2966,8 +2959,9 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 
 	t.Run("returns the version of the provider represented in the locks", func(t *testing.T) {
 		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
-			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			Provider:           &configs.Provider{},
+			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
@@ -2985,12 +2979,16 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 
 	t.Run("returns a nil version when using a builtin provider", func(t *testing.T) {
 		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
-			ProviderAddr: tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
+			Provider:           &configs.Provider{},
+			ProviderAddr:       tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeBuiltIn,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
 		}
 
 		var expectedVersion *version.Version = nil
@@ -3000,25 +2998,37 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 	})
 
 	t.Run("returns a nil version when using a re-attached provider", func(t *testing.T) {
-		t.Setenv("TF_REATTACH_PROVIDERS", `{
-			"test": {
-				"Protocol": "grpc",
-				"ProtocolVersion": 6,
-				"Pid": 12345,
-				"Test": true,
-				"Addr": {
-					"Network": "unix",
-					"String":"/var/folders/xx/abcde12345/T/plugin12345"
-				}
-			}
-		}`)
 		c := &configs.StateStore{
-			Provider:     &configs.Provider{},
-			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			Provider:           &configs.Provider{},
+			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeReattached,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a dev_override provider", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:           &configs.Provider{},
+			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
 		}
 
 		var expectedVersion *version.Version = nil
@@ -3033,7 +3043,8 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 			Provider: &configs.Provider{
 				Name: "missing-provider",
 			},
-			ProviderAddr: tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),
+			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 		}
 		_, diags := getStateStorageProviderVersion(c, locks)
 		if !diags.HasErrors() {
