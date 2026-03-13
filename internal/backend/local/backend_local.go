@@ -167,7 +167,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, rootMod.Variables, op.UIIn)
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(rawVariables, rootMod.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(rawVariables, rootMod.Variables, false)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -271,7 +271,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, nil, diags
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables, false)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags

@@ -135,7 +135,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 		}
 
 		if op.Variables != nil {
-			variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
+			variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables, false)
 			diags = diags.Append(varDiags)
 			if diags.HasErrors() {
 				return nil, nil, diags
