@@ -2174,36 +2174,10 @@ func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clis
 	}
 
 	// Store the state_store metadata in our saved state location
-
-	var pVersion *version.Version // This will remain nil for builtin, dev override, and unmanaged providers.
-	switch c.ProviderSupplyMode {
-	case supplymode.ProviderSupplyModeBuiltIn:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a builtin provider",
-			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeDevOverride:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a developer override provider",
-			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeReattached:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store provider is not managed by Terraform",
-			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	default:
-		// The provider is not built in and is being managed by Terraform
-		// This is the most common scenario, by far.
-		var vDiags tfdiags.Diagnostics
-		pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
-		diags = diags.Append(vDiags)
-		if vDiags.HasErrors() {
-			return nil, diags
-		}
+	pVersion, vDiags := getStateStorageProviderVersion(c, opts.Locks) // pVersion will remain nil for builtin, dev override, and unmanaged providers.
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return nil, diags
 	}
 
 	// Update the stored metadata
@@ -2408,35 +2382,10 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		s = workdir.NewBackendStateFile()
 	}
 
-	var pVersion *version.Version // This will remain nil for builtin, dev override, and unmanaged providers.
-	switch c.ProviderSupplyMode {
-	case supplymode.ProviderSupplyModeBuiltIn:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a builtin provider",
-			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeDevOverride:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a developer override provider",
-			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeReattached:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store provider is not managed by Terraform",
-			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	default:
-		// The provider is not built in and is being managed by Terraform
-		// This is the most common scenario, by far.
-		var vDiags tfdiags.Diagnostics
-		pVersion, vDiags = getStateStorageProviderVersion(c, opts.Locks)
-		diags = diags.Append(vDiags)
-		if vDiags.HasErrors() {
-			return nil, diags
-		}
+	pVersion, vDiags := getStateStorageProviderVersion(c, opts.Locks) // pVersion will remain nil for builtin, dev override, and unmanaged providers.
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return nil, diags
 	}
 
 	s.StateStore = &workdir.StateStoreConfigState{
@@ -2703,35 +2652,10 @@ func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *cl
 		defer stateLocker.Unlock()
 	}
 
-	var pVersion *version.Version // This will remain nil for builtin, dev override, and unmanaged providers.
-	switch cfg.ProviderSupplyMode {
-	case supplymode.ProviderSupplyModeBuiltIn:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a builtin provider",
-			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeDevOverride:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store is from a developer override provider",
-			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	case supplymode.ProviderSupplyModeReattached:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "State store provider is not managed by Terraform",
-			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
-		})
-	default:
-		// The provider is not built in and is being managed by Terraform
-		// This is the most common scenario, by far.
-		var vDiags tfdiags.Diagnostics
-		pVersion, vDiags = getStateStorageProviderVersion(cfg, opts.Locks)
-		diags = diags.Append(vDiags)
-		if vDiags.HasErrors() {
-			return nil, diags
-		}
+	pVersion, vDiags := getStateStorageProviderVersion(cfg, opts.Locks) // pVersion will remain nil for builtin, dev override, and unmanaged providers.
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		return nil, diags
 	}
 
 	// Update the state to the new configuration
@@ -2782,9 +2706,31 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 	var diags tfdiags.Diagnostics
 	var pVersion *version.Version
 
+	switch c.ProviderSupplyMode {
+	case supplymode.ProviderSupplyModeBuiltIn:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store is from a builtin provider",
+			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	case supplymode.ProviderSupplyModeDevOverride:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store is from a developer override provider",
+			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	case supplymode.ProviderSupplyModeReattached:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "State store provider is not managed by Terraform",
+			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+		})
+	}
+
 	if c.ProviderSupplyMode != supplymode.ProviderSupplyModeManaged {
 		// We should only be trying to get the provider version for managed providers.
-		return nil, nil // nil Version returned
+		// nil Version is returned when the provider is unmanaged.
+		return nil, diags
 	}
 
 	pLock := locks.Provider(c.ProviderAddr)
