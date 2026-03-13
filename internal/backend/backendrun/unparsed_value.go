@@ -219,3 +219,18 @@ func parseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls ma
 
 	return ret, diags
 }
+
+// HasUnsatisfiedConstVariables checks whether any const variables declared in
+// the given module are required but not yet present in the provided variable
+// values map. This is used to determine whether we need to fetch additional
+// variable values from a backend before loading the full configuration.
+func HasUnsatisfiedConstVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) bool {
+	for name, vc := range decls {
+		if vc.Const && vc.Required() {
+			if _, defined := vv[name]; !defined {
+				return true
+			}
+		}
+	}
+	return false
+}
