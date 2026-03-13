@@ -1,9 +1,9 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.10
+// Terraform Plugin RPC protocol version 6.11
 //
-// This file defines version 6.10 of the RPC protocol. To implement a plugin
+// This file defines version 6.11 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
@@ -312,6 +312,11 @@ message ClientCapabilities {
     // The write_only_attributes_allowed capability signals that the client
     // is able to handle write_only attributes for managed resources.
     bool write_only_attributes_allowed = 2;
+
+    // store_planned_private indicates that the client will store the private data
+    // returned with an initial plan, and send it back to the provider as
+    // PlannedPrivate data in a subsequent plan request.
+    bool store_planned_private = 3;
 }
 
 // Deferred is a message that indicates that change is deferred for a reason.
@@ -643,6 +648,7 @@ message PlanResourceChange {
         DynamicValue provider_meta = 6;
         ClientCapabilities client_capabilities = 7;
         ResourceIdentityData prior_identity = 8;
+        bytes planned_private = 9;
     }
 
     message Response {
