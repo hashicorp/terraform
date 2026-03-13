@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: As part of supporting variables in module sources, most commands now accept variable values
+time: 2026-03-13T16:25:37.792809+01:00
+custom:
+    Issue: "38276"
