@@ -11,6 +11,9 @@ import (
 
 // StatePush represents the command-line arguments for the state push command.
 type StatePush struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
+
 	// Force writes the state even if lineages don't match or the remote
 	// serial is higher.
 	Force bool
@@ -35,9 +38,11 @@ type StatePush struct {
 // representing the best effort interpretation of the arguments.
 func ParseStatePush(args []string) (*StatePush, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	push := &StatePush{}
+	push := &StatePush{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("state push")
+	cmdFlags := extendedFlagSet("state push", nil, nil, push.Vars)
 	cmdFlags.BoolVar(&push.Force, "force", false, "")
 	cmdFlags.BoolVar(&push.StateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&push.StateLockTimeout, "lock-timeout", 0, "lock timeout")

@@ -14,6 +14,9 @@ type ProvidersLock struct {
 	TestsDirectory    string
 	EnablePluginCache bool
 	Providers         []string
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseProvidersLock processes CLI arguments, returning a ProvidersLock value
@@ -21,9 +24,11 @@ type ProvidersLock struct {
 // returned representing the best effort interpretation of the arguments.
 func ParseProvidersLock(args []string) (*ProvidersLock, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	providersLock := &ProvidersLock{}
+	providersLock := &ProvidersLock{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("providers lock")
+	cmdFlags := extendedFlagSet("providers lock", nil, nil, providersLock.Vars)
 	cmdFlags.Var(&providersLock.Platforms, "platform", "target platform")
 	cmdFlags.StringVar(&providersLock.FSMirrorDir, "fs-mirror", "", "filesystem mirror directory")
 	cmdFlags.StringVar(&providersLock.NetMirrorURL, "net-mirror", "", "network mirror base URL")

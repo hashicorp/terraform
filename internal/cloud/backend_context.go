@@ -86,63 +86,41 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 		return nil, nil, diags
 	}
 
-	if op.AllowUnsetVariables {
-		// If we're not going to use the variables in an operation we'll be
-		// more lax about them, stubbing out any unset ones as unknown.
-		// This gives us enough information to produce a consistent context,
-		// but not enough information to run a real operation (plan, apply, etc)
-		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, rootMod.Variables)
-	} else {
-		// The underlying API expects us to use the opaque workspace id to request
-		// variables, so we'll need to look that up using our organization name
-		// and workspace name.
-		remoteWorkspaceID, err := b.getRemoteWorkspaceID(context.Background(), op.Workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
-			return nil, nil, diags
+	// If we're not going to use the variables in an operation we'll be
+	// more lax about them, stubbing out any unset ones as unknown.
+	// This gives us enough information to produce a consistent context,
+	// but not enough information to run a real operation (plan, apply, etc).
+	//
+	// However, const variables must always be resolved since they're
+	// needed during early configuration loading (e.g. module sources).
+	// We fetch backend variables so const vars can be satisfied.
+	fetchedVars, fetchDiags := b.FetchVariables(context.Background(), op.Workspace)
+	diags = diags.Append(fetchDiags)
+	if fetchDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	if len(fetchedVars) > 0 {
+		if op.Variables == nil {
+			op.Variables = make(map[string]arguments.UnparsedVariableValue)
 		}
-		w, err := b.fetchWorkspace(context.Background(), b.Organization, op.Workspace)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("error loading workspace: %w", err))
-			return nil, nil, diags
-		}
-
-		if isLocalExecutionMode(w.ExecutionMode) {
-			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
-		} else {
-			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
-			tfeVariables, err := b.client.Variables.ListAll(context.Background(), remoteWorkspaceID, nil)
-			if err != nil && err != tfe.ErrResourceNotFound {
-				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
-				return nil, nil, diags
+		for k, v := range fetchedVars {
+			if _, ok := op.Variables[k]; !ok {
+				op.Variables[k] = v
 			}
-
-			if tfeVariables != nil {
-				if op.Variables == nil {
-					op.Variables = make(map[string]arguments.UnparsedVariableValue)
-				}
-
-				for _, v := range tfeVariables.Items {
-					if v.Category == tfe.CategoryTerraform {
-						if _, ok := op.Variables[v.Key]; !ok {
-							op.Variables[v.Key] = &remoteStoredVariableValue{
-								definition: v,
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if op.Variables != nil {
-			variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables, false)
-			diags = diags.Append(varDiags)
-			if diags.HasErrors() {
-				return nil, nil, diags
-			}
-			ret.PlanOpts.SetVariables = variables
 		}
 	}
+	var variables terraform.InputValues
+	var varDiags tfdiags.Diagnostics
+	if op.AllowUnsetVariables {
+		variables, varDiags = backendrun.ParseConstVariableValues(op.Variables, rootMod.Variables)
+	} else {
+		variables, varDiags = backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
+	}
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+	ret.PlanOpts.SetVariables = variables
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
@@ -202,31 +180,47 @@ func (b *Cloud) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName str
 	return remoteWorkspace.ID, nil
 }
 
-func stubAllVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
-	ret := make(terraform.InputValues, len(decls))
+// FetchVariables implements backendrun.ConstVariableSupplier by retrieving
+// Terraform variables from the HCP Terraform or Terraform Enterprise workspace.
+func (b *Cloud) FetchVariables(ctx context.Context, workspace string) (map[string]arguments.UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
-	for name, cfg := range decls {
-		raw, exists := vv[name]
-		if !exists {
-			ret[name] = &terraform.InputValue{
-				Value:      cty.UnknownVal(cfg.Type),
-				SourceType: terraform.ValueFromConfig,
-			}
-			continue
-		}
-
-		val, diags := raw.ParseVariableValue(cfg.ParsingMode)
-		if diags.HasErrors() {
-			ret[name] = &terraform.InputValue{
-				Value:      cty.UnknownVal(cfg.Type),
-				SourceType: terraform.ValueFromConfig,
-			}
-			continue
-		}
-		ret[name] = val
+	remoteWorkspaceID, err := b.getRemoteWorkspaceID(ctx, workspace)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
+		return nil, diags
 	}
 
-	return ret
+	w, err := b.fetchWorkspace(ctx, b.Organization, workspace)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error loading workspace: %w", err))
+		return nil, diags
+	}
+
+	if isLocalExecutionMode(w.ExecutionMode) {
+		log.Printf("[TRACE] cloud: skipping variable fetch for workspace %s/%s (%s), workspace is in Local Execution mode", b.getRemoteWorkspaceName(workspace), b.Organization, remoteWorkspaceID)
+		return nil, nil
+	}
+
+	log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", b.getRemoteWorkspaceName(workspace), b.Organization, remoteWorkspaceID)
+	tfeVariables, err := b.client.Variables.ListAll(ctx, remoteWorkspaceID, nil)
+	if err != nil && err != tfe.ErrResourceNotFound {
+		diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
+		return nil, diags
+	}
+
+	result := make(map[string]arguments.UnparsedVariableValue)
+	if tfeVariables != nil {
+		for _, v := range tfeVariables.Items {
+			if v.Category == tfe.CategoryTerraform {
+				result[v.Key] = &remoteStoredVariableValue{
+					definition: v,
+				}
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // remoteStoredVariableValue is a backendrun.UnparsedVariableValue implementation

@@ -5,7 +5,6 @@ package arguments
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -13,52 +12,51 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseStateRm_valid(t *testing.T) {
+func TestParseGet_valid(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
-		want *StateRm
+		want *Get
 	}{
-		"single address": {
-			[]string{"test_instance.foo"},
-			&StateRm{
-				Vars:       &Vars{},
-				BackupPath: "-",
-				StateLock:  true,
-				Addrs:      []string{"test_instance.foo"},
+		"defaults": {
+			nil,
+			&Get{
+				Vars:          &Vars{},
+				TestDirectory: "tests",
 			},
 		},
-		"multiple addresses": {
-			[]string{"test_instance.foo", "test_instance.bar"},
-			&StateRm{
-				Vars:       &Vars{},
-				BackupPath: "-",
-				StateLock:  true,
-				Addrs:      []string{"test_instance.foo", "test_instance.bar"},
+		"update": {
+			[]string{"-update"},
+			&Get{
+				Vars:          &Vars{},
+				Update:        true,
+				TestDirectory: "tests",
+			},
+		},
+		"test-directory": {
+			[]string{"-test-directory", "custom-tests"},
+			&Get{
+				Vars:          &Vars{},
+				TestDirectory: "custom-tests",
 			},
 		},
 		"all options": {
-			[]string{"-dry-run", "-backup=backup.tfstate", "-lock=false", "-lock-timeout=5s", "-state=state.tfstate", "-ignore-remote-version", "test_instance.foo"},
-			&StateRm{
-				Vars:                &Vars{},
-				DryRun:              true,
-				BackupPath:          "backup.tfstate",
-				StateLock:           false,
-				StateLockTimeout:    5 * time.Second,
-				StatePath:           "state.tfstate",
-				IgnoreRemoteVersion: true,
-				Addrs:               []string{"test_instance.foo"},
+			[]string{
+				"-update",
+				"-test-directory", "custom-tests",
+			},
+			&Get{
+				Vars:          &Vars{},
+				Update:        true,
+				TestDirectory: "custom-tests",
 			},
 		},
 	}
 
-	cmpOpts := cmp.Options{
-		cmpopts.IgnoreUnexported(Vars{}),
-		cmpopts.EquateEmpty(),
-	}
+	cmpOpts := cmp.Options{cmpopts.IgnoreUnexported(Vars{})}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseStateRm(tc.args)
+			got, diags := ParseGet(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -69,19 +67,19 @@ func TestParseStateRm_valid(t *testing.T) {
 	}
 }
 
-func TestParseStateRm_vars(t *testing.T) {
+func TestParseGet_vars(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
 		want []FlagNameValue
 	}{
 		"var": {
-			args: []string{"-var", "foo=bar", "test_instance.foo"},
+			args: []string{"-var", "foo=bar"},
 			want: []FlagNameValue{
 				{Name: "-var", Value: "foo=bar"},
 			},
 		},
 		"var-file": {
-			args: []string{"-var-file", "cool.tfvars", "test_instance.foo"},
+			args: []string{"-var-file", "cool.tfvars"},
 			want: []FlagNameValue{
 				{Name: "-var-file", Value: "cool.tfvars"},
 			},
@@ -91,7 +89,6 @@ func TestParseStateRm_vars(t *testing.T) {
 				"-var", "foo=bar",
 				"-var-file", "cool.tfvars",
 				"-var", "boop=beep",
-				"test_instance.foo",
 			},
 			want: []FlagNameValue{
 				{Name: "-var", Value: "foo=bar"},
@@ -103,7 +100,7 @@ func TestParseStateRm_vars(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseStateRm(tc.args)
+			got, diags := ParseGet(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -114,33 +111,17 @@ func TestParseStateRm_vars(t *testing.T) {
 	}
 }
 
-func TestParseStateRm_invalid(t *testing.T) {
+func TestParseGet_invalid(t *testing.T) {
 	testCases := map[string]struct {
 		args      []string
-		want      *StateRm
+		want      *Get
 		wantDiags tfdiags.Diagnostics
 	}{
-		"no arguments": {
-			nil,
-			&StateRm{
-				Vars:       &Vars{},
-				BackupPath: "-",
-				StateLock:  true,
-			},
-			tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Required argument missing",
-					"At least one address is required.",
-				),
-			},
-		},
 		"unknown flag": {
 			[]string{"-boop"},
-			&StateRm{
-				Vars:       &Vars{},
-				BackupPath: "-",
-				StateLock:  true,
+			&Get{
+				Vars:          &Vars{},
+				TestDirectory: "tests",
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -148,23 +129,29 @@ func TestParseStateRm_invalid(t *testing.T) {
 					"Failed to parse command-line flags",
 					"flag provided but not defined: -boop",
 				),
+			},
+		},
+		"too many arguments": {
+			[]string{"foo", "bar"},
+			&Get{
+				Vars:          &Vars{},
+				TestDirectory: "tests",
+			},
+			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"Required argument missing",
-					"At least one address is required.",
+					"Too many command line arguments",
+					"Expected no positional arguments. Did you mean to use -chdir?",
 				),
 			},
 		},
 	}
 
-	cmpOpts := cmp.Options{
-		cmpopts.IgnoreUnexported(Vars{}),
-		cmpopts.EquateEmpty(),
-	}
+	cmpOpts := cmp.Options{cmpopts.IgnoreUnexported(Vars{})}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, gotDiags := ParseStateRm(tc.args)
+			got, gotDiags := ParseGet(tc.args)
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}

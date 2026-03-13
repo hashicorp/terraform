@@ -831,6 +831,11 @@ func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 		return diags
 	}
 
+	diags = diags.Append(m.resolveConstVariables(pwd, arguments.ViewHuman))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	config, configDiags := m.loadConfig(pwd)
 	if configDiags.HasErrors() {
 		diags = diags.Append(configDiags)

@@ -162,7 +162,7 @@ func TestUnparsedValue(t *testing.T) {
 	})
 
 	t.Run("ParseVariableValues", func(t *testing.T) {
-		gotVals, diags := ParseVariableValues(vv, decls, false)
+		gotVals, diags := ParseVariableValues(vv, decls)
 		for _, diag := range diags {
 			t.Logf("%s: %s", diag.Description().Summary, diag.Description().Detail)
 		}
@@ -278,7 +278,7 @@ func TestUnparsedValue(t *testing.T) {
 			},
 		}
 
-		gotVals, diags := ParseVariableValues(vv, decls, true)
+		gotVals, diags := ParseConstVariableValues(vv, decls)
 
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
@@ -337,6 +337,80 @@ func TestUnparsedValue(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+}
+
+func TestHasUnsatisfiedConstVariables(t *testing.T) {
+	testCases := map[string]struct {
+		vv    map[string]arguments.UnparsedVariableValue
+		decls map[string]*configs.Variable
+		want  bool
+	}{
+		"no variables": {
+			vv:    nil,
+			decls: map[string]*configs.Variable{},
+			want:  false,
+		},
+		"no const variables": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"regular": {
+					Name: "regular",
+				},
+			},
+			want: false,
+		},
+		"const with default": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"has_default": {
+					Name:    "has_default",
+					Const:   true,
+					Default: cty.StringVal("default"),
+				},
+			},
+			want: false,
+		},
+		"const required and missing": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"required_const": {
+					Name:  "required_const",
+					Const: true,
+				},
+			},
+			want: true,
+		},
+		"const required but provided": {
+			vv: map[string]arguments.UnparsedVariableValue{
+				"required_const": testUnparsedVariableValue("value"),
+			},
+			decls: map[string]*configs.Variable{
+				"required_const": {
+					Name:  "required_const",
+					Const: true,
+				},
+			},
+			want: false,
+		},
+		"non-const required and missing": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"regular_required": {
+					Name: "regular_required",
+				},
+			},
+			want: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := HasUnsatisfiedConstVariables(tc.vv, tc.decls)
+			if got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
 
 type testUnparsedVariableValue string
