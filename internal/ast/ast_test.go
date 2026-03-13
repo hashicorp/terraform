@@ -1022,6 +1022,120 @@ resource "aws_instance" "web" {
 	}
 }
 
+func TestBlock_SetType(t *testing.T) {
+	input := `resource "aws_instance" "example" {
+  ami = "abc-123"
+
+  log {
+    enabled = true
+  }
+
+  metric {
+    enabled = false
+  }
+}
+`
+
+	f, err := ParseFile([]byte(input), "main.tf", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	blocks := f.FindBlocks("resource", "aws_instance")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+
+	// Change nested block type from "log" to "enabled_log"
+	for _, nb := range blocks[0].NestedBlocks("log") {
+		nb.SetType("enabled_log")
+	}
+
+	output := string(f.Bytes())
+	if !strings.Contains(output, "enabled_log") {
+		t.Errorf("output missing enabled_log\n%s", output)
+	}
+	if strings.Contains(output, "\n  log {") {
+		t.Errorf("output should not contain old block type 'log'\n%s", output)
+	}
+	// metric block should be unchanged
+	if !strings.Contains(output, "metric") {
+		t.Errorf("output missing unchanged metric block\n%s", output)
+	}
+}
+
+func TestBlock_NestedBlocks(t *testing.T) {
+	input := `resource "aws_instance" "example" {
+  ami = "abc-123"
+
+  log {
+    category = "audit"
+  }
+
+  metric {
+    enabled = true
+  }
+
+  log {
+    category = "request"
+  }
+}
+`
+
+	f, err := ParseFile([]byte(input), "main.tf", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	blocks := f.FindBlocks("resource", "aws_instance")
+	if len(blocks) != 1 {
+		t.Fatalf("expected 1 block, got %d", len(blocks))
+	}
+
+	logs := blocks[0].NestedBlocks("log")
+	if len(logs) != 2 {
+		t.Fatalf("expected 2 log blocks, got %d", len(logs))
+	}
+	for _, l := range logs {
+		if l.Type() != "log" {
+			t.Errorf("expected type 'log', got %q", l.Type())
+		}
+	}
+
+	metrics := blocks[0].NestedBlocks("metric")
+	if len(metrics) != 1 {
+		t.Fatalf("expected 1 metric block, got %d", len(metrics))
+	}
+
+	none := blocks[0].NestedBlocks("nonexistent")
+	if len(none) != 0 {
+		t.Errorf("expected 0 blocks for nonexistent type, got %d", len(none))
+	}
+}
+
+func TestFile_AppendComment(t *testing.T) {
+	input := `resource "aws_instance" "example" {
+  ami = "abc-123"
+}
+`
+
+	f, err := ParseFile([]byte(input), "main.tf", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	f.AppendComment("FIXME: aws_instance.example is deprecated. Migrate manually.")
+
+	output := string(f.Bytes())
+	if !strings.Contains(output, "# FIXME: aws_instance.example is deprecated. Migrate manually.") {
+		t.Errorf("output missing expected comment\n%s", output)
+	}
+	// Original content should still be present
+	if !strings.Contains(output, `ami = "abc-123"`) {
+		t.Errorf("output missing original content\n%s", output)
+	}
+}
+
 func TestFile_RenameReferencePrefix(t *testing.T) {
 	tests := map[string]struct {
 		input string

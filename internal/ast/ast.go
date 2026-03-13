@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
@@ -77,6 +78,11 @@ func (b *Block) SetLabels(labels []string) {
 // Type returns the type name of the block (e.g. "resource", "data").
 func (b *Block) Type() string {
 	return b.block.Type()
+}
+
+// SetType changes the type name of the block.
+func (b *Block) SetType(typeName string) {
+	b.block.SetType(typeName)
 }
 
 // BlockAtPath navigates nested blocks using a cty.Path, where each
@@ -151,6 +157,17 @@ func (b *Block) AddBlock(blockType string) *Block {
 	return &Block{block: nb}
 }
 
+// NestedBlocks returns all immediate child blocks matching blockType.
+func (b *Block) NestedBlocks(blockType string) []*Block {
+	var result []*Block
+	for _, child := range b.block.Body().Blocks() {
+		if child.Type() == blockType {
+			result = append(result, &Block{block: child})
+		}
+	}
+	return result
+}
+
 // traversalToNames converts an hcl.Traversal to the []string format
 // expected by hclwrite.Expression.RenameVariablePrefix.
 func traversalToNames(t hcl.Traversal) []string {
@@ -217,4 +234,12 @@ func (f *File) AddBlock(blockType string, labels []string) *Block {
 // every block and attribute in the entire file.
 func (f *File) RenameReferencePrefix(old, new hcl.Traversal) {
 	renameReferencesInBody(f.file.Body(), traversalToNames(old), traversalToNames(new))
+}
+
+// AppendComment appends a line comment to the end of the file body.
+func (f *File) AppendComment(text string) {
+	f.file.Body().AppendUnstructuredTokens(hclwrite.Tokens{
+		{Type: hclsyntax.TokenNewline, Bytes: []byte{'\n'}},
+		{Type: hclsyntax.TokenComment, Bytes: []byte("# " + text + "\n")},
+	})
 }
