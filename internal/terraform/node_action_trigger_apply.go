@@ -47,6 +47,7 @@ func (n *nodeActionTriggerApplyExpand) DynamicExpand(ctx EvalContext) (*Graph, t
 			resolvedProvider:   n.resolvedProvider,
 			ActionTriggerRange: n.triggerConfig.invokingSubject.Ptr(),
 			ConditionExpr:      n.triggerConfig.conditionExpr,
+			actionConfig:       n.Config,
 		}
 		g.Add(node)
 		invocationMap[ai] = node

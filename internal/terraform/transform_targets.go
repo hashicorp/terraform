@@ -162,7 +162,7 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
 	case *nodeActionInvokeExpand:
-		vertexAddr = r.Target
+		vertexAddr = r.TargetAction
 	case *nodeActionTriggerApplyInstance:
 		vertexAddr = r.ActionInvocation.Addr
 
