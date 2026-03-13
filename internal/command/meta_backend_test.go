@@ -2987,6 +2987,9 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
+		}
 
 		var expectedVersion *version.Version = nil
 		if !v.Equal(expectedVersion) {
@@ -3003,6 +3006,29 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
+		}
+
+		var expectedVersion *version.Version = nil
+		if !v.Equal(expectedVersion) {
+			t.Fatalf("expected version to be %#v, got %#v", expectedVersion, v)
+		}
+	})
+
+	t.Run("returns a nil version when using a dev_override provider", func(t *testing.T) {
+		c := &configs.StateStore{
+			Provider:           &configs.Provider{},
+			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+			ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+		}
+		v, diags := getStateStorageProviderVersion(c, locks)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly 1 warning diagnostic but got %d: %s", len(diags), diags.Err())
 		}
 
 		var expectedVersion *version.Version = nil
