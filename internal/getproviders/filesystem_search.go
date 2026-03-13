@@ -64,6 +64,13 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			return nil
 		}
 		relPath := filepath.ToSlash(fsPath)
+
+		// If the relative path contains ".terraform-temp-", ignore it.
+		// This is the temporary directory created by the provider installer
+		if strings.Contains(relPath, ".terraform-temp-") {
+			return nil
+		}
+
 		parts := strings.Split(relPath, "/")
 
 		if len(parts) < 3 {
