@@ -58,7 +58,7 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 		cfg.Root = cfg // Root module is self-referential.
 		return cfg, diags
 	}
-	vars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables)
+	vars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables, true)
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return nil, diags
@@ -95,7 +95,7 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 		cfg.Root = cfg // Root module is self-referential.
 		return cfg, diags
 	}
-	vars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+	vars, parseDiags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables, true)
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return nil, diags
@@ -243,7 +243,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 	}
 
 	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
-		variables, diags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+		variables, diags := backendrun.ParseVariableValues(m.VariableValues, rootMod.Variables, true)
 		ctx, ctxDiags := terraform.NewContext(&terraform.ContextOpts{
 			Parallelism: 1,
 		})

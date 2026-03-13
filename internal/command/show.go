@@ -354,7 +354,7 @@ func readConfig(r *planfile.Reader, allowLanguageExperiments bool, variableValue
 		return nil, diags
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(variableValues, rootMod.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(variableValues, rootMod.Variables, true)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, diags

@@ -162,7 +162,7 @@ func TestUnparsedValue(t *testing.T) {
 	})
 
 	t.Run("ParseVariableValues", func(t *testing.T) {
-		gotVals, diags := ParseVariableValues(vv, decls)
+		gotVals, diags := ParseVariableValues(vv, decls, false)
 		for _, diag := range diags {
 			t.Logf("%s: %s", diag.Description().Summary, diag.Description().Detail)
 		}
@@ -217,6 +217,122 @@ func TestUnparsedValue(t *testing.T) {
 				},
 			},
 		}
+		if diff := cmp.Diff(wantVals, gotVals, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	t.Run("ParseVariableValues constOnly", func(t *testing.T) {
+		vv := map[string]arguments.UnparsedVariableValue{
+			"declared1": testUnparsedVariableValue("5"),
+		}
+
+		decls := map[string]*configs.Variable{
+			"declared1": {
+				Name:           "declared1",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_required": {
+				Name:           "missing_const_required",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          true,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 3, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 3, Column: 1, Byte: 0},
+				},
+			},
+			"missing_nonconst_required": {
+				Name:           "missing_nonconst_required",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          false,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 4, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 4, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_optional": {
+				Name:           "missing_const_optional",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          true,
+				Default:        cty.StringVal("default"),
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 5, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 5, Column: 1, Byte: 0},
+				},
+			},
+		}
+
+		gotVals, diags := ParseVariableValues(vv, decls, true)
+
+		if got, want := len(diags), 1; got != want {
+			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
+		}
+
+		const missingRequired = `No value for required variable`
+
+		if got, want := diags[0].Description().Summary, missingRequired; got != want {
+			t.Fatalf("wrong summary for diagnostic 0\ngot:  %s\nwant: %s", got, want)
+		}
+
+		if got, want := diags[0].Description().Detail, `"missing_const_required"`; !strings.Contains(got, want) {
+			t.Fatalf("wrong detail for diagnostic 0\ngot:  %s\nmust contain: %s", got, want)
+		}
+
+		wantVals := terraform.InputValues{
+			"declared1": {
+				Value:      cty.StringVal("5"),
+				SourceType: terraform.ValueFromNamedFile,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tfvars",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_required": {
+				Value:      cty.DynamicVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 3, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 3, Column: 1, Byte: 0},
+				},
+			},
+			"missing_nonconst_required": {
+				Value:      cty.DynamicVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 4, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 4, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_optional": {
+				Value:      cty.NilVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 5, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 5, Column: 1, Byte: 0},
+				},
+			},
+		}
+
 		if diff := cmp.Diff(wantVals, gotVals, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
 		}
