@@ -101,6 +101,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var cfg *configs.Config
 
+	diags = diags.Append(c.resolveConstVariables(dir, c.ParsedArgs.ViewType))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	if c.ParsedArgs.NoTests {
 		cfg, diags = c.loadConfig(dir)
 	} else {

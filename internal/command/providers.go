@@ -84,6 +84,12 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
+	diags = diags.Append(c.resolveConstVariables(configPath, arguments.ViewHuman))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	config, configDiags := c.loadConfigWithTests(configPath, parsedArgs.TestsDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {

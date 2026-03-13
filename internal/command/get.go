@@ -51,6 +51,12 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
+	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	path = c.normalizePath(path)
 
 	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update)

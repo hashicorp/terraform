@@ -78,6 +78,12 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		return 1
 	}
 
+	diags = diags.Append(c.resolveConstVariables(".", arguments.ViewHuman))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	reqs, moreDiags := config.ProviderRequirements()

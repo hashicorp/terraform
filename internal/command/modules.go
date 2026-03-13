@@ -80,6 +80,12 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	diags = diags.Append(c.resolveConstVariables(rootModPath, args.ViewType))
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	config, confDiags := c.loadConfig(rootModPath)
 	// Here we check if there are any uninstalled dependencies
 	versionDiags := terraform.CheckCoreVersionRequirements(config)
