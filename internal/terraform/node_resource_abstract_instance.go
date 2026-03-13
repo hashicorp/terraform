@@ -44,8 +44,6 @@ type NodeAbstractResourceInstance struct {
 
 	Dependencies []addrs.ConfigResource
 
-	preDestroyRefresh bool
-
 	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
@@ -791,6 +789,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 func (n *NodeAbstractResourceInstance) plan(
 	ctx EvalContext,
+	planCtx nodePlanContext,
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
@@ -830,11 +829,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	config := *n.Config
-
-	checkRuleSeverity := tfdiags.Error
-	if n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
-	}
+	checkRuleSeverity := getCheckRuleSeverity(planCtx)
 
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
@@ -843,7 +838,6 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Evaluate the configuration
 	forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
@@ -3034,6 +3028,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
 	case eq && !forceReplace:
+		// TODO: WHat if the resource has force replace?
 		action = plans.NoOp
 	default:
 		action = plans.Update
