@@ -309,7 +309,10 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
-	expected := &countHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{
+		pending:    make(map[string]plans.Action),
+		addedAddrs: make(map[string]bool),
+	}
 	expected.Added = 0
 	expected.Changed = 3
 	expected.Removed = 0
@@ -340,7 +343,17 @@ func TestCountHookApply_DestroyOnly(t *testing.T) {
 		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
-	expected := &countHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{
+		pending:      make(map[string]plans.Action),
+		removedAddrs: make(map[string]bool),
+	}
+	for k := range resources {
+		expected.removedAddrs[addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance).String()] = true
+	}
 	expected.Added = 0
 	expected.Changed = 0
 	expected.Removed = 4

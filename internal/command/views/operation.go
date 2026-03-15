@@ -241,11 +241,11 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		switch change.Action {
 		case plans.Create:
 			cs.Add++
-		case plans.Delete:
+		case plans.Delete, plans.Forget:
 			cs.Remove++
 		case plans.Update:
 			cs.Change++
-		case plans.CreateThenDelete, plans.DeleteThenCreate:
+		case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 			cs.Add++
 			cs.Remove++
 		}

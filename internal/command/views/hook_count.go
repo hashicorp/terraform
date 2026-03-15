@@ -78,7 +78,7 @@ func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.Depose
 
 			if err == nil {
 				switch action {
-				case plans.CreateThenDelete, plans.DeleteThenCreate:
+				case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 					h.Replaced++
 				case plans.Create:
 					if h.removedAddrs != nil && h.removedAddrs[pendingKey] {
@@ -127,7 +127,7 @@ func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.Deposed
 	}
 
 	switch action {
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 		h.ToReplace += 1
 		h.ToRemoveAndAdd += 1
 	case plans.Create:

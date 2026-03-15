@@ -245,7 +245,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		if importingCount > 0 {
 			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
-		replaceCount := counts[plans.DeleteThenCreate] + counts[plans.CreateThenDelete]
+		replaceCount := counts[plans.DeleteThenCreate] + counts[plans.CreateThenDelete] + counts[plans.CreateThenForget]
 		if replaceCount > 0 {
 			buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to replace, %d to destroy.",
 				counts[plans.Create],

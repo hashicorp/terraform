@@ -84,6 +84,7 @@ const (
 	uiResourceOpen
 	uiResourceRenew
 	uiResourceClose
+	uiResourceReplace
 )
 
 func (h *UiHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -105,11 +106,17 @@ func (h *UiHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey
 	case plans.Update:
 		operation = "Modifying..."
 		op = uiResourceModify
+	case plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget:
+		operation = "Replacing..."
+		op = uiResourceReplace
 	case plans.Read:
 		operation = "Reading..."
 		op = uiResourceRead
 	case plans.NoOp:
 		op = uiResourceNoOp
+	case plans.Forget:
+		operation = "Forgetting..."
+		op = uiResourceDestroy // Reuse destroy mapping for forget
 	default:
 		// We don't expect any other actions in here, so anything else is a
 		// bug in the caller but we'll ignore it in order to be robust.
@@ -178,6 +185,8 @@ func (h *UiHook) stillRunning(state uiResourceState) {
 			msg = "Still destroying..."
 		case uiResourceCreate:
 			msg = "Still creating..."
+		case uiResourceReplace:
+			msg = "Still replacing..."
 		case uiResourceRead:
 			msg = "Still reading..."
 		case uiResourceOpen:
@@ -235,6 +244,8 @@ func (h *UiHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKe
 		msg = "Destruction complete"
 	case uiResourceCreate:
 		msg = "Creation complete"
+	case uiResourceReplace:
+		msg = "Replacement complete"
 	case uiResourceRead:
 		msg = "Read complete"
 	case uiResourceNoOp:
