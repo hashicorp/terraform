@@ -245,11 +245,21 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		if importingCount > 0 {
 			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
-		buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.",
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-			counts[plans.Update],
-			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]),
-		)
+		replaceCount := counts[plans.DeleteThenCreate] + counts[plans.CreateThenDelete] + counts[plans.CreateThenForget]
+		if replaceCount > 0 {
+			buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to replace, %d to destroy.",
+				counts[plans.Create],
+				counts[plans.Update],
+				replaceCount,
+				counts[plans.Delete]),
+			)
+		} else {
+			buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.",
+				counts[plans.Create],
+				counts[plans.Update],
+				counts[plans.Delete]),
+			)
+		}
 
 		if actionCount > 0 {
 			buf.WriteString(fmt.Sprintf(" Actions: %d to invoke.", actionCount))

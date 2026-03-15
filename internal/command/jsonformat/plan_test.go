@@ -644,7 +644,7 @@ Terraform will perform the following actions:
         value = "Hello, World!"
     }
 
-Plan: 1 to import, 1 to add, 0 to change, 1 to destroy.
+Plan: 1 to import, 0 to add, 0 to change, 1 to replace, 0 to destroy.
 `,
 		},
 	}

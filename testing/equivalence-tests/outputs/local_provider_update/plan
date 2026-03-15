@@ -18,7 +18,7 @@ Terraform will perform the following actions:
         # (3 unchanged attributes hidden)
     }
 
-Plan: 1 to add, 0 to change, 1 to destroy.
+Plan: 0 to add, 0 to change, 1 to replace, 0 to destroy.
 
 ─────────────────────────────────────────────────────────────────────────────
 

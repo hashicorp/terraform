@@ -309,7 +309,10 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
-	expected := &countHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{
+		pending:    make(map[string]plans.Action),
+		addedAddrs: make(map[string]bool),
+	}
 	expected.Added = 0
 	expected.Changed = 3
 	expected.Removed = 0
@@ -340,12 +343,51 @@ func TestCountHookApply_DestroyOnly(t *testing.T) {
 		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
-	expected := &countHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{
+		pending:      make(map[string]plans.Action),
+		removedAddrs: make(map[string]bool),
+	}
+	for k := range resources {
+		expected.removedAddrs[addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance).String()] = true
+	}
 	expected.Added = 0
 	expected.Changed = 0
 	expected.Removed = 4
 
 	if !reflect.DeepEqual(expected, h) {
 		t.Fatalf("Expected:\n%#v\nGot:\n%#v\n", expected, h)
+	}
+}
+func TestCountHookPostDiff_Replace(t *testing.T) {
+	h := new(countHook)
+
+	resources := map[string]plans.Action{
+		"foo": plans.DeleteThenCreate,
+		"bar": plans.CreateThenDelete,
+	}
+
+	for k, a := range resources {
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: k,
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal, nil)
+	}
+
+	expected := new(countHook)
+	expected.ToAdd = 0
+	expected.ToChange = 0
+	expected.ToReplace = 2
+	expected.ToRemoveAndAdd = 2
+	expected.ToRemove = 0
+
+	if !reflect.DeepEqual(expected, h) {
+		t.Fatalf("Expected %#v, got %#v instead.", expected, h)
 	}
 }

@@ -1,0 +1,2 @@
+kind: enhancement
+message: "The `terraform plan` and `terraform apply` summaries now explicitly report the number of resources scheduled for replacement separately from additions and destructions."
