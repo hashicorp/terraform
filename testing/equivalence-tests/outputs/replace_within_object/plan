@@ -14,7 +14,7 @@ Terraform will perform the following actions:
         }
     }
 
-Plan: 1 to add, 0 to change, 1 to destroy.
+Plan: 0 to add, 0 to change, 1 to replace, 0 to destroy.
 
 ─────────────────────────────────────────────────────────────────────────────
 

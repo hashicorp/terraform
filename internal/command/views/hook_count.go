@@ -19,15 +19,19 @@ type countHook struct {
 	Added            int
 	Changed          int
 	Removed          int
+	Replaced         int
 	Imported         int
 	ActionInvocation int
 
 	ToAdd          int
 	ToChange       int
 	ToRemove       int
+	ToReplace      int
 	ToRemoveAndAdd int
 
-	pending map[string]plans.Action
+	pending      map[string]plans.Action
+	removedAddrs map[string]bool
+	addedAddrs   map[string]bool
 
 	sync.Mutex
 	terraform.NilHook
@@ -40,9 +44,12 @@ func (h *countHook) Reset() {
 	defer h.Unlock()
 
 	h.pending = nil
+	h.removedAddrs = nil
+	h.addedAddrs = nil
 	h.Added = 0
 	h.Changed = 0
 	h.Removed = 0
+	h.Replaced = 0
 	h.Imported = 0
 	h.ActionInvocation = 0
 }
@@ -72,12 +79,29 @@ func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.Depose
 			if err == nil {
 				switch action {
 				case plans.CreateThenDelete, plans.DeleteThenCreate:
-					h.Added++
-					h.Removed++
+					h.Replaced++
 				case plans.Create:
-					h.Added++
+					if h.removedAddrs != nil && h.removedAddrs[pendingKey] {
+						h.Removed--
+						h.Replaced++
+					} else {
+						h.Added++
+						if h.addedAddrs == nil {
+							h.addedAddrs = make(map[string]bool)
+						}
+						h.addedAddrs[pendingKey] = true
+					}
 				case plans.Delete:
-					h.Removed++
+					if h.addedAddrs != nil && h.addedAddrs[pendingKey] {
+						h.Added--
+						h.Replaced++
+					} else {
+						h.Removed++
+						if h.removedAddrs == nil {
+							h.removedAddrs = make(map[string]bool)
+						}
+						h.removedAddrs[pendingKey] = true
+					}
 				case plans.Update:
 					h.Changed++
 				}
@@ -104,6 +128,7 @@ func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.Deposed
 
 	switch action {
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
+		h.ToReplace += 1
 		h.ToRemoveAndAdd += 1
 	case plans.Create:
 		h.ToAdd += 1

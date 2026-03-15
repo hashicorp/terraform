@@ -1629,7 +1629,7 @@ func TestPlan_replace(t *testing.T) {
 	}
 
 	stdout := output.Stdout()
-	if got, want := stdout, "1 to add, 0 to change, 1 to destroy"; !strings.Contains(got, want) {
+	if got, want := stdout, "0 to add, 0 to change, 1 to replace, 0 to destroy"; !strings.Contains(got, want) {
 		t.Errorf("wrong plan summary\ngot output:\n%s\n\nwant substring: %s", got, want)
 	}
 	if got, want := stdout, "test_instance.a will be replaced, as requested"; !strings.Contains(got, want) {

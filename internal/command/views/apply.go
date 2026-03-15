@@ -64,17 +64,26 @@ func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 	var summary string
 	if v.destroy {
 		summary = fmt.Sprintf("Destroy complete! Resources: %d destroyed.", v.countHook.Removed)
-	} else if v.countHook.Imported > 0 {
-		summary = fmt.Sprintf("Apply complete! Resources: %d imported, %d added, %d changed, %d destroyed.",
-			v.countHook.Imported,
-			v.countHook.Added,
-			v.countHook.Changed,
-			v.countHook.Removed)
 	} else {
-		summary = fmt.Sprintf("Apply complete! Resources: %d added, %d changed, %d destroyed.",
-			v.countHook.Added,
-			v.countHook.Changed,
-			v.countHook.Removed)
+		replacedStr := ""
+		if v.countHook.Replaced > 0 {
+			replacedStr = fmt.Sprintf("%d replaced, ", v.countHook.Replaced)
+		}
+
+		if v.countHook.Imported > 0 {
+			summary = fmt.Sprintf("Apply complete! Resources: %d imported, %d added, %d changed, %s%d destroyed.",
+				v.countHook.Imported,
+				v.countHook.Added,
+				v.countHook.Changed,
+				replacedStr,
+				v.countHook.Removed)
+		} else {
+			summary = fmt.Sprintf("Apply complete! Resources: %d added, %d changed, %s%d destroyed.",
+				v.countHook.Added,
+				v.countHook.Changed,
+				replacedStr,
+				v.countHook.Removed)
+		}
 	}
 	v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\n" + summary))
 	if v.countHook.ActionInvocation > 0 {
@@ -137,9 +146,9 @@ func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 		operation = json.OperationDestroyed
 	}
 	v.view.ChangeSummary(&json.ChangeSummary{
-		Add:              v.countHook.Added,
+		Add:              v.countHook.Added + v.countHook.Replaced,
 		Change:           v.countHook.Changed,
-		Remove:           v.countHook.Removed,
+		Remove:           v.countHook.Removed + v.countHook.Replaced,
 		Import:           v.countHook.Imported,
 		ActionInvocation: v.countHook.ActionInvocation,
 		Operation:        operation,

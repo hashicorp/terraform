@@ -430,7 +430,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
 	}
 
-	want = `Plan: 1 to add, 0 to change, 1 to destroy.`
+	want = `Plan: 0 to add, 0 to change, 1 to replace, 0 to destroy.`
 	if !strings.Contains(got, want) {
 		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
 	}

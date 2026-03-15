@@ -2845,7 +2845,7 @@ func TestApply_replace(t *testing.T) {
 		t.Fatalf("wrong exit code %d\n\n%s", code, output.Stderr())
 	}
 
-	if got, want := output.Stdout(), "1 added, 0 changed, 1 destroyed"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "0 added, 0 changed, 1 replaced, 0 destroyed"; !strings.Contains(got, want) {
 		t.Errorf("wrong change summary\ngot output:\n%s\n\nwant substring: %s", got, want)
 	}
 
