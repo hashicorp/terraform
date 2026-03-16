@@ -54,22 +54,19 @@ func (d *Deprecations) ValidateAndUnmark(value cty.Value, module addrs.Module, r
 // It finds the most specific range possible for each diagnostic.
 func (d *Deprecations) ValidateExpressionDeepAndUnmark(value cty.Value, module addrs.Module, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	unmarked, pvms := value.UnmarkDeepWithPaths()
+	undeprecatedVal, pdms := marks.GetDeprecationMarksDeep(value)
 
 	// Check if we need to suppress deprecation warnings for this module call.
 	if d.IsModuleCallDeprecationSuppressed(module) {
-		return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
+		return undeprecatedVal, diags
 	}
 
-	for _, pvm := range pvms {
-		for m := range pvm.Marks {
-			if depMark, ok := m.(marks.DeprecationMark); ok {
-				rng := tfdiags.RangeForExpressionAtPath(expr, pvm.Path)
-				diags = diags.Append(deprecationMarkToDiagnostic(depMark, &rng))
-			}
-		}
+	for _, pdm := range pdms {
+		rng := tfdiags.RangeForExpressionAtPath(expr, pdm.Path)
+		diags = diags.Append(deprecationMarkToDiagnostic(pdm.Mark, &rng))
 	}
-	return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
+
+	return undeprecatedVal, diags
 }
 
 func (d *Deprecations) deprecationMarksToDiagnostics(deprecationMarks []marks.DeprecationMark, module addrs.Module, rng *hcl.Range) tfdiags.Diagnostics {
@@ -109,41 +106,34 @@ func deprecationMarkToDiagnostic(depMark marks.DeprecationMark, subject *hcl.Ran
 // unless deprecation warnings are suppressed for the given module.
 func (d *Deprecations) ValidateAndUnmarkConfig(value cty.Value, schema *configschema.Block, module addrs.Module) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	unmarked, pvms := value.UnmarkDeepWithPaths()
+	undeprecatedVal, pdms := marks.GetDeprecationMarksDeep(value)
 
 	if d.IsModuleCallDeprecationSuppressed(module) {
 		// Even if we don't want to get deprecation warnings we want to remove the marks
-		return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
+		return undeprecatedVal, diags
 	}
 
-	for _, pvm := range pvms {
-		for m := range pvm.Marks {
-			if depMark, ok := m.(marks.DeprecationMark); ok {
-				diag := tfdiags.AttributeValue(
-					tfdiags.Warning,
-					"Deprecated value used",
-					depMark.Message,
-					pvm.Path,
-				)
-				if depMark.OriginDescription != "" {
-					diag = tfdiags.Override(
-						diag,
-						tfdiags.Warning, // We just want to override the extra info
-						func() tfdiags.DiagnosticExtraWrapper {
-							return &tfdiags.DeprecationOriginDiagnosticExtra{
-								// TODO: Remove common prefixes from origin descriptions?
-								OriginDescription: depMark.OriginDescription,
-							}
-						})
-				}
-
-				diags = diags.Append(diag)
-
-			}
+	for _, pdm := range pdms {
+		diag := tfdiags.AttributeValue(
+			tfdiags.Warning,
+			"Deprecated value used",
+			pdm.Mark.Message,
+			pdm.Path,
+		)
+		if pdm.Mark.OriginDescription != "" {
+			diag = tfdiags.Override(
+				diag,
+				tfdiags.Warning, // We just want to override the extra info
+				func() tfdiags.DiagnosticExtraWrapper {
+					return &tfdiags.DeprecationOriginDiagnosticExtra{
+						OriginDescription: pdm.Mark.OriginDescription,
+					}
+				})
 		}
+		diags = diags.Append(diag)
 	}
 
-	return unmarked.MarkWithPaths(marks.RemoveAll(pvms, marks.Deprecation)), diags
+	return undeprecatedVal, diags
 }
 
 func (d *Deprecations) IsModuleCallDeprecationSuppressed(addr addrs.Module) bool {

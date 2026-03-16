@@ -519,7 +519,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	}
 
 	if n.Config.DeprecatedSet {
-		val = marks.RemoveDeprecationMarksDeep(val)
+		val, _ = marks.GetDeprecationMarksDeep(val)
 		if n.Addr.Module.IsRoot() {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
