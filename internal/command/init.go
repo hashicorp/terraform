@@ -232,12 +232,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		}
 
 		opts = &BackendOpts{
-			StateStoreConfig:       root.StateStore,
-			Locks:                  configLocks,
-			CreateDefaultWorkspace: initArgs.CreateDefaultWorkspace,
-			ConfigOverride:         configOverride,
-			Init:                   true,
-			ViewType:               initArgs.ViewType,
+			StateStoreConfig: root.StateStore,
+			Locks:            configLocks,
+			ConfigOverride:   configOverride,
+			Init:             true,
+			ViewType:         initArgs.ViewType,
 		}
 
 	case root.Backend != nil:
@@ -561,7 +560,6 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
 func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
-
 	// Get the combination of config and state locks
 	newLocks := c.mergeLockedDependencies(configLocks, stateLocks)
 
@@ -631,7 +629,6 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, configLocks, stateLo
 // when a specific type of event occurs during provider installation.
 // The calling code needs to provide a tfdiags.Diagnostics collection, so that provider installation code returns diags to the calling code using closures
 func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerreqs.Requirements, diags *tfdiags.Diagnostics, inst *providercache.Installer, view views.Init, initMsg views.InitMessageCode, reuseMsg views.InitMessageCode) *providercache.InstallerEvents {
-
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -758,7 +755,6 @@ func (c *InitCommand) prepareInstallerEvents(ctx context.Context, reqs providerr
 					),
 				))
 			}
-
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
 			displayWarnings := make([]string, len(warnings))
@@ -1151,13 +1147,6 @@ Options:
   -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
                           A flag to enable an alternative init command that allows use of
                           pluggable state storage. Only usable with experiments enabled.
-
-  -create-default-workspace [EXPERIMENTAL]
-                          This flag must be used alongside the -enable-pluggable-state-storage-
-                          experiment flag with experiments enabled. This flag's value defaults
-                          to true, which allows the default workspace to be created if it does
-                          not exist. Use -create-default-workspace=false to disable this behavior.
-
 `
 	return strings.TrimSpace(helpText)
 }

@@ -3494,7 +3494,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
-			"Terraform created an empty state file for the default workspace",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -3504,7 +3503,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("the init command creates a backend state file, and creates the default workspace by default", func(t *testing.T) {
+	t.Run("the init command creates a backend state file, and the default workspace is not made by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3547,7 +3546,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
-			"Terraform created an empty state file for the default workspace",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -3556,9 +3554,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			}
 		}
 
-		// Assert the default workspace was created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to be created during init, but it is missing")
+		// Assert the default workspace was not created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected the default workspace to not be created during init, but it exists")
 		}
 
 		// Assert contents of the backend state file
@@ -3588,105 +3586,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
 			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
-		}
-	})
-
-	t.Run("an init command with the flag -create-default-workspace=false will not make the default workspace by default", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
-		})
-		defer close()
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		c := &InitCommand{
-			Meta: Meta{
-				Ui:                        ui,
-				View:                      view,
-				AllowExperimentalFeatures: true,
-				testingOverrides: &testingOverrides{
-					Providers: map[addrs.Provider]providers.Factory{
-						mockProviderAddress: providers.FactoryFixed(mockProvider),
-					},
-				},
-				ProviderSource: providerSource,
-			},
-		}
-
-		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedOutput := `Terraform has been configured to skip creation of the default workspace`
-		if !strings.Contains(output, expectedOutput) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
-		}
-
-		// Assert the default workspace was created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
-			t.Fatal("expected Terraform to skip creating the default workspace, but it has been created")
-		}
-	})
-
-	t.Run("an init command with TF_SKIP_CREATE_DEFAULT_WORKSPACE set will not make the default workspace by default", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
-		})
-		defer close()
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		c := &InitCommand{
-			Meta: Meta{
-				Ui:                        ui,
-				View:                      view,
-				AllowExperimentalFeatures: true,
-				testingOverrides: &testingOverrides{
-					Providers: map[addrs.Provider]providers.Factory{
-						mockProviderAddress: providers.FactoryFixed(mockProvider),
-					},
-				},
-				ProviderSource: providerSource,
-			},
-		}
-
-		t.Setenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE", "1") // any value
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedOutput := `Terraform has been configured to skip creation of the default workspace`
-		if !strings.Contains(output, expectedOutput) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
-		}
-
-		// Assert the default workspace was created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
-			t.Fatal("expected Terraform to skip creating the default workspace, but it has been created")
 		}
 	})
 
