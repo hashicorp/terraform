@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -122,7 +122,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 				Value:      varValue,
 				SourceType: ValueFromUnknown,
 			},
-			Planning: true,
+			ValidateChecks: true,
 		}
 		configAddr, validationRules, defnRange := n.variableValidationRules()
 		validateN := &nodeVariableValidation{

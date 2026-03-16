@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: "validate: The validate command now checks the `backend` block. This ensures the backend type exists, that all required attributes are present, and that the backend's own validation logic passes."
+time: 2026-02-12T10:42:40.333849Z
+custom:
+    Issue: "38021"

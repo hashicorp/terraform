@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -58,8 +58,8 @@ func ChangeExec[Main any](
 	// "execution" phase, where the registered tasks will all become runnable
 	// simultaneously.
 
-	setupComplete, waitSetupComplete := promising.NewPromise[struct{}](ctx)
-	beginExec, waitBeginExec := promising.NewPromise[Main](ctx)
+	setupComplete, waitSetupComplete := promising.NewPromise[struct{}](ctx, "setupComplete")
+	beginExec, waitBeginExec := promising.NewPromise[Main](ctx, "beginExec")
 
 	reg := &ChangeExecRegistry[Main]{
 		waitBeginExec: waitBeginExec,
@@ -108,7 +108,7 @@ func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 	addr stackaddrs.AbsComponentInstance,
 	run func(ctx context.Context, main Main) (*ComponentInstanceApplyResult, tfdiags.Diagnostics),
 ) {
-	resultProvider, waitResult := promising.NewPromise[withDiagnostics[*ComponentInstanceApplyResult]](ctx)
+	resultProvider, waitResult := promising.NewPromise[withDiagnostics[*ComponentInstanceApplyResult]](ctx, "resultProvider")
 	r.mu.Lock()
 	if r.results.componentInstances.HasKey(addr) {
 		// This is always a bug in the caller.

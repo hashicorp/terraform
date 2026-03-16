@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package gcs
@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -26,7 +27,8 @@ const (
 
 // Workspaces returns a list of names for the workspaces found on GCS. The default
 // state is always returned as the first element in the slice.
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	ctx := context.TODO()
 
 	states := []string{backend.DefaultStateName}
@@ -42,7 +44,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("querying Cloud Storage failed: %v", err)
+			return nil, diags.Append(fmt.Errorf("querying Cloud Storage failed: %v", err))
 		}
 
 		name := path.Base(attrs.Name)
@@ -57,21 +59,22 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(states[1:])
-	return states, nil
+	return states, diags
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if name == backend.DefaultStateName {
-		return fmt.Errorf("cowardly refusing to delete the %q state", name)
+		return diags.Append(fmt.Errorf("cowardly refusing to delete the %q state", name))
 	}
 
 	c, err := b.client(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return c.Delete()
+	return diags.Append(c.Delete())
 }
 
 // client returns a remoteClient for the named state.
@@ -92,17 +95,19 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 
 // StateMgr reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c, err := b.client(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	st := &remote.State{Client: c}
 
 	// Grab the value
 	if err := st.RefreshState(); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
@@ -112,7 +117,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockID, err := st.Lock(lockInfo)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// Local helper function so we can call it multiple places
@@ -135,20 +140,22 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err := st.WriteState(states.NewState()); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 		if err := st.PersistState(nil); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 
 		// Unlock, the state should now be initialized
 		if err := unlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return st, nil
+	return st, diags
 }
 
 func (b *Backend) stateFile(name string) string {

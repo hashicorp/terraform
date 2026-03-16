@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -78,10 +78,17 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	}
 
 	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
-	if evalDiags.HasErrors() {
-		return diags.Append(evalDiags)
-	}
 	diags = diags.Append(evalDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, configSchema, n.Addr.Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(configBody, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
 
 	// If our config value contains any marked values, ensure those are
 	// stripped out before sending this to the provider
@@ -111,8 +118,16 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags
 	}
 
+	// BuiltinEvalContext contains a workaround for providers to allow
+	// inconsistent filesystem function results, which can be accepted due to
+	// the ephemeral nature of a provider configuration.
+	eval := ctx.EvaluateBlock
+	if ctx, ok := ctx.(*BuiltinEvalContext); ok {
+		eval = ctx.EvaluateBlockForProvider
+	}
+
 	configSchema := resp.Provider.Body
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
+	configVal, configBody, evalDiags := eval(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		if config == nil {

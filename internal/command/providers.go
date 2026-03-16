@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -10,6 +10,7 @@ import (
 
 	"github.com/xlab/treeprint"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -30,26 +31,19 @@ func (c *ProvidersCommand) Synopsis() string {
 }
 
 func (c *ProvidersCommand) Run(args []string) int {
-	var testsDirectory string
-
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("providers")
-	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseProviders(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
+	configPath, err := ModulePath(nil)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
-	empty, err := configs.IsEmptyDir(configPath, testsDirectory)
+	empty, err := configs.IsEmptyDir(configPath, parsedArgs.TestsDirectory)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -73,7 +67,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	config, configDiags := c.loadConfigWithTests(configPath, testsDirectory)
+	config, configDiags := c.loadConfigWithTests(configPath, parsedArgs.TestsDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -81,9 +75,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: config.Module.Backend,
-	})
+	b, backendDiags := c.backend(".", arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -99,9 +91,9 @@ func (c *ProvidersCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 		return 1
 	}
-	s, err := b.StateMgr(env)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+	s, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", sDiags.Err()))
 		return 1
 	}
 	if err := s.RefreshState(); err != nil {

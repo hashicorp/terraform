@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package main
@@ -44,7 +44,7 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 	sort.Strings(otherCommands)
 
 	// The output produced by this is included in the docs at
-	// website/source/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// change this then consider updating that to match.
 	helpText := fmt.Sprintf(`
 Usage: terraform [global options] <subcommand> [args]
@@ -60,7 +60,7 @@ All other commands:
 Global options (use these before the subcommand, if any):
   -chdir=DIR    Switch to a different working directory before executing the
                 given subcommand.
-  -help         Show this help output, or the help for a specified subcommand.
+  -help         Show this help output or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
 `, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
 

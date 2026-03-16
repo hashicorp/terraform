@@ -1,25 +1,27 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package globalref
+package globalref_test
 
 import (
 	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 )
 
 func TestAnalyzerContributingResources(t *testing.T) {
 	azr := testAnalyzer(t, "contributing-resources")
 
 	tests := map[string]struct {
-		StartRefs func() []Reference
+		StartRefs func() []globalref.Reference
 		WantAddrs []string
 	}{
 		"root output 'network'": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromOutputValue(
 					addrs.OutputValue{Name: "network"}.Absolute(addrs.RootModuleInstance),
 				)
@@ -31,7 +33,7 @@ func TestAnalyzerContributingResources(t *testing.T) {
 			},
 		},
 		"root output 'c10s_url'": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromOutputValue(
 					addrs.OutputValue{Name: "c10s_url"}.Absolute(addrs.RootModuleInstance),
 				)
@@ -50,7 +52,7 @@ func TestAnalyzerContributingResources(t *testing.T) {
 			},
 		},
 		"module.compute.test_thing.load_balancer": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromResourceInstance(
 					addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -67,7 +69,7 @@ func TestAnalyzerContributingResources(t *testing.T) {
 			},
 		},
 		"data.test_thing.environment": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromResourceInstance(
 					addrs.Resource{
 						Mode: addrs.DataResourceMode,
@@ -103,38 +105,36 @@ func TestAnalyzerContributingResourceAttrs(t *testing.T) {
 	azr := testAnalyzer(t, "contributing-resources")
 
 	tests := map[string]struct {
-		StartRefs func() []Reference
+		StartRefs func() []globalref.Reference
 		WantAttrs []string
 	}{
 		"root output 'network'": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromOutputValue(
 					addrs.OutputValue{Name: "network"}.Absolute(addrs.RootModuleInstance),
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,
 			},
 		},
 		"root output 'c10s_url'": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromOutputValue(
 					addrs.OutputValue{Name: "c10s_url"}.Absolute(addrs.RootModuleInstance),
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.compute.test_thing.load_balancer.string`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,
 			},
 		},
 		"module.compute.test_thing.load_balancer": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromResourceInstance(
 					addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -144,15 +144,14 @@ func TestAnalyzerContributingResourceAttrs(t *testing.T) {
 				)
 			},
 			[]string{
-				`data.test_thing.environment.any.base_cidr_block`,
-				`data.test_thing.environment.any.subnet_count`,
+				`data.test_thing.environment.any`,
 				`module.compute.test_thing.controller`,
 				`module.network.test_thing.subnet`,
 				`module.network.test_thing.vpc.string`,
 			},
 		},
 		"data.test_thing.environment": {
-			func() []Reference {
+			func() []globalref.Reference {
 				return azr.ReferencesFromResourceInstance(
 					addrs.Resource{
 						Mode: addrs.DataResourceMode,

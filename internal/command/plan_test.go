@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -22,18 +22,20 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestPlan(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -55,7 +57,7 @@ func TestPlan(t *testing.T) {
 func TestPlan_lockedState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	unlock, err := testLockState(t, testDataDir, filepath.Join(td, DefaultStateFilename))
 	if err != nil {
@@ -85,7 +87,8 @@ func TestPlan_lockedState(t *testing.T) {
 }
 
 func TestPlan_plan(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	planPath := testPlanFileNoop(t)
 
@@ -109,7 +112,7 @@ func TestPlan_plan(t *testing.T) {
 func TestPlan_destroy(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -162,7 +165,7 @@ func TestPlan_destroy(t *testing.T) {
 func TestPlan_noState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -196,7 +199,7 @@ func TestPlan_noState(t *testing.T) {
 func TestPlan_generatedConfigPath(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-import-config-gen"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	genPath := filepath.Join(td, "generated.tf")
 
@@ -237,7 +240,7 @@ func TestPlan_generatedConfigPath(t *testing.T) {
 func TestPlan_outPath(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	outPath := filepath.Join(td, "test.plan")
 
@@ -269,7 +272,7 @@ func TestPlan_outPath(t *testing.T) {
 func TestPlan_outPathNoChange(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -323,7 +326,7 @@ func TestPlan_outPathNoChange(t *testing.T) {
 func TestPlan_outPathWithError(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-fail-condition"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	outPath := filepath.Join(td, "test.plan")
 
@@ -373,7 +376,7 @@ func TestPlan_outBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-out-backend"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -446,6 +449,9 @@ func TestPlan_outBackend(t *testing.T) {
 		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
 	}
 
+	if plan.Backend == nil {
+		t.Fatal("unexpected nil Backend")
+	}
 	if got, want := plan.Backend.Type, "http"; got != want {
 		t.Errorf("wrong backend type %q; want %q", got, want)
 	}
@@ -469,11 +475,233 @@ func TestPlan_outBackend(t *testing.T) {
 	}
 }
 
+// When using "-out" with a backend, the plan should encode the backend config
+// and also the selected workspace, if workspaces are supported by the backend.
+//
+// This test demonstrates that setting the workspace in the backend plan
+// responds to the selected workspace, versus other tests that show the same process
+// when defaulting to the default workspace when there's a lack of information about
+// the selected workspace.
+//
+// To test planning with a non-default workspace we need to use a backend that supports
+// workspaces. In this test the `inmem` backend is used.
+func TestPlan_outBackend_withWorkspace(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-out-backend-workspace"), td)
+	t.Chdir(td)
+
+	// These values are coupled with the test fixture used above.
+	expectedBackendType := "inmem"
+	expectedWorkspace := "custom-workspace"
+
+	outPath := "foo"
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ami": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if got, want := plan.Backend.Type, expectedBackendType; got != want {
+		t.Errorf("wrong backend type %q; want %q", got, want)
+	}
+	if got, want := plan.Backend.Workspace, expectedWorkspace; got != want {
+		t.Errorf("wrong backend workspace %q; want %q", got, want)
+	}
+}
+
+// When using "-out" with a state store, the plan should encode the state store config
+func TestPlan_outStateStore(t *testing.T) {
+	// Create a temporary working directory with state_store config
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-out-state-store"), td)
+	t.Chdir(td)
+
+	// Make state that resembles the resource defined in the test fixture
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","ami":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+	stateBytes := stateBuf.Bytes()
+
+	// Make a mock provider that:
+	// 1) will return the state defined above.
+	// 2) has a schema for the resource being managed in this test.
+	mock := mockPluggableStateStorageProvider()
+	mock.MockStates = map[string]interface{}{
+		"default": stateBytes,
+	}
+	mock.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"test_instance": {
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"ami": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+	mock.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides:          metaOverridesForProvider(mock),
+			View:                      view,
+		},
+	}
+
+	outPath := "foo"
+	args := []string{
+		"-out", outPath,
+		"-no-color",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if !plan.Changes.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
+	}
+
+	if plan.Backend != nil {
+		t.Errorf("expected the plan file to not describe a backend, but got %#v", plan.Backend)
+	}
+	if plan.StateStore == nil {
+		t.Errorf("expected the plan file to describe a state store, but it's empty: %#v", plan.StateStore)
+	}
+	if got, want := plan.StateStore.Workspace, "default"; got != want {
+		t.Errorf("wrong workspace %q; want %q", got, want)
+	}
+	{
+		// Comparing the plan's description of the state store
+		// to the backend state file's description of the state store:
+		statePath := ".terraform/terraform.tfstate"
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		s := sMgr.State() // The plan should resemble this.
+
+		if !plan.StateStore.Provider.Version.Equal(s.StateStore.Provider.Version) {
+			t.Fatalf("wrong provider version, got %q; want %q",
+				plan.StateStore.Provider.Version,
+				s.StateStore.Provider.Version,
+			)
+		}
+		if !plan.StateStore.Provider.Source.Equals(*s.StateStore.Provider.Source) {
+			t.Fatalf("wrong provider source, got %q; want %q",
+				plan.StateStore.Provider.Source,
+				s.StateStore.Provider.Source,
+			)
+		}
+
+		// Is the provider config data correct?
+		providerSchema := mock.GetProviderSchemaResponse.Provider
+		providerTy := providerSchema.Body.ImpliedType()
+		pGot, err := plan.StateStore.Provider.Config.Decode(providerTy)
+		if err != nil {
+			t.Fatalf("failed to decode provider config in plan: %s", err)
+		}
+		pWant, err := s.StateStore.Provider.Config(providerSchema.Body)
+		if err != nil {
+			t.Fatalf("failed to decode cached provider config: %s", err)
+		}
+		if !pWant.RawEquals(pGot) {
+			t.Errorf("wrong provider config\ngot:  %#v\nwant: %#v", pGot, pWant)
+		}
+
+		// Is the store config data correct?
+		storeSchema := mock.GetProviderSchemaResponse.StateStores["test_store"]
+		ty := storeSchema.Body.ImpliedType()
+		sGot, err := plan.StateStore.Config.Decode(ty)
+		if err != nil {
+			t.Fatalf("failed to decode state store config in plan: %s", err)
+		}
+
+		sWant, err := s.StateStore.Config(storeSchema.Body)
+		if err != nil {
+			t.Fatalf("failed to decode cached state store config: %s", err)
+		}
+		if !sWant.RawEquals(sGot) {
+			t.Errorf("wrong state store config\ngot:  %#v\nwant: %#v", sGot, sWant)
+		}
+	}
+}
+
 func TestPlan_refreshFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-existing-state"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -502,7 +730,7 @@ func TestPlan_refreshTrue(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-existing-state"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -537,7 +765,7 @@ func TestPlan_refreshFalseRefreshTrue(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-existing-state"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -567,7 +795,7 @@ func TestPlan_state(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
@@ -609,7 +837,7 @@ func TestPlan_stateDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Generate state and move it to the default path
 	originalState := testState()
@@ -654,7 +882,7 @@ func TestPlan_validate(t *testing.T) {
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-invalid"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
@@ -701,7 +929,7 @@ func TestPlan_vars(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planVarsFixtureProvider()
 	view, done := testView(t)
@@ -751,7 +979,7 @@ func TestPlan_varsInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	for _, tc := range testCases {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
@@ -782,7 +1010,7 @@ func TestPlan_varsUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// The plan command will prompt for interactive input of var.foo.
 	// We'll answer "bar" to that prompt, which should then allow this
@@ -818,7 +1046,7 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Disable test mode so input would be asked
 	test = false
@@ -897,7 +1125,7 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 func TestPlan_providerConfigMerge(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-provider-input"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Disable test mode so input would be asked
 	test = false
@@ -986,7 +1214,7 @@ func TestPlan_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
@@ -1027,7 +1255,7 @@ func TestPlan_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
@@ -1066,7 +1294,7 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
@@ -1100,7 +1328,7 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 func TestPlan_detailedExitcode(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	t.Run("return 1", func(t *testing.T) {
 		view, done := testView(t)
@@ -1138,7 +1366,7 @@ func TestPlan_detailedExitcode(t *testing.T) {
 func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-emptydiff"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	view, done := testView(t)
@@ -1161,7 +1389,7 @@ func TestPlan_shutdown(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	cancelled := make(chan struct{})
 	shutdownCh := make(chan struct{})
@@ -1230,7 +1458,7 @@ func TestPlan_shutdown(t *testing.T) {
 func TestPlan_init_required(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	view, done := testView(t)
 	c := &PlanCommand{
@@ -1256,7 +1484,7 @@ func TestPlan_init_required(t *testing.T) {
 func TestPlan_targeted(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-targeted"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
@@ -1310,7 +1538,7 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			td := testTempDir(t)
 			defer os.RemoveAll(td)
-			defer testChdir(t, td)()
+			t.Chdir(td)
 
 			view, done := testView(t)
 			c := &PlanCommand{
@@ -1342,7 +1570,7 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 func TestPlan_replace(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-replace"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1415,7 +1643,7 @@ func TestPlan_parallelism(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("parallelism"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	par := 4
 
@@ -1501,7 +1729,7 @@ func TestPlan_parallelism(t *testing.T) {
 func TestPlan_warnings(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	t.Run("full warnings", func(t *testing.T) {
 		p := planWarningsFixtureProvider()
@@ -1564,7 +1792,7 @@ func TestPlan_jsonGoldenReference(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := planFixtureProvider()
 	view, done := testView(t)
@@ -1585,6 +1813,56 @@ func TestPlan_jsonGoldenReference(t *testing.T) {
 	}
 
 	checkGoldenReference(t, output, "plan")
+}
+
+// Tests related to how plan command behaves when there are query files in the configuration path
+func TestPlan_QueryFiles(t *testing.T) {
+	// a plan succeeds regardless of valid or invalid
+	// tfquery files in the configuration path
+	t.Run("with invalid query files in the config path", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("query/invalid-syntax"), td)
+		t.Chdir(td)
+
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
+
+	// the duplicate in the query should not matter because query files are not processed
+	t.Run("with duplicate variables across query and plan file", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("query/duplicate-variables"), td)
+		t.Chdir(td)
+
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{"-var", "instance_name=foo"}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
 }
 
 // planFixtureSchema returns a schema suitable for processing the

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package lang
@@ -52,133 +52,35 @@ var templateFunctions = collections.NewSetCmp[string](
 // Functions returns the set of functions that should be used to when evaluating
 // expressions in the receiving scope.
 func (s *Scope) Functions() map[string]function.Function {
+	// For backwards compatibility, filesystem functions are allowed to return
+	// inconsistent results when called from within a provider configuration, so
+	// here we override the checks with a noop wrapper. This misbehavior was
+	// found to be used by a number of configurations, which took advantage of
+	// it to create the equivalent of ephemeral values before they formally
+	// existed in the language.
+	immutableResults := immutableResults
+	if s.ForProvider {
+		immutableResults = filesystemNoopWrapper
+	}
+
 	s.funcsLock.Lock()
 	if s.funcs == nil {
-		s.funcs = baseFunctions(s.BaseDir)
+		coreFuncs := baseFunctions(s.BaseDir)
 
-		// If you're adding something here, please consider whether it meets
-		// the criteria for either or both of the sets [filesystemFunctions]
-		// and [templateFunctions] and add it there if so, to ensure that
-		// functions relying on those classifications will behave correctly.
-		coreFuncs := map[string]function.Function{
-			"abs":              stdlib.AbsoluteFunc,
-			"abspath":          funcs.AbsPathFunc,
-			"alltrue":          funcs.AllTrueFunc,
-			"anytrue":          funcs.AnyTrueFunc,
-			"basename":         funcs.BasenameFunc,
-			"base64decode":     funcs.Base64DecodeFunc,
-			"base64encode":     funcs.Base64EncodeFunc,
-			"base64gzip":       funcs.Base64GzipFunc,
-			"base64sha256":     funcs.Base64Sha256Func,
-			"base64sha512":     funcs.Base64Sha512Func,
-			"bcrypt":           funcs.BcryptFunc,
-			"can":              tryfunc.CanFunc,
-			"ceil":             stdlib.CeilFunc,
-			"chomp":            stdlib.ChompFunc,
-			"cidrhost":         funcs.CidrHostFunc,
-			"cidrnetmask":      funcs.CidrNetmaskFunc,
-			"cidrsubnet":       funcs.CidrSubnetFunc,
-			"cidrsubnets":      funcs.CidrSubnetsFunc,
-			"coalesce":         funcs.CoalesceFunc,
-			"coalescelist":     stdlib.CoalesceListFunc,
-			"compact":          stdlib.CompactFunc,
-			"concat":           stdlib.ConcatFunc,
-			"contains":         stdlib.ContainsFunc,
-			"csvdecode":        stdlib.CSVDecodeFunc,
-			"dirname":          funcs.DirnameFunc,
-			"distinct":         stdlib.DistinctFunc,
-			"element":          stdlib.ElementFunc,
-			"endswith":         funcs.EndsWithFunc,
-			"ephemeralasnull":  funcs.EphemeralAsNullFunc,
-			"chunklist":        stdlib.ChunklistFunc,
-			"file":             funcs.MakeFileFunc(s.BaseDir, false),
-			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
-			"fileset":          funcs.MakeFileSetFunc(s.BaseDir),
-			"filebase64":       funcs.MakeFileFunc(s.BaseDir, true),
-			"filebase64sha256": funcs.MakeFileBase64Sha256Func(s.BaseDir),
-			"filebase64sha512": funcs.MakeFileBase64Sha512Func(s.BaseDir),
-			"filemd5":          funcs.MakeFileMd5Func(s.BaseDir),
-			"filesha1":         funcs.MakeFileSha1Func(s.BaseDir),
-			"filesha256":       funcs.MakeFileSha256Func(s.BaseDir),
-			"filesha512":       funcs.MakeFileSha512Func(s.BaseDir),
-			"flatten":          stdlib.FlattenFunc,
-			"floor":            stdlib.FloorFunc,
-			"format":           stdlib.FormatFunc,
-			"formatdate":       stdlib.FormatDateFunc,
-			"formatlist":       stdlib.FormatListFunc,
-			"indent":           stdlib.IndentFunc,
-			"index":            funcs.IndexFunc, // stdlib.IndexFunc is not compatible
-			"join":             stdlib.JoinFunc,
-			"jsondecode":       stdlib.JSONDecodeFunc,
-			"jsonencode":       stdlib.JSONEncodeFunc,
-			"keys":             stdlib.KeysFunc,
-			"length":           funcs.LengthFunc,
-			"list":             funcs.ListFunc,
-			"log":              stdlib.LogFunc,
-			"lookup":           funcs.LookupFunc,
-			"lower":            stdlib.LowerFunc,
-			"map":              funcs.MapFunc,
-			"matchkeys":        funcs.MatchkeysFunc,
-			"max":              stdlib.MaxFunc,
-			"md5":              funcs.Md5Func,
-			"merge":            stdlib.MergeFunc,
-			"min":              stdlib.MinFunc,
-			"one":              funcs.OneFunc,
-			"parseint":         stdlib.ParseIntFunc,
-			"pathexpand":       funcs.PathExpandFunc,
-			"pow":              stdlib.PowFunc,
-			"range":            stdlib.RangeFunc,
-			"regex":            stdlib.RegexFunc,
-			"regexall":         stdlib.RegexAllFunc,
-			"replace":          funcs.ReplaceFunc,
-			"reverse":          stdlib.ReverseListFunc,
-			"rsadecrypt":       funcs.RsaDecryptFunc,
-			"sensitive":        funcs.SensitiveFunc,
-			"nonsensitive":     funcs.NonsensitiveFunc,
-			"issensitive":      funcs.IssensitiveFunc,
-			"setintersection":  stdlib.SetIntersectionFunc,
-			"setproduct":       stdlib.SetProductFunc,
-			"setsubtract":      stdlib.SetSubtractFunc,
-			"setunion":         stdlib.SetUnionFunc,
-			"sha1":             funcs.Sha1Func,
-			"sha256":           funcs.Sha256Func,
-			"sha512":           funcs.Sha512Func,
-			"signum":           stdlib.SignumFunc,
-			"slice":            stdlib.SliceFunc,
-			"sort":             stdlib.SortFunc,
-			"split":            stdlib.SplitFunc,
-			"startswith":       funcs.StartsWithFunc,
-			"strcontains":      funcs.StrContainsFunc,
-			"strrev":           stdlib.ReverseFunc,
-			"substr":           stdlib.SubstrFunc,
-			"sum":              funcs.SumFunc,
-			"textdecodebase64": funcs.TextDecodeBase64Func,
-			"textencodebase64": funcs.TextEncodeBase64Func,
-			"timestamp":        funcs.TimestampFunc,
-			"timeadd":          stdlib.TimeAddFunc,
-			"timecmp":          funcs.TimeCmpFunc,
-			"title":            stdlib.TitleFunc,
-			"tostring":         funcs.MakeToFunc(cty.String),
-			"tonumber":         funcs.MakeToFunc(cty.Number),
-			"tobool":           funcs.MakeToFunc(cty.Bool),
-			"toset":            funcs.MakeToFunc(cty.Set(cty.DynamicPseudoType)),
-			"tolist":           funcs.MakeToFunc(cty.List(cty.DynamicPseudoType)),
-			"tomap":            funcs.MakeToFunc(cty.Map(cty.DynamicPseudoType)),
-			"transpose":        funcs.TransposeFunc,
-			"trim":             stdlib.TrimFunc,
-			"trimprefix":       stdlib.TrimPrefixFunc,
-			"trimspace":        stdlib.TrimSpaceFunc,
-			"trimsuffix":       stdlib.TrimSuffixFunc,
-			"try":              tryfunc.TryFunc,
-			"upper":            stdlib.UpperFunc,
-			"urlencode":        funcs.URLEncodeFunc,
-			"uuid":             funcs.UUIDFunc,
-			"uuidv5":           funcs.UUIDV5Func,
-			"values":           stdlib.ValuesFunc,
-			"yamldecode":       ctyyaml.YAMLDecodeFunc,
-			"yamlencode":       ctyyaml.YAMLEncodeFunc,
-			"zipmap":           stdlib.ZipmapFunc,
-		}
+		// Modify the functions which behave slightly differently in core.
+		// Filesystem functions will check for consistent results, and the
+		// template functions need to be updated to close over the correct
+		// versions of the filesystem functions.
+		coreFuncs["file"] = funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults))
+		coreFuncs["fileexists"] = funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults))
+		coreFuncs["fileset"] = funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults))
+		coreFuncs["filebase64"] = funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults))
+		coreFuncs["filebase64sha256"] = funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults))
+		coreFuncs["filebase64sha512"] = funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults))
+		coreFuncs["filemd5"] = funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults))
+		coreFuncs["filesha1"] = funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults))
+		coreFuncs["filesha256"] = funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults))
+		coreFuncs["filesha512"] = funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults))
 
 		// Our two template-rendering functions want to be able to call
 		// all of the other functions themselves, but we pass them indirectly
@@ -190,7 +92,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			// overwriting the relevant entries.
 			return s.funcs, filesystemFunctions, templateFunctions
 		}
-		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc)
+		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults))
 		coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
 
 		if s.ConsoleMode {
@@ -215,7 +117,7 @@ func (s *Scope) Functions() map[string]function.Function {
 		// All of the built-in functions are also available under the "core::"
 		// namespace, to distinguish from the "provider::" and "module::"
 		// namespaces that can serve as external extension points.
-		s.funcs = make(map[string]function.Function, len(coreFuncs)*2)
+		s.funcs = make(map[string]function.Function)
 		for name, fn := range coreFuncs {
 			fn = funcs.WithDescription(name, fn)
 			s.funcs[name] = fn
@@ -295,22 +197,24 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"compact":          stdlib.CompactFunc,
 		"concat":           stdlib.ConcatFunc,
 		"contains":         stdlib.ContainsFunc,
+		"convert":          funcs.ConvertFunc,
 		"csvdecode":        stdlib.CSVDecodeFunc,
 		"dirname":          funcs.DirnameFunc,
 		"distinct":         stdlib.DistinctFunc,
 		"element":          stdlib.ElementFunc,
 		"endswith":         funcs.EndsWithFunc,
+		"ephemeralasnull":  funcs.EphemeralAsNullFunc,
 		"chunklist":        stdlib.ChunklistFunc,
-		"file":             funcs.MakeFileFunc(baseDir, false),
-		"fileexists":       funcs.MakeFileExistsFunc(baseDir),
-		"fileset":          funcs.MakeFileSetFunc(baseDir),
-		"filebase64":       funcs.MakeFileFunc(baseDir, true),
-		"filebase64sha256": funcs.MakeFileBase64Sha256Func(baseDir),
-		"filebase64sha512": funcs.MakeFileBase64Sha512Func(baseDir),
-		"filemd5":          funcs.MakeFileMd5Func(baseDir),
-		"filesha1":         funcs.MakeFileSha1Func(baseDir),
-		"filesha256":       funcs.MakeFileSha256Func(baseDir),
-		"filesha512":       funcs.MakeFileSha512Func(baseDir),
+		"file":             funcs.MakeFileFunc(baseDir, false, noopWrapper),
+		"fileexists":       funcs.MakeFileExistsFunc(baseDir, noopWrapper),
+		"fileset":          funcs.MakeFileSetFunc(baseDir, noopWrapper),
+		"filebase64":       funcs.MakeFileFunc(baseDir, true, noopWrapper),
+		"filebase64sha256": funcs.MakeFileBase64Sha256Func(baseDir, noopWrapper),
+		"filebase64sha512": funcs.MakeFileBase64Sha512Func(baseDir, noopWrapper),
+		"filemd5":          funcs.MakeFileMd5Func(baseDir, noopWrapper),
+		"filesha1":         funcs.MakeFileSha1Func(baseDir, noopWrapper),
+		"filesha256":       funcs.MakeFileSha256Func(baseDir, noopWrapper),
+		"filesha512":       funcs.MakeFileSha512Func(baseDir, noopWrapper),
 		"flatten":          stdlib.FlattenFunc,
 		"floor":            stdlib.FloorFunc,
 		"format":           stdlib.FormatFunc,
@@ -390,11 +294,19 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"zipmap":           stdlib.ZipmapFunc,
 	}
 
-	fs["templatefile"] = funcs.MakeTemplateFileFunc(baseDir, func() (map[string]function.Function, collections.Set[string], collections.Set[string]) {
-		// The templatefile function prevents recursive calls to itself
-		// by copying this map and overwriting the "templatefile" entry.
+	// Our two template-rendering functions want to be able to call
+	// all of the other functions themselves, but we pass them indirectly
+	// via a callback to avoid chicken/egg problems while initializing
+	// the functions table.
+	funcsFunc := func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
+		// The templatefile and templatestring functions prevent recursive
+		// calls to themselves and each other by copying this map and
+		// overwriting the relevant entries.
 		return fs, filesystemFunctions, templateFunctions
-	})
+	}
+
+	fs["templatefile"] = funcs.MakeTemplateFileFunc(baseDir, funcsFunc, noopWrapper)
+	fs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
 
 	return fs
 }
@@ -440,4 +352,38 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 // to conform to the expected function return value conventions.
 type ExternalFuncs struct {
 	Provider map[string]map[string]function.Function
+}
+
+// immutableResults is a wrapper for cty function implementations which may
+// otherwise not return consistent results because they depends on data outside
+// of Terraform. Due to the fact that the cty functions are a concrete type, and
+// the implementation is hidden within a private struct field, we need to pass
+// along these closures to get the data to the actual call site.
+func immutableResults(name string, priorResults *FunctionResults) func(fn function.ImplFunc) function.ImplFunc {
+	if priorResults == nil {
+		return func(fn function.ImplFunc) function.ImplFunc {
+			return fn
+		}
+	}
+	return func(fn function.ImplFunc) function.ImplFunc {
+		return func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			res, err := fn(args, retType)
+			if err != nil {
+				return res, err
+			}
+			err = priorResults.CheckPrior(name, args, res)
+			if err != nil {
+				return cty.UnknownVal(retType), err
+			}
+			return res, err
+		}
+	}
+}
+
+func filesystemNoopWrapper(name string, priorResults *FunctionResults) func(fn function.ImplFunc) function.ImplFunc {
+	return noopWrapper
+}
+
+func noopWrapper(fn function.ImplFunc) function.ImplFunc {
+	return fn
 }

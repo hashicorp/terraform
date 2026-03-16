@@ -1,0 +1,5 @@
+terraform {
+  cloud {
+    organization = "foo"
+  }
+}

@@ -1,10 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
 
 import (
 	"bufio"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -229,5 +232,65 @@ func (h *jsonHook) PostEphemeralOp(id terraform.HookResourceIdentity, action pla
 		h.view.Hook(json.NewEphemeralOpComplete(id.Addr, progress.action, elapsed))
 	}
 
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) PreListQuery(id terraform.HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (terraform.HookAction, error) {
+	addr := id.Addr
+	h.view.log.Info(
+		fmt.Sprintf("%s: Starting query...", addr.String()),
+		"type", json.MessageListStart,
+		json.MessageListStart, json.NewQueryStart(addr, input_config, configSchema),
+	)
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) PostListQuery(id terraform.HookResourceIdentity, results plans.QueryResults, identityVersion int64) (terraform.HookAction, error) {
+	addr := id.Addr
+	data := results.Value.GetAttr("data")
+	iter := data.ElementIterator()
+	for idx := 0; iter.Next(); idx++ {
+		_, value := iter.Element()
+
+		var generated *genconfig.ResourceImport
+		if len(results.Generated.Imports) > 0 {
+			generated = &results.Generated.Imports[idx]
+		}
+
+		result := json.NewQueryResult(addr, value, identityVersion, generated)
+
+		h.view.log.Info(
+			fmt.Sprintf("%s: Result found", addr.String()),
+			"type", json.MessageListResourceFound,
+			json.MessageListResourceFound, result,
+		)
+	}
+
+	h.view.log.Info(
+		fmt.Sprintf("%s: List complete", addr.String()),
+		"type", json.MessageListComplete,
+		json.MessageListComplete, json.NewQueryComplete(addr, data.LengthInt()),
+	)
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	h.view.Hook(json.NewActionStart(id))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	h.view.Hook(json.NewActionProgress(id, progress))
+	return terraform.HookActionContinue, nil
+}
+
+func (h *jsonHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+
+	if err != nil {
+		h.view.Hook(json.NewActionErrored(id, err))
+	} else {
+		h.view.Hook(json.NewActionComplete(id))
+	}
 	return terraform.HookActionContinue, nil
 }

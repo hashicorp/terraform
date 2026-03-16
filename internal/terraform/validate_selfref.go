@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -90,6 +90,17 @@ func validateImportSelfRef(addr addrs.Resource, expr hcl.Expression) tfdiags.Dia
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
 			Detail:   "The import ID cannot reference the resource being imported.",
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		}
+	})
+}
+
+func validateImportForEachRef(addr addrs.Resource, expr hcl.Expression) tfdiags.Diagnostics {
+	return validateSelfRefFromExprInner(addr, expr, func(ref *addrs.Reference) *hcl.Diagnostic {
+		return &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid for_each argument",
+			Detail:   "The for_each expression cannot reference the resource being imported.",
 			Subject:  ref.SourceRange.ToHCL().Ptr(),
 		}
 	})

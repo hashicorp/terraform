@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -21,15 +21,15 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
+func PrepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	convertTy := cfg.ConstraintType
-	log.Printf("[TRACE] prepareFinalInputVariableValue: preparing %s", addr)
+	log.Printf("[TRACE] PrepareFinalInputVariableValue: preparing %s", addr)
 
 	var defaultVal cty.Value
 	if cfg.Default != cty.NilVal {
-		log.Printf("[TRACE] prepareFinalInputVariableValue: %s has a default value", addr)
+		log.Printf("[TRACE] PrepareFinalInputVariableValue: %s has a default value", addr)
 		var err error
 		defaultVal, err = convert.Convert(cfg.Default, convertTy)
 		if err != nil {
@@ -74,14 +74,14 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 
 	given := raw.Value
 	if given == cty.NilVal { // The variable wasn't set at all (even to null)
-		log.Printf("[TRACE] prepareFinalInputVariableValue: %s has no defined value", addr)
+		log.Printf("[TRACE] PrepareFinalInputVariableValue: %s has no defined value", addr)
 		if cfg.Required() {
 			// NOTE: The CLI layer typically checks for itself whether all of
 			// the required _root_ module variables are set, which would
 			// mask this error with a more specific one that refers to the
 			// CLI features for setting such variables. We can get here for
 			// child module variables, though.
-			log.Printf("[ERROR] prepareFinalInputVariableValue: %s is required but is not set", addr)
+			log.Printf("[ERROR] PrepareFinalInputVariableValue: %s is required but is not set", addr)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Required variable not set`,
@@ -106,7 +106,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
-		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
+		log.Printf("[ERROR] PrepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
 		var detail string
 		var subject *hcl.Range
 		if nonFileSource != "" {
@@ -157,11 +157,11 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 	// Nullable variables just appear as null if they were set to null,
 	// regardless of any default value.
 	if val.IsNull() && !cfg.Nullable {
-		log.Printf("[TRACE] prepareFinalInputVariableValue: %s is defined as null", addr)
+		log.Printf("[TRACE] PrepareFinalInputVariableValue: %s is defined as null", addr)
 		if defaultVal != cty.NilVal {
 			val = defaultVal
 		} else {
-			log.Printf("[ERROR] prepareFinalInputVariableValue: %s is non-nullable but set to null, and is required", addr)
+			log.Printf("[ERROR] PrepareFinalInputVariableValue: %s is non-nullable but set to null, and is required", addr)
 			if nonFileSource != "" {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -281,31 +281,33 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	// Although that behavior was accidental, it makes simple validation rules
 	// more useful and is protected by compatibility promises, and so we'll
 	// fake it here by overwriting the unknown value that scope.EvalContext
-	// will have inserted with a possibly-more-known value using the same
-	// strategy our special code used to use.
-	ourVal := ctx.NamedValues().GetInputVariableValue(addr)
-	if ourVal != cty.NilVal {
-		// (it would be weird for ourVal to be nil here, but we'll tolerate it
-		// because it was scope.EvalContext's responsibility to check for the
-		// absent final value, and even if it didn't we'll just get an
-		// evaluation error when evaluating the expressions below anyway.)
+	// will have inserted during validate walks with a possibly-more-known value
+	// using the same strategy our special code used to use.
+	if validateWalk {
+		ourVal := ctx.NamedValues().GetInputVariableValue(addr)
+		if ourVal != cty.NilVal {
+			// (it would be weird for ourVal to be nil here, but we'll tolerate it
+			// because it was scope.EvalContext's responsibility to check for the
+			// absent final value, and even if it didn't we'll just get an
+			// evaluation error when evaluating the expressions below anyway.)
 
-		// Our goal here is to make sure that a reference to the variable
-		// we're checking will evaluate to ourVal, regardless of what else
-		// scope.EvalContext might have put in the variables table.
-		if hclCtx.Variables == nil {
-			hclCtx.Variables = make(map[string]cty.Value)
-		}
-		if varsVal, ok := hclCtx.Variables["var"]; ok {
-			// Unfortunately we need to unpack and repack the object here,
-			// because cty values are immutable.
-			attrs := varsVal.AsValueMap()
-			attrs[addr.Variable.Name] = ourVal
-			hclCtx.Variables["var"] = cty.ObjectVal(attrs)
-		} else {
-			hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
-				addr.Variable.Name: ourVal,
-			})
+			// Our goal here is to make sure that a reference to the variable
+			// we're checking will evaluate to ourVal, regardless of what else
+			// scope.EvalContext might have put in the variables table.
+			if hclCtx.Variables == nil {
+				hclCtx.Variables = make(map[string]cty.Value)
+			}
+			if varsVal, ok := hclCtx.Variables["var"]; ok {
+				// Unfortunately we need to unpack and repack the object here,
+				// because cty values are immutable.
+				attrs := varsVal.AsValueMap()
+				attrs[addr.Variable.Name] = ourVal
+				hclCtx.Variables["var"] = cty.ObjectVal(attrs)
+			} else {
+				hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
+					addr.Variable.Name: ourVal,
+				})
+			}
 		}
 	}
 

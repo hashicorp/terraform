@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -59,6 +58,13 @@ type Local struct {
 	// and will override what'd be built from the State* fields if non-empty.
 	// While the interpretation of the State* fields depends on the active
 	// workspace, the OverrideState* fields are always used literally.
+	//
+	// OverrideStatePath is set as a result of the -state flag
+	// OverrideStateOutPath is set as a result of the -state-out flag
+	// OverrideStateBackupPath is set as a result of the -state-backup flag
+	//
+	// Note: these flags are only accepted by some commands.
+	// Importantly, they are not accepted by `init`.
 	OverrideStatePath       string
 	OverrideStateOutPath    string
 	OverrideStateBackupPath string
@@ -189,7 +195,9 @@ func (b *Local) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	return []backendrun.HostAlias{}, nil
 }
 
-func (b *Local) Workspaces() ([]string, error) {
+func (b *Local) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
 		return b.Backend.Workspaces()
@@ -198,13 +206,13 @@ func (b *Local) Workspaces() ([]string, error) {
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	entries, err := ioutil.ReadDir(b.stateWorkspaceDir())
+	entries, err := os.ReadDir(b.stateWorkspaceDir())
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
 		return envs, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	var listed []string
@@ -217,42 +225,51 @@ func (b *Local) Workspaces() ([]string, error) {
 	sort.Strings(listed)
 	envs = append(envs, listed...)
 
-	return envs, nil
+	return envs, diags
 }
 
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string, force bool) error {
+func (b *Local) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
 		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {
-		return errors.New("empty state name")
+		return diags.Append(errors.New("empty state name"))
 	}
 
 	if name == backend.DefaultStateName {
-		return errors.New("cannot delete default state")
+		return diags.Append(errors.New("cannot delete default state"))
 	}
 
 	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
+	err := os.RemoveAll(filepath.Join(b.stateWorkspaceDir(), name))
+	if err != nil {
+		return diags.Append(fmt.Errorf("error deleting workspace %s: %w", name, err))
+	}
+
+	return diags
 }
 
-func (b *Local) StateMgr(name string) (statemgr.Full, error) {
+func (b *Local) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// If we have a backend handling state, delegate to that.
 	if b.Backend != nil {
 		return b.Backend.StateMgr(name)
 	}
 
 	if s, ok := b.states[name]; ok {
-		return s, nil
+		return s, diags
 	}
 
 	if err := b.createState(name); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	statePath, stateOutPath, backupPath := b.StatePaths(name)
@@ -267,7 +284,7 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 		b.states = map[string]statemgr.Full{}
 	}
 	b.states[name] = s
-	return s, nil
+	return s, diags
 }
 
 // Operation implements backendrun.OperationsBackend
@@ -388,8 +405,14 @@ func (b *Local) opWait(
 	return
 }
 
-// StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
-// configured from the CLI.
+// StatePaths returns the StatePath, StateOutPath, and StateBackupPath for a given workspace name.
+// This value is affected by:
+//
+// * Default versus non-default workspace.
+//
+// * Values from the configuration.
+//
+// * Values configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.OverrideStatePath
 	stateOutPath := b.OverrideStateOutPath
@@ -435,8 +458,8 @@ func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 // in the same files as the "new" state snapshots.
 func (b *Local) PathsConflictWith(other *Local) bool {
 	otherPaths := map[string]struct{}{}
-	otherWorkspaces, err := other.Workspaces()
-	if err != nil {
+	otherWorkspaces, diags := other.Workspaces()
+	if diags.HasErrors() {
 		// If we can't enumerate the workspaces then we'll conservatively
 		// assume that paths _do_ overlap, since we can't be certain.
 		return true
@@ -446,8 +469,8 @@ func (b *Local) PathsConflictWith(other *Local) bool {
 		otherPaths[p] = struct{}{}
 	}
 
-	ourWorkspaces, err := other.Workspaces()
-	if err != nil {
+	ourWorkspaces, diags := other.Workspaces()
+	if diags.HasErrors() {
 		// If we can't enumerate the workspaces then we'll conservatively
 		// assume that paths _do_ overlap, since we can't be certain.
 		return true

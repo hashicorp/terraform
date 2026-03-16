@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -44,6 +45,11 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
+	if args[0] == "" {
+		// Disallowing empty string identifiers more explicitly, versus "Workspace "" doesn't exist."
+		c.Ui.Error(fmt.Sprintf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
+		return cli.RunResultHelp
+	}
 
 	configPath, err := ModulePath(args[1:])
 	if err != nil {
@@ -53,17 +59,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
+	view := arguments.ViewHuman
+	b, backendDiags := c.backend(configPath, view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -73,12 +71,15 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	workspaces, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
+	// Is the user attempting to delete a workspace that doesn't exist?
 	workspace := args[0]
 	exists := false
 	for _, ws := range workspaces {
@@ -93,6 +94,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Is the user attempting to delete the currently selected workspace?
 	currentWorkspace, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -103,10 +105,16 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// we need the actual state to see if it's empty
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	// Is the user attempting to delete the default workspace?
+	if workspace == backend.DefaultStateName {
+		c.Ui.Error("Cannot delete the default workspace")
+		return 1
+	}
+
+	// Check if the workspace's state is empty or not
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(sDiags.Err().Error())
 		return 1
 	}
 
@@ -168,11 +176,13 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	err = b.DeleteWorkspace(workspace, force)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	dwDiags := b.DeleteWorkspace(workspace, force)
+	diags = diags.Append(dwDiags)
+	if dwDiags.HasErrors() {
+		c.Ui.Error(dwDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	c.Ui.Output(
 		c.Colorize().Color(

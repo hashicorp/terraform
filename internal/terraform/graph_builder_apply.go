@@ -1,9 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
 import (
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -56,6 +58,10 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions to target. As with Targets we need to remove
+	// outputs, so when/if we remove Targets we can remove this as well.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are the resource instance addresses that the user
 	// requested to force replacement for when creating the plan, if any.
 	// The apply step refers to these as part of verifying that the planned
@@ -77,6 +83,13 @@ type ApplyGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // See GraphBuilder
@@ -106,7 +119,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeApplyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			forceReplace:                 b.ForceReplace,
+			forceReplace:                 slices.ContainsFunc(b.ForceReplace, a.Addr.Equal),
 		}
 	}
 
@@ -133,9 +146,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&variableValidationTransformer{},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:     b.Config,
-			Destroying: b.Operation == walkDestroy,
-			Overrides:  b.Overrides,
+			Config:                    b.Config,
+			Destroying:                b.Operation == walkDestroy,
+			Overrides:                 b.Overrides,
+			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
 		},
 
 		// Creates all the resource instances represented in the diff, along
@@ -146,6 +160,32 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Changes:  b.Changes,
 			Config:   b.Config,
+		},
+
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, timing RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerApplyExpand{
+					nodeAbstractActionTrigger: node,
+
+					relativeTiming: timing,
+				}
+			},
+		},
+
+		&ActionInvokeApplyTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			Changes:       b.Changes,
+		},
+
+		&ActionDiffTransformer{
+			Changes: b.Changes,
+			Config:  b.Config,
 		},
 
 		// Creates nodes for all the deferred changes.
@@ -224,7 +264,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},

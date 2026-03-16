@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: A refresh-only plan could result in a non-zero exit code with no changes
+time: 2025-11-10T12:09:21.029489-05:00
+custom:
+    Issue: "37406"

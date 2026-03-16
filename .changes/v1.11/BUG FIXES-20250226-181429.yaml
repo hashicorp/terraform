@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Updated dependency golang.org/x/oauth2 from v0.23.0 => v0.27.0 to integrate latest changes (fix for CVE-2025-22868)
-time: 2025-02-26T18:14:29.297297Z
-custom:
-    Issue: "36584"

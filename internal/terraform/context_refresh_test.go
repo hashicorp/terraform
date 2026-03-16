@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -1048,7 +1049,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	_, diags = c.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if !diags.HasErrors() {
@@ -1688,5 +1689,100 @@ resource "test_resource" "foo" {
 	expected := `{"id":"foo","set_block":[]}`
 	if string(jsonState) != expected {
 		t.Fatalf("invalid state\nexpected: %s\ngot: %s\n", expected, jsonState)
+	}
+}
+
+func TestContext2Refresh_identityUpgradeJSON(t *testing.T) {
+	m := testModule(t, "refresh-schema-upgrade")
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+		IdentityTypeSchemaVersions: map[string]uint64{
+			"test_thing": 5,
+		},
+	})
+	p.UpgradeResourceIdentityResponse = &providers.UpgradeResourceIdentityResponse{
+		UpgradedIdentity: cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("foo"),
+		}),
+	}
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:                states.ObjectReady,
+				SchemaVersion:         0,
+				AttrsJSON:             []byte(`{"id":"foo"}`),
+				IdentitySchemaVersion: 3,
+				IdentityJSON:          []byte(`{"id":"foo"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	{
+		got := p.UpgradeResourceIdentityRequest
+		want := providers.UpgradeResourceIdentityRequest{
+			TypeName:        "test_thing",
+			Version:         3,
+			RawIdentityJSON: []byte(`{"id":"foo"}`),
+		}
+		if !cmp.Equal(got, want) {
+			t.Errorf("wrong identity upgrade request\n%s", cmp.Diff(want, got))
+		}
+	}
+
+	addr := mustResourceInstanceAddr("test_thing.bar")
+	res := state.ResourceInstance(addr)
+	if res == nil {
+		t.Fatalf("no resource in state for %s", addr)
+	}
+
+	expectedIdentity := `{"name":"foo"}`
+	if string(res.Current.IdentityJSON) != expectedIdentity {
+		t.Fatalf("identity not updated in state\nexpected: %s\ngot: %s", expectedIdentity, res.Current.IdentityJSON)
+	}
+	expectedVersion := uint64(5)
+	if res.Current.IdentitySchemaVersion != expectedVersion {
+		t.Fatalf("identity schema version not updated in state\nexpected: %d\ngot: %d", expectedVersion, res.Current.IdentitySchemaVersion)
 	}
 }

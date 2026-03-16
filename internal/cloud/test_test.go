@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -13,8 +13,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -82,7 +84,7 @@ func TestTest(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -168,7 +170,7 @@ func TestTest_Parallelism(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -238,7 +240,7 @@ func TestTest_JSON(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -267,9 +269,19 @@ func TestTest_Verbose(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	config, configDiags := loader.LoadConfigWithTests(directory, "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(directory, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatalf("failed to load root module: %v", hclDiags.Error())
+	}
+
+	config, configDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	if configDiags.HasErrors() {
-		t.Fatalf("failed to load config: %v", configDiags.Error())
+		t.Fatalf("failed to load config: %v", configDiags.Err())
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
@@ -335,7 +347,7 @@ func TestTest_Verbose(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -498,7 +510,7 @@ func TestTest_Cancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test()
+		_, diags = runner.Test(false)
 	}()
 
 	stop() // immediately cancel
@@ -621,7 +633,7 @@ func TestTest_DelayedCancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test()
+		_, diags = runner.Test(false)
 	}()
 
 	// Wait for finish!
@@ -664,9 +676,19 @@ func TestTest_ForceCancel(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 
-	config, configDiags := loader.LoadConfigWithTests("testdata/test-force-cancel", "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests("testdata/test-force-cancel", "tests")
+	if hclDiags.HasErrors() {
+		t.Fatalf("failed to load root module: %v", hclDiags.Error())
+	}
+
+	config, configDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	if configDiags.HasErrors() {
-		t.Fatalf("failed to load config: %v", configDiags.Error())
+		t.Fatalf("failed to load config: %v", configDiags.Err())
 	}
 
 	streams, outputFn := terminal.StreamsForTesting(t)
@@ -743,7 +765,7 @@ func TestTest_ForceCancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test()
+		_, diags = runner.Test(false)
 	}()
 
 	stop()
@@ -893,7 +915,7 @@ func TestTest_LongRunningTest(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -977,7 +999,7 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test()
+	_, diags := runner.Test(false)
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell'
+time: 2025-10-22T16:29:09.342697+01:00
+custom:
+    Issue: "37794"

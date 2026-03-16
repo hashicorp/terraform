@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -6,11 +6,13 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -24,7 +26,9 @@ import (
 
 // InputVariable represents an input variable belonging to a [Stack].
 type InputVariable struct {
-	addr stackaddrs.AbsInputVariable
+	addr   stackaddrs.AbsInputVariable
+	stack  *Stack
+	config *InputVariableConfig
 
 	main *Main
 
@@ -34,71 +38,69 @@ type InputVariable struct {
 var _ Plannable = (*InputVariable)(nil)
 var _ Referenceable = (*InputVariable)(nil)
 
-func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable) *InputVariable {
+func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable, stack *Stack, config *InputVariableConfig) *InputVariable {
 	return &InputVariable{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		stack:  stack,
+		config: config,
+		main:   main,
 	}
-}
-
-func (v *InputVariable) Addr() stackaddrs.AbsInputVariable {
-	return v.addr
-}
-
-func (v *InputVariable) Config(ctx context.Context) *InputVariableConfig {
-	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackCfg := v.main.StackConfig(ctx, configAddr.Stack)
-	return stackCfg.InputVariable(ctx, configAddr.Item)
-}
-
-func (v *InputVariable) Declaration(ctx context.Context) *stackconfig.InputVariable {
-	return v.Config(ctx).Declaration()
 }
 
 // DefinedByStackCallInstance returns the stack call which ought to provide
-// the definition (i.e. the final value) of this input variable.
+// the definition (i.e. the final value) of this input variable. The source
+// of the stack could either be a regular stack call instance or a removed
+// stack call instance. One of the two will be returned. They are mutually
+// exclusive as it is an error for two blocks to create the same stack instance.
 //
 // Returns nil if this input variable belongs to the main stack, because
 // the main stack's input variables come from the planning options instead.
-// Also returns nil if the reciever belongs to a stack config instance
+//
+// Also returns nil if the receiver belongs to a stack config instance
 // that isn't actually declared in the configuration, which typically suggests
 // that we don't yet know the number of instances of one of the stack calls
 // along the chain.
-func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
-	declarerAddr := v.Addr().Stack
+func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase EvalPhase) (*StackCallInstance, *RemovedStackCallInstance) {
+	declarerAddr := v.addr.Stack
 	if declarerAddr.IsRoot() {
-		return nil
+		return nil, nil
 	}
 
 	callAddr := declarerAddr.Call()
-	callerAddr := callAddr.Stack
-	callerStack := v.main.Stack(ctx, callerAddr, phase)
-	if callerStack == nil {
-		// Suggests that we are beneath a stack call whose instances
-		// aren't known yet.
-		return nil
+
+	if call := v.stack.parent.EmbeddedStackCall(callAddr.Item); call != nil {
+		lastStep := declarerAddr[len(declarerAddr)-1]
+		instKey := lastStep.Key
+
+		callInsts, unknown := call.Instances(ctx, phase)
+		if unknown {
+			// Return our static unknown instance for this variable.
+			return call.UnknownInstance(ctx, instKey, phase), nil
+		}
+		if inst, ok := callInsts[instKey]; ok {
+			return inst, nil
+		}
+
+		// otherwise, let's check if we have any removed calls that match the
+		// target instance
 	}
 
-	callerCalls := callerStack.EmbeddedStackCalls(ctx)
-	call := callerCalls[callAddr.Item]
-	if call == nil {
-		// Suggests that we're descended from a stack call that doesn't
-		// actually exist, which is odd but we'll tolerate it.
-		return nil
-	}
-	callInsts, unknown := call.Instances(ctx, phase)
-	if unknown {
-		// Return our static unknown instance for this variable.
-		return call.UnknownInstance(ctx, phase)
-	}
-	if callInsts == nil {
-		// Could get here if the call's for_each is invalid.
-		return nil
+	if calls := v.stack.parent.RemovedEmbeddedStackCall(callAddr.Item); calls != nil {
+		for _, call := range calls {
+			callInsts, unknown := call.InstancesFor(ctx, v.stack.addr, phase)
+			if unknown {
+				return nil, call.UnknownInstance(ctx, v.stack.addr, phase)
+			}
+			for _, inst := range callInsts {
+				// because we used the exact v.stack.addr in InstancesFor above
+				// then we should have at most one entry here if there were any
+				// matches.
+				return nil, inst
+			}
+		}
 	}
 
-	lastStep := declarerAddr[len(declarerAddr)-1]
-	instKey := lastStep.Key
-	return callInsts[instKey]
+	return nil, nil
 }
 
 func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
@@ -108,30 +110,30 @@ func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
 
 func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, v.value.For(phase), v.main,
+		ctx, v.tracingName(), v.value.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			cfg := v.Config(ctx)
-			decl := v.Declaration(ctx)
+			cfg := v.config
+			decl := cfg.config
 
 			switch {
-			case v.Addr().Stack.IsRoot():
+			case v.addr.Stack.IsRoot():
 				var err error
 
 				wantTy := decl.Type.Constraint
-				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
+				extVal := v.main.RootVariableValue(v.addr.Item, phase)
 
 				val := extVal.Value
 				if val.IsNull() {
 					// A null value is equivalent to an unspecified value, so
 					// we'll replace it with the variable's default value.
-					val = cfg.DefaultValue(ctx)
+					val = cfg.DefaultValue()
 					if val == cty.NilVal {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "No value for required variable",
-							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.Addr()),
+							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.addr),
 							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
 						})
 						return cty.UnknownVal(wantTy), diags
@@ -145,10 +147,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					}
 				}
 
-				// First, apply any defaults that are declared in the
-				// configuration.
-
-				// Next, convert the value to the expected type.
+				// Convert the value to the expected type.
 				val, err = convert.Convert(val, wantTy)
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
@@ -156,7 +155,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						Summary:  "Invalid value for root input variable",
 						Detail: fmt.Sprintf(
 							"Cannot use the given value for input variable %q: %s.",
-							v.Addr().Item.Name, err,
+							v.addr.Item.Name, err,
 						),
 					})
 					val = cfg.markValue(cty.UnknownVal(wantTy))
@@ -187,28 +186,62 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					}
 				}
 
-				// TODO: check the value against any custom validation rules
-				// declared in the configuration.
-				return cfg.markValue(val), diags
+				// Mark the value before validation so that validation can detect
+				// sensitive/ephemeral marks and avoid leaking protected values in error messages.
+				val = cfg.markValue(val)
+
+				// Evaluate custom validation rules against the input value.
+				// Validation is skipped during ValidatePhase because actual input values
+				// are not yet available at that phase — only plan/apply provide them.
+				// This matches the behavior of core Terraform's variable validation.
+				if phase != ValidatePhase {
+					moreDiags := v.evalVariableValidations(ctx, val, phase)
+					diags = diags.Append(moreDiags)
+				}
+
+				return val, diags
 
 			default:
-				definedByCallInst := v.DefinedByStackCallInstance(ctx, phase)
-				if definedByCallInst == nil {
+				definedByCallInst, definedByRemovedCallInst := v.DefinedByStackCallInstance(ctx, phase)
+				switch {
+				case definedByCallInst != nil:
+					allVals := definedByCallInst.InputVariableValues(ctx, phase)
+					val := allVals.GetAttr(v.addr.Item.Name)
+
+					// Mark the value before validation to prevent leaking sensitive/ephemeral data.
+					val = cfg.markValue(val)
+
+					// Evaluate custom validation rules for values from stack call instances.
+					// Skip during ValidatePhase as values are not yet available.
+					if phase != ValidatePhase {
+						moreDiags := v.evalVariableValidations(ctx, val, phase)
+						diags = diags.Append(moreDiags)
+					}
+
+					return val, diags
+				case definedByRemovedCallInst != nil:
+					allVals, _ := definedByRemovedCallInst.InputVariableValues(ctx, phase)
+					val := allVals.GetAttr(v.addr.Item.Name)
+
+					// Mark the value before validation to prevent leaking sensitive/ephemeral data.
+					val = cfg.markValue(val)
+
+					// Evaluate validation rules for removed stack instances.
+					// Skip during ValidatePhase as values are not yet available.
+					if phase != ValidatePhase {
+						moreDiags := v.evalVariableValidations(ctx, val, phase)
+						diags = diags.Append(moreDiags)
+					}
+
+					return val, diags
+				default:
 					// We seem to belong to a call instance that doesn't actually
 					// exist in the configuration. That either means that
 					// something's gone wrong or we are descended from a stack
 					// call whose instances aren't known yet; we'll assume
 					// the latter and return a placeholder.
-					return cfg.markValue(cty.UnknownVal(v.Declaration(ctx).Type.Constraint)), diags
+					return cfg.markValue(cty.UnknownVal(v.config.config.Type.Constraint)), diags
 				}
-
-				allVals := definedByCallInst.InputVariableValues(ctx, phase)
-				val := allVals.GetAttr(v.Addr().Item.Name)
-
-				// TODO: check the value against any custom validation rules
-				// declared in the configuration.
-
-				return cfg.markValue(val), diags
 			}
 		},
 	)
@@ -240,15 +273,15 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 	// Embedded stack inputs will be recalculated during the apply phase
 	// because the values might be derived from component outputs that aren't
 	// known yet during planning.
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, diags
 	}
 
 	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
 
-	before := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+	before := v.main.PlanPrevState().RootInputVariable(v.addr.Item)
 
-	decl := v.Declaration(ctx)
+	decl := v.config.config
 	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
 	if decl.Ephemeral {
@@ -285,7 +318,7 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:            v.Addr().Item,
+			Addr:            v.addr.Item,
 			Action:          action,
 			Before:          before,
 			After:           after,
@@ -299,21 +332,18 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReference {
 	// The references for an input variable actually come from the
 	// call that defines it, in the parent stack.
-	addr := v.Addr()
-	if addr.Stack.IsRoot() {
+	if v.addr.Stack.IsRoot() {
 		// Variables declared in the root module can't refer to anything,
 		// because they are defined outside of the stack configuration by
 		// our caller.
 		return nil
 	}
-	stackAddr := addr.Stack
-	parentStack := v.main.StackUnchecked(ctx, stackAddr.Parent())
-	if parentStack == nil {
+	if v.stack.parent == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
 	}
-	callAddr := stackAddr.Call()
-	call := parentStack.EmbeddedStackCall(ctx, callAddr.Item)
+	callAddr := v.addr.Stack.Call()
+	call := v.stack.parent.EmbeddedStackCall(callAddr.Item)
 	if call == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
@@ -323,7 +353,7 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 
 // CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, v.checkValid(ctx, ApplyPhase)
 	}
 
@@ -332,7 +362,7 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 		return nil, diags
 	}
 
-	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.Addr().Item) {
+	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.addr.Item) {
 		// If the plan being applied has this variable as being deleted, then
 		// we won't handle it here. This is usually the case during a destroy
 		// only plan in which we wanted to both capture the value for an input
@@ -341,7 +371,7 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 		return nil, diags
 	}
 
-	decl := v.Declaration(ctx)
+	decl := v.config.config
 	value := v.Value(ctx, ApplyPhase)
 	if decl.Ephemeral {
 		value = cty.NullVal(value.Type())
@@ -349,22 +379,237 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 	return []stackstate.AppliedChange{
 		&stackstate.AppliedChangeInputVariable{
-			Addr:  v.Addr().Item,
+			Addr:  v.addr.Item,
 			Value: value,
 		},
 	}, diags
 }
 
 func (v *InputVariable) tracingName() string {
-	return v.Addr().String()
+	return v.addr.String()
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (v *InputVariable) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := v.Addr().String()
-	v.value.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
+// evalVariableValidations evaluates all custom validation rules for this input variable
+// against the given value, returning diagnostics if any validations fail.
+//
+// This function implements runtime validation checking, which is distinct from the
+// config-time parsing done in stackconfig. The validation rules were parsed and stored
+// during config loading; this function evaluates those rules against actual input values.
+//
+// The validation process:
+//  1. Creates an HCL evaluation context with the variable's value and available functions
+//  2. Evaluates each validation rule's condition and error_message expressions
+//  3. Always validates the error_message structure (sensitive/ephemeral marks are flagged
+//     regardless of whether the condition passes or fails)
+//  4. If the condition is false, reports an "Invalid value for variable" diagnostic
+//
+// This follows the same approach as core Terraform's evalVariableValidations, including
+// handling of sensitive values, unknown values, and error message evaluation.
+func (v *InputVariable) evalVariableValidations(ctx context.Context, val cty.Value, phase EvalPhase) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	rules := v.config.config.Validations
+	if len(rules) == 0 {
+		// No validation rules defined, nothing to check
+		return diags
+	}
+
+	// Get provider-defined functions from the stack scope.
+	// These will be combined with built-in functions below.
+	functions, moreDiags := v.stack.ExternalFunctions(ctx)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		// If we can't get the function table, we can't evaluate validation expressions
+		// that depend on functions. Return early to avoid confusing downstream errors.
+		return diags
+	}
+
+	// Create a scope to get the complete function table (provider-defined + built-in).
+	// fakeScope.Functions() will combine the provider functions with built-in functions
+	// like length(), regex(), etc. We don't need a full evaluation context, just the functions.
+	fakeScope := &lang.Scope{
+		Data:          nil, // not a real scope; can't actually make an evalcontext
+		BaseDir:       ".",
+		PureOnly:      phase != ApplyPhase,
+		PlanTimestamp: v.stack.PlanTimestamp(),
+		ExternalFuncs: functions,
+	}
+
+	// Create an HCL evaluation context with the variable value and functions.
+	// The variable is made available as var.<name> within validation expressions.
+	hclCtx := &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.ObjectVal(map[string]cty.Value{
+				v.addr.Item.Name: val,
+			}),
+		},
+		Functions: fakeScope.Functions(),
+	}
+
+	// Evaluate each validation rule independently.
+	// Multiple validation failures will all be reported.
+	for _, validation := range rules {
+		moreDiags := evalVariableValidation(validation, hclCtx, v.config.config.DeclRange.ToHCL())
+		diags = diags.Append(moreDiags)
+	}
+
+	return diags
+}
+
+// evalVariableValidation evaluates a single validation rule against a variable value.
+//
+// This function handles the evaluation of one validation block's condition and error_message.
+// It follows the same logic as core Terraform's variable validation:
+//
+//  1. Evaluates the condition and error_message expressions up front
+//  2. Handles unknown/null/invalid condition results appropriately
+//  3. Always validates the error_message structure — sensitive/ephemeral marks
+//     in the message are flagged even when the condition passes
+//  4. Returns early if the condition passes (after reporting any message issues)
+//  5. Otherwise constructs an "Invalid value for variable" diagnostic
+//
+// Parameters:
+//   - validation: The validation rule to evaluate (contains condition and error_message expressions)
+//   - hclCtx: The HCL evaluation context with the variable value and functions
+//   - valueRng: The source range of the variable declaration (for diagnostic reporting)
+func evalVariableValidation(validation *stackconfig.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range) tfdiags.Diagnostics {
+	const errInvalidCondition = "Invalid variable validation result"
+	const errInvalidValue = "Invalid value for variable"
+	var diags tfdiags.Diagnostics
+
+	result, moreDiags := validation.Condition.Value(hclCtx)
+	diags = diags.Append(moreDiags)
+
+	if moreDiags.HasErrors() {
+		// If we couldn't evaluate the condition at all (syntax error, etc.),
+		// return early. The error is already in diags.
+		return diags
+	}
+
+	// If the condition result is unknown, we can't determine validity yet.
+	// This can happen when the condition references computed values.
+	// Skip validation for now - it will be checked during apply if needed.
+	if !result.IsKnown() {
+		return diags
+	}
+
+	// Check if the result is null
+	if result.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      "Validation condition expression must return either true or false, not null.",
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return diags
+	}
+
+	// Convert result to boolean
+	var err error
+	result, err = convert.Convert(result, cty.Bool)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return diags
+	}
+
+	// Remove any marks (sensitive, ephemeral) before checking the boolean value.
+	// The marks don't affect the validation result, only how we handle the error message.
+	result, _ = result.Unmark()
+
+	// Always evaluate the error_message expression, even when the condition passes —
+	// unknown, sensitive, or ephemeral values in the message are structural problems
+	// regardless of whether the check succeeds or fails.
+	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
+	diags = diags.Append(errorDiags)
+
+	var errorMessage string
+	if !errorDiags.HasErrors() {
+		if !errorValue.IsKnown() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid error message",
+				Detail:      "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+			return diags
+		} else if !errorValue.IsNull() {
+			errorValue, err = convert.Convert(errorValue, cty.String)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid error message",
+					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+			} else {
+				// Check for sensitive/ephemeral marks; these are flagged even when
+				// the condition passes, since the error message is structurally invalid.
+				if marks.Has(errorValue, marks.Sensitive) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error message refers to sensitive values",
+						Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+
+You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+						Subject:     validation.ErrorMessage.Range().Ptr(),
+						Expression:  validation.ErrorMessage,
+						EvalContext: hclCtx,
+					})
+					errorMessage = "The error message included a sensitive value, so it will not be displayed."
+				} else if marks.Has(errorValue, marks.Ephemeral) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Error message refers to ephemeral values",
+						Detail: `The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
+						Subject:     validation.ErrorMessage.Range().Ptr(),
+						Expression:  validation.ErrorMessage,
+						EvalContext: hclCtx,
+					})
+					errorMessage = "The error message included an ephemeral value, so it will not be displayed."
+				} else {
+					errorMessage = strings.TrimSpace(errorValue.AsString())
+				}
+			}
+		}
+	}
+	if errorMessage == "" {
+		errorMessage = "Failed to evaluate condition error message."
+	}
+
+	// If the condition evaluated to true, the validation passed. We've validated
+	// the error message above, so any structural issues are already reported.
+	if result.True() {
+		return diags
+	}
+
+	// Construct the validation failure diagnostic.
+	// The detail includes both the custom error message and a reference to where
+	// the validation rule is defined, helping users locate the validation in their config.
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity:    hcl.DiagError,
+		Summary:     errInvalidValue,
+		Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+		Subject:     &valueRng,
+		Expression:  validation.Condition,
+		EvalContext: hclCtx,
 	})
+
+	return diags
 }
 
 // ExternalInputValue represents the value of an input variable provided

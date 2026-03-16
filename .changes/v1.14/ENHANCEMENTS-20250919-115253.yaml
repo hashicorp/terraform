@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform stacks` command support for `-help` flag'
+time: 2025-09-19T11:52:53.923764-04:00
+custom:
+    Issue: "37645"

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -16,13 +16,6 @@ import (
 )
 
 func TestParseConfigResourceFromExpression(t *testing.T) {
-	mustExpr := func(expr hcl.Expression, diags hcl.Diagnostics) hcl.Expression {
-		if diags != nil {
-			panic(diags.Error())
-		}
-		return expr
-	}
-
 	tests := []struct {
 		expr   hcl.Expression
 		expect addrs.ConfigResource
@@ -67,6 +60,9 @@ func TestImportBlock_decode(t *testing.T) {
 	}
 
 	foo_str_expr := hcltest.MockExprLiteral(cty.StringVal("foo"))
+	id_obj_expr := hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("foo"),
+	}))
 	bar_expr := hcltest.MockExprTraversalSrc("test_instance.bar")
 
 	bar_index_expr := hcltest.MockExprTraversalSrc("test_instance.bar[\"one\"]")
@@ -150,7 +146,7 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			``,
 		},
-		"error: missing id argument": {
+		"error: missing id or identity argument": {
 			&hcl.Block{
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
@@ -167,16 +163,43 @@ func TestImportBlock_decode(t *testing.T) {
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
 				DeclRange:  blockRange,
 			},
-			"Missing required argument",
+			"Invalid import block",
+		},
+		"error: id and identity argument": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
+						},
+						"identity": {
+							Name: "identity",
+							Expr: id_obj_expr,
+						},
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+				DeclRange:  blockRange,
+			},
+			"Invalid import block",
 		},
 		"error: missing to argument": {
 			&hcl.Block{
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"to": {
-							Name: "to",
-							Expr: bar_expr,
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
 						},
 					},
 				}),
@@ -249,4 +272,11 @@ func mustAbsResourceInstanceAddr(str string) addrs.AbsResourceInstance {
 		panic(fmt.Sprintf("invalid absolute resource instance address: %s", diags.Err()))
 	}
 	return addr
+}
+
+func mustExpr(expr hcl.Expression, diags hcl.Diagnostics) hcl.Expression {
+	if diags != nil {
+		panic(diags.Error())
+	}
+	return expr
 }

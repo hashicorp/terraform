@@ -59,6 +59,7 @@
     "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
     "@module": "terraform.ui",
     "changes": {
+      "action_invocation": 0,
       "add": 1,
       "change": 0,
       "import": 0,

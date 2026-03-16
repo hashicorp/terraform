@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -23,7 +24,7 @@ func TestProvidersLock(t *testing.T) {
 		// create an empty working directory
 		td := t.TempDir()
 		os.MkdirAll(td, 0755)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		ui := new(cli.MockUi)
 		c := &ProvidersLockCommand{
@@ -50,7 +51,7 @@ provider "registry.terraform.io/hashicorp/test" {
   ]
 }
 `
-		runProviderLockGenericTest(t, testDirectory, expected)
+		runProviderLockGenericTest(t, testDirectory, expected, false)
 	})
 
 	// This test depends on the -fs-mirror argument, so we always know what results to expect
@@ -67,14 +68,30 @@ provider "registry.terraform.io/hashicorp/test" {
   ]
 }
 `
-		runProviderLockGenericTest(t, testDirectory, expected)
+		runProviderLockGenericTest(t, testDirectory, expected, false)
+	})
+
+	// This test depends on the -fs-mirror argument, so we always know what results to expect
+	t.Run("tests", func(t *testing.T) {
+		testDirectory := "providers-lock/with-tests"
+		expected := `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version = "1.0.0"
+  hashes = [
+    "h1:7MjN4eFisdTv4tlhXH5hL4QQd39Jy4baPhFxwAd/EFE=",
+  ]
+}
+`
+		runProviderLockGenericTest(t, testDirectory, expected, true)
 	})
 }
 
-func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
+func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, init bool) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(testDirectory), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -84,6 +101,20 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 	err := os.Rename(fixtMachineDir, wantMachineDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if init {
+		// optionally execute the get command to fetch local modules if the
+		// test case needs them
+		c := &GetCommand{
+			Meta: Meta{
+				Ui: new(cli.MockUi),
+			},
+		}
+		code := c.Run(nil)
+		if code != 0 {
+			t.Fatal("failed get command")
+		}
 	}
 
 	p := testProvider()

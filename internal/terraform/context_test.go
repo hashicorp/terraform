@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -175,7 +175,7 @@ terraform {}
 
 func TestContext_missingPlugins(t *testing.T) {
 	ctx, diags := NewContext(&ContextOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	configSrc := `
 terraform {
@@ -326,7 +326,7 @@ func TestContext_preloadedProviderSchemas(t *testing.T) {
 		`,
 	})
 	_, diags := tfCore.Schemas(cfg, states.NewState())
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if provider.GetProviderSchemaCalled {
 		t.Error("called GetProviderSchema even though a preloaded schema was provided")
@@ -443,6 +443,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 	}
 
 	resp.PlannedState = cty.ObjectVal(planned)
+	resp.PlannedIdentity = req.PriorIdentity
 	return
 }
 
@@ -781,14 +782,16 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 	// backend configuration if they didn't set one, since the backend is
 	// usually dealt with in a calling package and so tests in this package
 	// don't really care about it.
-	if plan.Backend.Config == nil {
+	if plan.Backend == nil {
 		cfg, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 		if err != nil {
 			panic(fmt.Sprintf("NewDynamicValue failed: %s", err)) // shouldn't happen because we control the inputs
 		}
-		plan.Backend.Type = "local"
-		plan.Backend.Config = cfg
-		plan.Backend.Workspace = "default"
+		plan.Backend = &plans.Backend{
+			Type:      "local",
+			Config:    cfg,
+			Workspace: "default",
+		}
 	}
 
 	filename := filepath.Join(dir, "tfplan")
@@ -807,7 +810,25 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		return nil, nil, nil, err
 	}
 
-	config, diags := pr.ReadConfig()
+	snap, err := pr.ReadConfigSnapshot()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	loader := configload.NewLoaderFromSnapshot(snap)
+	rootMod, hclDiags := loader.LoadRootModule(snap.Modules[""].Dir)
+	diags := tfdiags.Diagnostics(nil).Append(hclDiags)
+	if diags.HasErrors() {
+		return nil, nil, nil, diags.Err()
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags.Err()
 	}
@@ -1014,34 +1035,6 @@ func legacyDiffComparisonString(changes *plans.ChangesSrc) string {
 	return buf.String()
 }
 
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics is non-empty.
-func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if len(diags) == 0 {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics has any errors.
-func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if !diags.HasErrors() {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-type SummaryAndDetail struct {
-	Severity    tfdiags.Severity
-	Subject     string
-	Description string
-}
-
 // checkPlanCompleteAndApplyable reports testing errors if the plan is not
 // flagged as being both complete and applyable.
 //
@@ -1092,43 +1085,6 @@ func checkPlanErrored(t *testing.T, plan *plans.Plan) {
 		t.Error("plan is not marked as errored; should be")
 	} else if plan.Applyable {
 		t.Error("plan is applyable; plans with errors should never be applyable")
-	}
-}
-
-// logDiagnostics is a test helper that logs the given diagnostics to to the
-// given testing.T using t.Log, in a way that is hopefully useful in debugging
-// a test. It does not generate any errors or fail the test. See
-// assertNoDiagnostics and assertNoErrors for more specific helpers that can
-// also fail the test.
-func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	for _, diag := range diags {
-		desc := diag.Description()
-		rng := diag.Source()
-
-		var severity string
-		switch diag.Severity() {
-		case tfdiags.Error:
-			severity = "ERROR"
-		case tfdiags.Warning:
-			severity = "WARN"
-		default:
-			severity = "???" // should never happen
-		}
-
-		if subj := rng.Subject; subj != nil {
-			if desc.Detail == "" {
-				t.Logf("[%s@%s] %s", severity, subj.StartString(), desc.Summary)
-			} else {
-				t.Logf("[%s@%s] %s: %s", severity, subj.StartString(), desc.Summary, desc.Detail)
-			}
-		} else {
-			if desc.Detail == "" {
-				t.Logf("[%s] %s", severity, desc.Summary)
-			} else {
-				t.Logf("[%s] %s: %s", severity, desc.Summary, desc.Detail)
-			}
-		}
 	}
 }
 

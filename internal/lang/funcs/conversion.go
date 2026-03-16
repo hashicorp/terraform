@@ -1,11 +1,16 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
 import (
+	"fmt"
+	"reflect"
 	"strconv"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/customdecode"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/lang/types"
@@ -157,4 +162,91 @@ var TypeFunc = function.New(&function.Spec{
 
 func Type(input []cty.Value) (cty.Value, error) {
 	return TypeFunc.Call(input)
+}
+
+// ConvertFunc is a cty function which takes any value as the first argument,
+// and returns the result of converting the first argument to the type
+// constraint literal given as the second argument. We allow type constraint
+// literals by injecting a custom decoder into HCL using a cty capsule type.
+var ConvertFunc = makeConvertFunc()
+
+// makeConvertFunc is a constructor function because of the unusual method we
+// have for passing a custom decoder into HCL. We need to be able to declare a
+// recursive closure that can return the same value that it's assigned to, hence
+// there needs some procedural code to construct it.
+func makeConvertFunc() function.Function {
+	// We want to be able to use optional and default values in our type
+	// constrains, so we need to be able to track both the type and the default
+	// values.
+	type typeConstraintArg struct {
+		Type     cty.Type
+		Defaults *typeexpr.Defaults
+	}
+
+	var typeConstraintType cty.Type
+	typeConstraintType = cty.CapsuleWithOps("type_constraint", reflect.TypeFor[typeConstraintArg](), &cty.CapsuleOps{
+		ExtensionData: func(key any) any {
+			switch key {
+			// HCL will look for a capsule with CustomExpressionDecoder when
+			// decoding function arguments, and then insert this decoder
+			// allowing us to use our standard type expression syntax.
+			case customdecode.CustomExpressionDecoder:
+				return customdecode.CustomExpressionDecoderFunc(
+					func(expr hcl.Expression, ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+						ty, defs, diags := typeexpr.TypeConstraintWithDefaults(expr)
+						if diags.HasErrors() {
+							return cty.NilVal, diags
+						}
+						return cty.CapsuleVal(typeConstraintType, &typeConstraintArg{Type: ty, Defaults: defs}), nil
+					},
+				)
+			default:
+				return nil
+			}
+		},
+		TypeGoString: func(_ reflect.Type) string {
+			return "typeConstraint"
+		},
+		GoString: func(raw any) string {
+			tyPtr := raw.(*typeConstraintArg)
+			// The GoString value from our constraint will suffice here.
+			return fmt.Sprintf("typeConstraint(%#v)", tyPtr.Type)
+		},
+	})
+
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name:             "value",
+				Type:             cty.DynamicPseudoType,
+				AllowNull:        true,
+				AllowDynamicType: true,
+			},
+			{
+				Name: "type",
+				Type: typeConstraintType,
+			},
+		},
+		Type: func(args []cty.Value) (cty.Type, error) {
+			constraint := args[1].EncapsulatedValue().(*typeConstraintArg)
+			// optional attributes are only used during the conversion process,
+			// the final type must be fully defined.
+			return constraint.Type.WithoutOptionalAttributesDeep(), nil
+		},
+		Impl: func(args []cty.Value, _ cty.Type) (cty.Value, error) {
+			// the retType parameter tells us the final type, but it does not
+			// contain optional attributes or defaults, so we need to extract
+			// our typeConstraintArg from the arguments again.
+			constraint := args[1].EncapsulatedValue().(*typeConstraintArg)
+			v, err := convert.Convert(args[0], constraint.Type)
+			if err != nil {
+				return cty.NilVal, function.NewArgError(0, err)
+			}
+			if constraint.Defaults != nil {
+				v = constraint.Defaults.Apply(v)
+			}
+
+			return v, nil
+		},
+	})
 }

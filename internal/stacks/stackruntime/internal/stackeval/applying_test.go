@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -165,7 +165,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		t.Fatalf("plan is not applyable")
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpCInstAddr)
+		cmpPlan := plan.GetComponent(cmpCInstAddr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpBAddr)
@@ -174,7 +174,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		}
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpBInst1Addr)
+		cmpPlan := plan.GetComponent(cmpBInst1Addr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpAAddr)

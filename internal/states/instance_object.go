@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package states
@@ -69,9 +69,10 @@ type ResourceInstanceObject struct {
 // the receiver.
 func NewResourceInstanceObjectFromIR(ir providers.ImportedResource) *ResourceInstanceObject {
 	return &ResourceInstanceObject{
-		Status:  ObjectReady,
-		Value:   ir.State,
-		Private: ir.Private,
+		Status:   ObjectReady,
+		Value:    ir.State,
+		Private:  ir.Private,
+		Identity: ir.Identity,
 	}
 }
 
@@ -204,6 +205,7 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	_, withOtherMarks = marks.PathsWithMark(withOtherMarks, marks.Deprecation)
 	if len(withOtherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",

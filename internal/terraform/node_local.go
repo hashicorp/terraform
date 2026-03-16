@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -30,10 +30,7 @@ var (
 	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandLocal)(nil)
-	_ graphNodeExpandsInstances  = (*nodeExpandLocal)(nil)
 )
-
-func (n *nodeExpandLocal) expandsInstances() {}
 
 // graphNodeTemporaryValue
 func (n *nodeExpandLocal) temporaryValue() bool {
@@ -143,7 +140,14 @@ func (n *NodeLocal) References() []*addrs.Reference {
 func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	namedVals := ctx.NamedValues()
 	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
-	namedVals.SetLocalValue(n.Addr, val)
+	// We only use a shallow evaluation of deprecations here because we only want to warn
+	// if the entire value is deprecated. If e.g. a module is stored in the local and the module
+	// contains a deprecated output we don't want to warn about that here, but only when the
+	// output is actually referenced.
+	valWithoutDeprecations, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
+	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
 	return diags
 }
 
@@ -237,5 +241,10 @@ func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrS
 	if val == cty.NilVal {
 		val = cty.DynamicVal
 	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(val, ctx.Path().Module(), expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	return val, diags
 }

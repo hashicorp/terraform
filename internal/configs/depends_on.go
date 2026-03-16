@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -17,8 +17,18 @@ func DecodeDependsOn(attr *hcl.Attribute) ([]hcl.Traversal, hcl.Diagnostics) {
 
 		traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 		diags = append(diags, travDiags...)
+
 		if len(traversal) != 0 {
-			ret = append(ret, traversal)
+			if traversal.RootName() == "action" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on Action Reference",
+					Detail:   "The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.",
+					Subject:  expr.Range().Ptr(),
+				})
+			} else {
+				ret = append(ret, traversal)
+			}
 		}
 	}
 

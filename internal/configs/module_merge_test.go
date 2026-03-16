@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -9,8 +9,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestModuleOverrideVariable(t *testing.T) {
@@ -90,23 +92,11 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	got := mod.ModuleCalls["example"]
 	want := &ModuleCall{
-		Name:          "example",
-		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
-		SourceAddrRaw: "./example2-a_override",
-		SourceAddrRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-module/a_override.tf",
-			Start: hcl.Pos{
-				Line:   3,
-				Column: 12,
-				Byte:   31,
-			},
-			End: hcl.Pos{
-				Line:   3,
-				Column: 35,
-				Byte:   54,
-			},
-		},
-		SourceSet: true,
+		Name: "example",
+		SourceExpr: mustExpr(hclsyntax.ParseExpression(
+			[]byte("\"./example2-a_override\""), "testdata/valid-modules/override-module/a_override.tf",
+			hcl.Pos{Line: 3, Column: 12, Byte: 31},
+		)),
 		DeclRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-module/primary.tf",
 			Start: hcl.Pos{
@@ -307,7 +297,117 @@ func TestModuleOverrideSensitiveVariable(t *testing.T) {
 			}
 
 			if got[v].SensitiveSet != want.sensitiveSet {
-				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].SensitiveSet, want.sensitiveSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideEphemeralVariable(t *testing.T) {
+	type testCase struct {
+		ephemeral    bool
+		ephemeralSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"true_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-ephemeral")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Ephemeral != want.ephemeral {
+				t.Errorf("wrong result for ephemeral\ngot: %t want: %t", got[v].Ephemeral, want.ephemeral)
+			}
+
+			if got[v].EphemeralSet != want.ephemeralSet {
+				t.Errorf("wrong result for ephemeral set\ngot: %t want: %t", got[v].EphemeralSet, want.ephemeralSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideConstVariable(t *testing.T) {
+	type testCase struct {
+		constV   bool
+		constSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"true_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-const")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Const != want.constV {
+				t.Errorf("wrong result for const\ngot: %t want: %t", got[v].Const, want.constV)
+			}
+
+			if got[v].ConstSet != want.constSet {
+				t.Errorf("wrong result for const set\ngot: %t want: %t", got[v].ConstSet, want.constSet)
 			}
 		})
 	}
@@ -352,4 +452,70 @@ func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
 	if !r.Managed.IgnoreAllChanges {
 		t.Fatalf("wrong result: expected r.Managed.IgnoreAllChanges to be true")
 	}
+}
+
+// This tests the override behavior of action blocks and action_triggers inside resources.
+func TestModuleOverride_action_and_trigger(t *testing.T) {
+	mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-action-and-trigger")
+	assertNoDiagnostics(t, diags)
+
+	if len(mod.Actions) != 2 {
+		t.Fatalf("wrong number of actions: %d\n", len(mod.Actions))
+	}
+
+	// verify that the action has attr foo = baz (override)
+	got := mod.Actions["action.test_action.test"]
+	want := &Action{
+		Name:              "test",
+		Type:              "test_action",
+		Config:            nil,
+		Count:             nil,
+		ForEach:           nil,
+		ProviderConfigRef: nil,
+		Provider:          addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
+		DeclRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 28, Byte: 27},
+		},
+		TypeRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
+			Start:    hcl.Pos{Line: 1, Column: 8, Byte: 7},
+			End:      hcl.Pos{Line: 1, Column: 21, Byte: 20},
+		},
+	}
+
+	// We're going to extract and nil out our hcl.Body here because DeepEqual
+	// is not a useful way to assert on that.
+	gotConfig := got.Config
+	got.Config = nil
+
+	assertResultDeepEqual(t, got, want)
+
+	// now to check that config
+	type content struct {
+		Foo *string `hcl:"foo"`
+	}
+	var gotArgs content
+	diags = gohcl.DecodeBody(gotConfig, nil, &gotArgs)
+	assertNoDiagnostics(t, diags)
+
+	wantArgs := content{
+		Foo: stringPtr("baz"),
+	}
+	assertResultDeepEqual(t, gotArgs, wantArgs)
+
+	if _, exists := mod.ManagedResources["test_instance.test"]; !exists {
+		t.Fatalf("no resource 'test_instance.test'")
+	}
+	if len(mod.ManagedResources) != 1 {
+		t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+	}
+
+	r := mod.ManagedResources["test_instance.test"].Managed
+	assertResultDeepEqual(t, len(r.ActionTriggers), 1)
+
+	// verify the resource action trigger event changed
+	at := mod.ManagedResources["test_instance.test"].Managed.ActionTriggers[0]
+	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{BeforeCreate})
 }

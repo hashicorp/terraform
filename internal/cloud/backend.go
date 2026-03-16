@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -227,6 +227,10 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
+func (b *Cloud) Services() *disco.Disco {
+	return b.services
+}
+
 // Configure implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
@@ -292,7 +296,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was set in the configuration
 	if token == "" {
-		token, err = cliConfigToken(hostname, b.services)
+		token, err = CliConfigToken(hostname, b.services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -433,7 +437,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 }
 
 func (b *Cloud) AppName() string {
-	if isValidAppName(b.appName) {
+	if b != nil && isValidAppName(b.appName) {
 		return b.appName
 	}
 	return "HCP Terraform"
@@ -589,10 +593,10 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
-// cliConfigToken returns the token for this host as configured in the credentials
+// CliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
+func CliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
 	creds, err := services.CredentialsForHost(hostname)
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", hostname.ForDisplay(), err)
@@ -616,7 +620,8 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 
 // Workspaces implements backend.Backend (which is embedded in backendrun.OperationsBackend),
 // returning a filtered list of workspace names according to the workspace mapping strategy configured.
-func (b *Cloud) Workspaces() ([]string, error) {
+func (b *Cloud) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	// Create a slice to contain all the names.
 	var names []string
 
@@ -624,7 +629,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	// backend will automatically create the remote workspace if it does not yet exist.
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
 		names = append(names, b.WorkspaceMapping.Name)
-		return names, nil
+		return names, diags
 	}
 
 	// Otherwise, multiple workspaces are being mapped. Query HCP Terraform for all the remote
@@ -654,7 +659,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		}
 		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
-			return nil, fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err)
+			return nil, diags.Append(fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err))
 		}
 		for _, p := range projects.Items {
 			if p.Name == b.WorkspaceMapping.Project {
@@ -667,7 +672,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	for {
 		wl, err := b.client.Workspaces.List(context.Background(), b.Organization, options)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		for _, w := range wl.Items {
@@ -686,17 +691,19 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	// Sort the result so we have consistent output.
 	sort.StringSlice(names).Sort()
 
-	return names, nil
+	return names, diags
 }
 
 // DeleteWorkspace implements backend.Backend (which is embedded in backendrun.OperationsBackend).
-func (b *Cloud) DeleteWorkspace(name string, force bool) error {
+func (b *Cloud) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
+		return diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
-		return backend.ErrWorkspacesNotSupported
+		return diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
@@ -705,29 +712,31 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to retrieve workspace %s: %v", name, err)
+		return diags.Append(fmt.Errorf("failed to retrieve workspace %s: %v", name, err))
 	}
 
 	// Configure the remote workspace name.
 	State := &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}
-	return State.Delete(force)
+	return diags.Append(State.Delete(force))
 }
 
 // StateMgr implements backend.Backend (which is embedded in backendrun.OperationsBackend).
-func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
+func (b *Cloud) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	var remoteTFVersion string
 
 	if name == backend.DefaultStateName {
-		return nil, backend.ErrDefaultWorkspaceNotSupported
+		return nil, diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy && name != b.WorkspaceMapping.Name {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+		return nil, diags.Append(fmt.Errorf("Failed to retrieve workspace %s: %v", name, err))
 	}
 	if workspace != nil {
 		remoteTFVersion = workspace.TerraformVersion
@@ -743,7 +752,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			// This is a failure to make an API request, fail to initialize
-			return nil, fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
+			return nil, diags.Append(fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project))
 		}
 		for _, p := range projects.Items {
 			if p.Name == b.WorkspaceMapping.Project {
@@ -786,7 +795,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 				log.Printf("[TRACE] cloud: Creating %s project %s/%s", b.appName, b.Organization, b.WorkspaceMapping.Project)
 				project, err := b.client.Projects.Create(context.Background(), b.Organization, createOpts)
 				if err != nil && err != tfe.ErrResourceNotFound {
-					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
+					return nil, diags.Append(fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err))
 				}
 				configuredProject = project
 				workspaceCreateOptions.Project = configuredProject
@@ -797,7 +806,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		log.Printf("[TRACE] cloud: Creating %s workspace %s/%s", b.appName, b.Organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.Organization, workspaceCreateOptions)
 		if err != nil {
-			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
+			return nil, diags.Append(fmt.Errorf("error creating workspace %s: %v", name, err))
 		}
 
 		remoteTFVersion = workspace.TerraformVersion
@@ -829,7 +838,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	if tagCheck.requiresUpdate {
 		if errFromTagCheck != nil {
 			if errors.Is(errFromTagCheck, ErrCloudDoesNotSupportKVTags) {
-				return nil, fmt.Errorf("backend does not support key/value tags. Try using key-only tags: %w", errFromTagCheck)
+				return nil, diags.Append(fmt.Errorf("backend does not support key/value tags. Try using key-only tags: %w", errFromTagCheck))
 			}
 		}
 
@@ -848,7 +857,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("error updating workspace %q tags: %w", name, err)
+			return nil, diags.Append(fmt.Errorf("error updating workspace %q tags: %w", name, err))
 		}
 	}
 
@@ -861,11 +870,11 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
 		if remoteTFVersion != tfversion.String() && remoteTFVersion != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String())
+			return nil, diags.Append(fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String()))
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
+	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, diags
 }
 
 // Operation implements backendrun.OperationsBackend.
@@ -898,10 +907,14 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 	op.Workspace = w.Name
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backendrun.Operation, *tfe.Workspace) (*tfe.Run, error)
+	var f func(context.Context, context.Context, *backendrun.Operation, *tfe.Workspace) (OperationResult, error)
 	switch op.Type {
 	case backendrun.OperationTypePlan:
-		f = b.opPlan
+		if op.Query {
+			f = b.opQuery
+		} else {
+			f = b.opPlan
+		}
 	case backendrun.OperationTypeApply:
 		f = b.opApply
 	case backendrun.OperationTypeRefresh:
@@ -956,14 +969,14 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			return
 		}
 
-		if r == nil && opErr == context.Canceled {
+		if !r.HasResult() && opErr == context.Canceled {
 			runningOp.Result = backendrun.OperationFailure
 			return
 		}
 
-		if r != nil {
+		if r.HasResult() {
 			// Retrieve the run to get its current status.
-			r, err := b.client.Runs.Read(cancelCtx, r.ID)
+			latest, err := r.Read(cancelCtx)
 			if err != nil {
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(b.generalError("Failed to retrieve run", err))
@@ -972,10 +985,10 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			}
 
 			// Record if there are any changes.
-			runningOp.PlanEmpty = !r.HasChanges
+			runningOp.PlanEmpty = !latest.HasChanges()
 
 			if opErr == context.Canceled {
-				if err := b.cancel(cancelCtx, op, r); err != nil {
+				if err := latest.Cancel(cancelCtx, op); err != nil {
 					var diags tfdiags.Diagnostics
 					diags = diags.Append(b.generalError("Failed to retrieve run", err))
 					op.ReportResult(runningOp, diags)
@@ -983,7 +996,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 				}
 			}
 
-			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			if latest.IsCanceled() || latest.IsErrored() {
 				runningOp.Result = backendrun.OperationFailure
 			}
 		}
@@ -1536,6 +1549,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 When configured, only the specified workspace can be used. This option conflicts with "tags"
 and with the TF_WORKSPACE environment variable.`
 
-	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterpise project. Workspaces that need creating
+	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterprise project. Workspaces that need creating
 will be created within this project.`
 )

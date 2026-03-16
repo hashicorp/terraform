@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package plans
@@ -7,14 +7,16 @@ import (
 	"sort"
 	"time"
 
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -64,12 +66,16 @@ type Plan struct {
 	VariableMarks      map[string][]cty.PathValueMarks
 	ApplyTimeVariables collections.Set[string]
 
-	Changes           *ChangesSrc
-	DriftedResources  []*ResourceInstanceChangeSrc
-	DeferredResources []*DeferredResourceInstanceChangeSrc
-	TargetAddrs       []addrs.Targetable
-	ForceReplaceAddrs []addrs.AbsResourceInstance
-	Backend           Backend
+	Changes                   *ChangesSrc
+	DriftedResources          []*ResourceInstanceChangeSrc
+	DeferredResources         []*DeferredResourceInstanceChangeSrc
+	DeferredActionInvocations []*DeferredActionInvocationSrc
+	TargetAddrs               []addrs.Targetable
+	ActionTargetAddrs         []addrs.Targetable
+	ForceReplaceAddrs         []addrs.AbsResourceInstance
+
+	Backend    *Backend
+	StateStore *StateStore
 
 	// Complete is true if Terraform considers this to be a "complete" plan,
 	// which is to say that it includes a planned action (even if no-op)
@@ -159,10 +165,10 @@ type Plan struct {
 	// Timestamp is the record of truth for when the plan happened.
 	Timestamp time.Time
 
-	// ProviderFunctionResults stores hashed results from all provider
-	// function calls, so that calls during apply can be checked for
-	// consistency.
-	ProviderFunctionResults []providers.FunctionHash
+	// FunctionResults stores hashed results from all providers function calls
+	// and builtin calls which may access external state so that calls during
+	// apply can be checked for consistency.
+	FunctionResults []lang.FunctionResultHash
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
@@ -175,9 +181,30 @@ func (p *Plan) ProviderAddrs() []addrs.AbsProviderConfig {
 	}
 
 	m := map[string]addrs.AbsProviderConfig{}
+
+	// Get all provider requirements from resources.
 	for _, rc := range p.Changes.Resources {
 		m[rc.ProviderAddr.String()] = rc.ProviderAddr
 	}
+
+	// Get the provider required for pluggable state storage, if that's in use.
+	//
+	// This check should be redundant as:
+	// 1) Any provider used for state storage would be in required_providers, which is checked separately elsewhere.
+	// 2) An apply operation that uses the planfile only checks the providers needed for the plan _after_ the operations backend
+	//    for the operation is set up, and that process will detect if the provider needed for state storage is missing.
+	//
+	// However, for completeness when describing the providers needed by a plan, it is included here.
+	if p.StateStore != nil {
+		address := addrs.AbsProviderConfig{
+			Module:   addrs.RootModule, // A state_store block is only ever in the root module
+			Provider: *p.StateStore.Provider.Source,
+			// Alias: aliases are not permitted when using a provider for PSS.
+		}
+
+		m[p.StateStore.Provider.Source.String()] = address
+	}
+
 	if len(m) == 0 {
 		return nil
 	}
@@ -227,4 +254,86 @@ func NewBackend(typeName string, config cty.Value, configSchema *configschema.Bl
 		Config:    dv,
 		Workspace: workspaceName,
 	}, nil
+}
+
+// StateStore represents the state store-related configuration and other data as it
+// existed when a plan was created.
+type StateStore struct {
+	// Type is the type of state store that the plan will apply against.
+	Type string
+
+	Provider *Provider
+
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
+	Config DynamicValue
+
+	// Workspace is the name of the workspace that was active when the plan
+	// was created. It is illegal to apply a plan created for one workspace
+	// to the state of another workspace.
+	// (This constraint is already enforced by the statefile lineage mechanism,
+	// but storing this explicitly allows us to return a better error message
+	// in the situation where the user has the wrong workspace selected.)
+	Workspace string
+}
+
+type Provider struct {
+	Version *version.Version // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
+	Source  *tfaddr.Provider // The FQN/fully-qualified name of the provider.
+
+	// Config is the configuration of the state store, whose schema is obtained
+	// from the host provider's GetProviderSchema response.
+	Config DynamicValue
+}
+
+func NewStateStore(typeName string, ver *version.Version, source *tfaddr.Provider, storeConfig cty.Value, storeSchema *configschema.Block, providerConfig cty.Value, providerSchema *configschema.Block, workspaceName string) (*StateStore, error) {
+	sdv, err := NewDynamicValue(storeConfig, storeSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+	pdv, err := NewDynamicValue(providerConfig, providerSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	provider := &Provider{
+		Version: ver,
+		Source:  source,
+		Config:  pdv,
+	}
+
+	return &StateStore{
+		Type:      typeName,
+		Provider:  provider,
+		Config:    sdv,
+		Workspace: workspaceName,
+	}, nil
+}
+
+// SetVersion includes logic for parsing a string representation of a version,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Version field is unchanged.
+// If there are no errors then the receiver's Version field is updated.
+func (p *Provider) SetVersion(input string) error {
+	ver, err := version.NewVersion(input)
+	if err != nil {
+		return err
+	}
+
+	p.Version = ver
+	return nil
+}
+
+// SetSource includes logic for parsing a string representation of a provider source,
+// for example data read from a plan file.
+// If an error occurs it is returned and the receiver's Source field is unchanged.
+// If there are no errors then the receiver's Source field is updated.
+func (p *Provider) SetSource(input string) error {
+	source, diags := addrs.ParseProviderSourceString(input)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	p.Source = &source
+	return nil
 }

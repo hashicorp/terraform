@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -141,7 +141,7 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		// of blocking until all of the async jobs are complete.
 		return complete(), nil
 	})
-	diags = diags.Append(diagnosticsForPromisingTaskError(err, m))
+	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

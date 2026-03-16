@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package planfile
@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ type configSnapshotModuleRecord struct {
 }
 type configSnapshotModuleManifest []configSnapshotModuleRecord
 
-func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
+func ReadConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 	// Errors from this function are expected to be reported with some
 	// additional prefix context about them being in a config snapshot,
 	// so they should not themselves refer to the config snapshot.
@@ -144,13 +145,13 @@ func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 	return snap, nil
 }
 
-// writeConfigSnapshot adds to the given zip.Writer one or more files
+// WriteConfigSnapshot adds to the given zip.Writer one or more files
 // representing the given snapshot.
 //
 // This file creates new files in the writer, so any already-open writer
 // for the file will be invalidated by this call. The writer remains open
 // when this function returns.
-func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
+func WriteConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	// Errors from this function are expected to be reported with some
 	// additional prefix context about them being in a config snapshot,
 	// so they should not themselves refer to the config snapshot.
@@ -158,15 +159,10 @@ func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	// need to be user-actionable.
 
 	var manifest configSnapshotModuleManifest
-	keys := make([]string, 0, len(snap.Modules))
-	for k := range snap.Modules {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
 
 	// We'll re-use this fileheader for each Create we do below.
 
-	for _, k := range keys {
+	for _, k := range slices.Sorted(maps.Keys(snap.Modules)) {
 		snapMod := snap.Modules[k]
 		record := configSnapshotModuleRecord{
 			Dir:        snapMod.Dir,

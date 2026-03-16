@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package azure
@@ -38,9 +38,9 @@ func TestRemoteClientAccessKeyBasic(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestClient(t, state.(*remote.State).Client)
@@ -73,9 +73,9 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestClient(t, state.(*remote.State).Client)
@@ -110,9 +110,9 @@ func TestRemoteClientSasTokenBasic(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestClient(t, state.(*remote.State).Client)
@@ -146,9 +146,9 @@ func TestRemoteClientServicePrincipalBasic(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestClient(t, state.(*remote.State).Client)
@@ -187,14 +187,14 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -241,14 +241,14 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 		"environment":          m.env.Name,
 	})).(*Backend)
 
-	s1, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s1, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	s2, err := b2.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s2, sDiags := b2.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -306,9 +306,9 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	}
 
 	bytes := []byte(randString(20))
-	err = remoteClient.Put(bytes)
-	if err != nil {
-		t.Fatalf("Error putting data: %+v", err)
+	diags := remoteClient.Put(bytes)
+	if diags.HasErrors() {
+		t.Fatalf("Error putting data: %+v", diags.Err())
 	}
 
 	// Verify it still exists

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Include which attribute paths are marked as sensitive in list_start JSON logs
+time: 2026-02-19T14:33:04.832615-05:00
+custom:
+    Issue: "38197"

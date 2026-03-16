@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -43,9 +43,20 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	test, testDiags := loadTestFile(body)
+	test, testDiags := loadTestFile(body, p.allowExperiments)
 	diags = append(diags, testDiags...)
 	return test, diags
+}
+
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
 }
 
 // LoadMockDataFile reads the file at the given path and parses it as a
@@ -110,6 +121,22 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
+				case "state_store":
+					if allowExperiments {
+						stateStoreCfg, cfgDiags := decodeStateStoreBlock(innerBlock)
+						diags = append(diags, cfgDiags...)
+						if stateStoreCfg != nil {
+							file.StateStores = append(file.StateStores, stateStoreCfg)
+						}
+					} else {
+						// Prevent parsing of state_store blocks in all commands unless experiments enabled.
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unsupported block type",
+							Detail:   "Blocks of type \"state_store\" are not expected here.",
+							Subject:  &innerBlock.TypeRange,
+						})
+					}
 				case "cloud":
 					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
 					diags = append(diags, cfgDiags...)
@@ -182,7 +209,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block, override)
+			cfg, cfgDiags := decodeResourceBlock(block, override, allowExperiments)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
@@ -228,6 +255,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Checks = append(file.Checks, cfg)
+			}
+
+		case "action":
+			cfg, cfgDiags := decodeActionBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Actions = append(file.Actions, cfg)
 			}
 
 		default:
@@ -322,6 +356,10 @@ var configFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"type", "name"},
 		},
 		{
+			Type:       "action",
+			LabelNames: []string{"type", "name"},
+		},
+		{
 			Type: "moved",
 		},
 		{
@@ -355,6 +393,10 @@ var terraformBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "required_providers",
+		},
+		{
+			Type:       "state_store",
+			LabelNames: []string{"type"},
 		},
 		{
 			Type:       "provider_meta",

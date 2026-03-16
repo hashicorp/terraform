@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Prevent crash in the display of relevant attributes after provider upgrades
+time: 2026-03-11T16:38:04.50368-04:00
+custom:
+    Issue: "38264"

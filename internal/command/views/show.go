@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -71,7 +71,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 		renderer.RenderHumanPlan(p, planJSON.Mode, planJSON.Qualities...)
 		v.view.streams.Print(v.view.colorize.Color("\n" + planJSON.RunFooter + "\n"))
 	} else if plan != nil {
-		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+		outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(plan, schemas)
 		if err != nil {
 			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 			return 1
@@ -85,6 +85,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			ResourceDrift:         drift,
 			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 			RelevantAttributes:    attrs,
+			ActionInvocations:     actions,
 		}
 
 		var opts []plans.Quality

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -68,6 +68,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 			}
 		}
 	}
+
 	return diags
 }
 
@@ -141,7 +142,12 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
 
-	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
+	val, hclBody, diags := ctx.EvaluateBlock(body, schema, selfAddr, keyData)
+
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(val, schema, n.Addr.Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
+	return val, hclBody, diags
 }
 
 // connectionBlockSupersetSchema is a schema representing the superset of all
@@ -355,6 +361,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -434,6 +443,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -461,6 +473,11 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(
+			deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateEphemeralResourceConfigRequest{
@@ -469,6 +486,74 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateEphemeralResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	case addrs.ListResourceMode:
+		schema := providerSchema.SchemaForListResourceType(n.Config.Type)
+		if schema.IsNil() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid list resource",
+				Detail:   fmt.Sprintf("The provider %s does not support list resource %q.", n.Provider().ForDisplay(), n.Config.Type),
+				Subject:  &n.Config.TypeRange,
+			})
+			return diags
+		}
+
+		var blockVal, limit, includeResource cty.Value
+		var includeDiags tfdiags.Diagnostics
+
+		if n.Config.Config != nil {
+			var valDiags tfdiags.Diagnostics
+			blockVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
+			diags = diags.Append(valDiags)
+			if valDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			blockVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(blockVal, schema.FullSchema, n.ModulePath())
+			diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+		}
+
+		if n.Config.List.Limit != nil {
+			var limitDiags tfdiags.Diagnostics
+			limit, _, limitDiags = newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+			diags = diags.Append(limitDiags)
+			if limitDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			limit, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
+		}
+
+		if n.Config.List.IncludeResource != nil {
+			includeResource, _, includeDiags = newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+			diags = diags.Append(includeDiags)
+			if includeDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			includeResource, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
+		}
+
+		// Use unmarked value for validate request
+		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
+
+		// if the config value is null, we still want to send a full object with all attributes being null
+		if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
+			mp := unmarkedBlockVal.AsValueMap()
+			mp["config"] = schema.ConfigSchema.EmptyValue()
+			unmarkedBlockVal = cty.ObjectVal(mp)
+		}
+		req := providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeResource,
+			Limit:                 limit,
+		}
+
+		resp := provider.ValidateListResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
@@ -577,6 +662,11 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 		}
 
 		if imp.Config.ForEach != nil {
+			diags = diags.Append(validateImportForEachRef(n.Addr.Resource, imp.Config.ForEach))
+			if diags.HasErrors() {
+				return diags
+			}
+
 			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
 			diags = diags.Append(forEachDiags)
 			if forEachDiags.HasErrors() {
@@ -584,6 +674,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 			}
 
 			for _, keyData := range forEachData {
+				var evalDiags tfdiags.Diagnostics
 				to, evalDiags := evalImportToExpression(imp.Config.To, keyData)
 				diags = diags.Append(evalDiags)
 				if diags.HasErrors() {
@@ -593,7 +684,20 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				if diags.HasErrors() {
 					return diags
 				}
-				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
+
+				if imp.Config.ID != nil {
+					_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
+				} else if imp.Config.Identity != nil {
+					providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+					if err != nil {
+						diags = diags.Append(err)
+						return diags
+					}
+					schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+					_, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, true)
+				}
+
 				diags = diags.Append(evalDiags)
 				if diags.HasErrors() {
 					return diags
@@ -613,7 +717,20 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				return diags
 			}
 
-			_, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
+			var evalDiags tfdiags.Diagnostics
+			if imp.Config.ID != nil {
+				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+				_, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, true)
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return diags
@@ -729,6 +846,21 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
+		}
+
+		// We don't allow depends_on on actions because their ordering is depending on the resource
+		// that triggers them, therefore users should use a depends_on on the resource instead.
+
+		if ref != nil {
+			switch ref.Subject.(type) {
+			case addrs.Action, addrs.ActionInstance:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on reference",
+					Detail:   "Actions can not be referenced in depends_on. Use depends_on on the resource that triggers the action instead.",
+					Subject:  traversal.SourceRange().Ptr(),
+				})
+			}
 		}
 
 		// The ref must also refer to something that exists. To test that,

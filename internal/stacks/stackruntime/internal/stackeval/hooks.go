@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -53,6 +53,10 @@ type Hooks struct {
 	// ComponentExpanded is called when a plan operation evaluates the
 	// expansion argument for a component, resulting in zero or more instances.
 	ComponentExpanded hooks.SingleFunc[*hooks.ComponentInstances]
+
+	// RemovedComponentExpanded is called when a plan operation evaluates the
+	// expansion argument for a removed block.
+	RemovedComponentExpanded hooks.SingleFunc[*hooks.RemovedComponentInstances]
 
 	// PendingComponentInstancePlan is called at the start of the plan
 	// operation, before evaluating the component instance's inputs and
@@ -125,6 +129,10 @@ type Hooks struct {
 	// inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstanceDeferred hooks.MoreFunc[*hooks.DeferredResourceInstanceChange]
+
+	ReportActionInvocationPlanned  hooks.MoreFunc[*hooks.ActionInvocation]
+	ReportActionInvocationStatus   hooks.MoreFunc[*hooks.ActionInvocationStatusHookData]
+	ReportActionInvocationProgress hooks.MoreFunc[*hooks.ActionInvocationProgressHookData]
 
 	// ReportComponentInstancePlanned is called after a component instance
 	// is planned. It should be called inside a tracing context established by

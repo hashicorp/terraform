@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -31,11 +32,11 @@ func (h *stopHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.hook()
 }
 
-func (h *stopHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *stopHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *stopHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
 	return h.hook()
 }
 
@@ -74,7 +75,7 @@ func (h *stopHook) PostImportState(id HookResourceIdentity, imported []providers
 	return h.hook()
 }
 
-func (h *stopHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *stopHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
@@ -98,9 +99,29 @@ func (h *stopHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return h.hook()
 }
 
+func (h *stopHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) Stopping() {}
 
 func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
 	return h.hook()
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -6,7 +6,7 @@ package e2etest
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -52,6 +52,9 @@ type providerServer struct {
 	proto.ProviderServer
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
+	listResourceCalled        bool
+	readStateBytesCalled      bool
+	writeStateBytesCalled     bool
 }
 
 func (p *providerServer) PlanResourceChange(ctx context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
@@ -70,12 +73,37 @@ func (p *providerServer) ApplyResourceChange(ctx context.Context, req *proto.App
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
 }
 
+func (p *providerServer) WriteStateBytes(server proto.Provider_WriteStateBytesServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.writeStateBytesCalled = true
+	return p.ProviderServer.WriteStateBytes(server)
+}
+
+func (p *providerServer) ReadStateBytes(req *proto.ReadStateBytes_Request, server proto.Provider_ReadStateBytesServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.readStateBytesCalled = true
+	return p.ProviderServer.ReadStateBytes(req, server)
+}
+
+func (p *providerServer) ListResource(req *proto.ListResource_Request, res proto.Provider_ListResourceServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.listResourceCalled = true
+	return p.ProviderServer.ListResource(req, res)
+}
+
 func (p *providerServer) PlanResourceChangeCalled() bool {
 	p.Lock()
 	defer p.Unlock()
 
 	return p.planResourceChangeCalled
 }
+
 func (p *providerServer) ResetPlanResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -89,6 +117,7 @@ func (p *providerServer) ApplyResourceChangeCalled() bool {
 
 	return p.applyResourceChangeCalled
 }
+
 func (p *providerServer) ResetApplyResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -96,11 +125,47 @@ func (p *providerServer) ResetApplyResourceChangeCalled() {
 	p.applyResourceChangeCalled = false
 }
 
+func (p *providerServer) ListResourceCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.listResourceCalled
+}
+
+func (p *providerServer) ReadStateBytesCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.readStateBytesCalled
+}
+
+func (p *providerServer) ResetReadStateBytesCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.readStateBytesCalled = false
+}
+
+func (p *providerServer) WriteStateBytesCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.writeStateBytesCalled
+}
+
+func (p *providerServer) ResetWriteStateBytesCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.writeStateBytesCalled = false
+}
+
 type providerServer5 struct {
 	sync.Mutex
 	proto5.ProviderServer
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
+	listResourceCalled        bool
 }
 
 func (p *providerServer5) PlanResourceChange(ctx context.Context, req *proto5.PlanResourceChange_Request) (*proto5.PlanResourceChange_Response, error) {
@@ -120,12 +185,21 @@ func (p *providerServer5) ApplyResourceChange(ctx context.Context, req *proto5.A
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
 }
 
+func (p *providerServer5) ListResource(req *proto5.ListResource_Request, res proto5.Provider_ListResourceServer) error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.listResourceCalled = true
+	return p.ProviderServer.ListResource(req, res)
+}
+
 func (p *providerServer5) PlanResourceChangeCalled() bool {
 	p.Lock()
 	defer p.Unlock()
 
 	return p.planResourceChangeCalled
 }
+
 func (p *providerServer5) ResetPlanResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
@@ -139,11 +213,19 @@ func (p *providerServer5) ApplyResourceChangeCalled() bool {
 
 	return p.applyResourceChangeCalled
 }
+
 func (p *providerServer5) ResetApplyResourceChangeCalled() {
 	p.Lock()
 	defer p.Unlock()
 
 	p.applyResourceChangeCalled = false
+}
+
+func (p *providerServer5) ListResourceCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.listResourceCalled
 }
 
 func TestUnmanagedSeparatePlan(t *testing.T) {
@@ -163,7 +245,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -268,7 +350,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,

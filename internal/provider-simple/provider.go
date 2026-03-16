@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // simple provider a minimal provider implementation for testing
@@ -33,12 +33,23 @@ func Provider() providers.Interface {
 				},
 			},
 		},
+		Identity: &configschema.Object{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+			Nesting: configschema.NestingSingle,
+		},
 	}
 
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Body: nil,
+				Body: &configschema.Block{
+					Description: "This is terraform-provider-simple v5",
+				},
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
@@ -46,6 +57,22 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
+			ListResourceTypes: map[string]providers.Schema{
+				"simple_resource": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Optional: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
+			Actions: map[string]providers.ActionSchema{},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -88,6 +115,10 @@ func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceCon
 	return resp
 }
 
+func (s simple) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
+	return resp
+}
+
 func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
@@ -118,6 +149,10 @@ func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.
 	resp.NewState = req.PriorState
 	resp.Identity = req.CurrentIdentity
 	return resp
+}
+
+func (s simple) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
+	panic("not implemented")
 }
 
 func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
@@ -202,6 +237,88 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	// Our schema doesn't include any functions, so it should be impossible
 	// to get in here.
 	panic("CallFunction on provider that didn't declare any functions")
+}
+
+func (s simple) ListResource(req providers.ListResourceRequest) (resp providers.ListResourceResponse) {
+	vals := make([]cty.Value, 0)
+
+	staticVal := cty.StringVal("static_value")
+	m := req.Config.AsValueMap()
+	if val, ok := m["value"]; ok && val != cty.NilVal {
+		staticVal = val
+	}
+
+	obj := map[string]cty.Value{
+		"display_name": cty.StringVal("static_display_name"),
+		"identity": cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("static_id"),
+		}),
+	}
+	if req.IncludeResourceObject {
+		obj["state"] = cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("static_id"),
+			"value": staticVal,
+		})
+	}
+	vals = append(vals, cty.ObjectVal(obj))
+
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"data":   cty.TupleVal(vals),
+		"config": req.Config,
+	})
+	return
+}
+
+func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented")
+}
+
+func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented")
+}
+
+func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	panic("not implemented")
+}
+
+func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	panic("not implemented")
+}
+
+func (s simple) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	panic("not implemented")
+}
+
+func (s simple) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	panic("not implemented")
+}
+
+func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
+	panic("not implemented")
+}
+
+func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// provider-simple uses protocol version 5, which does not include the RPC that maps to this method
+	panic("not implemented")
+}
+
+func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("PlanAction on provider that didn't declare any actions")
+}
+
+func (s simple) InvokeAction(providers.InvokeActionRequest) providers.InvokeActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("InvokeAction on provider that didn't declare any actions")
+}
+
+func (s simple) ValidateActionConfig(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get here.
+	panic("ValidateActionConfig on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {

@@ -18,8 +18,9 @@ const _phaseState_name = "workingStaterefreshStateprevRunState"
 var _phaseState_index = [...]uint8{0, 12, 24, 36}
 
 func (i phaseState) String() string {
-	if i < 0 || i >= phaseState(len(_phaseState_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_phaseState_index)-1 {
 		return "phaseState(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _phaseState_name[_phaseState_index[i]:_phaseState_index[i+1]]
+	return _phaseState_name[_phaseState_index[idx]:_phaseState_index[idx+1]]
 }

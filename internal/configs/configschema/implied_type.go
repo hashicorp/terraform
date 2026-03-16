@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -107,6 +107,14 @@ func (o *Object) ImpliedType() cty.Type {
 	return o.specType().WithoutOptionalAttributesDeep()
 }
 
+// ConfigType returns a cty.Type that can be used to decode a configuration
+// object using the receiving block schema.
+//
+// ConfigType will preserve optional attributes
+func (o *Object) ConfigType() cty.Type {
+	return o.specType()
+}
+
 // specType returns the cty.Type used for decoding a NestedType Attribute using
 // the receiving block schema.
 func (o *Object) specType() cty.Type {
@@ -130,8 +138,9 @@ func (o *Object) specType() cty.Type {
 	} else {
 		ret = cty.Object(attrTys)
 	}
+
 	switch o.Nesting {
-	case NestingSingle:
+	case NestingSingle, NestingGroup:
 		return ret
 	case NestingList:
 		return cty.List(ret)

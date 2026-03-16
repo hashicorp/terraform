@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'cli: Fixed `terraform init -json` to properly format all backend configuration messages as JSON instead of plain text'
+time: 2025-11-19T10:30:00.000000Z
+custom:
+    Issue: "37911"

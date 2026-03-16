@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package hooks
@@ -10,5 +10,11 @@ import "github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 // more instances.
 type ComponentInstances struct {
 	ComponentAddr stackaddrs.AbsComponent
+	InstanceAddrs []stackaddrs.AbsComponentInstance
+}
+
+// RemovedComponentInstances is the argument type for the RemovedComponentExpanded hook callback.
+type RemovedComponentInstances struct {
+	Source        stackaddrs.StackInstance
 	InstanceAddrs []stackaddrs.AbsComponentInstance
 }

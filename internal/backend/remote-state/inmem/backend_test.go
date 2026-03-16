@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package inmem
@@ -36,9 +36,9 @@ func TestBackendConfig(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	c := s.(*remote.State).Client.(*RemoteClient)
@@ -65,7 +65,7 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateLocks(t, b1, b2)
 }
 
-// use the this backen to test the remote.State implementation
+// use this backend to test the remote.State implementation
 func TestRemoteState(t *testing.T) {
 	defer Reset()
 	b := backend.TestBackendConfig(t, New(), hcl.EmptyBody())
@@ -73,9 +73,9 @@ func TestRemoteState(t *testing.T) {
 	workspace := "workspace"
 
 	// create a new workspace in this backend
-	s, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
 	// force overwriting the remote state

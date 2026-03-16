@@ -4,7 +4,7 @@
 
 This repository contains Terraform core, which includes the command line interface and the main graph engine. 
 
-Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
+Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://developer.hashicorp.com/terraform/plugin).
 
 This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set expectations and help you get the most out of participation in this project. 
 
@@ -31,6 +31,7 @@ To report a bug, an enhancement proposal, or give any other product feedback, pl
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
 - [Generated Code](#generated-code)
 - [External Dependencies](#external-dependencies)
+- [AI Usage](#ai-usage)
 
 <!-- /MarkdownTOC -->
 
@@ -100,7 +101,7 @@ Provisioners are an area of concern in Terraform for a number of reasons. Chiefl
 
 There are two main types of provisioners in Terraform, the generic provisioners (`file`,`local-exec`, and `remote-exec`) and the tool-specific provisioners (`chef`, `habbitat`, `puppet` & `salt-masterless`). **The tool-specific provisioners [are deprecated](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).** In practice this means we will not be accepting PRs for these areas of the codebase. 
 
-From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
+From our [documentation](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax):
 
 > ... they [...] add a considerable amount of complexity and uncertainty to Terraform usage.[...] we still recommend attempting to solve it [your problem] using other techniques first, and use provisioners only if there is no other option.
 
@@ -296,3 +297,29 @@ git commit -m "go get github.com/hashicorp/hcl/v2@2.0.0"
 ```
 
 You can then make use of the new or updated dependency in new code added in subsequent commits.
+
+## AI Usage
+
+As Generative AI tools have continued to improve in quality and usefulness, their adoption and usage across the software development community has grown significantly. Regardless of the tools used in the development process, maintaining the stability and security of Terraform is our primary priority. If you choose to use AI tools to assist in your contributions, we ask that you do so using the three principles of transparency, accountability and quality to guide that work.
+
+### Transparency
+
+We value open communication about the tools and methods used to build Terraform. If you utilize AI to generate code, documentation, or tests, please disclose this in your Pull Request description.
+
+* **Be specific**: Clearly state the role AI played in your submission (e.g., "Used to generate boilerplate for the new function," or "Used to refactor existing tests").
+* **Share the context**: Where it adds clarity, share the process or prompts used. This helps reviewers understand the intent and verify the output effectively.
+
+### Accountability
+
+Understanding that AI usage can range along a spectrum from AI assistance to AI led approaches we strongly prefer an approach that leaves the contributor in the drivers seat. AI is a tool, not a seperate contributor. The responsibility for changes submitted lies entirely with you, the human opening the PR.
+
+* **Human ownership**: All PRs must be submitted by a real, human-owned account. We do not accept submissions from bot accounts used for code generation.
+* **Human review**: We proceed with the assumption that every line of code has been reviewed by you. You must ensure that the code meets our quality standards, that edge cases are handled, and that appropriate tests are written and passing.
+* **Deep understanding**: You must understand the submitted code deeply enough to explain it in your own words. If you cannot explain the logic, implications, or side effects of a change without relying on the AI's explanation, the PR is not ready for submission. You must own the PR.
+
+### Quality
+
+The bar for contributing to Terraform Core is high due to the complexity of the tool and the critical workflows it supports. That same expectation of quality persists regardless of the tools a contributor may or may not make use of. 
+
+* **Assistance, not automation**: AI should be used to assist your process, not to automate final decisions. It is easy for AI to generate plausible-looking but incorrect or dangerous code.
+* **Adherence to guidelines**: We discourage low-effort submissions where AI output is pasted without refinement. We expect the same high quality, thoughtful architecture, and adherence to our existing style and testing guidelines as we do for manual code.

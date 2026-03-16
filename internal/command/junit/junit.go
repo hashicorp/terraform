@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 package junit
 
@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strconv"
@@ -155,8 +156,9 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 
 	enc.EncodeToken(xml.StartElement{Name: suitesName})
 
-	sortedFiles := suiteFilesAsSortedList(suite.Files) // to ensure consistent ordering in XML
-	for _, file := range sortedFiles {
+	// Sort the file names to ensure consistent ordering in XML
+	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
+		file := suite.Files[name]
 		// Each test file is modelled as a "test suite".
 
 		// First we'll count the number of tests and number of failures/errors
@@ -186,6 +188,9 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 			},
 		})
 
+		// Check if there are file-level errors that will be reported at suite level
+		hasFileLevelErrors := file.Status == moduletest.Error && file.Diagnostics.HasErrors()
+
 		for i, run := range file.Runs {
 			// Each run is a "test case".
 
@@ -207,7 +212,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 			// Depending on run status, add either of: "skipped", "failure", or "error" elements
 			switch run.Status {
 			case moduletest.Skip:
-				testCase.Skipped = skipDetails(i, file, suiteRunnerStopped)
+				testCase.Skipped = skipDetails(i, file, suiteRunnerStopped, hasFileLevelErrors)
 
 			case moduletest.Fail:
 				// When the test fails we only use error diags that originate from failing assertions
@@ -273,6 +278,16 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 			})
 		}
 
+		// Add suite-level system-err if there are file-level errors
+		if hasFileLevelErrors {
+			systemErr := &withMessage{
+				Body: getDiagString(file.Diagnostics, sources),
+			}
+			enc.EncodeElement(systemErr, xml.StartElement{
+				Name: xml.Name{Local: "system-err"},
+			})
+		}
+
 		enc.EncodeToken(xml.EndElement{Name: suiteName})
 	}
 	enc.EncodeToken(xml.EndElement{Name: suitesName})
@@ -298,8 +313,9 @@ func failureMessage(failedAssertions tfdiags.Diagnostics, checkCount int) string
 // Test can be skipped due to:
 // 1. terraform test recieving an interrupt from users; all unstarted tests will be skipped
 // 2. A previous run in a file has failed, causing subsequent run blocks to be skipped
+// 3. File-level errors (e.g., invalid variable references) causing all tests to be skipped
 // The returned value is used to set content in the "skipped" element
-func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMessage {
+func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool, hasFileLevelErrors bool) *withMessage {
 	if suiteStopped {
 		// Test suite experienced an interrupt
 		// This block only handles graceful Stop interrupts, as Cancel interrupts will prevent a JUnit file being produced at all
@@ -321,26 +337,18 @@ func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMe
 				}
 			}
 		}
+
+		// Check for file-level error diagnostics that caused tests to be skipped
+		// Note: Full diagnostic details are included in suite-level <system-err> element
+		if hasFileLevelErrors {
+			return &withMessage{
+				Message: "Testcase skipped due to file-level errors",
+			}
+		}
 	}
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
 	return &withMessage{}
-}
-
-func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
-	fileNames := make([]string, len(files))
-	i := 0
-	for k := range files {
-		fileNames[i] = k
-		i++
-	}
-	slices.Sort(fileNames)
-
-	sortedFiles := make([]*moduletest.File, len(files))
-	for i, name := range fileNames {
-		sortedFiles[i] = files[name]
-	}
-	return sortedFiles
 }
 
 func getDiagString(diags tfdiags.Diagnostics, sources map[string][]byte) string {

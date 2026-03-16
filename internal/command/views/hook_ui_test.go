@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -93,66 +93,67 @@ func TestUiHookPreApply_create(t *testing.T) {
 // Test the PreApply hook's use of a periodic timer to display "still working"
 // log lines
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	h := NewUiHook(view)
-	h.periodicUiTimer = 1 * time.Second
-	h.resources = map[string]uiResourceState{
-		"test_instance.foo": {
-			Op:    uiResourceModify,
-			Start: time.Now(),
-		},
-	}
+	syncTest, streams, done := streamableSyncTest(t)
+	syncTest(t, func(t *testing.T) {
+		view := NewView(streams)
+		h := NewUiHook(view)
+		h.periodicUiTimer = 1 * time.Second
+		h.resources = map[string]uiResourceState{
+			"test_instance.foo": {
+				Op:    uiResourceModify,
+				Start: time.Now(),
+			},
+		}
 
-	addr := addrs.Resource{
-		Mode: addrs.ManagedResourceMode,
-		Type: "test_instance",
-		Name: "foo",
-	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+		addr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	priorState := cty.ObjectVal(map[string]cty.Value{
-		"id":  cty.StringVal("test"),
-		"bar": cty.ListValEmpty(cty.String),
-	})
-	plannedNewState := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("test"),
-		"bar": cty.ListVal([]cty.Value{
-			cty.StringVal("baz"),
-		}),
-	})
+		priorState := cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("test"),
+			"bar": cty.ListValEmpty(cty.String),
+		})
+		plannedNewState := cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("test"),
+			"bar": cty.ListVal([]cty.Value{
+				cty.StringVal("baz"),
+			}),
+		})
 
-	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Update, priorState, plannedNewState)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if action != terraform.HookActionContinue {
-		t.Fatalf("Expected hook to continue, given: %#v", action)
-	}
+		action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Update, priorState, plannedNewState)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if action != terraform.HookActionContinue {
+			t.Fatalf("Expected hook to continue, given: %#v", action)
+		}
 
-	time.Sleep(3005 * time.Millisecond)
+		time.Sleep(3005 * time.Millisecond)
 
-	// stop the background writer
-	uiState := h.resources[addr.String()]
-	close(uiState.DoneCh)
-	<-uiState.done
+		// stop the background writer
+		uiState := h.resources[addr.String()]
+		close(uiState.DoneCh)
+		<-uiState.done
 
-	expectedOutput := `test_instance.foo: Modifying... [id=test]
+		expectedOutput := `test_instance.foo: Modifying... [id=test]
 test_instance.foo: Still modifying... [id=test, 00m01s elapsed]
 test_instance.foo: Still modifying... [id=test, 00m02s elapsed]
 test_instance.foo: Still modifying... [id=test, 00m03s elapsed]
 `
-	result := done(t)
-	output := result.Stdout()
-	// we do not test for equality because time.Sleep can take longer than declared time
-	if !strings.HasPrefix(output, expectedOutput) {
-		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
-	}
+		result := done(t)
+		output := result.Stdout()
+		if output != expectedOutput {
+			t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
+		}
 
-	expectedErrOutput := ""
-	errOutput := result.Stderr()
-	if errOutput != expectedErrOutput {
-		t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
-	}
+		expectedErrOutput := ""
+		errOutput := result.Stderr()
+		if errOutput != expectedErrOutput {
+			t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
+		}
+	})
 }
 
 // Test the PreApply hook's destroy path, including passing a deposed key as
@@ -512,6 +513,140 @@ func TestUiHookPreImportState(t *testing.T) {
 	}
 }
 
+func TestUiHookPreApplyImport(t *testing.T) {
+	testCases := map[string]struct {
+		importingSrc plans.ImportingSrc
+		want         string
+	}{
+		"id": {
+			importingSrc: plans.ImportingSrc{
+				ID: "test",
+			},
+			want: "test_instance.foo: Importing... [id=test]\n",
+		},
+		"identity": {
+			importingSrc: plans.ImportingSrc{
+				Identity: mustNewDynamicValue(
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("test"),
+					}),
+					cty.Object(map[string]cty.Type{
+						"id": cty.String,
+					}),
+				),
+			},
+			want: "test_instance.foo: Importing... [identity=id=test]\n",
+		},
+		"identity type error": {
+			importingSrc: plans.ImportingSrc{
+				Identity: mustNewDynamicValue(
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("test"),
+					}),
+					cty.DynamicPseudoType,
+				),
+			},
+			want: "test_instance.foo: Importing... [identity=(type error)]\n",
+		},
+	}
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			h := NewUiHook(view)
+
+			action, err := h.PreApplyImport(testUiHookResourceID(addr), tc.importingSrc)
+
+			if err != nil {
+				t.Fatal(err)
+			}
+			if action != terraform.HookActionContinue {
+				t.Fatalf("Expected hook to continue, given: %#v", action)
+			}
+			result := done(t)
+			got := result.Stdout()
+
+			if got != tc.want {
+				t.Fatalf("unexpected output\n got: %q\nwant: %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestUiHookPostApplyImport(t *testing.T) {
+	testCases := map[string]struct {
+		importingSrc plans.ImportingSrc
+		want         string
+	}{
+		"id": {
+			importingSrc: plans.ImportingSrc{
+				ID: "test",
+			},
+			want: "test_instance.foo: Import complete [id=test]\n",
+		},
+		"identity": {
+			importingSrc: plans.ImportingSrc{
+				Identity: mustNewDynamicValue(
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("test"),
+					}),
+					cty.Object(map[string]cty.Type{
+						"id": cty.String,
+					}),
+				),
+			},
+			want: "test_instance.foo: Import complete [identity=id=test]\n",
+		},
+		"identity type error": {
+			importingSrc: plans.ImportingSrc{
+				Identity: mustNewDynamicValue(
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("test"),
+					}),
+					cty.DynamicPseudoType,
+				),
+			},
+			want: "test_instance.foo: Import complete [identity=(type error)]\n",
+		},
+	}
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			h := NewUiHook(view)
+
+			action, err := h.PostApplyImport(testUiHookResourceID(addr), tc.importingSrc)
+
+			if err != nil {
+				t.Fatal(err)
+			}
+			if action != terraform.HookActionContinue {
+				t.Fatalf("Expected hook to continue, given: %#v", action)
+			}
+			result := done(t)
+			got := result.Stdout()
+
+			if got != tc.want {
+				t.Fatalf("unexpected output\n got: %q\nwant: %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // Test the PostImportState UI hook. Again, this hook behaviour seems odd to
 // me (see below), so please don't consider these tests as justification for
 // keeping this behaviour.
@@ -601,52 +736,54 @@ ephemeral.test_instance.foo: Closing complete after 0s
 }
 
 func TestUiHookEphemeralOp_progress(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	h := NewUiHook(view)
-	h.periodicUiTimer = 1 * time.Second
+	syncTest, streams, done := streamableSyncTest(t)
+	syncTest(t, func(t *testing.T) {
+		view := NewView(streams)
+		h := NewUiHook(view)
+		h.periodicUiTimer = 1 * time.Second
 
-	addr := addrs.Resource{
-		Mode: addrs.EphemeralResourceMode,
-		Type: "test_instance",
-		Name: "foo",
-	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+		addr := addrs.Resource{
+			Mode: addrs.EphemeralResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Open)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if action != terraform.HookActionContinue {
-		t.Fatalf("Expected hook to continue, given: %#v", action)
-	}
+		action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Open)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if action != terraform.HookActionContinue {
+			t.Fatalf("Expected hook to continue, given: %#v", action)
+		}
 
-	start := time.Now()
-	time.Sleep(2005 * time.Millisecond)
-	elapsed := time.Since(start).Round(time.Second)
+		start := time.Now()
+		time.Sleep(2005 * time.Millisecond)
+		elapsed := time.Since(start).Round(time.Second)
 
-	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if action != terraform.HookActionContinue {
-		t.Fatalf("Expected hook to continue, given: %#v", action)
-	}
+		action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if action != terraform.HookActionContinue {
+			t.Fatalf("Expected hook to continue, given: %#v", action)
+		}
 
-	result := done(t)
-	stdout := result.Stdout()
+		result := done(t)
+		stdout := result.Stdout()
 
-	// we do not test for equality because time.Sleep can take longer than declared time
-	wantPrefix := `ephemeral.test_instance.foo: Opening...
+		// we do not test for equality because time.Sleep can take longer than declared time
+		wantPrefix := `ephemeral.test_instance.foo: Opening...
 ephemeral.test_instance.foo: Still opening... [00m01s elapsed]
 ephemeral.test_instance.foo: Still opening... [00m02s elapsed]`
-	if !strings.HasPrefix(stdout, wantPrefix) {
-		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantPrefix)
-	}
-	wantSuffix := fmt.Sprintf(`ephemeral.test_instance.foo: Opening complete after %s
+		if !strings.HasPrefix(stdout, wantPrefix) {
+			t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantPrefix)
+		}
+		wantSuffix := fmt.Sprintf(`ephemeral.test_instance.foo: Opening complete after %s
 `, elapsed)
-	if !strings.HasSuffix(stdout, wantSuffix) {
-		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantSuffix)
-	}
+		if !strings.HasSuffix(stdout, wantSuffix) {
+			t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantSuffix)
+		}
+	})
 }
 
 func TestUiHookEphemeralOp_error(t *testing.T) {
@@ -791,4 +928,12 @@ func TestTruncateId(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustNewDynamicValue(val cty.Value, ty cty.Type) plans.DynamicValue {
+	ret, err := plans.NewDynamicValue(val, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }

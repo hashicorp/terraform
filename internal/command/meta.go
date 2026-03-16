@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -71,11 +72,18 @@ type Meta struct {
 	// do some default behavior instead if so, rather than panicking.
 	Streams *terminal.Streams
 
-	View *views.View
+	// View is the newer abstraction used for output from Terraform operations.
+	// View allows output to be rendered differently, depending on CLI settings.
+	// Currently the only non-default option is machine-readable output using  the`-json` flag.
+	// We are slowly migrating Terraform operations away from using `cli.Ui` and towards
+	// using `views.View`, and so far only the commands with machine-readable output features are
+	// migrated.
+	// For more information see: https://github.com/hashicorp/terraform/issues/37439
+	View *views.View // View for output
 
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
-	Ui               cli.Ui   // Ui for output
+	Ui               cli.Ui   // Ui for output. See View above.
 
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
@@ -178,6 +186,8 @@ type Meta struct {
 	// flag is set, to reinforce that experiments are not for production use.
 	AllowExperimentalFeatures bool
 
+	VariableValues map[string]arguments.UnparsedVariableValue
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
@@ -200,12 +210,14 @@ type Meta struct {
 	// It is initialized on first use.
 	configLoader *configload.Loader
 
-	// backendState is the currently active backend state
-	backendState *workdir.BackendState
+	// backendConfigState is the currently active backend state.
+	// This is used when creating plan files.
+	backendConfigState *workdir.BackendConfigState
+	// stateStoreConfigState is the currently active state_store state.
+	// This is used when creating plan files.
+	stateStoreConfigState *workdir.StateStoreConfigState
 
-	// Variables for the context (private)
-	variableArgs arguments.FlagNameValueSlice
-	input        bool
+	input bool
 
 	// Targets for this context (private)
 	targets     []addrs.Targetable
@@ -264,6 +276,9 @@ type Meta struct {
 	// Used with commands which write state to allow users to write remote
 	// state even if the remote and local Terraform versions don't match.
 	ignoreRemoteVersion bool
+
+	// set to true if query files should be parsed
+	includeQueryFiles bool
 }
 
 type testingOverrides struct {
@@ -293,9 +308,7 @@ func (m *Meta) StateOutPath() string {
 // Colorize returns the colorization structure for a command.
 func (m *Meta) Colorize() *colorstring.Colorize {
 	colors := make(map[string]string)
-	for k, v := range colorstring.DefaultColors {
-		colors[k] = v
-	}
+	maps.Copy(colors, colorstring.DefaultColors)
 	colors["purple"] = "38;5;57"
 
 	return &colorstring.Colorize{
@@ -537,7 +550,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
 		var providerFactories map[addrs.Provider]providers.Factory
-		providerFactories, err = m.providerFactories()
+		providerFactories, err = m.ProviderFactories()
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}
@@ -562,17 +575,6 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// ignoreRemoteVersionFlagSet add the ignore-remote version flag to suppress
-// the error when the configured Terraform version on the remote workspace
-// does not match the local Terraform version.
-func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
-	f := m.defaultFlagSet(n)
-
-	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
-
-	return f
-}
-
 // extendedFlagSet adds custom flags that are mostly used by commands
 // that are used to run an operation like plan or apply.
 func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
@@ -581,14 +583,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
-
-	if m.variableArgs.Items == nil {
-		m.variableArgs = arguments.NewFlagNameValueSlice("-var")
-	}
-	varValues := m.variableArgs.Alias("-var")
-	varFiles := m.variableArgs.Alias("-var-file")
-	f.Var(varValues, "var", "variables")
-	f.Var(varFiles, "var-file", "variable file")
 
 	// commands that bypass locking will supply their own flag on this var,
 	// but set the initial meta value to true as a failsafe.
@@ -815,12 +809,6 @@ func (m *Meta) SetWorkspace(name string) error {
 	return nil
 }
 
-// isAutoVarFile determines if the file ends with .auto.tfvars or .auto.tfvars.json
-func isAutoVarFile(path string) bool {
-	return strings.HasSuffix(path, ".auto.tfvars") ||
-		strings.HasSuffix(path, ".auto.tfvars.json")
-}
-
 // FIXME: as an interim refactoring step, we apply the contents of the state
 // arguments directly to the Meta object. Future work would ideally update the
 // code paths which use these arguments to be passed them directly for clarity.
@@ -837,19 +825,13 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
 	pwd, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
 		return diags
 	}
 
-	config, configDiags := loader.LoadConfig(pwd)
+	config, configDiags := m.loadConfig(pwd)
 	if configDiags.HasErrors() {
 		diags = diags.Append(configDiags)
 		return diags

@@ -60,6 +60,7 @@
     "@message": "Plan: 0 to add, 0 to change, 1 to destroy.",
     "@module": "terraform.ui",
     "changes": {
+      "action_invocation": 0,
       "add": 0,
       "change": 0,
       "import": 0,
@@ -110,6 +111,7 @@
     "@message": "Destroy complete! Resources: 1 destroyed.",
     "@module": "terraform.ui",
     "changes": {
+      "action_invocation": 0,
       "add": 0,
       "change": 0,
       "import": 0,

@@ -14,6 +14,9 @@ resource "null_resource" "foo" {
 
 }
 
+action "external_test" "foo" {
+}
+
 import {
   id = "directory/filename"
   to = local_file.foo

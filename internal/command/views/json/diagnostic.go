@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package json
@@ -32,12 +32,15 @@ const (
 // information about the source of the diagnostic, this is represented in the
 // range field.
 type Diagnostic struct {
-	Severity string             `json:"severity"`
-	Summary  string             `json:"summary"`
-	Detail   string             `json:"detail"`
-	Address  string             `json:"address,omitempty"`
-	Range    *DiagnosticRange   `json:"range,omitempty"`
-	Snippet  *DiagnosticSnippet `json:"snippet,omitempty"`
+	Severity string `json:"severity"`
+	Summary  string `json:"summary"`
+	Detail   string `json:"detail"`
+	Address  string `json:"address,omitempty"`
+
+	Range   *DiagnosticRange   `json:"range,omitempty"`
+	Snippet *DiagnosticSnippet `json:"snippet,omitempty"`
+
+	DeprecationOriginDescription string `json:"deprecation_origin_description,omitempty"`
 }
 
 // Pos represents a position in the source code.
@@ -220,64 +223,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		// If we have a source file for the diagnostic, we can emit a code
 		// snippet.
 		if src != nil {
-			diagnostic.Snippet = &DiagnosticSnippet{
-				StartLine: snippetRange.Start.Line,
-
-				// Ensure that the default Values struct is an empty array, as this
-				// makes consuming the JSON structure easier in most languages.
-				Values: []DiagnosticExpressionValue{},
-			}
-
-			file, offset := parseRange(src, highlightRange)
-
-			// Some diagnostics may have a useful top-level context to add to
-			// the code snippet output.
-			contextStr := hcled.ContextString(file, offset-1)
-			if contextStr != "" {
-				diagnostic.Snippet.Context = &contextStr
-			}
-
-			// Build the string of the code snippet, tracking at which byte of
-			// the file the snippet starts.
-			var codeStartByte int
-			sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
-			var code strings.Builder
-			for sc.Scan() {
-				lineRange := sc.Range()
-				if lineRange.Overlaps(snippetRange) {
-					if codeStartByte == 0 && code.Len() == 0 {
-						codeStartByte = lineRange.Start.Byte
-					}
-					code.Write(lineRange.SliceBytes(src))
-					code.WriteRune('\n')
-				}
-			}
-			codeStr := strings.TrimSuffix(code.String(), "\n")
-			diagnostic.Snippet.Code = codeStr
-
-			// Calculate the start and end byte of the highlight range relative
-			// to the code snippet string.
-			start := highlightRange.Start.Byte - codeStartByte
-			end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
-
-			// We can end up with some quirky results here in edge cases like
-			// when a source range starts or ends at a newline character,
-			// so we'll cap the results at the bounds of the highlight range
-			// so that consumers of this data don't need to contend with
-			// out-of-bounds errors themselves.
-			if start < 0 {
-				start = 0
-			} else if start > len(codeStr) {
-				start = len(codeStr)
-			}
-			if end < 0 {
-				end = 0
-			} else if end > len(codeStr) {
-				end = len(codeStr)
-			}
-
-			diagnostic.Snippet.HighlightStartOffset = start
-			diagnostic.Snippet.HighlightEndOffset = end
+			diagnostic.Snippet = snippetFromRange(src, highlightRange, snippetRange)
 
 			if fromExpr := diag.FromExpr(); fromExpr != nil {
 				// We may also be able to generate information about the dynamic
@@ -346,7 +292,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 						}
 						switch {
-						case val.HasMark(marks.Sensitive) && val.HasMark(marks.Ephemeral):
+						case marks.Has(val, marks.Sensitive) && marks.Has(val, marks.Ephemeral):
 							// We only mention the combination of sensitive and ephemeral
 							// values if the diagnostic we're rendering is explicitly
 							// marked as being caused by sensitive and ephemeral values,
@@ -357,7 +303,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 
 							value.Statement = "has an ephemeral, sensitive value"
-						case val.HasMark(marks.Sensitive):
+						case marks.Has(val, marks.Sensitive):
 							// We only mention a sensitive value if the diagnostic
 							// we're rendering is explicitly marked as being
 							// caused by sensitive values, because otherwise
@@ -370,7 +316,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// in order to minimize the chance of giving away
 							// whatever was sensitive about it.
 							value.Statement = "has a sensitive value"
-						case val.HasMark(marks.Ephemeral):
+						case marks.Has(val, marks.Ephemeral):
 							if !includeEphemeral {
 								continue Traversals
 							}
@@ -446,7 +392,9 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					// If the test assertion is a binary expression, we'll include the human-readable
 					// formatted LHS and RHS values in the diagnostic snippet.
 					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
-					diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+					if diagnostic.Snippet.TestAssertionExpr != nil {
+						diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+					}
 				}
 
 			}
@@ -454,7 +402,73 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		}
 	}
 
+	if deprecationOrigin := tfdiags.DeprecatedOriginDescription(diag); deprecationOrigin != "" {
+		diagnostic.DeprecationOriginDescription = deprecationOrigin
+	}
+
 	return diagnostic
+}
+
+func snippetFromRange(src []byte, highlightRange hcl.Range, snippetRange hcl.Range) *DiagnosticSnippet {
+	snippet := &DiagnosticSnippet{
+		StartLine: snippetRange.Start.Line,
+
+		// Ensure that the default Values struct is an empty array, as this
+		// makes consuming the JSON structure easier in most languages.
+		Values: []DiagnosticExpressionValue{},
+	}
+
+	file, offset := parseRange(src, highlightRange)
+
+	// Some diagnostics may have a useful top-level context to add to
+	// the code snippet output.
+	contextStr := hcled.ContextString(file, offset-1)
+	if contextStr != "" {
+		snippet.Context = &contextStr
+	}
+
+	// Build the string of the code snippet, tracking at which byte of
+	// the file the snippet starts.
+	var codeStartByte int
+	sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
+	var code strings.Builder
+	for sc.Scan() {
+		lineRange := sc.Range()
+		if lineRange.Overlaps(snippetRange) {
+			if codeStartByte == 0 && code.Len() == 0 {
+				codeStartByte = lineRange.Start.Byte
+			}
+			code.Write(lineRange.SliceBytes(src))
+			code.WriteRune('\n')
+		}
+	}
+	codeStr := strings.TrimSuffix(code.String(), "\n")
+	snippet.Code = codeStr
+
+	// Calculate the start and end byte of the highlight range relative
+	// to the code snippet string.
+	start := highlightRange.Start.Byte - codeStartByte
+	end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
+
+	// We can end up with some quirky results here in edge cases like
+	// when a source range starts or ends at a newline character,
+	// so we'll cap the results at the bounds of the highlight range
+	// so that consumers of this data don't need to contend with
+	// out-of-bounds errors themselves.
+	if start < 0 {
+		start = 0
+	} else if start > len(codeStr) {
+		start = len(codeStr)
+	}
+	if end < 0 {
+		end = 0
+	} else if end > len(codeStr) {
+		end = len(codeStr)
+	}
+
+	snippet.HighlightStartOffset = start
+	snippet.HighlightEndOffset = end
+	return snippet
 }
 
 // formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.

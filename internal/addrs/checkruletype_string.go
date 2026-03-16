@@ -22,8 +22,9 @@ const _CheckRuleType_name = "InvalidConditionResourcePreconditionResourcePostcon
 var _CheckRuleType_index = [...]uint8{0, 16, 36, 57, 75, 92, 106, 121}
 
 func (i CheckRuleType) String() string {
-	if i < 0 || i >= CheckRuleType(len(_CheckRuleType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_CheckRuleType_index)-1 {
 		return "CheckRuleType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _CheckRuleType_name[_CheckRuleType_index[i]:_CheckRuleType_index[i+1]]
+	return _CheckRuleType_name[_CheckRuleType_index[idx]:_CheckRuleType_index[idx+1]]
 }

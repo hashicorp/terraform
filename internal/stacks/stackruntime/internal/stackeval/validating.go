@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -15,7 +15,7 @@ type ValidateOpts struct {
 	DependencyLocks   depsfile.Locks
 }
 
-// Validateable is implemented by objects that can participate in validation.
+// Validatable is implemented by objects that can participate in validation.
 type Validatable interface {
 	// Validate returns diagnostics for any part of the reciever which
 	// has an invalid configuration.

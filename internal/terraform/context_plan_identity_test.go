@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -153,6 +153,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			ExpectedError:                       fmt.Errorf("failed to upgrade resource identity: provider was unable to do so"),
 		},
 		"identity sent to provider differs from returned one": {
+			// We don't throw an error here, because there are resource types with mutable identities
 			StoredIdentitySchemaVersion: 0,
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
@@ -171,9 +172,8 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 				"id": cty.StringVal("bar"),
 			}),
 			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("foo"),
+				"id": cty.StringVal("bar"),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" returned a different identity for aws_instance.web than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
@@ -309,6 +309,76 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_resource_identity_refresh_downgrade(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-basic")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:                states.ObjectReady,
+			AttrsJSON:             []byte(`{"id":"foo","foo":"bar"}`),
+			IdentitySchemaVersion: 0,
+			IdentityJSON:          []byte(`{"id": "foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
+	}
+
+	s, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+
+	mod := s.PriorState.RootModule()
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !fromState.Identity.IsNull() {
+		t.Fatalf("wrong identity\nwant: null\ngot: %s", fromState.Identity.GoString())
+	}
+}
+
 // This test validates if a resource identity that is deposed and will be destroyed
 // can be refreshed with an identity during the plan.
 func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
@@ -437,6 +507,23 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 				"id": cty.StringVal("foo"),
 			}),
 		},
+		"create - invalid planned identity schema": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.BoolVal(false),
+			}),
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: .id: string required, but received bool. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
+		},
+		"create - null planned identity schema": {
+			// We allow null values in identities
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.NullVal(cty.String),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.NullVal(cty.String),
+			}),
+		},
 		"update": {
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
@@ -520,6 +607,7 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 		},
 
 		"update - changing identity": {
+			// We don't throw an error here, because there are resource types with mutable identities
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -543,9 +631,9 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 				"id": cty.StringVal("foo"),
 			}),
 
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(tfdiags.Error, "Provider produced different identity", "Provider \"registry.terraform.io/hashicorp/test\" returned a different identity for test_resource.test than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
-			},
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
 		},
 
 		"update - updating identity schema version": {
@@ -781,7 +869,7 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
 			} else {
-				assertNoDiagnostics(t, diags)
+				tfdiags.AssertNoDiagnostics(t, diags)
 
 				if !tc.expectedPriorIdentity.IsNull() {
 					if !p.PlanResourceChangeCalled {

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -87,6 +87,11 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	// overridePreventDestroy is set during test cleanup operations to allow
+	// tests to clean up any created infrastructure regardless of this setting
+	// in the configuration.
+	overridePreventDestroy bool
 }
 
 var (
@@ -217,6 +222,17 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			}
 		}
 
+		if c.List != nil {
+			if c.List.IncludeResource != nil {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.IncludeResource)
+				result = append(result, refs...)
+			}
+			if c.List.Limit != nil {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.Limit)
+				result = append(result, refs...)
+			}
+		}
+
 		for _, check := range c.Preconditions {
 			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 			result = append(result, refs...)
@@ -243,6 +259,8 @@ func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 		}
 
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
+		result = append(result, refs...)
+		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
 		result = append(result, refs...)
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
 		result = append(result, refs...)

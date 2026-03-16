@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package s3
@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -31,7 +32,8 @@ const (
 	lockFileSuffix = ".tflock"
 )
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	const maxKeys = 1000
 
 	ctx := context.TODO()
@@ -67,13 +69,13 @@ func (b *Backend) Workspaces() ([]string, error) {
 		page, err := pages.NextPage(ctx)
 		if err != nil {
 			if IsA[*s3types.NoSuchBucket](err) {
-				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
+				return nil, diags.Append(fmt.Errorf(errS3NoSuchBucket, b.bucketName, err))
 			}
 			if foo, ok := As[smithy.APIError](err); b.workspaceKeyPrefix == defaultWorkspaceKeyPrefix && ok && foo.ErrorCode() == "AccessDenied" {
 				log.Warn("Unable to list non-default workspaces", "err", err.Error())
 				return wss[:1], nil
 			}
-			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q with prefix %q: %w", b.bucketName, prefix, err)
+			return nil, diags.Append(fmt.Errorf("Unable to list objects in S3 bucket %q with prefix %q: %w", b.bucketName, prefix, err))
 		}
 
 		for _, obj := range page.Contents {
@@ -85,7 +87,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(wss[1:])
-	return wss, nil
+	return wss, diags
 }
 
 func (b *Backend) keyEnv(key string) string {
@@ -127,7 +129,9 @@ func (b *Backend) keyEnv(key string) string {
 	return parts[0]
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	log := logger()
 	log = logWithOperation(log, operationBackendDeleteWorkspace)
 	log = log.With(
@@ -135,17 +139,17 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	)
 
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	log.Info("Deleting workspace")
 
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
 // get a remote client configured for this state
@@ -172,10 +176,12 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	return client, nil
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	stateMgr := &remote.State{Client: client}
@@ -187,9 +193,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
-	existing, err := b.Workspaces()
-	if err != nil {
-		return nil, err
+	existing, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	exists := false
@@ -207,7 +214,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
+			return nil, diags.Append(fmt.Errorf("failed to lock s3 state: %s", err))
 		}
 
 		// Local helper function so we can call it multiple places
@@ -223,29 +230,29 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		// the `exists` check and taking the lock.
 		if err := stateMgr.RefreshState(); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 func (b *Backend) path(name string) string {

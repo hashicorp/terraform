@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -10,8 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Backend represents a "backend" block inside a "terraform" block in a module
-// or file.
+// Backend represents a "backend" block
+// This could be inside a "terraform" block in a module
+// or file, or in a "run" block in a .tftest.hcl file.
 type Backend struct {
 	Type   string
 	Config hcl.Body
@@ -29,7 +30,7 @@ func decodeBackendBlock(block *hcl.Block) (*Backend, hcl.Diagnostics) {
 	}, nil
 }
 
-// Hash produces a hash value for the reciever that covers the type and the
+// Hash produces a hash value for the receiver that covers the type and the
 // portions of the config that conform to the given schema.
 //
 // If the config does not conform to the schema then the result is not

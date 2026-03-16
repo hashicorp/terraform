@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -33,6 +34,16 @@ type ValidateOpts struct {
 	// not available to this function. Therefore, it is the responsibility of
 	// the caller to ensure that the provider configurations are valid.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// When true, query files will also be validated.
+	Query bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -97,13 +108,15 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 	}
 
 	graph, moreDiags := (&PlanGraphBuilder{
-		Config:                  config,
-		Plugins:                 c.plugins,
-		State:                   states.NewState(),
-		RootVariableValues:      varValues,
-		Operation:               walkValidate,
-		ExternalProviderConfigs: opts.ExternalProviders,
-		ImportTargets:           c.findImportTargets(config),
+		Config:                    config,
+		Plugins:                   c.plugins,
+		State:                     states.NewState(),
+		RootVariableValues:        varValues,
+		Operation:                 walkValidate,
+		ExternalProviderConfigs:   opts.ExternalProviders,
+		ImportTargets:             c.findImportTargets(config),
+		queryPlan:                 opts.Query,
+		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -112,7 +125,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 
 	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
 		Config:                  config,
-		ProviderFuncResults:     providers.NewFunctionResultsTable(nil),
+		FunctionResults:         lang.NewFunctionResultsTable(nil),
 		ExternalProviderConfigs: opts.ExternalProviders,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)

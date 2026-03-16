@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -52,10 +52,31 @@ func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	return cfg, append(diags, moreDiags...)
 }
 
+// testModuleFromFileWithExperiments File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleFromFileWithExperiments(filename string) (*Config, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	parser.AllowLanguageExperiments(true)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := NewModule([]*File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
 // testModuleFromDir reads configuration from the given directory path as
 // a module and returns it. This is a helper for use in unit tests.
 func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
 	parser := NewParser(nil)
+	return parser.LoadConfigDir(path)
+}
+
+// testModuleFromDirWithExperiments reads configuration from the given directory
+// path as a module and returns it. The parser is configured to allow language
+// experiments. This is a helper for use in unit tests.
+func testModuleFromDirWithExperiments(path string) (*Module, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	parser.AllowLanguageExperiments(true)
 	return parser.LoadConfigDir(path)
 }
 
@@ -74,7 +95,7 @@ func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*Config,
 	t.Helper()
 
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests(path, "tests")
+	mod, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}

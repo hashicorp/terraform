@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'query: improve error handling for missing identity schemas'
+time: 2025-11-04T12:23:22.096828+01:00
+custom:
+    Issue: "37863"

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -36,36 +36,37 @@ var (
 
 type ComponentConfig struct {
 	addr   stackaddrs.ConfigComponent
+	stack  *StackConfig
 	config *stackconfig.Component
 
 	main *Main
 
-	validate   promising.Once[tfdiags.Diagnostics]
-	moduleTree promising.Once[withDiagnostics[*configs.Config]]
+	validate   perEvalPhase[promising.Once[tfdiags.Diagnostics]]
+	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant across all phases
 }
 
-func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Component) *ComponentConfig {
+func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, stack *StackConfig, config *stackconfig.Component) *ComponentConfig {
 	return &ComponentConfig{
 		addr:   addr,
+		stack:  stack,
 		config: config,
 		main:   main,
 	}
 }
 
+// Addr implements ConfigComponentExpressionScope
 func (c *ComponentConfig) Addr() stackaddrs.ConfigComponent {
 	return c.addr
 }
 
-func (c *ComponentConfig) Declaration(ctx context.Context) *stackconfig.Component {
-	return c.config
-}
-
-func (c *ComponentConfig) DeclRange(_ context.Context) *hcl.Range {
+// DeclRange implements ConfigComponentExpressionScope
+func (c *ComponentConfig) DeclRange() *hcl.Range {
 	return c.config.DeclRange.ToHCL().Ptr()
 }
 
-func (c *ComponentConfig) StackConfig(ctx context.Context) *StackConfig {
-	return c.main.mustStackConfig(ctx, c.addr.Stack)
+// StackConfig implements ConfigComponentExpressionScope
+func (c *ComponentConfig) StackConfig() *StackConfig {
+	return c.stack
 }
 
 // ModuleTree returns the static representation of the tree of modules starting
@@ -84,14 +85,13 @@ func (c *ComponentConfig) ModuleTree(ctx context.Context) *configs.Config {
 // this instead returns diagnostics and a nil configuration object.
 func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &c.moduleTree, c.main,
+		ctx, c.tracingName()+" modules", &c.moduleTree,
 		func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			decl := c.Declaration(ctx)
-			sources := c.main.SourceBundle(ctx)
+			sources := c.main.SourceBundle()
 
-			rootModuleSource := decl.FinalSourceAddr
+			rootModuleSource := c.config.FinalSourceAddr
 			if rootModuleSource == nil {
 				// If we get here then the configuration was loaded incorrectly,
 				// either by the stackconfig package or by the caller of the
@@ -107,7 +107,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 					Severity: hcl.DiagError,
 					Summary:  "Can't load module for component",
 					Detail:   fmt.Sprintf("The source location %s does not contain a Terraform module.", rootModuleSource),
-					Subject:  decl.SourceAddrRange.ToHCL().Ptr(),
+					Subject:  c.config.SourceAddrRange.ToHCL().Ptr(),
 				})
 				return nil, diags
 			}
@@ -186,6 +186,19 @@ func validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tf
 		}
 	}
 
+	// Const variables are not supported in stacks, because stacks does not
+	// perform the early evaluation phase that const variables rely on.
+	for _, v := range module.Variables {
+		if v.ConstSet {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Const variable not supported in stacks",
+				Detail:   "Variables with const = true are not supported in modules used as stack components. Const variables are evaluated during configuration loading, which is not supported in the stacks runtime.",
+				Subject:  v.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 
@@ -239,11 +252,10 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 		return nil
 	}
 
-	decl := c.Declaration(ctx)
 	varDecls := c.RootModuleVariableDecls(ctx)
 
 	// We don't care about the returned value, only that it has no errors.
-	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, c.config, phase, c)
 	return diags
 }
 
@@ -266,17 +278,17 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 // ResolveExpressionReference implements ExpressionScope.
 func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
-	if c.Declaration(ctx).ForEach != nil {
+	if c.config.ForEach != nil {
 		// For validation, we'll return unknown for the instance data.
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
+	return c.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (c *ComponentConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return c.main.ProviderFunctions(ctx, c.StackConfig(ctx))
+	return c.main.ProviderFunctions(ctx, c.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -286,7 +298,7 @@ func (c *ComponentConfig) PlanTimestamp() time.Time {
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := c.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := c.validate.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := c.CheckModuleTree(ctx)
@@ -294,19 +306,18 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		if moduleTree == nil {
 			return diags, nil
 		}
-		decl := c.Declaration(ctx)
 
 		variableDiags := c.CheckInputVariableValues(ctx, phase)
 		diags = diags.Append(variableDiags)
 
-		dependsOnDiags := ValidateDependsOn(ctx, c.StackConfig(ctx), c.config.DependsOn)
+		dependsOnDiags := ValidateDependsOn(c.stack, c.config.DependsOn)
 		diags = diags.Append(dependsOnDiags)
 
 		// We don't actually exit if we found errors with the input variables
 		// or depends_on attribute, we can still validate the actual module tree
 		// without them.
 
-		providerTypes, providerDiags := EvalProviderTypes(ctx, c.StackConfig(ctx), c.config.ProviderConfigs, phase, c)
+		providerTypes, providerDiags := EvalProviderTypes(ctx, c.stack, c.config.ProviderConfigs, phase, c)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
 			// If there's invalid provider configuration, we can't actually go
@@ -330,7 +341,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			providerFactories[addr] = func() (providers.Interface, error) {
 				// Lazily fetch the unconfigured client for the provider
 				// as and when we need it.
-				provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient()
+				provider, err := c.main.ProviderType(addr).UnconfiguredClient()
 				if err != nil {
 					return nil, err
 				}
@@ -355,13 +366,13 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerClients, valid := unconfiguredProviderClients(ctx, c.main, providerTypes)
+		providerClients, valid := unconfiguredProviderClients(c.main, providerTypes)
 		if !valid {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Cannot validate component",
-				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", c.Addr()),
-				Subject:  decl.DeclRange.ToHCL().Ptr(),
+				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", c.addr),
+				Subject:  c.config.DeclRange.ToHCL().Ptr(),
 			})
 			return diags, nil
 		}
@@ -380,7 +391,8 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}()
 
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
-			ExternalProviders: providerClients,
+			ExternalProviders:         providerClients,
+			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		}))
 		return diags, nil
 	})
@@ -391,7 +403,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		// and then continue on to report any other diagnostics that we found.
 		// The promise reporter is main, so that we can get the names of all promises
 		// involved in the cycle.
-		diags = diags.Append(diagnosticsForPromisingTaskError(err, c.main))
+		diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	default:
 		if err != nil {
 			// this is crazy, we never return an error from the inner function so
@@ -414,11 +426,5 @@ func (c *ComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 }
 
 func (c *ComponentConfig) tracingName() string {
-	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *ComponentConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(c.validate.PromiseID(), c.Addr().String())
-	cb(c.moduleTree.PromiseID(), c.Addr().String()+" modules")
+	return c.addr.String()
 }

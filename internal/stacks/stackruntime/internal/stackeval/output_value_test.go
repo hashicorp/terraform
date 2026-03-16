@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOutputValueResultValue(t *testing.T) {
@@ -56,7 +57,7 @@ func TestOutputValueResultValue(t *testing.T) {
 			WantRootVal:  cty.UnknownVal(cty.String),
 			WantChildVal: cty.StringVal("irrelevant"),
 
-			WantRootErr: `Unsuitable value for output "root": string required.`,
+			WantRootErr: `Unsuitable value for output "root": string required, but have object.`,
 		},
 		"type mismatch child": {
 			RootVal:  cty.StringVal("irrelevant"),
@@ -65,7 +66,7 @@ func TestOutputValueResultValue(t *testing.T) {
 			WantRootVal:  cty.StringVal("irrelevant"),
 			WantChildVal: cty.UnknownVal(cty.String),
 
-			WantChildErr: `Unsuitable value for output "foo": string required.`,
+			WantChildErr: `Unsuitable value for output "foo": string required, but have tuple.`,
 		},
 		"dynamic value placeholders": {
 			RootVal:  cty.DynamicVal,
@@ -98,8 +99,8 @@ func TestOutputValueResultValue(t *testing.T) {
 
 			t.Run("root", func(t *testing.T) {
 				promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-					mainStack := main.MainStack(ctx)
-					rootOutput := mainStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "root"}]
+					mainStack := main.MainStack()
+					rootOutput := mainStack.OutputValues()[stackaddrs.OutputValue{Name: "root"}]
 					if rootOutput == nil {
 						t.Fatal("root output value doesn't exist at all")
 					}
@@ -135,7 +136,7 @@ func TestOutputValueResultValue(t *testing.T) {
 						if childStack == nil {
 							t.Fatal("child stack doesn't exist at all")
 						}
-						childOutput := childStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "foo"}]
+						childOutput := childStack.OutputValues()[stackaddrs.OutputValue{Name: "foo"}]
 						if childOutput == nil {
 							t.Fatal("child output value doesn't exist at all")
 						}
@@ -166,8 +167,8 @@ func TestOutputValueResultValue(t *testing.T) {
 				})
 				t.Run("from the root perspective", func(t *testing.T) {
 					promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-						mainStack := main.MainStack(ctx)
-						childOutput := mainStack.OutputValues(ctx)[stackaddrs.OutputValue{Name: "child"}]
+						mainStack := main.MainStack()
+						childOutput := mainStack.OutputValues()[stackaddrs.OutputValue{Name: "child"}]
 						if childOutput == nil {
 							t.Fatal("child output value doesn't exist at all")
 						}
@@ -244,8 +245,8 @@ func TestOutputValueEphemeral(t *testing.T) {
 			})
 
 			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-				stack := main.MainStack(ctx)
-				output := stack.OutputValues(ctx)[outputAddr]
+				stack := main.MainStack()
+				output := stack.OutputValues()[outputAddr]
 				if output == nil {
 					t.Fatalf("missing %s", outputAddr)
 				}
@@ -324,13 +325,13 @@ func TestOutputValueEphemeralInChildStack(t *testing.T) {
 			})
 
 			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-				rootStack := main.MainStack(ctx)
+				rootStack := main.MainStack()
 				childStackStep := stackaddrs.StackInstanceStep{
 					Name: "child",
 					Key:  addrs.NoKey,
 				}
-				stack := rootStack.ChildStackChecked(ctx, childStackStep, ValidatePhase)
-				output := stack.OutputValues(ctx)[outputAddr]
+				stack := rootStack.ChildStack(ctx, childStackStep, ValidatePhase)
+				output := stack.OutputValues()[outputAddr]
 				if output == nil {
 					t.Fatalf("missing %s", outputAddr)
 				}

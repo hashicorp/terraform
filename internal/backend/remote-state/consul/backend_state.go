@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package consul
@@ -11,18 +11,21 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
 	keyEnvPrefix = "-env:"
 )
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// List our raw path
 	prefix := b.path + keyEnvPrefix
 	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// Find the envs, we use a map since we can get duplicates with
@@ -52,9 +55,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	// Determine the path of the data
@@ -63,10 +68,11 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	// Delete it. We just delete it without any locking since
 	// the DeleteState API is documented as such.
 	_, err := b.client.KV().Delete(path, nil)
-	return err
+	return diags.Append(err)
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	// Determine the path of the data
 	path := b.statePath(name)
 
@@ -99,7 +105,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	lockInfo.Operation = "init"
 	lockId, err := stateMgr.Lock(lockInfo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lock state in Consul: %s", err)
+		return nil, diags.Append(fmt.Errorf("failed to lock state in Consul: %s", err))
 	}
 
 	// Local helper function so we can call it multiple places
@@ -114,27 +120,27 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Grab the value
 	if err := stateMgr.RefreshState(); err != nil {
 		err = lockUnlock(err)
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
 	if v := stateMgr.State(); v == nil {
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 		if err := stateMgr.PersistState(nil); err != nil {
 			err = lockUnlock(err)
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
 	// Unlock, the state should now be initialized
 	if err := lockUnlock(nil); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 func (b *Backend) statePath(name string) string {

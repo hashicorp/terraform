@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -16,10 +16,11 @@ import (
 // countHook is a hook that counts the number of resources
 // added, removed, changed during the course of an apply.
 type countHook struct {
-	Added    int
-	Changed  int
-	Removed  int
-	Imported int
+	Added            int
+	Changed          int
+	Removed          int
+	Imported         int
+	ActionInvocation int
 
 	ToAdd          int
 	ToChange       int
@@ -43,6 +44,7 @@ func (h *countHook) Reset() {
 	h.Changed = 0
 	h.Removed = 0
 	h.Imported = 0
+	h.ActionInvocation = 0
 }
 
 func (h *countHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -86,9 +88,14 @@ func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.Depose
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
+
+	// Skip counting if there was an error
+	if err != nil {
+		return terraform.HookActionContinue, nil
+	}
 
 	// We don't count anything for data resources
 	if id.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
@@ -114,5 +121,13 @@ func (h *countHook) PostApplyImport(id terraform.HookResourceIdentity, importing
 	defer h.Unlock()
 
 	h.Imported++
+	return terraform.HookActionContinue, nil
+}
+
+func (h *countHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.ActionInvocation++
 	return terraform.HookActionContinue, nil
 }

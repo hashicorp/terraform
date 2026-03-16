@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package promising_test
@@ -25,7 +25,7 @@ func TestOnce(t *testing.T) {
 		// The "Once" mechanism expects to be run inside a task so that
 		// it can create promises and detect self-dependency problems.
 		result, err := promising.MainTask(ctx, func(ctx context.Context) (*FakeResult, error) {
-			return o.Do(ctx, func(ctx context.Context) (*FakeResult, error) {
+			return o.Do(ctx, "test", func(ctx context.Context) (*FakeResult, error) {
 				callCount.Add(1)
 				return &FakeResult{
 					msg: "hello",

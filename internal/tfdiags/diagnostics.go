@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -107,8 +107,8 @@ func (diags Diagnostics) AppendWithoutDuplicates(newDiags ...Diagnostic) Diagnos
 		if !ok {
 			// append what we cannot compare
 			diags = diags.Append(newItem)
+			continue
 		}
-
 		if diags.ContainsDiagnostic(cd) {
 			continue
 		}

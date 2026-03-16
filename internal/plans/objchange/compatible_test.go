@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package objchange
@@ -134,7 +134,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"name": cty.Zero,
 			}),
 			[]string{
-				`.name: wrong final value type: string required`,
+				`.name: wrong final value type: string required, but have number`,
 			},
 		},
 		{
@@ -388,7 +388,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"stuff": cty.True,
 			}),
 			[]string{
-				`.stuff: wrong final value type: string required`,
+				`.stuff: wrong final value type: string required, but have bool`,
 			},
 		},
 		{

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package lang
@@ -278,6 +278,19 @@ func TestFunctions(t *testing.T) {
 			{ // Should also work with sets, due to automatic conversion
 				`contains(toset(["a", "b"]), "a")`,
 				cty.True,
+			},
+		},
+
+		"convert": {
+			{
+				`convert({}, object({attr=optional(string, "default")}))`,
+				cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("default"),
+				}),
+			},
+			{
+				`convert({}, map(list(map(set(string)))))`,
+				cty.MapValEmpty(cty.List(cty.Map(cty.Set(cty.String)))),
 			},
 		},
 

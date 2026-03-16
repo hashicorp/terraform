@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -6,27 +6,33 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ConfigTransformer is a GraphTransformer that adds all the resources
-// from the configuration to the graph.
+// ConfigTransformer is a GraphTransformer that adds all the resources and
+// action declarations from the configuration to the graph.
 //
 // The module used to configure this transformer must be the root module.
 //
-// Only resources are added to the graph. Variables, outputs, and
-// providers must be added via other transforms.
+// Only resources and action declarations are added to the graph. Variables,
+// outputs, and providers must be added via other transforms.
 //
-// Unlike ConfigTransformerOld, this transformer creates a graph with
-// all resources including module resources, rather than creating module
-// nodes that are then "flattened".
+// Unlike ConfigTransformerOld, this transformer creates a graph with all
+// resources including module resources, rather than creating module nodes that
+// are then "flattened".
 type ConfigTransformer struct {
-	Concrete ConcreteResourceNodeFunc
+	Concrete       ConcreteResourceNodeFunc
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
@@ -100,6 +106,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
+		for _, r := range module.ListResources {
+			allResources = append(allResources, r)
+		}
 	}
 
 	// ephemeral resources act like temporary values and must be added to the
@@ -124,12 +133,84 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 	}
 
+	// collect all the Action Declarations (configs.Actions) in this module so
+	// we can validate that actions referenced in a resource's ActionTriggers
+	// exist in this module.
+	allConfigActions := make(map[string]*configs.Action)
+	for _, a := range module.Actions {
+		if a != nil {
+			addr := a.Addr().InModule(path)
+			allConfigActions[addr.String()] = a
+			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
+			abstract := &NodeAbstractAction{
+				Addr:   addr,
+				Config: *a,
+			}
+			var node dag.Vertex
+			if f := t.ConcreteAction; f != nil {
+				node = f(abstract)
+			} else {
+				node = DefaultConcreteActionNodeFunc(abstract)
+			}
+			g.Add(node)
+		}
+	}
+
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
 		if t.ModeFilter && relAddr.Mode != t.Mode {
 			// Skip non-matching modes
 			continue
+		}
+
+		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
+		var diags tfdiags.Diagnostics
+		if r.Managed != nil && r.Managed.ActionTriggers != nil {
+			for _, at := range r.Managed.ActionTriggers {
+				for _, action := range at.Actions {
+
+					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+					if parseRefDiags != nil {
+						return parseRefDiags.Err()
+					}
+
+					var configAction addrs.ConfigAction
+
+					for _, ref := range refs {
+						switch a := ref.Subject.(type) {
+						case addrs.Action:
+							configAction = a.InModule(config.Path)
+						case addrs.ActionInstance:
+							configAction = a.Action.InModule(config.Path)
+						case addrs.CountAttr, addrs.ForEachAttr:
+							// nothing to do, these will get evaluated later
+						default:
+							// This should have been caught during validation
+							panic(fmt.Sprintf("unexpected action address %T", a))
+						}
+					}
+
+					_, ok := allConfigActions[configAction.String()]
+					if !ok {
+						suggestion := didyoumean.NameSuggestion(configAction.String(), slices.Collect(maps.Keys(allConfigActions)))
+						if suggestion != "" {
+							suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+						}
+
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "action_trigger actions references non-existent action",
+							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
+							Subject:  action.Expr.Range().Ptr(),
+							Context:  r.DeclRange.Ptr(),
+						})
+					}
+				}
+			}
+		}
+		if diags.HasErrors() {
+			return diags.Err()
 		}
 
 		// If any of the import targets can apply to this node's instances,
@@ -164,11 +245,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr: addrs.ConfigResource{
-				Resource: relAddr,
-				Module:   path,
-			},
+			Addr:          configAddr,
 			importTargets: imports,
+		}
+
+		if r.List != nil {
+			abstract.generateConfigPath = t.generateConfigPathForImportTargets
 		}
 
 		var node dag.Vertex = abstract
@@ -182,6 +264,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// If any import targets were not claimed by resources we may be
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
+
 		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
 		// TODO: if config generation is ever supported for for_each

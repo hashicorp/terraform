@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -92,7 +92,7 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+	outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(plan, schemas)
 	if err != nil {
 		v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 		return
@@ -112,6 +112,7 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		ResourceDrift:         drift,
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 		RelevantAttributes:    attrs,
+		ActionInvocations:     actions,
 	}
 
 	// Side load some data that we can't extract from the JSON plan.
@@ -252,6 +253,10 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
+	}
+	cs.ActionInvocation = len(plan.Changes.ActionInvocations)
+	for _, action := range plan.Changes.ActionInvocations {
+		v.view.PlannedActionInvocation(json.NewPlannedActionInvocation(action))
 	}
 
 	v.view.ChangeSummary(cs)

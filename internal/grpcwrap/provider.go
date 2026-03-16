@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package grpcwrap
@@ -34,6 +34,8 @@ type provider struct {
 	provider        providers.Interface
 	schema          providers.GetProviderSchemaResponse
 	identitySchemas providers.GetResourceIdentitySchemasResponse
+
+	tfplugin5.UnimplementedProviderServer
 }
 
 func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Request) (*tfplugin5.GetMetadata_Response, error) {
@@ -45,6 +47,8 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		ResourceSchemas:          make(map[string]*tfplugin5.Schema),
 		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
+		ListResourceSchemas:      make(map[string]*tfplugin5.Schema),
+		ActionSchemas:            make(map[string]*tfplugin5.ActionSchema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -73,6 +77,18 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
+	for typ, dat := range p.schema.EphemeralResourceTypes {
+		resp.EphemeralResourceSchemas[typ] = &tfplugin5.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.ListResourceTypes {
+		resp.ListResourceSchemas[typ] = &tfplugin5.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
 	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
 		resp.Functions = decls
 	} else {
@@ -80,10 +96,21 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		return resp, nil
 	}
 
+	for typ, act := range p.schema.Actions {
+		newAct := tfplugin5.ActionSchema{
+			Schema: &tfplugin5.Schema{
+				Block: convert.ConfigSchemaToProto(act.ConfigSchema),
+			},
+		}
+
+		resp.ActionSchemas[typ] = &newAct
+	}
+
 	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
 		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
+		GenerateResourceConfig:    p.schema.ServerCapabilities.GenerateResourceConfig,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -164,6 +191,25 @@ func (p *provider) ValidateEphemeralResourceConfig(_ context.Context, req *tfplu
 	}
 
 	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider) ValidateListResourceConfig(_ context.Context, req *tfplugin5.ValidateListResourceConfig_Request) (*tfplugin5.ValidateListResourceConfig_Response, error) {
+	resp := &tfplugin5.ValidateListResourceConfig_Response{}
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -516,6 +562,10 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 	return resp, nil
 }
 
+func (p *provider) GenerateResourceConfig(context.Context, *tfplugin5.GenerateResourceConfig_Request) (*tfplugin5.GenerateResourceConfig_Response, error) {
+	panic("not implemented")
+}
+
 func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
 	resp := &tfplugin5.MoveResourceState_Response{}
 
@@ -727,6 +777,182 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 	resp.UpgradedIdentity = &tfplugin5.ResourceIdentityData{
 		IdentityData: dv,
 	}
+	return resp, nil
+}
+
+func (p *provider) ListResource(req *tfplugin5.ListResource_Request, res tfplugin5.Provider_ListResourceServer) error {
+	resourceSchema, ok := p.schema.ResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("resource schema not found for type %q", req.TypeName)
+	}
+	listSchema, ok := p.schema.ListResourceTypes[req.TypeName]
+	if !ok {
+		return fmt.Errorf("list resource schema not found for type %q", req.TypeName)
+	}
+	cfg, err := decodeDynamicValue(req.Config, listSchema.Body.ImpliedType())
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to decode config: %v", err)
+	}
+	resp := p.provider.ListResource(providers.ListResourceRequest{
+		TypeName:              req.TypeName,
+		Config:                cfg,
+		Limit:                 req.Limit,
+		IncludeResourceObject: req.IncludeResourceObject,
+	})
+	if resp.Diagnostics.HasErrors() {
+		return resp.Diagnostics.Err()
+	}
+	if !resp.Result.Type().HasAttribute("data") {
+		return status.Errorf(codes.Internal, "list resource response missing 'data' attribute")
+	}
+	data := resp.Result.GetAttr("data")
+	if data.IsNull() || !data.CanIterateElements() {
+		return status.Errorf(codes.Internal, "list resource response 'data' attribute is invalid or null")
+	}
+
+	for iter := data.ElementIterator(); iter.Next(); {
+		_, item := iter.Element()
+		var stateVal *tfplugin5.DynamicValue
+		if item.Type().HasAttribute("state") {
+			state := item.GetAttr("state")
+			var err error
+			stateVal, err = encodeDynamicValue(state, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				return status.Errorf(codes.Internal, "failed to encode list resource item state: %v", err)
+			}
+		}
+		if !item.Type().HasAttribute("identity") {
+			return status.Errorf(codes.Internal, "list resource item missing 'identity' attribute")
+		}
+		identity := item.GetAttr("identity")
+		var identityVal *tfplugin5.DynamicValue
+		identityVal, err = encodeDynamicValue(identity, resourceSchema.Identity.ImpliedType())
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to encode list resource item identity: %v", err)
+		}
+
+		var displayName string
+		if item.Type().HasAttribute("display_name") {
+			displayName = item.GetAttr("display_name").AsString()
+		}
+
+		res.Send(&tfplugin5.ListResource_Event{
+			Identity:       &tfplugin5.ResourceIdentityData{IdentityData: identityVal},
+			ResourceObject: stateVal,
+			DisplayName:    displayName,
+		})
+	}
+
+	return nil
+}
+
+func (p *provider) PlanAction(_ context.Context, req *tfplugin5.PlanAction_Request) (*tfplugin5.PlanAction_Response, error) {
+	resp := &tfplugin5.PlanAction_Response{}
+
+	actionSchema, ok := p.schema.Actions[req.ActionType]
+	if !ok {
+		return nil, fmt.Errorf("action schema not found for action %q", req.ActionType)
+	}
+
+	ty := actionSchema.ConfigSchema.ImpliedType()
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	planResp := p.provider.PlanAction(providers.PlanActionRequest{
+		ActionType:         req.ActionType,
+		ProposedActionData: configVal,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
+			WriteOnlyAttributesAllowed: true,
+		},
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
+	if planResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.Deferred = convert.DeferredToProto(planResp.Deferred)
+
+	return resp, nil
+}
+
+func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfplugin5.Provider_InvokeActionServer) error {
+
+	actionSchema, ok := p.schema.Actions[req.ActionType]
+	if !ok {
+		return fmt.Errorf("action schema not found for action %q", req.ActionType)
+	}
+
+	ty := actionSchema.ConfigSchema.ImpliedType()
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		return err
+	}
+
+	invokeResp := p.provider.InvokeAction(providers.InvokeActionRequest{
+		ActionType:        req.ActionType,
+		PlannedActionData: configVal,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
+			WriteOnlyAttributesAllowed: true,
+		},
+	})
+
+	if invokeResp.Diagnostics.HasErrors() {
+		return invokeResp.Diagnostics.Err()
+	}
+
+	for invokeEvent := range invokeResp.Events {
+		switch invokeEvt := invokeEvent.(type) {
+		case providers.InvokeActionEvent_Progress:
+			server.Send(&tfplugin5.InvokeAction_Event{
+				Type: &tfplugin5.InvokeAction_Event_Progress_{
+					Progress: &tfplugin5.InvokeAction_Event_Progress{
+						Message: invokeEvt.Message,
+					},
+				},
+			})
+
+		case providers.InvokeActionEvent_Completed:
+			completed := &tfplugin5.InvokeAction_Event_Completed{}
+			completed.Diagnostics = convert.AppendProtoDiag(completed.Diagnostics, invokeEvt.Diagnostics)
+
+			err := server.Send(&tfplugin5.InvokeAction_Event{
+				Type: &tfplugin5.InvokeAction_Event_Completed_{
+					Completed: completed,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to send completed event: %w", err)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (p *provider) ValidateActionConfig(_ context.Context, req *tfplugin5.ValidateActionConfig_Request) (*tfplugin5.ValidateActionConfig_Response, error) {
+	resp := &tfplugin5.ValidateActionConfig_Response{}
+	ty := p.schema.Actions[req.TypeName].ConfigSchema.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	protoReq := providers.ValidateActionConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	}
+
+	validateResp := p.provider.ValidateActionConfig(protoReq)
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
 	return resp, nil
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -52,6 +52,9 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions that should be triggered.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -77,6 +80,9 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
+	// ConcreteAction is only used by the ConfigTransformer during the Validate
+	// Graph walk; otherwise we fall back to the DefaultConcreteActionFunc.
+	ConcreteAction ConcreteActionNodeFunc
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
@@ -110,6 +116,22 @@ type PlanGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	// If true, the graph builder will generate a query plan instead of a
+	// normal plan. This is used for the "terraform query" command.
+	queryPlan bool
+
+	// overridePreventDestroy is only applicable during destroy operations, and
+	// allows Terraform to ignore the configuration attribute prevent_destroy
+	// to destroy resources regardless.
+	overridePreventDestroy bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // See GraphBuilder
@@ -140,37 +162,58 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
-			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete:       b.ConcreteResource,
+			ConcreteAction: b.ConcreteAction,
+			Config:         b.Config,
+			destroy:        b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
 
 			importTargets: b.ImportTargets,
 
-			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
+		},
+
+		&ActionTriggerConfigTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
+
+			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, _ RelativeActionTiming) dag.Vertex {
+				return &nodeActionTriggerPlanExpand{
+					nodeAbstractActionTrigger: node,
+				}
+			},
+		},
+
+		&ActionInvokePlanTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
 		},
 
 		// Add dynamic values
 		&RootVariableTransformer{
-			Config:       b.Config,
-			RawValues:    b.RootVariableValues,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			RawValues:      b.RootVariableValues,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&ModuleVariableTransformer{
-			Config:       b.Config,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&variableValidationTransformer{
 			validateWalk: b.Operation == walkValidate,
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:      b.Config,
-			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
-			Destroying:  b.Operation == walkPlanDestroy,
-			Overrides:   b.Overrides,
+			Config:                    b.Config,
+			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
+			Destroying:                b.Operation == walkPlanDestroy,
+			Overrides:                 b.Overrides,
+			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
@@ -260,6 +303,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
+		// Filter the graph to only include nodes that are relevant to the query operation.
+		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
+
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
@@ -289,6 +335,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
@@ -299,6 +346,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
@@ -309,6 +357,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResourceInstanceDeposed = func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
@@ -325,6 +374,7 @@ func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
 
 	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
@@ -349,6 +399,12 @@ func (b *PlanGraphBuilder) initValidate() {
 	b.ConcreteModule = func(n *nodeExpandModule) dag.Vertex {
 		return &nodeValidateModule{
 			nodeExpandModule: *n,
+		}
+	}
+
+	b.ConcreteAction = func(a *NodeAbstractAction) dag.Vertex {
+		return &NodeValidatableAction{
+			NodeAbstractAction: a,
 		}
 	}
 }

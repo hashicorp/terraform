@@ -1,9 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package moduleref
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/hashicorp/go-version"
@@ -23,10 +24,7 @@ type Resolver struct {
 func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 	// Since maps are pointers, create a copy of the internal manifest to
 	// prevent introducing side effects to the original
-	internalManifestCopy := make(modsdir.Manifest, len(internalManifest))
-	for k, v := range internalManifest {
-		internalManifestCopy[k] = v
-	}
+	internalManifestCopy := maps.Clone(internalManifest)
 
 	// Remove the root module entry from the internal manifest as it is
 	// never directly referenced.
@@ -58,12 +56,10 @@ func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecor
 	var name string
 	var versionConstraints version.Constraints
 	if parentKey != nil {
-		for key := range cfg.Parent.Children {
+		for key, child := range cfg.Parent.Children {
 			if key == *parentKey {
 				name = key
-				if cfg.Parent.Module.ModuleCalls[key] != nil {
-					versionConstraints = cfg.Parent.Module.ModuleCalls[key].Version.Required
-				}
+				versionConstraints = child.VersionConstraint.Required
 				break
 			}
 		}

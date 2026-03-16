@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package graph
@@ -9,33 +9,39 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
+// testApply defines how to execute a run block representing an apply command
+//
+// See also: (n *NodeTestRun).testPlan
+func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
-	key := n.run.GetStateKey()
+	key := n.run.Config.StateKey
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := n.FilterVariablesToModule(variables)
+	setVariables, testOnlyVariables, setVariableDiags := FilterVariablesToModule(run.ModuleConfig, variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
 	// ignore diags because validate has covered it
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
-	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
+	_, plan, planDiags := plan(ctx, tfCtx, file.Config, run.Config, run.ModuleConfig, setVariables, providers, waiter)
 
 	// Any error during the planning prevents our apply from
 	// continuing which is an error.
-	planDiags = run.ExplainExpectedFailures(planDiags)
+	planDiags = moduletest.ExplainExpectedFailures(run.Config, planDiags)
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -57,22 +63,19 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	run.Diagnostics = filteredDiags
 
 	// execute the apply operation
-	applyScope, updated, applyDiags := n.apply(tfCtx, plan, moduletest.Running, variables, waiter)
+	applyScope, updated, applyDiags := apply(tfCtx, run.Config, run.ModuleConfig, plan, moduletest.Running, variables, providers, waiter)
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	// We'll also update the run status based on the presence of errors or missing expected failures.
-	failOrErr := n.checkForMissingExpectedFailures(run, applyDiags)
-	if failOrErr {
+	status, applyDiags := checkForMissingExpectedFailures(ctx, run.Config, applyDiags)
+	run.Diagnostics = run.Diagnostics.Append(applyDiags)
+	run.Status = run.Status.Merge(status)
+	if status == moduletest.Error {
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
-		ctx.SetFileState(key, &TestFileState{
-			Run:   run,
-			State: updated,
-		})
+		ctx.SetFileState(key, run, updated, teststates.StateReasonNone)
 		return
 	}
-
-	n.AddVariablesToConfig(variables)
 
 	if ctx.Verbose() {
 		schemas, diags := tfCtx.Schemas(config, updated)
@@ -103,31 +106,22 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// of the run. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
 	// previous run blocks.
-	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run, applyScope, testOnlyVariables)
-	run.Status = newStatus
+	newStatus, outputVals, moreDiags := ctx.EvaluateRun(run.Config, run.ModuleConfig.Module, applyScope, testOnlyVariables)
+	run.Status = run.Status.Merge(newStatus)
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
-
-	// Now we've successfully validated this run block, lets add it into
-	// our prior run outputs so future run blocks can access it.
-	ctx.SetOutput(run, outputVals)
+	run.Outputs = outputVals
 
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that
 	// most recently updated the tracked state as the cleanup
 	// configuration.
-	ctx.SetFileState(key, &TestFileState{
-		Run:   run,
-		State: updated,
-	})
+	ctx.SetFileState(key, run, updated, teststates.StateReasonNone)
 }
 
-func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
-	run := n.run
-	file := n.File()
-	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
+func apply(tfCtx *terraform.Context, run *configs.TestRun, module *configs.Config, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, providers map[addrs.RootProviderConfig]providers.Interface, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
+	log.Printf("[TRACE] TestFileRunner: called apply for %s", run.Name)
 
 	var diags tfdiags.Diagnostics
-	config := run.ModuleConfig
 
 	// If things get cancelled while we are executing the apply operation below
 	// we want to print out all the objects that we were creating so the user
@@ -151,7 +145,7 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 	// We only need to pass ephemeral variables to the apply operation, as the
 	// plan has already been evaluated with the full set of variables.
 	ephemeralVariables := make(terraform.InputValues)
-	for k, v := range config.Root.Module.Variables {
+	for k, v := range module.Root.Module.Variables {
 		if v.EphemeralSet {
 			if value, ok := variables[k]; ok {
 				ephemeralVariables[k] = value
@@ -160,13 +154,15 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables: ephemeralVariables,
+		SetVariables:              ephemeralVariables,
+		ExternalProviders:         providers,
+		AllowRootEphemeralOutputs: true,
 	}
 
 	waiter.update(tfCtx, progress, created)
-	log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
-	updated, newScope, applyDiags := tfCtx.ApplyAndEval(plan, config, applyOpts)
-	log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
+	log.Printf("[DEBUG] TestFileRunner: starting apply for %s", run.Name)
+	updated, newScope, applyDiags := tfCtx.ApplyAndEval(plan, module, applyOpts)
+	log.Printf("[DEBUG] TestFileRunner: completed apply for %s", run.Name)
 	diags = diags.Append(applyDiags)
 
 	return newScope, updated, diags
@@ -174,23 +170,31 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 
 // checkForMissingExpectedFailures checks for missing expected failures in the diagnostics.
 // It updates the run status based on the presence of errors or missing expected failures.
-func (n *NodeTestRun) checkForMissingExpectedFailures(run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
+func checkForMissingExpectedFailures(ctx *EvalContext, config *configs.TestRun, originals tfdiags.Diagnostics) (moduletest.Status, tfdiags.Diagnostics) {
 	// Retrieve and append diagnostics that are either unrelated to expected failures
 	// or report missing expected failures.
-	unexpectedDiags := run.ValidateExpectedFailures(diags)
-	run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
+	unexpectedDiags := moduletest.ValidateExpectedFailures(config, originals)
+
+	status := moduletest.Pass
 	for _, diag := range unexpectedDiags {
 		// // If any diagnostic indicates a missing expected failure, set the run status to fail.
 		if ok := moduletest.DiagnosticFromMissingExpectedFailure(diag); ok {
-			run.Status = run.Status.Merge(moduletest.Fail)
+			status = status.Merge(moduletest.Fail)
 			continue
 		}
 
 		// upgrade the run status to error if there still are other errors in the diagnostics
 		if diag.Severity() == tfdiags.Error {
-			run.Status = run.Status.Merge(moduletest.Error)
+			status = status.Merge(moduletest.Error)
 			break
 		}
 	}
-	return run.Status > moduletest.Pass
+
+	if ctx.Verbose() {
+		// in verbose mode, we still add all the original diagnostics for
+		// display even if they are expected.
+		return status, originals
+	} else {
+		return status, unexpectedDiags
+	}
 }

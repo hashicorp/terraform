@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package testing
@@ -24,6 +24,17 @@ var (
 			Attributes: map[string]*configschema.Attribute{
 				"id":    {Type: cty.String, Optional: true, Computed: true},
 				"value": {Type: cty.String, Optional: true},
+			},
+		},
+	}
+
+	TestingEphemeralResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {
+					Type:     cty.String,
+					Computed: true,
+				},
 			},
 		},
 	}
@@ -59,11 +70,31 @@ var (
 		},
 	}
 
+	WriteOnlyResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":         {Type: cty.String, Optional: true, Computed: true},
+				"value":      {Type: cty.String, Optional: true},
+				"write_only": {Type: cty.String, WriteOnly: true, Optional: true},
+			},
+		},
+	}
+
 	TestingDataSourceSchema = providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id":    {Type: cty.String, Required: true},
 				"value": {Type: cty.String, Computed: true},
+			},
+		},
+	}
+
+	WriteOnlyDataSourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":         {Type: cty.String, Required: true},
+				"value":      {Type: cty.String, Computed: true},
+				"write_only": {Type: cty.String, WriteOnly: true, Optional: true},
 			},
 		},
 	}
@@ -80,6 +111,14 @@ var (
 				"id": {Type: cty.String, Required: true},
 			},
 			Nesting: configschema.NestingSingle,
+		},
+	}
+
+	TestingActionSchema = providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"message": {Type: cty.String, Optional: true},
+			},
 		},
 	}
 )
@@ -167,10 +206,21 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Body:     TestingResourceSchema.Body,
 						Identity: TestingResourceWithIdentitySchema.Identity,
 					},
+					"testing_write_only_resource": {
+						Body: WriteOnlyResourceSchema.Body,
+					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
 						Body: TestingDataSourceSchema.Body,
+					},
+					"testing_write_only_data_source": {
+						Body: WriteOnlyDataSourceSchema.Body,
+					},
+				},
+				EphemeralResourceTypes: map[string]providers.Schema{
+					"testing_resource": {
+						Body: TestingEphemeralResourceSchema.Body,
 					},
 				},
 				Functions: map[string]providers.FunctionDecl{
@@ -180,6 +230,9 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						},
 						ReturnType: cty.DynamicPseudoType,
 					},
+				},
+				Actions: map[string]providers.ActionSchema{
+					"testing_action": TestingActionSchema,
 				},
 				ServerCapabilities: providers.ServerCapabilities{
 					MoveResourceState: true,
@@ -271,6 +324,36 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				// Just echo the first argument back as the result.
 				return providers.CallFunctionResponse{
 					Result: request.Arguments[0],
+				}
+			},
+			OpenEphemeralResourceFn: func(request providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+				return providers.OpenEphemeralResourceResponse{
+					Result: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("secret"),
+					}),
+				}
+			},
+			PlanActionFn: func(request providers.PlanActionRequest) providers.PlanActionResponse {
+				// Simple action planning - no drift, just validation
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{},
+				}
+			},
+			InvokeActionFn: func(request providers.InvokeActionRequest) providers.InvokeActionResponse {
+				// Simple action invocation - just emit a completed event
+				return providers.InvokeActionResponse{
+					Events: func(yield func(providers.InvokeActionEvent) bool) {
+						yield(providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{},
+						})
+					},
+					Diagnostics: tfdiags.Diagnostics{},
+				}
+			},
+			ValidateActionConfigFn: func(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+				// No validation errors for testing actions
+				return providers.ValidateActionConfigResponse{
+					Diagnostics: tfdiags.Diagnostics{},
 				}
 			},
 		},

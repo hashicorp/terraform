@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendbase
@@ -61,7 +61,7 @@ func TestBase_coerceError(t *testing.T) {
 		wantDiags = wantDiags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid backend configuration",
-			Detail:   "The backend configuration is incorrect: .foo: string required.",
+			Detail:   "The backend configuration is incorrect: .foo: string required, but have map of string.",
 			Subject:  &hcl.Range{Filename: "MockExprLiteral"},
 		})
 

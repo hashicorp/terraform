@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
@@ -251,7 +251,7 @@ func TestTemplateFile(t *testing.T) {
 	funcsFunc := func() (funcTable map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
 		return funcs, collections.NewSetCmp[string](), collections.NewSetCmp[string]("templatefile")
 	}
-	templateFileFn := MakeTemplateFileFunc(".", funcsFunc)
+	templateFileFn := MakeTemplateFileFunc(".", funcsFunc, noopWrapper)
 	funcs["templatefile"] = templateFileFn
 	funcs["core::templatefile"] = templateFileFn
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -51,14 +52,14 @@ func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreDiff", id.Addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostDiff", id.Addr.String()})
@@ -127,7 +128,7 @@ func (h *testHook) PostImportState(id HookResourceIdentity, imported []providers
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *testHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PrePlanImport", id.Addr.String()})
@@ -169,6 +170,20 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -179,5 +194,26 @@ func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostStateUpdate", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"StartAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"ProgressAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"CompleteAction", ""})
 	return HookActionContinue, nil
 }

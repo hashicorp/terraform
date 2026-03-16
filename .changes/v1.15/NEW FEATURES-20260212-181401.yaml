@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: '`convert` function, which allows for precise inline type conversions'
+time: 2026-02-12T18:14:01.356478-05:00
+custom:
+    Issue: "38160"

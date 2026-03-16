@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package json
@@ -12,10 +12,12 @@ const (
 	MessageDiagnostic MessageType = "diagnostic"
 
 	// Operation results
-	MessageResourceDrift MessageType = "resource_drift"
-	MessagePlannedChange MessageType = "planned_change"
-	MessageChangeSummary MessageType = "change_summary"
-	MessageOutputs       MessageType = "outputs"
+	MessageResourceDrift           MessageType = "resource_drift"
+	MessagePlannedChange           MessageType = "planned_change"
+	MessagePlannedActionInvocation MessageType = "planned_action_invocation"
+	MessageAppliedActionInvocation MessageType = "applied_action_invocation"
+	MessageChangeSummary           MessageType = "change_summary"
+	MessageOutputs                 MessageType = "outputs"
 
 	// Hook-driven messages
 	MessageApplyStart        MessageType = "apply_start"
@@ -46,4 +48,15 @@ const (
 	MessageTestInterrupt MessageType = "test_interrupt"
 	MessageTestStatus    MessageType = "test_status"
 	MessageTestRetry     MessageType = "test_retry"
+
+	// List messages
+	MessageListStart         MessageType = "list_start"
+	MessageListResourceFound MessageType = "list_resource_found"
+	MessageListComplete      MessageType = "list_complete"
+
+	// Action messages
+	MessageActionStart    MessageType = "action_start"
+	MessageActionProgress MessageType = "action_progress"
+	MessageActionComplete MessageType = "action_complete"
+	MessageActionErrored  MessageType = "action_errored"
 )

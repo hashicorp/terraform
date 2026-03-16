@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloudplugin1
@@ -9,8 +9,8 @@ import (
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1"
+	"github.com/hashicorp/terraform/internal/pluginshared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -19,7 +19,7 @@ import (
 // implementation exists in this package.
 type GRPCCloudPlugin struct {
 	plugin.GRPCPlugin
-	Impl cloudplugin.Cloud1
+	Impl pluginshared.CustomPluginClient
 	// Any configuration metadata that the plugin executable needs in order to
 	// do something useful, which will be passed along via gRPC metadata headers.
 	Metadata metadata.MD

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -42,6 +42,10 @@ type componentInstanceTerraformHook struct {
 	// change counts for the apply operation, so we record whether or not apply
 	// failed here.
 	resourceInstanceObjectApplySuccess addrs.Set[addrs.AbsResourceInstanceObject]
+
+	// Track provider addresses for action invocations so we can report them
+	// in action lifecycle hooks.
+	actionInvocationProviderAddr addrs.Map[addrs.AbsActionInstance, addrs.Provider]
 }
 
 var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
@@ -56,20 +60,28 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 	}
 }
 
-func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanning
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanning,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+	status := hooks.ResourceInstancePlanned
+	if err != nil {
+		status = hooks.ResourceInstanceErrored
+	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
 		ProviderAddr: id.ProviderAddr,
-		Status:       hooks.ResourceInstancePlanned,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
@@ -202,4 +214,83 @@ func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedAction(add
 
 func (h *componentInstanceTerraformHook) ResourceInstanceObjectsSuccessfullyApplied() addrs.Set[addrs.AbsResourceInstanceObject] {
 	return h.resourceInstanceObjectApplySuccess
+}
+
+// StartAction fires when action execution begins
+func (h *componentInstanceTerraformHook) StartAction(id terraform.HookActionIdentity) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	providerAddr, ok := h.actionInvocationProviderAddr.GetOk(id.Addr)
+	if !ok {
+		// Should not happen - actions should be pre-registered
+		return terraform.HookActionContinue, nil
+	}
+
+	// Report status transition: RUNNING (action execution starts)
+	// Note: PENDING status should have been reported during component apply preparation
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: providerAddr,
+		Status:       hooks.ActionInvocationRunning,
+		Trigger:      ai.Trigger,
+	})
+	return terraform.HookActionContinue, nil
+}
+
+// ProgressAction fires for intermediate diagnostic messages from the provider.
+func (h *componentInstanceTerraformHook) ProgressAction(id terraform.HookActionIdentity, progress string) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	providerAddr, ok := h.actionInvocationProviderAddr.GetOk(id.Addr)
+	if !ok {
+		// Should not happen - actions should be pre-registered
+		return terraform.HookActionContinue, nil
+	}
+
+	// Always report progress message
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationProgress, &hooks.ActionInvocationProgressHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: providerAddr,
+		Message:      progress,
+		Trigger:      ai.Trigger,
+	})
+	return terraform.HookActionContinue, nil
+}
+
+// CompleteAction fires when action finishes (success or error)
+func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
+	ai := h.actionInvocationFromHookActionIdentity(id)
+	providerAddr, ok := h.actionInvocationProviderAddr.GetOk(id.Addr)
+	if !ok {
+		// Should not happen - actions should be pre-registered
+		return terraform.HookActionContinue, nil
+	}
+
+	// Report final status based on error
+	status := hooks.ActionInvocationCompleted
+	if err != nil {
+		status = hooks.ActionInvocationErrored
+	}
+
+	// Report status transition: RUNNING → COMPLETED or ERRORED (action finishes)
+	hookMore(h.ctx, h.seq, h.hooks.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+		Addr:         ai.Addr,
+		ProviderAddr: providerAddr,
+		Status:       status,
+		Trigger:      ai.Trigger,
+	})
+	return terraform.HookActionContinue, nil
+}
+
+// actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation
+// from a core terraform.HookActionIdentity.
+func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(id terraform.HookActionIdentity) *hooks.ActionInvocation {
+	providerAddr, _ := h.actionInvocationProviderAddr.GetOk(id.Addr)
+	ai := &hooks.ActionInvocation{
+		Addr: stackaddrs.AbsActionInvocationInstance{
+			Component: h.addr,
+			Item:      id.Addr,
+		},
+		ProviderAddr: providerAddr,
+		Trigger:      id.ActionTrigger,
+	}
+	return ai
 }

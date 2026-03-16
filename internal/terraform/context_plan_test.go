@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -1851,10 +1851,10 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	})
 
 	diags := ctx.Validate(m, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
 		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
@@ -6168,7 +6168,7 @@ resource "test_instance" "b" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	t.Run("test_instance.a[0]", func(t *testing.T) {
 		instAddr := mustResourceInstanceAddr("test_instance.a[0]")
@@ -6336,7 +6336,7 @@ data "test_data_source" "e" {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	rc := plan.Changes.ResourceInstance(addrs.Resource{
 		Mode: addrs.DataResourceMode,
@@ -6457,7 +6457,7 @@ resource "test_instance" "a" {
 		Mode:        plans.NormalMode,
 		SkipRefresh: true,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal("Resource should not have been refreshed")
@@ -6516,7 +6516,7 @@ data "test_data_source" "b" {
 	})
 
 	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// The change to data source a should not prevent data source b from being
 	// read.
@@ -6974,7 +6974,7 @@ func TestContext2Plan_variableCustomValidationsCrossRef(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
+func TestContext2Plan_variableCustomValidationsChildSensitive(t *testing.T) {
 	m := testModule(t, "validate-variable-custom-validations-child-sensitive")
 
 	p := testProvider("test")
@@ -6990,6 +6990,117 @@ func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
 	}
 	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
+	m := testModule(t, "validate-variable-custom-validations-sensitive")
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, InputValues{
+		"input": {
+			Value: cty.StringVal("short"),
+		},
+	}))
+	if len(diags) != 1 {
+		t.Fatal("wanted exactly one error")
+	}
+	if diff := cmp.Diff(diags[0].Description(), tfdiags.Description{
+		Summary: "Invalid value for variable",
+		Detail:  "too short\n\nThis was checked by the validation rule at testdata/validate-variable-custom-validations-sensitive/validate-variable-custom-validations-sensitive.tf:4,3-13.",
+	}); len(diff) > 0 {
+		t.Error(diff)
+	}
+
+	vars := diags[0].FromExpr().EvalContext.Variables["var"].AsValueMap()
+
+	_, ms := vars["input"].Unmark()
+	if _, ok := ms[marks.Sensitive]; !ok {
+		t.Error("should have been marked as sensitive")
+	}
+}
+
+func TestContext2Plan_constVariableCustomValidationPass(t *testing.T) {
+	vars := map[string]*InputValue{
+		"a": {
+			Value: cty.StringVal("valid"),
+		},
+	}
+	m := testModuleInlineWithVars(t, map[string]string{
+		"main.tf": `
+variable "a" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.a == "valid"
+    error_message = "Value must be valid."
+  }
+}
+`,
+	}, vars)
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: vars,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_constVariableCustomValidationFail(t *testing.T) {
+	m := testModuleInlineWithVars(t, map[string]string{
+		"main.tf": `
+variable "a" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.a == "valid"
+    error_message = "Value must be valid."
+  }
+}
+`,
+	}, map[string]*InputValue{
+		"a": {
+			Value: cty.StringVal("valid"),
+		},
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: map[string]*InputValue{
+			"a": {
+				Value: cty.StringVal("invalid"),
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success")
+	}
+	gotDiags := diags.Err().Error()
+	wantDiagSubstr := "Value must be valid."
+	if !strings.Contains(gotDiags, wantDiagSubstr) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", wantDiagSubstr, gotDiags)
 	}
 }
 

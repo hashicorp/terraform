@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -24,13 +24,9 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
-	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
-
-func (n *nodeExpandApplyableResource) expandsInstances() {
-}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	refs := n.NodeAbstractResource.References()

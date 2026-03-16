@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package providers
 
 import (
@@ -11,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -99,6 +97,20 @@ func (m *Mock) ValidateDataResourceConfig(request ValidateDataResourceConfigRequ
 	return m.Provider.ValidateDataResourceConfig(request)
 }
 
+func (m *Mock) ValidateListResourceConfig(request ValidateListResourceConfigRequest) ValidateListResourceConfigResponse {
+	// We'll just pass this through to the underlying provider. The mock should
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
+	return m.Provider.ValidateListResourceConfig(request)
+}
+
+func (m *Mock) ValidateActionConfig(request ValidateActionConfigRequest) ValidateActionConfigResponse {
+	// We'll just pass this through to the underlying provider. The mock should
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
+	return m.Provider.ValidateActionConfig(request)
+}
+
 func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
 	// We can't do this from a mocked provider, so we just return whatever state
 	// is in the request back unchanged.
@@ -138,7 +150,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 		response.Diagnostics = response.Diagnostics.Append(err)
 		return response
 	}
-	response.UpgradedState = value
+	response.UpgradedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
 	return response
 }
 
@@ -207,26 +219,25 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 		}
 	}
 
+	var response PlanResourceChangeResponse
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.ResourceTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
+	}
+
 	if request.PriorState.IsNull() {
 		// Then we are creating this resource - we need to populate the computed
 		// null fields with unknowns so Terraform will render them properly.
-
-		var response PlanResourceChangeResponse
-
-		schema := m.GetProviderSchema()
-		response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
-		if schema.Diagnostics.HasErrors() {
-			// We couldn't retrieve the schema for some reason, so the mock
-			// provider can't really function.
-			return response
-		}
-
-		resource, exists := schema.ResourceTypes[request.TypeName]
-		if !exists {
-			// This means something has gone wrong much earlier, we should have
-			// failed a validation somewhere if a resource type doesn't exist.
-			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
-		}
 
 		replacement := &mocking.MockedData{
 			Value:             cty.NilVal, // If we have no data then we use cty.NilVal.
@@ -241,17 +252,16 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 
 		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
-		response.PlannedState = value
+		response.PlannedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
 		response.PlannedPrivate = []byte("create")
 		return response
 	}
 
 	// Otherwise, we're just doing a simple update and we don't need to populate
 	// any values for that.
-	return PlanResourceChangeResponse{
-		PlannedState:   request.ProposedNewState,
-		PlannedPrivate: []byte("update"),
-	}
+	response.PlannedState = ephemeral.StripWriteOnlyAttributes(request.ProposedNewState, resource.Body)
+	response.PlannedPrivate = []byte("update")
+	return response
 }
 
 func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyResourceChangeResponse {
@@ -310,6 +320,10 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
+func (m *Mock) GenerateResourceConfig(request GenerateResourceConfigRequest) (response GenerateResourceConfigResponse) {
+	panic("not implemented")
+}
+
 func (m *Mock) MoveResourceState(request MoveResourceStateRequest) MoveResourceStateResponse {
 	// The MoveResourceState operation happens offline, so we can just hand this
 	// off to the underlying provider.
@@ -344,7 +358,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 
 	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Body)
 	response.Diagnostics = response.Diagnostics.Append(diags)
-	response.State = value
+	response.State = ephemeral.StripWriteOnlyAttributes(value, datasource.Body)
 	return response
 }
 
@@ -405,6 +419,55 @@ func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEpheme
 
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
+}
+
+func (m *Mock) ListResource(request ListResourceRequest) ListResourceResponse {
+	return m.Provider.ListResource(request)
+}
+
+func (m *Mock) ValidateStateStoreConfig(req ValidateStateStoreConfigRequest) ValidateStateStoreConfigResponse {
+	return m.Provider.ValidateStateStoreConfig(req)
+}
+
+func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStateStoreResponse {
+	return m.Provider.ConfigureStateStore(req)
+}
+
+func (m *Mock) ReadStateBytes(req ReadStateBytesRequest) ReadStateBytesResponse {
+	return m.Provider.ReadStateBytes(req)
+}
+
+func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesResponse {
+	return m.Provider.WriteStateBytes(req)
+}
+
+func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
+	return m.Provider.LockState(req)
+}
+
+func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
+	return m.Provider.UnlockState(req)
+}
+
+func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
+	return m.Provider.GetStates(req)
+}
+
+func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
+	return m.Provider.DeleteState(req)
+}
+
+func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
+	return PlanActionResponse{}
+}
+
+func (m *Mock) InvokeAction(request InvokeActionRequest) InvokeActionResponse {
+	return InvokeActionResponse{
+		Events: func(yield func(InvokeActionEvent) bool) {
+			yield(InvokeActionEvent_Completed{})
+		},
+		Diagnostics: nil,
+	}
 }
 
 func (m *Mock) Close() error {

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: terraform init log timestamps include millisecond precision
+time: 2025-10-27T13:22:38.714891768-05:00
+custom:
+    Issue: "37818"

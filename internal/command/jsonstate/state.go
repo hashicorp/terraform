@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
@@ -6,6 +6,8 @@ package jsonstate
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -477,13 +479,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				ret = append(ret, current)
 			}
 
-			var sortedDeposedKeys []string
-			for k := range ri.Deposed {
-				sortedDeposedKeys = append(sortedDeposedKeys, string(k))
-			}
-			sort.Strings(sortedDeposedKeys)
-
-			for _, deposedKey := range sortedDeposedKeys {
+			for _, deposedKey := range slices.Sorted(maps.Keys(ri.Deposed)) {
 				rios := ri.Deposed[states.DeposedKey(deposedKey)]
 
 				// copy the base fields from the current instance
@@ -531,7 +527,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if riObj.Status == states.ObjectTainted {
 					deposed.Tainted = true
 				}
-				deposed.DeposedKey = deposedKey
+				deposed.DeposedKey = string(deposedKey)
 				ret = append(ret, deposed)
 			}
 		}
@@ -541,7 +537,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
-	if val.HasMark(marks.Sensitive) {
+	if marks.Has(val, marks.Sensitive) {
 		return cty.True
 	}
 
@@ -624,6 +620,7 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 func unmarkValueForMarshaling(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
 	sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	_, otherMarks = marks.PathsWithMark(otherMarks, marks.Deprecation)
 	if len(otherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",

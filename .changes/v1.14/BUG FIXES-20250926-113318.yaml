@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'query: generate unique resource identifiers for results of expanded list resources'
+time: 2025-09-26T11:33:18.241184+02:00
+custom:
+    Issue: "37681"

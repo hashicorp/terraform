@@ -45,6 +45,10 @@ func (provider *mockProvider) ValidateDataResourceConfig(providers.ValidateDataR
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	panic("not implemented in mock")
 }
@@ -74,6 +78,10 @@ func (provider *mockProvider) ApplyResourceChange(providers.ApplyResourceChangeR
 }
 
 func (provider *mockProvider) ImportResourceState(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+	panic("not implemented in mock")
+}
+
+func (p *mockProvider) GenerateResourceConfig(r providers.GenerateResourceConfigRequest) (resp providers.GenerateResourceConfigResponse) {
 	panic("not implemented in mock")
 }
 
@@ -111,6 +119,54 @@ func (provider *mockProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 }
 
 func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) InvokeAction(_ providers.InvokeActionRequest) providers.InvokeActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) ValidateActionConfig(_ providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
 	panic("not implemented in mock")
 }
 

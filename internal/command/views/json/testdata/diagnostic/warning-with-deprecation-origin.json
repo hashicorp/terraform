@@ -1,0 +1,27 @@
+{
+  "severity": "warning",
+  "summary": "Deprecated value caught in action",
+  "detail": "Oh no - don't do it!",
+  "range": {
+    "filename": "test.tf",
+    "start": {
+      "line": 1,
+      "column": 10,
+      "byte": 9
+    },
+    "end": {
+      "line": 1,
+      "column": 25,
+      "byte": 24
+    }
+  },
+  "snippet": {
+    "context": "resource \"test_resource\" \"test\"",
+    "code": "resource \"test_resource\" \"test\" {",
+    "start_line": 1,
+    "highlight_start_offset": 9,
+    "highlight_end_offset": 24,
+    "values": []
+  },
+  "deprecation_origin_description": "aws_s3_bucket.hello.acl"
+}

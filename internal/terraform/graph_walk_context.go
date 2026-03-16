@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -8,12 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -51,24 +54,27 @@ type ContextGraphWalker struct {
 	PlanTimestamp           time.Time
 	Overrides               *mocking.Overrides
 	// Forget if set to true will cause the plan to forget all resources. This is
-	// only allowd in the context of a destroy plan.
+	// only allowed in the context of a destroy plan.
 	Forget bool
+
+	Actions      *actions.Actions
+	Deprecations *deprecation.Deprecations
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	once                sync.Once
-	contexts            collections.Map[evalContextScope, *BuiltinEvalContext]
-	contextLock         sync.Mutex
-	providerCache       map[string]providers.Interface
-	providerFuncCache   map[string]providers.Interface
-	providerFuncResults *providers.FunctionResults
-	providerSchemas     map[string]providers.ProviderSchema
-	providerLock        sync.Mutex
-	provisionerCache    map[string]provisioners.Interface
-	provisionerSchemas  map[string]*configschema.Block
-	provisionerLock     sync.Mutex
+	once               sync.Once
+	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
+	contextLock        sync.Mutex
+	providerCache      map[string]providers.Interface
+	providerFuncCache  map[string]providers.Interface
+	functionResults    *lang.FunctionResults
+	providerSchemas    map[string]providers.ProviderSchema
+	providerLock       sync.Mutex
+	provisionerCache   map[string]provisioners.Interface
+	provisionerSchemas map[string]*configschema.Block
+	provisionerLock    sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -111,6 +117,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		NamedValues:        w.NamedValues,
 		Deferrals:          w.Deferrals,
 		PlanTimestamp:      w.PlanTimestamp,
+		FunctionResults:    w.functionResults,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -124,7 +131,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		MoveResultsValue:        w.MoveResults,
 		ProviderCache:           w.providerCache,
 		ProviderFuncCache:       w.providerFuncCache,
-		ProviderFuncResults:     w.providerFuncResults,
+		FunctionResults:         w.functionResults,
 		ProviderInputConfig:     w.Context.providerInputConfig,
 		ProviderLock:            &w.providerLock,
 		ProvisionerCache:        w.provisionerCache,
@@ -139,6 +146,8 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
+		ActionsValue:            w.Actions,
+		DeprecationsValue:       w.Deprecations,
 	}
 
 	return ctx

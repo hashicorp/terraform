@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package rpcapi
@@ -239,12 +239,13 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	}
 
 	// Currently Components are the only thing that can be removed
-	for name, rc := range cfgNode.Stack.Removed {
+	for name, rc := range cfgNode.Stack.RemovedComponents.All() {
 		var blocks []*stacks.FindStackConfigurationComponents_Removed_Block
 		for _, rc := range rc {
+			relativeAddress := rc.From.TargetConfigComponent()
 			cProto := &stacks.FindStackConfigurationComponents_Removed_Block{
 				SourceAddr:    rc.FinalSourceAddr.String(),
-				ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
+				ComponentAddr: stackaddrs.Config(append(stackAddr, relativeAddress.Stack...), relativeAddress.Item).String(),
 				Destroy:       rc.Destroy,
 			}
 			switch {
@@ -255,7 +256,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			}
 			blocks = append(blocks, cProto)
 		}
-		ret.Removed[name] = &stacks.FindStackConfigurationComponents_Removed{
+		relativeAddress := rc[0].From.TargetConfigComponent()
+		ret.Removed[name.String()] = &stacks.FindStackConfigurationComponents_Removed{
 			// in order to ensure as much backwards and forwards compatibility
 			// as possible, we're going to set the deprecated single fields
 			// with the first run block
@@ -269,7 +271,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 					return stacks.FindStackConfigurationComponents_SINGLE
 				}
 			}(),
-			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc[0].FromComponent.Name}).String(),
+			ComponentAddr: stackaddrs.Config(append(stackAddr, relativeAddress.Stack...), relativeAddress.Item).String(),
 			Destroy:       rc[0].Destroy,
 
 			// We return all the values here:
@@ -593,7 +595,9 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	}
 	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	var deps *depsfile.Locks
-	if !depsHnd.IsNil() {
+	if s.providerDependencyLockOverride != nil {
+		deps = s.providerDependencyLockOverride
+	} else if !depsHnd.IsNil() {
 		deps = s.handles.DependencyLocks(depsHnd)
 		if deps == nil {
 			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
@@ -609,14 +613,23 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
 		}
 	}
-	// NOTE: providerCache can be nil if no handle was provided, in which
-	// case the call can only use built-in providers. All code below
-	// must avoid panicking when providerCache is nil, but is allowed to
-	// return an InvalidArgument error in that case.
-	// (providerFactoriesForLocks explicitly supports a nil providerCache)
-	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	var providerFactories map[addrs.Provider]providers.Factory
+	if s.providerCacheOverride != nil {
+		// This is only used in tests to side load providers without needing a
+		// real provider cache.
+		providerFactories = s.providerCacheOverride
+	} else {
+		// NOTE: providerCache can be nil if no handle was provided, in which
+		// case the call can only use built-in providers. All code below
+		// must avoid panicking when providerCache is nil, but is allowed to
+		// return an InvalidArgument error in that case.
+		// (providerFactoriesForLocks explicitly supports a nil providerCache)
+		var err error
+		// (providerFactoriesForLocks explicitly supports a nil providerCache)
+		providerFactories, err = providerFactoriesForLocks(deps, providerCache)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		}
 	}
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
@@ -915,7 +928,6 @@ func (s *stacksServer) CloseTerraformState(ctx context.Context, request *stacks.
 }
 
 func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformState_Request, server stacks.Stacks_MigrateTerraformStateServer) error {
-
 	previousStateHandle := handle[*states.State](request.StateHandle)
 	previousState := s.handles.TerraformState(previousStateHandle)
 	if previousState == nil {
@@ -1194,6 +1206,86 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 
+		ReportActionInvocationPlanned: func(ctx context.Context, span any, ai *hooks.ActionInvocation) any {
+			span.(trace.Span).AddEvent("planned action invocation", trace.WithAttributes(
+				attribute.String("component_instance", ai.Addr.Component.String()),
+				attribute.String("action_invocation_instance", ai.Addr.Item.String()),
+			))
+
+			inv, err := actionInvocationPlanned(ai)
+			if err != nil {
+				return span
+			}
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationPlanned_{
+					ActionInvocationPlanned: inv,
+				},
+			})
+
+			return span
+		},
+
+		ReportActionInvocationStatus: func(ctx context.Context, span any, statusData *hooks.ActionInvocationStatusHookData) any {
+			span.(trace.Span).AddEvent("action invocation status", trace.WithAttributes(
+				attribute.String("component_instance", statusData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", statusData.Addr.Item.String()),
+				attribute.String("status", statusData.Status.String()),
+			))
+
+			providerAddr := ""
+			if !statusData.ProviderAddr.IsZero() {
+				providerAddr = statusData.ProviderAddr.String()
+			}
+
+			protoStatus := &stacks.StackChangeProgress_ActionInvocationStatus{
+				Addr:         stacks.NewActionInvocationInStackAddr(statusData.Addr),
+				Status:       statusData.Status.ForProtobuf(),
+				ProviderAddr: providerAddr,
+			}
+
+			// Set the action trigger oneof
+			setActionInvocationStatusTrigger(protoStatus, statusData.Addr.Component, statusData.Trigger)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationStatus_{
+					ActionInvocationStatus: protoStatus,
+				},
+			})
+
+			return span
+		},
+
+		ReportActionInvocationProgress: func(ctx context.Context, span any, progressData *hooks.ActionInvocationProgressHookData) any {
+			span.(trace.Span).AddEvent("action invocation progress", trace.WithAttributes(
+				attribute.String("component_instance", progressData.Addr.Component.String()),
+				attribute.String("action_invocation_instance", progressData.Addr.Item.String()),
+				attribute.String("message", progressData.Message),
+			))
+
+			providerAddr := ""
+			if !progressData.ProviderAddr.IsZero() {
+				providerAddr = progressData.ProviderAddr.String()
+			}
+
+			protoProgress := &stacks.StackChangeProgress_ActionInvocationProgress{
+				Addr:         stacks.NewActionInvocationInStackAddr(progressData.Addr),
+				Message:      progressData.Message,
+				ProviderAddr: providerAddr,
+			}
+
+			// Set the action trigger oneof
+			setActionInvocationProgressTrigger(protoProgress, progressData.Addr.Component, progressData.Trigger)
+
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ActionInvocationProgress_{
+					ActionInvocationProgress: protoProgress,
+				},
+			})
+
+			return span
+		},
+
 		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
 			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
 				attribute.String("component_instance", change.Change.Addr.Component.String()),
@@ -1228,14 +1320,15 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
-						Defer:  int32(cic.Defer),
-						Move:   int32(cic.Move),
-						Forget: int32(cic.Forget),
+						Total:            int32(cic.Total()),
+						Add:              int32(cic.Add),
+						Change:           int32(cic.Change),
+						Import:           int32(cic.Import),
+						Remove:           int32(cic.Remove),
+						Defer:            int32(cic.Defer),
+						Move:             int32(cic.Move),
+						Forget:           int32(cic.Forget),
+						ActionInvocation: int32(cic.ActionInvocation),
 					},
 				},
 			})
@@ -1255,14 +1348,15 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
-						Defer:  int32(cic.Defer),
-						Move:   int32(cic.Move),
-						Forget: int32(cic.Forget),
+						Total:            int32(cic.Total()),
+						Add:              int32(cic.Add),
+						Change:           int32(cic.Change),
+						Import:           int32(cic.Import),
+						Remove:           int32(cic.Remove),
+						Defer:            int32(cic.Defer),
+						Move:             int32(cic.Move),
+						Forget:           int32(cic.Forget),
+						ActionInvocation: int32(cic.ActionInvocation),
 					},
 				},
 			})
@@ -1302,6 +1396,89 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackCh
 		Imported:     imported,
 		ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
 	}, nil
+}
+
+func actionInvocationPlanned(ai *hooks.ActionInvocation) (*stacks.StackChangeProgress_ActionInvocationPlanned, error) {
+	res := &stacks.StackChangeProgress_ActionInvocationPlanned{
+		Addr:         stacks.NewActionInvocationInStackAddr(ai.Addr),
+		ProviderAddr: ai.ProviderAddr.String(),
+	}
+
+	setActionInvocationPlannedTrigger(res, ai.Addr.Component, ai.Trigger)
+
+	return res, nil
+}
+
+// setActionInvocationStatusTrigger sets the ActionTrigger oneof field on an ActionInvocationStatus message.
+func setActionInvocationStatusTrigger(msg *stacks.StackChangeProgress_ActionInvocationStatus, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	}
+}
+
+// setActionInvocationProgressTrigger sets the ActionTrigger oneof field on an ActionInvocationProgress message.
+func setActionInvocationProgressTrigger(msg *stacks.StackChangeProgress_ActionInvocationProgress, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	}
+}
+
+// setActionInvocationPlannedTrigger sets the ActionTrigger oneof field on an ActionInvocationPlanned message.
+func setActionInvocationPlannedTrigger(msg *stacks.StackChangeProgress_ActionInvocationPlanned, component stackaddrs.AbsComponentInstance, trigger plans.ActionTrigger) {
+	switch trig := trigger.(type) {
+	case *plans.ResourceActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger{
+			ResourceActionTrigger: &stacks.StackChangeProgress_ResourceActionTrigger{
+				TriggeringResourceAddress: stacks.NewResourceInstanceInStackAddr(
+					stackaddrs.AbsResourceInstance{
+						Component: component,
+						Item:      trig.TriggeringResourceAddr,
+					},
+				),
+				TriggerEvent:            stacks.StackChangeProgress_ActionTriggerEvent(trig.TriggerEvent()),
+				ActionTriggerBlockIndex: int64(trig.ActionTriggerBlockIndex),
+				ActionsListIndex:        int64(trig.ActionsListIndex),
+			},
+		}
+	case *plans.InvokeActionTrigger:
+		msg.ActionTrigger = &stacks.StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger{
+			InvokeActionTrigger: &stacks.StackChangeProgress_InvokeActionTrigger{},
+		}
+	}
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {

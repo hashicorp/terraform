@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -76,7 +76,7 @@ type Applyable interface {
 
 // ApplyableComponentInstance is an interface that represents a single instance
 // of a component that can be applied. This is going to be a ComponentInstance
-// or a RemovedInstance.
+// or a RemovedComponentInstance.
 type ApplyableComponentInstance interface {
 	ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]
 
@@ -89,7 +89,7 @@ type ApplyableComponentInstance interface {
 	// for the case where the apply operation was skipped. This is used to
 	// ensure that the apply operation always returns a result, even if it
 	// didn't actually do anything.
-	PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult
+	PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult
 }
 
 func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
@@ -112,9 +112,9 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// This is the result to return along with any errors that prevent us from
 	// even starting the modules runtime apply phase. It reports that nothing
 	// changed at all.
-	noOpResult := inst.PlaceholderApplyResultForSkippedApply(ctx, plan)
+	noOpResult := inst.PlaceholderApplyResultForSkippedApply(plan)
 
-	stackPlan := main.PlanBeingApplied().Components.Get(inst.Addr())
+	stackPlan := main.PlanBeingApplied().GetComponent(inst.Addr())
 
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects
@@ -126,6 +126,24 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
+
+	// Fire PENDING status for all planned action invocations
+	// These actions are queued and ready to execute during the apply phase
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		for _, action := range plan.Changes.ActionInvocations {
+			absActionAddr := stackaddrs.AbsActionInvocationInstance{
+				Component: inst.Addr(),
+				Item:      action.Addr,
+			}
+
+			hookMore(ctx, seq, h.ReportActionInvocationStatus, &hooks.ActionInvocationStatusHookData{
+				Addr:         absActionAddr,
+				ProviderAddr: action.ProviderAddr.Provider,
+				Status:       hooks.ActionInvocationPending,
+				Trigger:      action.ActionTrigger,
+			})
+		}
+	}
 
 	moduleTree := inst.ModuleTree(ctx)
 	if moduleTree == nil {
@@ -159,7 +177,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		providerFactories[addr] = func() (providers.Interface, error) {
 			// Lazily fetch the unconfigured client for the provider
 			// as and when we need it.
-			provider, err := main.ProviderType(ctx, addr).UnconfiguredClient()
+			provider, err := main.ProviderType(addr).UnconfiguredClient()
 			if err != nil {
 				return nil, err
 			}
@@ -174,6 +192,15 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		hooks: hooksFromContext(ctx),
 		addr:  inst.Addr(),
 	}
+
+	// Populate action invocation provider address map for hook callbacks
+	if plan.Changes != nil && len(plan.Changes.ActionInvocations) > 0 {
+		tfHook.actionInvocationProviderAddr = addrs.MakeMap[addrs.AbsActionInstance, addrs.Provider]()
+		for _, action := range plan.Changes.ActionInvocations {
+			tfHook.actionInvocationProviderAddr.Put(action.Addr, action.ProviderAddr.Provider)
+		}
+	}
+
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
 			tfHook,
@@ -201,7 +228,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			Severity: hcl.DiagError,
 			Summary:  "Cannot apply component plan",
 			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", inst.Addr()),
-			Subject:  inst.DeclRange(ctx),
+			Subject:  inst.DeclRange(),
 		})
 		return nil, diags
 	}
@@ -228,7 +255,8 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
-			ExternalProviders: providerClients,
+			ExternalProviders:         providerClients,
+			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
 	} else {

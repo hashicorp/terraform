@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -13,10 +13,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
+	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -77,7 +79,7 @@ type BuiltinEvalContext struct {
 	InputValue              UIInput
 	ProviderCache           map[string]providers.Interface
 	ProviderFuncCache       map[string]providers.Interface
-	ProviderFuncResults     *providers.FunctionResults
+	FunctionResults         *lang.FunctionResults
 	ProviderInputConfig     map[string]map[string]cty.Value
 	ProviderLock            *sync.Mutex
 	ProvisionerCache        map[string]provisioners.Interface
@@ -91,6 +93,8 @@ type BuiltinEvalContext struct {
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
+	ActionsValue            *actions.Actions
+	DeprecationsValue       *deprecation.Deprecations
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -327,6 +331,23 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 	return val, body, diags
 }
 
+// EvaluateBlockForProvider is a workaround to allow providers to access a more
+// ephemeral context, where filesystem functions can return inconsistent
+// results. Prior to ephemeral values, some configurations were using this
+// loophole to inject different credentials between plan and apply. This
+// exception is not added to the EvalContext interface, so in order to access
+// this workaround the context type must be asserted as BuiltinEvalContext.
+func (ctx *BuiltinEvalContext) EvaluateBlockForProvider(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	scope := ctx.EvaluationScope(self, nil, keyData)
+	scope.ForProvider = true
+	body, evalDiags := scope.ExpandBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	val, evalDiags := scope.EvalBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	return val, body, diags
+}
+
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
@@ -406,6 +427,27 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	default:
 		return nil, false, diags
 	}
+
+	// Validate the attribute reference against the target resource's schema.
+	// We use schema-based validation rather than value-based validation because
+	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
+	// actual type can change between plans. Schema validation ensures we only
+	// error on truly invalid attribute references.
+	// We use change.ProviderAddr rather than resolving from config because
+	// the provider configuration may not be local to the current module.
+	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
+	if err == nil {
+		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
+		if schema.Body != nil {
+			moreDiags := schema.Body.StaticValidateTraversal(ref.Remaining)
+			diags = diags.Append(moreDiags)
+			if diags.HasErrors() {
+				return nil, false, diags
+			}
+		}
+	}
+	// If we couldn't get the schema, we skip validation and let the value
+	// comparison below handle it. This is a graceful degradation for edge cases.
 
 	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
@@ -510,7 +552,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
 		funcs := ret.Provider[localName]
 		for name, decl := range funcDecls {
-			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.ProviderFuncResults, func() (providers.Interface, error) {
+			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.FunctionResults, func() (providers.Interface, error) {
 				return ctx.functionProvider(providerAddr)
 			})
 		}
@@ -619,4 +661,12 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (ctx *BuiltinEvalContext) Actions() *actions.Actions {
+	return ctx.ActionsValue
+}
+
+func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {
+	return ctx.DeprecationsValue
 }

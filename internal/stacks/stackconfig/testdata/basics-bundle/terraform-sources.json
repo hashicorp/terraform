@@ -15,6 +15,21 @@
             "source": "git::https://example.com/errored.git",
             "local": "errored",
             "meta": {}
+        },
+        {
+            "source": "git::https://example.com/errored-sources.git",
+            "local": "errored-sources",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/deprecated.git",
+            "local": "deprecated",
+            "meta": {}
+        },
+        {
+            "source": "git::https://example.com/builtin.git",
+            "local": "builtin",
+            "meta": {}
         }
     ],
     "registry": [

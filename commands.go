@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package main
@@ -115,7 +115,7 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
 
@@ -276,11 +276,28 @@ func initCommands(
 			}, nil
 		},
 
+		"query": func() (cli.Command, error) {
+			return &command.QueryCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
 				Meta: meta,
 			}, nil
 		},
+
+		// "rpcapi" is handled a bit differently because the whole point of
+		// this interface is to bypass the CLI layer so wrapping automation can
+		// get as-direct-as-possible access to Terraform Core functionality,
+		// without interference from behaviors that are intended for CLI
+		// end-user convenience. We bypass the "command" package entirely
+		// for this command in particular.
+		"rpcapi": rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
+			ExperimentsAllowed: meta.AllowExperimentalFeatures,
+			ShutdownCh:         meta.ShutdownCh,
+		}),
 
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
@@ -425,6 +442,12 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		"stacks": func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	if meta.AllowExperimentalFeatures {
@@ -434,16 +457,11 @@ func initCommands(
 			}, nil
 		}
 
-		// "rpcapi" is handled a bit differently because the whole point of
-		// this interface is to bypass the CLI layer so wrapping automation can
-		// get as-direct-as-possible access to Terraform Core functionality,
-		// without interference from behaviors that are intended for CLI
-		// end-user convenience. We bypass the "command" package entirely
-		// for this command in particular.
-		Commands["rpcapi"] = rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
-			ExperimentsAllowed: meta.AllowExperimentalFeatures,
-			ShutdownCh:         meta.ShutdownCh,
-		})
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
+				Meta: meta,
+			}, nil
+		}
 	}
 
 	PrimaryCommands = []string{

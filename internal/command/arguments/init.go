@@ -1,9 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package arguments
 
 import (
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -73,12 +74,21 @@ type Init struct {
 	PluginPath FlagStringSlice
 
 	Args []string
+
+	// The -enable-pluggable-state-storage-experiment flag is used in control flow logic in the init command.
+	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
+	// experimental
+	EnablePssExperiment bool
+
+	// CreateDefaultWorkspace indicates whether the default workspace should be created by
+	// Terraform when initializing a state store for the first time.
+	CreateDefaultWorkspace bool
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
+func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	init := &Init{
 		Vars: &Vars{},
@@ -106,6 +116,10 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
+	cmdFlags.BoolVar(&init.CreateDefaultWorkspace, "create-default-workspace", true, "when -input=false, use this flag to block creation of the default workspace")
+
+	// Used for enabling experimental code that's invoked before configuration is parsed.
+	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -113,6 +127,46 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if v := os.Getenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE"); v != "" {
+		init.EnablePssExperiment = true
+	}
+
+	if v := os.Getenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE"); v != "" {
+		// If TF_SKIP_CREATE_DEFAULT_WORKSPACE is set it will override
+		// a -create-default-workspace=true flag that's set explicitly,
+		// as that's indistinguishable from the default value being used.
+		init.CreateDefaultWorkspace = false
+	}
+
+	if !experimentsEnabled {
+		// If experiments aren't enabled then these flags should not be used.
+		if init.EnablePssExperiment {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -enable-pluggable-state-storage-experiment flag without experiments enabled",
+				"Terraform cannot use the -enable-pluggable-state-storage-experiment flag (or TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable) unless experiments are enabled.",
+			))
+		}
+		if !init.CreateDefaultWorkspace {
+			// Can only be set to false by using the flag
+			// and we cannot identify if -create-default-workspace=true is set explicitly.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -create-default-workspace flag without experiments enabled",
+				"Terraform cannot use the -create-default-workspace flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless experiments are enabled.",
+			))
+		}
+	} else {
+		// Errors using flags despite experiments being enabled.
+		if !init.CreateDefaultWorkspace && !init.EnablePssExperiment {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
+				"Terraform cannot use the -create-default-workspace=false flag (or TF_SKIP_CREATE_DEFAULT_WORKSPACE environment variable) unless you also supply the -enable-pluggable-state-storage-experiment flag (or set the TF_ENABLE_PLUGGABLE_STATE_STORAGE environment variable).",
+			))
+		}
 	}
 
 	if init.MigrateState && init.Json {

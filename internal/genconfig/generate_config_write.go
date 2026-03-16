@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package genconfig
@@ -69,7 +69,7 @@ func (c *Change) MaybeWriteConfig(writer io.Writer, out string) (io.Writer, bool
 			header += fmt.Sprintf(" from %q", c.ImportID)
 		}
 		header += "\n"
-		if _, err := writer.Write([]byte(fmt.Sprintf("%s%s\n", header, c.GeneratedConfig))); err != nil {
+		if _, err := writer.Write(fmt.Appendf(nil, "%s%s\n", header, c.GeneratedConfig)); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Failed to save generated config",

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package moduletest
@@ -42,4 +42,14 @@ func (f *File) GetStatus() Status {
 	f.Lock()
 	defer f.Unlock()
 	return f.Status
+}
+
+func (f *File) AppendDiagnostics(diags tfdiags.Diagnostics) {
+	f.Lock()
+	defer f.Unlock()
+	f.Diagnostics = f.Diagnostics.Append(diags)
+
+	if diags.HasErrors() {
+		f.Status = f.Status.Merge(Error)
+	}
 }

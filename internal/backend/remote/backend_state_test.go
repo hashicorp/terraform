@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package remote
@@ -30,14 +30,14 @@ func TestRemoteClient_stateLock(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
-	s2, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	s2, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
@@ -47,12 +47,12 @@ func TestRemoteClient_Unlock_invalidID(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
-	err = s1.Unlock("no")
+	err := s1.Unlock("no")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -66,9 +66,9 @@ func TestRemoteClient_Unlock(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	s1, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
 	id, err := s1.Lock(&statemgr.LockInfo{
@@ -100,7 +100,7 @@ func TestRemoteClient_Put_withRunID(t *testing.T) {
 
 	// Store the new state to verify (this will be done
 	// by the mock that is used) that the run ID is set.
-	if err := client.Put(buf.Bytes()); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if diags := client.Put(buf.Bytes()); diags.HasErrors() {
+		t.Fatalf("expected no error, got %v", diags.Err())
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackmigrate
@@ -15,7 +15,6 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote"
-	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/states"
@@ -113,9 +112,9 @@ func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostic
 
 	// The backend is initialised and configured, so now we can load the state
 	// from the backend.
-	stateManager, err := backend.StateMgr(workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading state: %s", err))
+	stateManager, sDiags := backend.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("error loading state: %s", sDiags.Err()))
 		return state, diags
 	}
 
@@ -153,7 +152,7 @@ func (l *Loader) loadWorkingDir(configPath string) (*workdir.Dir, string, error)
 	if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
 		workingDirectory.OverrideDataDir(data)
 	}
-	meta := &command.Meta{WorkingDir: workingDirectory}
+	meta := Meta{WorkingDir: workingDirectory}
 
 	// Load the currently active workspace from the environment, defaulting
 	// to the default workspace if not set.

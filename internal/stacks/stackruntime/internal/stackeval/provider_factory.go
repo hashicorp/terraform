@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -54,7 +54,7 @@ func (p unconfigurableProvider) Close() error {
 	return nil
 }
 
-func (p unconfigurableProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (p unconfigurableProvider) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// the real provider should either already have been configured by the time
 	// we get here or should never get configured, so we should never see this
 	// method called.

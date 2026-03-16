@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -23,7 +23,7 @@ func TestApply_destroy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -127,7 +127,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Create some existing state
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -151,9 +151,9 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "no",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -195,7 +195,7 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Create some existing state
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -219,9 +219,9 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "yes",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -266,7 +266,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -324,7 +324,7 @@ func TestApply_destroyPlan(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	planPath := testPlanFileNoop(t)
 
@@ -356,7 +356,7 @@ func TestApply_destroyPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := applyFixtureProvider()
 
@@ -390,7 +390,7 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -524,7 +524,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(

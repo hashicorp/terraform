@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "query: support offline validation of query files via -query flag in the validate command"
+time: 2025-09-25T15:12:37.198573+02:00
+custom:
+  Issue: "37671"

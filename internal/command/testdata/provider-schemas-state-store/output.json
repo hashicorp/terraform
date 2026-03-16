@@ -1,0 +1,105 @@
+{
+    "format_version": "1.0",
+    "provider_schemas": {
+        "registry.terraform.io/hashicorp/baz": {
+            "provider": {
+                "version": 0,
+                "block": {
+                    "attributes": {
+                        "region": {
+                            "description_kind": "plain",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    },
+                    "description_kind": "plain"
+                }
+            },
+            "resource_schemas": {
+                "test_instance": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "id": {
+                                "type": "string",
+                                "computed": true,
+                                "description_kind": "plain"
+                            },
+                            "input": {
+                                "description_kind": "plain",
+                                "optional": true,
+                                "type": "string"
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "state_store_schemas": {
+                "test_store": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "value": {
+                                "description_kind": "plain",
+                                "required": true,
+                                "type": "string"
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            }
+        },
+        "registry.terraform.io/hashicorp/test": {
+            "provider": {
+                "version": 0,
+                "block": {
+                    "attributes": {
+                        "region": {
+                            "description_kind": "plain",
+                            "optional": true,
+                            "type": "string"
+                        }
+                    },
+                    "description_kind": "plain"
+                }
+            },
+            "resource_schemas": {
+                "test_instance": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "id": {
+                                "type": "string",
+                                "computed": true,
+                                "description_kind": "plain"
+                            },
+                            "input": {
+                                "description_kind": "plain",
+                                "optional": true,
+                                "type": "string"
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "state_store_schemas": {
+                "test_store": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "value": {
+                                "description_kind": "plain",
+                                "required": true,
+                                "type": "string"
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            }
+        }
+    }
+}

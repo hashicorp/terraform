@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package repl
@@ -20,10 +20,10 @@ func FormatValue(v cty.Value, indent int) string {
 	if !v.IsKnown() {
 		return "(known after apply)"
 	}
-	if v.HasMark(marks.Sensitive) {
+	if marks.Has(v, marks.Sensitive) {
 		return "(sensitive value)"
 	}
-	if v.HasMark(marks.Ephemeral) {
+	if marks.Has(v, marks.Ephemeral) {
 		return "(ephemeral value)"
 	}
 	if v.IsNull() {

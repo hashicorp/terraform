@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -32,6 +32,11 @@ func TestSourceAvailableVersions(t *testing.T) {
 			"example.com/awesomesauce/happycloud",
 			[]string{"0.1.0", "1.0.0", "1.2.0", "2.0.0"},
 			``,
+		},
+		{
+			"example.com/awesomesauce/invalidsemver",
+			[]string{"0.1.0", "1.0.0"},
+			``, // No error expected as invalid semvers are just logged and skipped
 		},
 		{
 			"example.com/weaksauce/no-versions",

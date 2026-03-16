@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -29,9 +29,12 @@ import (
 type ModuleVariableTransformer struct {
 	Config *configs.Config
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ModuleOnly, if true, makes the transformer only process the
+	// variables in the current module, skipping any child modules.
+	ModuleOnly bool
+
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for child module variables
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -39,7 +42,11 @@ type ModuleVariableTransformer struct {
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
-	return t.transform(g, nil, t.Config)
+	if t.ModuleOnly && t.Config.Parent != nil {
+		return t.transformSingle(g, t.Config.Parent, t.Config)
+	} else {
+		return t.transform(g, nil, t.Config)
+	}
 }
 
 func (t *ModuleVariableTransformer) transform(g *Graph, parent, c *configs.Config) error {
@@ -114,11 +121,11 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Module:       c.Path,
-			Config:       v,
-			Expr:         expr,
-			Planning:     t.Planning,
-			DestroyApply: t.DestroyApply,
+			Module:         c.Path,
+			Config:         v,
+			Expr:           expr,
+			ValidateChecks: t.ValidateChecks,
+			DestroyApply:   t.DestroyApply,
 		}
 		g.Add(node)
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -53,6 +53,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 		v.Ephemeral = ov.Ephemeral
 		v.EphemeralSet = ov.EphemeralSet
 	}
+	if ov.ConstSet {
+		v.Const = ov.Const
+		v.ConstSet = ov.ConstSet
+	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
 	}
@@ -77,7 +81,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	// but in particular might be user-observable in the edge case where the
 	// literal value in config could've been converted to the overridden type
 	// constraint but the converted value cannot. In practice, this situation
-	// should be rare since most of our conversions are interchangable.
+	// should be rare since most of our conversions are interchangeable.
 	if v.Default != cty.NilVal {
 		val, err := convert.Convert(v.Default, v.ConstraintType)
 		if err != nil {
@@ -174,11 +178,8 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	if omc.SourceSet {
-		mc.SourceAddr = omc.SourceAddr
-		mc.SourceAddrRaw = omc.SourceAddrRaw
-		mc.SourceAddrRange = omc.SourceAddrRange
-		mc.SourceSet = omc.SourceSet
+	if omc.SourceExpr != nil {
+		mc.SourceExpr = omc.SourceExpr
 	}
 
 	if omc.Count != nil {
@@ -189,8 +190,8 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.ForEach = omc.ForEach
 	}
 
-	if len(omc.Version.Required) != 0 {
-		mc.Version = omc.Version
+	if omc.VersionExpr != nil {
+		mc.VersionExpr = omc.VersionExpr
 	}
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
@@ -263,6 +264,9 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		if len(or.Managed.Provisioners) != 0 {
 			r.Managed.Provisioners = or.Managed.Provisioners
 		}
+		if len(or.Managed.ActionTriggers) != 0 {
+			r.Managed.ActionTriggers = or.Managed.ActionTriggers
+		}
 	}
 
 	r.Config = MergeBodies(r.Config, or.Config)
@@ -277,6 +281,31 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 			Subject:  or.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
 		})
 	}
+
+	return diags
+}
+
+// Actions
+func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if oa.Count != nil {
+		a.Count = oa.Count
+	}
+	if oa.ForEach != nil {
+		a.ForEach = oa.ForEach
+	}
+
+	if oa.ProviderConfigRef != nil {
+		a.ProviderConfigRef = oa.ProviderConfigRef
+		if existing, exists := rps[oa.ProviderConfigRef.Name]; exists {
+			a.Provider = existing.Type
+		} else {
+			a.Provider = addrs.ImpliedProviderForUnqualifiedType(a.ProviderConfigRef.Name)
+		}
+	}
+
+	a.Config = MergeBodies(a.Config, oa.Config)
 
 	return diags
 }

@@ -1,13 +1,16 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // WorkspaceCommand is a Command Implementation that manipulates workspaces,
@@ -45,6 +48,9 @@ func (c *WorkspaceCommand) Synopsis() string {
 // Since most named states are accessed via a filesystem path or URL, check if
 // escaping the name would be required.
 func validWorkspaceName(name string) bool {
+	if name == "" {
+		return false
+	}
 	return name == url.PathEscape(name)
 }
 
@@ -100,7 +106,7 @@ to another workspace and try again.
 
 	envInvalidName = `
 The workspace name %q is not allowed. The name must contain only URL safe
-characters, and no path separators.
+characters, contain no path separators, and not be an empty string.
 `
 
 	envIsOverriddenNote = `
@@ -126,3 +132,33 @@ to match the workspace name you are trying to create, and then run this command
 again.
 `
 )
+
+// warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
+// and provides guidance about how to create the workspace based on whether the workspace is
+// custom or not.
+func warnNoEnvsExistDiag(currentWorkspace string) tfdiags.Diagnostic {
+	summary := "Terraform cannot find any existing workspaces."
+
+	if currentWorkspace == backend.DefaultStateName {
+		// Recommended actions for the user includes running `init` if they're using the default workspace.
+		msg := fmt.Sprintf(
+			"The %q workspace is selected in your working directory. You can create this workspace by running \"terraform init\", by using the \"terraform workspace new\" subcommand or by including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
+			currentWorkspace,
+		)
+		return tfdiags.Sourceless(
+			tfdiags.Warning,
+			summary,
+			msg,
+		)
+	}
+
+	msg := fmt.Sprintf(
+		"The %q workspace is selected in your working directory. You can create this workspace by using the \"terraform workspace new\" subcommand or including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
+		currentWorkspace,
+	)
+	return tfdiags.Sourceless(
+		tfdiags.Warning,
+		summary,
+		msg,
+	)
+}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configload
@@ -6,9 +6,10 @@ package configload
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 
 	version "github.com/hashicorp/go-version"
@@ -19,26 +20,16 @@ import (
 	"github.com/hashicorp/terraform/internal/modsdir"
 )
 
-// LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
-// creates an in-memory snapshot of the configuration files used, which can
-// be later used to create a loader that may read only from this snapshot.
-func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snapshot, hcl.Diagnostics) {
-	rootMod, diags := l.parser.LoadConfigDir(rootDir)
-	if rootMod == nil {
-		return nil, nil, diags
-	}
-
+func (l *Loader) ModuleWalkerSnapshot() (configs.ModuleWalker, *Snapshot) {
 	snap := &Snapshot{
 		Modules: map[string]*SnapshotModule{},
 	}
-	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
-	diags = append(diags, cDiags...)
 
-	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
-	diags = append(diags, addDiags...)
+	return l.makeModuleWalkerSnapshot(snap), snap
+}
 
-	return cfg, snap, diags
+func (l *Loader) AddRootModuleToSnapshot(snap *Snapshot, rootDir string) hcl.Diagnostics {
+	return l.addModuleToSnapshot(snap, "", rootDir, "", nil)
 }
 
 // NewLoaderFromSnapshot creates a Loader that reads files only from the
@@ -257,11 +248,7 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 		modDir := filepath.Clean(candidate.Dir)
 		if modDir == directDir {
 			// We've matched the module directory itself
-			filenames := make([]string, 0, len(candidate.Files))
-			for n := range candidate.Files {
-				filenames = append(filenames, n)
-			}
-			sort.Strings(filenames)
+			filenames := slices.Sorted(maps.Keys(candidate.Files))
 			return &snapshotDir{
 				filenames: filenames,
 			}, nil

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2e
@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +16,13 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+)
+
+var (
+	// TestExperimentFlag is the name of the environment variable that
+	// can be set to built a terraform binary with experimental features enabled.
+	// Any value besides "false" or an empty string will enable the feature.
+	TestExperimentFlag = "TF_TEST_EXPERIMENTS"
 )
 
 // Type binary represents the combination of a compiled binary
@@ -170,7 +176,7 @@ func (b *binary) OpenFile(path ...string) (*os.File, error) {
 // directory.
 func (b *binary) ReadFile(path ...string) ([]byte, error) {
 	flatPath := b.Path(path...)
-	return ioutil.ReadFile(flatPath)
+	return os.ReadFile(flatPath)
 }
 
 // FileExists is a helper for easily testing whether a particular file
@@ -240,7 +246,7 @@ func (b *binary) SetLocalState(state *states.State) error {
 
 func GoBuild(pkgPath, tmpPrefix string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
-	tmpFile, err := ioutil.TempFile(dir, prefix)
+	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		panic(err)
 	}
@@ -249,11 +255,12 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 		panic(err)
 	}
 
-	cmd := exec.Command(
-		"go", "build",
-		"-o", tmpFilename,
-		pkgPath,
-	)
+	args := []string{"build", "-o", tmpFilename}
+	if exp := os.Getenv(TestExperimentFlag); exp != "" && exp != "false" {
+		args = append(args, "-ldflags", "-X 'main.experimentsAllowed=yes'")
+	}
+	args = append(args, pkgPath)
+	cmd := exec.Command("go", args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 

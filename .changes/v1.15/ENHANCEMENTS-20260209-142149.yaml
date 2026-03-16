@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Deprecation messages providers set on resources / blocks / attributes are now part of the deprecation warning
+time: 2026-02-09T14:21:49.076863+01:00
+custom:
+    Issue: "38135"

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`state show`: The `state show` command will now explicitly fail and return code 1 when it fails to render the named resources state'
+time: 2025-11-21T18:30:45.571448Z
+custom:
+    Issue: "37933"

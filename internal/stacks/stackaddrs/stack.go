@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackaddrs
@@ -67,6 +67,17 @@ func (s Stack) String() string {
 
 func (s Stack) UniqueKey() collections.UniqueKey[Stack] {
 	return stackUniqueKey(s.String())
+}
+
+// ToStackCall converts the stack address into the absolute address of the stack
+// call that would create this stack.
+func (s Stack) ToStackCall() ConfigStackCall {
+	return ConfigStackCall{
+		Stack: s.Parent(),
+		Item: StackCall{
+			Name: s[len(s)-1].Name,
+		},
+	}
 }
 
 type stackUniqueKey string

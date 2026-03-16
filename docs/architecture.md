@@ -43,7 +43,7 @@ object that describes an action to be taken.
 An _operation_ consists of:
 
 * The action to be taken (e.g. "plan", "apply").
-* The name of the [workspace](https://www.terraform.io/docs/state/workspaces.html)
+* The name of the [workspace](https://developer.hashicorp.com/terraform/language/state/workspaces)
   where the action will be taken.
 * Root module input variables to use for the action.
 * For the "plan" operation, a path to the directory containing the configuration's root module.

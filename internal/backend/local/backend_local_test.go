@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -34,7 +34,7 @@ func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -65,7 +65,7 @@ func TestLocalRun_error(t *testing.T) {
 	// should then cause LocalRun to return with the state unlocked.
 	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -92,7 +92,7 @@ func TestLocalRun_cloudPlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	planPath := "./testdata/plan-bookmark/bookmark.json"
@@ -127,7 +127,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3
@@ -140,9 +140,9 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	}
 
 	// Refresh the state
-	sm, err := b.StateMgr("")
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
+	sm, sDiags := b.StateMgr("")
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
 	}
 	if err := sm.RefreshState(); err != nil {
 		t.Fatalf("unexpected error refreshing state: %s", err)
@@ -160,9 +160,10 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	plan := &plans.Plan{
 		UIMode:  plans.NormalMode,
 		Changes: plans.NewChangesSrc(),
-		Backend: plans.Backend{
-			Type:   "local",
-			Config: backendConfigRaw,
+		Backend: &plans.Backend{
+			Type:      "local",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		PrevRunState: states.NewState(),
 		PriorState:   states.NewState(),
@@ -214,7 +215,7 @@ type backendWithStateStorageThatFailsRefresh struct {
 
 var _ backend.Backend = backendWithStateStorageThatFailsRefresh{}
 
-func (b backendWithStateStorageThatFailsRefresh) StateMgr(workspace string) (statemgr.Full, error) {
+func (b backendWithStateStorageThatFailsRefresh) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics) {
 	return &stateStorageThatFailsRefresh{}, nil
 }
 
@@ -230,11 +231,11 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
-	return fmt.Errorf("unimplemented")
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(fmt.Errorf("unimplemented"))
 }
 
-func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, error) {
+func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, tfdiags.Diagnostics) {
 	return []string{"default"}, nil
 }
 

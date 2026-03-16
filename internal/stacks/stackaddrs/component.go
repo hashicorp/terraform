@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackaddrs
@@ -39,6 +39,16 @@ type ConfigComponent = InStackConfig[Component]
 
 // AbsComponent places a [Component] in the context of a particular [StackInstance].
 type AbsComponent = InStackInstance[Component]
+
+func AbsComponentToInstance(ist AbsComponent, ik addrs.InstanceKey) AbsComponentInstance {
+	return AbsComponentInstance{
+		Stack: ist.Stack,
+		Item: ComponentInstance{
+			Component: ist.Item,
+			Key:       ik,
+		},
+	}
+}
 
 // ComponentInstance is the address of a dynamic instance of a component.
 type ComponentInstance struct {

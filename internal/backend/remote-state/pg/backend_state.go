@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package pg
@@ -10,13 +10,16 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	query := `SELECT name FROM %s.%s WHERE name != 'default' ORDER BY name`
 	rows, err := b.db.Query(fmt.Sprintf(query, b.schemaName, statesTableName))
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 	defer rows.Close()
 
@@ -27,32 +30,36 @@ func (b *Backend) Workspaces() ([]string, error) {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 		result = append(result, name)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
-	return result, nil
+	return result, diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	query := `DELETE FROM %s.%s WHERE name = $1`
 	_, err := b.db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName), name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return nil
+	return diags
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	// Build the state client
 	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
@@ -65,9 +72,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Check to see if this state already exists.
 	// If the state doesn't exist, we have to assume this
 	// is a normal create operation, and take the lock at that point.
-	existing, err := b.Workspaces()
-	if err != nil {
-		return nil, err
+	existing, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		return nil, diags
 	}
 
 	exists := false
@@ -86,7 +94,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := stateMgr.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock state in Postgres: %s", err)
+			return nil, diags.Append(fmt.Errorf("failed to lock state in Postgres: %s", err))
 		}
 
 		// Local helper function so we can call it multiple places
@@ -100,19 +108,19 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		if v := stateMgr.State(); v == nil {
 			if err := stateMgr.WriteState(states.NewState()); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }

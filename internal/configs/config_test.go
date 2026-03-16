@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -29,7 +29,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		t.Fatal("expected empty result from empty config")
 	}
 
-	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleFromFileWithExperiments("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -37,6 +37,7 @@ func TestConfigProviderTypes(t *testing.T) {
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
 		addrs.NewDefaultProvider("aws"),
+		addrs.NewDefaultProvider("external"),
 		addrs.NewDefaultProvider("local"),
 		addrs.NewDefaultProvider("null"),
 		addrs.NewDefaultProvider("template"),
@@ -578,5 +579,21 @@ func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
 		`testdata/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
+	})
+}
+
+func TestConfigActionInResourceDependsOn(t *testing.T) {
+	src, err := os.ReadFile("testdata/invalid-modules/action-in-depends_on/action-in-resource-depends_on.tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parser := testParser(map[string]string{
+		"main.tf": string(src),
+	})
+
+	_, diags := parser.LoadConfigFile("main.tf")
+	assertExactDiagnostics(t, diags, []string{
+		`main.tf:5,17-42: Invalid depends_on Action Reference; The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.`,
 	})
 }

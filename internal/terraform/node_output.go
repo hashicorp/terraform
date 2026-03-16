@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -40,6 +40,13 @@ type nodeExpandOutput struct {
 	// details.
 	Planning bool
 
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
+
 	// Overrides is the set of overrides applied by the testing framework. We
 	// may need to override the value for this output and if we do the value
 	// comes from here.
@@ -55,10 +62,7 @@ var (
 	_ GraphNodeDynamicExpandable  = (*nodeExpandOutput)(nil)
 	_ graphNodeTemporaryValue     = (*nodeExpandOutput)(nil)
 	_ GraphNodeAttachDependencies = (*nodeExpandOutput)(nil)
-	_ graphNodeExpandsInstances   = (*nodeExpandOutput)(nil)
 )
-
-func (n *nodeExpandOutput) expandsInstances() {}
 
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// non root outputs are temporary
@@ -128,14 +132,15 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 
 			default:
 				node = &NodeApplyableOutput{
-					Addr:         absAddr,
-					Config:       n.Config,
-					Change:       change,
-					RefreshOnly:  n.RefreshOnly,
-					DestroyApply: n.Destroying,
-					Planning:     n.Planning,
-					Override:     n.getOverrideValue(absAddr.Module),
-					Dependencies: n.Dependencies,
+					Addr:                      absAddr,
+					Config:                    n.Config,
+					Change:                    change,
+					RefreshOnly:               n.RefreshOnly,
+					DestroyApply:              n.Destroying,
+					Planning:                  n.Planning,
+					Override:                  n.getOverrideValue(absAddr.Module),
+					Dependencies:              n.Dependencies,
+					AllowRootEphemeralOutputs: n.AllowRootEphemeralOutputs,
 				}
 			}
 
@@ -283,6 +288,13 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 var (
@@ -394,7 +406,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		val = n.Change.After
 	}
 
-	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+	if (n.Addr.Module.IsRoot() && n.Config.Ephemeral) && !n.AllowRootEphemeralOutputs {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Ephemeral output not allowed",
@@ -496,18 +508,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// "flagWarnOutputErrors", because they relate to features that were added
 	// more recently than the historical change to treat invalid output values
 	// as errors rather than warnings.
-	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
-		// An ephemeral output value must always be ephemeral
-		// This is to prevent accidental persistence upstream
-		// from here.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Value not allowed in ephemeral output",
-			Detail:   "This output value is declared as returning an ephemeral value, so it can only be set to an ephemeral value.",
-			Subject:  n.Config.Expr.Range().Ptr(),
-		})
-		return diags
-	} else if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
+	if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Ephemeral value not allowed",
@@ -515,6 +516,22 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			Subject:  n.Config.Expr.Range().Ptr(),
 		})
 		return diags
+	}
+
+	if n.Config.DeprecatedSet {
+		val = marks.RemoveDeprecationMarksDeep(val)
+		if n.Addr.Module.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Root module output deprecated",
+				Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
+				Subject:  n.Config.DeprecatedRange.Ptr(),
+			})
+		}
+	} else if n.Config.Expr != nil {
+		var deprecationDiags tfdiags.Diagnostics
+		val, deprecationDiags = ctx.Deprecations().ValidateExpressionDeepAndUnmark(val, n.ModulePath(), n.Config.Expr)
+		diags = diags.Append(deprecationDiags)
 	}
 
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
@@ -756,15 +773,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		changes.RemoveOutputChange(n.Addr)
 	}
 
-	// Null outputs must be saved for modules so that they can still be
-	// evaluated. Null root outputs are removed entirely, which is always fine
-	// because they can't be referenced by anything else in the configuration.
-	if n.Addr.Module.IsRoot() && val.IsNull() {
-		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
-		state.RemoveOutputValue(n.Addr)
-		return
-	}
-
 	// caller leaves namedVals nil if they've already called this function
 	// with a different state, since we only have one namedVals regardless
 	// of how many states are involved in an operation.
@@ -776,6 +784,15 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			saveVal = saveVal.Mark(marks.Ephemeral)
 		}
 		namedVals.SetOutputValue(n.Addr, saveVal)
+	}
+
+	// Null outputs must be saved for modules so that they can still be
+	// evaluated. Null root outputs are removed entirely, which is always fine
+	// because they can't be referenced by anything else in the configuration.
+	if n.Addr.Module.IsRoot() && val.IsNull() {
+		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
+		state.RemoveOutputValue(n.Addr)
+		return
 	}
 
 	// Non-ephemeral output values get saved in the state too
@@ -797,6 +814,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 				val = cty.UnknownAsNull(val)
 			}
 		}
+		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
-	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }

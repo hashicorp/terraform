@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -63,8 +63,8 @@ func TestLocalValueValue(t *testing.T) {
 			})
 
 			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-				mainStack := main.MainStack(ctx)
-				rootVal := mainStack.LocalValue(ctx, stackaddrs.LocalValue{Name: test.LocalName})
+				mainStack := main.MainStack()
+				rootVal := mainStack.LocalValue(stackaddrs.LocalValue{Name: test.LocalName})
 				got, diags := rootVal.CheckValue(ctx, InspectPhase)
 
 				if diags.HasErrors() {

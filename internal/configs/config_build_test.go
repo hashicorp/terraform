@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -127,7 +126,7 @@ func TestBuildConfigDiags(t *testing.T) {
 	}
 }
 
-func TestBuildConfigChildModuleBackend(t *testing.T) {
+func TestBuildConfigChildModule_Backend(t *testing.T) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/nested-backend-warning")
 	assertNoDiagnostics(t, diags)
@@ -170,6 +169,49 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 	}
 }
 
+func TestBuildConfigChildModule_CloudBlock(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir("testdata/nested-cloud-warning")
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+			// For the sake of this test we're going to just treat our
+			// SourceAddr as a path relative to our fixture directory.
+			// A "real" implementation of ModuleWalker should accept the
+			// various different source address syntaxes Terraform supports.
+			sourcePath := filepath.Join("testdata/nested-cloud-warning", req.SourceAddr.String())
+
+			mod, diags := parser.LoadConfigDir(sourcePath)
+			version, _ := version.NewVersion("1.0.0")
+			return mod, version, diags
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
+
+	assertDiagnosticSummary(t, diags, "Cloud configuration ignored")
+
+	// we should still have module structure loaded
+	var got []string
+	cfg.DeepEach(func(c *Config) {
+		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
+	})
+	sort.Strings(got)
+	want := []string{
+		" <nil>",
+		"child 1.0.0",
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+	}
+}
+
 func TestBuildConfigInvalidModules(t *testing.T) {
 	testDir := "testdata/config-diagnostics"
 	dirs, err := ioutil.ReadDir(testDir)
@@ -182,8 +224,14 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join(testDir, name)
+			parser.AllowLanguageExperiments(true)
 
-			mod, diags := parser.LoadConfigDirWithTests(path, "tests")
+			opts := []Option{MatchTestFiles("tests")}
+			if name == "list-in-child-module" {
+				opts = append(opts, MatchQueryFiles())
+			}
+
+			mod, diags := parser.LoadConfigDir(path, opts...)
 			if diags.HasErrors() {
 				// these tests should only trigger errors that are caught in
 				// the config loader.
@@ -221,7 +269,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					// for simplicity, these tests will treat all source
 					// addresses as relative to the root module
 					sourcePath := filepath.Join(path, req.SourceAddr.String())
-					mod, diags := parser.LoadConfigDir(sourcePath)
+					mod, diags := parser.LoadConfigDir(sourcePath, opts...)
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
 				}),
@@ -344,19 +392,6 @@ func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
-	}
-
-	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
-
-	// This time we want to check that the mock data defined inline took
-	// precedence over the mock data defined in the data files.
-	defaults := provider.MockData.MockResources["aws_s3_bucket"].Defaults
-	expected := cty.ObjectVal(map[string]cty.Value{
-		"arn": cty.StringVal("aws:s3:::bucket"),
-	})
-
-	if !defaults.RawEquals(expected) {
-		t.Errorf("expected: %s\nactual:   %s", expected.GoString(), defaults.GoString())
 	}
 }
 

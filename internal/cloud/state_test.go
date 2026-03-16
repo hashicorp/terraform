@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -143,13 +143,13 @@ func TestCloudLocks(t *testing.T) {
 	back, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
-	a, err := back.StateMgr(testBackendSingleWorkspaceName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	a, sDiags := back.StateMgr(testBackendSingleWorkspaceName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
-	b, err := back.StateMgr(testBackendSingleWorkspaceName)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	b, sDiags := back.StateMgr(testBackendSingleWorkspaceName)
+	if sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
 	lockerA, ok := a.(statemgr.Locker)

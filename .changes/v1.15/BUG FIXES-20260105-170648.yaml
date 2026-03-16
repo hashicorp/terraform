@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: send progress events if the plan fails for better UI integration'
+time: 2026-01-05T17:06:48.252069+01:00
+custom:
+    Issue: "38039"

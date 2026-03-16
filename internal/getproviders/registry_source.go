@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -6,6 +6,7 @@ package getproviders
 import (
 	"context"
 	"fmt"
+	"log"
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	disco "github.com/hashicorp/terraform-svchost/disco"
@@ -68,10 +69,8 @@ func (s *RegistrySource) AvailableVersions(ctx context.Context, provider addrs.P
 	for str := range versionsResponse {
 		v, err := ParseVersion(str)
 		if err != nil {
-			return nil, nil, ErrQueryFailed{
-				Provider: provider,
-				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", str, err),
-			}
+			log.Printf("[WARN] registry response includes invalid version string %q. skipping: %s", str, err)
+			continue
 		}
 		ret = append(ret, v)
 	}

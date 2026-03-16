@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -13,6 +13,7 @@ type hclDiagnostic struct {
 }
 
 var _ Diagnostic = hclDiagnostic{}
+var _ ComparableDiagnostic = hclDiagnostic{}
 
 func (d hclDiagnostic) Severity() Severity {
 	switch d.diag.Severity {
@@ -75,13 +76,19 @@ func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 		return false
 	}
 
+	// we can't compare extra values without knowing what they are
+	if d.ExtraInfo() != nil || od.ExtraInfo() != nil {
+		return false
+	}
+
 	return true
 }
 
 func hclRangeEquals(l, r *hcl.Range) bool {
 	if l == nil || r == nil {
-		return l == r
+		return false
 	}
+
 	if l.Filename != r.Filename {
 		return false
 	}

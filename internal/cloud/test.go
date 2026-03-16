@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -61,7 +61,7 @@ type TestSuiteRunner struct {
 
 	// GlobalVariables are the variables provided by the TF_VAR_* environment
 	// variables and -var and -var-file flags.
-	GlobalVariables map[string]backendrun.UnparsedVariableValue
+	GlobalVariables map[string]arguments.UnparsedVariableValue
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -121,7 +121,7 @@ func (runner *TestSuiteRunner) Cancel() {
 	runner.Cancelled = true
 }
 
-func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner) Test(_ bool) (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	configDirectory, err := filepath.Abs(runner.ConfigDirectory)
@@ -354,7 +354,7 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 			return nil, nil, diags
 		}
 
-		token, err := cliConfigToken(addr.Package.Host, runner.Services)
+		token, err := CliConfigToken(addr.Package.Host, runner.Services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,

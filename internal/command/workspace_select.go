@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
 
@@ -42,15 +42,6 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	current, isOverridden := c.WorkspaceOverridden()
 	if isOverridden {
 		c.Ui.Error(envIsOverriddenSelectError)
@@ -58,11 +49,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	view := arguments.ViewHuman
+	b, diags := c.backend(configPath, view)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -81,11 +70,12 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	if name == current {
 		// already using this workspace
@@ -104,9 +94,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	if !found {
 		if orCreate {
-			_, err = b.StateMgr(name)
-			if err != nil {
-				c.Ui.Error(err.Error())
+			_, sDiags := b.StateMgr(name)
+			if sDiags.HasErrors() {
+				c.Ui.Error(sDiags.Err().Error())
 				return 1
 			}
 			newState = true

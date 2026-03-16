@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -25,7 +26,7 @@ type StateMeta struct {
 // the backend, but changes the way that backups are done. This configures
 // backups to be timestamped rather than just the original state path plus a
 // backup path.
-func (c *StateMeta) State() (statemgr.Full, error) {
+func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 	var realState statemgr.Full
 	backupPath := c.backupPath
 	stateOutPath := c.statePath
@@ -34,10 +35,11 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 	if c.statePath != "" {
 		realState = statemgr.NewFilesystem(c.statePath)
 	} else {
+
 		// Load the backend
-		b, backendDiags := c.Backend(nil)
-		if backendDiags.HasErrors() {
-			return nil, backendDiags.Err()
+		b, diags := c.backend(".", view)
+		if diags.HasErrors() {
+			return nil, diags.Err()
 		}
 
 		workspace, err := c.Workspace()
@@ -53,9 +55,9 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 		}
 
 		// Get the state
-		s, err := b.StateMgr(workspace)
-		if err != nil {
-			return nil, err
+		s, sDiags := b.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			return nil, sDiags.Err()
 		}
 
 		// Get a local backend

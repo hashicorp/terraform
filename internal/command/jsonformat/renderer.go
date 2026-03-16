@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
@@ -43,6 +43,10 @@ type JSONLog struct {
 	TestFatalInterrupt *viewsjson.TestFatalInterrupt `json:"test_interrupt,omitempty"`
 	TestState          *State                        `json:"test_state,omitempty"`
 	TestPlan           *Plan                         `json:"test_plan,omitempty"`
+
+	ListQueryStart    *viewsjson.QueryStart    `json:"list_start,omitempty"`
+	ListQueryResult   *viewsjson.QueryResult   `json:"list_resource_found,omitempty"`
+	ListQueryComplete *viewsjson.QueryComplete `json:"list_complete,omitempty"`
 }
 
 const (
@@ -78,6 +82,11 @@ const (
 	LogTestInterrupt JSONLogType = "test_interrupt"
 	LogTestStatus    JSONLogType = "test_status"
 	LogTestRetry     JSONLogType = "test_retry"
+
+	// Query Messages
+	LogListStart         JSONLogType = "list_start"
+	LogListResourceFound JSONLogType = "list_resource_found"
+	LogListComplete      JSONLogType = "list_complete"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -156,7 +165,10 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogTestRetry,
 		LogTestPlan,
 		LogTestState,
-		LogTestInterrupt:
+		LogTestInterrupt,
+		LogListStart,
+		LogListResourceFound,
+		LogListComplete:
 		// We won't display these types of logs
 		return nil
 

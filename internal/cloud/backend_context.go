@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -38,9 +39,9 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 
 	// Get the latest state.
 	log.Printf("[TRACE] cloud: requesting state manager for workspace %q", remoteWorkspaceName)
-	stateMgr, err := b.StateMgr(op.Workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
+	stateMgr, sDiags := b.StateMgr(op.Workspace)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("error loading state: %w", sDiags.Err()))
 		return nil, nil, diags
 	}
 
@@ -78,20 +79,19 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 	log.Printf("[TRACE] cloud: retrieving remote state snapshot for workspace %q", remoteWorkspaceName)
 	ret.InputState = stateMgr.State()
 
-	log.Printf("[TRACE] cloud: loading configuration for the current working directory")
-	config, configDiags := op.ConfigLoader.LoadConfig(op.ConfigDir)
+	log.Printf("[TRACE] cloud: loading root module for the current working directory")
+	rootMod, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
 	}
-	ret.Config = config
 
 	if op.AllowUnsetVariables {
 		// If we're not going to use the variables in an operation we'll be
 		// more lax about them, stubbing out any unset ones as unknown.
 		// This gives us enough information to produce a consistent context,
 		// but not enough information to run a real operation (plan, apply, etc)
-		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, config.Module.Variables)
+		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, rootMod.Variables)
 	} else {
 		// The underlying API expects us to use the opaque workspace id to request
 		// variables, so we'll need to look that up using our organization name
@@ -111,7 +111,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
 		} else {
 			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
-			tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, nil)
+			tfeVariables, err := b.client.Variables.ListAll(context.Background(), remoteWorkspaceID, nil)
 			if err != nil && err != tfe.ErrResourceNotFound {
 				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
 				return nil, nil, diags
@@ -119,7 +119,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 
 			if tfeVariables != nil {
 				if op.Variables == nil {
-					op.Variables = make(map[string]backendrun.UnparsedVariableValue)
+					op.Variables = make(map[string]arguments.UnparsedVariableValue)
 				}
 
 				for _, v := range tfeVariables.Items {
@@ -135,7 +135,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 		}
 
 		if op.Variables != nil {
-			variables, varDiags := backendrun.ParseVariableValues(op.Variables, config.Module.Variables)
+			variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables, false)
 			diags = diags.Append(varDiags)
 			if diags.HasErrors() {
 				return nil, nil, diags
@@ -147,6 +147,24 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
 	ret.Core = tfCtx
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	log.Printf("[TRACE] cloud: building configuration for the current working directory")
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		op.ConfigLoader.ModuleWalker(),
+		ret.PlanOpts.SetVariables,
+		configs.MockDataLoaderFunc(op.ConfigLoader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	ret.Config = config
 
 	log.Printf("[TRACE] cloud: finished building terraform.Context")
 
@@ -184,7 +202,7 @@ func (b *Cloud) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName str
 	return remoteWorkspace.ID, nil
 }
 
-func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
+func stubAllVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
 	ret := make(terraform.InputValues, len(decls))
 
 	for name, cfg := range decls {
@@ -218,7 +236,7 @@ type remoteStoredVariableValue struct {
 	definition *tfe.Variable
 }
 
-var _ backendrun.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
+var _ arguments.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
 
 func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

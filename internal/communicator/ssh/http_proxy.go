@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package ssh
@@ -100,7 +100,6 @@ func (p *proxyDialer) Dial(network, addr string) (net.Conn, error) {
 	res, err := http.ReadResponse(bufio.NewReader(c), req)
 
 	if err != nil {
-		res.Body.Close()
 		c.Close()
 		return nil, err
 	}

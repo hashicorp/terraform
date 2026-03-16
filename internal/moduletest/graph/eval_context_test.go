@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package graph
@@ -730,17 +730,23 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				ModuleConfig: config,
 			}
 
-			priorOutputs := make(map[addrs.Run]cty.Value, len(test.priorOutputs))
-			for name, val := range test.priorOutputs {
-				priorOutputs[addrs.Run{Name: name}] = val
-			}
-
-			testCtx := NewEvalContext(&EvalContextOpts{
-				CancelCtx: context.Background(),
-				StopCtx:   context.Background(),
+			testCtx := NewEvalContext(EvalContextOpts{
+				CancelCtx:   context.Background(),
+				StopCtx:     context.Background(),
+				Concurrency: 10,
 			})
-			testCtx.runOutputs = priorOutputs
-			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
+			testCtx.runBlocks = make(map[string]*moduletest.Run)
+			for ix, block := range file.Runs[:len(file.Runs)-1] {
+
+				// all prior run blocks we just mark as having passed, and with
+				// the output data specified by the test
+
+				run := moduletest.NewRun(block, config, ix)
+				run.Status = moduletest.Pass
+				run.Outputs = test.priorOutputs[run.Name]
+				testCtx.runBlocks[run.Name] = run
+			}
+			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run.Config, run.ModuleConfig.Module, planScope, test.testOnlyVars)
 
 			if got, want := gotStatus, test.expectedStatus; got != want {
 				t.Errorf("wrong status %q; want %q", got, want)
@@ -829,7 +835,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -841,9 +847,19 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, diags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+		t.Fatal(diags.Err())
 	}
 
 	return config

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package s3
@@ -362,7 +362,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 			confDiags := b.Configure(configSchema)
 			diags = diags.Append(confDiags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -528,7 +528,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -616,7 +616,8 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 						pathString(cty.GetAttrPath("iam_endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
 					),
-				)},
+				),
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -660,7 +661,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 
 			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -736,7 +737,8 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 						pathString(cty.GetAttrPath("endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
 					),
-				)},
+				),
+			},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -783,7 +785,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -943,7 +945,7 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -1435,7 +1437,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 
-			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -2505,7 +2507,7 @@ func TestBackendConfigKmsKeyId(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2635,7 +2637,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2741,13 +2743,13 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// remove the state with extra subkey
-	if err := client.Delete(); err != nil {
-		t.Fatal(err)
+	if diags := client.Delete(); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
 	// delete the real workspace
-	if err := b.DeleteWorkspace("s2", true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace("s2", true); diags.HasErrors() {
+		t.Fatal(diags)
 	}
 
 	if err := checkStateList(b, []string{"default", "s1"}); err != nil {
@@ -2755,9 +2757,9 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// fetch that state again, which should produce a new lineage
-	s2Mgr, err := b.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2Mgr, sDiags := b.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := s2Mgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2779,9 +2781,9 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// make sure s2 is OK
-	s2Mgr, err = b.StateMgr("s2")
-	if err != nil {
-		t.Fatal(err)
+	s2Mgr, sDiags = b.StateMgr("s2")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := s2Mgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2815,9 +2817,9 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
-	sMgr, err := b.StateMgr("env-1")
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr("env-1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2851,9 +2853,9 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
-	sMgr, err := b.StateMgr("env-1")
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr("env-1")
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2871,6 +2873,9 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 	out, err := b.s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	found := false
 	for _, item := range out.DeleteMarkers {
@@ -2915,9 +2920,9 @@ func TestBackendRestrictedRoot_Default(t *testing.T) {
 }`, bucketName, workspacePrefix)))
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	sMgr, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 	if err := sMgr.RefreshState(); err != nil {
 		t.Fatal(err)
@@ -2961,11 +2966,11 @@ func TestBackendRestrictedRoot_NamedPrefix(t *testing.T) {
 }`, bucketName, workspacePrefix)))
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
-	_, err := b.StateMgr(backend.DefaultStateName)
-	if err == nil {
+	_, sDiags := b.StateMgr(backend.DefaultStateName)
+	if !sDiags.HasErrors() {
 		t.Fatal("expected AccessDenied error, got none")
 	}
-	if s := err.Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
+	if s := sDiags.Err().Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
 		t.Fatalf("expected AccessDenied error, got: %s", s)
 	}
 }
@@ -2994,10 +2999,16 @@ func TestBackendWrongRegion(t *testing.T) {
 	createS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
 
-	if _, err := b.StateMgr(backend.DefaultStateName); err == nil {
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); !sDiags.HasErrors() {
 		t.Fatal("expected error, got none")
 	} else {
-		if regionErr, ok := As[bucketRegionError](err); ok {
+		var comparableErr error
+		if errValue, isDiag := sDiags.Err().(tfdiags.DiagnosticsAsError); isDiag {
+			// To use `As` below we need to extract the error that's wrapped
+			// in a diagnostic.
+			comparableErr = errValue.WrappedErrors()[0]
+		}
+		if regionErr, ok := As[bucketRegionError](comparableErr); ok {
 			if a, e := regionErr.bucketRegion, bucketRegion; a != e {
 				t.Errorf("expected bucket region %q, got %q", e, a)
 			}
@@ -3005,7 +3016,7 @@ func TestBackendWrongRegion(t *testing.T) {
 				t.Errorf("expected request region %q, got %q", e, a)
 			}
 		} else {
-			t.Fatalf("expected bucket region error, got: %v", err)
+			t.Fatalf("expected bucket region error, got: %v", sDiags.Err())
 		}
 	}
 }
@@ -3289,7 +3300,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, diagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -3394,9 +3405,9 @@ func testBackendStateLockDeletedOutOfBand(ctx context.Context, t *testing.T, b1 
 	ddbLockID := fmt.Sprintf("%s/%s", bucketName, s3StateKey)
 
 	// Get the default state
-	b1StateMgr, err := b1.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("error: %s", err)
+	b1StateMgr, sDiags := b1.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("error: %s", sDiags.Err())
 	}
 	if err := b1StateMgr.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
@@ -3469,9 +3480,9 @@ func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 }
 
 func checkStateList(b backend.Backend, expected []string) error {
-	states, err := b.Workspaces()
-	if err != nil {
-		return err
+	states, diags := b.Workspaces()
+	if diags.HasErrors() {
+		return diags.Err()
 	}
 
 	if !reflect.DeepEqual(states, expected) {
@@ -3958,5 +3969,127 @@ func defaultEndpointS3(region string) string {
 func objectLockPreCheck(t *testing.T) {
 	if os.Getenv("TF_S3_OBJECT_LOCK_TEST") == "" {
 		t.Skip("s3 backend tests using object lock enabled buckets require setting TF_S3_OBJECT_LOCK_TEST")
+	}
+}
+
+// TestBoolAttrDefaultEnvVarOk tests the boolAttrDefaultEnvVarOk helper function
+// which reads boolean values from environment variables. This is a regression
+// test for https://github.com/hashicorp/terraform/issues/37601 where setting
+// AWS_USE_FIPS_ENDPOINT=false incorrectly enabled FIPS endpoints.
+func TestBoolAttrDefaultEnvVarOk(t *testing.T) {
+	testCases := map[string]struct {
+		attrValue cty.Value
+		envValue  string
+		wantBool  bool
+		wantOk    bool
+	}{
+		"attr set true": {
+			attrValue: cty.BoolVal(true),
+			envValue:  "",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr set false": {
+			attrValue: cty.BoolVal(false),
+			envValue:  "",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env true": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "true",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env TRUE": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "TRUE",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env True": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "True",
+			wantBool:  true,
+			wantOk:    true,
+		},
+		"attr null, env false": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "false",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env FALSE": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "FALSE",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env False": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "False",
+			wantBool:  false,
+			wantOk:    true,
+		},
+		"attr null, env empty": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env invalid": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "invalid",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env yes": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "yes",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env 1": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "1",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr null, env 0": {
+			attrValue: cty.NullVal(cty.Bool),
+			envValue:  "0",
+			wantBool:  false,
+			wantOk:    false,
+		},
+		"attr takes precedence over env": {
+			attrValue: cty.BoolVal(false),
+			envValue:  "true",
+			wantBool:  false,
+			wantOk:    true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			servicemocks.StashEnv(t)
+
+			const testEnvVar = "TF_TEST_BOOL_ENV_VAR"
+			if tc.envValue != "" {
+				os.Setenv(testEnvVar, tc.envValue)
+			}
+
+			obj := cty.ObjectVal(map[string]cty.Value{
+				"test_attr": tc.attrValue,
+			})
+
+			gotBool, gotOk := boolAttrDefaultEnvVarOk(obj, "test_attr", testEnvVar)
+
+			if gotBool != tc.wantBool {
+				t.Errorf("got bool %v, want %v", gotBool, tc.wantBool)
+			}
+			if gotOk != tc.wantOk {
+				t.Errorf("got ok %v, want %v", gotOk, tc.wantOk)
+			}
+		})
 	}
 }

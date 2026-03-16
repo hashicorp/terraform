@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -20,7 +20,7 @@ func TestVersionCommand_implements(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	td := t.TempDir()
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// We'll create a fixed dependency lock file in our working directory
 	// so we can verify that the version command shows the information
@@ -106,7 +106,7 @@ func TestVersion_outdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.terraform.io/downloads.html"
+	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://developer.hashicorp.com/terraform/install"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
@@ -114,7 +114,7 @@ func TestVersion_outdated(t *testing.T) {
 
 func TestVersion_json(t *testing.T) {
 	td := t.TempDir()
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	ui := cli.NewMockUi()
 	meta := Meta{

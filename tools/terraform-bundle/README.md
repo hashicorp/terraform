@@ -8,11 +8,11 @@ change to distribute providers separately from Terraform CLI.
 The Terraform v0.13 series introduced our intended longer-term solutions
 to this need:
 
-* [Alternative provider installation methods](https://www.terraform.io/docs/cli/config/config-file.html#provider-installation),
+* [Alternative provider installation methods](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-installation),
   including the possibility of running server containing a local mirror of
   providers you intend to use which Terraform can then use instead of the
   origin registry.
-* [The `terraform providers mirror` command](https://www.terraform.io/docs/cli/commands/providers/mirror.html),
+* [The `terraform providers mirror` command](https://developer.hashicorp.com/terraform/cli/commands/providers/mirror),
   built in to Terraform v0.13.0 and later, can automatically construct a
   suitable directory structure to serve from a local mirror based on your
   current Terraform configuration, serving a similar (though not identical)

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Add input variable validation for Stacks
+time: 2026-03-05T10:37:21.047704-05:00
+custom:
+    Issue: "38240"

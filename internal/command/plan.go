@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -87,11 +87,11 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Collect variable value and add them to the operation request
-	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
-	if diags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -124,18 +124,9 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	// difficult but would make their use easier to understand.
 	c.Meta.applyStateArguments(args)
 
-	backendConfig, diags := c.loadBackendConfig(".")
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	// Load the backend
-	be, beDiags := c.Backend(&BackendOpts{
-		Config:   backendConfig,
-		ViewType: viewType,
-	})
-	diags = diags.Append(beDiags)
-	if beDiags.HasErrors() {
+	be, diags := c.backend(".", viewType)
+	if diags.HasErrors() {
 		return nil, diags
 	}
 
@@ -164,6 +155,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
+	opReq.ActionTargets = args.ActionTargets
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
@@ -187,28 +179,6 @@ func (c *PlanCommand) OperationRequest(
 	}
 
 	return opReq, diags
-}
-
-func (c *PlanCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// FIXME the arguments package currently trivially gathers variable related
-	// arguments in a heterogenous slice, in order to minimize the number of
-	// code paths gathering variables during the transition to this structure.
-	// Once all commands that gather variables have been converted to this
-	// structure, we could move the variable gathering code to the arguments
-	// package directly, removing this shim layer.
-
-	varArgs := args.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
-	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-	opReq.Variables, diags = c.collectVariableValues()
-
-	return diags
 }
 
 func (c *PlanCommand) Help() string {

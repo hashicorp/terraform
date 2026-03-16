@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package testing
@@ -39,6 +39,8 @@ var (
 						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
 						"create_wait_seconds":  {Type: cty.Number, Optional: true},
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
+						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
 					},
 				},
 			},
@@ -47,8 +49,9 @@ var (
 			"test_data_source": {
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":    {Type: cty.String, Required: true},
-						"value": {Type: cty.String, Computed: true},
+						"id":         {Type: cty.String, Required: true},
+						"value":      {Type: cty.String, Computed: true},
+						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
 
 						// We never actually reference these values from a data
 						// source, but we have tests that use the same cty.Value
@@ -59,6 +62,7 @@ var (
 						"destroy_fail":         {Type: cty.Bool, Computed: true},
 						"create_wait_seconds":  {Type: cty.Number, Computed: true},
 						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
+						"defer":                {Type: cty.Bool, Computed: true},
 					},
 				},
 			},
@@ -103,6 +107,13 @@ type TestProvider struct {
 	Store *ResourceStore
 }
 
+// NewProvider creates a new TestProvider for use in tests.
+//
+// If you provide an empty or nil *ResourceStore argument this is equivalent to the provider
+// not having provisioned any remote objects prior to the test's events.
+//
+// If you provide a *ResourceStore containing values, those cty.Values represent remote objects
+// that the provider has 'already' provisioned and can return information about immediately in a test.
 func NewProvider(store *ResourceStore) *TestProvider {
 	if store == nil {
 		store = &ResourceStore{
@@ -183,8 +194,7 @@ func (provider *TestProvider) DataSourceCount() int {
 }
 
 func (provider *TestProvider) count(prefix string) int {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	if len(prefix) == 0 {
 		return len(provider.Store.Data)
@@ -200,8 +210,7 @@ func (provider *TestProvider) count(prefix string) int {
 }
 
 func (provider *TestProvider) string(prefix string) string {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	var keys []string
 	for key := range provider.Store.Data {
@@ -220,9 +229,18 @@ func (provider *TestProvider) ConfigureProvider(request providers.ConfigureProvi
 
 func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ProposedNewState.IsNull() {
+
+		var deferred *providers.Deferred
+		if shouldBeDeferred := request.PriorState.GetAttr("defer"); !shouldBeDeferred.IsNull() && shouldBeDeferred.True() {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
+
 		// Then this is a delete operation.
 		return providers.PlanResourceChangeResponse{
 			PlannedState: request.ProposedNewState,
+			Deferred:     deferred,
 		}
 	}
 
@@ -233,14 +251,28 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
-	if destryFail := resource.GetAttr("destroy_fail"); !destryFail.IsKnown() || destryFail.IsNull() {
+	if destroyFail := resource.GetAttr("destroy_fail"); !destroyFail.IsKnown() || destroyFail.IsNull() {
 		vals := resource.AsValueMap()
 		vals["destroy_fail"] = cty.UnknownVal(cty.Bool)
 		resource = cty.ObjectVal(vals)
 	}
 
+	if writeOnly := resource.GetAttr("write_only"); !writeOnly.IsNull() {
+		vals := resource.AsValueMap()
+		vals["write_only"] = cty.NullVal(cty.String)
+		resource = cty.ObjectVal(vals)
+	}
+
+	var deferred *providers.Deferred
+	if shouldBeDeferred := resource.GetAttr("defer"); !shouldBeDeferred.IsKnown() || (!shouldBeDeferred.IsNull() && shouldBeDeferred.True()) {
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonResourceConfigUnknown,
+		}
+	}
+
 	return providers.PlanResourceChangeResponse{
 		PlannedState: resource,
+		Deferred:     deferred,
 	}
 }
 
@@ -335,6 +367,12 @@ func (provider *TestProvider) ReadDataSource(request providers.ReadDataSourceReq
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%s does not exist", id)))
 	}
 
+	if writeOnly := resource.GetAttr("write_only"); !writeOnly.IsNull() {
+		vals := resource.AsValueMap()
+		vals["write_only"] = cty.NullVal(cty.String)
+		resource = cty.ObjectVal(vals)
+	}
+
 	return providers.ReadDataSourceResponse{
 		State:       resource,
 		Diagnostics: diags,
@@ -367,6 +405,10 @@ func (provider *TestProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 
 // ResourceStore manages a set of cty.Value resources that can be shared between
 // TestProvider providers.
+//
+// A ResourceStore represents the remote objects that a test provider is managing.
+// For example, when the test provider gets a ReadResource request it will search
+// the store for a resource with a matching ID. See (*TestProvider).ReadResource.
 type ResourceStore struct {
 	mutex sync.RWMutex
 
@@ -374,8 +416,7 @@ type ResourceStore struct {
 }
 
 func (store *ResourceStore) Delete(key string) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	if resource, ok := store.Data[key]; ok {
 		delete(store.Data, key)
@@ -385,15 +426,13 @@ func (store *ResourceStore) Delete(key string) cty.Value {
 }
 
 func (store *ResourceStore) Get(key string) cty.Value {
-	store.mutex.RLock()
-	defer store.mutex.RUnlock()
+	defer store.beginRead()()
 
 	return store.get(key)
 }
 
 func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	old := store.get(key)
 	store.Data[key] = resource
@@ -405,4 +444,14 @@ func (store *ResourceStore) get(key string) cty.Value {
 		return resource
 	}
 	return cty.NilVal
+}
+
+func (store *ResourceStore) beginWrite() func() {
+	store.mutex.Lock()
+	return store.mutex.Unlock
+
+}
+func (store *ResourceStore) beginRead() func() {
+	store.mutex.RLock()
+	return store.mutex.RUnlock
 }

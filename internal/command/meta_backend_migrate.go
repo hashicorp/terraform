@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type backendMigrateOpts struct {
@@ -186,10 +187,13 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	}
 
 	// Read all the states
-	sourceWorkspaces, err := opts.Source.Workspaces()
-	if err != nil {
+	sourceWorkspaces, wDiags := opts.Source.Workspaces()
+	if wDiags.HasErrors() {
 		return fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), opts.SourceType, err)
+			errMigrateLoadStates), opts.SourceType, wDiags.Err())
+	}
+	if wDiags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_S: warning(s) returned when getting workspaces from source backend: %s", wDiags.ErrWithWarnings())
 	}
 
 	// Sort the states so they're always copied alphabetically
@@ -260,10 +264,10 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	log.Printf("[INFO] backendMigrateState: single-to-single migrating %q workspace to %q workspace", opts.sourceWorkspace, opts.destinationWorkspace)
 
-	sourceState, err := opts.Source.StateMgr(opts.sourceWorkspace)
-	if err != nil {
+	sourceState, sDiags := opts.Source.StateMgr(opts.sourceWorkspace)
+	if sDiags.HasErrors() {
 		return fmt.Errorf(strings.TrimSpace(
-			errMigrateSingleLoadDefault), opts.SourceType, err)
+			errMigrateSingleLoadDefault), opts.SourceType, sDiags.Err())
 	}
 	if err := sourceState.RefreshState(); err != nil {
 		return fmt.Errorf(strings.TrimSpace(
@@ -276,38 +280,45 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		return nil
 	}
 
-	destinationState, err := opts.Destination.StateMgr(opts.destinationWorkspace)
-	if err == backend.ErrDefaultWorkspaceNotSupported {
-		// If the backend doesn't support using the default state, we ask the user
-		// for a new name and migrate the default state to the given named state.
-		destinationState, err = func() (statemgr.Full, error) {
-			log.Print("[TRACE] backendMigrateState: destination doesn't support a default workspace, so we must prompt for a new name")
-			name, err := m.promptNewWorkspaceName(opts.DestinationType)
-			if err != nil {
-				return nil, err
-			}
-
-			// Update the name of the destination state.
-			opts.destinationWorkspace = name
-
-			destinationState, err := opts.Destination.StateMgr(opts.destinationWorkspace)
-			if err != nil {
-				return nil, err
-			}
-
-			// Ignore invalid workspace name as it is irrelevant in this context.
-			workspace, _ := m.Workspace()
-
-			// If the currently selected workspace is the default workspace, then set
-			// the named workspace as the new selected workspace.
-			if workspace == backend.DefaultStateName {
-				if err := m.SetWorkspace(opts.destinationWorkspace); err != nil {
-					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
+	var err error
+	destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
+	if sDiags.HasErrors() {
+		if sDiags.Err().Error() == backend.ErrDefaultWorkspaceNotSupported.Error() {
+			// If the backend doesn't support using the default state, we ask the user
+			// for a new name and migrate the default state to the given named state.
+			destinationState, err = func() (statemgr.Full, error) {
+				log.Print("[TRACE] backendMigrateState: destination doesn't support a default workspace, so we must prompt for a new name")
+				name, err := m.promptNewWorkspaceName(opts.DestinationType)
+				if err != nil {
+					return nil, err
 				}
-			}
 
-			return destinationState, nil
-		}()
+				// Update the name of the destination state.
+				opts.destinationWorkspace = name
+
+				destinationState, sDiags := opts.Destination.StateMgr(opts.destinationWorkspace)
+				if sDiags.HasErrors() {
+					return nil, sDiags.Err()
+				}
+
+				// Ignore invalid workspace name as it is irrelevant in this context.
+				workspace, _ := m.Workspace()
+
+				// If the currently selected workspace is the default workspace, then set
+				// the named workspace as the new selected workspace.
+				if workspace == backend.DefaultStateName {
+					if err := m.SetWorkspace(opts.destinationWorkspace); err != nil {
+						return nil, fmt.Errorf("Failed to set new workspace: %s", err)
+					}
+				}
+
+				return destinationState, nil
+			}()
+		} else {
+			// For any other error, return it immediately to avoid nil pointer dereference
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateSingleLoadDefault), opts.DestinationType, sDiags.Err())
+		}
 	}
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
@@ -543,18 +554,22 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 
 func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool, error) {
 	var singleState bool
-	var err error
-	workspaces, err := back.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
+	var diags tfdiags.Diagnostics
+
+	workspaces, diags := back.Workspaces()
+	if diags.HasErrors() && diags.Err().Error() == backend.ErrWorkspacesNotSupported.Error() {
 		singleState = true
-		err = nil
+		diags = nil
 	}
-	if err != nil {
+	if diags.HasErrors() {
 		return nil, singleState, fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), sourceType, err)
+			errMigrateLoadStates), sourceType, diags.Err())
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] retrieveWorkspaces: warning(s) returned when getting workspaces: %s", diags.ErrWithWarnings())
 	}
 
-	return workspaces, singleState, err
+	return workspaces, singleState, diags.Err()
 }
 
 func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
@@ -601,9 +616,9 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 		// If the current workspace is has no state we do not need to ask
 		// if they want to migrate the state.
-		sourceState, err := opts.Source.StateMgr(currentWorkspace)
-		if err != nil {
-			return err
+		sourceState, sDiags := opts.Source.StateMgr(currentWorkspace)
+		if sDiags.HasErrors() {
+			return sDiags.Err()
 		}
 		if err := sourceState.RefreshState(); err != nil {
 			return err
@@ -687,10 +702,10 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 		if sourceWorkspaces[i] == backend.DefaultStateName {
 			// For the default workspace we want to look to see if there is any state
 			// before we ask for a workspace name to migrate the default workspace into.
-			sourceState, err := opts.Source.StateMgr(backend.DefaultStateName)
-			if err != nil {
+			sourceState, sDiags := opts.Source.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
 				return fmt.Errorf(strings.TrimSpace(
-					errMigrateSingleLoadDefault), opts.SourceType, err)
+					errMigrateSingleLoadDefault), opts.SourceType, sDiags.Err())
 			}
 			// RefreshState is what actually pulls the state to be evaluated.
 			if err := sourceState.RefreshState(); err != nil {
@@ -769,9 +784,12 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 
 	// After migrating multiple workspaces, we need to reselect the current workspace as it may
 	// have been renamed. Query the backend first to be sure it now exists.
-	workspaces, err := opts.Destination.Workspaces()
-	if err != nil {
-		return err
+	workspaces, diags := opts.Destination.Workspaces()
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+	if diags.HasWarnings() {
+		log.Printf("[WARN] backendMigrateState_S_TFC: warning(s) returned when getting workspaces from destination backend: %s", diags.ErrWithWarnings())
 	}
 
 	var workspacePresent bool
@@ -1011,7 +1029,7 @@ const errTFCMigrateNotYetImplemented = `
 Migrating state from HCP Terraform or Terraform Enterprise to another backend is not 
 yet implemented.
 
-Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+Please use the API to do this: https://developer.hashicorp.com/terraform/cloud-docs/api-docs/state-versions
 `
 
 const errInteractiveInputDisabled = `
@@ -1036,7 +1054,7 @@ workspaces are named uniquely across all configurations used within an organizat
 strategy to start with is <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, 
 networking-staging-us-east).
 
-For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+For more information on workspace naming, see https://developer.hashicorp.com/terraform/cloud-docs/workspaces/create
 
 When migrating existing workspaces from the backend %[1]q to %[2]s, 
 would you like to rename your workspaces? Enter 1 or 2.

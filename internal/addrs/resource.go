@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -29,6 +29,8 @@ func (r Resource) String() string {
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
 	case EphemeralResourceMode:
 		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
+	case ListResourceMode:
+		return fmt.Sprintf("list.%s.%s", r.Type, r.Name)
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
@@ -278,6 +280,11 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 	}
 }
 
+// ModuleInstance returns the module instance portion of the address.
+func (r AbsResourceInstance) ModuleInstance() ModuleInstance {
+	return r.Module
+}
+
 // ContainingResource returns the address of the resource that contains the
 // receving resource instance. In other words, it discards the key portion
 // of the address to produce an AbsResource value.
@@ -511,6 +518,10 @@ const (
 	// EphemeralResourceMode indicates an ephemeral resource, as defined by
 	// "ephemeral" blocks in configuration.
 	EphemeralResourceMode ResourceMode = 'E'
+
+	// ListResourceMode indicates a list resource, as defined by
+	// "list" blocks in tfquery configuration.
+	ListResourceMode ResourceMode = 'L'
 )
 
 // AbsResourceInstanceObject represents one of the specific remote objects

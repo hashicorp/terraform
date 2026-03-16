@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -177,6 +177,9 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 	case "ephemeral":
 		mode = EphemeralResourceMode
 		remain = remain[1:]
+	case "list":
+		mode = ListResourceMode
+		remain = remain[1:]
 	case "resource":
 		// Starting a resource address with "resource" is optional, so we'll
 		// just ignore it.
@@ -229,6 +232,13 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 				Severity: hcl.DiagError,
 				Summary:  "Invalid address",
 				Detail:   "An ephemeral resource type name is required.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+		case ListResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "A list resource type name is required.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
 		default:
@@ -551,6 +561,10 @@ func (t *Target) ModuleAddr() ModuleInstance {
 	case AbsResourceInstance:
 		return addr.Module
 	case AbsResource:
+		return addr.Module
+	case AbsAction:
+		return addr.Module
+	case AbsActionInstance:
 		return addr.Module
 	default:
 		// The above cases should be exhaustive for all

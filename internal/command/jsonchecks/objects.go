@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonchecks
@@ -29,6 +29,8 @@ func makeStaticObjectAddr(addr addrs.ConfigCheckable) staticObjectAddr {
 			ret["mode"] = "managed"
 		case addrs.DataResourceMode:
 			ret["mode"] = "data"
+		case addrs.EphemeralResourceMode:
+			ret["mode"] = "ephemeral"
 		default:
 			panic(fmt.Sprintf("unsupported resource mode %#v", addr.Resource.Mode))
 		}

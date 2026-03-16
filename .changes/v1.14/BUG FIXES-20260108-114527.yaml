@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixes an issue where any warning diagnostics generated during terraform query execution failed to render in the cloud backend session
+time: 2026-01-08T11:45:27.489784-08:00
+custom:
+    Issue: "38040"

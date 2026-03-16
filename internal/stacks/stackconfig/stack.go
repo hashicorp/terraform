@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackconfig
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -20,11 +21,11 @@ import (
 type Stack struct {
 	SourceAddr sourceaddrs.FinalSource
 
-	// ConfigFiles describes the individual .tfstack.hcl or .tfstack.json
-	// files that this stack configuration object was built from. Most callers
-	// should ignore the detail of which file each declaration originated
-	// in, but we retain this in case it's useful for generating better error
-	// messages, etc.
+	// ConfigFiles describes the individual .tfcomponent.hcl or
+	// .tfcomponent.json files that this stack configuration object was built
+	// from. Most callers should ignore the detail of which file each
+	// declaration originated in, but we retain this in case it's useful for
+	// generating better error messages, etc.
 	//
 	// The keys of this map are the string representations of each file's
 	// source address, which also matches how we populate the "Filename"

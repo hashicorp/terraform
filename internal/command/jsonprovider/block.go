@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonprovider
@@ -8,11 +8,12 @@ import (
 )
 
 type Block struct {
-	Attributes      map[string]*Attribute `json:"attributes,omitempty"`
-	BlockTypes      map[string]*BlockType `json:"block_types,omitempty"`
-	Description     string                `json:"description,omitempty"`
-	DescriptionKind string                `json:"description_kind,omitempty"`
-	Deprecated      bool                  `json:"deprecated,omitempty"`
+	Attributes         map[string]*Attribute `json:"attributes,omitempty"`
+	BlockTypes         map[string]*BlockType `json:"block_types,omitempty"`
+	Description        string                `json:"description,omitempty"`
+	DescriptionKind    string                `json:"description_kind,omitempty"`
+	Deprecated         bool                  `json:"deprecated,omitempty"`
+	DeprecationMessage string                `json:"deprecation_message,omitempty"`
 }
 
 type BlockType struct {
@@ -41,9 +42,10 @@ func marshalBlock(configBlock *configschema.Block) *Block {
 	}
 
 	ret := Block{
-		Deprecated:      configBlock.Deprecated,
-		Description:     configBlock.Description,
-		DescriptionKind: marshalStringKind(configBlock.DescriptionKind),
+		Deprecated:         configBlock.Deprecated,
+		DeprecationMessage: configBlock.DeprecationMessage,
+		Description:        configBlock.Description,
+		DescriptionKind:    marshalStringKind(configBlock.DescriptionKind),
 	}
 
 	if len(configBlock.Attributes) > 0 {

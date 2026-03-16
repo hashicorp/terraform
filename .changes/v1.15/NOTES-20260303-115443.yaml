@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'command/init: Provider installation was refactored to enable future enhancements in the area. This results in different order of operations during init and 2 new log messages replacing one (`initializing_provider_plugin_message`). The change should not have any end-user impact aside from the `init` command output.'
+time: 2026-03-03T11:54:43.732353Z
+custom:
+    Issue: "38227"

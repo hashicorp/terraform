@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package experiments
@@ -103,7 +103,7 @@ var currentExperiments = make(Set)
 // Members of this map are registered in the init function above.
 var concludedExperiments = make(map[Experiment]string)
 
-//lint:ignore U1000 No experiments are active
+//lint:ignore U1000 It is okay if no experiments are active
 func registerCurrentExperiment(exp Experiment) {
 	currentExperiments.Add(exp)
 }

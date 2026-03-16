@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -216,6 +216,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			// so we can test that the client-side code places them in the
 			// correct order (lowest precedence first).
 			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"2.0.0","protocols":["99.0"]},{"version":"1.2.0","protocols":["5.0"]}, {"version":"1.0.0","protocols":["5.0"]}]}`))
+		case "awesomesauce/invalidsemver":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response includes an invalid semver version to test that the client properly ignores it
+			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"not-a-semver","protocols":["5.0"]},{"version":"1.0.0","protocols":["5.0"]}]}`))
 		case "weaksauce/unsupported-protocol":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)

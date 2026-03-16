@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2014, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 container {
@@ -10,7 +10,6 @@ container {
 binary {
   secrets      = true
   go_modules   = true
-  osv          = false
-  oss_index    = true
+  osv          = true
   nvd          = false
 }

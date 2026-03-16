@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package providercache
@@ -30,10 +30,12 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	// When we're installing from an HTTP URL we expect the URL to refer to
 	// a zip file. We'll fetch that into a temporary file here and then
 	// delegate to installFromLocalArchive below to actually extract it.
+
 	httpGetter := getter.HttpGetter{
 		Client:                httpclient.New(),
 		Netrc:                 true,
 		XTerraformGetDisabled: true,
+		DoNotCheckHeadFirst:   true,
 	}
 
 	urlObj, err := url.Parse(urlStr)
@@ -106,7 +108,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://developer.hashicorp.com/terraform/language/files/dependency-lock#checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}
@@ -196,7 +198,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://developer.hashicorp.com/terraform/language/files/dependency-lock#checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}

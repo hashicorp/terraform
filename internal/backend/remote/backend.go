@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package remote
@@ -546,11 +546,15 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 }
 
 // Workspaces implements backend.Backend.
-func (b *Remote) Workspaces() ([]string, error) {
+func (b *Remote) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if b.prefix == "" {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
-	return b.workspaces()
+	workspaces, err := b.workspaces()
+	diags.Append(err)
+
+	return workspaces, diags
 }
 
 // workspaces returns a filtered list of remote workspace names.
@@ -609,12 +613,14 @@ func (b *Remote) WorkspaceNamePattern() string {
 }
 
 // DeleteWorkspace implements backend.Backend.
-func (b *Remote) DeleteWorkspace(name string, _ bool) error {
+func (b *Remote) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if b.workspace == "" && name == backend.DefaultStateName {
-		return backend.ErrDefaultWorkspaceNotSupported
+		return diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 	if b.prefix == "" && name != backend.DefaultStateName {
-		return backend.ErrWorkspacesNotSupported
+		return diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	// Configure the remote workspace name.
@@ -633,16 +639,17 @@ func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 		},
 	}
 
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
 // StateMgr implements backend.Backend.
-func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
+func (b *Remote) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if b.workspace == "" && name == backend.DefaultStateName {
-		return nil, backend.ErrDefaultWorkspaceNotSupported
+		return nil, diags.Append(backend.ErrDefaultWorkspaceNotSupported)
 	}
 	if b.prefix == "" && name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
 	// Configure the remote workspace name.
@@ -655,7 +662,7 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+		return nil, diags.Append(fmt.Errorf("Failed to retrieve workspace %s: %v", name, err))
 	}
 
 	if err == tfe.ErrResourceNotFound {
@@ -671,7 +678,7 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
-			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
+			return nil, diags.Append(fmt.Errorf("Error creating workspace %s: %v", name, err))
 		}
 	}
 
@@ -685,7 +692,7 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
 		if wsv != tfversion.String() && wsv != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String())
+			return nil, diags.Append(fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String()))
 		}
 	}
 
@@ -709,7 +716,7 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 		// in contexts where there's a "TFE Run ID" and so are not affected
 		// by this special case.
 		DisableIntermediateSnapshots: client.runID != "",
-	}, nil
+	}, diags
 }
 
 func isLocalExecutionMode(execMode string) bool {

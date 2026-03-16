@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -27,18 +25,13 @@ type StateShowCommand struct {
 }
 
 func (c *StateShowCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("state show")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Streams.Eprintf("Error parsing command-line flags: %s\n", err.Error())
+	parsedArgs, diags := arguments.ParseStateShow(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Streams.Eprint("Exactly one argument expected.\n")
-		return cli.RunResultHelp
-	}
+
+	c.Meta.statePath = parsedArgs.StatePath
 
 	// Check for user-supplied plugin path
 	var err error
@@ -48,9 +41,10 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+	view := arguments.ViewHuman
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -65,9 +59,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	// Check if the address can be parsed
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
-		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, args[0]))
+		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, parsedArgs.Address))
 		return 1
 	}
 
@@ -109,9 +103,9 @@ func (c *StateShowCommand) Run(args []string) int {
 		c.Streams.Eprintf("Error selecting workspace: %s\n", err)
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
-	if err != nil {
-		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, err))
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
@@ -148,6 +142,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
 	if err != nil {
 		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
+		return 1
 	}
 
 	jstate := jsonformat.State{
@@ -195,11 +190,11 @@ func (c *StateShowCommand) Synopsis() string {
 const errNoInstanceFound = `No instance found for the given address!
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`
 
 const errParsingAddress = `Error parsing instance address: %s
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`

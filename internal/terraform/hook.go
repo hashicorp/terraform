@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -33,6 +34,18 @@ type HookResourceIdentity struct {
 	ProviderAddr addrs.Provider
 }
 
+// HookActionIdentity is passed to Hook interface methods to fully identify
+// the action being performed.
+type HookActionIdentity struct {
+	Addr addrs.AbsActionInstance
+
+	ActionTrigger plans.ActionTrigger
+}
+
+func (i *HookActionIdentity) String() string {
+	return i.Addr.String() + " (triggered by " + i.ActionTrigger.String() + ")"
+}
+
 // Hook is the interface that must be implemented to hook into various
 // parts of Terraform, allowing you to inspect or change behavior at runtime.
 //
@@ -50,8 +63,8 @@ type Hook interface {
 	// PreDiff and PostDiff are called before and after a provider is given
 	// the opportunity to customize the proposed new state to produce the
 	// planned new state.
-	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error)
-	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
+	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error)
+	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error)
 
 	// The provisioning hooks signal both the overall start end end of
 	// provisioning for a particular instance and of each of the individual
@@ -90,7 +103,7 @@ type Hook interface {
 
 	// PrePlanImport and PostPlanImport are called during a plan before and after planning to import
 	// a new resource using the configuration-driven import workflow.
-	PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error)
+	PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error)
 	PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error)
 
 	// PreApplyImport and PostApplyImport are called during an apply for each imported resource when
@@ -102,6 +115,17 @@ type Hook interface {
 	// such as opening, renewal or closing
 	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
 	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
+
+	// PreListQuery and PostListQuery are called during a query operation before and after
+	// resources are queried from the provider.
+	PreListQuery(id HookResourceIdentity, inputConfig cty.Value, configSchema *configschema.Block) (HookAction, error)
+	PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error)
+
+	// StartAction, ProgressAction, and CompleteAction are called during the
+	// lifecycle of an action invocation.
+	StartAction(id HookActionIdentity) (HookAction, error)
+	ProgressAction(id HookActionIdentity, progress string) (HookAction, error)
+	CompleteAction(id HookActionIdentity, err error) (HookAction, error)
 
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
@@ -142,11 +166,11 @@ func (*NilHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
@@ -185,7 +209,7 @@ func (*NilHook) PostImportState(id HookResourceIdentity, imported []providers.Im
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *NilHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
@@ -206,6 +230,26 @@ func (h *NilHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (
 }
 
 func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

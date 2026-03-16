@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package kubernetes
@@ -15,14 +15,17 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Workspaces returns a list of names for the workspaces found in k8s. The default
 // workspace is always returned as the first element in the slice.
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	secretClient, err := b.KubernetesSecretClient()
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	secrets, err := secretClient.List(
@@ -32,7 +35,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// Use a map so there aren't duplicate workspaces
@@ -61,33 +64,36 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	sort.Strings(states[1:])
-	return states, nil
+	return states, diags
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return diags.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	client, err := b.remoteClient(name)
 	if err != nil {
-		return err
+		return diags.Append(err)
 	}
 
-	return client.Delete()
+	return diags.Append(client.Delete())
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	c, err := b.remoteClient(name)
 	if err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	stateMgr := &remote.State{Client: c}
 
 	// Grab the value
 	if err := stateMgr.RefreshState(); err != nil {
-		return nil, err
+		return nil, diags.Append(err)
 	}
 
 	// If we have no state, we have to create an empty state
@@ -97,13 +103,13 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockID, err := stateMgr.Lock(lockInfo)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// get base secret name
 		secretName, err := c.createSecretName(0)
 		if err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 		// Local helper function so we can call it multiple places
@@ -126,20 +132,22 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 		if err := stateMgr.PersistState(nil); err != nil {
-			return nil, unlock(err)
+			unlockErr := unlock(err)
+			return nil, diags.Append(unlockErr)
 		}
 
 		// Unlock, the state should now be initialized
 		if err := unlock(nil); err != nil {
-			return nil, err
+			return nil, diags.Append(err)
 		}
 
 	}
 
-	return stateMgr, nil
+	return stateMgr, diags
 }
 
 // get a remote client configured for this state

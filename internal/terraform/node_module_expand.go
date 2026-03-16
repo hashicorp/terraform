@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -29,10 +29,7 @@ var (
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
-	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
-
-func (n *nodeExpandModule) expandsInstances() {}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
@@ -114,6 +111,10 @@ func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Mod
 func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	expander := globalCtx.InstanceExpander()
 	_, call := n.Addr.Call()
+
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
 
 	// Allowing unknown values in count and for_each is a top-level plan option.
 	//
@@ -263,6 +264,10 @@ var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
 func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, call := n.Addr.Call()
 	expander := globalCtx.InstanceExpander()
+
+	if n.ModuleCall.IgnoreNestedDeprecations {
+		globalCtx.Deprecations().SuppressModuleCallDeprecation(n.Addr)
+	}
 
 	// Modules all evaluate to single instances during validation, only to
 	// create a proper context within which to evaluate. All parent modules
