@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 
+	"github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -1987,6 +1989,20 @@ func TestPlanWithSingleResource(t *testing.T) {
 		return fmt.Sprintf("%T", ic) < fmt.Sprintf("%T", jc)
 	})
 
+	// extract the schema from the builtin provider so we can generate correctly
+	// shaped plan objects.
+	schema := terraform.NewProvider().GetProviderSchema().ResourceTypes["terraform_data"]
+	wantMap := schema.Body.EmptyValue().AsValueMap()
+	wantMap["id"] = cty.UnknownVal(cty.String).RefineNotNull()
+	wantMap["input"] = cty.StringVal("hello")
+	wantMap["output"] = cty.UnknownVal(cty.String)
+
+	wantVal := cty.ObjectVal(wantMap)
+	wantValEncoded, err := msgpack.Marshal(wantVal, schema.Body.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
 			Applyable: true,
@@ -2062,26 +2078,7 @@ func TestPlanWithSingleResource(t *testing.T) {
 				ChangeSrc: plans.ChangeSrc{
 					Action: plans.Create,
 					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-					After: plans.DynamicValue{
-						// This is an object conforming to the terraform_data
-						// resource type's schema.
-						//
-						// FIXME: Should write this a different way that is
-						// scrutable and won't break each time something gets
-						// added to the terraform_data schema. (We can't use
-						// mustPlanDynamicValue here because the resource type
-						// uses DynamicPseudoType attributes, which require
-						// explicitly-typed encoding.)
-						0x84, 0xa2, 0x69, 0x64, 0xc7, 0x03, 0x0c, 0x81,
-						0x01, 0xc2, 0xa5, 0x69, 0x6e, 0x70, 0x75, 0x74,
-						0x92, 0xc4, 0x08, 0x22, 0x73, 0x74, 0x72, 0x69,
-						0x6e, 0x67, 0x22, 0xa5, 0x68, 0x65, 0x6c, 0x6c,
-						0x6f, 0xa6, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74,
-						0x92, 0xc4, 0x08, 0x22, 0x73, 0x74, 0x72, 0x69,
-						0x6e, 0x67, 0x22, 0xd4, 0x00, 0x00, 0xb0, 0x74,
-						0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x73, 0x5f,
-						0x72, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65, 0xc0,
-					},
+					After:  plans.DynamicValue(wantValEncoded),
 				},
 			},
 
@@ -2089,26 +2086,7 @@ func TestPlanWithSingleResource(t *testing.T) {
 			// type from the real terraform.io/builtin/terraform provider
 			// maintained elsewhere in this codebase. If that schema changes
 			// in future then this should change to match it.
-			Schema: providers.Schema{
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"input":            {Type: cty.DynamicPseudoType, Optional: true},
-						"output":           {Type: cty.DynamicPseudoType, Computed: true},
-						"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
-						"id":               {Type: cty.String, Computed: true},
-					},
-				},
-				Identity: &configschema.Object{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:        cty.String,
-							Description: "The unique identifier for the data store.",
-							Required:    true,
-						},
-					},
-					Nesting: configschema.NestingSingle,
-				},
-			},
+			Schema: schema,
 		},
 	}
 

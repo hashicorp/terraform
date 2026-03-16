@@ -347,6 +347,7 @@ func TestDependenciesProviderSchema(t *testing.T) {
 	}
 	{
 		got := schemaResp.Schema
+
 		want := &dependencies.ProviderSchema{
 			ProviderConfig: &dependencies.Schema{
 				Block: &dependencies.Schema_Block{
@@ -429,6 +430,61 @@ func TestDependenciesProviderSchema(t *testing.T) {
 								Name:     "triggers_replace",
 								Type:     []byte(`"dynamic"`),
 								Optional: true,
+							},
+						},
+						BlockTypes: []*dependencies.Schema_NestedBlock{
+							{
+								TypeName: "sensitive",
+								Nesting:  dependencies.Schema_NestedBlock_SINGLE,
+								Block: &dependencies.Schema_Block{
+									Attributes: []*dependencies.Schema_Attribute{
+										{
+											Name:      "input",
+											Type:      []byte(`"dynamic"`),
+											Optional:  true,
+											Sensitive: true,
+										},
+										{
+											Name:      "output",
+											Type:      []byte(`"dynamic"`),
+											Computed:  true,
+											Sensitive: true,
+										},
+										{
+											Name:     "replace",
+											Type:     []byte(`"bool"`),
+											Optional: true,
+										},
+									},
+								},
+							},
+							{
+								TypeName: "write_only",
+								Nesting:  dependencies.Schema_NestedBlock_SINGLE,
+								Block: &dependencies.Schema_Block{
+									Attributes: []*dependencies.Schema_Attribute{
+										{
+											Name:     "input",
+											Type:     []byte(`"dynamic"`),
+											Optional: true,
+										},
+										{
+											Name:     "output",
+											Type:     []byte(`"dynamic"`),
+											Computed: true,
+										},
+										{
+											Name:     "replace",
+											Type:     []byte(`"bool"`),
+											Optional: true,
+										},
+										{
+											Name:     "version",
+											Type:     []byte(`"dynamic"`),
+											Optional: true,
+										},
+									},
+								},
 							},
 						},
 					},
