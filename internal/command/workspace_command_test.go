@@ -31,6 +31,10 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 
 	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
 
+	// Mock that a custom workspace already exists.
+	preExistingState := "pre-existing"
+	mock.MockStates = map[string]interface{}{preExistingState: true}
+
 	// Assumes the mocked provider is hashicorp/test
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -60,9 +64,9 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
 	}
-	// We expect a state to have been created for the default workspace
-	if _, ok := mock.MockStates["default"]; !ok {
-		t.Fatal("expected the default workspace to exist, but it didn't")
+	// We expect a state to have not been created for the default workspace
+	if _, ok := mock.MockStates["default"]; ok {
+		t.Fatal("expected the default workspace to not exist, but it did")
 	}
 
 	//// Create Workspace
@@ -73,9 +77,12 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 		Meta: meta,
 	}
 
-	current, _ := newCmd.Workspace()
-	if current != backend.DefaultStateName {
-		t.Fatal("before creating any custom workspaces, the current workspace should be 'default'")
+	current, err := newCmd.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != preExistingState {
+		t.Fatalf("before creating any custom workspaces, the current workspace should be %q, got: %q", preExistingState, current)
 	}
 
 	args = []string{newWorkspace}
@@ -117,7 +124,7 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	selCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
-	selectedWorkspace := backend.DefaultStateName
+	selectedWorkspace := preExistingState
 	args = []string{selectedWorkspace}
 	code = selCmd.Run(args)
 	if code != 0 {
@@ -145,8 +152,8 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	current, _ = newCmd.Workspace()
-	if current != backend.DefaultStateName {
-		t.Fatal("current workspace should be 'default'")
+	if current != preExistingState {
+		t.Fatalf("current workspace should be %q, got %q", preExistingState, current)
 	}
 
 	//// Delete Workspace
