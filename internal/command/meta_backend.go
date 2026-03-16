@@ -1254,8 +1254,32 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			// Verify that selected workspace exist. Otherwise prompt user to create one
 			if opts.Init && savedStateStore != nil {
 				if err := m.selectWorkspace(savedStateStore); err != nil {
-					diags = diags.Append(err)
-					return nil, diags
+					if errors.Is(err, &errBackendNoExistingWorkspaces{}) {
+						// We tolerate no workspaces if we're using a state store and
+						// the default workspace is selected.
+						ws, err := m.Workspace()
+						if err != nil {
+							diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
+							return nil, diags
+						}
+						if ws == backend.DefaultStateName {
+							// If the default workspace is selected, no workspaces existing _may_ be expected.
+							// It's valid for the default workspace's state to not be created until the first apply takes place.
+							// However, it could be that the user is configuring their working directory for the first time but
+							// they expect pre-existing state to be in the store from previous actions. In that case, the user
+							// should realise their mistake once they generate a plan.
+							//
+							// So here, we will just ignore the error.
+						} else {
+							// User needs to run a `terraform workspace new` command to create the missing custom workspace.
+							diags = diags.Append(err)
+							return nil, diags
+						}
+					} else {
+						// Report all other errors
+						diags = diags.Append(err)
+						return nil, diags
+					}
 				}
 			}
 
