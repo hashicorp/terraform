@@ -197,3 +197,57 @@ func TestNodeDestroyableOutputExecute_notInState(t *testing.T) {
 		t.Fatal("Unexpected outputs in state after removal")
 	}
 }
+
+// TestOutputValuesSemanticEquals verifies that output values with compatible
+// but distinct types (e.g., list(string) vs tuple([string])) are considered
+// equal when the actual values match, to avoid false positives in
+// -detailed-exitcode. See https://github.com/hashicorp/terraform/issues/38097
+func TestOutputValuesSemanticEquals(t *testing.T) {
+	tests := []struct {
+		name  string
+		newV  cty.Value
+		prior cty.Value
+		want  bool
+	}{
+		{
+			name:  "identical strings",
+			newV:  cty.StringVal("hello"),
+			prior: cty.StringVal("hello"),
+			want:  true,
+		},
+		{
+			name:  "different strings",
+			newV:  cty.StringVal("hello"),
+			prior: cty.StringVal("world"),
+			want:  false,
+		},
+		{
+			name:  "tuple and list with same elements",
+			newV:  cty.TupleVal([]cty.Value{cty.StringVal("")}),
+			prior: cty.ListVal([]cty.Value{cty.StringVal("")}),
+			want:  true,
+		},
+		{
+			name:  "tuple and list with different elements",
+			newV:  cty.TupleVal([]cty.Value{cty.StringVal("a")}),
+			prior: cty.ListVal([]cty.Value{cty.StringVal("b")}),
+			want:  false,
+		},
+		{
+			name:  "list(string) same type same value",
+			newV:  cty.ListVal([]cty.Value{cty.StringVal("")}),
+			prior: cty.ListVal([]cty.Value{cty.StringVal("")}),
+			want:  true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := outputValuesSemanticEquals(tc.newV, tc.prior)
+			if got != tc.want {
+				t.Errorf("outputValuesSemanticEquals(%#v, %#v) = %v, want %v",
+					tc.newV, tc.prior, got, tc.want)
+			}
+		})
+	}
+}

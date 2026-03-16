@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -741,7 +742,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			action = plans.Create
 
 		case val.IsWhollyKnown() &&
-			unmarkedVal.Equals(before).True() &&
+			outputValuesSemanticEquals(unmarkedVal, before) &&
 			n.Config.Sensitive == sensitiveBefore:
 			// Sensitivity must also match to be a NoOp.
 			// Theoretically marks may not match here, but sensitivity is the
@@ -816,4 +817,26 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		}
 		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
+}
+
+// outputValuesSemanticEquals returns true if two output values are semantically
+// equal for the purpose of determining plan changes. It first attempts a strict
+// type-aware comparison, and if that fails due to a type mismatch, it attempts
+// to convert the new value to the prior value's type before comparing. This
+// handles the case where a config expression change produces a compatible but
+// distinct type (e.g., tuple([string]) vs list(string)) with an identical
+// value, which should not be reported as a change.
+func outputValuesSemanticEquals(newVal, priorVal cty.Value) bool {
+	if newVal.Equals(priorVal).True() {
+		return true
+	}
+	// If the types differ, try converting newVal to the prior type and compare.
+	// This avoids false positives when expressions like conditional operators
+	// produce list(string) instead of tuple([string]) or vice versa.
+	if !newVal.Type().Equals(priorVal.Type()) {
+		if converted, err := convert.Convert(newVal, priorVal.Type()); err == nil {
+			return converted.Equals(priorVal).True()
+		}
+	}
+	return false
 }
