@@ -794,7 +794,6 @@ func (m *Meta) stateStoreConfig(opts *BackendOpts) (*configs.StateStore, int, tf
 	}
 
 	// Get the provider version from locks, as this impacts the hash
-	// NOTE: this assumes that we will never allow users to override config defining which provider is used for state storage
 	stateStoreProviderVersion, vDiags := getStateStorageProviderVersion(opts.StateStoreConfig, opts.Locks)
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
