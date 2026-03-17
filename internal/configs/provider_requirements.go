@@ -6,7 +6,7 @@ package configs
 import (
 	"fmt"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
@@ -16,18 +16,141 @@ import (
 // provider version or source without actually configuring that provider. This
 // is used in child modules that expect a provider to be passed in from their
 // parent.
+//
+// The SourceExpr and VersionExpr fields store the raw HCL expressions for
+// both static and dynamic (variable-interpolated) cases. The resolved output
+// fields (Source, Type, Requirement) are populated by calling
+// ResolveProviderSources on the parent RequiredProviders.
 type RequiredProvider struct {
-	Name        string
-	Source      string
-	Type        addrs.Provider
-	Requirement VersionConstraint
-	DeclRange   hcl.Range
-	Aliases     []addrs.LocalProviderConfig
+	Name      string
+	DeclRange hcl.Range
+	Aliases   []addrs.LocalProviderConfig
+
+	// Input: raw HCL expressions, always stored regardless of whether
+	// they are static literals or contain variable references.
+	SourceExpr  hcl.Expression // HCL expression for source (may be nil)
+	VersionExpr hcl.Expression // HCL expression for version (may be nil)
+
+	// Output: populated after resolution via ResolveProviderSources().
+	Source      string            // Resolved source string, e.g. "hashicorp/aws"
+	Type        addrs.Provider    // Parsed fully-qualified provider address
+	Requirement VersionConstraint // Parsed version constraints
+	Resolved    bool              // True once expressions have been evaluated
 }
 
 type RequiredProviders struct {
 	RequiredProviders map[string]*RequiredProvider
 	DeclRange         hcl.Range
+}
+
+// ResolveProviderSources evaluates all unresolved provider source and version
+// expressions against the given EvalContext. For static (literal) expressions,
+// pass nil as ctx. For dynamic expressions containing variable references,
+// pass an EvalContext populated with const variable values.
+//
+// This is the single evaluation path for both static and dynamic cases.
+func (rps *RequiredProviders) ResolveProviderSources(ctx *hcl.EvalContext) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+	for _, rp := range rps.RequiredProviders {
+		if rp.Resolved {
+			continue
+		}
+		diags = append(diags, rp.resolve(ctx)...)
+	}
+	return diags
+}
+
+// resolve evaluates the source and version expressions for a single
+// RequiredProvider. If no source was given, an implied type is derived
+// from the provider's local name.
+func (rp *RequiredProvider) resolve(ctx *hcl.EvalContext) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// Resolve source expression
+	if rp.SourceExpr != nil {
+		val, valDiags := rp.SourceExpr.Value(ctx)
+		diags = append(diags, valDiags...)
+		if valDiags.HasErrors() {
+			return diags
+		}
+		if val.Type() != cty.String {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid source",
+				Detail:   "Source must be specified as a string.",
+				Subject:  rp.SourceExpr.Range().Ptr(),
+			})
+			return diags
+		}
+		sourceStr := val.AsString()
+
+		fqn, sourceDiags := addrs.ParseProviderSourceString(sourceStr)
+		if sourceDiags.HasErrors() {
+			hclDiags := sourceDiags.ToHCL()
+			for _, diag := range hclDiags {
+				if diag.Subject == nil {
+					diag.Subject = rp.SourceExpr.Range().Ptr()
+				}
+			}
+			diags = append(diags, hclDiags...)
+			return diags
+		}
+
+		rp.Source = sourceStr
+		rp.Type = fqn
+	}
+
+	// Resolve version expression
+	if rp.VersionExpr != nil {
+		val, valDiags := rp.VersionExpr.Value(ctx)
+		diags = append(diags, valDiags...)
+		if valDiags.HasErrors() {
+			return diags
+		}
+		if val.Type() != cty.String {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid version constraint",
+				Detail:   "Version must be specified as a string.",
+				Subject:  rp.VersionExpr.Range().Ptr(),
+			})
+			return diags
+		}
+
+		constraintStr := val.AsString()
+		constraints, err := version.NewConstraint(constraintStr)
+		if err != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid version constraint",
+				Detail:   "This string does not use correct version constraint syntax.",
+				Subject:  rp.VersionExpr.Range().Ptr(),
+			})
+			return diags
+		}
+		rp.Requirement = VersionConstraint{
+			Required:  constraints,
+			DeclRange: rp.VersionExpr.Range(),
+		}
+	}
+
+	// If no source was given, derive an implied type from the local name.
+	if rp.Type.IsZero() {
+		pType, err := addrs.ParseProviderPart(rp.Name)
+		if err != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider name",
+				Detail:   err.Error(),
+				Subject:  rp.DeclRange.Ptr(),
+			})
+			return diags
+		}
+		rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+	}
+
+	rp.Resolved = true
+	return diags
 }
 
 func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
@@ -47,24 +170,24 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			DeclRange: attr.Expr.Range(),
 		}
 
-		// Look for a single static string, in case we have the legacy version-only
-		// format in the configuration.
+		// Look for a single static string, in case we have the legacy
+		// version-only format in the configuration.
 		if expr, err := attr.Expr.Value(nil); err == nil && expr.Type().IsPrimitiveType() {
-			vc, reqDiags := decodeVersionConstraint(attr)
-			diags = append(diags, reqDiags...)
-
-			pType, err := addrs.ParseProviderPart(rp.Name)
-			if err != nil {
+			pType, pErr := addrs.ParseProviderPart(rp.Name)
+			if pErr != nil {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid provider name",
-					Detail:   err.Error(),
+					Detail:   pErr.Error(),
 					Subject:  attr.Expr.Range().Ptr(),
 				})
 				continue
 			}
 
-			rp.Requirement = vc
+			// Store version expression for deferred resolution, but
+			// resolve the implied type immediately since there's no
+			// source expression in the legacy format.
+			rp.VersionExpr = attr.Expr
 			rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
 			ret.RequiredProviders[name] = rp
 
@@ -109,68 +232,10 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 			switch key.AsString() {
 			case "version":
-				vc := VersionConstraint{
-					DeclRange: attr.Range,
-				}
-
-				constraint, valDiags := kv.Value.Value(nil)
-				if valDiags.HasErrors() || !constraint.Type().Equals(cty.String) {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid version constraint",
-						Detail:   "Version must be specified as a string.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				constraintStr := constraint.AsString()
-				constraints, err := version.NewConstraint(constraintStr)
-				if err != nil {
-					// NewConstraint doesn't return user-friendly errors, so we'll just
-					// ignore the provided error and produce our own generic one.
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid version constraint",
-						Detail:   "This string does not use correct version constraint syntax.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				vc.Required = constraints
-				rp.Requirement = vc
+				rp.VersionExpr = kv.Value
 
 			case "source":
-				source, err := kv.Value.Value(nil)
-				if err != nil || !source.Type().Equals(cty.String) {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid source",
-						Detail:   "Source must be specified as a string.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				fqn, sourceDiags := addrs.ParseProviderSourceString(source.AsString())
-				if sourceDiags.HasErrors() {
-					hclDiags := sourceDiags.ToHCL()
-					// The diagnostics from ParseProviderSourceString don't contain
-					// source location information because it has no context to compute
-					// them from, and so we'll add those in quickly here before we
-					// return.
-					for _, diag := range hclDiags {
-						if diag.Subject == nil {
-							diag.Subject = kv.Value.Range().Ptr()
-						}
-					}
-					diags = append(diags, hclDiags...)
-					continue
-				}
-
-				rp.Source = source.AsString()
-				rp.Type = fqn
+				rp.SourceExpr = kv.Value
 
 			case "configuration_aliases":
 				exprs, listDiags := hcl.ExprList(kv.Value)
@@ -226,23 +291,25 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			continue
 		}
 
-		// We can add the required provider when there are no errors.
-		// If a source was not given, create an implied type.
-		if rp.Type.IsZero() {
-			pType, err := addrs.ParseProviderPart(rp.Name)
-			if err != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid provider name",
-					Detail:   err.Error(),
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			} else {
-				rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+		ret.RequiredProviders[rp.Name] = rp
+	}
+
+	// Resolve all static providers immediately (nil context).
+	// Dynamic providers with variable references will fail here and
+	// remain unresolved until ResolveProviderSources is called with
+	// a proper EvalContext containing const variable values.
+	resolveDiags := ret.ResolveProviderSources(nil)
+	diags = append(diags, resolveDiags...)
+
+	// Remove any providers that failed static resolution.
+	// Providers that remain unresolved without errors are dynamic
+	// and will be resolved later with a const variable context.
+	if resolveDiags.HasErrors() {
+		for name, rp := range ret.RequiredProviders {
+			if !rp.Resolved {
+				delete(ret.RequiredProviders, name)
 			}
 		}
-
-		ret.RequiredProviders[rp.Name] = rp
 	}
 
 	return ret, diags
