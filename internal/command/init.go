@@ -366,6 +366,8 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
 	// lock file called for.
+	//
+	// This warning is only added here to avoid duplication; not raised in getProvidersFromState.
 	diags = diags.Append(c.providerDevOverrideInitWarnings())
 
 	// Collect the provider dependencies from the configuration.
@@ -464,12 +466,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
-
-	// Dev overrides cause the result of "terraform init" to be irrelevant for
-	// any overridden providers, so we'll warn about it to avoid later
-	// confusion when Terraform ends up using a different provider than the
-	// lock file called for.
-	diags = diags.Append(c.providerDevOverrideInitWarnings())
 
 	if state == nil {
 		// if there is no state there are no providers to get
