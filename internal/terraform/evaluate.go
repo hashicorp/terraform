@@ -420,21 +420,66 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	}
 	outputConfigs := moduleConfig.Module.Outputs
 
-	// We don't do instance expansion during validation, and so we need to
-	// return an unknown value. Technically we should always return
-	// cty.DynamicVal here because the final value during plan will always
-	// be an object or tuple type with unpredictable attributes/elements,
-	// but because we never actually carry values forward from validation to
-	// planning we lie a little here and return unknown list and map types,
-	// just to give us more opportunities to catch author mistakes during
-	// validation.
-	//
-	// This means that in practice any expression that refers to a module
-	// call must be written to be valid for either a collection type or
-	// structural type of similar kind, so that it can be considered as
-	// valid during both the validate and plan walks.
-	if d.Operation == walkValidate {
-		// In case of non-expanded module calls we return a known object with unknonwn values
+	// typeDefined tracks if a module has defined any output type at all. We can
+	// use this as a flag to abandon some subtly incorrect legacy behavior.
+	// Start false because any TypeSet will flip the flag to true
+	typeDefined := false
+
+	// noDynamicTypes indicates that the module fully defines all output types,
+	// and they themselves contain no dynamic types. This allows us to create
+	// more precise unknowns for outputs, and use lists and maps when
+	// applicable.
+	// Start true because any dynamic type will flip the flag to false.
+	noDynamicTypes := true
+
+	for _, out := range outputConfigs {
+		typeDefined = typeDefined || out.TypeSet
+		noDynamicTypes = noDynamicTypes && !out.ConstraintType.HasDynamicTypes()
+	}
+
+	if d.Operation == walkValidate && typeDefined {
+		atys := make(map[string]cty.Type, len(outputConfigs))
+		as := make(map[string]cty.Value, len(outputConfigs))
+		for name, c := range outputConfigs {
+			// atys is used to create the module object type for expanded modules
+			atys[name] = c.ConstraintType
+			// the unknown val can be used when we return a single module
+			// instance with unknown outputs
+			val := cty.UnknownVal(c.ConstraintType)
+
+			if c.DeprecatedSet {
+				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
+			}
+			as[name] = val
+		}
+		instTy := cty.Object(atys)
+
+		switch {
+		case callConfig.Count != nil && noDynamicTypes:
+			return cty.UnknownVal(cty.List(instTy)), diags
+		case callConfig.ForEach != nil && noDynamicTypes:
+			return cty.UnknownVal(cty.Map(instTy)), diags
+		case callConfig.Count != nil || callConfig.ForEach != nil:
+			return cty.DynamicVal, diags
+		default:
+			val := cty.ObjectVal(as)
+			return val, diags
+		}
+	} else if d.Operation == walkValidate {
+		// the legacy behavior here is slightly wrong, but we're going to
+		// preserve it for now when modules don't define any typed output. The
+		// fact that we are returning a list or map is incorrect when the types
+		// are unknown, because the known values we get later are going to be
+		// tuples and objects. This usually doesn't present a problem, but it is
+		// possible to write complex expressions where it can only pass during
+		// one of validation or planning because the types will cause a mismatch
+		// in the other case.
+		// This means that in practice any expression that refers to a module
+		// call must be written to be valid for either a collection type or
+		// structural type of similar kind, so that it can be considered as
+		// valid during both the validate and plan walks.
+
+		// In case of non-expanded module calls we return a known object with unknown values
 		// In case of an expanded module call we return unknown list/map
 		// This means deprecation can only for non-expanded modules be detected during validate
 		// since we don't want false positives. The plan walk will give definitive warnings.
@@ -487,16 +532,15 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		for name, cfg := range outputConfigs {
 			outputAddr := moduleInstAddr.OutputValue(name)
 
-			// Although we do typically expect the graph dependencies to
-			// ensure that values get registered before they are needed,
-			// we track depedencies with specific output values where
-			// possible, instead of with entire module calls, and so
-			// in this specific case it's valid for some of this call's
-			// output values to not be known yet, with the graph builder
-			// being responsible for making sure that no expression
-			// in the configuration can actually observe that.
+			// Although we do typically expect the graph dependencies to ensure
+			// that values get registered before they are needed, we track
+			// dependencies with specific output values where possible, instead
+			// of with entire module calls, and so in this specific case it's
+			// valid for some of this call's output values to not be known yet,
+			// with the graph builder being responsible for making sure that no
+			// expression in the configuration can actually observe that.
 			if !namedVals.HasOutputValue(outputAddr) {
-				attrs[name] = cty.DynamicVal
+				attrs[name] = cty.UnknownVal(cfg.ConstraintType)
 				continue
 			}
 			outputVal := namedVals.GetOutputValue(outputAddr)
@@ -535,7 +579,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			elems = append(elems, instVal)
 			diags = diags.Append(moreDiags)
 		}
-		return cty.TupleVal(elems), diags
+		if noDynamicTypes {
+			return cty.ListVal(elems), diags
+		} else {
+			return cty.TupleVal(elems), diags
+		}
 
 	case addrs.StringKeyType:
 		attrs := make(map[string]cty.Value, len(instKeys))
@@ -544,7 +592,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			attrs[string(instKey.(addrs.StringKey))] = instVal
 			diags = diags.Append(moreDiags)
 		}
-		return cty.ObjectVal(attrs), diags
+		if noDynamicTypes {
+			return cty.MapVal(attrs), diags
+		} else {
+			return cty.ObjectVal(attrs), diags
+		}
 
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
@@ -602,7 +654,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// TODO: When deferred actions are more stable and robust in stacks, it
 	// would be nice to rework this function to rely on the ResourceInstanceKeys
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
-	// of the logic we've tried to encapsulate over ther already.
+	// of the logic we've tried to encapsulate over there already.
 	if d.Operation == walkPlan || d.Operation == walkApply {
 		if !d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
 			// Then we've asked for a resource that hasn't been evaluated yet.
@@ -795,14 +847,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 		case walkImport:
-			// Import does not yet plan resource changes, so new resources from
-			// config are not going to be found here. Once walkImport fully
-			// plans resources, this case should not longer be needed.
-			// In the single instance case, we can return a typed unknown value
-			// for the instance to better satisfy other expressions using the
-			// value. This of course will not help if statically known
-			// attributes are expected to be known elsewhere, but reduces the
-			// number of problematic configs for now.
 			// Unlike in plan and apply above we can't be sure the count or
 			// for_each instances are empty, so we return a DynamicVal. We
 			// don't really have a good value to return otherwise -- empty

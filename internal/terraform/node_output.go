@@ -8,7 +8,9 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -448,7 +450,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 			// This has to run before we have a state lock, since evaluation also
 			// reads the state
 			var evalDiags tfdiags.Diagnostics
-			val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+			val, evalDiags = evalOutputValue(ctx, n.Config.Expr, n.Config.ConstraintType, n.Config.TypeDefaults)
 			diags = diags.Append(evalDiags)
 
 			// We'll handle errors below, after we have loaded the module.
@@ -544,6 +546,51 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	}
 
 	return diags
+}
+
+// evalOutputValue encapsulates the logic for transforming an author's value
+// expression into a valid value of their declared type constraint, or returning
+// an error describing why that isn't possible.
+func evalOutputValue(ctx EvalContext, expr hcl.Expression, wantType cty.Type, defaults *typeexpr.Defaults) (cty.Value, tfdiags.Diagnostics) {
+	// We can't pass wantType to EvaluateExpr here because we'll need to
+	// possibly apply our defaults before attempting type conversion below.
+	val, diags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	if diags.HasErrors() {
+		return cty.UnknownVal(wantType), diags
+	}
+
+	if defaults != nil {
+		val = defaults.Apply(val)
+	}
+
+	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	diags = diags.Append(moreDiags)
+
+	scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+	var hclCtx *hcl.EvalContext
+	if scope != nil {
+		hclCtx, moreDiags = scope.EvalContext(refs)
+	} else {
+		// This shouldn't happen in real code, but it can unfortunately arise
+		// in unit tests due to incompletely-implemented mocks. :(
+		hclCtx = &hcl.EvalContext{}
+	}
+	diags = diags.Append(moreDiags)
+
+	val, err := convert.Convert(val, wantType)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid output value",
+			Detail:      fmt.Sprintf("The value expression does not match this output value's type constraint: %s.", tfdiags.FormatError(err)),
+			Subject:     expr.Range().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
+		})
+		return cty.UnknownVal(wantType), diags
+	}
+
+	return val, diags
 }
 
 // dag.GraphNodeDotter impl.
