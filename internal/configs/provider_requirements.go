@@ -6,7 +6,7 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-version"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
@@ -60,11 +60,31 @@ func (rps *RequiredProviders) ResolveProviderSources(ctx *hcl.EvalContext) hcl.D
 	return diags
 }
 
+// exprHasVarRefs returns true if the given expression references any
+// variables (e.g. var.x). This is used to detect dynamic expressions
+// that cannot be evaluated with a nil EvalContext.
+func exprHasVarRefs(expr hcl.Expression) bool {
+	return len(expr.Variables()) > 0
+}
+
 // resolve evaluates the source and version expressions for a single
 // RequiredProvider. If no source was given, an implied type is derived
 // from the provider's local name.
+//
+// When ctx is nil and an expression contains variable references, resolution
+// is deferred — the provider stays unresolved without producing errors.
 func (rp *RequiredProvider) resolve(ctx *hcl.EvalContext) hcl.Diagnostics {
 	var diags hcl.Diagnostics
+
+	// If either expression has variable references and we have no context
+	// to evaluate them against, defer resolution entirely.
+	if ctx == nil {
+		sourceHasVars := rp.SourceExpr != nil && exprHasVarRefs(rp.SourceExpr)
+		versionHasVars := rp.VersionExpr != nil && exprHasVarRefs(rp.VersionExpr)
+		if sourceHasVars || versionHasVars {
+			return diags
+		}
+	}
 
 	// Resolve source expression
 	if rp.SourceExpr != nil {

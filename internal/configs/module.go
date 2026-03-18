@@ -883,6 +883,44 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
+// ResolveResourceProviders re-assigns the Provider field on all resources
+// (managed, data, ephemeral, actions) based on the current state of the
+// ProviderRequirements map. This must be called after dynamically resolving
+// provider sources, since resource Provider fields are initially set during
+// appendFile before dynamic provider resolution occurs.
+func (m *Module) ResolveResourceProviders() {
+	resolveResource := func(r *Resource) {
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+	for _, r := range m.ManagedResources {
+		resolveResource(r)
+	}
+	for _, r := range m.DataResources {
+		resolveResource(r)
+	}
+	for _, r := range m.EphemeralResources {
+		resolveResource(r)
+	}
+	for _, a := range m.Actions {
+		if a.ProviderConfigRef != nil {
+			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+			if err == nil {
+				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+	m.gatherProviderLocalNames()
+}
+
 // gatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
