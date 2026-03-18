@@ -1,4 +1,4 @@
-## 1.15.0 (Unreleased)
+## 1.15.0-beta1 (March 18, 2026)
 
 
 NEW FEATURES:
@@ -18,6 +18,8 @@ NEW FEATURES:
 
 ENHANCEMENTS:
 
+* config: `output` blocks now can have an explicit type constraints ([#36411](https://github.com/hashicorp/terraform/issues/36411))
+
 * ssh-based provisioner (file + remote-exec): Re-enable support for PowerShell ([#37794](https://github.com/hashicorp/terraform/issues/37794))
 
 * terraform init log timestamps include millisecond precision ([#37818](https://github.com/hashicorp/terraform/issues/37818))
@@ -31,6 +33,12 @@ ENHANCEMENTS:
 * Deprecation messages providers set on resources / blocks / attributes are now part of the deprecation warning ([#38135](https://github.com/hashicorp/terraform/issues/38135))
 
 * Include which attribute paths are marked as sensitive in list_start JSON logs ([#38197](https://github.com/hashicorp/terraform/issues/38197))
+
+* Add input variable validation for Stacks ([#38240](https://github.com/hashicorp/terraform/issues/38240))
+
+* When comparing a container value to null, only top level marks are now considered for the result. ([#38270](https://github.com/hashicorp/terraform/issues/38270))
+
+* As part of supporting variables in module sources, most commands now accept variable values ([#38276](https://github.com/hashicorp/terraform/issues/38276))
 
 
 BUG FIXES:
@@ -69,16 +77,6 @@ UPGRADE NOTES:
 
 * backend/s3: The `AWS_USE_FIPS_ENDPOINT` and `AWS_USE_DUALSTACK_ENDPOINT` environment variables now only respect `true` or `false` values, aligning with the AWS SDK for Go. This replaces the previous behavior which treated any non-empty value as `true`. ([#37601](https://github.com/hashicorp/terraform/issues/37601))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
-- `terraform test cleanup`: The experimental `test cleanup` command. In experimental builds of Terraform, a manifest file and state files for each failed cleanup operation during test operations are saved within the `.terraform` local directory. The `test cleanup` command will attempt to clean up the local state files left behind automatically, without requiring manual intervention.
-- `terraform test`: `backend` blocks and `skip_cleanup` attributes:
-  - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
-  - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
 
 ## Previous Releases
 
