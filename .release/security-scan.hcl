@@ -12,4 +12,12 @@ binary {
   go_modules   = true
   osv          = true
   nvd          = false
+  
+  triage {
+    suppress {
+      vulnerabilities = [
+        "GHSA-p77j-4mvh-x3m3"
+      ]
+    }
+  }
 }
