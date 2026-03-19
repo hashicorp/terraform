@@ -232,8 +232,7 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				},
 			}
 
-			args := append(tc.flags, "-enable-pluggable-state-storage-experiment") // Needed to test init changes for PSS project
-			if code := c.Run(args); code != 0 {
+			if code := c.Run(tc.flags); code != 0 {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
@@ -3483,7 +3482,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3536,7 +3535,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3620,7 +3619,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			},
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true", "-create-default-workspace=false"}
+		args := []string{"-create-default-workspace=false"}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3670,7 +3669,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 
 		t.Setenv("TF_SKIP_CREATE_DEFAULT_WORKSPACE", "1") // any value
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3725,7 +3724,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 1 {
@@ -3802,7 +3801,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// If input is disabled users receive an error about the missing workspace
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-input=false",
 		}
 		code := c.Run(args)
@@ -3874,9 +3872,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -3971,9 +3967,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		}
 
 		// Run init command
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -4043,7 +4037,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-reconfigure",
 		}
 		code := c.Run(args)
@@ -4131,7 +4124,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-backend=false",
 		}
 		code := c.Run(args)
@@ -4188,7 +4180,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			// missing -migrate-state flag
 		}
 		code := c.Run(args)
@@ -4241,7 +4232,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4303,7 +4293,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4369,7 +4358,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4440,7 +4428,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4509,7 +4496,6 @@ func TestInit_stateStore_providerUpgrade(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-migrate-state=true",
 			"-upgrade",
 		}
@@ -4578,9 +4564,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 		}
 
 		// Init
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -4629,7 +4613,6 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-backend-config=value=foobar", // value = foobar, matches the line removed from config
 		}
 		code := c.Run(args)
@@ -4688,9 +4671,7 @@ func TestInit_stateStore_unset(t *testing.T) {
 		}
 
 		// Init
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -4730,7 +4711,6 @@ func TestInit_stateStore_unset(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4789,9 +4769,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 		}
 
 		// Init
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -4832,7 +4810,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -4887,9 +4864,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5005,7 +4980,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-migrate-state",
 			"-force-copy",
 		}
@@ -5153,9 +5127,7 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5259,7 +5231,6 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -5353,9 +5324,7 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5404,7 +5373,6 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -5469,9 +5437,7 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5567,7 +5533,6 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 		}
 		code := c.Run(args)
@@ -5657,9 +5622,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5798,7 +5761,6 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		}
 
 		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
 			"-force-copy",
 			"-migrate-state",
 		}
@@ -5942,9 +5904,7 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 				AllowExperimentalFeatures: true,
 			},
 		}
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
@@ -5986,9 +5946,7 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 			},
 		}
 
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
+		args := []string{}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code == 0 {
@@ -6037,7 +5995,7 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 	}
 
 	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init start")
-	args := []string{"-enable-pluggable-state-storage-experiment"}
+	args := []string{}
 	code := initCmd.Run(args)
 	testOutput := done(t)
 	if code != 1 {
