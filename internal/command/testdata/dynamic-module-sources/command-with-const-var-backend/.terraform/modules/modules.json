@@ -1,0 +1,14 @@
+{
+  "Modules": [
+    {
+      "Key": "",
+      "Source": "",
+      "Dir": "."
+    },
+    {
+      "Key": "child",
+      "Source": "./modules/child",
+      "Dir": "modules/child"
+    }
+  ]
+}
