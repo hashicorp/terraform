@@ -160,12 +160,16 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 		// without an instance key and with no repetition data.
 		return instancesResult[T]{noForEachInstancesMap(makeInst), false}
 
+	case !maybeForEachVal.IsKnown():
+		// This is temporary to gradually rollout support for unknown for_each values
+		return instancesResult[T]{nil, true}
+
 	default:
-		// Full support for unknown for_each values is now rolled out
-		// (the temporary limitation has been removed).
-		// evaluateForEachExpr already guarantees a valid value (even if unknown),
-		// so we delegate to forEachInstancesMap for complete dynamic expansion
-		// exactly as in classic Terraform.
+		// Otherwise we should be able to assume the value is valid per the
+		// definition of [evaluateForEachExpr]. The following will panic if
+		// that other function doesn't satisfy its documented contract;
+		// if that happens, prefer to correct the either that function or
+		// its caller rather than adding further complexity here.
 
 		// NOTE: We MUST return a non-nil map from every return path under
 		// this case, even if there are zero elements in it, because a nil map
