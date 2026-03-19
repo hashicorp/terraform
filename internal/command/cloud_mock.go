@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
 
 func cloudTestServerWithVars(t *testing.T) *httptest.Server {
@@ -115,4 +125,51 @@ func cloudTestServerWithVars(t *testing.T) *httptest.Server {
 	})
 
 	return httptest.NewServer(mux)
+}
+
+// TestVariableBackend is a backend used in test that are fetching variable
+// values for constant values.
+type TestVariableBackend struct {
+	*backendLocal.Local
+
+	vars map[string]string
+}
+
+func TestNewVariableBackend(result map[string]string) backend.Backend {
+	return &TestVariableBackend{
+		Local: backendLocal.New(),
+		vars:  result,
+	}
+}
+
+var _ backendrun.ConstVariableSupplier = (*TestVariableBackend)(nil)
+
+func (b *TestVariableBackend) FetchVariables(ctx context.Context, workspace string) (map[string]arguments.UnparsedVariableValue, tfdiags.Diagnostics) {
+	result := make(map[string]arguments.UnparsedVariableValue)
+
+	for name, value := range b.vars {
+		result[name] = testUnparsedVariableValueString{
+			str:  value,
+			name: name,
+		}
+	}
+
+	return result, nil
+}
+
+type testUnparsedVariableValueString struct {
+	str  string
+	name string
+}
+
+func (v testUnparsedVariableValueString) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	val, hclDiags := mode.Parse(v.name, v.str)
+	diags = diags.Append(hclDiags)
+
+	return &terraform.InputValue{
+		Value:      val,
+		SourceType: terraform.ValueFromInput,
+	}, diags
 }
