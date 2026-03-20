@@ -11,7 +11,11 @@ import (
 
 	"github.com/hashicorp/cli"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -376,6 +380,125 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 				msg, ui.OutputWriter.String())
 		}
 	}
+}
+
+func TestStateReplaceProvider_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &StateReplaceProviderCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{
+			"-auto-approve",
+			"hashicorp/test",
+			"testing-corp/test",
+		}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &StateReplaceProviderCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{
+			"-auto-approve",
+			"-var", "module_name=child",
+			"hashicorp/test",
+			"testing-corp/test",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`
+<no state>
+module.child:
+  test_instance.test:
+    ID = 
+    provider = provider["registry.terraform.io/testing-corp/test"]
+`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &StateReplaceProviderCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{
+			"-auto-approve",
+			"hashicorp/test",
+			"testing-corp/test",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`
+<no state>
+module.child:
+  test_instance.test:
+    ID = 
+    provider = provider["registry.terraform.io/testing-corp/test"]
+`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
 }
 
 func TestStateReplaceProvider_docs(t *testing.T) {
