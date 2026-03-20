@@ -18,6 +18,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -209,6 +213,101 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	if !cmp.Equal(got, want) {
 		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 	}
+}
+
+func TestProvidersSchema_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-json"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-json", "-var", "module_name=child"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		wantOutput := []string{
+			`"registry.terraform.io/hashicorp/test"`,
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		server := cloudTestServerWithVars(t)
+		defer server.Close()
+		d := testDisco(server)
+
+		previousBackend := backendInit.Backend("cloud")
+		backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+		defer backendInit.Set("cloud", previousBackend)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+				Services:         d,
+			},
+		}
+
+		args := []string{"-json"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		wantOutput := []string{
+			`"registry.terraform.io/hashicorp/test"`,
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
 }
 
 type providerSchemas struct {
