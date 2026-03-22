@@ -61,7 +61,7 @@ type ApplyOpts struct {
 type Applyable interface {
 	// CheckApply checks the receiver's apply-time result and returns zero
 	// or more applied change descriptions and zero or more diagnostics
-	// describing any problems that occured for this specific object during
+	// describing any problems that occurred for this specific object during
 	// the apply phase.
 	//
 	// CheckApply must not report any diagnostics raised indirectly by

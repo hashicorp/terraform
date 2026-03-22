@@ -518,7 +518,7 @@ func (s *State) MoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) {
 // MaybeMoveAbsResourceInstance moves the given src AbsResourceInstance's
 // current state to the new dst address. This function will succeed if both the
 // src address does not exist in state and the dst address does; the return
-// value indicates whether or not the move occured. This function will panic if
+// value indicates whether or not the move occurred. This function will panic if
 // either the src does not exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) bool {
 	// get the src and dst resource instances from state
@@ -577,7 +577,7 @@ func (s *State) MoveModuleInstance(src, dst addrs.ModuleInstance) {
 // MaybeMoveModuleInstance moves the given src ModuleInstance's current state to
 // the new dst address. This function will succeed if both the src address does
 // not exist in state and the dst address does; the return value indicates
-// whether or not the move occured. This function will panic if either the src
+// whether or not the move occurred. This function will panic if either the src
 // does not exist or the dst does exist (but not both).
 func (s *State) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
 	if src.IsRoot() || dst.IsRoot() {
