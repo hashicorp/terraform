@@ -65,6 +65,15 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		))
 	}
 
+	if op.PlanLight {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Light plan mode is not supported with cloud backends",
+			fmt.Sprintf("%s does not support the -light flag. ", b.appName)+
+				"Light plan mode is only available for local operations.",
+		))
+	}
+
 	if op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

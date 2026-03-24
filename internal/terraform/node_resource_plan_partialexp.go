@@ -30,11 +30,10 @@ import (
 //
 // This is the partial-expanded equivalent of NodePlannableResourceInstance.
 type nodePlannablePartialExpandedResource struct {
-	addr              addrs.PartialExpandedResource
-	config            *configs.Resource
-	resolvedProvider  addrs.AbsProviderConfig
-	skipPlanChanges   bool
-	preDestroyRefresh bool
+	addr             addrs.PartialExpandedResource
+	config           *configs.Resource
+	resolvedProvider addrs.AbsProviderConfig
+	planCtx          nodePlanContext
 }
 
 var (
@@ -95,7 +94,7 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 		// need to destroy.
 		return nil
 	case walkPlan:
-		if n.preDestroyRefresh || n.skipPlanChanges {
+		if n.planCtx.preDestroyRefresh || n.planCtx.skipPlanChanges {
 			// During any kind of refresh, we also don't really care about
 			// partial resources. We only care about the fully-expanded resources
 			// already in state, so we don't need to plan partial resources.
@@ -184,7 +183,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// - Evaluating the preconditions/postconditions to see if they produce
 	//   a definitive fail result even with the partial information.
 
-	if n.skipPlanChanges {
+	if n.planCtx.skipPlanChanges {
 		// If we're supposed to be making a refresh-only plan then there's
 		// not really anything else to do here, since we can only refresh
 		// specific known resource instances (which another graph node should

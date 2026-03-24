@@ -10426,6 +10426,7 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
+		Parallelism: 1,
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)

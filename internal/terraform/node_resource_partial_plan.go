@@ -52,11 +52,10 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 
 		// And add a node to the graph for this resource.
 		g.Add(&nodePlannablePartialExpandedResource{
-			addr:              resourceAddr,
-			config:            n.Config,
-			resolvedProvider:  n.ResolvedProvider,
-			skipPlanChanges:   n.skipPlanChanges,
-			preDestroyRefresh: n.preDestroyRefresh,
+			addr:             resourceAddr,
+			config:           n.Config,
+			resolvedProvider: n.ResolvedProvider,
+			planCtx:          n.planCtx,
 		})
 	}
 
@@ -69,6 +68,8 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 		state := ss.Lock()
 		defer ss.Unlock()
 
+		// TODO(sams): Comment why we need to skip plan changes
+		planCtx := n.planCtx.withSkipPlanChanges(true)
 	Resources:
 		for _, res := range state.Resources(n.Addr) {
 
@@ -87,7 +88,7 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 						// Then each of the instances is a "maybe orphan"
 						// instance, and we need to add a node for that.
 						maybeOrphanResources.Add(res.Addr.Instance(key))
-						g.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), true)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
+						g.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), planCtx)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
 					}
 
 					// Move onto the next resource.
@@ -284,7 +285,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 		DynamicTransformer(func(graph *Graph) error {
 			// We'll add a node for all the known instance keys.
 			for _, key := range knownInstKeys {
-				graph.Add(n.concreteResource(ctx, knownImports, unknownImports, n.skipPlanChanges)(NewNodeAbstractResourceInstance(addr.Instance(key))))
+				graph.Add(n.concreteResource(ctx, knownImports, unknownImports, n.planCtx)(NewNodeAbstractResourceInstance(addr.Instance(key))))
 			}
 			return nil
 		}),
@@ -295,11 +296,10 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 				addr := addr.Module.UnexpandedResource(addr.Resource)
 
 				graph.Add(&nodePlannablePartialExpandedResource{
-					addr:              addr,
-					config:            n.Config,
-					resolvedProvider:  n.ResolvedProvider,
-					skipPlanChanges:   n.skipPlanChanges,
-					preDestroyRefresh: n.preDestroyRefresh,
+					addr:             addr,
+					config:           n.Config,
+					resolvedProvider: n.ResolvedProvider,
+					planCtx:          n.planCtx,
 				})
 			}
 			return nil
@@ -336,7 +336,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 					// to a known instance but we have unknown keys so we don't
 					// know for sure that it's been deleted.
 					maybeOrphans.Add(addr.Instance(key))
-					graph.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), true)(NewNodeAbstractResourceInstance(addr.Instance(key))))
+					graph.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), n.planCtx.withSkipPlanChanges(true))(NewNodeAbstractResourceInstance(addr.Instance(key))))
 					continue
 				}
 

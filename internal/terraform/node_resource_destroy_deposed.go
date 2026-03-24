@@ -36,12 +36,10 @@ type NodePlanDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
 
-	// skipRefresh indicates that we should skip refreshing individual instances
-	skipRefresh bool
-
-	// skipPlanChanges indicates we should skip trying to plan change actions
-	// for any instances.
-	skipPlanChanges bool
+	// planCtx carries per-node planning context flags (e.g. light-mode,
+	// skip-refresh, pre-destroy-refresh, skip-plan-changes).
+	// See the nodePlanContext type for details on the individual fields.
+	planCtx nodePlanContext
 
 	// forgetResources lists resources that should not be destroyed, only removed
 	// from state.
@@ -134,7 +132,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	// logic here is a bit overloaded.
 	//
 	// We also don't refresh when forgetting instances, as it is unnecessary.
-	if !n.skipRefresh && op != walkPlanDestroy && !forget {
+	if !n.planCtx.skipRefresh && !n.planCtx.lightMode && op != walkPlanDestroy && !forget {
 		// Refresh this object even though it may be destroyed, in
 		// case it's already been deleted outside of Terraform. If this is a
 		// normal plan, providers expect a Read request to remove missing
@@ -162,7 +160,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		}
 	}
 
-	if !n.skipPlanChanges {
+	if !n.planCtx.skipPlanChanges {
 		var change *plans.ResourceInstanceChange
 		var pDiags tfdiags.Diagnostics
 		var planDeferred *providers.Deferred
