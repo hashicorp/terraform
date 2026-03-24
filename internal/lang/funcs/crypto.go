@@ -126,7 +126,7 @@ var BcryptFunc = function.New(&function.Spec{
 		input := args[0].AsString()
 		out, err := bcrypt.GenerateFromPassword([]byte(input), defaultCost)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("error occured generating password %s", err.Error())
+			return cty.UnknownVal(cty.String), fmt.Errorf("error occurred generating password %s", err.Error())
 		}
 
 		return cty.StringVal(string(out)), nil
