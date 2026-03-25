@@ -20,22 +20,19 @@ type WorkspaceListCommand struct {
 	LegacyName bool
 }
 
-func (c *WorkspaceListCommand) Run(args []string) int {
+func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	args = c.Meta.process(args)
+	rawArgs = c.Meta.process(rawArgs)
 
-	cmdFlags := c.Meta.defaultFlagSet("workspace list")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
+	args, diags := arguments.ParseWorkspace(rawArgs)
 
 	// Prepare the view
 	//
-	viewType := arguments.ViewHuman
-	view := newWorkspaceList(viewType, c.View, c.Ui, &c.Meta)
+	// Note - here the view uses:
+	// - cli.Ui for human output
+	// - view.View for machine-readable output
+	view := newWorkspaceList(args.ViewType, c.View, c.Ui, &c.Meta)
 	c.View.Configure(&arguments.View{
 		NoColor:         !c.Meta.Color,
 		CompactWarnings: c.Meta.compactWarnings,
@@ -44,8 +41,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	// Warn against using `terraform env` commands
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	args = cmdFlags.Args()
-	configPath, err := ModulePath(args)
+	configPath, err := ModulePath(rawArgs)
 	if err != nil {
 		diags.Append(err)
 		view.List("", nil, diags)
@@ -53,7 +49,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, diags := c.backend(configPath, viewType)
+	b, diags := c.backend(configPath, args.ViewType)
 	if diags.HasErrors() {
 		view.List("", nil, diags)
 		return 1
