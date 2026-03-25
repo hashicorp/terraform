@@ -17,11 +17,13 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
@@ -1189,5 +1191,218 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	expectedError = "Expected a single argument: NAME.\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+}
+
+// Test human output from commands, with color enabled
+func TestWorkspace_humanOutputWithColor(t *testing.T) {
+	newMeta := func(colourEnabled bool) (Meta, *cli.MockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		return Meta{
+			Ui:         ui,
+			View:       view,
+			Color:      colourEnabled,
+			WorkingDir: workdir.NewDir("."),
+		}, ui, view, done
+	}
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	envsSet1 := []string{"test_a", "test_b", "test_c"}
+	envsSet2 := []string{"test_d", "test_e", "test_f"}
+
+	// Assert output from creating a workspace with color enabled
+	for _, env := range envsSet1 {
+		useColor := true
+		meta, ui, _, _ := newMeta(useColor)
+		newCmd := &WorkspaceNewCommand{
+			Meta: meta,
+		}
+		if code := newCmd.Run([]string{env}); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+
+		expectedOutput := fmt.Sprintf("\x1b[0m\x1b[32m\x1b[1mCreated and switched to workspace \"%s\"!\x1b[0m\x1b[32m\n\nYou're now on a new, empty workspace. Workspaces isolate their state,\nso if you run \"terraform plan\" Terraform will not see any existing state\nfor this configuration.\x1b[0m\n", env)
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("want: %s\ngot: %s", expectedOutput, ui.OutputWriter.String())
+		}
+	}
+
+	// Assert output from creating a workspace with color disabled
+	for _, env := range envsSet2 {
+		useColor := false
+		meta, ui, _, _ := newMeta(useColor)
+		newCmd := &WorkspaceNewCommand{
+			Meta: meta,
+		}
+		if code := newCmd.Run([]string{env}); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+
+		expectedOutput := fmt.Sprintf("Created and switched to workspace \"%s\"!\n\nYou're now on a new, empty workspace. Workspaces isolate their state,\nso if you run \"terraform plan\" Terraform will not see any existing state\nfor this configuration.\n", env)
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("want: %s\ngot: %s", expectedOutput, ui.OutputWriter.String())
+		}
+	}
+
+	// NOTE: the last-created workspace will be selected: test_f
+
+	// Assert output from listing workspaces with color enabled
+	useColor := true
+	meta, ui, _, _ := newMeta(useColor)
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	if code := listCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual := ui.OutputWriter.String()
+	expectedOutput := "  default\n  test_a\n  test_b\n  test_c\n  test_d\n  test_e\n* test_f\n\n"
+	if actual != expectedOutput {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
+	}
+
+	// Assert output from listing workspaces with color disabled
+	useColor = false
+	meta, ui, _, _ = newMeta(useColor)
+	listCmd = &WorkspaceListCommand{
+		Meta: meta,
+	}
+	if code := listCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "  default\n  test_a\n  test_b\n  test_c\n  test_d\n  test_e\n* test_f\n\n"
+	if actual != expectedOutput {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
+	}
+
+	// Assert output from showing the current workspace with color enabled
+	useColor = true
+	meta, ui, _, _ = newMeta(useColor)
+	showCmd := &WorkspaceShowCommand{
+		Meta: meta,
+	}
+	if code := showCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "test_f\n"
+	if actual != expectedOutput {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
+	}
+
+	// Assert output from showing the current workspace with color disabled
+	useColor = false
+	meta, ui, _, _ = newMeta(useColor)
+	showCmd = &WorkspaceShowCommand{
+		Meta: meta,
+	}
+	if code := showCmd.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "test_f\n"
+	if actual != expectedOutput {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
+	}
+
+	// Assert output from selecting a workspace with color enabled
+	useColor = true
+	meta, ui, _, _ = newMeta(useColor)
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	args := []string{"test_a"}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "\x1b[0m\x1b[32mSwitched to workspace \"test_a\".\x1b[0m\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
+	}
+
+	// Assert output from selecting a workspace with color disabled
+	useColor = false
+	meta, ui, _, _ = newMeta(useColor)
+	selectCmd = &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	args = []string{"test_b"}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "Switched to workspace \"test_b\".\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
+	}
+
+	// Assert output from deleting a workspace with color enabled
+	useColor = true
+	meta, ui, _, _ = newMeta(useColor)
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"test_c"}
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "\x1b[0m\x1b[32mDeleted workspace \"test_c\"!\x1b[0m\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
+	}
+
+	// Assert output from deleting a workspace with color disabled
+	useColor = false
+	meta, ui, _, _ = newMeta(useColor)
+	deleteCmd = &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"test_d"}
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	actual = ui.OutputWriter.String()
+	expectedOutput = "Deleted workspace \"test_d\"!\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
+	}
+
+	// Assert error output from deleting a non-existent workspace with color enabled
+	useColor = true
+	meta, ui, _, _ = newMeta(useColor)
+	deleteCmd = &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"foobar"}
+	if code := deleteCmd.Run(args); code != 1 {
+		t.Fatalf("expected error but got code %d:\n\n%s\n\n%s", code, ui.OutputWriter, ui.ErrorWriter)
+	}
+	actual = ui.ErrorWriter.String()
+	expectedOutput = "\x1b[31mWorkspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\x1b[0m\x1b[0m\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
+	}
+
+	// Assert error output from deleting a non-existent workspace with color disabled
+	useColor = false
+	meta, ui, _, _ = newMeta(useColor)
+	deleteCmd = &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"foobar"}
+	if code := deleteCmd.Run(args); code != 1 {
+		t.Fatalf("expected error but got code %d:\n\n%s\n\n%s", code, ui.OutputWriter, ui.ErrorWriter)
+	}
+	actual = ui.ErrorWriter.String()
+	expectedOutput = "Workspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\n"
+	if actual != expectedOutput {
+		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
 	}
 }
