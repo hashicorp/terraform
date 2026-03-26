@@ -670,7 +670,7 @@ message PlannedChange {
       DynamicValue config_value = 4;
 
       oneof action_trigger {
-          LifecycleActionTrigger lifecycle_action_trigger = 6;
+          ResourceActionTrigger resource_action_trigger = 6;
           InvokeActionTrigger invoke_action_trigger = 7;
       }
   }
@@ -687,9 +687,9 @@ message PlannedChange {
     ActionInvocationInstance action_invocation = 2;
   }
 
-  // LifecycleActionTrigger contains details on the conditions that led to the
+  // ResourceActionTrigger contains details on the conditions that led to the
   // triggering of an action.
-  message LifecycleActionTrigger {
+  message ResourceActionTrigger {
     ResourceInstanceInStackAddr triggering_resource_address = 1;
     ActionTriggerEvent trigger_event = 2;
     int64 action_trigger_block_index = 3;
@@ -940,7 +940,7 @@ message StackChangeProgress {
       ActionInvocationInstanceInStackAddr addr = 1;
       string provider_addr = 2;
       oneof action_trigger {
-        LifecycleActionTrigger lifecycle_action_trigger = 3;
+        ResourceActionTrigger resource_action_trigger = 3;
         InvokeActionTrigger invoke_action_trigger = 4;
       }
   }
@@ -951,7 +951,7 @@ message StackChangeProgress {
       string provider_addr = 3;
 
       oneof action_trigger {
-        LifecycleActionTrigger lifecycle_action_trigger = 4;
+        ResourceActionTrigger resource_action_trigger = 4;
         InvokeActionTrigger invoke_action_trigger = 5;
       }
 
@@ -970,14 +970,14 @@ message StackChangeProgress {
       string provider_addr = 3;
 
       oneof action_trigger {
-        LifecycleActionTrigger lifecycle_action_trigger = 4;
+        ResourceActionTrigger resource_action_trigger = 4;
         InvokeActionTrigger invoke_action_trigger = 5;
       }
   }
 
-  // LifecycleActionTrigger contains details on the conditions that led to the
+  // ResourceActionTrigger contains details on the conditions that led to the
   // triggering of an action.
-  message LifecycleActionTrigger {
+  message ResourceActionTrigger {
     ResourceInstanceInStackAddr triggering_resource_address = 1;
     ActionTriggerEvent trigger_event = 2;
     int64 action_trigger_block_index = 3;

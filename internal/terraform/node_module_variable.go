@@ -26,9 +26,8 @@ type nodeExpandModuleVariable struct {
 	Config *configs.Variable
 	Expr   hcl.Expression
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for this variable
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
@@ -55,7 +54,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	// We should only do this during planning as the apply phase starts with
 	// all the same checkable objects that were registered during the plan.
 	var checkableAddrs addrs.Set[addrs.Checkable]
-	if n.Planning {
+	if n.ValidateChecks {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
 			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
 		}
@@ -217,14 +216,26 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	log.Printf("[TRACE] nodeModuleVariable: evaluating %s", n.Addr)
 
 	var val cty.Value
+	var errSourceRange tfdiags.SourceRange
 	var err error
 
 	switch op {
 	case walkValidate:
-		val, err = n.evalModuleVariable(ctx, true)
+		val, errSourceRange, err = n.evalModuleVariable(ctx, true)
 		diags = diags.Append(err)
+	case walkInit:
+		// During init we only want to record the value if it's static;
+		// otherwise we record it as dynamic to prevent its use in
+		// static contexts.
+		// We still evaluate it fully here to catch any errors early.
+		if n.Config.Const {
+			val, errSourceRange, err = n.evalModuleVariable(ctx, false)
+			diags = diags.Append(err)
+		} else {
+			val = cty.DynamicVal
+		}
 	default:
-		val, err = n.evalModuleVariable(ctx, false)
+		val, errSourceRange, err = n.evalModuleVariable(ctx, false)
 		diags = diags.Append(err)
 	}
 	if diags.HasErrors() {
@@ -234,6 +245,15 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	if n.Expr != nil {
 		_, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Expr.Range().Ptr())
 		diags = diags.Append(deprecationDiags)
+	}
+
+	if op == walkInit && n.Config.Const && !val.IsWhollyKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Const variables must be known",
+			Detail:   "Only a constant value can be passed into a constant module variable.",
+			Subject:  errSourceRange.ToHCL().Ptr(),
+		})
 	}
 
 	// Set values for arguments of a child module call, for later retrieval
@@ -263,7 +283,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
+func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, tfdiags.SourceRange, error) {
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange
@@ -289,7 +309,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			return cty.DynamicVal, diags.ErrWithWarnings()
+			return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
 		}
 		givenVal = val
 		errSourceRange = tfdiags.SourceRangeFromHCL(expr.Range())
@@ -320,7 +340,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		})
 	}
 
-	return finalVal, diags.ErrWithWarnings()
+	return finalVal, errSourceRange, diags.ErrWithWarnings()
 }
 
 // nodeModuleVariableInPartialModule represents an infinite set of possible

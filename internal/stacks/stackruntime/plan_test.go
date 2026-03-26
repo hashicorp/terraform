@@ -25,8 +25,10 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1940,7 +1942,6 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, changes, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
-
 }
 
 func TestPlanWithSingleResource(t *testing.T) {
@@ -4714,7 +4715,6 @@ func TestPlanWithStateManipulation(t *testing.T) {
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", name))
 
@@ -6383,10 +6383,567 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	for _, change := range changes {
 		if v, ok := change.(*stackplan.PlannedChangeOutputValue); ok && v.Addr.Name == name {
 			return v
-
 		}
 	}
 
 	t.Fatalf("expected output value %q", name)
 	return nil
+}
+
+func TestPlanWithActionInvocationHooks(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "planning-action-lifecycle")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testCtx := TestContext{
+		config: cfg,
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		timestamp: &fakePlanTimestamp,
+	}
+
+	// Create dynamic values for resource change
+	resourceBeforeVal := cty.NullVal(cty.Object(map[string]cty.Type{
+		"id":    cty.String,
+		"value": cty.String,
+	}))
+	resourceAfterVal := cty.ObjectVal(map[string]cty.Value{
+		"id":    cty.UnknownVal(cty.String),
+		"value": cty.StringVal("example"),
+	})
+	resourceBeforeDynVal, err := plans.NewDynamicValue(resourceBeforeVal, resourceBeforeVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	resourceAfterDynVal, err := plans.NewDynamicValue(resourceAfterVal, resourceAfterVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Common addresses used throughout the test
+	webComponentInstance := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{Name: "web"},
+		},
+	}
+	webComponent := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "web"},
+	}
+	testResourceInstance := addrs.RootModuleInstance.ResourceInstance(addrs.ManagedResourceMode, "testing_resource", "main", addrs.NoKey)
+	testResourceObject := stackaddrs.AbsResourceInstanceObject{
+		Component: webComponentInstance,
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: testResourceInstance,
+		},
+	}
+	testActionInstance := addrs.RootModuleInstance.ActionInstance("testing_action", "notify", addrs.NoKey)
+	testActionInvocationAddr := stackaddrs.AbsActionInvocationInstance{
+		Component: webComponentInstance,
+		Item:      testActionInstance,
+	}
+	testProviderConfig := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewBuiltInProvider("testing"),
+	}
+
+	expectedHooks := ExpectedHooks{
+		ReportActionInvocationPlanned: []*hooks.ActionInvocation{
+			{
+				Addr:         testActionInvocationAddr,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Trigger: &plans.ResourceActionTrigger{
+					TriggeringResourceAddr:  testResourceInstance,
+					ActionTriggerEvent:      configs.AfterCreate,
+					ActionTriggerBlockIndex: 0,
+					ActionsListIndex:        0,
+				},
+			},
+		},
+		ComponentExpanded: []*hooks.ComponentInstances{
+			{
+				ComponentAddr: webComponent,
+				InstanceAddrs: []stackaddrs.AbsComponentInstance{webComponentInstance},
+			},
+		},
+		PendingComponentInstancePlan: collections.NewSet(webComponentInstance),
+		BeginComponentInstancePlan:   collections.NewSet(webComponentInstance),
+		EndComponentInstancePlan:     collections.NewSet(webComponentInstance),
+		ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
+			{
+				Addr:         testResourceObject,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Status:       hooks.ResourceInstancePlanning,
+			},
+			{
+				Addr:         testResourceObject,
+				ProviderAddr: addrs.NewBuiltInProvider("testing"),
+				Status:       hooks.ResourceInstancePlanned,
+			},
+		},
+		ReportResourceInstancePlanned: []*hooks.ResourceInstanceChange{
+			{
+				Addr: testResourceObject,
+				Change: &plans.ResourceInstanceChangeSrc{
+					Addr:         testResourceInstance,
+					PrevRunAddr:  testResourceInstance,
+					ProviderAddr: testProviderConfig,
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: resourceBeforeDynVal,
+						After:  resourceAfterDynVal,
+					},
+				},
+			},
+		},
+		ReportComponentInstancePlanned: []*hooks.ComponentInstanceChange{
+			{
+				Addr:             webComponentInstance,
+				Add:              1,
+				ActionInvocation: 1,
+			},
+		},
+	}
+
+	cycle := TestCycle{
+		planMode:         plans.NormalMode,
+		wantPlannedHooks: &expectedHooks,
+	}
+
+	testCtx.Plan(t, ctx, stackstate.NewState(), cycle)
+}
+
+func TestPlanWithDeferredActionInvocation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "deferred-action")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "id"}: {
+				Value: cty.StringVal("test-id-123"),
+			},
+			{Name: "defer"}: {
+				Value: cty.BoolVal(true),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow() // We reported the diags above
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	// Find the deferred action invocation in the changes
+	var foundDeferredAction bool
+	for _, change := range gotChanges {
+		if _, ok := change.(*stackplan.PlannedChangeDeferredActionInvocation); ok {
+			foundDeferredAction = true
+			break
+		}
+	}
+
+	if !foundDeferredAction {
+		t.Error("Expected to find a deferred action invocation in the plan changes, but none was found")
+		t.Logf("Got %d changes:", len(gotChanges))
+		for i, change := range gotChanges {
+			t.Logf("  [%d] %T", i, change)
+		}
+	}
+}
+
+// TestPlan_variableValidationAdvanced tests advanced variable validation scenarios
+func TestPlan_variableValidationAdvanced(t *testing.T) {
+	ctx := context.Background()
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	fakePlanTimestamp, _ := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+
+	testCases := map[string]struct {
+		configPath        string
+		planInputVars     map[string]cty.Value
+		wantErrorMessages []string // Just check for error message presence, not exact diagnostic structure
+	}{
+		// Type validation tests
+		"types-number-pass": {
+			configPath: path.Join("with-single-input", "validation-types"),
+			planInputVars: map[string]cty.Value{
+				"input":        cty.StringVal("test"),
+				"number_input": cty.NumberIntVal(50),
+				"list_input":   cty.ListVal([]cty.Value{cty.StringVal("item1")}),
+				"map_input":    cty.MapVal(map[string]cty.Value{"required_key": cty.StringVal("value")}),
+			},
+			wantErrorMessages: nil,
+		},
+		"types-number-out-of-range": {
+			configPath: path.Join("with-single-input", "validation-types"),
+			planInputVars: map[string]cty.Value{
+				"input":        cty.StringVal("test"),
+				"number_input": cty.NumberIntVal(150),
+				"list_input":   cty.ListVal([]cty.Value{cty.StringVal("item1")}),
+				"map_input":    cty.MapVal(map[string]cty.Value{"required_key": cty.StringVal("value")}),
+			},
+			wantErrorMessages: []string{"Number must be between 0 and 100."},
+		},
+		"types-list-too-many": {
+			configPath: path.Join("with-single-input", "validation-types"),
+			planInputVars: map[string]cty.Value{
+				"input":        cty.StringVal("test"),
+				"number_input": cty.NumberIntVal(50),
+				"list_input":   cty.ListVal([]cty.Value{cty.StringVal("1"), cty.StringVal("2"), cty.StringVal("3"), cty.StringVal("4"), cty.StringVal("5"), cty.StringVal("6")}),
+				"map_input":    cty.MapVal(map[string]cty.Value{"required_key": cty.StringVal("value")}),
+			},
+			wantErrorMessages: []string{"List must contain 1-5 items."},
+		},
+		"types-list-empty-string": {
+			configPath: path.Join("with-single-input", "validation-types"),
+			planInputVars: map[string]cty.Value{
+				"input":        cty.StringVal("test"),
+				"number_input": cty.NumberIntVal(50),
+				"list_input":   cty.ListVal([]cty.Value{cty.StringVal("item"), cty.StringVal("")}),
+				"map_input":    cty.MapVal(map[string]cty.Value{"required_key": cty.StringVal("value")}),
+			},
+			wantErrorMessages: []string{"List items cannot be empty strings."},
+		},
+		"types-map-missing-key": {
+			configPath: path.Join("with-single-input", "validation-types"),
+			planInputVars: map[string]cty.Value{
+				"input":        cty.StringVal("test"),
+				"number_input": cty.NumberIntVal(50),
+				"list_input":   cty.ListVal([]cty.Value{cty.StringVal("item1")}),
+				"map_input":    cty.MapVal(map[string]cty.Value{"other_key": cty.StringVal("value")}),
+			},
+			wantErrorMessages: []string{"Map must contain 'required_key'."},
+		},
+
+		// Sensitive variable validation tests
+		"sensitive-password-pass": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("SecurePass123"),
+				"api_key":  cty.StringVal("abcdef0123456789abcdef0123456789"),
+			},
+			wantErrorMessages: nil,
+		},
+		"sensitive-password-too-short": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("Short1"),
+				"api_key":  cty.StringVal("abcdef0123456789abcdef0123456789"),
+			},
+			wantErrorMessages: []string{"Password must be at least 8 characters long."},
+		},
+		"sensitive-password-no-uppercase": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("securepass123"),
+				"api_key":  cty.StringVal("abcdef0123456789abcdef0123456789"),
+			},
+			wantErrorMessages: []string{"Password must contain at least one uppercase letter."},
+		},
+		"sensitive-password-no-number": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("SecurePass"),
+				"api_key":  cty.StringVal("abcdef0123456789abcdef0123456789"),
+			},
+			wantErrorMessages: []string{"Password must contain at least one number."},
+		},
+		"sensitive-api-key-wrong-length": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("SecurePass123"),
+				"api_key":  cty.StringVal("abc123"),
+			},
+			wantErrorMessages: []string{"API key must be exactly 32 characters."},
+		},
+		"sensitive-api-key-invalid-chars": {
+			configPath: path.Join("with-single-input", "validation-sensitive"),
+			planInputVars: map[string]cty.Value{
+				"input":    cty.StringVal("test"),
+				"password": cty.StringVal("SecurePass123"),
+				"api_key":  cty.StringVal("ABCDEF0123456789ABCDEF0123456789"),
+			},
+			wantErrorMessages: []string{"API key must only contain lowercase hex characters."},
+		},
+
+		// Complex validation tests
+		"complex-email-pass": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal("team"), "env": cty.StringVal("dev")}),
+			},
+			wantErrorMessages: nil,
+		},
+		"complex-email-invalid": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("not-an-email"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal("team")}),
+			},
+			wantErrorMessages: []string{"Must be a valid email address."},
+		},
+		"complex-ip-invalid": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("999.999.999.999"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal("team")}),
+			},
+			wantErrorMessages: []string{"Must be a valid IPv4 address."},
+		},
+		"complex-environment-invalid": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("test"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal("team")}),
+			},
+			wantErrorMessages: []string{"Environment must be dev, staging, or prod."},
+		},
+		"complex-tags-invalid-key": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"Owner": cty.StringVal("team"), "owner": cty.StringVal("team")}),
+			},
+			wantErrorMessages: []string{"Tag keys must start with lowercase letter and contain only lowercase letters, numbers, and hyphens."},
+		},
+		"complex-tags-missing-owner": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"env": cty.StringVal("dev")}),
+			},
+			wantErrorMessages: []string{"Tags must include 'owner' key."},
+		},
+		"complex-tags-empty-value": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal(""), "env": cty.StringVal("dev")}),
+			},
+			wantErrorMessages: []string{"Tag values must be 1-256 characters."},
+		},
+		"complex-tags-value-too-long": {
+			configPath: path.Join("with-single-input", "validation-complex"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"email":       cty.StringVal("user@example.com"),
+				"ip_address":  cty.StringVal("192.168.1.1"),
+				"environment": cty.StringVal("dev"),
+				"tags":        cty.MapVal(map[string]cty.Value{"owner": cty.StringVal("team"), "description": cty.StringVal(strings.Repeat("x", 257))}),
+			},
+			wantErrorMessages: []string{"Tag values must be 1-256 characters."},
+		},
+
+		// Invalid error message tests - these verify that invalid error messages
+		// are caught even when validation passes or fails
+		"invalid-error-message-sensitive-in-error": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("short"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to sensitive values",
+			},
+		},
+		"invalid-error-message-ephemeral-in-error": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("short_token"),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to ephemeral values",
+			},
+		},
+		"invalid-error-message-not-string": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.SetValEmpty(cty.String), // empty set fails condition; a set cannot be converted to a string
+				"api_key":     cty.StringVal("abcdef0123456789"),
+			},
+			// A set value cannot be converted to a string, so we get an "Invalid error message" diagnostic
+			// rather than the condition failure message.
+			wantErrorMessages: []string{
+				"Unsuitable value for error message",
+			},
+		},
+		"invalid-error-message-sensitive-even-when-passing": {
+			configPath: path.Join("with-single-input", "validation-invalid-error-message"),
+			planInputVars: map[string]cty.Value{
+				"input":       cty.StringVal("test"),
+				"password":    cty.StringVal("SecurePass123"),
+				"token":       cty.StringVal("abcdef0123456789abcdef0123456789"),
+				"count_value": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				"api_key":     cty.StringVal("abcdef0123456789abcdef0123456789abcdef0123456789"),
+			},
+			// This tests that we evaluate error_message even when validation passes
+			wantErrorMessages: []string{
+				"error expression used to explain this condition refers to sensitive values",
+			},
+		},
+
+		// Provider function tests
+		"provider-functions-pass": {
+			configPath: path.Join("with-single-input", "validation-provider-functions"),
+			planInputVars: map[string]cty.Value{
+				"input":      cty.StringVal("test"),
+				"echo_value": cty.StringVal("test_value"),
+				"combined":   cty.StringVal("long_enough"),
+			},
+			wantErrorMessages: nil,
+		},
+		"provider-functions-fail": {
+			configPath: path.Join("with-single-input", "validation-provider-functions"),
+			planInputVars: map[string]cty.Value{
+				"input":      cty.StringVal("test"),
+				"echo_value": cty.StringVal("test"),
+				"combined":   cty.StringVal("short"),
+			},
+			wantErrorMessages: []string{
+				"Combined value must be longer than 5 characters after echo",
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			cfg := loadMainBundleConfigForTest(t, tc.configPath)
+
+			req := PlanRequest{
+				Config: cfg,
+				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+					inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(tc.planInputVars))
+					for k, v := range tc.planInputVars {
+						inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{Value: v}
+					}
+					return inputs
+				}(),
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(t), nil
+					},
+				},
+				DependencyLocks:    *lock,
+				ForcePlanTimestamp: &fakePlanTimestamp,
+			}
+
+			changesCh := make(chan stackplan.PlannedChange)
+			diagsCh := make(chan tfdiags.Diagnostic)
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			_, diags := collectPlanOutput(changesCh, diagsCh)
+
+			// Check that we get the expected error messages
+			if tc.wantErrorMessages == nil {
+				if len(diags) > 0 {
+					t.Errorf("expected no diagnostics, got: %s", diags.ErrWithWarnings())
+				}
+			} else {
+				if len(diags) == 0 {
+					t.Fatalf("expected diagnostics with messages %v, got none", tc.wantErrorMessages)
+				}
+				// Check that all expected error messages are present
+				for _, wantMsg := range tc.wantErrorMessages {
+					found := false
+					for _, diag := range diags {
+						if strings.Contains(diag.Description().Detail, wantMsg) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("expected error message %q not found in diagnostics: %s", wantMsg, diags.ErrWithWarnings())
+					}
+				}
+			}
+		})
+	}
 }

@@ -47,6 +47,26 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	c.ParsedArgs = args
 	view := views.NewValidate(args.ViewType, c.View)
 
+	// If the query flag is set, include query files in the validation.
+	c.includeQueryFiles = c.ParsedArgs.Query
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	// After this point, we must only produce JSON output if JSON mode is
 	// enabled, so all errors should be accumulated into diags and we'll
 	// print out a suitable result at the end, depending on the format
@@ -81,8 +101,10 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var cfg *configs.Config
 
-	// If the query flag is set, include query files in the validation.
-	c.includeQueryFiles = c.ParsedArgs.Query
+	diags = diags.Append(c.resolveConstVariables(dir, c.ParsedArgs.ViewType))
+	if diags.HasErrors() {
+		return diags
+	}
 
 	if c.ParsedArgs.NoTests {
 		cfg, diags = c.loadConfig(dir)
@@ -360,9 +382,19 @@ Options:
 
   -no-tests             If specified, Terraform will not validate test files.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
-  
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
   -query                If specified, the command will also validate .tfquery.hcl files.
+
+  -var 'foo=bar'        Set a value for one of the input variables in the root
+                        module of the configuration. Use this option more than
+                        once to set more than one variable.
+
+  -var-file=filename    Load variable values from the given file, in addition
+                        to the default files terraform.tfvars and *.auto.tfvars.
+                        Use this option more than once to include more than one
+                        variables file.
+
 `
 	return strings.TrimSpace(helpText)
 }

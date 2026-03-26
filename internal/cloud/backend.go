@@ -123,6 +123,7 @@ type Cloud struct {
 var _ backend.Backend = (*Cloud)(nil)
 var _ backendrun.OperationsBackend = (*Cloud)(nil)
 var _ backendrun.Local = (*Cloud)(nil)
+var _ backendrun.ConstVariableSupplier = (*Cloud)(nil)
 
 // New creates a new initialized cloud backend.
 func New(services *disco.Disco) *Cloud {

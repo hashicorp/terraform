@@ -254,3 +254,39 @@ func TestPathMatcher_MultiplePaths(t *testing.T) {
 		t.Errorf("should not have partial matched at leaf level")
 	}
 }
+
+// Since paths may be coming from relevant attributes, and those paths may no
+// longer correspond to an updated schema, we can't always be certain the caller
+// knows the correct type.
+func TestPathMatcher_WrongKeyTypes(t *testing.T) {
+	var matcher Matcher
+
+	matcher = &PathMatcher{
+		Paths: [][]interface{}{
+			{
+				float64(0),
+				"key",
+				float64(0),
+			},
+		},
+	}
+
+	failed := matcher.GetChildWithKey("key")
+	if failed.Matches() || failed.MatchesPartial() {
+		t.Errorf("should not have any match at on failure")
+	}
+
+	matcher = matcher.GetChildWithIndex(0).GetChildWithKey("key")
+
+	if matcher.Matches() {
+		t.Errorf("should not have exact matched at first level")
+	}
+	if !matcher.MatchesPartial() {
+		t.Errorf("should have partial matched at first level")
+	}
+
+	failed = matcher.GetChildWithKey("zero")
+	if failed.Matches() || failed.MatchesPartial() {
+		t.Errorf("should not have any match at on failure")
+	}
+}

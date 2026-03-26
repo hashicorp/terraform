@@ -162,3 +162,34 @@ func ParseAbsResourceInstanceObjectStr(s string) (AbsResourceInstanceObject, tfd
 	diags = diags.Append(moreDiags)
 	return ret, diags
 }
+
+func ParseAbsActionInvocationInstance(traversal hcl.Traversal) (AbsActionInvocationInstance, tfdiags.Diagnostics) {
+	component, remain, diags := ParseAbsComponentInstanceOnly(traversal)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	action, actionDiags := addrs.ParseAbsActionInstance(remain)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	return AbsActionInvocationInstance{
+		Component: component,
+		Item:      action,
+	}, diags
+}
+
+func ParseActionInvocationInstanceStr(s string) (AbsActionInvocationInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsActionInvocationInstance{}, diags
+	}
+
+	ret, moreDiags := ParseAbsActionInvocationInstance(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, diags
+}

@@ -5,7 +5,6 @@ package e2etest
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +46,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", providerExePrefix)
 	t.Logf("temporary provider executable is %s", providerExe)
 
-	err := ioutil.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
+	err := os.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
 		provider_installation {
 			dev_overrides {
 				"example.com/test/test" = %q
@@ -86,7 +85,7 @@ func TestProviderDevOverrides(t *testing.T) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 
-	stdout, _, _ = tf.Run("init")
+	stdout, _, err = tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected error: %e", err)
 	}
@@ -129,7 +128,7 @@ func TestProviderDevOverridesWithProviderToDownload(t *testing.T) {
 	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", providerExePrefix)
 	t.Logf("temporary provider executable is %s", providerExe)
 
-	err := ioutil.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
+	err := os.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
 		provider_installation {
 			dev_overrides {
 				"example.com/test/test" = %q
@@ -143,7 +142,7 @@ func TestProviderDevOverridesWithProviderToDownload(t *testing.T) {
 
 	tf.AddEnv("TF_CLI_CONFIG_FILE=dev.tfrc")
 
-	stdout, stderr, _ := tf.Run("providers")
+	stdout, stderr, err := tf.Run("providers")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
 	}

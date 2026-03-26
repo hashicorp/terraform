@@ -44,7 +44,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -83,10 +82,6 @@ type BackendOpts struct {
 	// ViewType will set console output format for the
 	// initialization operation (JSON or human-readable).
 	ViewType arguments.ViewType
-
-	// CreateDefaultWorkspace signifies whether the operations backend should create
-	// the default workspace or not
-	CreateDefaultWorkspace bool
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -1259,8 +1254,32 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			// Verify that selected workspace exist. Otherwise prompt user to create one
 			if opts.Init && savedStateStore != nil {
 				if err := m.selectWorkspace(savedStateStore); err != nil {
-					diags = diags.Append(err)
-					return nil, diags
+					if errors.Is(err, &errBackendNoExistingWorkspaces{}) {
+						// We tolerate no workspaces if we're using a state store and
+						// the default workspace is selected.
+						ws, err := m.Workspace()
+						if err != nil {
+							diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
+							return nil, diags
+						}
+						if ws == backend.DefaultStateName {
+							// If the default workspace is selected, no workspaces existing _may_ be expected.
+							// It's valid for the default workspace's state to not be created until the first apply takes place.
+							// However, it could be that the user is configuring their working directory for the first time but
+							// they expect pre-existing state to be in the store from previous actions. In that case, the user
+							// should realise their mistake once they generate a plan.
+							//
+							// So here, we will just ignore the error.
+						} else {
+							// User needs to run a `terraform workspace new` command to create the missing custom workspace.
+							diags = diags.Append(err)
+							return nil, diags
+						}
+					} else {
+						// Report all other errors
+						diags = diags.Append(err)
+						return nil, diags
+					}
 				}
 			}
 
@@ -2457,11 +2476,8 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 
 	// Verify that selected workspace exists in the state store.
 	if opts.Init && b != nil {
-		err := m.selectWorkspace(b)
-		if err != nil {
+		if err := m.selectWorkspace(b); err != nil {
 			if errors.Is(err, &errBackendNoExistingWorkspaces{}) {
-				// If there are no workspaces, Terraform either needs to create the default workspace here
-				// or instruct the user to run a `terraform workspace new` command.
 				ws, err := m.Workspace()
 				if err != nil {
 					diags = diags.Append(fmt.Errorf("Failed to check current workspace: %w", err))
@@ -2469,21 +2485,13 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 				}
 
 				if ws == backend.DefaultStateName {
-					// Users control if the default workspace is created through the -create-default-workspace flag (defaults to true)
-					if opts.CreateDefaultWorkspace {
-						diags = diags.Append(m.createDefaultWorkspace(c, b))
-						if !diags.HasErrors() {
-							// Report workspace creation to the view
-							view := views.NewInit(vt, m.View)
-							view.Output(views.DefaultWorkspaceCreatedMessage)
-						}
-					} else {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "The default workspace does not exist",
-							Detail:   "Terraform has been configured to skip creation of the default workspace in the state store. To create it, either remove the `-create-default-workspace=false` flag and re-run the 'init' command, or create it using a 'workspace new' command",
-						})
-					}
+					// If the default workspace is selected, no workspaces existing _may_ be expected.
+					// It's valid for the default workspace's state to not be created until the first apply takes place.
+					// However, it could be that the user is configuring their working directory for the first time but
+					// they expect pre-existing state to be in the store from previous actions. In that case, the user
+					// should realise their mistake once they generate a plan.
+					//
+					// So here, we will just ignore the error.
 				} else {
 					// User needs to run a `terraform workspace new` command to create the missing custom workspace.
 					diags = append(diags, tfdiags.Sourceless(
@@ -2813,35 +2821,6 @@ To make the initial dependency selections that will initialize the dependency lo
 	return pVersion, diags
 }
 
-// createDefaultWorkspace receives a backend made using a pluggable state store, and details about that store's config,
-// and persists an empty state file in the default workspace. By creating this artifact we ensure that the default
-// workspace is created and usable by Terraform in later operations.
-func (m *Meta) createDefaultWorkspace(c *configs.StateStore, b backend.Backend) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	defaultSMgr, sDiags := b.StateMgr(backend.DefaultStateName)
-	diags = diags.Append(sDiags)
-	if sDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf("Failed to create a state manager for state store %q in provider %s (%q). This is a bug in Terraform and should be reported: %w",
-			c.Type,
-			c.Provider.Name,
-			c.ProviderAddr,
-			sDiags.Err()))
-		return diags
-	}
-	emptyState := states.NewState()
-	if err := defaultSMgr.WriteState(emptyState); err != nil {
-		diags = diags.Append(errStateStoreWorkspaceCreateDiag(err, c.Type))
-		return diags
-	}
-	if err := defaultSMgr.PersistState(nil); err != nil {
-		diags = diags.Append(errStateStoreWorkspaceCreateDiag(err, c.Type))
-		return diags
-	}
-
-	return diags
-}
-
 // Initializing a saved state store from the backend state file (aka 'cache file', aka 'legacy state file')
 func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	// We're preparing a state_store version of backend.Backend.
@@ -2923,10 +2902,11 @@ func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdi
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Error reading state store configuration state",
-				Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q)",
+				Detail: fmt.Sprintf("Terraform experienced an error reading state store configuration for state store %s in provider %s (%q): %s",
 					s.StateStore.Type,
 					s.StateStore.Provider.Source.Type,
 					s.StateStore.Provider.Source,
+					err,
 				),
 			},
 		)
@@ -3403,7 +3383,7 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 			Severity: hcl.DiagError,
 			Summary:  "Provider unavailable",
 			Detail: fmt.Sprintf("The provider %s (%q) is required to initialize the %q state store, but the matching provider factory is missing. This is a bug in Terraform and should be reported.",
-				cfgState.Type,
+				cfgState.Provider.Source.Type,
 				cfgState.Provider.Source,
 				cfgState.Type,
 			),

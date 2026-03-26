@@ -9,6 +9,9 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 type Providers struct {
 	// TestsDirectory is the directory containing Terraform test files.
 	TestsDirectory string
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseProviders processes CLI arguments, returning a Providers value and
@@ -16,9 +19,11 @@ type Providers struct {
 // representing the best effort interpretation of the arguments.
 func ParseProviders(args []string) (*Providers, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	providers := &Providers{}
+	providers := &Providers{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("providers")
+	cmdFlags := extendedFlagSet("providers", nil, nil, providers.Vars)
 	cmdFlags.StringVar(&providers.TestsDirectory, "test-directory", "tests", "test-directory")
 
 	if err := cmdFlags.Parse(args); err != nil {

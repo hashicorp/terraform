@@ -280,23 +280,6 @@ If the backend already contains existing workspaces, you may need to update
 the backend configuration.`
 }
 
-func errStateStoreWorkspaceCreateDiag(innerError error, storeType string) tfdiags.Diagnostic {
-	msg := fmt.Sprintf(`Error creating the default workspace using pluggable state store %s: %s
-
-This could be a bug in the provider used for state storage, or a bug in
-Terraform. Please file an issue with the provider developers before reporting
-a bug for Terraform.`,
-		storeType,
-		innerError,
-	)
-
-	return tfdiags.Sourceless(
-		tfdiags.Error,
-		"Cannot create the default workspace",
-		msg,
-	)
-}
-
 // migrateOrReconfigDiag creates a diagnostic to present to users when
 // an init command encounters a mismatch in backend state and the current config
 // and Terraform needs users to provide additional instructions about how Terraform

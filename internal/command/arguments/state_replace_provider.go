@@ -12,6 +12,9 @@ import (
 // StateReplaceProvider represents the command-line arguments for the state
 // replace-provider command.
 type StateReplaceProvider struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
+
 	// AutoApprove, if true, skips the interactive approval step.
 	AutoApprove bool
 
@@ -45,9 +48,11 @@ type StateReplaceProvider struct {
 // interpretation of the arguments.
 func ParseStateReplaceProvider(args []string) (*StateReplaceProvider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	rp := &StateReplaceProvider{}
+	rp := &StateReplaceProvider{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("state replace-provider")
+	cmdFlags := extendedFlagSet("state replace-provider", nil, nil, rp.Vars)
 	cmdFlags.BoolVar(&rp.AutoApprove, "auto-approve", false, "skip interactive approval of replacements")
 	cmdFlags.StringVar(&rp.BackupPath, "backup", "-", "backup")
 	cmdFlags.BoolVar(&rp.StateLock, "lock", true, "lock states")

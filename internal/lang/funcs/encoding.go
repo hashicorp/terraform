@@ -137,7 +137,7 @@ var TextDecodeBase64Func = function.New(&function.Spec{
 		if err != nil {
 			switch err := err.(type) {
 			case base64.CorruptInputError:
-				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given value is has an invalid base64 symbol at offset %d", int(err))
+				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given value has an invalid base64 symbol at offset %d", int(err))
 			default:
 				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "invalid source string: %w", err)
 			}

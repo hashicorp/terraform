@@ -16,13 +16,6 @@ import (
 )
 
 func TestParseConfigResourceFromExpression(t *testing.T) {
-	mustExpr := func(expr hcl.Expression, diags hcl.Diagnostics) hcl.Expression {
-		if diags != nil {
-			panic(diags.Error())
-		}
-		return expr
-	}
-
 	tests := []struct {
 		expr   hcl.Expression
 		expect addrs.ConfigResource
@@ -279,4 +272,11 @@ func mustAbsResourceInstanceAddr(str string) addrs.AbsResourceInstance {
 		panic(fmt.Sprintf("invalid absolute resource instance address: %s", diags.Err()))
 	}
 	return addr
+}
+
+func mustExpr(expr hcl.Expression, diags hcl.Diagnostics) hcl.Expression {
+	if diags != nil {
+		panic(diags.Error())
+	}
+	return expr
 }

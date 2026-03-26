@@ -186,6 +186,19 @@ func validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tf
 		}
 	}
 
+	// Const variables are not supported in stacks, because stacks does not
+	// perform the early evaluation phase that const variables rely on.
+	for _, v := range module.Variables {
+		if v.ConstSet {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Const variable not supported in stacks",
+				Detail:   "Variables with const = true are not supported in modules used as stack components. Const variables are evaluated during configuration loading, which is not supported in the stacks runtime.",
+				Subject:  v.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 

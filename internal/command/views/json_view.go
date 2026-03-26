@@ -17,7 +17,7 @@ import (
 // This version describes the schema of JSON UI messages. This version must be
 // updated after making any changes to this view, the jsonHook, or any of the
 // command/views/json package.
-const JSON_UI_VERSION = "1.2"
+const JSON_UI_VERSION = "1.3"
 
 func NewJSONView(view *View) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
@@ -99,6 +99,14 @@ func (v *JSONView) PlannedActionInvocation(action *json.ActionInvocation) {
 	v.log.Info(
 		fmt.Sprintf("planned action invocation: %s", action.Action.Action),
 		"type", json.MessagePlannedActionInvocation,
+		"invocation", action,
+	)
+}
+
+func (v *JSONView) AppliedActionInvocation(action *json.ActionInvocation) {
+	v.log.Info(
+		fmt.Sprintf("applied action invocation: %s", action.Action.Action),
+		"type", json.MessageAppliedActionInvocation,
 		"invocation", action,
 	)
 }

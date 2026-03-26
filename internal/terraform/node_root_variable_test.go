@@ -122,7 +122,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 				Value:      varValue,
 				SourceType: ValueFromUnknown,
 			},
-			Planning: true,
+			ValidateChecks: true,
 		}
 		configAddr, validationRules, defnRange := n.variableValidationRules()
 		validateN := &nodeVariableValidation{

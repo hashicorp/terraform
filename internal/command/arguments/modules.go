@@ -9,6 +9,9 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 type Modules struct {
 	// ViewType specifies which output format to use: human, JSON, or "raw"
 	ViewType ViewType
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseModules processes CLI arguments, returning a Modules value and error
@@ -18,8 +21,10 @@ func ParseModules(args []string) (*Modules, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var jsonOutput bool
 
-	modules := &Modules{}
-	cmdFlags := defaultFlagSet("modules")
+	modules := &Modules{
+		Vars: &Vars{},
+	}
+	cmdFlags := extendedFlagSet("modules", nil, nil, modules.Vars)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {

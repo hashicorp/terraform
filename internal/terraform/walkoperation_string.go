@@ -16,11 +16,12 @@ func _() {
 	_ = x[walkDestroy-5]
 	_ = x[walkImport-6]
 	_ = x[walkEval-7]
+	_ = x[walkInit-8]
 }
 
-const _walkOperation_name = "walkInvalidwalkApplywalkPlanwalkPlanDestroywalkValidatewalkDestroywalkImportwalkEval"
+const _walkOperation_name = "walkInvalidwalkApplywalkPlanwalkPlanDestroywalkValidatewalkDestroywalkImportwalkEvalwalkInit"
 
-var _walkOperation_index = [...]uint8{0, 11, 20, 28, 43, 55, 66, 76, 84}
+var _walkOperation_index = [...]uint8{0, 11, 20, 28, 43, 55, 66, 76, 84, 92}
 
 func (i walkOperation) String() string {
 	idx := int(i) - 0

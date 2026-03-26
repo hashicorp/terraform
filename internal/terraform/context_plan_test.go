@@ -7026,6 +7026,84 @@ func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_constVariableCustomValidationPass(t *testing.T) {
+	vars := map[string]*InputValue{
+		"a": {
+			Value: cty.StringVal("valid"),
+		},
+	}
+	m := testModuleInlineWithVars(t, map[string]string{
+		"main.tf": `
+variable "a" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.a == "valid"
+    error_message = "Value must be valid."
+  }
+}
+`,
+	}, vars)
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: vars,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_constVariableCustomValidationFail(t *testing.T) {
+	m := testModuleInlineWithVars(t, map[string]string{
+		"main.tf": `
+variable "a" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.a == "valid"
+    error_message = "Value must be valid."
+  }
+}
+`,
+	}, map[string]*InputValue{
+		"a": {
+			Value: cty.StringVal("valid"),
+		},
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: map[string]*InputValue{
+			"a": {
+				Value: cty.StringVal("invalid"),
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success")
+	}
+	gotDiags := diags.Err().Error()
+	wantDiagSubstr := "Value must be valid."
+	if !strings.Contains(gotDiags, wantDiagSubstr) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", wantDiagSubstr, gotDiags)
+	}
+}
+
 func TestContext2Plan_nullOutputNoOp(t *testing.T) {
 	// this should always plan a NoOp change for the output
 	m := testModuleInline(t, map[string]string{

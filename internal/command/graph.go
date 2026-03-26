@@ -24,27 +24,14 @@ type GraphCommand struct {
 	Meta
 }
 
-func (c *GraphCommand) Run(args []string) int {
-	var drawCycles bool
-	var graphTypeStr string
-	var moduleDepth int
-	var verbose bool
-	var planPath string
-
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("graph")
-	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
-	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
-	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
-	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
-	cmdFlags.StringVar(&planPath, "plan", "", "plan")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *GraphCommand) Run(rawArgs []string) int {
+	args, diags := arguments.ParseGraph(c.Meta.process(rawArgs))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
+	configPath, err := ModulePath(nil)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -58,15 +45,13 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Try to load plan if path is specified
 	var planFile *planfile.WrappedPlanFile
-	if planPath != "" {
-		planFile, err = c.PlanFile(planPath)
+	if args.Plan != "" {
+		planFile, err = c.PlanFile(args.Plan)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
 		}
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	b, backendDiags := c.backend(".", arguments.ViewHuman)
@@ -99,6 +84,16 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get the context
 	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
@@ -106,9 +101,9 @@ func (c *GraphCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: drawCycles})
+	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: args.DrawCycles})
 
-	if graphTypeStr == "" {
+	if args.GraphType == "" {
 		if planFile == nil {
 			// Simple resource dependency mode:
 			// This is based on the plan graph but we then further reduce it down
@@ -125,13 +120,13 @@ func (c *GraphCommand) Run(args []string) int {
 			g := fullG.ResourceGraph()
 			return c.resourceOnlyGraph(g)
 		} else {
-			graphTypeStr = "apply"
+			args.GraphType = "apply"
 		}
 	}
 
 	var g *terraform.Graph
 	var graphDiags tfdiags.Diagnostics
-	switch graphTypeStr {
+	switch args.GraphType {
 	case "plan":
 		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.NormalMode)
 	case "plan-refresh-only":
@@ -162,7 +157,7 @@ func (c *GraphCommand) Run(args []string) int {
 		graphDiags = graphDiags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Graph type no longer available",
-			fmt.Sprintf("The graph type %q is no longer available. Use -type=plan instead to get a similar result.", graphTypeStr),
+			fmt.Sprintf("The graph type %q is no longer available. Use -type=plan instead to get a similar result.", args.GraphType),
 		))
 	default:
 		graphDiags = graphDiags.Append(tfdiags.Sourceless(
@@ -178,9 +173,9 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	graphStr, err := terraform.GraphDot(g, &dag.DotOpts{
-		DrawCycles: drawCycles,
-		MaxDepth:   moduleDepth,
-		Verbose:    verbose,
+		DrawCycles: args.DrawCycles,
+		MaxDepth:   args.ModuleDepth,
+		Verbose:    args.Verbose,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
@@ -311,23 +306,32 @@ Usage: terraform [global options] graph [options]
 
 Options:
 
-  -plan=tfplan     Render graph using the specified plan file instead of the
-                   configuration in the current directory. Implies -type=apply.
+  -plan=tfplan        Render graph using the specified plan file instead of the
+                      configuration in the current directory. Implies -type=apply.
 
-  -draw-cycles     Highlight any cycles in the graph with colored edges.
-                   This helps when diagnosing cycle errors. This option is
-                   supported only when illustrating a real evaluation graph,
-                   selected using the -type=TYPE option.
+  -draw-cycles        Highlight any cycles in the graph with colored edges.
+                      This helps when diagnosing cycle errors. This option is
+                      supported only when illustrating a real evaluation graph,
+                      selected using the -type=TYPE option.
 
-  -type=TYPE       Type of operation graph to output. Can be: plan,
-                   plan-refresh-only, plan-destroy, or apply. By default
-                   Terraform just summarizes the relationships between the
-                   resources in your configuration, without any particular
-                   operation in mind. Full operation graphs are more detailed
-                   but therefore often harder to read.
+  -type=TYPE          Type of operation graph to output. Can be: plan,
+                      plan-refresh-only, plan-destroy, or apply. By default
+                      Terraform just summarizes the relationships between the
+                      resources in your configuration, without any particular
+                      operation in mind. Full operation graphs are more detailed
+                      but therefore often harder to read.
 
-  -module-depth=n  (deprecated) In prior versions of Terraform, specified the
-                   depth of modules to show in the output.
+  -module-depth=n     (deprecated) In prior versions of Terraform, specified the
+                      depth of modules to show in the output.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `
 	return strings.TrimSpace(helpText)
 }

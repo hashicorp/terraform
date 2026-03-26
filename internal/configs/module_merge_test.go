@@ -9,8 +9,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -91,23 +93,11 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	got := mod.ModuleCalls["example"]
 	want := &ModuleCall{
-		Name:          "example",
-		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
-		SourceAddrRaw: "./example2-a_override",
-		SourceAddrRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-module/a_override.tf",
-			Start: hcl.Pos{
-				Line:   3,
-				Column: 12,
-				Byte:   31,
-			},
-			End: hcl.Pos{
-				Line:   3,
-				Column: 35,
-				Byte:   54,
-			},
-		},
-		SourceSet: true,
+		Name: "example",
+		SourceExpr: mustExpr(hclsyntax.ParseExpression(
+			[]byte("\"./example2-a_override\""), "testdata/valid-modules/override-module/a_override.tf",
+			hcl.Pos{Line: 3, Column: 12, Byte: 31},
+		)),
 		DeclRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-module/primary.tf",
 			Start: hcl.Pos{
@@ -419,6 +409,60 @@ func TestModuleOverrideConstVariable(t *testing.T) {
 
 			if got[v].ConstSet != want.constSet {
 				t.Errorf("wrong result for const set\ngot: %t want: %t", got[v].ConstSet, want.constSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideOutputType(t *testing.T) {
+	type testCase struct {
+		constraintType cty.Type
+		typeDefaults   *typeexpr.Defaults
+		typeSet        bool
+	}
+	cases := map[string]testCase{
+		"fully_overridden": {
+			constraintType: cty.Number,
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+		"no_override": {
+			constraintType: cty.String,
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+		"type_added_by_override": {
+			constraintType: cty.List(cty.String),
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-output-type")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	for name, want := range cases {
+		t.Run(fmt.Sprintf("output %s", name), func(t *testing.T) {
+			got, exists := mod.Outputs[name]
+			if !exists {
+				t.Fatalf("output %q not found", name)
+			}
+
+			if !got.ConstraintType.Equals(want.constraintType) {
+				t.Errorf("wrong result for constraint type\ngot:  %#v\nwant: %#v", got.ConstraintType, want.constraintType)
+			}
+
+			if got.TypeSet != want.typeSet {
+				t.Errorf("wrong result for type set\ngot: %t want: %t", got.TypeSet, want.typeSet)
+			}
+
+			if got.TypeDefaults != want.typeDefaults {
+				t.Errorf("wrong result for type defaults\ngot: %#v want: %#v", got.TypeDefaults, want.typeDefaults)
 			}
 		})
 	}

@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'testing: File-level error diagnostics are now included in JUnit XML skipped test elements, ensuring CI/CD pipelines can detect validation failures'
-time: 2025-10-24T04:29:00.000000Z
-custom:
-    Issue: "37801"

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ProvidersCommand is a Command implementation that prints out information
@@ -27,7 +28,7 @@ func (c *ProvidersSchemaCommand) Synopsis() string {
 }
 
 func (c *ProvidersSchemaCommand) Run(args []string) int {
-	_, diags := arguments.ParseProvidersSchema(c.Meta.process(args))
+	parsedArgs, diags := arguments.ParseProvidersSchema(c.Meta.process(args))
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -78,6 +79,16 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get the context
 	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
@@ -108,4 +119,15 @@ Usage: terraform [global options] providers schema -json
 
   Prints out a json representation of the schemas for all providers used
   in the current configuration.
+
+Options:
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `

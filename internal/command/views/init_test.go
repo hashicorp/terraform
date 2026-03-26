@@ -129,10 +129,10 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.Output(InitializingProviderPluginFromConfigMessage)
 
 		version := tfversion.String()
-		want := []map[string]interface{}{
+		want := []map[string]any{
 			{
 				"@level":    "info",
 				"@message":  fmt.Sprintf("Terraform %s", version),
@@ -143,8 +143,8 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     "Initializing provider plugins...",
-				"message_code": "initializing_provider_plugin_message",
+				"@message":     "Initializing provider plugins found in the configuration...",
+				"message_code": "initializing_provider_plugin_from_config_message",
 				"@module":      "terraform.ui",
 				"type":         "init_output",
 			},
@@ -231,7 +231,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginMessage)
+	newInit.LogInitMessage(InitializingProviderPluginFromConfigMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -245,7 +245,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		},
 		{
 			"@level":   "info",
-			"@message": "Initializing provider plugins...",
+			"@message": "Initializing provider plugins found in the configuration...",
 			"@module":  "terraform.ui",
 			"type":     "log",
 		},
@@ -282,10 +282,10 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.Output(InitializingProviderPluginFromConfigMessage)
 
 		actual := done(t).All()
-		expected := "Initializing provider plugins..."
+		expected := "Initializing provider plugins found in the configuration..."
 		if !strings.Contains(actual, expected) {
 			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
 		}

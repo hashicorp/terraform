@@ -187,3 +187,8 @@ func (l *Loader) AllowLanguageExperiments(allowed bool) {
 func (l *Loader) AllowsLanguageExperiments() bool {
 	return l.parser.AllowsLanguageExperiments()
 }
+
+// ModuleWalker returns a walker suitable for loading already-installed modules.
+func (l *Loader) ModuleWalker() configs.ModuleWalker {
+	return configs.ModuleWalkerFunc(l.moduleWalkerLoad)
+}

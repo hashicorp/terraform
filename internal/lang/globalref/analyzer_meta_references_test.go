@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package globalref
+package globalref_test
 
 import (
 	"sort"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 )
 
 func TestAnalyzerMetaReferences(t *testing.T) {
@@ -152,7 +153,7 @@ func TestAnalyzerMetaReferences(t *testing.T) {
 				t.Fatalf("input reference is invalid: %s", diags.Err())
 			}
 
-			ref := Reference{
+			ref := globalref.Reference{
 				ContainerAddr: containerAddr,
 				LocalRef:      localRef,
 			}

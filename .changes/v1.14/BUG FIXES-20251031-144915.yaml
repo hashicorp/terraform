@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'providers lock: include providers required by terraform test'
-time: 2025-10-31T14:49:15.121756+01:00
-custom:
-    Issue: "37851"

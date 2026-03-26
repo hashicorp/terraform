@@ -11,6 +11,9 @@ import (
 
 // Taint represents the command-line arguments for the taint command.
 type Taint struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
+
 	// Address is the address of the resource instance to taint.
 	Address string
 
@@ -44,9 +47,11 @@ type Taint struct {
 // the best effort interpretation of the arguments.
 func ParseTaint(args []string) (*Taint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	taint := &Taint{}
+	taint := &Taint{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("taint")
+	cmdFlags := extendedFlagSet("taint", nil, nil, taint.Vars)
 	cmdFlags.BoolVar(&taint.AllowMissing, "allow-missing", false, "allow missing")
 	cmdFlags.StringVar(&taint.BackupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&taint.StateLock, "lock", true, "lock state")

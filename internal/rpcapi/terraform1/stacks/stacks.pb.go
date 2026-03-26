@@ -5231,7 +5231,7 @@ type PlannedChange_ActionInvocationInstance struct {
 	ConfigValue *DynamicValue `protobuf:"bytes,4,opt,name=config_value,json=configValue,proto3" json:"config_value,omitempty"`
 	// Types that are valid to be assigned to ActionTrigger:
 	//
-	//	*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger
+	//	*PlannedChange_ActionInvocationInstance_ResourceActionTrigger
 	//	*PlannedChange_ActionInvocationInstance_InvokeActionTrigger
 	ActionTrigger isPlannedChange_ActionInvocationInstance_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
@@ -5303,10 +5303,10 @@ func (x *PlannedChange_ActionInvocationInstance) GetActionTrigger() isPlannedCha
 	return nil
 }
 
-func (x *PlannedChange_ActionInvocationInstance) GetLifecycleActionTrigger() *PlannedChange_LifecycleActionTrigger {
+func (x *PlannedChange_ActionInvocationInstance) GetResourceActionTrigger() *PlannedChange_ResourceActionTrigger {
 	if x != nil {
-		if x, ok := x.ActionTrigger.(*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger); ok {
-			return x.LifecycleActionTrigger
+		if x, ok := x.ActionTrigger.(*PlannedChange_ActionInvocationInstance_ResourceActionTrigger); ok {
+			return x.ResourceActionTrigger
 		}
 	}
 	return nil
@@ -5325,15 +5325,15 @@ type isPlannedChange_ActionInvocationInstance_ActionTrigger interface {
 	isPlannedChange_ActionInvocationInstance_ActionTrigger()
 }
 
-type PlannedChange_ActionInvocationInstance_LifecycleActionTrigger struct {
-	LifecycleActionTrigger *PlannedChange_LifecycleActionTrigger `protobuf:"bytes,6,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+type PlannedChange_ActionInvocationInstance_ResourceActionTrigger struct {
+	ResourceActionTrigger *PlannedChange_ResourceActionTrigger `protobuf:"bytes,6,opt,name=resource_action_trigger,json=resourceActionTrigger,proto3,oneof"`
 }
 
 type PlannedChange_ActionInvocationInstance_InvokeActionTrigger struct {
 	InvokeActionTrigger *PlannedChange_InvokeActionTrigger `protobuf:"bytes,7,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
 }
 
-func (*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger) isPlannedChange_ActionInvocationInstance_ActionTrigger() {
+func (*PlannedChange_ActionInvocationInstance_ResourceActionTrigger) isPlannedChange_ActionInvocationInstance_ActionTrigger() {
 }
 
 func (*PlannedChange_ActionInvocationInstance_InvokeActionTrigger) isPlannedChange_ActionInvocationInstance_ActionTrigger() {
@@ -5397,9 +5397,9 @@ func (x *PlannedChange_ActionInvocationDeferred) GetActionInvocation() *PlannedC
 	return nil
 }
 
-// LifecycleActionTrigger contains details on the conditions that led to the
+// ResourceActionTrigger contains details on the conditions that led to the
 // triggering of an action.
-type PlannedChange_LifecycleActionTrigger struct {
+type PlannedChange_ResourceActionTrigger struct {
 	state                     protoimpl.MessageState           `protogen:"open.v1"`
 	TriggeringResourceAddress *ResourceInstanceInStackAddr     `protobuf:"bytes,1,opt,name=triggering_resource_address,json=triggeringResourceAddress,proto3" json:"triggering_resource_address,omitempty"`
 	TriggerEvent              PlannedChange_ActionTriggerEvent `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=terraform1.stacks.PlannedChange_ActionTriggerEvent" json:"trigger_event,omitempty"`
@@ -5409,20 +5409,20 @@ type PlannedChange_LifecycleActionTrigger struct {
 	sizeCache                 protoimpl.SizeCache
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) Reset() {
-	*x = PlannedChange_LifecycleActionTrigger{}
+func (x *PlannedChange_ResourceActionTrigger) Reset() {
+	*x = PlannedChange_ResourceActionTrigger{}
 	mi := &file_stacks_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) String() string {
+func (x *PlannedChange_ResourceActionTrigger) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PlannedChange_LifecycleActionTrigger) ProtoMessage() {}
+func (*PlannedChange_ResourceActionTrigger) ProtoMessage() {}
 
-func (x *PlannedChange_LifecycleActionTrigger) ProtoReflect() protoreflect.Message {
+func (x *PlannedChange_ResourceActionTrigger) ProtoReflect() protoreflect.Message {
 	mi := &file_stacks_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -5434,33 +5434,33 @@ func (x *PlannedChange_LifecycleActionTrigger) ProtoReflect() protoreflect.Messa
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PlannedChange_LifecycleActionTrigger.ProtoReflect.Descriptor instead.
-func (*PlannedChange_LifecycleActionTrigger) Descriptor() ([]byte, []int) {
+// Deprecated: Use PlannedChange_ResourceActionTrigger.ProtoReflect.Descriptor instead.
+func (*PlannedChange_ResourceActionTrigger) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{23, 8}
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
+func (x *PlannedChange_ResourceActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
 	if x != nil {
 		return x.TriggeringResourceAddress
 	}
 	return nil
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) GetTriggerEvent() PlannedChange_ActionTriggerEvent {
+func (x *PlannedChange_ResourceActionTrigger) GetTriggerEvent() PlannedChange_ActionTriggerEvent {
 	if x != nil {
 		return x.TriggerEvent
 	}
 	return PlannedChange_INVALID_EVENT
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) GetActionTriggerBlockIndex() int64 {
+func (x *PlannedChange_ResourceActionTrigger) GetActionTriggerBlockIndex() int64 {
 	if x != nil {
 		return x.ActionTriggerBlockIndex
 	}
 	return 0
 }
 
-func (x *PlannedChange_LifecycleActionTrigger) GetActionsListIndex() int64 {
+func (x *PlannedChange_ResourceActionTrigger) GetActionsListIndex() int64 {
 	if x != nil {
 		return x.ActionsListIndex
 	}
@@ -6432,7 +6432,7 @@ type StackChangeProgress_ActionInvocationPlanned struct {
 	ProviderAddr string                               `protobuf:"bytes,2,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
 	// Types that are valid to be assigned to ActionTrigger:
 	//
-	//	*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger
+	//	*StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger
 	//	*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger
 	ActionTrigger isStackChangeProgress_ActionInvocationPlanned_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
@@ -6490,10 +6490,10 @@ func (x *StackChangeProgress_ActionInvocationPlanned) GetActionTrigger() isStack
 	return nil
 }
 
-func (x *StackChangeProgress_ActionInvocationPlanned) GetLifecycleActionTrigger() *StackChangeProgress_LifecycleActionTrigger {
+func (x *StackChangeProgress_ActionInvocationPlanned) GetResourceActionTrigger() *StackChangeProgress_ResourceActionTrigger {
 	if x != nil {
-		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger); ok {
-			return x.LifecycleActionTrigger
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger); ok {
+			return x.ResourceActionTrigger
 		}
 	}
 	return nil
@@ -6512,15 +6512,15 @@ type isStackChangeProgress_ActionInvocationPlanned_ActionTrigger interface {
 	isStackChangeProgress_ActionInvocationPlanned_ActionTrigger()
 }
 
-type StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger struct {
-	LifecycleActionTrigger *StackChangeProgress_LifecycleActionTrigger `protobuf:"bytes,3,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+type StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger struct {
+	ResourceActionTrigger *StackChangeProgress_ResourceActionTrigger `protobuf:"bytes,3,opt,name=resource_action_trigger,json=resourceActionTrigger,proto3,oneof"`
 }
 
 type StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger struct {
 	InvokeActionTrigger *StackChangeProgress_InvokeActionTrigger `protobuf:"bytes,4,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
 }
 
-func (*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger) isStackChangeProgress_ActionInvocationPlanned_ActionTrigger() {
+func (*StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger) isStackChangeProgress_ActionInvocationPlanned_ActionTrigger() {
 }
 
 func (*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger) isStackChangeProgress_ActionInvocationPlanned_ActionTrigger() {
@@ -6533,7 +6533,7 @@ type StackChangeProgress_ActionInvocationStatus struct {
 	ProviderAddr string                                            `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
 	// Types that are valid to be assigned to ActionTrigger:
 	//
-	//	*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger
+	//	*StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger
 	//	*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger
 	ActionTrigger isStackChangeProgress_ActionInvocationStatus_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
@@ -6598,10 +6598,10 @@ func (x *StackChangeProgress_ActionInvocationStatus) GetActionTrigger() isStackC
 	return nil
 }
 
-func (x *StackChangeProgress_ActionInvocationStatus) GetLifecycleActionTrigger() *StackChangeProgress_LifecycleActionTrigger {
+func (x *StackChangeProgress_ActionInvocationStatus) GetResourceActionTrigger() *StackChangeProgress_ResourceActionTrigger {
 	if x != nil {
-		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger); ok {
-			return x.LifecycleActionTrigger
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger); ok {
+			return x.ResourceActionTrigger
 		}
 	}
 	return nil
@@ -6620,15 +6620,15 @@ type isStackChangeProgress_ActionInvocationStatus_ActionTrigger interface {
 	isStackChangeProgress_ActionInvocationStatus_ActionTrigger()
 }
 
-type StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger struct {
-	LifecycleActionTrigger *StackChangeProgress_LifecycleActionTrigger `protobuf:"bytes,4,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+type StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger struct {
+	ResourceActionTrigger *StackChangeProgress_ResourceActionTrigger `protobuf:"bytes,4,opt,name=resource_action_trigger,json=resourceActionTrigger,proto3,oneof"`
 }
 
 type StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger struct {
 	InvokeActionTrigger *StackChangeProgress_InvokeActionTrigger `protobuf:"bytes,5,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
 }
 
-func (*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger) isStackChangeProgress_ActionInvocationStatus_ActionTrigger() {
+func (*StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger) isStackChangeProgress_ActionInvocationStatus_ActionTrigger() {
 }
 
 func (*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger) isStackChangeProgress_ActionInvocationStatus_ActionTrigger() {
@@ -6641,7 +6641,7 @@ type StackChangeProgress_ActionInvocationProgress struct {
 	ProviderAddr string                               `protobuf:"bytes,3,opt,name=provider_addr,json=providerAddr,proto3" json:"provider_addr,omitempty"`
 	// Types that are valid to be assigned to ActionTrigger:
 	//
-	//	*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger
+	//	*StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger
 	//	*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger
 	ActionTrigger isStackChangeProgress_ActionInvocationProgress_ActionTrigger `protobuf_oneof:"action_trigger"`
 	unknownFields protoimpl.UnknownFields
@@ -6706,10 +6706,10 @@ func (x *StackChangeProgress_ActionInvocationProgress) GetActionTrigger() isStac
 	return nil
 }
 
-func (x *StackChangeProgress_ActionInvocationProgress) GetLifecycleActionTrigger() *StackChangeProgress_LifecycleActionTrigger {
+func (x *StackChangeProgress_ActionInvocationProgress) GetResourceActionTrigger() *StackChangeProgress_ResourceActionTrigger {
 	if x != nil {
-		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger); ok {
-			return x.LifecycleActionTrigger
+		if x, ok := x.ActionTrigger.(*StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger); ok {
+			return x.ResourceActionTrigger
 		}
 	}
 	return nil
@@ -6728,23 +6728,23 @@ type isStackChangeProgress_ActionInvocationProgress_ActionTrigger interface {
 	isStackChangeProgress_ActionInvocationProgress_ActionTrigger()
 }
 
-type StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger struct {
-	LifecycleActionTrigger *StackChangeProgress_LifecycleActionTrigger `protobuf:"bytes,4,opt,name=lifecycle_action_trigger,json=lifecycleActionTrigger,proto3,oneof"`
+type StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger struct {
+	ResourceActionTrigger *StackChangeProgress_ResourceActionTrigger `protobuf:"bytes,4,opt,name=resource_action_trigger,json=resourceActionTrigger,proto3,oneof"`
 }
 
 type StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger struct {
 	InvokeActionTrigger *StackChangeProgress_InvokeActionTrigger `protobuf:"bytes,5,opt,name=invoke_action_trigger,json=invokeActionTrigger,proto3,oneof"`
 }
 
-func (*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger) isStackChangeProgress_ActionInvocationProgress_ActionTrigger() {
+func (*StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger) isStackChangeProgress_ActionInvocationProgress_ActionTrigger() {
 }
 
 func (*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger) isStackChangeProgress_ActionInvocationProgress_ActionTrigger() {
 }
 
-// LifecycleActionTrigger contains details on the conditions that led to the
+// ResourceActionTrigger contains details on the conditions that led to the
 // triggering of an action.
-type StackChangeProgress_LifecycleActionTrigger struct {
+type StackChangeProgress_ResourceActionTrigger struct {
 	state                     protoimpl.MessageState                 `protogen:"open.v1"`
 	TriggeringResourceAddress *ResourceInstanceInStackAddr           `protobuf:"bytes,1,opt,name=triggering_resource_address,json=triggeringResourceAddress,proto3" json:"triggering_resource_address,omitempty"`
 	TriggerEvent              StackChangeProgress_ActionTriggerEvent `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=terraform1.stacks.StackChangeProgress_ActionTriggerEvent" json:"trigger_event,omitempty"`
@@ -6754,20 +6754,20 @@ type StackChangeProgress_LifecycleActionTrigger struct {
 	sizeCache                 protoimpl.SizeCache
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) Reset() {
-	*x = StackChangeProgress_LifecycleActionTrigger{}
+func (x *StackChangeProgress_ResourceActionTrigger) Reset() {
+	*x = StackChangeProgress_ResourceActionTrigger{}
 	mi := &file_stacks_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) String() string {
+func (x *StackChangeProgress_ResourceActionTrigger) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StackChangeProgress_LifecycleActionTrigger) ProtoMessage() {}
+func (*StackChangeProgress_ResourceActionTrigger) ProtoMessage() {}
 
-func (x *StackChangeProgress_LifecycleActionTrigger) ProtoReflect() protoreflect.Message {
+func (x *StackChangeProgress_ResourceActionTrigger) ProtoReflect() protoreflect.Message {
 	mi := &file_stacks_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -6779,33 +6779,33 @@ func (x *StackChangeProgress_LifecycleActionTrigger) ProtoReflect() protoreflect
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StackChangeProgress_LifecycleActionTrigger.ProtoReflect.Descriptor instead.
-func (*StackChangeProgress_LifecycleActionTrigger) Descriptor() ([]byte, []int) {
+// Deprecated: Use StackChangeProgress_ResourceActionTrigger.ProtoReflect.Descriptor instead.
+func (*StackChangeProgress_ResourceActionTrigger) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{26, 7}
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
+func (x *StackChangeProgress_ResourceActionTrigger) GetTriggeringResourceAddress() *ResourceInstanceInStackAddr {
 	if x != nil {
 		return x.TriggeringResourceAddress
 	}
 	return nil
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) GetTriggerEvent() StackChangeProgress_ActionTriggerEvent {
+func (x *StackChangeProgress_ResourceActionTrigger) GetTriggerEvent() StackChangeProgress_ActionTriggerEvent {
 	if x != nil {
 		return x.TriggerEvent
 	}
 	return StackChangeProgress_INVALID_EVENT
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) GetActionTriggerBlockIndex() int64 {
+func (x *StackChangeProgress_ResourceActionTrigger) GetActionTriggerBlockIndex() int64 {
 	if x != nil {
 		return x.ActionTriggerBlockIndex
 	}
 	return 0
 }
 
-func (x *StackChangeProgress_LifecycleActionTrigger) GetActionsListIndex() int64 {
+func (x *StackChangeProgress_ResourceActionTrigger) GetActionsListIndex() int64 {
 	if x != nil {
 		return x.ActionsListIndex
 	}
@@ -7671,7 +7671,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x124\n" +
 	"\x16resource_instance_addr\x18\x02 \x01(\tR\x14resourceInstanceAddr\x12\x1f\n" +
 	"\vdeposed_key\x18\x03 \x01(\tR\n" +
-	"deposedKey\"\xc2 \n" +
+	"deposedKey\"\xbe \n" +
 	"\rPlannedChange\x12&\n" +
 	"\x03raw\x18\x01 \x03(\v2\x14.google.protobuf.AnyR\x03raw\x12V\n" +
 	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.PlannedChange.ChangeDescriptionR\fdescriptions\x1a\xe9\x06\n" +
@@ -7727,20 +7727,20 @@ const file_stacks_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x127\n" +
 	"\aactions\x18\x02 \x03(\x0e2\x1d.terraform1.stacks.ChangeTypeR\aactions\x12=\n" +
 	"\x06values\x18\x03 \x01(\v2%.terraform1.stacks.DynamicValueChangeR\x06values\x122\n" +
-	"\x15required_during_apply\x18\x04 \x01(\bR\x13requiredDuringApply\x1a\xe3\x03\n" +
+	"\x15required_during_apply\x18\x04 \x01(\bR\x13requiredDuringApply\x1a\xe0\x03\n" +
 	"\x18ActionInvocationInstance\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12#\n" +
 	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12\x1f\n" +
 	"\vaction_type\x18\x03 \x01(\tR\n" +
 	"actionType\x12B\n" +
-	"\fconfig_value\x18\x04 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\vconfigValue\x12s\n" +
-	"\x18lifecycle_action_trigger\x18\x06 \x01(\v27.terraform1.stacks.PlannedChange.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12j\n" +
+	"\fconfig_value\x18\x04 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\vconfigValue\x12p\n" +
+	"\x17resource_action_trigger\x18\x06 \x01(\v26.terraform1.stacks.PlannedChange.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12j\n" +
 	"\x15invoke_action_trigger\x18\a \x01(\v24.terraform1.stacks.PlannedChange.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
 	"\x0eaction_trigger\x1a\xbb\x01\n" +
 	"\x18ActionInvocationDeferred\x127\n" +
 	"\bdeferred\x18\x01 \x01(\v2\x1b.terraform1.stacks.DeferredR\bdeferred\x12f\n" +
-	"\x11action_invocation\x18\x02 \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceR\x10actionInvocation\x1a\xcd\x02\n" +
-	"\x16LifecycleActionTrigger\x12n\n" +
+	"\x11action_invocation\x18\x02 \x01(\v29.terraform1.stacks.PlannedChange.ActionInvocationInstanceR\x10actionInvocation\x1a\xcc\x02\n" +
+	"\x15ResourceActionTrigger\x12n\n" +
 	"\x1btriggering_resource_address\x18\x01 \x01(\v2..terraform1.stacks.ResourceInstanceInStackAddrR\x19triggeringResourceAddress\x12X\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e23.terraform1.stacks.PlannedChange.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
@@ -7800,7 +7800,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\rInputVariable\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\tnew_value\x18\x02 \x01(\v2\x1f.terraform1.stacks.DynamicValueR\bnewValue\x1a\t\n" +
-	"\aNothing\"\xe3+\n" +
+	"\aNothing\"\xd9+\n" +
 	"\x13StackChangeProgress\x12|\n" +
 	"\x19component_instance_status\x18\x01 \x01(\v2>.terraform1.stacks.StackChangeProgress.ComponentInstanceStatusH\x00R\x17componentInstanceStatus\x12y\n" +
 	"\x18resource_instance_status\x18\x02 \x01(\v2=.terraform1.stacks.StackChangeProgress.ResourceInstanceStatusH\x00R\x16resourceInstanceStatus\x12\x8f\x01\n" +
@@ -7854,18 +7854,18 @@ const file_stacks_proto_rawDesc = "" +
 	"\aunknown\x18\x02 \x01(\bR\aunknown\x1a\xbe\x01\n" +
 	"%DeferredResourceInstancePlannedChange\x127\n" +
 	"\bdeferred\x18\x01 \x01(\v2\x1b.terraform1.stacks.DeferredR\bdeferred\x12\\\n" +
-	"\x06change\x18\x02 \x01(\v2D.terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChangeR\x06change\x1a\x89\x03\n" +
+	"\x06change\x18\x02 \x01(\v2D.terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChangeR\x06change\x1a\x86\x03\n" +
 	"\x17ActionInvocationPlanned\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12#\n" +
-	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12y\n" +
-	"\x18lifecycle_action_trigger\x18\x03 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
+	"\rprovider_addr\x18\x02 \x01(\tR\fproviderAddr\x12v\n" +
+	"\x17resource_action_trigger\x18\x03 \x01(\v2<.terraform1.stacks.StackChangeProgress.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12p\n" +
 	"\x15invoke_action_trigger\x18\x04 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\x1a\xb3\x04\n" +
+	"\x0eaction_trigger\x1a\xb0\x04\n" +
 	"\x16ActionInvocationStatus\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12\\\n" +
 	"\x06status\x18\x02 \x01(\x0e2D.terraform1.stacks.StackChangeProgress.ActionInvocationStatus.StatusR\x06status\x12#\n" +
-	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12y\n" +
-	"\x18lifecycle_action_trigger\x18\x04 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
+	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12v\n" +
+	"\x17resource_action_trigger\x18\x04 \x01(\v2<.terraform1.stacks.StackChangeProgress.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12p\n" +
 	"\x15invoke_action_trigger\x18\x05 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTrigger\"K\n" +
 	"\x06Status\x12\v\n" +
 	"\aINVALID\x10\x00\x12\v\n" +
@@ -7873,15 +7873,15 @@ const file_stacks_proto_rawDesc = "" +
 	"\aRUNNING\x10\x02\x12\r\n" +
 	"\tCOMPLETED\x10\x03\x12\v\n" +
 	"\aERRORED\x10\x04B\x10\n" +
-	"\x0eaction_trigger\x1a\xa4\x03\n" +
+	"\x0eaction_trigger\x1a\xa1\x03\n" +
 	"\x18ActionInvocationProgress\x12J\n" +
 	"\x04addr\x18\x01 \x01(\v26.terraform1.stacks.ActionInvocationInstanceInStackAddrR\x04addr\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
-	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12y\n" +
-	"\x18lifecycle_action_trigger\x18\x04 \x01(\v2=.terraform1.stacks.StackChangeProgress.LifecycleActionTriggerH\x00R\x16lifecycleActionTrigger\x12p\n" +
+	"\rprovider_addr\x18\x03 \x01(\tR\fproviderAddr\x12v\n" +
+	"\x17resource_action_trigger\x18\x04 \x01(\v2<.terraform1.stacks.StackChangeProgress.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12p\n" +
 	"\x15invoke_action_trigger\x18\x05 \x01(\v2:.terraform1.stacks.StackChangeProgress.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\x1a\xd3\x02\n" +
-	"\x16LifecycleActionTrigger\x12n\n" +
+	"\x0eaction_trigger\x1a\xd2\x02\n" +
+	"\x15ResourceActionTrigger\x12n\n" +
 	"\x1btriggering_resource_address\x18\x01 \x01(\v2..terraform1.stacks.ResourceInstanceInStackAddrR\x19triggeringResourceAddress\x12^\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e29.terraform1.stacks.StackChangeProgress.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
@@ -8091,7 +8091,7 @@ var file_stacks_proto_goTypes = []any{
 	(*PlannedChange_InputVariable)(nil),                                // 95: terraform1.stacks.PlannedChange.InputVariable
 	(*PlannedChange_ActionInvocationInstance)(nil),                     // 96: terraform1.stacks.PlannedChange.ActionInvocationInstance
 	(*PlannedChange_ActionInvocationDeferred)(nil),                     // 97: terraform1.stacks.PlannedChange.ActionInvocationDeferred
-	(*PlannedChange_LifecycleActionTrigger)(nil),                       // 98: terraform1.stacks.PlannedChange.LifecycleActionTrigger
+	(*PlannedChange_ResourceActionTrigger)(nil),                        // 98: terraform1.stacks.PlannedChange.ResourceActionTrigger
 	(*PlannedChange_InvokeActionTrigger)(nil),                          // 99: terraform1.stacks.PlannedChange.InvokeActionTrigger
 	(*PlannedChange_ResourceInstance_Index)(nil),                       // 100: terraform1.stacks.PlannedChange.ResourceInstance.Index
 	(*PlannedChange_ResourceInstance_Moved)(nil),                       // 101: terraform1.stacks.PlannedChange.ResourceInstance.Moved
@@ -8111,7 +8111,7 @@ var file_stacks_proto_goTypes = []any{
 	(*StackChangeProgress_ActionInvocationPlanned)(nil),                // 115: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned
 	(*StackChangeProgress_ActionInvocationStatus)(nil),                 // 116: terraform1.stacks.StackChangeProgress.ActionInvocationStatus
 	(*StackChangeProgress_ActionInvocationProgress)(nil),               // 117: terraform1.stacks.StackChangeProgress.ActionInvocationProgress
-	(*StackChangeProgress_LifecycleActionTrigger)(nil),                 // 118: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	(*StackChangeProgress_ResourceActionTrigger)(nil),                  // 118: terraform1.stacks.StackChangeProgress.ResourceActionTrigger
 	(*StackChangeProgress_InvokeActionTrigger)(nil),                    // 119: terraform1.stacks.StackChangeProgress.InvokeActionTrigger
 	(*StackChangeProgress_ProvisionerStatus)(nil),                      // 120: terraform1.stacks.StackChangeProgress.ProvisionerStatus
 	(*StackChangeProgress_ProvisionerOutput)(nil),                      // 121: terraform1.stacks.StackChangeProgress.ProvisionerOutput
@@ -8225,12 +8225,12 @@ var file_stacks_proto_depIdxs = []int32{
 	27,  // 94: terraform1.stacks.PlannedChange.InputVariable.values:type_name -> terraform1.stacks.DynamicValueChange
 	31,  // 95: terraform1.stacks.PlannedChange.ActionInvocationInstance.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
 	26,  // 96: terraform1.stacks.PlannedChange.ActionInvocationInstance.config_value:type_name -> terraform1.stacks.DynamicValue
-	98,  // 97: terraform1.stacks.PlannedChange.ActionInvocationInstance.lifecycle_action_trigger:type_name -> terraform1.stacks.PlannedChange.LifecycleActionTrigger
+	98,  // 97: terraform1.stacks.PlannedChange.ActionInvocationInstance.resource_action_trigger:type_name -> terraform1.stacks.PlannedChange.ResourceActionTrigger
 	99,  // 98: terraform1.stacks.PlannedChange.ActionInvocationInstance.invoke_action_trigger:type_name -> terraform1.stacks.PlannedChange.InvokeActionTrigger
 	35,  // 99: terraform1.stacks.PlannedChange.ActionInvocationDeferred.deferred:type_name -> terraform1.stacks.Deferred
 	96,  // 100: terraform1.stacks.PlannedChange.ActionInvocationDeferred.action_invocation:type_name -> terraform1.stacks.PlannedChange.ActionInvocationInstance
-	32,  // 101: terraform1.stacks.PlannedChange.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	4,   // 102: terraform1.stacks.PlannedChange.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.PlannedChange.ActionTriggerEvent
+	32,  // 101: terraform1.stacks.PlannedChange.ResourceActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	4,   // 102: terraform1.stacks.PlannedChange.ResourceActionTrigger.trigger_event:type_name -> terraform1.stacks.PlannedChange.ActionTriggerEvent
 	26,  // 103: terraform1.stacks.PlannedChange.ResourceInstance.Index.value:type_name -> terraform1.stacks.DynamicValue
 	32,  // 104: terraform1.stacks.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
 	130, // 105: terraform1.stacks.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
@@ -8258,17 +8258,17 @@ var file_stacks_proto_depIdxs = []int32{
 	35,  // 127: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.deferred:type_name -> terraform1.stacks.Deferred
 	113, // 128: terraform1.stacks.StackChangeProgress.DeferredResourceInstancePlannedChange.change:type_name -> terraform1.stacks.StackChangeProgress.ResourceInstancePlannedChange
 	31,  // 129: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
-	118, // 130: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	118, // 130: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.resource_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.ResourceActionTrigger
 	119, // 131: terraform1.stacks.StackChangeProgress.ActionInvocationPlanned.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
 	31,  // 132: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
 	9,   // 133: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ActionInvocationStatus.Status
-	118, // 134: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	118, // 134: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.resource_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.ResourceActionTrigger
 	119, // 135: terraform1.stacks.StackChangeProgress.ActionInvocationStatus.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
 	31,  // 136: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.addr:type_name -> terraform1.stacks.ActionInvocationInstanceInStackAddr
-	118, // 137: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.lifecycle_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.LifecycleActionTrigger
+	118, // 137: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.resource_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.ResourceActionTrigger
 	119, // 138: terraform1.stacks.StackChangeProgress.ActionInvocationProgress.invoke_action_trigger:type_name -> terraform1.stacks.StackChangeProgress.InvokeActionTrigger
-	32,  // 139: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
-	6,   // 140: terraform1.stacks.StackChangeProgress.LifecycleActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
+	32,  // 139: terraform1.stacks.StackChangeProgress.ResourceActionTrigger.triggering_resource_address:type_name -> terraform1.stacks.ResourceInstanceInStackAddr
+	6,   // 140: terraform1.stacks.StackChangeProgress.ResourceActionTrigger.trigger_event:type_name -> terraform1.stacks.StackChangeProgress.ActionTriggerEvent
 	33,  // 141: terraform1.stacks.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
 	120, // 142: terraform1.stacks.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.stacks.StackChangeProgress.ProvisionerStatus
 	33,  // 143: terraform1.stacks.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.stacks.ResourceInstanceObjectInStackAddr
@@ -8370,7 +8370,7 @@ func file_stacks_proto_init() {
 		(*PlannedChange_ChangeDescription_ActionInvocationDeferred)(nil),
 	}
 	file_stacks_proto_msgTypes[85].OneofWrappers = []any{
-		(*PlannedChange_ActionInvocationInstance_LifecycleActionTrigger)(nil),
+		(*PlannedChange_ActionInvocationInstance_ResourceActionTrigger)(nil),
 		(*PlannedChange_ActionInvocationInstance_InvokeActionTrigger)(nil),
 	}
 	file_stacks_proto_msgTypes[93].OneofWrappers = []any{
@@ -8382,15 +8382,15 @@ func file_stacks_proto_init() {
 		(*AppliedChange_ChangeDescription_ComponentInstance)(nil),
 	}
 	file_stacks_proto_msgTypes[104].OneofWrappers = []any{
-		(*StackChangeProgress_ActionInvocationPlanned_LifecycleActionTrigger)(nil),
+		(*StackChangeProgress_ActionInvocationPlanned_ResourceActionTrigger)(nil),
 		(*StackChangeProgress_ActionInvocationPlanned_InvokeActionTrigger)(nil),
 	}
 	file_stacks_proto_msgTypes[105].OneofWrappers = []any{
-		(*StackChangeProgress_ActionInvocationStatus_LifecycleActionTrigger)(nil),
+		(*StackChangeProgress_ActionInvocationStatus_ResourceActionTrigger)(nil),
 		(*StackChangeProgress_ActionInvocationStatus_InvokeActionTrigger)(nil),
 	}
 	file_stacks_proto_msgTypes[106].OneofWrappers = []any{
-		(*StackChangeProgress_ActionInvocationProgress_LifecycleActionTrigger)(nil),
+		(*StackChangeProgress_ActionInvocationProgress_ResourceActionTrigger)(nil),
 		(*StackChangeProgress_ActionInvocationProgress_InvokeActionTrigger)(nil),
 	}
 	type x struct{}

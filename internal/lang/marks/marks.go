@@ -5,6 +5,7 @@ package marks
 
 import (
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/ctymarks"
 )
 
 // valueMarks allow creating strictly typed values for use as cty.Value marks.
@@ -24,12 +25,11 @@ func Has(val cty.Value, mark interface{}) bool {
 
 	// For value marks Has returns true if a mark of the type is present
 	case DeprecationMark:
-		for depMark := range val.Marks() {
-			if _, ok := depMark.(DeprecationMark); ok {
-				return true
-			}
+		for range cty.ValueMarksOfType[DeprecationMark](val) {
+			return true
 		}
 		return false
+
 	default:
 		panic("Unknown mark type")
 	}
@@ -72,26 +72,30 @@ func GetDeprecationMarks(val cty.Value) (cty.Value, []DeprecationMark) {
 	return unmarked.WithMarks(other), depMarks
 }
 
-// RemoveDeprecationMarks returns a copy of the given cty.Value with all
-// deprecation marks removed.
-func RemoveDeprecationMarks(val cty.Value) cty.Value {
-	newVal, marks := val.Unmark()
-
-	for mark := range marks {
-		if _, ok := mark.(DeprecationMark); !ok {
-			newVal = newVal.Mark(mark)
-		}
-	}
-
-	return newVal
+type PathDeprecationMark struct {
+	Mark DeprecationMark
+	Path cty.Path
 }
 
-// RemoveDeprecationMarksDeep returns a copy of the given cty.Value with all
-// deprecation marks deeply removed.
-func RemoveDeprecationMarksDeep(val cty.Value) cty.Value {
-	newVal, pvms := val.UnmarkDeepWithPaths()
-	otherPvms := RemoveAll(pvms, Deprecation)
-	return newVal.MarkWithPaths(otherPvms)
+// GetDeprecationMarksDeep returns a copy of the given cty.Value with all
+// deprecation marks removed, along with a slice of all deprecation marks found
+// in the value and their paths.
+func GetDeprecationMarksDeep(value cty.Value) (cty.Value, []PathDeprecationMark) {
+	pdms := []PathDeprecationMark{}
+	undeprecatedVal, _ := value.WrangleMarksDeep(func(mark any, path cty.Path) (ctymarks.WrangleAction, error) {
+		if depMark, ok := mark.(DeprecationMark); ok {
+			pdms = append(pdms, PathDeprecationMark{
+				Mark: depMark,
+				Path: path.Copy(),
+			})
+			// We want to drop the deprecation marks
+			return ctymarks.WrangleDrop, nil
+		}
+		// and ignore all other marks
+		return ctymarks.WrangleKeep, nil
+	})
+
+	return undeprecatedVal, pdms
 }
 
 // Sensitive indicates that this value is marked as sensitive in the context of

@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
@@ -67,7 +68,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -79,17 +80,53 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, snap, diags := loader.LoadConfigWithSnapshot(dir)
+	config, snap, diags := testLoadWithSnapshot(dir, loader, nil)
 	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+		t.Fatal(diags.Err())
 	}
 
 	return config, snap
 }
 
+func testLoadWithSnapshot(dir string, loader *configload.Loader, vars InputValues) (*configs.Config, *configload.Snapshot, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	rootMod, configDiags := loader.LoadRootModule(dir)
+	if configDiags.HasErrors() {
+		diags = diags.Append(configDiags)
+		return nil, nil, diags
+	}
+
+	walkerSnapshot, snap := loader.ModuleWalkerSnapshot()
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		walkerSnapshot,
+		vars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		diags = diags.Append(buildDiags)
+		return nil, nil, diags
+	}
+
+	snapDiags := loader.AddRootModuleToSnapshot(snap, dir)
+	if snapDiags.HasErrors() {
+		diags = diags.Append(snapDiags)
+		return nil, nil, diags
+	}
+
+	return config, snap, nil
+}
+
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...configs.Option) *configs.Config {
+	return testModuleInlineWithVars(t, sources, nil, parserOpts...)
+}
+
+// testModuleInlineWithVars is the same as testModuleInline but also allows passing in variable values to be used when loading the config.
+func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars InputValues, parserOpts ...configs.Option) *configs.Config {
+
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -127,7 +164,7 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -139,12 +176,65 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		vars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatal(buildDiags.Err())
+	}
+
+	return config
+}
+
+func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {
+	t.Helper()
+
+	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	// We need to be able to exercise experimental features in our integration tests.
+	loader.AllowLanguageExperiments(true)
+
+	mod, diags := loader.Parser().LoadConfigDir(cfgPath)
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	return config
+	return mod
 }
 
 // testSetResourceInstanceCurrent is a helper function for tests that sets a Current,

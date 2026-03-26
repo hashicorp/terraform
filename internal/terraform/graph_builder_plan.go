@@ -194,15 +194,15 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Add dynamic values
 		&RootVariableTransformer{
-			Config:       b.Config,
-			RawValues:    b.RootVariableValues,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			RawValues:      b.RootVariableValues,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&ModuleVariableTransformer{
-			Config:       b.Config,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&variableValidationTransformer{
 			validateWalk: b.Operation == walkValidate,

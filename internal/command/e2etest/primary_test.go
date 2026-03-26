@@ -146,7 +146,6 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	if len(stateResources) != 0 {
 		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
 	}
-
 }
 
 func TestPrimaryChdirOption(t *testing.T) {
@@ -236,7 +235,6 @@ func TestPrimaryChdirOption(t *testing.T) {
 }
 
 func TestPrimary_stateStore(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -270,20 +268,16 @@ func TestPrimary_stateStore(t *testing.T) {
 	}
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
-		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
 	}
 
 	//// PLAN
 	// No separate plan step; this test lets the apply make a plan.
 
 	//// APPLY
-	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	stdout, stderr, err := tf.Run("apply", "-auto-approve", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -315,7 +309,6 @@ func TestPrimary_stateStore(t *testing.T) {
 }
 
 func TestPrimary_stateStore_planFile(t *testing.T) {
-
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -348,13 +341,9 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 	}
 
 	//// INIT
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
-		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
 	}
 
 	//// PLAN
@@ -365,7 +354,7 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 	}
 
 	//// APPLY
-	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color", planFile)
+	stdout, stderr, err := tf.Run("apply", "-auto-approve", "-no-color", planFile)
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -432,13 +421,9 @@ func TestPrimary_stateStore_inMem(t *testing.T) {
 	//
 	// Note - the inmem PSS implementation means that the default workspace state created during init
 	// is lost as soon as the command completes.
-	stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+	_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "Terraform created an empty state file for the default workspace") {
-		t.Errorf("notice about creating the default workspace is missing from init output:\n%s", stdout)
 	}
 
 	//// PLAN
@@ -448,7 +433,7 @@ func TestPrimary_stateStore_inMem(t *testing.T) {
 	//
 	// Note - the inmem PSS implementation means that writing to the default workspace during apply
 	// is creating the default state file for the first time.
-	stdout, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+	stdout, stderr, err := tf.Run("apply", "-auto-approve", "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}

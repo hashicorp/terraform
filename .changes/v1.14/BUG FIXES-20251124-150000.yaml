@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'actions: make after_create & after_update actions run after the resource has applied'
-time: 2025-11-24T15:00:00.316597+01:00
-custom:
-    Issue: "37936"

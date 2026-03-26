@@ -17,6 +17,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -35,6 +37,60 @@ func (m *Meta) normalizePath(path string) string {
 	return m.WorkingDir.NormalizePath(path)
 }
 
+// resolveConstVariables checks whether the root module in rootDir declares any
+// const variables that are required but not yet provided via CLI flags. If so,
+// it attempts to fetch them from the configured backend (e.g. HCP Terraform
+// workspace variables). This must be called before loadConfig or
+// loadConfigWithTests so that const variable values are available during
+// module source resolution.
+//
+// If no const variables are unsatisfied, or if the backend does not support
+// supplying variables, this method is a no-op.
+func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
+	rootMod, diags := m.loadSingleModule(rootDir)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	if !backendrun.HasUnsatisfiedConstVariables(m.VariableValues, rootMod.Variables) {
+		return nil
+	}
+
+	b, backendDiags := m.backend(rootDir, viewType)
+	if backendDiags.HasErrors() {
+		// Don't report backend init errors here; they'll surface later.
+		return nil
+	}
+
+	supplier, ok := b.(backendrun.ConstVariableSupplier)
+	if !ok {
+		return nil
+	}
+
+	workspace, err := m.Workspace()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	vars, fetchDiags := supplier.FetchVariables(context.Background(), workspace)
+	diags = diags.Append(fetchDiags)
+	if fetchDiags.HasErrors() {
+		return diags
+	}
+
+	if m.VariableValues == nil {
+		m.VariableValues = make(map[string]arguments.UnparsedVariableValue)
+	}
+	for k, v := range vars {
+		if _, exists := m.VariableValues[k]; !exists {
+			m.VariableValues[k] = v
+		}
+	}
+
+	return diags
+}
+
 // loadConfig reads a configuration from the given directory, which should
 // contain a root module and have already have any required descendant modules
 // installed.
@@ -48,8 +104,28 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfig(rootDir)
+	rootMod, hclDiags := loader.LoadRootModule(rootDir)
 	diags = diags.Append(hclDiags)
+	if rootMod == nil || diags.HasErrors() {
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+		cfg.Root = cfg // Root module is self-referential.
+		return cfg, diags
+	}
+	vars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		vars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+
 	return config, diags
 }
 
@@ -65,8 +141,28 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfigWithTests(rootDir, testDir)
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(rootDir, testDir)
 	diags = diags.Append(hclDiags)
+	if rootMod == nil || diags.HasErrors() {
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+		cfg.Root = cfg // Root module is self-referential.
+		return cfg, diags
+	}
+	vars, parseDiags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		vars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
+
 	return config, diags
 }
 
@@ -201,7 +297,21 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 		return true, diags
 	}
 
-	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
+	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		variables, diags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
+		ctx, ctxDiags := terraform.NewContext(&terraform.ContextOpts{
+			Parallelism: 1,
+		})
+		diags = diags.Append(ctxDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		return ctx.Init(rootMod, terraform.InitOpts{
+			Walker:       walker,
+			SetVariables: variables,
+		})
+	}
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
 	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)

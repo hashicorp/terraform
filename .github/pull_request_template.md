@@ -31,9 +31,10 @@ label to enable the backport bot.
 
 -->
 
-1.15.x
+1.16.x
 
 <!-- heimdall_github_prtemplate:grc-pci_dss-2024-01-05 -->
+
 ## Rollback Plan
 
 - [ ] If a change needs to be reverted, we will roll out an update to the code within 7 days.
