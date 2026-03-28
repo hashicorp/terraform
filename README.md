@@ -1,5 +1,7 @@
 # Terraform
 
+[![gitcgr](https://gitcgr.com/badge/hashicorp/terraform.svg)](https://gitcgr.com/hashicorp/terraform)
+
 - Website: https://developer.hashicorp.com/terraform
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
 - Documentation: [https://developer.hashicorp.com/terraform/docs](https://developer.hashicorp.com/terraform/docs)
