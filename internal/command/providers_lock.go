@@ -124,6 +124,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 	config, confDiags := c.loadConfigWithTests(".", parsedArgs.TestsDirectory)
 	diags = diags.Append(confDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 
