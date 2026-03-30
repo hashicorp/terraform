@@ -11,6 +11,8 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -278,4 +280,100 @@ func TestProviders_state_withStateStore(t *testing.T) {
 			t.Errorf("output missing %s:\n%s", want, output)
 		}
 	}
+}
+
+func TestProviders_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=child"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		wantOutput := []string{
+			"Providers required by configuration:",
+			"module.child",
+			"provider[registry.terraform.io/hashicorp/test]",
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		output := ui.OutputWriter.String()
+		wantOutput := []string{
+			"Providers required by configuration:",
+			"module.child",
+			"provider[registry.terraform.io/hashicorp/test]",
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
 }
