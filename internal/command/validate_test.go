@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -302,6 +304,137 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	if !strings.Contains(output.Stderr(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
+}
+
+func TestValidate_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+
+		wantError := "Error: No value for required variable"
+		if !strings.Contains(output.Stderr(), wantError) {
+			t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		p := testProvider()
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"network_interface": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"device_index": {Type: cty.String, Optional: true},
+										"description":  {Type: cty.String, Optional: true},
+										"name":         {Type: cty.String, Optional: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-var", "module_name=child",
+		}
+
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		p := testProvider()
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"network_interface": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"device_index": {Type: cty.String, Optional: true},
+										"description":  {Type: cty.String, Optional: true},
+										"name":         {Type: cty.String, Optional: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
 }
 
 func TestValidateWithInvalidOverrides(t *testing.T) {
