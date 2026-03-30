@@ -5,7 +5,6 @@ package command
 
 import (
 	"bytes"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -23,13 +22,8 @@ func TestStatePull(t *testing.T) {
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
 	t.Chdir(td)
 
-	expected, err := ioutil.ReadFile("local-state.tfstate")
-	if err != nil {
-		t.Fatalf("error reading state: %v", err)
-	}
-
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -42,9 +36,28 @@ func TestStatePull(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	actual := ui.OutputWriter.Bytes()
-	if bytes.Equal(actual, expected) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "a",
+      "provider": "provider[\"registry.terraform.io/-/null\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "8521602373864259745",
+            "triggers": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := ui.OutputWriter.String()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
 }
 
@@ -86,7 +99,7 @@ func TestStatePull_stateStore(t *testing.T) {
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
 	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
+	mockProvider.MockStates = map[string]any{
 		"default": stateBytes,
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
@@ -120,9 +133,27 @@ func TestStatePull_stateStore(t *testing.T) {
 	}
 
 	// Test that the state in the output matches the original state
-	actual := ui.OutputWriter.Bytes()
-	if bytes.Equal(actual, stateBytes) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, stateBytes)
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "foo",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "input": "foobar"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := ui.OutputWriter.String()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
 }
 
