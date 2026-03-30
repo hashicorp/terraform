@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
@@ -143,6 +144,7 @@ func TestNewVariableBackend(result map[string]string) backend.Backend {
 }
 
 var _ backendrun.ConstVariableSupplier = (*TestVariableBackend)(nil)
+var _ backendrun.Local = (*TestVariableBackend)(nil)
 
 func (b *TestVariableBackend) FetchVariables(ctx context.Context, workspace string) (map[string]arguments.UnparsedVariableValue, tfdiags.Diagnostics) {
 	result := make(map[string]arguments.UnparsedVariableValue)
@@ -155,6 +157,27 @@ func (b *TestVariableBackend) FetchVariables(ctx context.Context, workspace stri
 	}
 
 	return result, nil
+}
+
+func (b *TestVariableBackend) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+	// Sometimes a command (like graph) requires a local backend. The cloud
+	// backend implements LocalRun and will fetch variables from the backend.
+	// But our mock TestVariableBackend will fail in these tests, because it
+	// embends the backendrun.Local backend and never calls FetchVariables.
+	//
+	// We now set the variables manually here and defer to the regular backend
+	// run implementation, this helps us test the desired behavior.
+	if op.Variables == nil {
+		op.Variables = make(map[string]arguments.UnparsedVariableValue)
+	}
+	fetchedVars, _ := b.FetchVariables(context.Background(), op.Workspace)
+	for k, v := range fetchedVars {
+		if _, ok := op.Variables[k]; !ok {
+			op.Variables[k] = v
+		}
+	}
+
+	return b.Local.LocalRun(op)
 }
 
 type testUnparsedVariableValueString struct {
