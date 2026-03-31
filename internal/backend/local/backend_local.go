@@ -271,12 +271,6 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, nil, diags
 	}
 
-	variables, varDiags := backendrun.ParseVariableValues(op.Variables, rootMod.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, nil, diags
-	}
-
 	// This check is an important complement to the check above: the locked
 	// dependencies in the configuration must match the configuration, and
 	// the locked dependencies in the plan must match the locked dependencies
@@ -355,6 +349,30 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	// because a plan object incorporates the subset of data from PlanOps that
 	// we need to apply the plan.
 	run.Plan = plan
+
+	// All variables that we need to load the configuration should be in the
+	// plan file. We don't need to look at plan.ApplyTimeVariables, because
+	// ephemeral values are not supported for constant variables.
+	variables := terraform.InputValues{}
+	for name, dyVal := range plan.VariableValues {
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid variable value in plan",
+				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
+			))
+			continue
+		}
+		if pvm, ok := plan.VariableMarks[name]; ok {
+			val = val.MarkWithPaths(pvm)
+		}
+
+		variables[name] = &terraform.InputValue{
+			Value:      val,
+			SourceType: terraform.ValueFromPlan,
+		}
+	}
 
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
