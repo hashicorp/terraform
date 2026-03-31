@@ -1123,6 +1123,59 @@ func TestApply_plan_remoteState(t *testing.T) {
 	}
 }
 
+func TestApply_planWithVars(t *testing.T) {
+	// Regression test for apply with a plan file that includes variables,
+	// to ensure that apply doesn't prompt for the variables
+	tDir := testTempDir(t)
+
+	// The value of foo is the same as in the var file
+	planPath := applyFixturePlanFileWithVariableValue(t, "bar")
+	statePath := testTempFile(t)
+
+	t.Chdir(tDir)
+
+	p := applyFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Computed: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state-out", statePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+}
+
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
