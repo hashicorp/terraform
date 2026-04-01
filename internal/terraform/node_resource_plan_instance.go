@@ -50,7 +50,12 @@ type NodePlannableResourceInstance struct {
 
 	// importTarget, if populated, contains the information necessary to plan
 	// an import of this resource.
-	importTarget cty.Value
+	importTarget importTarget
+}
+
+type importTarget struct {
+	target       cty.Value
+	importConfig *configs.Import
 }
 
 var (
@@ -200,7 +205,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget != cty.NilVal && !n.preDestroyRefresh
+	importing := n.importTarget.target != cty.NilVal && !n.preDestroyRefresh
 
 	var deferred *providers.Deferred
 
@@ -208,9 +213,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
 	if importing {
-		if n.importTarget.IsWhollyKnown() {
+		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
-			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget, provider, providerSchema)
+			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, provider, providerSchema)
 			diags = diags.Append(importDiags)
 		} else {
 			// Otherwise, just mark the resource as deferred without trying to
@@ -243,7 +248,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 						Before: cty.NullVal(impliedType),
 						After:  cty.UnknownVal(impliedType),
 						Importing: &plans.Importing{
-							Target: n.importTarget,
+							Target: n.importTarget.target,
 						},
 					},
 				})
@@ -413,10 +418,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// and the import by ID. When importing by identity, we need to
 			// make sure to use the complete identity return by the provider
 			// instead of the (potential) incomplete one from the configuration.
-			if n.importTarget.Type().IsObjectType() {
+			if n.importTarget.target.Type().IsObjectType() {
 				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
 			} else {
-				change.Importing = &plans.Importing{Target: n.importTarget}
+				change.Importing = &plans.Importing{Target: n.importTarget.target}
 			}
 		}
 
@@ -601,7 +606,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importTarget cty.Value, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
@@ -611,6 +616,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	var deferred *providers.Deferred
+	importTarget := n.importTarget.target
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PrePlanImport(hookResourceID, importTarget)
@@ -867,7 +873,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.
-		generatedResource, generatedDiags := n.generateHCLResourceDef(ctx, n.Addr, instanceRefreshState.Value)
+		generatedResource, generatedDiags := n.generateHCLResourceDef(ctx, n.Addr, instanceRefreshState.Value, n.importTarget.importConfig)
 		diags = diags.Append(generatedDiags)
 
 		// This wraps the content of the resource block in an enclosing resource block
@@ -913,10 +919,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 // generateHCLResourceDef generates the HCL definition for the resource
 // instance, including the surrounding block. This is used to generate the
 // configuration for the resource instance when importing or generating
-func (n *NodePlannableResourceInstance) generateHCLResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value) (genconfig.Resource, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) generateHCLResourceDef(ctx EvalContext, addr addrs.AbsResourceInstance, state cty.Value, importCfg *configs.Import) (genconfig.Resource, tfdiags.Diagnostics) {
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	if importCfg != nil && importCfg.ProviderConfigRef != nil {
+		providerAddr.LocalName = importCfg.ProviderConfigRef.Name
+		providerAddr.Alias = importCfg.ProviderConfigRef.Alias
 	}
 
 	var diags tfdiags.Diagnostics

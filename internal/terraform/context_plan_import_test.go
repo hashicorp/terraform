@@ -2388,3 +2388,79 @@ func TestContext2Plan_importIdentityMissingResponse(t *testing.T) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Plan_importResourceConfigGenWithProviderLocalName(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    random = {
+      source  = "hashicorp/test"
+    }
+  }
+}
+
+import {
+  provider = random
+  to       = test_object.a
+  id       = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+		// it's the same config as the test above, so we'll skip checking anything except the provider local name
+		want := `resource "test_object" "a" {
+  provider    = random
+  test_bool   = null
+  test_list   = null
+  test_map    = null
+  test_number = null
+  test_string = "foo"
+}`
+		got := instPlan.GeneratedConfig
+		if diff := cmp.Diff(want, got); len(diff) > 0 {
+			t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+		}
+	})
+}

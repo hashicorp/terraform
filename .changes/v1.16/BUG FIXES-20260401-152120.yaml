@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: import blocks no longer ignore provider local names
+time: 2026-04-01T15:21:20.292002-04:00
+custom:
+    Issue: "38338"

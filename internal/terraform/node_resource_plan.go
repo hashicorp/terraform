@@ -591,7 +591,10 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		}
 
 		if importID, ok := knownImports.GetOk(a.Addr); ok {
-			m.importTarget = importID
+			m.importTarget = importTarget{
+				target:       importID,
+				importConfig: n.importTargets[0].Config,
+			}
 		} else {
 			// We're going to check now if this resource instance *might* be
 			// targeted by one of the unknown imports. If it is, we'll set the
@@ -610,7 +613,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 						continue
 					}
 
-					m.importTarget = cty.UnknownVal(cty.String)
+					m.importTarget = importTarget{target: cty.UnknownVal(cty.String)}
 				}
 			}
 		}
