@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -27,6 +29,9 @@ type Show interface {
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	// Only implemented in ShowJSON
+	DisplayResourceInstanceState(rs *states.Resource, rAddr addrs.AbsResourceInstance, schemas *terraform.Schemas) int
 }
 
 func NewShow(vt arguments.ViewType, view *View) Show {
@@ -45,6 +50,11 @@ type ShowHuman struct {
 }
 
 var _ Show = (*ShowHuman)(nil)
+
+func (v *ShowHuman) DisplayResourceInstanceState(*states.Resource, addrs.AbsResourceInstance, *terraform.Schemas) int {
+	// not yet implemented
+	return 1
+}
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	renderer := jsonformat.Renderer{
@@ -166,4 +176,21 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 // primarily for backwards compatibility.
 func (v *ShowJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *ShowJSON) DisplayResourceInstanceState(rs *states.Resource, rAddr addrs.AbsResourceInstance, schemas *terraform.Schemas) int {
+	// marshal resource into json
+	jsonRI, err := jsonstate.MarshalResourceInstance(rs, rAddr, schemas)
+	if err != nil {
+		v.view.streams.Eprintf("Failed to marshal resource instance state to json: %s", err)
+		return 1
+	}
+	// I don't know how other views are getting indented
+	var prettyJSON bytes.Buffer
+	if err = json.Indent(&prettyJSON, jsonRI, "", "  "); err != nil {
+		v.view.streams.Eprintf("JSON parse error: %s", err)
+		return 1
+	}
+	v.view.streams.Println(prettyJSON.String())
+	return 0
 }

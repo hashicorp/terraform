@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestStateShow(t *testing.T) {
@@ -54,9 +55,11 @@ func TestStateShow(t *testing.T) {
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
+	view, _ := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
 			Streams:          streams,
 		},
 	}
@@ -117,10 +120,12 @@ func TestStateShow_errorMarshallingState(t *testing.T) {
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
+	view, doneView := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Streams:          streams,
+			View:             view,
 		},
 	}
 
@@ -136,7 +141,8 @@ func TestStateShow_errorMarshallingState(t *testing.T) {
 
 	// Test that error outputs were displayed
 	expected := "unsupported attribute \"non_existent_attr\""
-	actual := output.Stderr()
+	actual := doneView(t).Stderr()
+
 	if !strings.Contains(actual, expected) {
 		t.Fatalf("Expected stderr output to include:\n%q\n\n Instead got:\n%q", expected, actual)
 	}
@@ -194,10 +200,12 @@ func TestStateShow_multi(t *testing.T) {
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
+	view, _ := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Streams:          streams,
+			View:             view,
 		},
 	}
 
@@ -224,11 +232,13 @@ func TestStateShow_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	streams, done := terminal.StreamsForTesting(t)
+	streams, _ := terminal.StreamsForTesting(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Streams:          streams,
+			View:             view,
 		},
 	}
 
@@ -249,11 +259,13 @@ func TestStateShow_emptyState(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	streams, done := terminal.StreamsForTesting(t)
+	streams, _ := terminal.StreamsForTesting(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Streams:          streams,
+			View:             view,
 		},
 	}
 
@@ -306,6 +318,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 	}
 
 	streams, done := terminal.StreamsForTesting(t)
+	view, _ := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
@@ -314,6 +327,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 				},
 			},
 			Streams: streams,
+			View:    view,
 		},
 	}
 
@@ -379,6 +393,7 @@ func TestStateShow_stateStore(t *testing.T) {
 
 	ui := cli.NewMockUi()
 	streams, done := terminal.StreamsForTesting(t)
+	view, _ := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -389,6 +404,7 @@ func TestStateShow_stateStore(t *testing.T) {
 			},
 			Ui:      ui,
 			Streams: streams,
+			View:    view,
 		},
 	}
 
@@ -417,3 +433,80 @@ resource "test_instance" "foo" {
     id  = "bar"
 }
 `
+
+func TestStateShow_json(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"bar": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-json",
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateShowJsonOutput) + "\n"
+	actual := output.Stdout()
+	if actual != expected {
+		t.Fatalf("Got:\n%q\n\nWanted:\n%q", actual, expected)
+	}
+}
+
+const testStateShowJsonOutput = `{
+  "address": "test_instance.foo",
+  "mode": "managed",
+  "type": "test_instance",
+  "name": "foo",
+  "provider_name": "registry.terraform.io/hashicorp/test",
+  "schema_version": 0,
+  "values": {
+    "bar": "value",
+    "foo": "value",
+    "id": "bar"
+  },
+  "sensitive_values": {}
+}`

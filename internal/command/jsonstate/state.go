@@ -276,7 +276,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, err
 	var err error
 
 	ret.Address = ""
-	rs, err := marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
+	rs, err := marshalResources(s.RootModule().Resources, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -330,7 +330,7 @@ func marshalModules(
 		// the module may be resourceless and contain only submodules, it will then be nil here
 		stateMod := s.Module(child)
 		if stateMod != nil {
-			rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
+			rs, err := marshalResources(stateMod.Resources, schemas)
 			if err != nil {
 				return nil, err
 			}
@@ -356,7 +356,7 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
+func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]Resource, error) {
 	var ret []Resource
 
 	var sortedResources []*states.Resource
@@ -368,7 +368,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	})
 
 	for _, r := range sortedResources {
-
 		var sortedKeys []addrs.InstanceKey
 		for k := range r.Instances {
 			sortedKeys = append(sortedKeys, k)
@@ -534,6 +533,102 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	}
 
 	return ret, nil
+}
+
+// MarshalResourceInstance is a modified version of MarshalResourceInstances that only marshalls a single, current (not deposed) instance. This is used by state show command for json output.
+func MarshalResourceInstance(r *states.Resource, resAddr addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]byte, error) {
+	ri := r.Instance(resAddr.Resource.Key)
+	var ret Resource
+
+	current := Resource{
+		Address:      resAddr.String(),
+		Type:         resAddr.Resource.Resource.Type,
+		Name:         resAddr.Resource.Resource.Name,
+		ProviderName: r.ProviderConfig.Provider.String(),
+	}
+
+	switch resAddr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		current.Mode = ManagedResourceMode
+	case addrs.DataResourceMode:
+		current.Mode = DataResourceMode
+	default:
+		return []byte{}, fmt.Errorf("resource %s has an unsupported mode %s",
+			resAddr.String(),
+			resAddr.Resource.Resource.Mode.String(),
+		)
+	}
+
+	schema := schemas.ResourceTypeConfig(
+		r.ProviderConfig.Provider,
+		resAddr.Resource.Resource.Mode,
+		resAddr.Resource.Resource.Type,
+	)
+
+	// It is possible that the only instance is deposed
+	if ri.Current != nil {
+		if schema.Version != int64(ri.Current.SchemaVersion) {
+			return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, schema.Version)
+		}
+
+		current.SchemaVersion = ri.Current.SchemaVersion
+
+		if schema.Body == nil {
+			return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
+		}
+
+		// Check if we have an identity in the state
+		if ri.Current.IdentityJSON != nil {
+			if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
+				return nil, fmt.Errorf("resource identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+			}
+
+			if schema.Identity == nil {
+				return nil, fmt.Errorf("no resource identity schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
+			}
+
+			current.IdentitySchemaVersion = &ri.Current.IdentitySchemaVersion
+		}
+
+		riObj, err := ri.Current.Decode(schema)
+		if err != nil {
+			return nil, err
+		}
+
+		var value cty.Value
+		var sensitivePaths []cty.Path
+		value, current.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+		if err != nil {
+			return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
+		}
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
+		s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
+		v, err := ctyjson.Marshal(s, s.Type())
+		if err != nil {
+			return nil, err
+		}
+		current.SensitiveValues = v
+
+		current.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+		if err != nil {
+			return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+		}
+
+		if len(riObj.Dependencies) > 0 {
+			dependencies := make([]string, len(riObj.Dependencies))
+			for i, v := range riObj.Dependencies {
+				dependencies[i] = v.String()
+			}
+			current.DependsOn = dependencies
+		}
+
+		if riObj.Status == states.ObjectTainted {
+			current.Tainted = true
+		}
+		ret = current
+	}
+
+	return json.Marshal(ret)
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
