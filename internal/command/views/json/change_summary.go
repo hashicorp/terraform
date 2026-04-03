@@ -23,6 +23,7 @@ type ChangeSummary struct {
 	Remove           int       `json:"remove"`
 	ActionInvocation int       `json:"action_invocation"`
 	Operation        Operation `json:"operation"`
+	Errored          bool      `json:"errored,omitempty"`
 }
 
 // The summary strings for apply and plan are accidentally a public interface
@@ -32,7 +33,11 @@ func (cs *ChangeSummary) String() string {
 	var buf strings.Builder
 	switch cs.Operation {
 	case OperationApplied:
-		buf.WriteString("Apply complete! Resources: ")
+		if cs.Errored {
+			buf.WriteString("Apply incomplete with errors! Resources: ")
+		} else {
+			buf.WriteString("Apply complete! Resources: ")
+		}
 		if cs.Import > 0 {
 			buf.WriteString(fmt.Sprintf("%d imported, ", cs.Import))
 		}

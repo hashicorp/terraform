@@ -16,7 +16,7 @@ import (
 
 // The Apply view is used for the apply command.
 type Apply interface {
-	ResourceCount(stateOutPath string)
+	ResourceCount(stateOutPath string, errored bool)
 	Outputs(outputValues map[string]*states.OutputValue)
 
 	Operation() Operation
@@ -60,25 +60,33 @@ type ApplyHuman struct {
 
 var _ Apply = (*ApplyHuman)(nil)
 
-func (v *ApplyHuman) ResourceCount(stateOutPath string) {
+func (v *ApplyHuman) ResourceCount(stateOutPath string, errored bool) {
 	var summary string
+	summaryColor := "[reset][bold][green]"
+	completionString := "complete"
+	if errored {
+		summaryColor = "[reset][bold][red]"
+		completionString = "incomplete with errors"
+	}
 	if v.destroy {
-		summary = fmt.Sprintf("Destroy complete! Resources: %d destroyed.", v.countHook.Removed)
+		summary = fmt.Sprintf("Destroy %s! Resources: %d destroyed.", completionString, v.countHook.Removed)
 	} else if v.countHook.Imported > 0 {
-		summary = fmt.Sprintf("Apply complete! Resources: %d imported, %d added, %d changed, %d destroyed.",
+		summary = fmt.Sprintf("Apply %s! Resources: %d imported, %d added, %d changed, %d destroyed.",
+			completionString,
 			v.countHook.Imported,
 			v.countHook.Added,
 			v.countHook.Changed,
 			v.countHook.Removed)
 	} else {
-		summary = fmt.Sprintf("Apply complete! Resources: %d added, %d changed, %d destroyed.",
+		summary = fmt.Sprintf("Apply %s! Resources: %d added, %d changed, %d destroyed.",
+			completionString,
 			v.countHook.Added,
 			v.countHook.Changed,
 			v.countHook.Removed)
 	}
-	v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\n" + summary))
+	v.view.streams.Print(v.view.colorize.Color(summaryColor + "\n" + summary))
 	if v.countHook.ActionInvocation > 0 {
-		v.view.streams.Print(v.view.colorize.Color(fmt.Sprintf("[reset][bold][green] Actions: %d invoked.", v.countHook.ActionInvocation)))
+		v.view.streams.Print(v.view.colorize.Color(fmt.Sprintf("%s Actions: %d invoked.", summaryColor, v.countHook.ActionInvocation)))
 	}
 	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
@@ -131,7 +139,7 @@ type ApplyJSON struct {
 
 var _ Apply = (*ApplyJSON)(nil)
 
-func (v *ApplyJSON) ResourceCount(stateOutPath string) {
+func (v *ApplyJSON) ResourceCount(stateOutPath string, errored bool) {
 	operation := json.OperationApplied
 	if v.destroy {
 		operation = json.OperationDestroyed
@@ -143,6 +151,7 @@ func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 		Import:           v.countHook.Imported,
 		ActionInvocation: v.countHook.ActionInvocation,
 		Operation:        operation,
+		Errored:          errored,
 	})
 }
 

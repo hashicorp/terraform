@@ -153,7 +153,7 @@ func TestApply_resourceCount(t *testing.T) {
 					count.Imported = 1
 				}
 
-				v.ResourceCount("")
+				v.ResourceCount("", false)
 
 				got := done(t).Stdout()
 				if !strings.Contains(got, tc.want) {
@@ -222,7 +222,7 @@ func TestApplyHuman_resourceCountStatePath(t *testing.T) {
 			count.Changed = tc.changed
 			count.Removed = tc.removed
 
-			v.ResourceCount(tc.statePath)
+			v.ResourceCount(tc.statePath, false)
 
 			got := done(t).Stdout()
 			want := "State path: " + tc.statePath
@@ -267,4 +267,62 @@ func TestApplyJSON_outputs(t *testing.T) {
 		},
 	}
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestApplyHuman_resourceCountErrored(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	view.Configure(&arguments.View{NoColor: false})
+	v := NewApply(arguments.ViewHuman, false, view)
+	hooks := v.Hooks()
+
+	var count *countHook
+	for _, hook := range hooks {
+		if ch, ok := hook.(*countHook); ok {
+			count = ch
+		}
+	}
+	if count == nil {
+		t.Fatalf("expected Hooks to include a countHook: %#v", hooks)
+	}
+
+	count.Added = 1
+	count.Changed = 2
+	count.Removed = 3
+
+	v.ResourceCount("", true)
+
+	got := done(t).Stdout()
+	want := "\x1b[0m\x1b[1m\x1b[31m\nApply incomplete with errors! Resources: 1 added, 2 changed, 3 destroyed."
+	if !strings.Contains(got, want) {
+		t.Fatalf("wrong result\ngot:  %#q\nwant to contain: %#q", got, want)
+	}
+}
+
+func TestApplyJSON_resourceCountErrored(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewApply(arguments.ViewJSON, false, NewView(streams))
+	hooks := v.Hooks()
+
+	var count *countHook
+	for _, hook := range hooks {
+		if ch, ok := hook.(*countHook); ok {
+			count = ch
+		}
+	}
+	if count == nil {
+		t.Fatalf("expected Hooks to include a countHook: %#v", hooks)
+	}
+
+	count.Added = 1
+
+	v.ResourceCount("", true)
+
+	got := done(t).Stdout()
+	if !strings.Contains(got, `"@message":"Apply incomplete with errors! Resources: 1 added, 0 changed, 0 destroyed."`) {
+		t.Fatalf("wrong result\ngot:  %q", got)
+	}
+	if !strings.Contains(got, `"errored":true`) {
+		t.Fatalf("expected errored field in json output\ngot:  %q", got)
+	}
 }

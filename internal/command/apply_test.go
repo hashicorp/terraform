@@ -528,6 +528,78 @@ func TestApply_error(t *testing.T) {
 	}
 }
 
+func TestApply_jsonErrorIncludesChangeSummary(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-error"), td)
+	t.Chdir(td)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	var lock sync.Mutex
+	errored := false
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		lock.Lock()
+		defer lock.Unlock()
+
+		if !errored {
+			errored = true
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error"))
+		}
+
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("foo")
+
+		resp.NewState = cty.ObjectVal(s)
+		return
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		s := req.ProposedNewState.AsValueMap()
+		s["id"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(s)
+		return
+	}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Optional: true, Computed: true},
+						"ami":   {Type: cty.String, Optional: true},
+						"error": {Type: cty.Bool, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	args := []string{
+		"-json",
+		"-state", statePath,
+		"-auto-approve",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("wrong exit code %d; want 1\n%s", code, output.Stdout())
+	}
+
+	if got, want := output.Stdout(), `"type":"change_summary"`; !strings.Contains(got, want) {
+		t.Fatalf("missing change summary in JSON output:\n%s", got)
+	}
+	if got, want := output.Stdout(), `"@message":"Apply incomplete with errors! Resources: 1 added, 0 changed, 0 destroyed."`; !strings.Contains(got, want) {
+		t.Fatalf("missing partial apply summary in JSON output:\n%s", got)
+	}
+}
+
 func TestApply_input(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()

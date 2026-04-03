@@ -126,17 +126,17 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if op.Result != backendrun.OperationSuccess {
-		return op.Result.ExitStatus()
-	}
-
 	// Render the resource count and outputs, unless those counts are being
 	// rendered already in a remote Terraform process.
 	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
-		view.ResourceCount(args.State.StateOutPath)
-		if !c.Destroy && op.State != nil {
+		view.ResourceCount(args.State.StateOutPath, op.Result != backendrun.OperationSuccess)
+		if op.Result == backendrun.OperationSuccess && !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootOutputValues)
 		}
+	}
+
+	if op.Result != backendrun.OperationSuccess {
+		return op.Result.ExitStatus()
 	}
 
 	view.Diagnostics(diags)
