@@ -225,7 +225,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		"it's valid to record no version data when a builtin provider is used for state store": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:               "foobar_baz",
+					Type: "foobar_baz",
+					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, string(tfaddr.BuiltInProviderHost), string(tfaddr.BuiltInProviderNamespace), "foobar", `{"foo": "bar"}`),
 					ProviderSupplyMode: supplymode.ProviderSupplyModeBuiltIn,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
@@ -255,7 +256,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		"it's valid to record no version data when a re-attached provider is used for state store": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:               "foobar_baz",
+					Type: "foobar_baz",
+					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
 					ProviderSupplyMode: supplymode.ProviderSupplyModeReattached,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
@@ -285,7 +287,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		"it's valid to record no version data when a developer override provider is used for state store": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:               "foobar_baz",
+					Type: "foobar_baz",
+					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
 					ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
@@ -322,7 +325,8 @@ func TestEncodeBackendStateFile(t *testing.T) {
 		"error when the provider is managed by Terraform and the provider version is missing": {
 			Input: &BackendStateFile{
 				StateStore: &StateStoreConfigState{
-					Type:               "foobar_baz",
+					Type: "foobar_baz",
+					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "my-org", "foobar", ""),
 					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
