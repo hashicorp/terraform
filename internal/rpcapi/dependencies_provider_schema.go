@@ -62,6 +62,9 @@ func loadProviderSchema(providerAddr addrs.Provider, version getproviders.Versio
 	}
 
 	resp := provider.GetProviderSchema()
+	if err := provider.Close(); err != nil {
+		return providers.GetProviderSchemaResponse{}, fmt.Errorf("failed to close provider plugin: %w", err)
+	}
 	return resp, nil
 }
 
