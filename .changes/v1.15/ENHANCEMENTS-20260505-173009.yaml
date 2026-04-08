@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'stacks: add ouput values to plan component instance change description'
+time: 2026-05-05T17:30:09.330646+02:00
+custom:
+    Issue: "38360"
