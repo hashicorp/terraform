@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -53,6 +54,7 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 			},
 		},
 		ProviderSource: providerSource,
+		WorkingDir:     workdir.NewDir("."),
 	}
 
 	//// Init
@@ -219,6 +221,7 @@ func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 			},
 		},
 		ProviderSource: providerSource,
+		WorkingDir:     workdir.NewDir("."),
 	}
 
 	// What happens if no workspaces are returned from a pluggable state storage implementation?
@@ -275,7 +278,11 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	args := []string{"test"}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	newCmd.Meta = Meta{Ui: ui, View: view}
+	newCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -288,7 +295,11 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	selCmd := &WorkspaceSelectCommand{}
 	args = []string{backend.DefaultStateName}
 	ui = new(cli.MockUi)
-	selCmd.Meta = Meta{Ui: ui, View: view}
+	selCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := selCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -315,7 +326,11 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 	args := []string{""}
 	ui := cli.NewMockUi()
 	view, _ := testView(t)
-	newCmd.Meta = Meta{Ui: ui, View: view}
+	newCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := newCmd.Run(args); code != 1 {
 		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
@@ -328,8 +343,9 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 	ui = cli.NewMockUi()
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: Meta{
-			Ui:   ui,
-			View: view,
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
 		},
 	}
 	if code := selectCmd.Run(args); code != 1 {
@@ -367,7 +383,11 @@ func TestWorkspace_createAndList(t *testing.T) {
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
 		newCmd := &WorkspaceNewCommand{
-			Meta: Meta{Ui: ui, View: view},
+			Meta: Meta{
+				Ui:         ui,
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
+			},
 		}
 		if code := newCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -377,8 +397,11 @@ func TestWorkspace_createAndList(t *testing.T) {
 	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	listCmd.Meta = Meta{Ui: ui, View: view}
-
+	listCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -412,7 +435,11 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	showCmd := &WorkspaceShowCommand{}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	showCmd.Meta = Meta{Ui: ui, View: view}
+	showCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 
 	if code := showCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -431,14 +458,23 @@ func TestWorkspace_createAndShow(t *testing.T) {
 
 	// create test_a workspace
 	ui = new(cli.MockUi)
-	newCmd.Meta = Meta{Ui: ui, View: view}
+	newCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
+
 	if code := newCmd.Run(env); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
 	selCmd := &WorkspaceSelectCommand{}
 	ui = new(cli.MockUi)
-	selCmd.Meta = Meta{Ui: ui, View: view}
+	selCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := selCmd.Run(env); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -473,7 +509,11 @@ func TestWorkspace_createInvalid(t *testing.T) {
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
 		newCmd := &WorkspaceNewCommand{
-			Meta: Meta{Ui: ui, View: view},
+			Meta: Meta{
+				Ui:         ui,
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
+			},
 		}
 		if code := newCmd.Run([]string{env}); code == 0 {
 			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
@@ -484,7 +524,11 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	listCmd.Meta = Meta{Ui: ui, View: view}
+	listCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 
 	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -508,7 +552,11 @@ func TestWorkspace_createWithState(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	initCmd := &InitCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -542,7 +590,11 @@ func TestWorkspace_createWithState(t *testing.T) {
 	args := []string{"-state", "test.tfstate", workspace}
 	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -589,7 +641,11 @@ func TestWorkspace_delete(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 
 	current, _ := delCmd.Workspace()
@@ -640,7 +696,11 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 
 	// delete the workspace
@@ -672,7 +732,11 @@ func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
 	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 
 	// delete the workspace
@@ -733,7 +797,11 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 	args := []string{"test"}
 	if code := delCmd.Run(args); code == 0 {
@@ -791,7 +859,11 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	args := []string{"test"}
 	ui := cli.NewMockUi()
 	view, _ := testView(t)
-	selectCmd.Meta = Meta{Ui: ui, View: view}
+	selectCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := selectCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -799,7 +871,11 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// Assert there is a default and "test" workspace, and "test" is selected
 	listCmd := &WorkspaceListCommand{}
 	ui = cli.NewMockUi()
-	listCmd.Meta = Meta{Ui: ui, View: view}
+	listCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 
 	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -815,7 +891,11 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// Attempt to delete the default workspace (not forced)
 	ui = cli.NewMockUi()
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 	args = []string{"default"}
 	if code := delCmd.Run(args); code != 1 {
@@ -833,7 +913,11 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// Attempt to force delete the default workspace
 	ui = cli.NewMockUi()
 	delCmd = &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 	}
 	args = []string{"-force", "default"}
 	if code := delCmd.Run(args); code != 1 {
@@ -863,7 +947,11 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 	args := []string{"-or-create", "test"}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	selectCmd.Meta = Meta{Ui: ui, View: view}
+	selectCmd.Meta = Meta{
+		Ui:         ui,
+		View:       view,
+		WorkingDir: workdir.NewDir("."),
+	}
 	if code := selectCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -903,7 +991,11 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	newCmd = &WorkspaceNewCommand{
-		Meta:       Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 		LegacyName: true,
 	}
 	newWorkspace := "foobar"
@@ -922,7 +1014,11 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	ui = new(cli.MockUi)
 	view, _ = testView(t)
 	selectCmd := &WorkspaceSelectCommand{
-		Meta:       Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 		LegacyName: true,
 	}
 	defaultWorkspace := "default"
@@ -941,7 +1037,11 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	ui = new(cli.MockUi)
 	view, _ = testView(t)
 	listCmd := &WorkspaceListCommand{
-		Meta:       Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 		LegacyName: true,
 	}
 	args = []string{}
@@ -959,7 +1059,11 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	ui = new(cli.MockUi)
 	view, _ = testView(t)
 	deleteCmd := &WorkspaceDeleteCommand{
-		Meta:       Meta{Ui: ui, View: view},
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
 		LegacyName: true,
 	}
 	args = []string{newWorkspace}
@@ -1004,5 +1108,86 @@ func TestValidWorkspaceName(t *testing.T) {
 				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
 			}
 		})
+	}
+}
+
+// Test how all workspace subcommands handle unexpected arguments.
+func TestWorkspace_extraArgError(t *testing.T) {
+	newMeta := func() (Meta, *cli.MockUi) {
+		ui := new(cli.MockUi)
+		return Meta{
+			Ui:         ui,
+			WorkingDir: workdir.NewDir("."),
+		}, ui
+	}
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// New
+	meta, ui := newMeta()
+	newCmd := &WorkspaceNewCommand{
+		Meta: meta,
+	}
+	args := []string{"foobar", "extra-arg"} // The new subcommand only accepts a single argument, so this should error
+	if code := newCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError := "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// List
+	meta, ui = newMeta()
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{"extra-arg"} // The list subcommand does not accept any arguments, so this should error
+	if code := listCmd.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Too many command line arguments. Did you mean to use -chdir?\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// Show
+	meta, ui = newMeta()
+	showCmd := &WorkspaceShowCommand{
+		Meta: meta,
+	}
+	args = []string{"extra-arg"} // The show subcommand does not accept any arguments, and doesn't have any logic detecting unexpected args.
+	if code := showCmd.Run(args); code != 0 {
+		t.Fatalf("expected command to succeed, got: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	// Select
+	meta, ui = newMeta()
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	args = []string{"default", "extra-arg"} // The select subcommand only accepts a single argument, so this should error
+	if code := selectCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// Delete
+	meta, ui = newMeta()
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"default", "extra-arg"} // The delete subcommand only accepts a single argument, so this should error
+	if code := deleteCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}
 }

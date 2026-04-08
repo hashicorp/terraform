@@ -51,16 +51,11 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	configPath, err := ModulePath(args[1:])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	view := arguments.ViewHuman
+	configPath := c.WorkingDir.RootModuleDir()
 	b, backendDiags := c.backend(configPath, view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
