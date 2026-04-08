@@ -23,8 +23,13 @@ type WorkspaceListCommand struct {
 func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
+	// c.Meta.process removes global flags (-no-color, -compact-warnings) and uses them to configure the Ui and View.
+	//
+	// Other command implementations remove those arguments via arguments.ParseView, instead. That is only possible if views
+	// are used for both human and machine output. This command still uses cli.Ui for human output, so c.Meta.process is necessary.
 	rawArgs = c.Meta.process(rawArgs)
 
+	// Parse command-specific arguments.
 	args, diags := arguments.ParseWorkspace(rawArgs)
 
 	// Prepare the view
@@ -32,11 +37,11 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	// Note - here the view uses:
 	// - cli.Ui for human output
 	// - view.View for machine-readable output
+	//
+	// Note: We don't call c.View.Configure here after obtaining the view because it's already called in c.Meta.process.
+	// TODO: When we migrate human output to use views fully instead of cli.Ui we would replace using c.Meta.process with arguments.ParseView.
+	// arguments.ParseView returns a 'common' View that can be used as an argument in the c.View.Configure method.
 	view := newWorkspaceList(args.ViewType, c.View, c.Ui, &c.Meta)
-	c.View.Configure(&arguments.View{
-		NoColor:         !c.Meta.Color,
-		CompactWarnings: c.Meta.compactWarnings,
-	})
 
 	// Warn against using `terraform env` commands
 	envCommandShowWarning(c.Ui, c.LegacyName)
