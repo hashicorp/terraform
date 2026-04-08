@@ -41,14 +41,8 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	// Warn against using `terraform env` commands
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	configPath, err := ModulePath(rawArgs)
-	if err != nil {
-		diags.Append(err)
-		view.List("", nil, diags)
-		return 1
-	}
-
 	// Load the backend
+	configPath := c.WorkingDir.RootModuleDir()
 	b, diags := c.backend(configPath, args.ViewType)
 	if diags.HasErrors() {
 		view.List("", nil, diags)
