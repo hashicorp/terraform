@@ -1006,3 +1006,83 @@ func TestValidWorkspaceName(t *testing.T) {
 		})
 	}
 }
+
+// Test how all workspace subcommands handle unexpected arguments.
+func TestWorkspace_extraArgError(t *testing.T) {
+	newMeta := func() (Meta, *cli.MockUi) {
+		ui := new(cli.MockUi)
+		return Meta{
+			Ui: ui,
+		}, ui
+	}
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// New
+	meta, ui := newMeta()
+	newCmd := &WorkspaceNewCommand{
+		Meta: meta,
+	}
+	args := []string{"foobar", "extra-arg"} // The new subcommand only accepts a single argument, so this should error
+	if code := newCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError := "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// List
+	meta, ui = newMeta()
+	listCmd := &WorkspaceListCommand{
+		Meta: meta,
+	}
+	args = []string{"extra-arg"} // The list subcommand does not accept any arguments, so this should error
+	if code := listCmd.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Too many command line arguments. Did you mean to use -chdir?\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// Show
+	meta, ui = newMeta()
+	showCmd := &WorkspaceShowCommand{
+		Meta: meta,
+	}
+	args = []string{"extra-arg"} // The show subcommand does not accept any arguments, and doesn't have any logic detecting unexpected args.
+	if code := showCmd.Run(args); code != 0 {
+		t.Fatalf("expected command to succeed, got: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	// Select
+	meta, ui = newMeta()
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	args = []string{"default", "extra-arg"} // The select subcommand only accepts a single argument, so this should error
+	if code := selectCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+
+	// Delete
+	meta, ui = newMeta()
+	deleteCmd := &WorkspaceDeleteCommand{
+		Meta: meta,
+	}
+	args = []string{"default", "extra-arg"} // The delete subcommand only accepts a single argument, so this should error
+	if code := deleteCmd.Run(args); code != cli.RunResultHelp {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+	expectedError = "Expected a single argument: NAME.\n\n"
+	if ui.ErrorWriter.String() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	}
+}
