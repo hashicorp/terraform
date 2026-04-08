@@ -36,12 +36,6 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	configPath, err := ModulePath(args[1:])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	current, isOverridden := c.WorkspaceOverridden()
 	if isOverridden {
 		c.Ui.Error(envIsOverriddenSelectError)
@@ -50,14 +44,10 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 	// Load the backend
 	view := arguments.ViewHuman
+	configPath := c.WorkingDir.RootModuleDir()
 	b, diags := c.backend(configPath, view)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
-		return 1
-	}
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
@@ -106,7 +96,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		}
 	}
 
-	err = c.SetWorkspace(name)
+	err := c.SetWorkspace(name)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

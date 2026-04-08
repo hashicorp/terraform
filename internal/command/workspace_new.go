@@ -63,16 +63,11 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(args[1:])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	var diags tfdiags.Diagnostics
 
 	// Load the backend
 	view := arguments.ViewHuman
+	configPath := c.WorkingDir.RootModuleDir()
 	b, diags := c.backend(configPath, view)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
