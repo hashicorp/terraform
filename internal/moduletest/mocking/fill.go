@@ -24,13 +24,12 @@ func FillAttribute(in cty.Value, attribute *configschema.Attribute) (cty.Value, 
 func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
 	if attribute.NestedType != nil {
 
-		// Then the in value must be an object.
-		if !in.Type().IsObjectType() {
-			return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
-		}
-
 		switch attribute.NestedType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
+			if !in.Type().IsObjectType() {
+				return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
+			}
+
 			var names []string
 			for name := range attribute.NestedType.Attributes {
 				names = append(names, name)
@@ -57,18 +56,127 @@ func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Pat
 				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
 			}
 			return cty.ObjectVal(children), nil
-		case configschema.NestingSet:
-			return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
 		case configschema.NestingList:
-			return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
+			elemType := attribute.ImpliedType().ElementType()
+			switch {
+			case in.Type().IsListType(), in.Type().IsTupleType(), in.Type().IsSetType():
+				var values []cty.Value
+				for iterator := in.ElementIterator(); iterator.Next(); {
+					_, value := iterator.Element()
+					child, err := fillNestedObject(value, attribute.NestedType.Attributes, path)
+					if err != nil {
+						return cty.NilVal, err
+					}
+					values = append(values, child)
+				}
+				if len(values) == 0 {
+					return cty.ListValEmpty(elemType), nil
+				}
+				return cty.ListVal(values), nil
+			case in.Type().IsObjectType():
+				// Object input for a list attribute is treated as a
+				// template — there are no existing elements to apply
+				// it to, so return an empty list.
+				return cty.ListValEmpty(elemType), nil
+			default:
+				return cty.NilVal, path.NewErrorf("incompatible types; expected list type, found %s", in.Type().FriendlyName())
+			}
+		case configschema.NestingSet:
+			elemType := attribute.ImpliedType().ElementType()
+			switch {
+			case in.Type().IsListType(), in.Type().IsTupleType(), in.Type().IsSetType():
+				var values []cty.Value
+				for iterator := in.ElementIterator(); iterator.Next(); {
+					_, value := iterator.Element()
+					child, err := fillNestedObject(value, attribute.NestedType.Attributes, path)
+					if err != nil {
+						return cty.NilVal, err
+					}
+					values = append(values, child)
+				}
+				if len(values) == 0 {
+					return cty.SetValEmpty(elemType), nil
+				}
+				return cty.SetVal(values), nil
+			case in.Type().IsObjectType():
+				return cty.SetValEmpty(elemType), nil
+			default:
+				return cty.NilVal, path.NewErrorf("incompatible types; expected set type, found %s", in.Type().FriendlyName())
+			}
 		case configschema.NestingMap:
-			return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+			elemType := attribute.ImpliedType().ElementType()
+			switch {
+			case in.Type().IsMapType():
+				values := make(map[string]cty.Value)
+				for iterator := in.ElementIterator(); iterator.Next(); {
+					key, value := iterator.Element()
+					child, err := fillNestedObject(value, attribute.NestedType.Attributes, path)
+					if err != nil {
+						return cty.NilVal, err
+					}
+					values[key.AsString()] = child
+				}
+				if len(values) == 0 {
+					return cty.MapValEmpty(elemType), nil
+				}
+				return cty.MapVal(values), nil
+			case in.Type().IsObjectType():
+				// Object input is treated as a template — return empty map.
+				return cty.MapValEmpty(elemType), nil
+			default:
+				return cty.NilVal, path.NewErrorf("incompatible types; expected map type, found %s", in.Type().FriendlyName())
+			}
 		default:
 			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
 		}
 	}
 
 	return fillType(in, attribute.Type, path)
+}
+
+// fillNestedObject takes a single element value (expected to be an object or
+// map) and fills it against the nested attribute schema, generating values for
+// any attributes not present in the input.
+func fillNestedObject(in cty.Value, attrs map[string]*configschema.Attribute, path cty.Path) (cty.Value, error) {
+	if !in.Type().IsObjectType() && !in.Type().IsMapType() {
+		return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
+	}
+
+	var names []string
+	for name := range attrs {
+		names = append(names, name)
+	}
+	if len(names) == 0 {
+		return cty.EmptyObjectVal, nil
+	}
+	sort.Strings(names)
+
+	children := make(map[string]cty.Value)
+	for _, name := range names {
+		hasAttr := false
+		if in.Type().IsObjectType() {
+			hasAttr = in.Type().HasAttribute(name)
+		} else if in.Type().IsMapType() {
+			hasAttr = in.HasIndex(cty.StringVal(name)).True()
+		}
+
+		if hasAttr {
+			var elem cty.Value
+			if in.Type().IsObjectType() {
+				elem = in.GetAttr(name)
+			} else {
+				elem = in.Index(cty.StringVal(name))
+			}
+			child, err := fillAttribute(elem, attrs[name], path.GetAttr(name))
+			if err != nil {
+				return cty.NilVal, err
+			}
+			children[name] = child
+			continue
+		}
+		children[name] = GenerateValueForAttribute(attrs[name])
+	}
+	return cty.ObjectVal(children), nil
 }
 
 // FillType makes the input value match the target type by adding attributes
