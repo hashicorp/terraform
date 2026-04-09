@@ -22,3 +22,17 @@ const (
 	// The provider is managed by Terraform. This is the "normal" and most common case.
 	ProviderSupplyModeManaged ProviderSupplyMode = "managed_by_terraform"
 )
+
+func DetermineProviderSupplyMode(isDevOverride bool, isReattached bool, isBuiltin bool) ProviderSupplyMode {
+	switch {
+	case isBuiltin:
+		return ProviderSupplyModeBuiltIn
+	case isReattached:
+		return ProviderSupplyModeReattached
+	case isDevOverride:
+		return ProviderSupplyModeDevOverride
+	default:
+		// assume provider is managed if nothing indicates otherwise.
+		return ProviderSupplyModeManaged
+	}
+}

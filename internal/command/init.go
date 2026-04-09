@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"os"
 	"reflect"
 	"slices"
 	"sort"
@@ -31,6 +32,8 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -233,7 +236,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 		// Annotate state_store config representation with info about how the provider
 		// is supplied to Terraform.
-		root.StateStore.SetProviderSupplyMode(c.Meta.isProviderDevOverride(root.StateStore.ProviderAddr))
+		isReattached, err := reattach.IsProviderReattached(root.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", root.StateStore.ProviderAddr.ForDisplay(), err))
+		}
+		root.StateStore.ProviderSupplyMode = supplymode.DetermineProviderSupplyMode(c.Meta.isProviderDevOverride(root.StateStore.ProviderAddr), isReattached, root.StateStore.ProviderAddr.IsBuiltIn())
 
 		opts = &BackendOpts{
 			StateStoreConfig: root.StateStore,

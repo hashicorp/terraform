@@ -110,24 +110,6 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 	},
 }
 
-func (s *StateStore) SetProviderSupplyMode(isDevOverride bool) {
-	isReattached, err := reattach.IsProviderReattached(s.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
-	if err != nil {
-		panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", s.ProviderAddr.ForDisplay(), err))
-	}
-	switch {
-	case s.ProviderAddr.IsBuiltIn():
-		s.ProviderSupplyMode = supplymode.ProviderSupplyModeBuiltIn
-	case isReattached:
-		s.ProviderSupplyMode = supplymode.ProviderSupplyModeReattached
-	case isDevOverride:
-		s.ProviderSupplyMode = supplymode.ProviderSupplyModeDevOverride
-	default:
-		// assume provider is managed if nothing indicates otherwise.
-		s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
-	}
-}
-
 // resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
 // The only exception is the builtin terraform provider, which we return source data for without using required_providers.
 // This code is reused in code for parsing config and modules.
