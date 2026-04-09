@@ -2724,19 +2724,19 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State store is from a builtin provider",
-			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+			Detail:   "Terraform is using a builtin provider for initializing state storage. Terraform may not be able to detect when state migrations are required in future init commands.",
 		})
 	case supplymode.ProviderSupplyModeDevOverride:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State store is from a developer override provider",
-			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+			Detail:   "Terraform is using a provider affected by development overrides set in the CLI configuration for initializing state storage. Terraform may not be able to detect when state migrations are required in future init commands.",
 		})
 	case supplymode.ProviderSupplyModeReattached:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "State store provider is not managed by Terraform",
-			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform will be less able to detect when state migrations are required in future init commands.",
+			Detail:   "Terraform is using a provider supplied via TF_REATTACH_PROVIDERS for initializing state storage. Terraform may not be able to detect when state migrations are required in future init commands.",
 		})
 	}
 
