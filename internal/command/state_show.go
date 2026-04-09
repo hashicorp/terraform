@@ -54,16 +54,14 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Load the backend
 	b, diags := c.backend(".", c.viewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
 		diags = diags.Append(ErrUnsupportedLocalOp)
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// This is a read-only command
@@ -73,16 +71,14 @@ func (c *StateShowCommand) Run(args []string) int {
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
 		diags = diags.Append(fmt.Sprintf(errParsingAddress, parsedArgs.Address))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// We expect the config dir to always be the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(fmt.Sprintf("Error getting cwd: %s\n", err))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Build the operation (required to get the schemas)
@@ -93,22 +89,19 @@ func (c *StateShowCommand) Run(args []string) int {
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(fmt.Sprintf("Error initializing config loader: %s\n", err))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the context (required to get the schemas)
 	lr, _, ctxDiags := local.LocalRun(opReq)
 	if ctxDiags.HasErrors() {
-		view.Diagnostics(ctxDiags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the schemas from the context
 	schemas, diags := lr.Core.Schemas(lr.Config, lr.InputState)
 	if diags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the state
@@ -121,27 +114,23 @@ func (c *StateShowCommand) Run(args []string) int {
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 	if err := stateMgr.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to refresh state: %s\n", err))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	state := stateMgr.State()
 	if state == nil {
 		diags = diags.Append(errors.New(errStateNotFound))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	is := state.ResourceInstance(addr)
 	if !is.HasCurrent() {
 		diags = diags.Append(errors.New(errNoInstanceFound))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// check if the resource has a configured provider, otherwise this will use the default provider
@@ -162,8 +151,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	root, outputs, err := jsonstate.MarshalForRenderer(mockFile, schemas)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to marshal state to json: %s", err))
-		view.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	jstate := jsonformat.State{
@@ -174,18 +162,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 	}
 
-	if c.viewType == arguments.ViewHuman {
-		renderer := jsonformat.Renderer{
-			Streams:             c.Streams,
-			Colorize:            c.Colorize(),
-			RunningInAutomation: c.RunningInAutomation,
-		}
-		renderer.RenderHumanState(jstate)
-	} else {
-		view.DisplayResourceInstanceState(rs, addr, schemas)
-	}
-
-	return 0
+	return view.DisplayResourceInstanceState(jstate, diags)
 }
 
 func (c *StateShowCommand) Help() string {
@@ -203,6 +180,8 @@ Options:
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
+  -json               If specified, output the resource state in a 
+               		  machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestStateShow(t *testing.T) {
@@ -54,13 +54,11 @@ func TestStateShow(t *testing.T) {
 		},
 	}
 
-	streams, done := terminal.StreamsForTesting(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			View:             view,
-			Streams:          streams,
 		},
 	}
 
@@ -119,12 +117,10 @@ func TestStateShow_errorMarshallingState(t *testing.T) {
 		},
 	}
 
-	streams, done := terminal.StreamsForTesting(t)
-	view, doneView := testView(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Streams:          streams,
 			View:             view,
 		},
 	}
@@ -141,7 +137,7 @@ func TestStateShow_errorMarshallingState(t *testing.T) {
 
 	// Test that error outputs were displayed
 	expected := "unsupported attribute \"non_existent_attr\""
-	actual := doneView(t).Stderr()
+	actual := output.Stderr()
 
 	if !strings.Contains(actual, expected) {
 		t.Fatalf("Expected stderr output to include:\n%q\n\n Instead got:\n%q", expected, actual)
@@ -199,12 +195,10 @@ func TestStateShow_multi(t *testing.T) {
 		},
 	}
 
-	streams, done := terminal.StreamsForTesting(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Streams:          streams,
 			View:             view,
 		},
 	}
@@ -232,12 +226,10 @@ func TestStateShow_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	streams, _ := terminal.StreamsForTesting(t)
 	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Streams:          streams,
 			View:             view,
 		},
 	}
@@ -259,12 +251,10 @@ func TestStateShow_emptyState(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	streams, _ := terminal.StreamsForTesting(t)
 	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Streams:          streams,
 			View:             view,
 		},
 	}
@@ -317,8 +307,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 		},
 	}
 
-	streams, done := terminal.StreamsForTesting(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
@@ -326,8 +315,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 					addrs.NewDefaultProvider("test-beta"): providers.FactoryFixed(p),
 				},
 			},
-			Streams: streams,
-			View:    view,
+			View: view,
 		},
 	}
 
@@ -371,8 +359,8 @@ func TestStateShow_stateStore(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectReady,
 			AttrsJSON: []byte(`{
-				"input": "foobar"
-			}`),
+                "input": "foobar"
+            }`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -392,8 +380,7 @@ func TestStateShow_stateStore(t *testing.T) {
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := cli.NewMockUi()
-	streams, done := terminal.StreamsForTesting(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -402,9 +389,8 @@ func TestStateShow_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui:      ui,
-			Streams: streams,
-			View:    view,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -492,21 +478,25 @@ func TestStateShow_json(t *testing.T) {
 	expected := strings.TrimSpace(testStateShowJsonOutput) + "\n"
 	actual := output.Stdout()
 	if actual != expected {
-		t.Fatalf("Got:\n%q\n\nWanted:\n%q", actual, expected)
+		t.Fatal(cmp.Diff(expected, actual))
 	}
 }
 
 const testStateShowJsonOutput = `{
-  "address": "test_instance.foo",
-  "mode": "managed",
-  "type": "test_instance",
-  "name": "foo",
-  "provider_name": "registry.terraform.io/hashicorp/test",
-  "schema_version": 0,
-  "values": {
-    "bar": "value",
-    "foo": "value",
-    "id": "bar"
+  "format_version": "1.0",
+  "resource": {
+    "address": "test_instance.foo",
+    "mode": "managed",
+    "type": "test_instance",
+    "name": "foo",
+    "provider_name": "registry.terraform.io/hashicorp/test",
+    "schema_version": 0,
+    "values": {
+      "bar": "value",
+      "foo": "value",
+      "id": "bar"
+    },
+    "sensitive_values": {}
   },
-  "sensitive_values": {}
+  "diagnostics": []
 }`
