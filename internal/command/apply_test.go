@@ -25,7 +25,10 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -707,13 +710,9 @@ func TestApply_plan(t *testing.T) {
 // The state store's details (provider, config, etc) are supplied by the plan,
 // which allows this test to not use any configuration.
 func TestApply_plan_stateStore(t *testing.T) {
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	// Set some default reader/writers for the inputs
-	defaultInputReader = new(bytes.Buffer)
-	defaultInputWriter = new(bytes.Buffer)
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
 
 	// Create the plan file that includes a state store
 	ver := version.Must(version.NewVersion("1.2.3"))
@@ -790,6 +789,237 @@ func TestApply_plan_stateStore(t *testing.T) {
 	if !mock.WriteStateBytesCalled {
 		t.Fatal("expected the test to write new state when applying the plan, but WriteStateBytesCalled is false on the mock provider.")
 	}
+}
+
+func TestApply_plan_stateStore_providerSupplyModes(t *testing.T) {
+	t.Run("can run init, plan, apply workflow using a dev override provider for PSS", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		t.Chdir(td)
+
+		cfg := `terraform {
+
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {
+    }
+
+    value = "foobar"
+  }
+}
+
+output "foobar" {
+  value = "ok"
+}
+`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		source, close := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+		t.Cleanup(close)
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+
+			// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PROVIDER IS A DEV OVERRIDE.
+			// The mock is still accessed via testingOverrides, but Terraform believes that it's a dev override due to
+			// its presence in the ProviderDevOverrides map.
+			ProviderDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				mockProviderAddress: ".",
+			},
+		}
+
+		// Init
+		initCmd := &InitCommand{
+			Meta: meta,
+		}
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		if code := initCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Assert backend state file says the provider is a dev override
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeDevOverride {
+			t.Fatalf("expected state store provider supply mode to be 'dev_override', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		// Plan - to produce a plan file.
+		//
+		// The plan file will not include version data, as the provider is considered to be a dev override.
+		ui = new(cli.MockUi)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		planCmd := &PlanCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"-out=planfile",
+		}
+		if code := planCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Apply - to use the plan file that lacks version data.
+		ui = new(cli.MockUi)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		applyCmd := &ApplyCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"planfile",
+		}
+		if code := applyCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+	})
+	t.Run("can run init, plan, apply workflow using a builtin provider for PSS", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		t.Chdir(td)
+
+		cfg := `terraform {
+
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+    }
+  }
+  state_store "terraform_store" {
+    provider "terraform" {
+    }
+
+    value = "foobar"
+  }
+}
+
+output "foobar" {
+  value = "ok"
+}
+`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PSS PROVIDER IS BUILTIN.
+		// Terraform validates that builtin providers are called 'terraform' but we can still supply
+		// a mock in place of the actual builtin terraform provider. We just need the address and any
+		// schemas to match the builtin provider.
+		mockProvider := mockPluggableStateStorageProvider()
+		schema := mockProvider.GetProviderSchema()
+		schema.StateStores["terraform_store"] = schema.StateStores["test_store"] // rename to match pretending this is a store in the builtin terraform provider.
+		mockProvider.GetProviderSchemaResponse = &schema
+		mockProviderAddress := addrs.NewBuiltInProvider("terraform")
+
+		source, close := newMockProviderSource(t, map[string][]string{
+			"hashicorp/terraform": {"1.2.3"},
+		})
+		t.Cleanup(close)
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+
+		// Init
+		initCmd := &InitCommand{
+			Meta: meta,
+		}
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		if code := initCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Assert backend state file says the provider is built in
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeBuiltIn {
+			t.Fatalf("expected state store provider supply mode to be 'built_in', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		// Plan - to produce a plan file.
+		//
+		// The plan file will not include version data, as the provider is considered to be a dev override.
+		ui = new(cli.MockUi)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		planCmd := &PlanCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"-out=planfile",
+		}
+		if code := planCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Apply - to use the plan file that lacks version data.
+		ui = new(cli.MockUi)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		applyCmd := &ApplyCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"planfile",
+		}
+		if code := applyCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+	})
+
+	// See E2E tests for testing swapping between reattached and dev_override provider across the workflow.
 }
 
 // Test unhappy paths when applying a plan file describing a state store.
