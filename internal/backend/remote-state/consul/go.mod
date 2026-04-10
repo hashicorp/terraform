@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/consul
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/hashicorp/consul/api v1.32.1
@@ -31,7 +31,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-slug v0.18.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/hashicorp/serf v0.10.2 // indirect
