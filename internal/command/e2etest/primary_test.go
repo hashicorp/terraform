@@ -532,5 +532,101 @@ func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
 		}
 	})
 
-	// TODO: There ARE errors when swap to/from a managed provider, as version data is lost or suddenly appears.
+	t.Run("user is NOT prompted to re-init if they init a project with a managed provider for PSS and then use a dev_override for plan and apply", func(t *testing.T) {
+		if !canRunGoBuild {
+			// We're running in a separate-build-then-run context, so we can't
+			// currently execute this test which depends on being able to build
+			// new executable at runtime.
+			//
+			// (See the comment on canRunGoBuild's declaration for more information.)
+			t.Skip("can't run without building a new provider executable")
+		}
+
+		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
+
+		t.Setenv(e2e.TestExperimentFlag, "true")
+		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+		// In order to test integration with PSS we need a provider plugin implementing a state store.
+		// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
+		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+		simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+		// Move the provider binaries into a directory that we will point terraform
+		// to using the -plugin-dir cli flag.
+		platform := getproviders.CurrentPlatform.String()
+		hashiDir := "cache/registry.terraform.io/hashicorp/"
+		if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+			t.Fatal(err)
+		}
+
+		//// INIT - using dev_override provider.
+		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+		}
+
+		// Assert backend state file says the provider is a dev_override
+		statePath := filepath.Join(tf.WorkDir(), ".terraform", command.DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeManaged {
+			t.Fatalf("expected state store provider supply mode to be 'managed_by_terraform', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		//// PLAN - using same provider but dev_overrides now.
+
+		// Delete the cache directory, to ensure that's no longer in use.
+		if err := os.RemoveAll(tf.Path("cache")); err != nil {
+			t.Fatal(err)
+		}
+
+		// Build a new provider binary and direct Terraform to use it via CLI configuration file.
+		simple6Provider = filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+		simple6ProviderExe = e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+		if err := os.Rename(simple6ProviderExe, simple6Provider); err != nil {
+			t.Fatal(err)
+		}
+		cliCfg := fmt.Sprintf(`provider_installation {
+
+  dev_overrides {
+    "hashicorp/simple6" = "%s"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+`, tf.WorkDir())
+		if err := os.WriteFile(tf.Path("dev_override.tfrc"), []byte(cliCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		tf.AddEnv("TF_CLI_CONFIG_FILE=" + tf.Path("dev_override.tfrc"))
+
+		planFile := "testplan"
+		stdout, stderr, err := tf.Run("plan", "-out="+planFile, "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+		}
+		if !strings.Contains(stdout, "Warning: Provider development overrides are in effect") {
+			t.Fatalf("expected warning about provider development overrides being in effect, but it was missing from output:\n%s", stdout)
+		}
+
+		//// APPLY
+		_, stderr, err = tf.Run("apply", "-auto-approve", "-no-color", planFile)
+		if err != nil {
+			t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+		}
+	})
 }
