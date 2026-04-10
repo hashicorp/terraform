@@ -1,38 +1,38 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package supplymode
+package getproviders
 
 // ProviderSupplyMode describes how a provider is being supplied to Terraform.
 type ProviderSupplyMode string
 
 const (
 	// Unset value.
-	ProviderSupplyModeUnset ProviderSupplyMode = ""
+	Unset ProviderSupplyMode = ""
 
 	// The provider is built into the Terraform binary.
-	ProviderSupplyModeBuiltIn ProviderSupplyMode = "built_in"
+	BuiltIn ProviderSupplyMode = "built_in"
 
 	// The provider is unmanaged by Terraform, supplied via TF_REATTACH_PROVIDERS by the user/environment.
-	ProviderSupplyModeReattached ProviderSupplyMode = "reattached"
+	Reattached ProviderSupplyMode = "reattached"
 
 	// The provider is overridden by a development configuration.
-	ProviderSupplyModeDevOverride ProviderSupplyMode = "dev_override"
+	DevOverride ProviderSupplyMode = "dev_override"
 
 	// The provider is managed by Terraform. This is the "normal" and most common case.
-	ProviderSupplyModeManaged ProviderSupplyMode = "managed_by_terraform"
+	ManagedByTerraform ProviderSupplyMode = "managed_by_terraform"
 )
 
 func DetermineProviderSupplyMode(isDevOverride bool, isReattached bool, isBuiltin bool) ProviderSupplyMode {
 	switch {
 	case isBuiltin:
-		return ProviderSupplyModeBuiltIn
+		return BuiltIn
 	case isReattached:
-		return ProviderSupplyModeReattached
+		return Reattached
 	case isDevOverride:
-		return ProviderSupplyModeDevOverride
+		return DevOverride
 	default:
 		// assume provider is managed if nothing indicates otherwise.
-		return ProviderSupplyModeManaged
+		return ManagedByTerraform
 	}
 }

@@ -15,9 +15,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -42,7 +42,7 @@ type StateStore struct {
 	// ProviderSupplyMode describes how the provider used for state storage was supplied to Terraform.
 	// This is needed when handling provider version data; unmanaged and builtin providers have no version data available.
 	// This value is ultimately recorded in the backend state file alongside the provider version data (which may be null).
-	ProviderSupplyMode supplymode.ProviderSupplyMode
+	ProviderSupplyMode getproviders.ProviderSupplyMode
 
 	TypeRange hcl.Range
 	DeclRange hcl.Range
@@ -347,11 +347,11 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 
 	var providerVersionString string
 	switch b.ProviderSupplyMode {
-	case supplymode.ProviderSupplyModeBuiltIn, supplymode.ProviderSupplyModeDevOverride, supplymode.ProviderSupplyModeReattached:
+	case getproviders.BuiltIn, getproviders.DevOverride, getproviders.Reattached:
 		// We expect to not have version information in these situations.
 		// We'll use an empty string for the hash.
 		providerVersionString = ""
-	case supplymode.ProviderSupplyModeManaged:
+	case getproviders.ManagedByTerraform:
 		if stateStoreProviderVersion == nil {
 			// Lack of version information indicates a problem; error
 			return 0, diags.Append(&hcl.Diagnostic{

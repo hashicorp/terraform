@@ -29,8 +29,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -2750,7 +2750,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 
 func TestMetaBackend_stateStoreConfig(t *testing.T) {
 	// Reused in tests
-	testConfig := func(mode supplymode.ProviderSupplyMode) *configs.StateStore {
+	testConfig := func(mode getproviders.ProviderSupplyMode) *configs.StateStore {
 		return &configs.StateStore{
 			Type:   "test_store",
 			Config: configBodyForTest(t, fmt.Sprintf(`value = "%s"`, "foobar")),
@@ -2779,7 +2779,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		overrideValue := "overridden"
 		configOverride := configs.SynthBody("synth", map[string]cty.Value{"value": cty.StringVal(overrideValue)})
 		opts := &BackendOpts{
-			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
+			StateStoreConfig: testConfig(getproviders.ManagedByTerraform),
 			ConfigOverride:   configOverride,
 			Init:             true,
 			Locks:            locks,
@@ -2838,7 +2838,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 
 		opts := &BackendOpts{
-			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
+			StateStoreConfig: testConfig(getproviders.ManagedByTerraform),
 			Init:             true,
 			Locks:            locks,
 		}
@@ -2866,7 +2866,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 		mock.GetProviderSchemaResponse.StateStores["test_bore"] = testStore
 
 		opts := &BackendOpts{
-			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
+			StateStoreConfig: testConfig(getproviders.ManagedByTerraform),
 			Init:             true,
 			Locks:            locks,
 		}
@@ -2896,7 +2896,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("error - locks are empty and the provider required by the state_store block isn't present", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeManaged),
+			StateStoreConfig: testConfig(getproviders.ManagedByTerraform),
 			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
 			Locks:            depsfile.NewLocks(), // empty!
 		}
@@ -2925,7 +2925,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 	t.Run("ok - locks are empty but reattach config supplies the provider required by state_store block", func(t *testing.T) {
 		opts := &BackendOpts{
-			StateStoreConfig: testConfig(supplymode.ProviderSupplyModeReattached),
+			StateStoreConfig: testConfig(getproviders.Reattached),
 			Init:             false,               // Not being used in an init operation; hence why we're checking dependencies.
 			Locks:            depsfile.NewLocks(), // empty!
 		}
@@ -2961,7 +2961,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		c := &configs.StateStore{
 			Provider:           &configs.Provider{},
 			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
-			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+			ProviderSupplyMode: getproviders.ManagedByTerraform,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
@@ -2981,7 +2981,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		c := &configs.StateStore{
 			Provider:           &configs.Provider{},
 			ProviderAddr:       tfaddr.NewProvider(addrs.BuiltInProviderHost, addrs.BuiltInProviderNamespace, "test"),
-			ProviderSupplyMode: supplymode.ProviderSupplyModeBuiltIn,
+			ProviderSupplyMode: getproviders.BuiltIn,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
@@ -3001,7 +3001,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		c := &configs.StateStore{
 			Provider:           &configs.Provider{},
 			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
-			ProviderSupplyMode: supplymode.ProviderSupplyModeReattached,
+			ProviderSupplyMode: getproviders.Reattached,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
@@ -3021,7 +3021,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 		c := &configs.StateStore{
 			Provider:           &configs.Provider{},
 			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
-			ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+			ProviderSupplyMode: getproviders.DevOverride,
 		}
 		v, diags := getStateStorageProviderVersion(c, locks)
 		if diags.HasErrors() {
@@ -3044,7 +3044,7 @@ func Test_getStateStorageProviderVersion(t *testing.T) {
 				Name: "missing-provider",
 			},
 			ProviderAddr:       tfaddr.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "missing-provider"),
-			ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+			ProviderSupplyMode: getproviders.ManagedByTerraform,
 		}
 		_, diags := getStateStorageProviderVersion(c, locks)
 		if !diags.HasErrors() {

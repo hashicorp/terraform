@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -213,7 +213,7 @@ func TestStateStoreConfigState_PlanData(t *testing.T) {
 		}`),
 		Hash:               123,
 		Provider:           provider,
-		ProviderSupplyMode: supplymode.ProviderSupplyModeManaged, // not reflected in plan data, but required to generate it
+		ProviderSupplyMode: getproviders.ManagedByTerraform, // not reflected in plan data, but required to generate it
 	}
 
 	ssSchema := &configschema.Block{

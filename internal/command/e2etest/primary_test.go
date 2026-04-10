@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/plans"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
@@ -484,7 +483,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
 		if s == nil || s.StateStore == nil {
 			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
 		}
-		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeReattached {
+		if s.StateStore.ProviderSupplyMode != getproviders.Reattached {
 			t.Fatalf("expected state store provider supply mode to be 'reattached', got '%s'", s.StateStore.ProviderSupplyMode)
 		}
 
@@ -580,7 +579,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
 		if s == nil || s.StateStore == nil {
 			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
 		}
-		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeManaged {
+		if s.StateStore.ProviderSupplyMode != getproviders.ManagedByTerraform {
 			t.Fatalf("expected state store provider supply mode to be 'managed_by_terraform', got '%s'", s.StateStore.ProviderSupplyMode)
 		}
 

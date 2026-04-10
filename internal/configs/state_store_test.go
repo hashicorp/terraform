@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -65,7 +65,7 @@ func TestStateStore_Hash(t *testing.T) {
 			t.Fatalf("unexpected diagnostics: %s", ssDiags)
 		}
 		s.ProviderAddr = exampleProviderAddr
-		s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+		s.ProviderSupplyMode = getproviders.ManagedByTerraform
 
 		// Test Hash method.
 		gotHash, diags := s.Hash(exampleStateStoreSchema, exampleProviderSchema, exampleProviderVersion)
@@ -150,7 +150,7 @@ func TestStateStore_Hash(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %s", ssDiags)
 			}
 			s.ProviderAddr = providerAddr
-			s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+			s.ProviderSupplyMode = getproviders.ManagedByTerraform
 
 			// Test Hash method.
 			gotHash, diags := s.Hash(schema, exampleProviderSchema, providerVersion)
@@ -200,7 +200,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 		config             hcl.Body
 		providerAddr       tfaddr.Provider
 		providerVersion    *version.Version
-		providerSupplyMode supplymode.ProviderSupplyMode
+		providerSupplyMode getproviders.ProviderSupplyMode
 	}{
 		"tolerates empty config block for the provider even when schema has Required field(s)": {
 			config: configBodyForTest(t, `state_store "foobar_fs" {
@@ -228,20 +228,20 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 		"tolerates missing provider version data when using a builtin provider": {
 			config:             config,
 			providerAddr:       tfaddr.NewProvider(tfaddr.BuiltInProviderHost, "hashicorp", "foobar"),
-			providerVersion:    nil,                                  // No version
-			providerSupplyMode: supplymode.ProviderSupplyModeBuiltIn, // Builtin
+			providerVersion:    nil,                // No version
+			providerSupplyMode: getproviders.BuiltIn, // Builtin
 		},
 		"tolerates missing provider version data when using a reattached provider": {
 			config:             config,
 			providerAddr:       providerAddr,
 			providerVersion:    nil, // No version
-			providerSupplyMode: supplymode.ProviderSupplyModeReattached,
+			providerSupplyMode: getproviders.Reattached,
 		},
 		"tolerates missing provider version data when using a dev_override provider": {
 			config:             config,
 			providerAddr:       providerAddr,
 			providerVersion:    nil, // No version
-			providerSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+			providerSupplyMode: getproviders.DevOverride,
 		},
 	}
 
@@ -262,7 +262,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 			if tc.providerSupplyMode != "" {
 				s.ProviderSupplyMode = tc.providerSupplyMode
 			} else {
-				s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+				s.ProviderSupplyMode = getproviders.ManagedByTerraform
 			}
 
 			// Test Hash method.
@@ -303,7 +303,7 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 		config             hcl.Body
 		stateStoreSchema   *configschema.Block
 		providerVersion    *version.Version
-		providerSupplyMode supplymode.ProviderSupplyMode
+		providerSupplyMode getproviders.ProviderSupplyMode
 		wantErrorString    string
 	}{
 		"returns errors when the state_store config doesn't match the schema": {
@@ -385,7 +385,7 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 		},
 		"returns an error if the provider version is missing when using a managed provider": {
 			providerVersion:    nil, // No value provided in this test case
-			providerSupplyMode: supplymode.ProviderSupplyModeManaged,
+			providerSupplyMode: getproviders.ManagedByTerraform,
 			stateStoreSchema:   exampleStateStoreSchema,
 			config: configBodyForTest(t, `state_store "foobar_fs" {
 					provider "foobar" {
@@ -415,7 +415,7 @@ func TestStateStore_Hash_errorConditions(t *testing.T) {
 			if tc.providerSupplyMode != "" {
 				s.ProviderSupplyMode = tc.providerSupplyMode
 			} else {
-				s.ProviderSupplyMode = supplymode.ProviderSupplyModeManaged
+				s.ProviderSupplyMode = getproviders.ManagedByTerraform
 			}
 
 			// Test Hash method.

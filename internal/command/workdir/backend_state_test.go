@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -108,7 +108,7 @@ func TestParseBackendStateFile(t *testing.T) {
 						"region": "saturn"
 					}`),
 					Hash:               12345,
-					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+					ProviderSupplyMode: getproviders.ManagedByTerraform,
 				},
 			},
 		},
@@ -197,7 +197,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 				StateStore: &StateStoreConfigState{
 					Type:               "foobar_baz",
 					Provider:           getTestProviderState(t, "1.2.3", "registry.terraform.io", "my-org", "foobar", `{"foo": "bar"}`),
-					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+					ProviderSupplyMode: getproviders.ManagedByTerraform,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:               123,
 				},
@@ -228,7 +228,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Type: "foobar_baz",
 					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, string(tfaddr.BuiltInProviderHost), string(tfaddr.BuiltInProviderNamespace), "foobar", `{"foo": "bar"}`),
-					ProviderSupplyMode: supplymode.ProviderSupplyModeBuiltIn,
+					ProviderSupplyMode: getproviders.BuiltIn,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:               123,
 				},
@@ -259,7 +259,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Type: "foobar_baz",
 					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
-					ProviderSupplyMode: supplymode.ProviderSupplyModeReattached,
+					ProviderSupplyMode: getproviders.Reattached,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:               123,
 				},
@@ -290,7 +290,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Type: "foobar_baz",
 					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "hashicorp", "foobar", `{"foo": "bar"}`),
-					ProviderSupplyMode: supplymode.ProviderSupplyModeDevOverride,
+					ProviderSupplyMode: getproviders.DevOverride,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:               123,
 				},
@@ -328,7 +328,7 @@ func TestEncodeBackendStateFile(t *testing.T) {
 					Type: "foobar_baz",
 					// Note - no version data in the provider description below
 					Provider:           getTestProviderState(t, noVersionData, "registry.terraform.io", "my-org", "foobar", ""),
-					ProviderSupplyMode: supplymode.ProviderSupplyModeManaged,
+					ProviderSupplyMode: getproviders.ManagedByTerraform,
 					ConfigRaw:          json.RawMessage([]byte(`{"foo":"bar"}`)),
 					Hash:               123,
 				},

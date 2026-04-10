@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/getproviders/supplymode"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -870,7 +869,7 @@ output "foobar" {
 		if s == nil || s.StateStore == nil {
 			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
 		}
-		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeDevOverride {
+		if s.StateStore.ProviderSupplyMode != getproviders.DevOverride {
 			t.Fatalf("expected state store provider supply mode to be 'dev_override', got '%s'", s.StateStore.ProviderSupplyMode)
 		}
 
@@ -982,7 +981,7 @@ output "foobar" {
 		if s == nil || s.StateStore == nil {
 			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
 		}
-		if s.StateStore.ProviderSupplyMode != supplymode.ProviderSupplyModeBuiltIn {
+		if s.StateStore.ProviderSupplyMode != getproviders.BuiltIn {
 			t.Fatalf("expected state store provider supply mode to be 'built_in', got '%s'", s.StateStore.ProviderSupplyMode)
 		}
 
