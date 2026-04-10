@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/plans"
@@ -18,12 +19,10 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
-var (
-	// TestExperimentFlag is the name of the environment variable that
-	// can be set to built a terraform binary with experimental features enabled.
-	// Any value besides "false" or an empty string will enable the feature.
-	TestExperimentFlag = "TF_TEST_EXPERIMENTS"
-)
+// TestExperimentFlag is the name of the environment variable that
+// can be set to built a terraform binary with experimental features enabled.
+// Any value besides "false" or an empty string will enable the feature.
+var TestExperimentFlag = "TF_TEST_EXPERIMENTS"
 
 // Type binary represents the combination of a compiled binary
 // and a temporary working directory to run it in.
@@ -117,6 +116,17 @@ func NewBinary(t *testing.T, binaryPath, workingDir string) *binary {
 // commands subsequently run.
 func (b *binary) AddEnv(entry string) {
 	b.env = append(b.env, entry)
+}
+
+// RemoveEnv removes an entry from the environment variable table passed to any
+// commands subsequently run.
+func (b *binary) RemoveEnv(name string) {
+	for i, e := range b.env {
+		if strings.HasPrefix(e, name+"=") {
+			b.env = append(b.env[:i], b.env[i+1:]...)
+			break
+		}
+	}
 }
 
 // Cmd returns an exec.Cmd pre-configured to run the generated Terraform
