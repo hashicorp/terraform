@@ -400,7 +400,7 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 // Characterize what happens when the state store is supplied through reattach config during init,
 // then dev_override during plan and apply. And vice-versa.
 func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
-	t.Run("no errors when a provider is reattached at init-time and then dev_override during plan and apply", func(t *testing.T) {
+	t.Run("no errors when a PSS provider is reattached at init-time and then dev_override during plan and apply", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -469,7 +469,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
 		//// INIT - using reattached provider.
-		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-plugin-dir=cache", "-no-color")
+		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
 		if err != nil {
 			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
@@ -526,7 +526,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode(t *testing.T) {
 		}
 
 		//// APPLY
-		_, stderr, err = tf.Run("apply", "-auto-approve", "-no-color")
+		_, stderr, err = tf.Run("apply", "-auto-approve", "-no-color", planFile)
 		if err != nil {
 			t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 		}
