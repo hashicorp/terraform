@@ -6,7 +6,7 @@ package configs
 import (
 	"fmt"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
@@ -30,16 +30,21 @@ type RequiredProviders struct {
 	DeclRange         hcl.Range
 }
 
-func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
+func decodeRequiredProvidersBlock(block *hcl.Block) (
+	*RequiredProviders,
+	map[string]*ProviderRequirementExpr,
+	hcl.Diagnostics,
+) {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	ret := &RequiredProviders{
 		RequiredProviders: make(map[string]*RequiredProvider),
 		DeclRange:         block.DefRange,
 	}
+	var deferredExprs map[string]*ProviderRequirementExpr
 
 	for name, attr := range attrs {
 		rp := &RequiredProvider{
@@ -89,6 +94,14 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			continue
 		}
 
+		providerExpr := &ProviderRequirementExpr{
+			Name:        name,
+			SourceExpr:  nil,
+			VersionExpr: nil,
+			DeclRange:   attr.Expr.Range(),
+		}
+		var sourceExpr, versionExpr hcl.Expression
+
 	LOOP:
 		for _, kv := range kvs {
 			key, keyDiags := kv.Key.Value(nil)
@@ -109,6 +122,17 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 			switch key.AsString() {
 			case "version":
+				versionExpr = kv.Value
+
+				// Store the version expression if it contains variable that
+				// needs to be evaluated.
+				// Skip the "legacy" pure string resolution of the version
+				// attribute.
+				if vars := kv.Value.Variables(); len(vars) > 0 {
+					providerExpr.VersionExpr = kv.Value
+					continue
+				}
+
 				vc := VersionConstraint{
 					DeclRange: attr.Range,
 				}
@@ -142,6 +166,18 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 				rp.Requirement = vc
 
 			case "source":
+				sourceExpr = kv.Value
+
+				// Store the source expression if it contains variable that
+				// needs to be evaluated.
+				//
+				// Skip the "legacy" pure string resolution of the source
+				// attribute.
+				if vars := kv.Value.Variables(); len(vars) > 0 {
+					providerExpr.SourceExpr = kv.Value
+					continue
+				}
+
 				source, err := kv.Value.Value(nil)
 				if err != nil || !source.Type().Equals(cty.String) {
 					diags = append(diags, &hcl.Diagnostic{
@@ -226,6 +262,29 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			continue
 		}
 
+		// Provider Expression contains either source or version expression.
+		// Hydrate the rest, store it into the result map and skip adding it to
+		// required providers.
+		if !providerExpr.IsEmpty() {
+			providerExpr.ConfigAliases = rp.Aliases
+
+			if providerExpr.SourceExpr == nil {
+				providerExpr.SourceExpr = sourceExpr
+			}
+
+			if providerExpr.VersionExpr == nil {
+				providerExpr.VersionExpr = versionExpr
+			}
+
+			if deferredExprs == nil {
+				deferredExprs = map[string]*ProviderRequirementExpr{}
+			}
+			deferredExprs[name] = providerExpr
+
+			// Skip adding it to required providers.
+			continue
+		}
+
 		// We can add the required provider when there are no errors.
 		// If a source was not given, create an implied type.
 		if rp.Type.IsZero() {
@@ -245,5 +304,5 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 		ret.RequiredProviders[rp.Name] = rp
 	}
 
-	return ret, diags
+	return ret, deferredExprs, diags
 }
