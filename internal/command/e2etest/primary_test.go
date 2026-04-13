@@ -400,7 +400,7 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 // Outcomes are influenced by whether the init command produces a lock file entry for the PSS provider or not. Only managed
 // providers are recorded in the dependency lock file.
 func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *testing.T) {
-	t.Run("no problems if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
+	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -532,7 +532,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 		}
 	})
 
-	t.Run("no problems if using an unmanaged provider (dev_override) for plan and apply, after initializing a project with an unmanaged provider", func(t *testing.T) {
+	t.Run("users are prompted to migrate state when they use an unmanaged provider (dev_override) for plan and apply, after initializing a project with a managed provider", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -615,21 +615,18 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 
 		planFile := "testplan"
 		stdout, stderr, err := tf.Run("plan", "-out="+planFile, "-no-color")
-		if err != nil {
+		if err.Error() != "exit status 1" {
 			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 		}
 		if !strings.Contains(stdout, "Warning: Provider development overrides are in effect") {
 			t.Fatalf("expected warning about provider development overrides being in effect, but it was missing from output:\n%s", stdout)
 		}
-
-		//// APPLY
-		_, stderr, err = tf.Run("apply", "-auto-approve", "-no-color", planFile)
-		if err != nil {
-			t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+		if !strings.Contains(stderr, "Error: State store initialization required, please run \"terraform init\"") {
+			t.Fatalf("expected error about state store initialization, but it was missing from output:\n%s", stderr)
 		}
 	})
 
-	t.Run("error if using a managed provider for plan and apply, after initializing a project with an unmanaged provider (dev_override) for PSS", func(t *testing.T) {
+	t.Run("users are prompted to migrate state when using a managed provider for plan and apply, after initializing a project with an unmanaged provider (dev_override) for PSS", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -731,7 +728,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 // Characterize what happens when the state store is supplied through different methods when the working directory is
 // initialised and then re-initialised.
 func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *testing.T) {
-	t.Run("panic if users init a project with a managed provider for PSS and re-init using an unmanaged provider (dev_override)", func(t *testing.T) {
+	t.Run("users are prompted to migrate state when they init a project with a managed provider for PSS and re-init using an unmanaged provider (dev_override)", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -813,11 +810,11 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 		tf.AddEnv("TF_CLI_CONFIG_FILE=" + tf.Path("dev_override.tfrc"))
 
 		_, stderr, err = tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
-		if err == nil {
-			t.Fatal("expected error but got none")
+		if err.Error() != "exit status 1" {
+			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
-		if !strings.Contains(stderr, "TERRAFORM CRASH") {
-			t.Fatalf("expected crash/panic, but got:\n%s", stderr)
+		if !strings.Contains(stderr, "Error: State store configuration changed") {
+			t.Fatalf("expected error about state store configuration changing, but got:\n%s", stderr)
 		}
 	})
 

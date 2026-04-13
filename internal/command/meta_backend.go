@@ -1392,6 +1392,14 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigState, cfg *configs.StateStore, pLocks *depsfile.Locks) (*ssInitReason, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	if cfgState.ProviderSupplyMode != cfg.ProviderSupplyMode {
+		return &ssInitReason{
+			Reason: fmt.Sprintf("State store %q (%s) supply mode changed from %q to %q",
+				cfg.Type, cfg.ProviderAddr.ForDisplay(), cfgState.ProviderSupplyMode, cfg.ProviderSupplyMode),
+			Subject: cfg.DeclRange.Ptr(),
+		}, diags
+	}
+
 	if cfgState == nil || cfgState.Empty() {
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store %q (%s) not initialised",
@@ -2572,6 +2580,13 @@ func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType
 func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState *workdir.StateStoreConfigState, opts *BackendOpts) bool {
 	if cfgState == nil || cfgState.Empty() {
 		log.Print("[TRACE] stateStoreConfigNeedsMigration: no cached config, so migration is required")
+		return true
+	}
+
+	// To avoid confusing edge cases, we enforce that changing how you supply a provider must result in a migration decision.
+	// If a provider developer wants to test a PSS implementation they must use their override, etc, to initialise the working directory.
+	if cfgState.ProviderSupplyMode != cfg.ProviderSupplyMode {
+		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider supply mode changed from %q to %q, so migration is required", cfgState.ProviderSupplyMode, cfg.ProviderSupplyMode)
 		return true
 	}
 
