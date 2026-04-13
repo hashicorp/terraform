@@ -400,6 +400,12 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 // Outcomes are influenced by whether the init command produces a lock file entry for the PSS provider or not. Only managed
 // providers are recorded in the dependency lock file.
 func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *testing.T) {
+	// Swapping between different 'unmanaged' provider supply modes doesn't trigger a prompt to migrate state because
+	// that change doesn't impact the hash of the state store. The hash is impacted by the Version data, and all unmanaged
+	// providers used for PSS will have null version data.
+	//
+	// In contrast, swapping between a managed provider and any of reattached/dev_override/builtin WILL trigger a hash mismatch
+	// because the version data will change.
 	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
@@ -728,6 +734,138 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 // Characterize what happens when the state store is supplied through different methods when the working directory is
 // initialised and then re-initialised.
 func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *testing.T) {
+	// Swapping between different 'unmanaged' provider supply modes doesn't trigger a prompt to migrate state because
+	// that change doesn't impact the hash of the state store. The hash is impacted by the Version data, and all unmanaged
+	// providers used for PSS will have null version data.
+	//
+	// In contrast, swapping between a managed provider and any of reattached/dev_override/builtin WILL trigger a hash mismatch
+	// because the version data will change.
+	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
+		if !canRunGoBuild {
+			// We're running in a separate-build-then-run context, so we can't
+			// currently execute this test which depends on being able to build
+			// new executable at runtime.
+			//
+			// (See the comment on canRunGoBuild's declaration for more information.)
+			t.Skip("can't run without building a new provider executable")
+		}
+
+		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
+
+		t.Setenv(e2e.TestExperimentFlag, "true")
+		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+		reattachCh := make(chan *plugin.ReattachConfig)
+		closeCh := make(chan struct{})
+		provider := &providerServer{
+			ProviderServer: grpcwrap.Provider6(simple.Provider()),
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+
+		go plugin.Serve(&plugin.ServeConfig{
+			Logger: hclog.New(&hclog.LoggerOptions{
+				Name:   "plugintest",
+				Level:  hclog.Trace,
+				Output: io.Discard,
+			}),
+			Test: &plugin.ServeTestConfig{
+				Context:          ctx,
+				ReattachConfigCh: reattachCh,
+				CloseCh:          closeCh,
+			},
+			GRPCServer: plugin.DefaultGRPCServer,
+			VersionedPlugins: map[int]plugin.PluginSet{
+				6: {
+					"provider": &tfplugin.GRPCProviderPlugin{
+						GRPCProvider: func() proto.ProviderServer {
+							return provider
+						},
+					},
+				},
+			},
+		})
+		config := <-reattachCh
+		if config == nil {
+			t.Fatalf("no reattach config received")
+		}
+		reattachStr, err := json.Marshal(map[string]reattachConfig{
+			"hashicorp/simple6": {
+				Protocol:        string(config.Protocol),
+				ProtocolVersion: 6,
+				Pid:             config.Pid,
+				Test:            true,
+				Addr: reattachConfigAddr{
+					Network: config.Addr.Network(),
+					String:  config.Addr.String(),
+				},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
+
+		//// INIT 1 - using reattached provider.
+		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+		}
+
+		// Assert backend state file says the provider is a reattached
+		statePath := filepath.Join(tf.WorkDir(), ".terraform", command.DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != getproviders.Reattached {
+			t.Fatalf("expected state store provider supply mode to be 'reattached', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		//// INIT 2 - using same provider but supplied via dev_override instead of reattach config.
+
+		// No longer using reattached providers.
+		tf.RemoveEnv("TF_REATTACH_PROVIDERS")
+
+		// Build the provider binary and direct Terraform to use it via dev_override, which should cause Terraform to treat it as a dev_override in a CLI configuration file.
+		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+		simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+		if err := os.Rename(simple6ProviderExe, simple6Provider); err != nil {
+			t.Fatal(err)
+		}
+		cliCfg := fmt.Sprintf(`provider_installation {
+
+  dev_overrides {
+    "hashicorp/simple6" = "%s"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+`, tf.WorkDir())
+		if err := os.WriteFile(tf.Path("dev_override.tfrc"), []byte(cliCfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		tf.AddEnv("TF_CLI_CONFIG_FILE=" + tf.Path("dev_override.tfrc"))
+
+		stdout, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
+		}
+		expectedMessage := "Terraform has been successfully initialized!"
+		if !strings.Contains(stdout, expectedMessage) {
+			t.Fatalf("expected %q, but got: %s", expectedMessage, stdout)
+		}
+	})
+
 	t.Run("users are prompted to migrate state when they init a project with a managed provider for PSS and re-init using an unmanaged provider (dev_override)", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't

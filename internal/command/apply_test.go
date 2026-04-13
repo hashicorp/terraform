@@ -1018,7 +1018,7 @@ output "foobar" {
 		}
 	})
 
-	// See E2E tests for testing swapping between reattached and dev_override provider across the workflow.
+	// See E2E tests for testing swapping between unmanaged(reattached and dev_override) and managed providers across the workflow.
 }
 
 // Test unhappy paths when applying a plan file describing a state store.
