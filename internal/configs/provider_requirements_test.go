@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -324,7 +324,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, diags := decodeRequiredProvidersBlock(test.Block)
+			got, _, diags := decodeRequiredProvidersBlock(test.Block)
 			if diags.HasErrors() {
 				if test.Error == "" {
 					t.Fatalf("unexpected error: %v", diags)
