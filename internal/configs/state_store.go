@@ -158,7 +158,7 @@ func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *
 		panic("This run has no required providers information provided at all. This is a bug in Terraform and should be reported.")
 	}
 
-	if supplyMode != getproviders.ManagedByTerraform {
+	if supplyMode.NotManagedByTerraform() {
 		// If the provider is not managed by Terraform then it's not lockable.
 		// If the working directory was initialized in the same way then the PSS provider will not be reflected in the lock file.
 		// Skip them.

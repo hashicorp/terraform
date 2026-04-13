@@ -23,6 +23,15 @@ const (
 	ManagedByTerraform ProviderSupplyMode = "managed_by_terraform"
 )
 
+// NotManagedByTerraform returns true if the provider supply mode is any of the modes that aren't managed by Terraform (built-in, reattached, dev override).
+// The term "unmanaged" in the past has been used to refer to only reattached providers, however reattached, dev_override and built-in providers are all
+// providers that Terraform will not record in the lock file and manage version data for.
+//
+// This method is intended to be used when that distinction is important.
+func (m ProviderSupplyMode) NotManagedByTerraform() bool {
+	return m != ManagedByTerraform
+}
+
 func DetermineProviderSupplyMode(isDevOverride bool, isReattached bool, isBuiltin bool) ProviderSupplyMode {
 	switch {
 	case isBuiltin:

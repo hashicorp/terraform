@@ -2779,7 +2779,7 @@ func getStateStorageProviderVersion(c *configs.StateStore, locks *depsfile.Locks
 		})
 	}
 
-	if c.ProviderSupplyMode != getproviders.ManagedByTerraform {
+	if c.ProviderSupplyMode.NotManagedByTerraform() {
 		// We should only be trying to get the provider version for managed providers.
 		// nil Version is returned when the provider is unmanaged.
 		return nil, diags
