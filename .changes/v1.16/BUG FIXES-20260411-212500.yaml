@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: avoid treating plugin_cache_dir as an implicit provider search directory when both paths are the same
+time: 2026-04-11T21:25:00+07:00
+custom:
+    Issue: "38376"

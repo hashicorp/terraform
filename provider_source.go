@@ -23,12 +23,12 @@ import (
 // CLI configuration and some default search locations. This will be the
 // provider source used for provider installation in the "terraform init"
 // command, unless overridden by the special -plugin-dir option.
-func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco, pluginCacheDir string) (getproviders.Source, tfdiags.Diagnostics) {
 	if len(configs) == 0 {
 		// If there's no explicit installation configuration then we'll build
 		// up an implicit one with direct registry installation along with
 		// some automatically-selected local filesystem mirrors.
-		return implicitProviderSource(services), nil
+		return implicitProviderSource(services, pluginCacheDir), nil
 	}
 
 	// There should only be zero or one configurations, which is checked by
@@ -89,7 +89,7 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 // one version available in a local directory are implicitly excluded from
 // direct installation, as if the user had listed them explicitly in the
 // "exclude" argument in the direct provider source in the CLI config.
-func implicitProviderSource(services *disco.Disco) getproviders.Source {
+func implicitProviderSource(services *disco.Disco, pluginCacheDir string) getproviders.Source {
 	// The local search directories we use for implicit configuration are:
 	// - The "terraform.d/plugins" directory in the current working directory,
 	//   which we've historically documented as a place to put plugins as a
@@ -113,6 +113,13 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	foundLocally := map[addrs.Provider]struct{}{}
 
 	addLocalDir := func(dir string) {
+		if pluginCacheDir != "" {
+			if same, err := samePath(dir, pluginCacheDir); err == nil && same {
+				log.Printf("[DEBUG] skipping implicit provider search directory %s because it matches plugin_cache_dir", dir)
+				return
+			}
+		}
+
 		// We'll make sure the directory actually exists before we add it,
 		// because otherwise installation would always fail trying to look
 		// in non-existent directories. (This is done here rather than in
@@ -227,6 +234,18 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocati
 		// cliconfig.ProviderInstallationLocation implementations.
 		panic(fmt.Sprintf("unexpected provider source location type %T", loc))
 	}
+}
+
+func samePath(a, b string) (bool, error) {
+	absA, err := filepath.Abs(a)
+	if err != nil {
+		return false, err
+	}
+	absB, err := filepath.Abs(b)
+	if err != nil {
+		return false, err
+	}
+	return absA == absB, nil
 }
 
 func providerDevOverrides(configs []*cliconfig.ProviderInstallation) map[addrs.Provider]getproviders.PackageLocalDir {

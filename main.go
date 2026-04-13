@@ -181,7 +181,7 @@ func realMain() int {
 	}
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	providerSrc, diags := providerSource(config.ProviderInstallation, services, config.PluginCacheDir)
 	if len(diags) > 0 {
 		Ui.Error("There are some problems with the provider_installation configuration:")
 		for _, diag := range diags {
