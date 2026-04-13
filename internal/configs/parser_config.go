@@ -156,7 +156,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 					}
 
 				case "required_providers":
-					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
+					reqs, _, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
 					if reqs != nil {
 						file.RequiredProviders = append(file.RequiredProviders, reqs)
