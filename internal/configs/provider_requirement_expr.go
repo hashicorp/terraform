@@ -21,5 +21,5 @@ type ProviderRequirementExpr struct {
 }
 
 func (e *ProviderRequirementExpr) IsEmpty() bool {
-	return e.SourceExpr != nil && e.VersionExpr != nil
+	return e.SourceExpr == nil && e.VersionExpr == nil
 }
