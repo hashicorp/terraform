@@ -126,6 +126,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 
 				// Store the version expression if it contains variable that
 				// needs to be evaluated.
+				//
 				// Skip the "legacy" pure string resolution of the version
 				// attribute.
 				if vars := kv.Value.Variables(); len(vars) > 0 {
