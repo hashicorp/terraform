@@ -86,7 +86,7 @@ type File struct {
 	ProviderConfigs       []*Provider
 	ProviderMetas         []*ProviderMeta
 	RequiredProviders     []*RequiredProviders
-	RequiredProviderExprs map[string]*ProviderRequirementExpr
+	RequiredProviderExprs []*ProviderRequirementExpr
 
 	Variables []*Variable
 	Locals    []*Local
