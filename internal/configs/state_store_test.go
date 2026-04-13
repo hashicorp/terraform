@@ -228,7 +228,7 @@ func TestStateStore_Hash_edgeCases(t *testing.T) {
 		"tolerates missing provider version data when using a builtin provider": {
 			config:             config,
 			providerAddr:       tfaddr.NewProvider(tfaddr.BuiltInProviderHost, "hashicorp", "foobar"),
-			providerVersion:    nil,                // No version
+			providerVersion:    nil,                  // No version
 			providerSupplyMode: getproviders.BuiltIn, // Builtin
 		},
 		"tolerates missing provider version data when using a reattached provider": {
