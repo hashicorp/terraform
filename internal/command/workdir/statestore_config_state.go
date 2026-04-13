@@ -25,10 +25,10 @@ var (
 
 // StateStoreConfigState describes the physical storage format for the state store
 type StateStoreConfigState struct {
-	Type               string                        `json:"type"`                 // State store type name
-	Provider           *ProviderConfigState          `json:"provider"`             // Details about the state-storage provider
-	ConfigRaw          json.RawMessage               `json:"config"`               // state_store block raw config, barring provider details
-	Hash               uint64                        `json:"hash"`                 // Hash of the state_store block's configuration, including the nested provider block
+	Type               string                          `json:"type"`                 // State store type name
+	Provider           *ProviderConfigState            `json:"provider"`             // Details about the state-storage provider
+	ConfigRaw          json.RawMessage                 `json:"config"`               // state_store block raw config, barring provider details
+	Hash               uint64                          `json:"hash"`                 // Hash of the state_store block's configuration, including the nested provider block
 	ProviderSupplyMode getproviders.ProviderSupplyMode `json:"provider_supply_mode"` // How the provider was supplied to Terraform during the init operation that created this config state.
 }
 
