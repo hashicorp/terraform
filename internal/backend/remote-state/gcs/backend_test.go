@@ -6,6 +6,7 @@ package gcs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -343,7 +344,7 @@ func setupBackend(t *testing.T, config map[string]interface{}) backend.Backend {
 	bkt := be.storageClient.Bucket(config["bucket"].(string))
 	_, err := bkt.Attrs(ctx)
 	if err != nil {
-		if err != storage.ErrBucketNotExist {
+		if !errors.Is(err, storage.ErrBucketNotExist) {
 			t.Fatal(err)
 		}
 
