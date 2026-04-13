@@ -6,7 +6,6 @@ package configs
 import (
 	"fmt"
 	"log"
-	"os"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -17,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -149,7 +147,7 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 // dependency lock file that matches the constraints in required_providers.
 // There is also special handling for providers that cannot be represented in the lock file (built-in providers, dev overrides)
 // and also special handling when the provider is re-attached and not managed by Terraform.
-func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *RequiredProviders) tfdiags.Diagnostics {
+func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *RequiredProviders, supplyMode getproviders.ProviderSupplyMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// If we get nil arguments it suggests that there's a bug in the calling code.
@@ -160,36 +158,28 @@ func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *
 		panic("This run has no required providers information provided at all. This is a bug in Terraform and should be reported.")
 	}
 
-	if !depsfile.ProviderIsLockable(ss.ProviderAddr) {
-		// If it's not lockable we don't raise errors about it not being in the lock file!
+	if supplyMode != getproviders.ManagedByTerraform {
+		// If the provider is not managed by Terraform then it's not lockable.
+		// If the working directory was initialized in the same way then the PSS provider will not be reflected in the lock file.
+		// Skip them.
+		switch supplyMode {
+		case getproviders.BuiltIn:
+			log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's a built-in provider", ss.ProviderAddr)
+		case getproviders.DevOverride:
+			log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's supplied via developer overrides", ss.ProviderAddr)
+		case getproviders.Reattached:
+			log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's re-attached and not managed by Terraform", ss.ProviderAddr)
+		default:
+			panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", ss.ProviderAddr.Type, ss.ProviderAddr.ForDisplay(), supplyMode))
+		}
 		return diags
 	}
 
-	if depLocks.ProviderIsOverridden(ss.ProviderAddr) {
-		// The "overridden" case is for unusual special situations like
-		// dev overrides, so we'll explicitly note it in the logs just in
-		// case we see bug reports with these active and it helps us
-		// understand why we ended up using the "wrong" plugin.
-		log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's overridden by a special configuration setting", ss.ProviderAddr)
-		return diags
-	}
-
-	isReattached, err := reattach.IsProviderReattached(ss.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
-	if err != nil {
-		return diags.Append(fmt.Errorf("Unable to determine if state storage provider is reattached while verifying required_providers are available to launch a state store. This is a bug in Terraform and should be reported: %w", err))
-	}
-	if isReattached {
-		// Having an empty lock file may be valid if the only provider used is a re-attached provider in use for the state store that's receiver for this method.
-		// An empty lock file might be an issue if other providers are used, but we'll let existing downstream code handle that.
-		//
-		// Note this in the logs to help with any bug reports.
-		log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's not managed by Terraform", ss.ProviderAddr)
-		return diags
-	}
-
-	// From this point on the state storage provider should be present in the lock file, and the lock file should not be empty or missing.
-
-	if depLocks.Empty() && !isReattached {
+	// From this point on the provider currently in use is managed by Terraform
+	//
+	// When the PSS provider is managed, Terraform needs the state storage provider to be present in the lock file,
+	// and the lock file should not be empty or missing.
+	if depLocks.Empty() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Inconsistent dependency lock file",
