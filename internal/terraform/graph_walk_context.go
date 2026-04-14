@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -59,7 +58,6 @@ type ContextGraphWalker struct {
 	// only allowed in the context of a destroy plan.
 	Forget bool
 
-	Actions      *actions.Actions
 	Deprecations *deprecation.Deprecations
 
 	// This is an output. Do not set this, nor read it while a graph walk
@@ -155,7 +153,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		ActionsValue:            w.Actions,
 		ProviderLocksValue:      w.ProviderLocks,
 		PolicyClientValue:       w.PolicyClient,
 		PolicyResultsValue:      w.PolicyResults,
