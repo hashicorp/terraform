@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -34,16 +35,19 @@ type NodeApplyableResourceInstance struct {
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
+
+	actionTriggers []*actionTriggerApplyInstance
 }
 
 var (
-	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviderConsumer = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -263,9 +267,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -305,10 +318,10 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If there is no change, there was nothing to apply, and we don't need to
 	// re-write the state, but we do need to re-evaluate postconditions.
 	if diffApply.Action == plans.NoOp {
-		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+		return diags.Append(n.managedResourcePostconditions(ctx, repData))
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repData, n.CreateBeforeDestroy())
 
 	diags = diags.Append(applyDiags)
 
@@ -384,7 +397,32 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
-	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	diags = diags.Append(n.managedResourcePostconditions(ctx, repData))
+
+	diags = diags.Append(n.invokeActions(ctx))
+
+	return diags
+}
+
+func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, trigger := range n.actionTriggers {
+		diags = diags.Append(trigger.invoke(ctx, walkApply))
+		if diags.HasErrors() {
+			break
+		}
+	}
+
+	return diags
+}
+
+func (n *NodeApplyableResourceInstance) ActionProviders() []ProviderRef {
+	var refs []ProviderRef
+	for _, trigger := range n.actionTriggers {
+		refs = append(refs, ProviderRef{Addr: trigger.actionNode.ResolvedProvider, Resolved: true})
+	}
+	return refs
 }
 
 func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {

@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -93,7 +92,6 @@ type BuiltinEvalContext struct {
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
-	ActionsValue            *actions.Actions
 	DeprecationsValue       *deprecation.Deprecations
 }
 
@@ -660,10 +658,6 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		StorePlannedPrivate:        true,
 		ComputedBlocksAllowed:      true,
 	}
-}
-
-func (ctx *BuiltinEvalContext) Actions() *actions.Actions {
-	return ctx.ActionsValue
 }
 
 func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {
