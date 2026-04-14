@@ -16,6 +16,7 @@ import (
 )
 
 type ActionInvocationInstance struct {
+	// FIXME: deposed instances are lost
 	Addr addrs.AbsActionInstance
 
 	ActionTrigger ActionTrigger
@@ -25,6 +26,10 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
+	// FIXME: this shouldn't be used yet, but will be required for destroy.
+	// FIXME: what do we do about write-only attributes or ephemeral values in
+	// destroy scenarios?
+	// FIXME: sensitive paths are missing
 	ConfigValue cty.Value
 }
 
@@ -52,6 +57,8 @@ var (
 
 // ResourceActionTrigger contains the action trigger configuration from the resource.
 type ResourceActionTrigger struct {
+	// FIXME: how do we indicate an unknown condition?
+
 	TriggeringResourceAddr addrs.AbsResourceInstance
 	// Information about the trigger
 	// The event that triggered this action invocation.

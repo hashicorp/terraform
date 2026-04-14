@@ -70,7 +70,7 @@ func (n *NodePlannableResourceInstanceOrphan) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()

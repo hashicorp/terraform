@@ -210,8 +210,8 @@ resource "test_object" "a" {
 					Detail:   "test case for failing: this simulates a provider failing",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-						End:      hcl.Pos{Line: 7, Column: 45, Byte: 175},
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 					},
 				})
 			},
@@ -265,8 +265,8 @@ resource "test_object" "a" {
 						Detail:   `test case for failing: this simulates a provider failing`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 76, Byte: 315},
-							End:      hcl.Pos{Line: 13, Column: 105, Byte: 344},
+							Start:    hcl.Pos{Line: 4, Column: 1, Byte: 71},
+							End:      hcl.Pos{Line: 4, Column: 34, Byte: 104},
 						},
 					},
 				)
@@ -306,8 +306,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-							End:      hcl.Pos{Line: 7, Column: 47, Byte: 175},
+							Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+							End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 						},
 					},
 				)
@@ -357,8 +357,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
+							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
+							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
 						},
 					},
 				)
@@ -419,8 +419,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
+							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
+							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
 						},
 					},
 				)
@@ -489,8 +489,8 @@ resource "test_object" "a" {
 						Detail:   "test case for failing: this simulates a provider failing",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 17, Column: 18, Byte: 363},
-							End:      hcl.Pos{Line: 17, Column: 47, Byte: 392},
+							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
+							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
 						},
 					},
 				)
@@ -574,8 +574,8 @@ resource "test_object" "b" {
 					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 14, Column: 18, Byte: 238},
-						End:      hcl.Pos{Line: 14, Column: 45, Byte: 265},
+						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 46},
+						End:      hcl.Pos{Line: 5, Column: 32, Byte: 77},
 					},
 				})
 			},
