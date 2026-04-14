@@ -70,7 +70,7 @@ func (s *StateStoreConfigState) Validate() error {
 			return fmt.Errorf("state store is not valid: provider version data is missing despite provider %s being managed by Terraform.", s.Provider.Source.ForDisplay())
 		}
 	default:
-		panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", s.Provider.Source.Type, s.Provider.Source.ForDisplay(), s.ProviderSupplyMode))
+		panic(fmt.Sprintf("State store provider %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", s.Provider.Source.Type, s.Provider.Source.ForDisplay(), s.ProviderSupplyMode))
 	}
 
 	return nil

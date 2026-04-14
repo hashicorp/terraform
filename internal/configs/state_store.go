@@ -39,7 +39,7 @@ type StateStore struct {
 
 	// ProviderSupplyMode describes how the provider used for state storage was supplied to Terraform.
 	// This is needed when handling provider version data; unmanaged and builtin providers have no version data available.
-	// This value is ultimately recorded in the backend state file alongside the provider version data (which may be null).
+	// This value is ultimately recorded in the backend state file alongside the provider version data (which may be nil).
 	ProviderSupplyMode getproviders.ProviderSupplyMode
 
 	TypeRange hcl.Range
@@ -170,7 +170,7 @@ func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *
 		case getproviders.Reattached:
 			log.Printf("[DEBUG] StateStore.VerifyDependencySelection: skipping %s because it's re-attached and not managed by Terraform", ss.ProviderAddr)
 		default:
-			panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", ss.ProviderAddr.Type, ss.ProviderAddr.ForDisplay(), supplyMode))
+			panic(fmt.Sprintf("State store provider %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", ss.ProviderAddr.Type, ss.ProviderAddr.ForDisplay(), supplyMode))
 		}
 		return diags
 	}
@@ -352,7 +352,7 @@ func (b *StateStore) Hash(stateStoreSchema *configschema.Block, providerSchema *
 		}
 		providerVersionString = stateStoreProviderVersion.String()
 	default:
-		panic(fmt.Sprintf("State store provider  %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", b.ProviderAddr.Type, b.ProviderAddr.ForDisplay(), b.ProviderSupplyMode))
+		panic(fmt.Sprintf("State store provider %q (%s) has unknown supply mode %q. This is a bug in Terraform and should be reported.", b.ProviderAddr.Type, b.ProviderAddr.ForDisplay(), b.ProviderSupplyMode))
 	}
 
 	toHash := cty.TupleVal([]cty.Value{
