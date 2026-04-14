@@ -570,6 +570,7 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
+	// FIXME: deposed instances are lost
 	Addr          addrs.AbsActionInstance
 	ActionTrigger ActionTrigger
 

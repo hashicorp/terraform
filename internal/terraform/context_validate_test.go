@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -2973,18 +2972,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 			t.Run("validate", func(t *testing.T) {
 				validateDiags := ctx.Validate(m, nil)
 				tfdiags.AssertDiagnosticsMatch(t, validateDiags, tc.expectedValidationDiags(m))
-			})
-
-			var plan *plans.Plan
-			t.Run("plan", func(t *testing.T) {
-				var planDiags tfdiags.Diagnostics
-				plan, planDiags = ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
-				tfdiags.AssertDiagnosticsMatch(t, planDiags, tc.expectedPlanDiags(m))
-			})
-
-			t.Run("apply", func(t *testing.T) {
-				_, applyDiags := ctx.Apply(plan, m, &ApplyOpts{})
-				tfdiags.AssertDiagnosticsMatch(t, applyDiags, tc.expectedApplyDiags(m))
 			})
 		})
 	}

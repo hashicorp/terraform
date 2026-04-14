@@ -23,33 +23,40 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// Then we're invoking and we're just going to include the actions that
-	// have been specifically asked for.
-	for _, target := range t.ActionTargets {
-		var config *configs.Action
-		switch target := target.(type) {
-		case addrs.AbsAction:
-			module := t.Config.DescendantForInstance(target.Module)
-			if module != nil {
-				config = module.Module.Actions[target.Action.String()]
-			}
-		case addrs.AbsActionInstance:
-			module := t.Config.DescendantForInstance(target.Module)
-			if module != nil {
-				config = module.Module.Actions[target.Action.Action.String()]
-			}
-		default:
-			return fmt.Errorf("Targeted unknown action type %T", target)
+	for _, v := range g.Vertices() {
+		actionNode, ok := v.(*NodeActionConfig)
+		if !ok {
+			continue
 		}
 
-		if config == nil {
-			return fmt.Errorf("action %s does not exist in the configuration", target.String())
-		}
+		for _, target := range t.ActionTargets {
+			// we need to create the invoke node in the correct module scope for each target
+			var targetAddr addrs.ConfigAction
+			var instAddr addrs.AbsActionInstance
 
-		g.Add(&nodeActionInvokeExpand{
-			Target: target,
-			Config: config,
-		})
+			switch target := target.(type) {
+			case addrs.AbsActionInstance:
+				targetAddr = target.ConfigAction()
+				instAddr = target
+			case addrs.AbsAction:
+				targetAddr = target.Config()
+				instAddr = target.Instance(addrs.NoKey)
+			default:
+				panic(fmt.Sprintf("invalid action addr: %#v", target))
+			}
+
+			if !actionNode.Addr.Equal(targetAddr) {
+				continue
+			}
+
+			g.Add(&nodeActionInvokeExpand{
+				Target:       target,
+				Module:       targetAddr.Module,
+				Addr:         instAddr,
+				ActionConfig: actionNode,
+			})
+
+		}
 	}
 
 	return nil

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -218,11 +217,6 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
-
-	// Actions returns the actions object that tracks all of the action
-	// declarations and their instances that are available in this
-	// EvalContext.
-	Actions() *actions.Actions
 
 	// Deprecations returns the deprecations object that tracks meta-information
 	// about deprecation, e.g. which module calls suppress deprecation warnings.
