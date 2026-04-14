@@ -86,26 +86,28 @@ func (n *NodeAbstractAction) AttachActionSchema(schema *providers.ActionSchema) 
 	n.Schema = schema
 }
 
-func (n *NodeAbstractAction) ProvidedBy() (addrs.ProviderConfig, bool) {
+func (n *NodeAbstractAction) Provider() ProviderRef {
 	// If the resolvedProvider is set, use that
 	if n.ResolvedProvider.Provider.Type != "" {
-		return n.ResolvedProvider, true
+		ref := ProviderRef{
+			addr:     n.ResolvedProvider,
+			resolved: true,
+		}
+		return ref
 	}
 
-	// otherwise refer back to the config
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
-
-func (n *NodeAbstractAction) Provider() addrs.Provider {
+	var addr addrs.AbsProviderConfig
 	if n.Config.Provider.Type != "" {
-		return n.Config.Provider
+		addr.Provider = n.Config.Provider
+	} else {
+		addr.Provider = addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
 	}
 
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
+	addr.Alias = n.Config.ProviderConfigAddr().Alias
+	addr.Module = n.ModulePath()
+	return ProviderRef{
+		addr: addr,
+	}
 }
 
 func (n *NodeAbstractAction) SetProvider(p addrs.AbsProviderConfig) {

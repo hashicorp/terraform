@@ -62,30 +62,69 @@ type GraphNodeCloseProvider interface {
 	CloseProviderAddr() addrs.AbsProviderConfig
 }
 
-// GraphNodeProviderConsumer is an interface that nodes that require
-// a provider must implement. ProvidedBy must return the address of the provider
-// to use, which will be resolved to a configuration either in the same module
-// or in an ancestor module, with the resulting absolute address passed to
-// SetProvider.
+// GraphNodeProviderConsumer is an interface that nodes that require a provider
+// must implement. ProviderRef must contain the address of the provider to use,
+// which will be resolved to a configuration either in the same module or in an
+// ancestor module, with the resulting absolute address passed to SetProvider.
 type GraphNodeProviderConsumer interface {
 	GraphNodeModulePath
-	// ProvidedBy returns the address of the provider configuration the node
-	// refers to, if available. The following value types may be returned:
-	//
-	//   nil + exact true: the node does not require a provider
-	// * addrs.LocalProviderConfig: the provider was set in the resource config
-	// * addrs.AbsProviderConfig + exact true: the provider configuration was
-	//   taken from the instance state.
-	// * addrs.AbsProviderConfig + exact false: no config or state; the returned
-	//   value is a default provider configuration address for the resource's
-	//   Provider
-	ProvidedBy() (addr addrs.ProviderConfig, exact bool)
-
-	// Provider() returns the Provider FQN for the node.
-	Provider() (provider addrs.Provider)
+	// Provider returns the provider requested by this resource.
+	Provider() (provider ProviderRef)
 
 	// Set the resolved provider address for this resource.
 	SetProvider(addrs.AbsProviderConfig)
+}
+
+// ProviderRef stores the current known provider status for a resource
+type ProviderRef struct {
+	// addr indicates the currently known addr for this resource's provider.
+	addr addrs.AbsProviderConfig
+
+	// If resolved is true, then we are certain that the provider represents the
+	// actual provider configuration address.
+	resolved bool
+
+	// NoProvider indicates that this this resource does not need to be
+	// connected to a running provider instance.
+	NoProvider bool
+}
+
+// Return the AbsProviderConfig requested by the resource.
+//
+// If Resolved() is not true, the returned address is assumed to be in the same
+// module as the resource. This is so that the resolution algorithm can start in
+// the resource's module to look for legacy style configuration blocks within
+// modules, as it walks up towards the root.
+func (r ProviderRef) AbsProviderConfig() addrs.AbsProviderConfig {
+	return r.addr
+}
+
+// FQN is the filly qualified name for this provider type.
+func (r ProviderRef) FQN() addrs.Provider {
+	return r.addr.Provider
+}
+
+// Resolved indicated that we know the request knows the exact address of the
+// needed provider, and we cannot transfer it to an automatically inherited
+// provider config.
+func (r ProviderRef) Resolved() bool {
+	return r.resolved
+}
+
+// If Required returns false, no provider instance is needed for this resource
+// to execute, and only FQN() is known to be fully resolved.
+func (r ProviderRef) Required() bool {
+	return !r.NoProvider
+}
+
+// As string representation of the AbsProviderConfig
+func (r ProviderRef) String() string {
+	return r.addr.String()
+}
+
+// Returns the FQN string from the provider type.
+func (r ProviderRef) ForDisplay() string {
+	return r.addr.Provider.ForDisplay()
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to providers
@@ -108,62 +147,23 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// the next step.
 	// Our "requested" map is from graph vertices to string representations of
 	// provider config addresses (for deduping) to requests.
-	type ProviderRequest struct {
-		Addr  addrs.AbsProviderConfig
-		Exact bool // If true, inheritance from parent modules is not attempted
-	}
-	requested := map[dag.Vertex]map[string]ProviderRequest{}
+
+	requested := map[dag.Vertex]map[string]ProviderRef{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}
 	for _, v := range g.Vertices() {
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			providerAddr, exact := pv.ProvidedBy()
-			if providerAddr == nil && exact {
+			absPc := pv.Provider()
+			if absPc.NoProvider {
 				// no provider is required
 				continue
 			}
 
-			requested[v] = make(map[string]ProviderRequest)
-
-			var absPc addrs.AbsProviderConfig
-
-			switch p := providerAddr.(type) {
-			case addrs.AbsProviderConfig:
-				// ProvidedBy() returns an AbsProviderConfig when the provider
-				// configuration is set in state, so we do not need to verify
-				// the FQN matches.
-				absPc = p
-
-				if exact {
-					log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
-				}
-
-			case addrs.LocalProviderConfig:
-				// ProvidedBy() return a LocalProviderConfig when the resource
-				// contains a `provider` attribute
-				absPc.Provider = pv.Provider()
-				modPath := pv.ModulePath()
-				if t.Config == nil {
-					absPc.Module = modPath
-					absPc.Alias = p.Alias
-					break
-				}
-
-				absPc.Module = modPath
-				absPc.Alias = p.Alias
-
-			default:
-				// This should never happen; the case statements are meant to be exhaustive
-				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
-			}
-
-			requested[v][absPc.String()] = ProviderRequest{
-				Addr:  absPc,
-				Exact: exact,
-			}
+			requested[v] = make(map[string]ProviderRef)
+			requested[v][absPc.String()] = absPc
 
 			// Direct references need the provider configured as well as initialized
-			needConfigured[absPc.String()] = absPc
+			needConfigured[absPc.String()] = absPc.AbsProviderConfig()
 		}
 	}
 
@@ -173,7 +173,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 	for v, reqs := range requested {
 		for key, req := range reqs {
-			p := req.Addr
+			p := req.AbsProviderConfig()
 			target := m[key]
 
 			_, ok := v.(GraphNodeModulePath)
@@ -189,7 +189,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			// if we don't have a provider at this level, walk up the path looking for one,
 			// unless we were told to be exact.
-			if target == nil && !req.Exact {
+			if target == nil && !req.Resolved() {
 				for pp, ok := p.Inherited(); ok; pp, ok = pp.Inherited() {
 					key := pp.String()
 					target = m[key]
@@ -295,20 +295,15 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		p, exact := pc.ProvidedBy()
-		if p == nil && exact {
+		providerRef := pc.Provider()
+		if providerRef.NoProvider {
 			// this node does not require a provider
 			continue
 		}
 
-		provider, ok := p.(addrs.AbsProviderConfig)
+		closer, ok := cpm[providerRef.String()]
 		if !ok {
-			return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
-		}
-
-		closer, ok := cpm[provider.String()]
-		if !ok {
-			return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+			return fmt.Errorf("no graphNodeCloseProvider for %s", providerRef)
 		}
 		g.Connect(dag.BasicEdge(closer, v))
 	}
@@ -356,7 +351,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		// For our work here we actually care only about the provider type and
 		// we plan to place all default providers in the root module.
-		providerFqn := pv.Provider()
+		providerFqn := pv.Provider().FQN()
 
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other

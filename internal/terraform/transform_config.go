@@ -37,10 +37,6 @@ type ConfigTransformer struct {
 	// Module is the module to add resources from.
 	Config *configs.Config
 
-	// Mode will only add resources that match the given mode
-	ModeFilter bool
-	Mode       addrs.ResourceMode
-
 	// some actions are skipped during the destroy process
 	destroy bool
 
@@ -158,11 +154,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 	for _, r := range allResources {
 		relAddr := r.Addr()
-
-		if t.ModeFilter && relAddr.Mode != t.Mode {
-			// Skip non-matching modes
-			continue
-		}
 
 		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
 		var diags tfdiags.Diagnostics

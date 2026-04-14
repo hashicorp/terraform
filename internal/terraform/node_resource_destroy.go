@@ -39,12 +39,14 @@ func (n *NodeDestroyResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
-func (n *NodeDestroyResourceInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *NodeDestroyResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
-		return nil, true
+		p := n.NodeAbstractResourceInstance.Provider()
+		p.NoProvider = true
+		return p
 	}
-	return n.NodeAbstractResourceInstance.ProvidedBy()
+	return n.NodeAbstractResourceInstance.Provider()
 }
 
 // GraphNodeDestroyer

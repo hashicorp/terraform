@@ -79,21 +79,21 @@ func (n *nodeAbstractActionTrigger) References() []*addrs.Reference {
 	return refs
 }
 
-func (n *nodeAbstractActionTrigger) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *nodeAbstractActionTrigger) Provider() ProviderRef {
 	if n.resolvedProvider.Provider.Type != "" {
-		return n.resolvedProvider, true
+		return ProviderRef{
+			addr:     n.resolvedProvider,
+			resolved: true,
+		}
 	}
 
-	// Since we always have a config, we can use it
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
-
-func (n *nodeAbstractActionTrigger) Provider() (provider addrs.Provider) {
-	return n.Config.Provider
+	return ProviderRef{
+		addr: addrs.AbsProviderConfig{
+			Provider: n.Config.Provider,
+			Module:   n.ModulePath(),
+			Alias:    n.Config.ProviderConfigAddr().Alias,
+		},
+	}
 }
 
 func (n *nodeAbstractActionTrigger) SetProvider(config addrs.AbsProviderConfig) {

@@ -200,13 +200,11 @@ func (n *nodeActionTriggerApplyInstance) Execute(ctx EvalContext, wo walkOperati
 	return diags
 }
 
-func (n *nodeActionTriggerApplyInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
-	return n.ActionInvocation.ProviderAddr, true
-
-}
-
-func (n *nodeActionTriggerApplyInstance) Provider() (provider addrs.Provider) {
-	return n.ActionInvocation.ProviderAddr.Provider
+func (n *nodeActionTriggerApplyInstance) Provider() ProviderRef {
+	return ProviderRef{
+		addr:     n.ActionInvocation.ProviderAddr,
+		resolved: true,
+	}
 }
 
 func (n *nodeActionTriggerApplyInstance) SetProvider(config addrs.AbsProviderConfig) {

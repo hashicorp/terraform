@@ -36,26 +36,6 @@ func TestConfigTransformer(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_mode(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	tf := &ConfigTransformer{
-		Config:     testModule(t, "transform-config-mode-data"),
-		ModeFilter: true,
-		Mode:       addrs.DataResourceMode,
-	}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-data.aws_ami.foo
-`)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
 func TestConfigTransformer_nonUnique(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(NewNodeAbstractResource(
