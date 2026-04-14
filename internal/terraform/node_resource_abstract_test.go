@@ -153,7 +153,7 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 
 	node.SetProvider(resolved)
 	apc := node.Provider()
-	if !apc.Resolved() {
+	if !apc.Resolved {
 		t.Fatalf("exact provider should be found, got %q\n", apc)
 	}
 

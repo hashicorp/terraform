@@ -74,15 +74,6 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 			if tn, ok := v.(GraphNodeTargetable); ok {
 				tn.SetTargets(addrs)
 			}
-
-			if _, ok := v.(*nodeExpandPlannableResource); ok {
-				// We want to also set the resource instance triggers on the related action triggers
-				for _, d := range g.UpEdges(v) {
-					if actionTrigger, ok := d.(*nodeActionTriggerPlanExpand); ok {
-						actionTrigger.SetResourceTargets(addrs)
-					}
-				}
-			}
 		}
 	}
 
@@ -161,9 +152,11 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
+
+	// invoke nodes are implicitly targeted
 	case *nodeActionInvokeExpand:
-		vertexAddr = r.Target
-	case *nodeActionTriggerApplyInstance:
+		vertexAddr = r.Addr
+	case *nodeActionInvokeApplyInstance:
 		vertexAddr = r.ActionInvocation.Addr
 
 	default:
@@ -211,31 +204,5 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 
 	for _, d := range g.Ancestors(v) {
 		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
-	}
-
-	if _, ok := v.(*nodeExpandPlannableResource); ok {
-		// We want to also add the action triggers related to this resource
-		for _, d := range g.UpEdges(v) {
-			if _, ok := d.(*nodeActionTriggerPlanExpand); ok {
-				t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
-			}
-		}
-	}
-
-	// An applyable resources might have an associated after_* triggered action.
-	// We need to add that action to the targeted nodes as well, together with all its dependencies.
-	if _, ok := v.(*nodeExpandApplyableResource); ok {
-		for _, f := range g.UpEdges(v) {
-			if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
-				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
-			}
-		}
-	}
-	if _, ok := v.(*NodeApplyableResourceInstance); ok {
-		for _, f := range g.UpEdges(v) {
-			if _, ok := f.(*nodeActionTriggerApplyExpand); ok {
-				t.addVertexDependenciesToTargetedNodes(g, f, targetedNodes, addrs)
-			}
-		}
 	}
 }

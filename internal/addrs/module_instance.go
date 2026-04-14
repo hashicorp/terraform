@@ -504,6 +504,12 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 	case AbsResourceInstance:
 		return m.TargetContains(to.Module)
 
+	case AbsAction:
+		return m.TargetContains(to.Module)
+
+	case AbsActionInstance:
+		return m.TargetContains(to.Module)
+
 	default:
 		return false
 	}

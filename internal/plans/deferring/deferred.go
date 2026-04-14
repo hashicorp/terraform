@@ -696,15 +696,17 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	// Check if the action invocation is already deferred
-	for _, deferred := range d.actionInvocationDeferred {
-		if deferred.ActionInvocationInstance.Equals(&ai) {
-			// This indicates a bug in the caller, since our graph walk should
-			// ensure that we visit and evaluate each distinct action invocation
-			// only once.
-			panic(fmt.Sprintf("duplicate deferral report for action %s invoked by %s", ai.Addr.String(), ai.ActionTrigger.TriggerEvent().String()))
-		}
-	}
+	// FIXME: an action can be invoked from multiple triggers, so it could be deferred multiple times
+	//
+	// // Check if the action invocation is already deferred
+	// for _, deferred := range d.actionInvocationDeferred {
+	// 	if deferred.ActionInvocationInstance.Equals(&ai) {
+	// 		// This indicates a bug in the caller, since our graph walk should
+	// 		// ensure that we visit and evaluate each distinct action invocation
+	// 		// only once.
+	// 		panic(fmt.Sprintf("duplicate deferral report for action %s invoked by %s", ai.Addr.String(), ai.ActionTrigger.TriggerEvent().String()))
+	// 	}
+	// }
 
 	d.actionInvocationDeferred = append(d.actionInvocationDeferred, &plans.DeferredActionInvocation{
 		ActionInvocationInstance: &ai,
@@ -712,6 +714,7 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 	})
 }
 
+// FIXME: an action in isolation doesn't do anything, so what does it mean for it to be deferred?
 func (d *Deferred) ReportActionDeferred(addr addrs.AbsActionInstance, reason providers.DeferredReason) {
 	d.mu.Lock()
 	defer d.mu.Unlock()

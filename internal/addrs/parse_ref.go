@@ -59,6 +59,13 @@ func (r *Reference) DisplayString() string {
 	return ret.String()
 }
 
+// All referenceable addrs are also UniqueKeyers
+func (r Reference) UniqueKey() UniqueKey {
+	return r.Subject.UniqueKey()
+}
+
+func (r Reference) uniqueKeySigil() {}
+
 // ParseRef attempts to extract a referenceable address from the prefix of the
 // given traversal, which must be an absolute traversal or this function
 // will panic.

@@ -61,7 +61,7 @@ func actionExprToTraversal(expr hcl.Expression, repData instances.RepetitionData
 
 		// The index key is the only place where we could have variables that
 		// reference count and each, so we need to parse those independently.
-		idx, hclDiags := parseReplaceTriggeredByKeyExpr(e.Key, repData)
+		idx, hclDiags := parseKeyExprForStaticTraveral(e.Key, repData)
 		diags = diags.Append(hclDiags)
 
 		trav = append(trav, idx)
