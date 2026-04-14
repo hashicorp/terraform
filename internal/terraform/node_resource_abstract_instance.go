@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
@@ -53,6 +54,24 @@ type NodeAbstractResourceInstance struct {
 	// override is set by the graph itself, just before this node executes.
 	override *configs.Override
 }
+
+var (
+	_ GraphNodeModuleInstance            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferenceable             = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
+	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
+)
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
 // node for the given absolute resource instance address.
@@ -779,9 +798,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
 	forceReplace bool,
-) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
+	keyData instances.RepetitionData,
+) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var keyData instances.RepetitionData
 	var deferred *providers.Deferred
 
 	resource := n.Addr.Resource.Resource
@@ -789,14 +808,14 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, nil, deferred, keyData, diags.Append(err)
+		return nil, nil, deferred, diags.Append(err)
 	}
 
 	schema := providerSchema.SchemaForResourceAddr(resource)
 	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	// If we're importing and generating config, generate it now.
@@ -810,7 +829,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			tfdiags.Error,
 			"Resource has no configuration",
 			fmt.Sprintf("Terraform attempted to process a resource at %s that has no configuration. This is a bug in Terraform; please report it!", n.Addr.String())))
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	config := *n.Config
@@ -828,9 +847,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// Evaluate the configuration
-	forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-
-	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -840,14 +856,14 @@ func (n *NodeAbstractResourceInstance) plan(
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags // failed preconditions prevent further evaluation
+		return nil, nil, deferred, diags // failed preconditions prevent further evaluation
 	}
 
 	// If we have a previous plan and the action was a noop, then the only
 	// reason we're in this method was to evaluate the preconditions. There's
 	// no need to re-plan this resource.
 	if plannedChange != nil && plannedChange.Action == plans.NoOp {
-		return plannedChange, currentState.DeepCopy(), deferred, keyData, diags
+		return plannedChange, currentState.DeepCopy(), deferred, diags
 	}
 
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
@@ -859,13 +875,13 @@ func (n *NodeAbstractResourceInstance) plan(
 	origConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(origConfigVal, schema.Body, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	var priorVal cty.Value
@@ -911,7 +927,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	// ignore_changes is meant to only apply to the configuration, so it must
@@ -924,7 +940,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema.Body)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	// Create an unmarked version of our config val and our prior val.
@@ -943,7 +959,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal, nil)
 	}))
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	var resp providers.PlanResourceChangeResponse
@@ -993,7 +1009,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
 		}))
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	// We mark this node as deferred at a later point when we know the complete change
@@ -1030,7 +1046,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 
 		// We allow the planned new value to disagree with configuration _values_
@@ -1049,7 +1065,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		if diags.HasErrors() {
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 
 		if errs := objchange.AssertPlanValid(schema.Body, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
@@ -1079,7 +1095,7 @@ func (n *NodeAbstractResourceInstance) plan(
 						),
 					))
 				}
-				return nil, nil, deferred, keyData, diags
+				return nil, nil, deferred, diags
 			}
 		}
 	}
@@ -1100,7 +1116,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 	}
 
@@ -1123,7 +1139,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, writeOnlyPaths, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	woPathSet := cty.NewPathSet(writeOnlyPaths...)
@@ -1137,7 +1153,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
 	}
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	if action.IsReplace() {
@@ -1212,7 +1228,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
 			}))
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 
 		if deferred == nil && resp.Deferred != nil {
@@ -1241,7 +1257,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
 			}))
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
@@ -1262,7 +1278,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
 			}))
-			return nil, nil, deferred, keyData, diags
+			return nil, nil, deferred, diags
 		}
 	}
 
@@ -1311,7 +1327,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal, nil)
 	}))
 	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags
+		return nil, nil, deferred, diags
 	}
 
 	// Update our return plan
@@ -1349,7 +1365,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		Identity: resp.PlannedIdentity,
 	}
 
-	return plan, state, deferred, keyData, diags
+	return plan, state, deferred, diags
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {

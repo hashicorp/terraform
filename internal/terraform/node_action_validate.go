@@ -17,7 +17,7 @@ import (
 
 // NodeValidatableAction represents an action that is used for validation only.
 type NodeValidatableAction struct {
-	*NodeAbstractAction
+	*NodeActionConfig
 }
 
 var (

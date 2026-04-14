@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -168,9 +167,6 @@ type MockEvalContext struct {
 
 	ForgetCalled bool
 	ForgetValues bool
-
-	ActionsCalled bool
-	ActionsState  *actions.Actions
 
 	DeprecationCalled bool
 	DeprecationState  *deprecation.Deprecations
@@ -451,11 +447,6 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		StorePlannedPrivate:        true,
 		ComputedBlocksAllowed:      true,
 	}
-}
-
-func (c *MockEvalContext) Actions() *actions.Actions {
-	c.ActionsCalled = true
-	return c.ActionsState
 }
 
 func (c *MockEvalContext) Deprecations() *deprecation.Deprecations {

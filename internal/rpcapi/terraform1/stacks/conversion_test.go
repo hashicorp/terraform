@@ -27,7 +27,7 @@ func TestActionTriggerEventForStackChangeProgress(t *testing.T) {
 		{configs.BeforeDestroy, StackChangeProgress_BEFORE_DESTROY, false},
 		{configs.AfterDestroy, StackChangeProgress_AFTER_DESTROY, false},
 		{configs.Invoke, StackChangeProgress_INVOKE, false},
-		{configs.Unknown, StackChangeProgress_INVALID_EVENT, true},
+		{configs.EventUnknown, StackChangeProgress_INVALID_EVENT, true},
 	}
 
 	for _, tt := range tests {
@@ -56,7 +56,7 @@ func TestActionTriggerEventForPlannedChange(t *testing.T) {
 		{configs.BeforeDestroy, PlannedChange_BEFORE_DESTROY, false},
 		{configs.AfterDestroy, PlannedChange_AFTER_DESTROY, false},
 		{configs.Invoke, PlannedChange_INVOKE, false},
-		{configs.Unknown, PlannedChange_INVALID_EVENT, true},
+		{configs.EventUnknown, PlannedChange_INVALID_EVENT, true},
 	}
 
 	for _, tt := range tests {
