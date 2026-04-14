@@ -71,6 +71,9 @@ type GRPCProvider struct {
 	// but it may not always be available for alternative execute modes.
 	Addr addrs.Provider
 
+	// SkipCache WIP
+	SkipCache bool
+
 	// Proto client use to make the grpc service calls.
 	client proto6.ProviderClient
 
@@ -93,7 +96,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	if !p.Addr.IsZero() {
+	if !p.Addr.IsZero() && !p.SkipCache {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok && resp.ServerCapabilities.GetProviderSchemaOptional {
 			logger.Trace("GRPCProvider.v6: returning cached schema", p.Addr.String())
 			return resp
@@ -208,7 +211,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	// set the global cache if we can
-	if !p.Addr.IsZero() {
+	if !p.Addr.IsZero() && !p.SkipCache {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
 

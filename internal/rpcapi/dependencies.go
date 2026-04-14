@@ -717,11 +717,13 @@ func providerFactoriesForLocks(locks *depsfile.Locks, pluginsDir *providercache.
 				p := raw.(*tfplugin.GRPCProvider)
 				p.PluginClient = client
 				p.Addr = addr
+				p.SkipCache = false
 				return p, nil
 			case 6:
 				p := raw.(*tfplugin6.GRPCProvider)
 				p.PluginClient = client
 				p.Addr = addr
+				p.SkipCache = false
 				return p, nil
 			default:
 				panic("unsupported protocol version")

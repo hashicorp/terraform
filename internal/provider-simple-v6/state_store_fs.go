@@ -25,6 +25,8 @@ import (
 const fsStoreName = "simple6_fs"
 const defaultStatesDir = "terraform.tfstate.d"
 
+var parentDir = ""
+
 // FsStore allows storing state in the local filesystem.
 //
 // This state storage implementation differs from the old "local" backend in core,
@@ -77,6 +79,10 @@ func (f *FsStore) ConfigureStateStore(req providers.ConfigureStateStoreRequest) 
 		f.statesDir = v.AsString()
 	} else {
 		f.statesDir = defaultStatesDir
+	}
+
+	if parentDir != "" {
+		f.statesDir = filepath.Join(parentDir, f.statesDir)
 	}
 
 	if f.states == nil {
@@ -172,6 +178,7 @@ func (f *FsStore) ReadStateBytes(req providers.ReadStateBytesRequest) providers.
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
 	path := f.getStatePath(req.StateId)
+	log.Printf("[DEBUG] ReadStateBytes: reading data from path %q", path)
 	file, err := os.Open(path)
 
 	fileExists := true
@@ -224,6 +231,8 @@ func (f *FsStore) WriteStateBytes(req providers.WriteStateBytesRequest) provider
 
 	// E.g. terraform.tfstate.d/foobar/terraform.tfstate
 	path := f.getStatePath(req.StateId)
+
+	log.Printf("[DEBUG] WriteStateBytes: writing data to path %q", path)
 
 	// Create or open state file
 	dir := f.getStateDir(req.StateId)

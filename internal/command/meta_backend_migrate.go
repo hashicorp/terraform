@@ -28,6 +28,7 @@ import (
 
 type backendMigrateOpts struct {
 	SourceType, DestinationType string
+	SkipGetProviderSchemaCache  bool
 	Source, Destination         backend.Backend
 	ViewType                    arguments.ViewType
 
@@ -496,7 +497,8 @@ func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opt
 }
 
 func (m *Meta) backendMigrateNonEmptyConfirm(
-	sourceState, destinationState statemgr.Full, opts *backendMigrateOpts) (bool, error) {
+	sourceState, destinationState statemgr.Full, opts *backendMigrateOpts,
+) (bool, error) {
 	// We need to grab both states so we can write them to a file
 	source := sourceState.State()
 	destination := destinationState.State()
@@ -580,7 +582,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if err != nil {
 		return err
 	}
-	//to be used below, not yet implamented
+	// to be used below, not yet implamented
 	// destinationWorkspaces, destinationSingleState
 	_, _, err = retrieveWorkspaces(opts.Destination, opts.SourceType)
 	if err != nil {
@@ -639,7 +641,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		if migrate, err := m.promptSingleToCloudSingleStateMigration(opts); err != nil {
 			return err
 		} else if !migrate {
-			return nil //skip migrating but return successfully
+			return nil // skip migrating but return successfully
 		}
 
 		return m.backendMigrateState_s_s(opts)

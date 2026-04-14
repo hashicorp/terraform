@@ -56,6 +56,14 @@ func ProviderWithDefaultState() providers.Interface {
 	return p
 }
 
+// ProviderWithParentStatePath returns an instance of providers.Interface,
+// where the path to the states directory is prepended with the given path.
+func ProviderWithParentStatePath(path string) providers.Interface {
+	parentDir = path
+	p := provider()
+	return p
+}
+
 // provider returns an instance of simple
 func provider() simple {
 	simpleResource := providers.Schema{

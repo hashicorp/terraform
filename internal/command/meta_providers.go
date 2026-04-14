@@ -280,7 +280,9 @@ func (m *Meta) ProviderFactories() (map[addrs.Provider]providers.Factory, error)
 		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
 	}
 
-	return m.providerFactoriesFromLocks(locks)
+	// Pass false as skipCache because this function is not used to launch 'old' versions of a provider
+	// during a state migration using state_store
+	return m.providerFactoriesFromLocks(locks, false)
 }
 
 // ProviderFactoriesFromLocks receives in memory locks and uses them to produce a map
@@ -290,12 +292,12 @@ func (m *Meta) ProviderFactories() (map[addrs.Provider]providers.Factory, error)
 // ProviderFactoriesFromLocks should only be used if the calling code relies on locks
 // that have not yet been persisted to a dependency lock file on disk. Realistically, this
 // means only code in the init command should use this method.
-func (m *Meta) ProviderFactoriesFromLocks(configLocks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
+func (m *Meta) ProviderFactoriesFromLocks(configLocks *depsfile.Locks, skipCache bool) (map[addrs.Provider]providers.Factory, error) {
 	// Ensure overrides and unmanaged providers are reflected in the returned list of factories,
 	// while avoiding mutating the in-memory
 	locks := m.annotateDependencyLocksWithOverrides(configLocks.DeepCopy())
 
-	return m.providerFactoriesFromLocks(locks)
+	return m.providerFactoriesFromLocks(locks, skipCache)
 }
 
 // providerFactoriesFromLocks returns a map of provider factories from a given set of locks.
@@ -304,7 +306,7 @@ func (m *Meta) ProviderFactoriesFromLocks(configLocks *depsfile.Locks) (map[addr
 // Instead, use:
 // * `ProviderFactoriesFromLocks` - for use when locks aren't yet persisted to a dependency lock file.
 // * `ProviderFactories` - for use when Terraform is guaranteed to read all necessary locks from a dependency lock file.
-func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
+func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks, skipCache bool) (map[addrs.Provider]providers.Factory, error) {
 	// We'll always run through all of our providers, even if one of them
 	// encounters an error, so that we can potentially report multiple errors
 	// where appropriate and so that callers can potentially make use of the
@@ -390,7 +392,7 @@ func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks) (map[addrs.Prov
 				continue
 			}
 		}
-		factories[provider] = providerFactory(cached)
+		factories[provider] = providerFactory(cached, skipCache)
 	}
 	for provider, localDir := range devOverrideProviders {
 		factories[provider] = devOverrideProviderFactory(provider, localDir)
@@ -419,7 +421,7 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 // providerFactory produces a provider factory that runs up the executable
 // file in the given cache package and uses go-plugin to implement
 // providers.Interface against it.
-func providerFactory(meta *providercache.CachedProvider) providers.Factory {
+func providerFactory(meta *providercache.CachedProvider, skipCache bool) providers.Factory {
 	return func() (providers.Interface, error) {
 		execFile, err := meta.ExecutableFile()
 		if err != nil {
@@ -451,23 +453,25 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		// store the client so that the plugin can kill the child process
 		protoVer := client.NegotiatedVersion()
-		return finalizeFactoryPlugin(raw, protoVer, meta.Provider, client), nil
+		return finalizeFactoryPlugin(raw, protoVer, meta.Provider, skipCache, client), nil
 	}
 }
 
 // finalizeFactoryPlugin completes the setup of a plugin dispensed by the rpc
 // client to be returned by the plugin factory.
-func finalizeFactoryPlugin(rawPlugin any, protoVersion int, addr addrs.Provider, client *plugin.Client) providers.Interface {
+func finalizeFactoryPlugin(rawPlugin any, protoVersion int, addr addrs.Provider, skipCache bool, client *plugin.Client) providers.Interface {
 	switch protoVersion {
 	case 5:
 		p := rawPlugin.(*tfplugin.GRPCProvider)
 		p.PluginClient = client
 		p.Addr = addr
+		p.SkipCache = skipCache
 		return p
 	case 6:
 		p := rawPlugin.(*tfplugin6.GRPCProvider)
 		p.PluginClient = client
 		p.Addr = addr
+		p.SkipCache = skipCache
 		return p
 	default:
 		panic("unsupported protocol version")
@@ -480,11 +484,12 @@ func devOverrideProviderFactory(provider addrs.Provider, localDir getproviders.P
 	// doesn't actually care about the version, so we can leave it
 	// unspecified: overridden providers are not explicitly versioned.
 	log.Printf("[DEBUG] Provider %s is overridden to load from %s", provider, localDir)
+	skipCache := false
 	return providerFactory(&providercache.CachedProvider{
 		Provider:   provider,
 		Version:    getproviders.UnspecifiedVersion,
 		PackageDir: string(localDir),
-	})
+	}, skipCache)
 }
 
 // unmanagedProviderFactory produces a provider factory that uses the passed
@@ -532,6 +537,7 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 
 		// store the client so that the plugin can kill the child process
 		protoVer := client.NegotiatedVersion()
+		skipCache := false
 		switch protoVer {
 		case 0, 5:
 			// As of the 0.15 release, sdk.v2 doesn't include the protocol
@@ -539,9 +545,9 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			// go-plugin), so client.NegotiatedVersion() always returns 0. We
 			// assume that an unmanaged provider reporting protocol version 0 is
 			// actually using proto v5 for backwards compatibility.
-			return finalizeFactoryPlugin(raw, 5, provider, client), nil
+			return finalizeFactoryPlugin(raw, 5, provider, skipCache, client), nil
 		case 6:
-			return finalizeFactoryPlugin(raw, 6, provider, client), nil
+			return finalizeFactoryPlugin(raw, 6, provider, skipCache, client), nil
 		default:
 			return nil, fmt.Errorf("unsupported protocol version %d", protoVer)
 		}

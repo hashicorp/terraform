@@ -234,10 +234,10 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, configLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, previousLocks, configLocks, view)
 	default:
 		// load the previously-stored backend config
-		back, backDiags = c.Meta.backendFromState(ctx)
+		back, backDiags = c.Meta.backendFromState(ctx, previousLocks)
 	}
 	if backendOutput {
 		header = true
