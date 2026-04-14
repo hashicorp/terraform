@@ -118,6 +118,7 @@ jobs:
           - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "s390x", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
