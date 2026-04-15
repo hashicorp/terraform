@@ -1,0 +1,39 @@
+---
+description: Governance rules for terraform — quality gates, security, conventions
+globs:
+  - "**/*.go"
+alwaysApply: true
+---
+
+# Governance — terraform
+
+> Generated from governance.md by crag. Regenerate: `crag compile --target cursor`
+
+**Stack:** go, docker
+
+## Quality Gates
+
+Run these checks in order before committing:
+### Lint
+- `go vet ./...`
+
+### Test
+- `go test ./...`
+
+### Ci (inferred from workflow)
+- `go test -race -timeout=30m -v ./tfexec/internal/e2etest`
+- `go test -cover "./...")`
+- `go test -race ./internal/terraform ./internal/command ./internal/states`
+- `make syncdeps`
+- `make fmtcheck importscheck vetcheck copyright generate staticcheck exhaustive protobuf`
+
+### Contributor docs (advisory — confirm before enforcing)
+- `go build  # from .github/CONTRIBUTING.md`
+## Security
+
+- No hardcoded secrets — grep for sk_live, AKIA, password= before commit
+
+## Conventions
+
+- Follow project commit conventions
+- Runtimes: go
