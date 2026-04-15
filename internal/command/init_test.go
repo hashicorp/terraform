@@ -4513,7 +4513,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		t.Logf("First run errors:\n%s", testOutput.Stderr())
 
 		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("error when checking the backend state file exists: %s", err)
 		}
 	}
 	{
@@ -4570,7 +4570,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("expected apply to fail: \n%s", testOutput.All())
 		}
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: apply complete")
-		expectedErr := "Backend initialization required"
+		expectedErr := "State store initialization required"
 		if !strings.Contains(testOutput.Stderr(), expectedErr) {
 			t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, testOutput.Stderr())
 		}
@@ -4578,10 +4578,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: uninitialised apply complete")
 		t.Logf("First run output:\n%s", testOutput.Stdout())
 		t.Logf("First run errors:\n%s", testOutput.Stderr())
-
-		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
-			t.Fatalf("err: %s", err)
-		}
 	}
 	{
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning second init")
@@ -4624,48 +4620,26 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("bad: \n%s", testOutput.All())
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: second init complete")
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
 
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if !s.StateStore.Empty() {
-			t.Fatal("should not have StateStore config")
+		expectedErrMsgs := []string{
+			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			// Assert both commands are mentioned
+			"run \"terraform state migrate\"",
+			"run \"terraform init -reconfigure\"",
 		}
-		if s.Backend.Empty() {
-			t.Fatalf("expected backend to not be empty")
-		}
-
-		data, err := statefile.Read(bytes.NewBuffer(testBackend.Data))
-		if err != nil {
-			t.Fatal(err)
-		}
-		expectedOutputs := map[string]*states.OutputValue{
-			"test": {
-				Addr: addrs.AbsOutputValue{
-					OutputValue: addrs.OutputValue{
-						Name: "test",
-					},
-				},
-				Value: cty.StringVal("test"),
-			},
-		}
-		if diff := cmp.Diff(expectedOutputs, data.State.RootOutputValues); diff != "" {
-			t.Fatalf("unexpected data: %s", diff)
-		}
-
-		expectedGetCalls := 6
-		if testBackend.CallCount("GET") != expectedGetCalls {
-			t.Fatalf("expected %d GET calls, got %d", expectedGetCalls, testBackend.CallCount("GET"))
-		}
-		expectedPostCalls := 1
-		if testBackend.CallCount("POST") != expectedPostCalls {
-			t.Fatalf("expected %d POST calls, got %d", expectedPostCalls, testBackend.CallCount("POST"))
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration.
 }
 
 // Test that users are shown actionable errors if they try to use a state store in a non-init command
