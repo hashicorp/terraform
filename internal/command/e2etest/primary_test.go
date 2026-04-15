@@ -624,11 +624,13 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 		if err.Error() != "exit status 1" {
 			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 		}
-		if !strings.Contains(stdout, "Warning: Provider development overrides are in effect") {
-			t.Fatalf("expected warning about provider development overrides being in effect, but it was missing from output:\n%s", stdout)
+		devOverrideMsg := "Warning: Provider development overrides are in effect"
+		if !strings.Contains(stdout, devOverrideMsg) {
+			t.Fatalf("expected output to include %q, but it was missing from output:\n%s", devOverrideMsg, stdout)
 		}
-		if !strings.Contains(stderr, "Error: State store initialization required, please run \"terraform init\"") {
-			t.Fatalf("expected error about state store initialization, but it was missing from output:\n%s", stderr)
+		initErrorMsg := "Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\""
+		if !strings.Contains(stderr, initErrorMsg) {
+			t.Fatalf("expected error output to include %q, but it was missing from output:\n%s", initErrorMsg, stderr)
 		}
 	})
 
@@ -951,7 +953,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 		if err.Error() != "exit status 1" {
 			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
-		if !strings.Contains(stderr, "Error: State store configuration changed") {
+		if !strings.Contains(stderr, "Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"") {
 			t.Fatalf("expected error about state store configuration changing, but got:\n%s", stderr)
 		}
 	})
@@ -1049,7 +1051,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 		if err.Error() != "exit status 1" {
 			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
-		if !strings.Contains(stderr, "Error: State store configuration changed") {
+		if !strings.Contains(stderr, "Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"") {
 			t.Fatalf("expected error about state store configuration changing, but got:\n%s", stderr)
 		}
 	})
