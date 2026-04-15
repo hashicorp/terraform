@@ -4349,21 +4349,24 @@ func TestInit_stateStore_unset(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("bad: \n%s", testOutput.All())
+		if code == 0 {
+			t.Fatalf("expected non-zero exit code, got 0: \n%s", testOutput.All())
 		}
 		log.Printf("[TRACE] TestInit_stateStore_unset: second init complete")
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
-
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if !s.StateStore.Empty() {
-			t.Fatal("should not have StateStore config")
+		expectedMsgs := []string{
+			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Unsetting the previously set state store \"test_store\"",
 		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		output := cleanString(testOutput.Stderr())
+		for _, expectedMsg := range expectedMsgs {
+			if !strings.Contains(output, expectedMsg) {
+				t.Fatalf("expected error message %q not found: \n%s", expectedMsg, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration,
+	// and assert that after migration the local state contains the expected state.
 }
 
 func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
@@ -4373,10 +4376,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	t.Chdir(td)
 
 	mockProvider := mockPluggableStateStorageProvider()
-	storeName := "test_store"
-	otherStoreName := "test_otherstore"
-	// Make the provider report that it contains a 2nd storage implementation with the above name
-	mockProvider.GetProviderSchemaResponse.StateStores[otherStoreName] = mockProvider.GetProviderSchemaResponse.StateStores[storeName]
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -4451,19 +4450,19 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("bad: \n%s", testOutput.All())
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
-		log.Printf("[TRACE] TestInit_stateStore_unset_withoutProviderRequirements: second init complete")
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
 
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if !s.StateStore.Empty() {
-			t.Fatal("should not have StateStore config")
+		expectedErrMsgs := []string{
+			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Unsetting the previously set state store \"test_store\"",
 		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected empty Backend config after unsetting state store, found: %#v", s.Backend)
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
 }
