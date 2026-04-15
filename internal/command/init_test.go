@@ -4142,68 +4142,13 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 }
 
 func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage", func(t *testing.T) {
-		// Create a temporary working directory with state store configuration
-		// that doesn't match the backend state file
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
-		t.Chdir(td)
+	t.Skip("See TODOs below. This test was removed as part of TF-36263")
+	// TODO: Add a test showing that provider updated in init that affect the PSS provider are blocked and users
+	// are prompted to run state migrate or pin the PSS provider version and re-run init -upgrade.
 
-		mockProvider := mockPluggableStateStorageProvider()
-		// The previous init implied by this test scenario would have created the default workspace.
-		mockProvider.MockStates = map[string]any{
-			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
-		}
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
-		})
-		defer close()
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-			"-migrate-state=true",
-			"-upgrade",
-		}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedMsg := "Terraform has been successfully initialized!"
-		if !strings.Contains(output, expectedMsg) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
-		}
-		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
-		if !strings.Contains(output, expectedReason) {
-			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
-		}
-
-		// check state remains accessible after migration
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to exist after migration, but it is missing")
-		}
-	})
+	// TODO: once state migrate command is implemented, add test cases in state_migrate_test.go that show:
+	// 1) a migration when the provider version is updated.
+	// 2) a migration when the provider version is updated and the schema has a breaking change.
 }
 
 // Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
