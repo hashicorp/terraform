@@ -137,7 +137,7 @@ jobs:
       - build
     strategy:
       matrix:
-        arch: ["amd64", "386", "arm", "arm64"]
+        arch: ["amd64", "386", "arm", "arm64", "s390x"]
       fail-fast: false
     env:
       repo: "terraform"
