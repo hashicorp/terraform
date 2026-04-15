@@ -161,6 +161,34 @@ configuration or state have been made.`, initReason)
 	)
 }
 
+// errBackendToStateStoreInitDiag is a variation of errBackendInitDiag specific to when
+// migrating from a backend to a state store. Text needs to resemble the old backend-specific diagnostic,
+// but the recommended actions are different (using new terraform state migrate command).
+func errBackendToStateStoreInitDiag(initReason string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Reason: %s
+
+The "backend" is the interface that Terraform uses to store state,
+perform operations, etc. If this message is showing up, it means that the
+Terraform configuration you're using is using a custom configuration for
+the Terraform backend.
+
+Changes to backend configurations require reinitialization. This allows
+Terraform to set up the new configuration, copy existing state, etc. Please run
+"terraform state migrate" to migrate existing state to the new state store,
+or run "terraform init -reconfigure" to use the current configuration without
+migrating existing state.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.`, initReason)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Backend initialization required, please run \"terraform init\"",
+		msg,
+	)
+}
+
 type ssInitReason struct {
 	Reason  string
 	Subject *hcl.Range
@@ -175,15 +203,15 @@ func errStateStoreInitDiag(ir *ssInitReason) tfdiags.Diagnostics {
 		msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
 	}
 
-	msg += `The "state store" is the interface that Terraform uses to store state when
-performing operations on the local machine. If this message is showing up,
-it means that the Terraform configuration you're using is using a custom
-configuration for state storage in Terraform.
+	msg += `A "state store" is an interface that Terraform uses to store state.
+Changes to state store configurations require reinitialization, and a
+decision whether to migrate any existing state or not.
 
-Changes to state store configurations require reinitialization. This allows
-Terraform to set up the new configuration, copy existing state, etc. Please run
-"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
-use the current configuration.
+If you want to migrate existing state using the current configuration,
+please run "terraform state migrate".
+
+If you don't want to migrate existing state and just reconfigure how state is
+stored using the current configuration, please run "terraform init -reconfigure".
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
@@ -290,29 +318,3 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
 		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
 		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
-
-// migrateOrReconfigStateStoreDiag creates a diagnostic to present to users when
-// an init command encounters a mismatch in state store config state and the current config
-// and Terraform needs users to provide additional instructions about how it
-// should proceed.
-var migrateOrReconfigStateStoreDiag = tfdiags.Sourceless(
-	tfdiags.Error,
-	"State store configuration changed",
-	"A change in the state store configuration has been detected, which may require migrating existing state.\n\n"+
-		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
-		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
-
-// errStateStoreClearSaved is a custom error used to alert users that
-// Terraform failed to empty the state store state file's contents.
-type errStateStoreClearSaved struct {
-	innerError error
-}
-
-func (e *errStateStoreClearSaved) Error() string {
-	return fmt.Sprintf(`Error clearing the state store configuration: %s
-
-Terraform removes the saved state store configuration when you're removing a
-configured state store. This must be done so future Terraform runs know to not
-use the state store configuration. Please look at the error above, resolve it,
-and try again.`, e.innerError)
-}

@@ -1022,29 +1022,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			s.StateStore.Provider.Source,
 		)
 
-		if !opts.Init {
-			diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
-				Reason: fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type),
-			}))
-			return nil, diags
-		}
+		// Regardless of whether this code is invoked in an init or non-init command,
+		// we advise users to choose between:
+		// 1. terraform state migrate
+		// 2. terraform init -reconfigure
 
-		if !m.migrateState {
-			diags = diags.Append(migrateOrReconfigStateStoreDiag)
-			return nil, diags
-		}
-
-		// Grab a purely local backend to be the destination for migrated state
-		localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return nil, diags
-		}
-
-		v := views.NewInit(opts.ViewType, m.View)
-		v.Output(views.InitMessageCode("state_store_unset"), s.StateStore.Type)
-
-		return m.stateStore_to_backend(sMgr, "local", localB, nil, opts.ViewType)
+		diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
+			Reason: fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type),
+		}))
+		return nil, diags
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case backendConfig != nil && s.Backend.Empty() &&
@@ -1096,29 +1082,17 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			backendConfig.Type,
 		)
 
-		if !opts.Init {
-			initReason := fmt.Sprintf("Migrating from state store %q to backend %q",
-				s.StateStore.Type, backendConfig.Type)
-			diags = diags.Append(errBackendInitDiag(initReason))
-			return nil, diags
-		}
-
-		b, configVal, moreDiags := m.backendInitFromConfig(backendConfig)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return nil, diags
-		}
-
-		v := views.NewInit(opts.ViewType, m.View)
-		v.Output(views.InitMessageCode("state_store_migrate_backend"), s.StateStore.Type, backendConfig.Type)
-
-		newBackendCfgState := &workdir.BackendConfigState{
-			Type: backendConfig.Type,
-		}
-		newBackendCfgState.SetConfig(configVal, b.ConfigSchema())
-		newBackendCfgState.Hash = uint64(cHash)
-
-		return m.stateStore_to_backend(sMgr, backendConfig.Type, b, newBackendCfgState, opts.ViewType)
+		// Regardless of whether this code is invoked in an init or non-init command,
+		// we advise users to choose between:
+		// 1. terraform state migrate
+		// 2. terraform init -reconfigure
+		initReason := fmt.Sprintf("Migrating from state store %q to backend %q",
+			s.StateStore.Type, backendConfig.Type)
+		diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
+			Reason:  initReason,
+			Subject: backendConfig.DeclRange.Ptr(),
+		}))
+		return nil, diags
 
 	// Migration from backend to state store
 	case backendConfig == nil && !s.Backend.Empty() &&
@@ -1130,15 +1104,16 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			stateStoreConfig.ProviderAddr,
 		)
 
-		if !opts.Init {
-			initReason := fmt.Sprintf("Migrating from backend %q to state store %q in provider %s (%q)",
-				s.Backend.Type, stateStoreConfig.Type,
-				stateStoreConfig.Provider.Name, stateStoreConfig.ProviderAddr)
-			diags = diags.Append(errBackendInitDiag(initReason))
-			return nil, diags
-		}
+		// Regardless of whether this code is invoked in an init or non-init command,
+		// we advise users to choose between:
+		// 1. terraform state migrate
+		// 2. terraform init -reconfigure
 
-		return m.backend_to_stateStore(s.Backend, sMgr, stateStoreConfig, cHash, opts)
+		initReason := fmt.Sprintf("Migrating from backend %q to state store %q in provider %s (%q)",
+			s.Backend.Type, stateStoreConfig.Type,
+			stateStoreConfig.Provider.Name, stateStoreConfig.ProviderAddr)
+		diags = diags.Append(errBackendToStateStoreInitDiag(initReason))
+		return nil, diags
 
 	// Potentially changing a backend configuration
 	case backendConfig != nil && !s.Backend.Empty() &&
@@ -1316,20 +1291,12 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		if !opts.Init {
-			// user ran another cmd that is not init but they are required to initialize
-			diags = diags.Append(errStateStoreInitDiag(initReason))
-			return nil, diags
-		}
-
-		log.Printf("[WARN] state store has changed since last init: %q", initReason.Reason)
-
-		if !m.migrateState {
-			diags = diags.Append(migrateOrReconfigStateStoreDiag)
-			return nil, diags
-		}
-
-		return m.stateStore_changed(stateStoreConfig, cHash, sMgr, opts, initReason)
+		// Regardless of whether this code is invoked in an init or non-init command,
+		// we advise users to choose between:
+		// 1. terraform state migrate
+		// 2. terraform init -reconfigure
+		diags = diags.Append(errStateStoreInitDiag(initReason))
+		return nil, diags
 
 	default:
 		diags = diags.Append(fmt.Errorf(
@@ -2161,169 +2128,6 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 	return be, diags
 }
 
-func (m *Meta) backend_to_stateStore(bcs *workdir.BackendConfigState, sMgr *clistate.LocalState, c *configs.StateStore, cHash int, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	vt := arguments.ViewJSON
-	// Set default viewtype if none was set as the StateLocker needs to know exactly
-	// what viewType we want to have.
-	if opts == nil || opts.ViewType != vt {
-		vt = arguments.ViewHuman
-	}
-
-	s := sMgr.State()
-
-	cloudMode := cloud.DetectConfigChangeType(bcs, nil, false)
-	diags = diags.Append(m.assertSupportedCloudInitOptions(cloudMode))
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	view := views.NewInit(vt, m.View)
-	if cloudMode == cloud.ConfigMigrationOut {
-		view.Output(views.BackendCloudMigrateStateStoreMessage, c.Type)
-	} else {
-		view.Output(views.BackendMigrateStateStoreMessage, bcs.Type, c.Type)
-	}
-
-	// Initialize the configured backend
-	b, moreDiags := m.savedBackend(sMgr)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Get the state store as an instance of backend.Backend
-	ssBackend, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(c, opts.Locks)
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// Perform the migration
-	err := m.backendMigrateState(&backendMigrateOpts{
-		SourceType:      bcs.Type,
-		DestinationType: c.Type,
-		Source:          b,
-		Destination:     ssBackend,
-		ViewType:        vt,
-	})
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	rDiags := m.removeLocalState(bcs.Type, b)
-	if rDiags.HasErrors() {
-		diags = diags.Append(rDiags)
-		return nil, diags
-	}
-
-	if m.stateLock {
-		view := views.NewStateLocker(vt, m.View)
-		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-		if err := stateLocker.Lock(sMgr, "init is initializing state_store first time"); err != nil {
-			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
-			return nil, diags
-		}
-		defer stateLocker.Unlock()
-	}
-
-	// Store the state_store metadata in our saved state location
-	pVersion, vDiags := getStateStorageProviderVersion(c, opts.Locks) // pVersion will remain nil for builtin, dev override, and unmanaged providers.
-	diags = diags.Append(vDiags)
-	if vDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Update the stored metadata
-	s.Backend = nil
-	s.StateStore = &workdir.StateStoreConfigState{
-		Type: c.Type,
-		Hash: uint64(cHash),
-		Provider: &workdir.ProviderConfigState{
-			Source:  &c.ProviderAddr,
-			Version: pVersion,
-		},
-		ProviderSupplyMode: c.ProviderSupplyMode,
-	}
-	err = s.StateStore.SetConfig(storeConfigVal, ssBackend.ConfigSchema())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
-		return nil, diags
-	}
-
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, ssBackend.ProviderSchema())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
-		return nil, diags
-	}
-
-	// Update backend state file
-	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(errBackendWriteSavedDiag(err))
-		return nil, diags
-	}
-	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(errBackendWriteSavedDiag(err))
-		return nil, diags
-	}
-
-	return b, diags
-}
-
-func (m *Meta) removeLocalState(backendType string, b backend.Backend) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if backendType != "local" {
-		return diags
-	}
-
-	workspaces, wDiags := b.Workspaces()
-	if wDiags.HasErrors() {
-		diags = diags.Append(&errBackendLocalRead{wDiags.Err()})
-		return diags
-	}
-
-	var localStates []statemgr.Full
-	for _, workspace := range workspaces {
-		localState, sDiags := b.StateMgr(workspace)
-		if sDiags.HasErrors() {
-			diags = diags.Append(&errBackendLocalRead{sDiags.Err()})
-			return diags
-		}
-		if err := localState.RefreshState(); err != nil {
-			diags = diags.Append(&errBackendLocalRead{err})
-			return diags
-		}
-
-		// We only care about non-empty states.
-		if localS := localState.State(); !localS.Empty() {
-			log.Printf("[TRACE] Meta.Backend: will need to migrate workspace states because of existing %q workspace", workspace)
-			localStates = append(localStates, localState)
-		} else {
-			log.Printf("[TRACE] Meta.Backend: ignoring local %q workspace because its state is empty", workspace)
-		}
-	}
-
-	if len(localStates) > 0 {
-		log.Printf("[TRACE] Meta.removeLocalState: removing old state snapshots (%d) from old backend", len(localStates))
-		for idx, localState := range localStates {
-			// We always delete the local state, unless that was our new state too.
-			if err := localState.WriteState(nil); err != nil {
-				diags = diags.Append(&errBackendMigrateLocalDelete{err})
-				return diags
-			}
-			if err := localState.PersistState(nil); err != nil {
-				diags = diags.Append(&errBackendMigrateLocalDelete{err})
-				return diags
-			}
-			log.Printf("[DEBUG] Meta.removeLocalState: deleted local state for workspace %q", workspaces[idx])
-		}
-	}
-	return diags
-}
-
 //-------------------------------------------------------------------
 // State Store Config Scenarios
 // The functions below cover handling all the various scenarios that
@@ -2521,52 +2325,6 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 	return b, diags
 }
 
-// Migrating a state store to backend (including local).
-func (m *Meta) stateStore_to_backend(ssSMgr *clistate.LocalState, dstBackendType string, dstBackend backend.Backend, newBackendState *workdir.BackendConfigState, viewType arguments.ViewType) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	s := ssSMgr.State()
-	stateStoreType := s.StateStore.Type
-
-	view := views.NewInit(viewType, m.View)
-	view.Output(views.StateMigrateLocalMessage, stateStoreType)
-
-	// Initialize the configured state store
-	ss, moreDiags := m.savedStateStore(ssSMgr)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Perform the migration
-	err := m.backendMigrateState(&backendMigrateOpts{
-		SourceType:      stateStoreType,
-		DestinationType: dstBackendType,
-		Source:          ss,
-		Destination:     dstBackend,
-		ViewType:        viewType,
-	})
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	// Remove the stored metadata
-	s.StateStore = nil
-	s.Backend = newBackendState
-	if err := ssSMgr.WriteState(s); err != nil {
-		diags = diags.Append(errStateStoreClearSaved{err})
-		return nil, diags
-	}
-	if err := ssSMgr.PersistState(); err != nil {
-		diags = diags.Append(errStateStoreClearSaved{err})
-		return nil, diags
-	}
-
-	// Return backend
-	return dstBackend, diags
-}
-
 // stateStoreConfigNeedsMigration returns true if migration might be required to
 // move from the configured state store to the given cached state store config.
 //
@@ -2646,107 +2404,6 @@ func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState 
 	}
 	log.Print("[TRACE] stateStoreConfigNeedsMigration: configuration values have changed, so migration is required")
 	return true
-}
-
-func (m *Meta) stateStore_changed(cfg *configs.StateStore, cfgHash int, sMgr *clistate.LocalState, opts *BackendOpts, initReason *ssInitReason) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	vt := arguments.ViewJSON
-	// Set default viewtype if none was set as the StateLocker needs to know exactly
-	// what viewType we want to have.
-	if opts == nil || opts.ViewType != vt {
-		vt = arguments.ViewHuman
-	}
-
-	// Get the destination state store
-	dstB, storeConfigVal, providerConfigVal, moreDiags := m.stateStoreInitFromConfig(cfg, opts.Locks)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Grab the source state store
-	srcB, srcBDiags := m.savedStateStore(sMgr)
-	diags = diags.Append(srcBDiags)
-	if srcBDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Get the old state
-	s := sMgr.State()
-
-	view := views.NewInit(vt, m.View)
-	view.Output(views.StateStoreMigrationMessage,
-		s.StateStore.Type, s.StateStore.Provider.Source.ForDisplay(),
-		cfg.Type, cfg.ProviderAddr.ForDisplay(),
-		initReason.Reason)
-
-	// Perform the migration
-	err := m.backendMigrateState(&backendMigrateOpts{
-		SourceType:      s.StateStore.Type,
-		DestinationType: cfg.Type,
-		Source:          srcB,
-		Destination:     dstB,
-		ViewType:        vt,
-	})
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	if m.stateLock {
-		view := views.NewStateLocker(vt, m.View)
-		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
-		if err := stateLocker.Lock(sMgr, "state store from plan"); err != nil {
-			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
-			return nil, diags
-		}
-		defer stateLocker.Unlock()
-	}
-
-	pVersion, vDiags := getStateStorageProviderVersion(cfg, opts.Locks) // pVersion will remain nil for builtin, dev override, and unmanaged providers.
-	diags = diags.Append(vDiags)
-	if vDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Update the state to the new configuration
-	s = sMgr.State()
-	if s == nil {
-		s = workdir.NewBackendStateFile()
-	}
-
-	s.StateStore = &workdir.StateStoreConfigState{
-		Type: cfg.Type,
-		Hash: uint64(cfgHash),
-		Provider: &workdir.ProviderConfigState{
-			Source:  &cfg.ProviderAddr,
-			Version: pVersion,
-		},
-		ProviderSupplyMode: cfg.ProviderSupplyMode,
-	}
-	err = s.StateStore.SetConfig(storeConfigVal, dstB.ConfigSchema())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
-		return nil, diags
-	}
-
-	err = s.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
-		return nil, diags
-	}
-
-	if err := sMgr.WriteState(s); err != nil {
-		diags = diags.Append(errBackendWriteSavedDiag(err))
-		return nil, diags
-	}
-	if err := sMgr.PersistState(); err != nil {
-		diags = diags.Append(errBackendWriteSavedDiag(err))
-		return nil, diags
-	}
-
-	return dstB, diags
 }
 
 // getStateStorageProviderVersion gets the current version of the state store provider that's in use. This is achieved
