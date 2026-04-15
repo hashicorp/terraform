@@ -4461,7 +4461,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	var originalStateStoreConfigHash uint64
 
 	{
-		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
+		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: beginning first init")
 
 		ui := cli.NewMockUi()
 		view, done := testView(t)
@@ -4488,7 +4488,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad: \n%s", testOutput.All())
 		}
-		log.Printf("[TRACE] TestInit_stateStore_unset: first init complete")
+		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: first init complete")
 		t.Logf("First run output:\n%s", testOutput.Stdout())
 		t.Logf("First run errors:\n%s", testOutput.Stderr())
 
@@ -4501,7 +4501,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	}
 
 	{
-		log.Printf("[TRACE] TestInit_stateStore_unset: beginning second init with changed config but compensating CLI flags")
+		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: beginning second init with changed config but compensating CLI flags")
 
 		// Remove `value` attribute from config
 		cfg := `terraform {
@@ -4539,7 +4539,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("Terraform either experienced an unexpected error, or suggested a state migration when this test scenario should not include migrations: \n%s", testOutput.All())
 		}
-		log.Printf("[TRACE] TestInit_stateStore_unset: second init complete")
+		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: second init complete")
 		t.Logf("Second run output:\n%s", testOutput.Stdout())
 		t.Logf("Second run errors:\n%s", testOutput.Stderr())
 
