@@ -1,0 +1,5 @@
+kind: NOTES
+body: Add AI agent governance configuration files (CLAUDE.md, GEMINI.md, AGENTS.md, governance.md)
+time: 2026-04-15T01:00:00.000000-04:00
+custom:
+    Issue: "38385"
