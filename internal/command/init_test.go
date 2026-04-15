@@ -4851,47 +4851,26 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("bad: \n%s", testOutput.All())
-		}
-		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
-
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if s.StateStore.Empty() {
-			t.Fatal("should have StateStore config")
-		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected backend to be empty")
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		rawData, ok := mockProvider.MockStates[backend.DefaultStateName].([]byte)
-		if !ok {
-			t.Fatalf("expected %q state to exist in %s: %#v",
-				backend.DefaultStateName,
-				mockProviderAddress,
-				mockProvider.MockStates)
+		expectedErrMsgs := []string{
+			"Error: Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Migrating from backend \"http\" to state store \"test_store\" in provider test (\"registry.terraform.io/hashicorp/test\")",
+			"run \"terraform state migrate\"",
+			"run \"terraform init -reconfigure\"",
 		}
-
-		data, err := statefile.Read(bytes.NewBuffer(rawData))
-		if err != nil {
-			t.Fatal(err)
-		}
-		expectedOutputs := map[string]*states.OutputValue{
-			"test": {
-				Addr: addrs.AbsOutputValue{
-					OutputValue: addrs.OutputValue{
-						Name: "test",
-					},
-				},
-				Value: cty.StringVal("test"),
-			},
-		}
-		if diff := cmp.Diff(expectedOutputs, data.State.RootOutputValues); diff != "" {
-			t.Fatalf("unexpected data: %s", diff)
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration,
+	// and assert that after migration the state store contains the expected state.
 }
 
 // TestInit_backend_to_stateStore_noState tests that given no state
@@ -4996,27 +4975,25 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("second init exited with non-zero code %d:\n%s", code, testOutput.Stderr())
+		if code != 1 {
+			t.Fatalf("expected second init to exit with code 1, got %d:\n%s", code, testOutput.Stderr())
 		}
-		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
-
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if s.StateStore.Empty() {
-			t.Fatal("should have StateStore config")
+		expectedErrMsgs := []string{
+			"Error: Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Migrating from backend \"http\" to state store \"test_store\" in provider test (\"registry.terraform.io/hashicorp/test\")",
+			"run \"terraform state migrate\"",
+			"run \"terraform init -reconfigure\"",
 		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected backend to be empty")
-		}
-
-		if len(mockProvider.MockStates) != 0 {
-			t.Fatalf("expected no state to exist in %s: %#v",
-				mockProviderAddress,
-				mockProvider.MockStates)
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration,
+	// and assert that after migration the state store is still empty.
 }
 
 func TestInit_localBackend_to_stateStore(t *testing.T) {
@@ -5159,51 +5136,25 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("second init exited with non-zero code %d:\n%s", code, testOutput.Stderr())
+		if code != 1 {
+			t.Fatalf("expected second init to exit with code 1, got %d:\n%s", code, testOutput.Stderr())
 		}
-		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
-		t.Logf("Second run output:\n%s", testOutput.Stdout())
-		t.Logf("Second run errors:\n%s", testOutput.Stderr())
-
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if s.StateStore.Empty() {
-			t.Fatal("should have StateStore config")
+		expectedErrMsgs := []string{
+			"Error: Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Migrating from backend \"local\" to state store \"test_store\" in provider test (\"registry.terraform.io/hashicorp/test\")",
+			"run \"terraform state migrate\"",
+			"run \"terraform init -reconfigure\"",
 		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected backend to be empty")
-		}
-
-		rawData, ok := mockProvider.MockStates[backend.DefaultStateName].([]byte)
-		if !ok {
-			t.Fatalf("expected %q state to exist in %s: %#v",
-				backend.DefaultStateName,
-				mockProviderAddress,
-				mockProvider.MockStates)
-		}
-
-		data, err := statefile.Read(bytes.NewBuffer(rawData))
-		if err != nil {
-			t.Fatal(err)
-		}
-		expectedOutputs := map[string]*states.OutputValue{
-			"test": {
-				Addr: addrs.AbsOutputValue{
-					OutputValue: addrs.OutputValue{
-						Name: "test",
-					},
-				},
-				Value: cty.StringVal("test"),
-			},
-		}
-		if diff := cmp.Diff(expectedOutputs, data.State.RootOutputValues); diff != "" {
-			t.Fatalf("unexpected data: %s", diff)
-		}
-
-		if f, err := os.Stat(DefaultStateFilename); err == nil && f.Size() > 0 {
-			t.Fatalf("expected state file to have been removed at %q. Has size %d bytes.", DefaultStateFilename, f.Size())
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration,
+	// and assert that after migration the state store contains the expected state and the local copies are removed.
 }
 
 func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
@@ -5391,69 +5342,25 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		}
 		code := c.Run(args)
 		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("second init failed: \n%s", testOutput.All())
+		if code != 1 {
+			t.Fatalf("expected second init to exit with code 1, got %d:\n%s", code, testOutput.Stderr())
 		}
-		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
-		t.Logf("Second init output:\n%s", testOutput.All())
-
-		s := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if s.StateStore.Empty() {
-			t.Fatal("should have StateStore config")
+		expectedErrMsgs := []string{
+			"Error: Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Migrating from backend \"inmem\" to state store \"test_store\" in provider test (\"registry.terraform.io/hashicorp/test\")",
+			"run \"terraform state migrate\"",
+			"run \"terraform init -reconfigure\"",
 		}
-		if !s.Backend.Empty() {
-			t.Fatalf("expected backend to be empty")
-		}
-
-		expectedOutputs := map[string]*states.OutputValue{
-			"test": {
-				Addr: addrs.AbsOutputValue{
-					OutputValue: addrs.OutputValue{
-						Name: "test",
-					},
-				},
-				Value: cty.StringVal("test"),
-			},
-		}
-
-		expectedWorkspaces := []string{"default", "second"}
-		ws := slices.Sorted(maps.Keys(mockProvider.MockStates))
-		if diff := cmp.Diff(expectedWorkspaces, ws); diff != "" {
-			t.Fatalf("unexpected workspaces: %s", diff)
-		}
-
-		// check default workspace first
-		rawData, ok := mockProvider.MockStates[backend.DefaultStateName].([]byte)
-		if !ok {
-			t.Fatalf("expected %q state to exist in %s: %#v",
-				backend.DefaultStateName,
-				mockProviderAddress,
-				mockProvider.MockStates)
-		}
-		stateData, err := statefile.Read(bytes.NewBuffer(rawData))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(expectedOutputs, stateData.State.RootOutputValues); diff != "" {
-			t.Fatalf("unexpected data: %s", diff)
-		}
-
-		// check second workspace
-		rawData2, ok := mockProvider.MockStates["second"].([]byte)
-		if !ok {
-			t.Fatalf("expected %q state to exist in %s: %#v",
-				backend.DefaultStateName,
-				mockProviderAddress,
-				mockProvider.MockStates)
-		}
-		stateData2, err := statefile.Read(bytes.NewBuffer(rawData2))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if diff := cmp.Diff(expectedOutputs, stateData2.State.RootOutputValues); diff != "" {
-			t.Fatalf("unexpected data: %s", diff)
+		output := cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
 		}
 	}
+
+	// TODO: Create a test in state_migrate_test.go where the terraform state migrate command is used for the migration,
+	// and assert both workspaces are migrated successfully.
 }
 
 func TestInit_cloud_to_stateStore(t *testing.T) {
