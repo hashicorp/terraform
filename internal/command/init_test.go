@@ -5489,9 +5489,15 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 			t.Fatalf("expected migration from cloud to fail: \n%s", testOutput.Stdout())
 		}
 		log.Printf("[TRACE] %s: second init with state store complete", t.Name())
-		expectedMsg := "Migrating state from HCP Terraform or Terraform Enterprise to another backend is not \nyet implemented."
-		if !strings.Contains(testOutput.Stderr(), expectedMsg) {
-			t.Fatalf("expected error message %q not found: \n%s", expectedMsg, testOutput.Stderr())
+		expectedMsgs := []string{
+			"Error: Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: Migrating from backend \"cloud\" to state store \"test_store\" in provider test (\"registry.terraform.io/hashicorp/test\")",
+		}
+		output := cleanString(testOutput.Stderr())
+		for _, expectedMsg := range expectedMsgs {
+			if !strings.Contains(output, expectedMsg) {
+				t.Fatalf("expected error message %q not found: \n%s", expectedMsg, output)
+			}
 		}
 	}
 }
