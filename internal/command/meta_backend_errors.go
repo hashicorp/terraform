@@ -173,9 +173,9 @@ Terraform configuration you're using is using a custom configuration for
 the Terraform backend.
 
 Changes to backend configurations require reinitialization. This allows
-Terraform to set up the new configuration, copy existing state, etc. Please use
+Terraform to set up the new configuration, copy existing state, etc. Please run
 "terraform state migrate" to migrate existing state to the new state store,
-or use "terraform init -reconfigure" to use the current configuration without
+or run "terraform init -reconfigure" to use the current configuration without
 migrating existing state.
 
 If the change reason above is incorrect, please verify your configuration
@@ -327,5 +327,5 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
-		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
-		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+		"If you wish to attempt automatic migration of the state, run \"terraform init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, run "terraform init -reconfigure".`)
