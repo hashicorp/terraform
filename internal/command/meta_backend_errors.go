@@ -173,9 +173,9 @@ Terraform configuration you're using is using a custom configuration for
 the Terraform backend.
 
 Changes to backend configurations require reinitialization. This allows
-Terraform to set up the new configuration, copy existing state, etc. Please run
+Terraform to set up the new configuration, copy existing state, etc. Please use
 "terraform state migrate" to migrate existing state to the new state store,
-or run "terraform init -reconfigure" to use the current configuration without
+or use "terraform init -reconfigure" to use the current configuration without
 migrating existing state.
 
 If the change reason above is incorrect, please verify your configuration
@@ -184,7 +184,7 @@ configuration or state have been made.`, initReason)
 
 	return tfdiags.Sourceless(
 		tfdiags.Error,
-		"Backend initialization required, please run \"terraform init\"",
+		"Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
 		msg,
 	)
 }
