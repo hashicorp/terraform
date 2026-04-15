@@ -1028,7 +1028,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// 2. terraform init -reconfigure
 
 		diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
-			Reason: fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type),
+			Reason:          fmt.Sprintf("Unsetting the previously set state store %q", s.StateStore.Type),
+			MigrationNeeded: true,
 		}))
 		return nil, diags
 
@@ -1064,8 +1065,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 				stateStoreConfig.ProviderAddr,
 			)
 			diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
-				Reason:  reason,
-				Subject: stateStoreConfig.DeclRange.Ptr(),
+				MigrationNeeded: false, // We're initialising a state store for the first time; no migration.
+				Reason:          reason,
+				Subject:         stateStoreConfig.DeclRange.Ptr(),
 			}))
 			return nil, diags
 		}
@@ -1089,8 +1091,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		initReason := fmt.Sprintf("Migrating from state store %q to backend %q",
 			s.StateStore.Type, backendConfig.Type)
 		diags = diags.Append(errStateStoreInitDiag(&ssInitReason{
-			Reason:  initReason,
-			Subject: backendConfig.DeclRange.Ptr(),
+			MigrationNeeded: true,
+			Reason:          initReason,
+			Subject:         backendConfig.DeclRange.Ptr(),
 		}))
 		return nil, diags
 
@@ -1363,7 +1366,8 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store %q (%s) supply mode changed from %q to %q",
 				cfg.Type, cfg.ProviderAddr.ForDisplay(), cfgState.ProviderSupplyMode, cfg.ProviderSupplyMode),
-			Subject: cfg.DeclRange.Ptr(),
+			Subject:         cfg.DeclRange.Ptr(),
+			MigrationNeeded: true,
 		}, diags
 	}
 
@@ -1371,14 +1375,16 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store %q (%s) not initialised",
 				cfg.Type, cfg.ProviderAddr.ForDisplay()),
-			Subject: cfg.DeclRange.Ptr(),
+			Subject:         cfg.DeclRange.Ptr(),
+			MigrationNeeded: false,
 		}, diags
 	}
 	if !cfg.ProviderAddr.Equals(*cfgState.Provider.Source) {
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store provider changed from %s to %s",
 				cfgState.Provider.Source.ForDisplay(), cfg.ProviderAddr.ForDisplay()),
-			Subject: cfg.Provider.DeclRange.Ptr(),
+			Subject:         cfg.Provider.DeclRange.Ptr(),
+			MigrationNeeded: true,
 		}, diags
 	}
 
@@ -1397,6 +1403,7 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 			Reason: fmt.Sprintf("State store provider %q (%s) version changed from %s to %s",
 				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay(),
 				cfgState.Provider.Version, lockVersion),
+			MigrationNeeded: true,
 		}, diags
 	}
 
@@ -1404,7 +1411,8 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store type changed from %q to %q",
 				cfgState.Type, cfg.Type),
-			Subject: cfg.TypeRange.Ptr(),
+			Subject:         cfg.TypeRange.Ptr(),
+			MigrationNeeded: true,
 		}, diags
 	}
 
@@ -1429,7 +1437,8 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store provider %q (%s) configuration changed",
 				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay()),
-			Subject: cfg.Provider.DeclRange.Ptr(),
+			Subject:         cfg.Provider.DeclRange.Ptr(),
+			MigrationNeeded: true,
 		}, diags
 	}
 
@@ -1449,7 +1458,8 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		return &ssInitReason{
 			Reason: fmt.Sprintf("State store %q (%s) configuration changed",
 				cfg.Type, cfg.ProviderAddr.ForDisplay()),
-			Subject: cfg.DeclRange.Ptr(),
+			Subject:         cfg.DeclRange.Ptr(),
+			MigrationNeeded: true,
 		}, diags
 	}
 

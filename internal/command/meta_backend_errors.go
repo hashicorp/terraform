@@ -190,18 +190,21 @@ configuration or state have been made.`, initReason)
 }
 
 type ssInitReason struct {
-	Reason  string
-	Subject *hcl.Range
+	MigrationNeeded bool
+	Reason          string
+	Subject         *hcl.Range
 }
 
 // errStateStoreInitDiag creates a diagnostic to present to users when
 // users attempt to run a non-init command after making a change to their
 // state_store configuration.
 func errStateStoreInitDiag(ir *ssInitReason) tfdiags.Diagnostics {
-	var msg string
-	if ir != nil {
-		msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
+	if ir == nil {
+		panic("errStateStoreInitDiag requires a non-nil reason argument")
 	}
+
+	var msg string
+	msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
 
 	msg += `A "state store" is an interface that Terraform uses to store state.
 Changes to state store configurations require reinitialization, and a
@@ -219,11 +222,19 @@ configuration or state have been made.`
 
 	var diags tfdiags.Diagnostics
 
-	if ir != nil && ir.Subject != nil {
+	var summary string
+	if ir.MigrationNeeded {
+		summary = "State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\""
+	} else {
+		// When no migration is needed we're just initializing a state store for the first time.
+		summary = "State store initialization required, please run \"terraform init\""
+	}
+
+	if ir.Subject != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Subject:  ir.Subject,
 			Severity: hcl.DiagError,
-			Summary:  "State store initialization required, please run \"terraform init\"",
+			Summary:  summary,
 			Detail:   msg,
 		})
 		return diags
@@ -231,7 +242,7 @@ configuration or state have been made.`
 
 	diags = diags.Append(tfdiags.Sourceless(
 		tfdiags.Error,
-		"State store initialization required, please run \"terraform init\"",
+		summary,
 		msg,
 	))
 
