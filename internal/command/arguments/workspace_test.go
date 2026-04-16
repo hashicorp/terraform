@@ -9,22 +9,24 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseWorkspace_valid(t *testing.T) {
+func TestParseWorkspaceList_valid(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
-		want *Workspace
+		want *WorkspaceList
 	}{
 		"defaults": {
 			nil,
-			&Workspace{
-				ViewType: ViewHuman,
+			&WorkspaceList{
+				Workspace: Workspace{
+					ViewType: ViewHuman,
+				},
 			},
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseWorkspace(tc.args)
+			got, diags := ParseWorkspaceList(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -35,16 +37,18 @@ func TestParseWorkspace_valid(t *testing.T) {
 	}
 }
 
-func TestParseWorkspace_invalid(t *testing.T) {
+func TestParseWorkspaceList_invalid(t *testing.T) {
 	testCases := map[string]struct {
 		args      []string
-		want      *Workspace
+		want      *WorkspaceList
 		wantDiags tfdiags.Diagnostics
 	}{
 		"unknown flag": {
 			[]string{"-boop"},
-			&Workspace{
-				ViewType: ViewHuman,
+			&WorkspaceList{
+				Workspace: Workspace{
+					ViewType: ViewHuman,
+				},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -56,14 +60,16 @@ func TestParseWorkspace_invalid(t *testing.T) {
 		},
 		"too many arguments": {
 			[]string{"bar", "baz"},
-			&Workspace{
-				ViewType: ViewHuman,
+			&WorkspaceList{
+				Workspace: Workspace{
+					ViewType: ViewHuman,
+				},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"Too many command line arguments",
-					"Expected no positional arguments.",
+					"Too many command line arguments. Did you mean to use -chdir?",
+					"", // No detail
 				),
 			},
 		},
@@ -71,7 +77,7 @@ func TestParseWorkspace_invalid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, gotDiags := ParseWorkspace(tc.args)
+			got, gotDiags := ParseWorkspaceList(tc.args)
 			if *got != *tc.want {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}

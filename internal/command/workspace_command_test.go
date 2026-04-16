@@ -1143,7 +1143,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := listCmd.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError = "Error: Too many command line arguments\n\nExpected no positional arguments."
+	expectedError = "Error: Too many command line arguments. Did you mean to use -chdir?\n"
 	if !strings.Contains(ui.ErrorWriter.String(), expectedError) {
 		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}

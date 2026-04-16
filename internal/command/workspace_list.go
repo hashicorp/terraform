@@ -30,7 +30,7 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	rawArgs = c.Meta.process(rawArgs)
 
 	// Parse command-specific arguments.
-	args, diags := arguments.ParseWorkspace(rawArgs)
+	args, diags := arguments.ParseWorkspaceList(rawArgs)
 
 	// Prepare the view
 	//

@@ -4,6 +4,8 @@
 package arguments
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -15,10 +17,14 @@ type Workspace struct {
 	ViewType ViewType
 }
 
-// ParseWorkspace processes CLI arguments, returning a Workspace value and errors.
-// If errors are encountered, an Workspace value is still returned representing
+type WorkspaceList struct {
+	Workspace
+}
+
+// ParseWorkspaceList processes CLI arguments, returning a WorkspaceList value and errors.
+// If errors are encountered, an WorkspaceList value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseWorkspace(args []string) (*Workspace, tfdiags.Diagnostics) {
+func ParseWorkspaceList(args []string) (*WorkspaceList, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	cmdFlags := defaultFlagSet("workspace list")
@@ -30,17 +36,12 @@ func ParseWorkspace(args []string) (*Workspace, tfdiags.Diagnostics) {
 		))
 	}
 
-	// There should not be any non-flag arguments for the workspace list command.
-	// In future, when other workspace subcommands start using the arguments package,
-	// this code will need to change.
+	// `workspace list` takes no positional arguments. Historically there was a DIR argument that was replaced with the -chdir flag.
+	// Here we replicate the old behaviour of suggesting the user to use -chdir if they provide any positional arguments.
 	args = cmdFlags.Args()
 	if len(args) != 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Too many command line arguments",
-			"Expected no positional arguments.",
-		))
+		diags = diags.Append(errors.New("Too many command line arguments. Did you mean to use -chdir?"))
 	}
 
-	return &Workspace{ViewType: ViewHuman}, diags
+	return &WorkspaceList{Workspace: Workspace{ViewType: ViewHuman}}, diags
 }
