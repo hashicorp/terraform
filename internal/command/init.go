@@ -359,11 +359,23 @@ the backend configuration is present and valid.
 	return diags
 }
 
+// SafeInitAction describes the action that should be taken by Terraform based on whether
+// pluggable state storage is in use, if the provider is going to be downloaded via HTTP or not,
+// and whether Terraform is being run in automation or not.
+type SafeInitAction rune
+
+const (
+	SafeInitActionInvalid        SafeInitAction = 0
+	SafeInitActionProceed        SafeInitAction = 'P'
+	SafeInitActionPromptForInput SafeInitAction = 'I'
+	SafeInitActionNotRelevant    SafeInitAction = 'N' // For when a state store isn't in use at all!
+)
+
 // getProvidersFromConfig determines what providers are required by the given configuration data.
 // The method downloads any missing providers that aren't already downloaded and then returns
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
@@ -379,7 +391,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	reqs = c.removeDevOverrides(reqs)
@@ -397,7 +409,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	var inst *providercache.Installer
@@ -418,6 +430,15 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
+
+	// Prepare callback functions for the installer.
+	// These allow us to send output to the terminal as events happen, catch
+	// diagnostics, etc.
+	//
+	// One of the things we capture via these callbacks is the location of
+	// providers as we install them. This allows the calling code to determine
+	// what 'safe init' actions need to take place.
+	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
 
 	initMsg := views.InitializingProviderPluginFromConfigMessage
 	reuseMsg := views.ReusingPreviousVersionInfo
@@ -454,6 +475,14 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		},
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+
+			// Record the location of this provider.
+			//
+			// FetchPackageBegin is the callback hook at the start of the process of obtaining a provider that isn't yet
+			// in the dependency lock file. Providers that are processed here will not be processed here on the next init,
+			// as then they will be in the lock file. The same provider type would only be processed here again if the
+			// provider version changed via an `init -upgrade` command.
+			providerLocations[provider] = location
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			switch errorTy := err.(type) {
@@ -710,7 +739,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, nil, diags
+			return true, nil, SafeInitActionInvalid, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -720,7 +749,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, SafeInitActionInvalid, diags
 	}
 
 	// Determine which required providers are already downloaded, and download any
@@ -729,7 +758,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, nil, diags
+		return true, nil, SafeInitActionInvalid, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -739,10 +768,43 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			diags = diags.Append(err)
 		}
 
-		return true, nil, diags
+		return true, nil, SafeInitActionInvalid, diags
 	}
 
-	return true, configLocks, diags
+	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
+	if config.Module.StateStore == nil {
+		// If PSS isn't in use then return a value that isn't the zero value but isn't misleading.
+		safeInitAction = SafeInitActionNotRelevant
+	} else {
+		location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
+		if !ok {
+			// The provider was not processed in the FetchPackageBegin callback.
+			// A provider that wasn't downloaded during this init could be because:
+			// * It was already present from a previous installation.
+			// * If upgrading, no newer version was available that matched version constraints.
+			// * Or, the provider is unmanaged/reattached and so download was skipped.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionProceed
+		} else {
+			// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+
+			switch location.(type) {
+			case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
+				// If the provider is downloaded from a local source we assume it's safe.
+				// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
+				log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+				safeInitAction = SafeInitActionProceed
+			case getproviders.PackageHTTPURL:
+				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+				safeInitAction = SafeInitActionPromptForInput
+			default:
+				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
+			}
+		}
+	}
+
+	return true, configLocks, safeInitAction, diags
 }
 
 // getProvidersFromState determines what providers are required by the given state data.
