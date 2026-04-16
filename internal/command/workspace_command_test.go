@@ -1187,8 +1187,8 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	}
 }
 
-// Test human output from commands, with color enabled
-func TestWorkspace_humanOutputWithColor(t *testing.T) {
+// Test human output from commands, with color enabled or disabled
+func TestWorkspace_humanOutput(t *testing.T) {
 	newMeta := func(colourEnabled bool) (Meta, *cli.MockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
 		ui := new(cli.MockUi)
 		view, done := testView(t)
