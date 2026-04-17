@@ -103,6 +103,10 @@ Usage: terraform [global options] workspace list
 
   List Terraform workspaces.
 
+Options:
+
+  -json            If specified, machine readable output will be
+                   printed in JSON format.
 `
 	return strings.TrimSpace(helpText)
 }

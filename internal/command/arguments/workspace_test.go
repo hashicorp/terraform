@@ -22,6 +22,14 @@ func TestParseWorkspaceList_valid(t *testing.T) {
 				},
 			},
 		},
+		"json": {
+			[]string{"-json"},
+			&WorkspaceList{
+				Workspace: Workspace{
+					ViewType: ViewJSON,
+				},
+			},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -59,10 +67,10 @@ func TestParseWorkspaceList_invalid(t *testing.T) {
 			},
 		},
 		"too many arguments": {
-			[]string{"bar", "baz"},
+			[]string{"-json", "bar", "baz"},
 			&WorkspaceList{
 				Workspace: Workspace{
-					ViewType: ViewHuman,
+					ViewType: ViewJSON, // -json flag parsed correctly
 				},
 			},
 			tfdiags.Diagnostics{

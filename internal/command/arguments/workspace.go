@@ -27,7 +27,10 @@ type WorkspaceList struct {
 func ParseWorkspaceList(args []string) (*WorkspaceList, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	var jsonOutput bool
 	cmdFlags := defaultFlagSet("workspace list")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -43,5 +46,10 @@ func ParseWorkspaceList(args []string) (*WorkspaceList, tfdiags.Diagnostics) {
 		diags = diags.Append(errors.New("Too many command line arguments. Did you mean to use -chdir?"))
 	}
 
-	return &WorkspaceList{Workspace: Workspace{ViewType: ViewHuman}}, diags
+	switch {
+	case jsonOutput:
+		return &WorkspaceList{Workspace: Workspace{ViewType: ViewJSON}}, diags
+	default:
+		return &WorkspaceList{Workspace: Workspace{ViewType: ViewHuman}}, diags
+	}
 }
