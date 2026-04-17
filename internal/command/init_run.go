@@ -214,7 +214,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, safeInitAction, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -232,7 +232,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	case SafeInitActionProceed:
 		// do nothing; provider is already trusted and there's no need to notify the user.
 	case SafeInitActionPromptForInput:
-		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks))
+		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
 		if diags.HasErrors() {
 			view.Output(views.StateStoreProviderRejectedMessage)
 			view.Diagnostics(diags)
@@ -418,7 +418,7 @@ If you do not intend to upgrade the state store provider, please update your con
 
 // promptStateStorageProviderApproval is used when Terraform is unsure about the safety of the provider downloaded for state storage
 // purposes, and we need to prompt the user to approve or reject using it.
-func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks) tfdiags.Diagnostics {
+func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks, authResult *getproviders.PackageAuthenticationResult) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// If we can receive input then we prompt for ok from the user
@@ -433,6 +433,7 @@ func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider ad
 		Id: "approve",
 		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
 Platform: %s
+Authentication: %s
 Hashes:
 %s
 `,
@@ -440,6 +441,7 @@ Hashes:
 			lock.Provider(),
 			lock.Version(),
 			getproviders.CurrentPlatform.String(),
+			authResult.String(),
 			hashList.String(),
 		),
 		Description: fmt.Sprintf(`Check the details above for provider %q and confirm that you trust the provider.

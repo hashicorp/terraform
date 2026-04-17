@@ -375,7 +375,7 @@ const (
 // The method downloads any missing providers that aren't already downloaded and then returns
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
@@ -391,7 +391,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	reqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, diags
+		return false, nil, SafeInitActionInvalid, nil, diags
 	}
 
 	reqs = c.removeDevOverrides(reqs)
@@ -409,7 +409,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, diags
+		return false, nil, SafeInitActionInvalid, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -435,10 +435,14 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	// These allow us to send output to the terminal as events happen, catch
 	// diagnostics, etc.
 	//
-	// One of the things we capture via these callbacks is the location of
+	// The callbacks help create diagnostics based on installation events, output
+	// messages to the user,
+	//
+	// of the things we capture via these callbacks is the location of
 	// providers as we install them. This allows the calling code to determine
 	// what 'safe init' actions need to take place.
 	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
+	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 
 	initMsg := views.InitializingProviderPluginFromConfigMessage
 	reuseMsg := views.ReusingPreviousVersionInfo
@@ -674,6 +678,13 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			}
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			// 1. Capture auth result if this provider is used for state storage.
+			if config.Module.StateStore != nil && provider.Equals(config.Module.StateStore.ProviderAddr) {
+				log.Printf("[TRACE] getProvidersFromConfig: state storage provider %s (%q) auth result: %q", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr.ForDisplay(), stateStoreProviderAuthResult.String())
+				stateStoreProviderAuthResult = authResult
+			}
+
+			// 2. Log a message about the installed provider.
 			var keyID string
 			if authResult != nil && authResult.ThirdPartySigned() {
 				keyID = authResult.KeyID
@@ -739,7 +750,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 			view.Diagnostics(diags)
-			return true, nil, SafeInitActionInvalid, diags
+			return true, nil, SafeInitActionInvalid, nil, diags
 		}
 
 		mode = providercache.InstallUpgrades
@@ -749,7 +760,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, diags
+		return false, nil, SafeInitActionInvalid, nil, diags
 	}
 
 	// Determine which required providers are already downloaded, and download any
@@ -758,7 +769,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, nil, SafeInitActionInvalid, diags
+		return true, nil, SafeInitActionInvalid, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -768,7 +779,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			diags = diags.Append(err)
 		}
 
-		return true, nil, SafeInitActionInvalid, diags
+		return true, nil, SafeInitActionInvalid, nil, diags
 	}
 
 	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
@@ -804,7 +815,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		}
 	}
 
-	return true, configLocks, safeInitAction, diags
+	return true, configLocks, safeInitAction, authResult, diags
 }
 
 // getProvidersFromState determines what providers are required by the given state data.

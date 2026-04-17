@@ -3967,6 +3967,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		expectedInputPromptMsg := []string{
 			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
 			getproviders.CurrentPlatform.String(),
+			"Authentication: unauthenticated",
 			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
 		}
 		for _, expected := range expectedInputPromptMsg {
@@ -4044,6 +4045,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		expectedInputPromptMsg := []string{
 			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
 			getproviders.CurrentPlatform.String(),
+			"Authentication: unauthenticated",
 			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
 		}
 		for _, expected := range expectedInputPromptMsg {
