@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Enable formatting of `.tfquery.hcl` files by `terraform fmt`
+time: 2026-04-17T12:41:34.311508+02:00
+custom:
+    Issue: "38398"
