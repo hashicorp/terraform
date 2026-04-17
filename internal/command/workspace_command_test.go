@@ -1442,22 +1442,20 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 	}
 	output := done(t)
 	expectedStdOut := `{
+  "format_version": "1.0",
   "workspaces": [
     {
       "name": "default",
       "is_current": true
     },
     {
-      "name": "dev",
-      "is_current": false
+      "name": "dev"
     },
     {
-      "name": "stage",
-      "is_current": false
+      "name": "stage"
     },
     {
-      "name": "prod",
-      "is_current": false
+      "name": "prod"
     }
   ],
   "diagnostics": []
@@ -1497,22 +1495,20 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 	}
 	output = done(t)
 	expectedStdOut = `{
+  "format_version": "1.0",
   "workspaces": [
     {
       "name": "default",
       "is_current": true
     },
     {
-      "name": "dev",
-      "is_current": false
+      "name": "dev"
     },
     {
-      "name": "stage",
-      "is_current": false
+      "name": "stage"
     },
     {
-      "name": "prod",
-      "is_current": false
+      "name": "prod"
     }
   ],
   "diagnostics": [
@@ -1558,6 +1554,7 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 	}
 	output = done(t)
 	expectedStdOut = `{
+  "format_version": "1.0",
   "workspaces": [],
   "diagnostics": [
     {

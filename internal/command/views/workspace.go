@@ -42,13 +42,14 @@ type WorkspaceListJSON struct {
 var _ WorkspaceList = (*WorkspaceListJSON)(nil)
 
 type WorkspaceListOutput struct {
-	Workspaces  []WorkspaceOutput       `json:"workspaces"`
-	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
+	FormatVersion string                  `json:"format_version"`
+	Workspaces    []WorkspaceOutput       `json:"workspaces"`
+	Diagnostics   []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 type WorkspaceOutput struct {
 	Name      string `json:"name"`
-	IsCurrent bool   `json:"is_current"`
+	IsCurrent bool   `json:"is_current,omitempty"`
 }
 
 // List is used to log the list of present workspaces and indicate which is currently selected
@@ -56,7 +57,14 @@ type WorkspaceOutput struct {
 // If `workspace list` errors must return early with error diagnostics then the list will be empty and accompanied by errors.
 // If the command succeeds then the list will be populated and the diagnostics list will be either empty or contain warnings.
 func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Diagnostics) {
-	output := WorkspaceListOutput{}
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const FormatVersion = "1.0"
+
+	output := WorkspaceListOutput{
+		FormatVersion: FormatVersion,
+	}
 
 	for _, item := range list {
 		workspace := WorkspaceOutput{
@@ -67,8 +75,9 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 	}
 
 	if output.Workspaces == nil {
-		// Make sure this always appears as an array in our output, since
-		// this is easier to consume for dynamically-typed languages.
+		// Make sure this always appears as an array in our output
+		// Zero workspaces being returned is a valid outcome. In that scenario a warning diagnostic is included,
+		// and that'll be easier to understand next to an empty workspace list.
 		output.Workspaces = []WorkspaceOutput{}
 	}
 
