@@ -1005,6 +1005,13 @@ Options:
   -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
                           A flag to enable an alternative init command that allows use of
                           pluggable state storage. Only usable with experiments enabled.
+
+  -state-provider-lock-file [EXPERIMENTAL]
+                          Specifies a lock file Terraform should use to establish trust in 
+                          a provider before initializing a state store for the first time.
+                          Only usable when input is disabled through -input=false.
+                          Only usable with experiments enabled and the
+                          -enable-pluggable-state-storage-experiment flag present.
 `
 	return strings.TrimSpace(helpText)
 }
