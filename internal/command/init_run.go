@@ -224,6 +224,8 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		header = true
 	}
 
+	// Prompt the user about trusting the provider used for state storage.
+	// Course of action depends on the safeInitAction returned from getProvidersFromConfig
 	switch safeInitAction {
 	case SafeInitActionNotRelevant:
 		// do nothing; security features aren't relevant.
@@ -242,7 +244,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
 	}
 
-	// The init command is not allowed to upgrade the provider used for PSS (unless we're reconfiguring the state store).
+	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
 	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
 	if initArgs.Upgrade && !initArgs.Reconfigure && config.Module.StateStore != nil {
 		pAddr := config.Module.StateStore.ProviderAddr
@@ -257,7 +259,7 @@ new lock: %#v`, pAddr.ForDisplay(), old, new))
 			// The upgrade has impacted the provider
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Cannot upgrade the provider used for pluggable state storage during \"terraform init -upgrade\"",
+				"Cannot upgrade the provider used for state storage during \"terraform init -upgrade\"",
 				fmt.Sprintf(`While upgrading providers Terraform attempted to upgrade the %s (%q) provider, which is used by the state_store block in your configuration.
 Please use \"terraform state migrate -upgrade\" to upgrade the state store provider and navigate migrating your state between the two versions. You can then re-attempt \"terraform init -upgrade\" to upgrade the rest of your providers.
 

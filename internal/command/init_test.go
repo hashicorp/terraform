@@ -2492,7 +2492,7 @@ terraform {
 			t.Fatalf("command was not expected to complete successfully, but it did:\n%s", done(t).All())
 		}
 		output := done(t).Stderr()
-		expectedError := "Error: Cannot upgrade the provider used for pluggable state storage during \"terraform init -upgrade\""
+		expectedError := "Error: Cannot upgrade the provider used for state storage during \"terraform init -upgrade\""
 		if !strings.Contains(output, expectedError) {
 			t.Fatalf("expected error message not found:\n%s", output)
 		}
