@@ -29,6 +29,7 @@ type Resource struct {
 
 	Preconditions  []*CheckRule
 	Postconditions []*CheckRule
+	ActionTriggers []*ActionTrigger
 
 	DependsOn []hcl.Traversal
 
@@ -684,6 +685,12 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 						r.Preconditions = append(r.Preconditions, cr)
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
+					}
+				case "action_trigger":
+					at, atDiags := decodeActionTriggerBlock(block)
+					diags = append(diags, atDiags...)
+					if at != nil {
+						r.ActionTriggers = append(r.ActionTriggers, at)
 					}
 				default:
 					// The cases above should be exhaustive for all block types
