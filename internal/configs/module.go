@@ -203,7 +203,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	diags = append(diags, checkModuleExperiments(mod)...)
 
 	// Generate the FQN -> LocalProviderName map
-	mod.gatherProviderLocalNames()
+	mod.GatherProviderLocalNames()
 
 	if mod.StateStore != nil {
 		diags = append(diags, mod.resolveStateStoreProviderType()...)
@@ -951,11 +951,11 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that populates a map of
+// GatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
 // only be populated after the module has been parsed.
-func (m *Module) gatherProviderLocalNames() {
+func (m *Module) GatherProviderLocalNames() {
 	providers := make(map[addrs.Provider]string)
 	for k, v := range m.ProviderRequirements.RequiredProviders {
 		providers[v.Type] = k
