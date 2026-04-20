@@ -38,14 +38,17 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParseValidate(rawArgs)
-	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("validate")
-		return 1
-	}
 
 	c.ParsedArgs = args
 	view := views.NewValidate(args.ViewType, c.View)
+
+	// Now the view is ready, process any diagnostics from argument parsing
+	if diags.HasErrors() {
+		if args.ViewType == arguments.ViewHuman {
+			defer c.View.HelpPrompt("validate")
+		}
+		return view.Results(diags)
+	}
 
 	// If the query flag is set, include query files in the validation.
 	c.includeQueryFiles = c.ParsedArgs.Query
