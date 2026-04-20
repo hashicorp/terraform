@@ -3459,12 +3459,15 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
 		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderVersion := getproviders.MustParseVersion("1.2.3")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
 		// This stops Terraform auto-approving the provider installation.
-		source := newMockProviderSourceUsingTestHttpServer(t, mockProviderAddress, mockProviderVersion)
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below 1.2.3 is the 'latest' version in the test world.
+			"hashicorp/test": {"1.0.0", "1.2.3"},
+		})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3512,8 +3515,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource, close := newMockProviderSource(t, map[string][]string{
-			// The test fixture config has no version constraints, so the latest version will
-			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
 		defer close()
@@ -5660,64 +5661,79 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 //
 // This source is not sufficient for providers to be available to use during a test; when using this helper, also set up testOverrides in
 // the same Meta to provide the actual provider implementations for use during the test.
-//
-// Currently this helper only allows one provider/version to be mocked. In future we could extend it to allow multiple providers/versions.
-func newMockProviderSourceUsingTestHttpServer(t *testing.T, p addrs.Provider, v getproviders.Version) *getproviders.MockSource {
+func newMockProviderSourceUsingTestHttpServer(t *testing.T, availableProviderVersions map[string][]string) *getproviders.MockSource {
+	t.Helper()
+
 	// Get un-started server so we can obtain the port it'll run on.
 	server := httptest.NewUnstartedServer(nil)
 
 	// Set up mock provider source that mocks installation via HTTP.
 	source := newMockProviderSourceViaHTTP(
 		t,
-		map[string][]string{
-			fmt.Sprintf("%s/%s", p.Namespace, p.Type): {v.String()},
-		},
+		availableProviderVersions,
 		server.Listener.Addr().String(),
 	)
 
-	// Supply a download location so that the installation completes ok
-	// while Terraform still believes it's downloading a provider via HTTP.
-	providerMetadata, err := source.PackageMeta(
-		context.Background(),
-		p,
-		v,
-		getproviders.CurrentPlatform,
-	)
-	if err != nil {
-		t.Fatalf("failed to get provider metadata: %s", err)
+	// Get all the metadata for all provider versions defined in the availableProviderVersions map.
+	var packages []getproviders.PackageMeta
+	for pSource, versions := range availableProviderVersions {
+		addr := addrs.MustParseProviderSourceString(pSource)
+		for _, versionStr := range versions {
+			version, err := getproviders.ParseVersion(versionStr)
+			if err != nil {
+				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
+			}
+			providerMetadata, err := source.PackageMeta(
+				context.Background(),
+				addr,
+				version,
+				getproviders.CurrentPlatform,
+			)
+			if err != nil {
+				t.Fatalf("failed to get provider metadata: %s", err)
+			}
+			packages = append(packages, providerMetadata)
+		}
 	}
 
 	// Make Terraform believe it's downloading the provider.
 	// Any requests to the test server that aren't for that purpose will cause the test to fail.
 	server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		providerLocationPath := strings.ReplaceAll(
-			providerMetadata.Location.String(),
-			"http://"+server.Listener.Addr().String(),
-			"",
-		)
-		// This is the URL that the init command will hit to download the provider, so we return a valid provider archive.
-		if r.URL.Path == providerLocationPath {
-			// This code returns data in the temporary file that's created by the mock provider source.
-			// This 'downloaded' is not used when Terraform uses the provider after the mock installation completes;
-			// Terraform will look for will use testOverrides in the Meta set up for this test.
-			//
-			// Although it's not used later we need to use this file (versus empty or made-up bytes) to enable installation
-			// logic to receive data with the correct checksum.
-			f, err := os.Open(providerMetadata.Filename)
-			if err != nil {
-				t.Fatalf("failed to open mock source file: %s", err)
+		var providerMetadata getproviders.PackageMeta
+
+		// Find the package with a location matching the request URL path.
+		// E.g. a request to path "/terraform-provider-test/1.2.3/terraform-provider-test_1.2.3_darwin_arm64.zip"
+		//      needs to be matched to a provider in the map with Location "http://<server-address>/terraform-provider-test/1.2.3/terraform-provider-test_1.2.3_darwin_arm64.zip"
+		found := false
+		for _, p := range packages {
+			if strings.HasSuffix(p.Location.String(), r.URL.Path) {
+				providerMetadata = p
+				found = true
+				break
 			}
-			defer f.Close()
-			archiveBytes, err := io.ReadAll(f)
-			if err != nil {
-				t.Fatalf("failed to read mock source file: %s", err)
-			}
-			w.WriteHeader(http.StatusOK)
-			w.Write(archiveBytes)
-			return
-		} else {
-			t.Fatalf("unexpected URL path: %s", r.URL.Path)
 		}
+		if !found {
+			// Cannot process request if it doesn't match the test setup.
+			t.Fatalf("unexpected URL path, test doesn't define a matching provider version: %s", r.URL.Path)
+		}
+
+		// This code returns data in the temporary file that's created by the mock provider source.
+		// This 'download' is not used when Terraform uses the provider after the mock installation completes;
+		// Terraform will look for will use testOverrides in the Meta set up for this test.
+		//
+		// Although it's not used later we need to use this file (versus empty or made-up bytes) to enable installation
+		// logic to receive data with the correct checksum.
+		f, err := os.Open(providerMetadata.Filename)
+		if err != nil {
+			t.Fatalf("failed to open mock source file: %s", err)
+		}
+		defer f.Close()
+		archiveBytes, err := io.ReadAll(f)
+		if err != nil {
+			t.Fatalf("failed to read mock source file: %s", err)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(archiveBytes)
 	})}
 
 	server.Start()
