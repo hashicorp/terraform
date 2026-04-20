@@ -3908,9 +3908,299 @@ func TestInit_testsWithModule(t *testing.T) {
 	}
 }
 
-// Testing init's behaviors with `state_store` when run in an empty working directory
-func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("no need to interactively approve a state store provider installed from local archive", func(t *testing.T) {
+// Testing init's basic behaviors with `state_store` when run in an empty working directory: backend state file creation, behaviour based on the selected workspace
+func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
+	t.Run("the init command creates a backend state file, and the default workspace is not made by default", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the default workspace was not created
+		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+			t.Fatal("expected the default workspace to not be created during init, but it exists")
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		v1_2_3, _ := version.NewVersion("1.2.3")
+		expectedState := &workdir.StateStoreConfigState{
+			Type:               "test_store",
+			ConfigRaw:          []byte("{\n      \"value\": \"foobar\"\n    }"),
+			Hash:               uint64(4158988729),
+			ProviderSupplyMode: getproviders.ManagedByTerraform,
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_2_3,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+			},
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
+	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
+	t.Run("error when a custom workspace is selected but no workspaces exist", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Select a custom workspace (which will not exist)
+		customWorkspace := "my-custom-workspace"
+		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			fmt.Sprintf("Workspace %q has not been created yet", customWorkspace),
+			fmt.Sprintf("To create the custom workspace %q use the command `terraform workspace new %s`", customWorkspace, customWorkspace),
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(cleanString(output), expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, cleanString(output))
+			}
+		}
+
+		// Assert no workspaces exist
+		if len(mockProvider.MockStates) != 0 {
+			t.Fatalf("expected no workspaces, but got: %#v", mockProvider.MockStates)
+		}
+
+		// Assert no backend state file made due to the error
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err := os.Stat(statePath)
+		if pathErr, ok := err.(*os.PathError); !ok || !os.IsNotExist(pathErr.Err) {
+			t.Fatalf("expected backend state file to not be created, but it exists")
+		}
+	})
+
+	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
+	//
+	// When input is disabled (in automation, etc) Terraform cannot prompts the user to select an alternative.
+	// Instead, an error is returned.
+	t.Run("error when input is disabled and the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{
+				"foobar1",
+				"foobar2",
+				// Force provider to report workspaces exist
+				// But default workspace doesn't exist
+			},
+		}
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// If input is disabled users receive an error about the missing workspace
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output := testOutput.All()
+		expectedOutput := "Failed to select a workspace: Currently selected workspace \"default\" does not exist"
+		if !strings.Contains(cleanString(output), expectedOutput) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, cleanString(output))
+		}
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		_, err := os.Stat(statePath)
+		if _, ok := err.(*os.PathError); !ok {
+			if err == nil {
+				t.Fatalf("expected backend state file to not be created, but it exists")
+			}
+
+			t.Fatalf("unexpected error: %s", err)
+		}
+	})
+
+	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
+	//
+	// When input is enabled Terraform prompts the user to select an alternative.
+	t.Run("if the selected workspace doesn't exist and other custom workspaces do exist, Terraform prompts the user to select a workspace .", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{
+				"foobar1",
+				"foobar2",
+				// Force provider to report workspaces exist
+				// But default workspace doesn't exist
+			},
+		}
+
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.0.0"},
+		})
+
+		// Allow the test to respond to the prompt to pick an
+		// existing workspace, given the selected one doesn't exist.
+		_ = testInputMap(t, map[string]string{
+			"select-workspace": "1", // foobar1 in numbered list
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// The init command should have caused the selected workspace to change, based on the input
+		// provided by the user.
+		currentWorkspace, err := c.Meta.Workspace()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if currentWorkspace != "foobar1" {
+			t.Fatalf("expected init command to alter the selected workspace from 'default' to 'foobar1', but got: %s", currentWorkspace)
+		}
+	})
+}
+
+// Testing init's behaviors when approving a new state store provider when a workspace is initialized for the first time.
+func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T) {
+	t.Run("users do not need to approve trusting a state store provider if it's installed from local archive", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -4315,295 +4605,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			}
 		}
 	})
-
-	t.Run("the init command creates a backend state file, and the default workspace is not made by default", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3"},
-		})
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedOutputs := []string{
-			"Initializing the state store...",
-			"Terraform has been successfully initialized!",
-		}
-		for _, expected := range expectedOutputs {
-			if !strings.Contains(output, expected) {
-				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
-			}
-		}
-
-		// Assert the default workspace was not created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
-			t.Fatal("expected the default workspace to not be created during init, but it exists")
-		}
-
-		// Assert contents of the backend state file
-		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
-		sMgr := &clistate.LocalState{Path: statePath}
-		if err := sMgr.RefreshState(); err != nil {
-			t.Fatal("Failed to load state:", err)
-		}
-		s := sMgr.State()
-		if s == nil {
-			t.Fatal("expected backend state file to be created, but there isn't one")
-		}
-		v1_2_3, _ := version.NewVersion("1.2.3")
-		expectedState := &workdir.StateStoreConfigState{
-			Type:               "test_store",
-			ConfigRaw:          []byte("{\n      \"value\": \"foobar\"\n    }"),
-			Hash:               uint64(4158988729),
-			ProviderSupplyMode: getproviders.ManagedByTerraform,
-			Provider: &workdir.ProviderConfigState{
-				Version: v1_2_3,
-				Source: &tfaddr.Provider{
-					Hostname:  tfaddr.DefaultProviderRegistryHost,
-					Namespace: "hashicorp",
-					Type:      "test",
-				},
-				ConfigRaw: []byte("{\n        \"region\": null\n      }"),
-			},
-		}
-		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
-			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
-		}
-	})
-
-	// This scenario would be rare, but protecting against it is easy and avoids assumptions.
-	t.Run("if a custom workspace is selected but no workspaces exist an error is returned", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		// Select a custom workspace (which will not exist)
-		customWorkspace := "my-custom-workspace"
-		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
-		})
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedOutputs := []string{
-			fmt.Sprintf("Workspace %q has not been created yet", customWorkspace),
-			fmt.Sprintf("To create the custom workspace %q use the command `terraform workspace new %s`", customWorkspace, customWorkspace),
-		}
-		for _, expected := range expectedOutputs {
-			if !strings.Contains(cleanString(output), expected) {
-				t.Fatalf("expected output to include %q, but got':\n %s", expected, cleanString(output))
-			}
-		}
-
-		// Assert no workspaces exist
-		if len(mockProvider.MockStates) != 0 {
-			t.Fatalf("expected no workspaces, but got: %#v", mockProvider.MockStates)
-		}
-
-		// Assert no backend state file made due to the error
-		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
-		_, err := os.Stat(statePath)
-		if pathErr, ok := err.(*os.PathError); !ok || !os.IsNotExist(pathErr.Err) {
-			t.Fatalf("expected backend state file to not be created, but it exists")
-		}
-	})
-
-	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
-	//
-	// When input is disabled (in automation, etc) Terraform cannot prompts the user to select an alternative.
-	// Instead, an error is returned.
-	t.Run("init: returns an error when input is disabled and the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
-			States: []string{
-				"foobar1",
-				"foobar2",
-				// Force provider to report workspaces exist
-				// But default workspace doesn't exist
-			},
-		}
-
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
-		})
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		// If input is disabled users receive an error about the missing workspace
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-			"-input=false",
-		}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 1 {
-			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-		output := testOutput.All()
-		expectedOutput := "Failed to select a workspace: Currently selected workspace \"default\" does not exist"
-		if !strings.Contains(cleanString(output), expectedOutput) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, cleanString(output))
-		}
-		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
-		_, err := os.Stat(statePath)
-		if _, ok := err.(*os.PathError); !ok {
-			if err == nil {
-				t.Fatalf("expected backend state file to not be created, but it exists")
-			}
-
-			t.Fatalf("unexpected error: %s", err)
-		}
-	})
-
-	// Test what happens when the selected workspace doesn't exist, but there are other workspaces available.
-	//
-	// When input is enabled Terraform prompts the user to select an alternative.
-	t.Run("init: prompts user to select a workspace if the selected workspace doesn't exist and other custom workspaces do exist.", func(t *testing.T) {
-		// Create a temporary, uninitialized working directory with configuration including a state store
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-with-state-store"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
-			States: []string{
-				"foobar1",
-				"foobar2",
-				// Force provider to report workspaces exist
-				// But default workspace doesn't exist
-			},
-		}
-
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.0.0"},
-		})
-
-		// Allow the test to respond to the prompt to pick an
-		// existing workspace, given the selected one doesn't exist.
-		_ = testInputMap(t, map[string]string{
-			"select-workspace": "1", // foobar1 in numbered list
-		})
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-		}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// The init command should have caused the selected workspace to change, based on the input
-		// provided by the user.
-		currentWorkspace, err := c.Meta.Workspace()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if currentWorkspace != "foobar1" {
-			t.Fatalf("expected init command to alter the selected workspace from 'default' to 'foobar1', but got: %s", currentWorkspace)
-		}
-	})
-
-	// TODO(SarahFrench/radeksimko): Add test cases below:
-	// 1) "during a non-init command, the command ends in with an error telling the user to run an init command"
-	// >>> Currently this is handled at a lower level in `internal/command/meta_backend_test.go`
 }
 
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
