@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
+	openpgpErrors "github.com/ProtonMail/go-crypto/openpgp/errors"
 )
 
 // SignatureAuthentication is an archive Authenticator that validates that SHA256SUMS data
@@ -48,7 +49,13 @@ func (a SignatureAuthentication) Authenticate() error {
 		return fmt.Errorf("error creating HashiCorp keyring: %s", err)
 	}
 
-	_, err = openpgp.CheckDetachedSignature(hashicorpKeyring, bytes.NewReader(a.signed), bytes.NewReader(a.signature), nil)
+	entity, err := openpgp.CheckDetachedSignature(hashicorpKeyring, bytes.NewReader(a.signed), bytes.NewReader(a.signature), nil)
+	if err == openpgpErrors.ErrKeyExpired {
+		for id := range entity.Identities {
+			log.Printf("[WARN] expired openpgp key from %s\n", id)
+		}
+		err = nil
+	}
 	if err != nil {
 		log.Printf("[DEBUG] GPG reported an error while verifying detached signature: %s", err)
 		return ErrNotSignedByHashiCorp
