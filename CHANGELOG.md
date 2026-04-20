@@ -1,3 +1,11 @@
+## 1.14.9 (April 20, 2026)
+
+
+BUG FIXES:
+
+* Fix Terraform Stacks plugin installation error ([#38406](https://github.com/hashicorp/terraform/issues/38406))
+
+
 ## 1.14.8 (March 25, 2026)
 
 
