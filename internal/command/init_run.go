@@ -429,6 +429,13 @@ func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider ad
 		hashList.WriteString(fmt.Sprintf("- %s\n", hash))
 	}
 
+	var authentication string
+	if authResult != nil && authResult.KeyID != "" {
+		authentication = fmt.Sprintf("%s, key ID %s", authResult.String(), authResult.KeyID)
+	} else {
+		authentication = authResult.String()
+	}
+
 	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "approve",
 		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
@@ -441,7 +448,7 @@ Hashes:
 			lock.Provider(),
 			lock.Version(),
 			getproviders.CurrentPlatform.String(),
-			authResult.String(),
+			authentication,
 			hashList.String(),
 		),
 		Description: fmt.Sprintf(`Check the details above for provider %q and confirm that you trust the provider.
