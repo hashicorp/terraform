@@ -378,7 +378,7 @@ const (
 // The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	if config == nil {
 		return false, nil, SafeInitActionNotRelevant, nil, diags
 	}
@@ -505,13 +505,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
 		mode = providercache.InstallUpgrades
-	}
-
-	// Previous locks from dep locks file are needed so we don't re-download any providers
-	previousLocks, moreDiags := c.lockedDependencies()
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, nil, diags
 	}
 
 	// Determine which required providers are already downloaded, and download any
