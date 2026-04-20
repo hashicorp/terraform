@@ -584,6 +584,28 @@ func TestValidate_ensure_json_diags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
+
+		gotString := output.Stdout()
+
+		var got map[string]any
+		err := json.Unmarshal([]byte(gotString), &got)
+		if err != nil {
+			t.Fatalf("Test did not produce valid JSON: %s", err)
+		}
+	})
+
+	t.Run("Flag/argument parsing error diags are rendered using the correct view ", func(t *testing.T) {
+		output, code := setupTest(t, "validate-invalid", "-json", "-foobar")
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
 
 		gotString := output.Stdout()
 
