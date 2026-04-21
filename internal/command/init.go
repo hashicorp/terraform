@@ -366,10 +366,10 @@ the backend configuration is present and valid.
 type SafeInitAction rune
 
 const (
-	SafeInitActionInvalid        SafeInitAction = 0
-	SafeInitActionProceed        SafeInitAction = 'P'
-	SafeInitActionPromptForInput SafeInitAction = 'I'
-	SafeInitActionNotRelevant    SafeInitAction = 'N' // For when a state store isn't in use at all!
+	SafeInitActionInvalid         SafeInitAction = 0
+	SafeInitActionProceed         SafeInitAction = 'P'
+	SafeInitActionRequireApproval SafeInitAction = 'I'
+	SafeInitActionNotRelevant     SafeInitAction = 'N' // For when a state store isn't in use at all!
 )
 
 // getProvidersFromConfig determines what providers are required by the given configuration data.
@@ -552,7 +552,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 				safeInitAction = SafeInitActionProceed
 			case getproviders.PackageHTTPURL:
 				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionPromptForInput
+				safeInitAction = SafeInitActionRequireApproval
 			default:
 				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
 			}

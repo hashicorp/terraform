@@ -214,7 +214,49 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, previousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	// If -state-provider-lock-file is set, we'll use that to obtain a new lock used for the state store provider
+	// This will be 'upserted': it may be that the previous locks don't contain the provider being added. potentially due to being empty, or contain a different version.
+	// The lock added will be used in the first step of provider download.
+	//
+	// We leave `previousLocks` unchanged so it can be used to accurately detect changes to the locks when the lock file is updated later.
+	alteredPreviousLocks := previousLocks.DeepCopy()
+	if initArgs.StateStoreProviderLockFile != "" {
+		stateStoreLocks, lockDiags := depsfile.LoadLocksFromFile(initArgs.StateStoreProviderLockFile)
+		if lockDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error loading -state-provider-lock-file lock file",
+				fmt.Sprintf("Terraform experienced an error loading the file at %q: %s", initArgs.StateStoreProviderLockFile, lockDiags.Err()),
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+		diags = diags.Append(lockDiags) // capture any warnings
+
+		lock := stateStoreLocks.Provider(config.Module.StateStore.ProviderAddr)
+		if lock == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"State store provider not found in -state-provider-lock-file dependency lock file",
+				fmt.Sprintf("Terraform could not find the state store provider %q (%s) in the dependency lock file %q provided via the -state-provider-lock-file flag. Please ensure the lock file contains a lock for the state store provider and try again.",
+					config.Module.StateStore.ProviderAddr.Type,
+					config.Module.StateStore.ProviderAddr.ForDisplay(),
+					initArgs.StateStoreProviderLockFile,
+				),
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		// Overwrite or add the state store provider lock to the other locks for this project
+		alteredPreviousLocks.SetProvider(
+			lock.Provider(),
+			lock.Version(),
+			lock.VersionConstraints(),
+			lock.PreferredHashes(),
+		)
+	}
+	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -224,21 +266,37 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		header = true
 	}
 
-	// Prompt the user about trusting the provider used for state storage.
 	// Course of action depends on the safeInitAction returned from getProvidersFromConfig
 	switch safeInitAction {
 	case SafeInitActionNotRelevant:
 		// do nothing; security features aren't relevant.
 	case SafeInitActionProceed:
 		// do nothing; provider is already trusted and there's no need to notify the user.
-	case SafeInitActionPromptForInput:
-		diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
-		if diags.HasErrors() {
-			view.Output(views.StateStoreProviderRejectedMessage)
-			view.Diagnostics(diags)
-			return 1
+	case SafeInitActionRequireApproval:
+		if c.input {
+			// Prompt the user about trusting the provider used for state storage.
+			diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
+			if diags.HasErrors() {
+				view.Output(views.StateStoreProviderInteractiveRejectedMessage)
+				view.Diagnostics(diags)
+				return 1
+			}
+			view.Output(views.StateStoreProviderInteractiveApprovedMessage)
+		} else {
+			// Confirm that a lock was used to control download.
+			// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
+			if alteredPreviousLocks.Provider(config.Module.StateStore.ProviderAddr) == nil {
+				// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing lock for state store provider",
+					"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+			view.Output(views.StateStoreProviderAutomationApprovedMessage)
 		}
-		view.Output(views.StateStoreProviderApprovedMessage)
 	default:
 		// Handle SafeInitActionInvalid or unexpected action types
 		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
@@ -248,7 +306,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
 	if initArgs.Upgrade && !initArgs.Reconfigure && config.Module.StateStore != nil {
 		pAddr := config.Module.StateStore.ProviderAddr
-		old := previousLocks.Provider(pAddr)
+		old := alteredPreviousLocks.Provider(pAddr)
 		new := configLocks.Provider(pAddr)
 		if old == nil || new == nil {
 			panic(fmt.Sprintf(`Unexpected missing provider lock for %s during init -upgrade: 
