@@ -125,8 +125,25 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 }
 
 // testModuleInlineWithVars is the same as testModuleInline but also allows passing in variable values to be used when loading the config.
-func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars InputValues, parserOpts ...configs.Option) *configs.Config {
+func testModuleInlineWithVars(
+	t testing.TB,
+	sources map[string]string,
+	vars InputValues,
+	parserOpts ...configs.Option,
+) *configs.Config {
+	config, diags := testModuleInlineWithVarsReturnDiags(t, sources, vars, parserOpts...)
+	if diags != nil && diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	return config
+}
 
+func testModuleInlineWithVarsReturnDiags(
+	t testing.TB,
+	sources map[string]string,
+	vars InputValues,
+	parserOpts ...configs.Option,
+) (*configs.Config, tfdiags.Diagnostics) {
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -167,7 +184,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
-		t.Fatal(instDiags.Err())
+		return nil, instDiags
 	}
 
 	// Since module installer has modified the module manifest on disk, we need
@@ -178,7 +195,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 
 	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
 	if hclDiags.HasErrors() {
-		t.Fatal(hclDiags.Error())
+		return nil, tfdiags.Diagnostics{}.Append(hclDiags)
 	}
 
 	config, buildDiags := BuildConfigWithGraph(
@@ -188,10 +205,10 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	if buildDiags.HasErrors() {
-		t.Fatal(buildDiags.Err())
+		return nil, buildDiags
 	}
 
-	return config
+	return config, nil
 }
 
 func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {

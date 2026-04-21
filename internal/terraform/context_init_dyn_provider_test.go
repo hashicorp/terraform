@@ -210,9 +210,13 @@ variable "test-provider_src" {
 				if !diags.HasErrors() {
 					t.Fatalf("expect error when non const variable is being used")
 				}
-
-				rp := expectRequiredProviderInModule(t, "test-provider", cfg.Module)
-				expectRequiredProviderSource(t, "test/local", rp.Source)
+				if diags.Err().Error() != "Invalid provider source: The provider source contains a reference that is unknown during init." {
+					t.Fatalf(
+						"expected error msg: %s, got %s",
+						"Invalid provider source: The provider source contains a reference that is unknown during init.",
+						diags.Err().Error(),
+					)
+				}
 			},
 		},
 		"resolve required provider when static and dynamic providers are used": {
@@ -335,7 +339,11 @@ variable "provider_ver" {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			m := testModuleInlineWithVars(t, tc.module, tc.vars)
+			m, d := testModuleInlineWithVarsReturnDiags(t, tc.module, tc.vars)
+			if d != nil {
+				tc.validationFunc(t, nil, d)
+				return
+			}
 
 			ctx := testContext2(t, &ContextOpts{Parallelism: 1})
 			walker := MockModuleWalker{
