@@ -4833,6 +4833,142 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		// as it was created during test setup.
 	})
 
+	t.Run("error if the lock file supplied by the -state-provider-lock-file flag doesn't contain the state store provider", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out hashicorp/test via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		expectedVersion := "1.2.3"
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {expectedVersion},
+		})
+		mockProvider := mockPluggableStateStorageProvider()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Create supplemental lock file to be used with the -state-provider-lock flag
+		// To avoid this being confused with the lock file in the working directory,
+		// this is made in a second temp directory away from other files in this test.
+		td2 := t.TempDir()
+		lockFileName := filepath.Join(td2, ".terraform.lock.hcl")
+
+		// It DOESNT contain the state store provider hashicorp/test though, causing an error.
+		locks := depsfile.NewLocks()
+		locks.SetProvider(
+			addrs.NewDefaultProvider("notusedprovider"),
+			getproviders.MustParseVersion("9.9.9"),
+			getproviders.MustParseVersionConstraints("> 1.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+			},
+		)
+		depsfile.SaveLocksToFile(locks, lockFileName)
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false", // Simulate running in automation where input is disabled
+			fmt.Sprintf("-state-provider-lock-file=%s", lockFileName),
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output via view
+		output := cleanString(testOutput.All())
+		expectedOutputs := []string{
+			"Error: State store provider not found in -state-provider-lock-file dependency lock file",
+			fmt.Sprintf("Terraform could not find the state store provider \"test\" (hashicorp/test) in the dependency lock file \"%s\" provided via the -state-provider-lock-file flag", lockFileName),
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
+
+	t.Run("error if the state store lock is supplied by neither a pre-existing lock nor the -state-provider-lock-file flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out hashicorp/test via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		expectedVersion := "1.2.3"
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {expectedVersion},
+		})
+		mockProvider := mockPluggableStateStorageProvider()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Confirm the .terraform.lock.hcl file doesn't exist before the test runs
+		// Therefore this isn't an adequate fallback source of locks for the state store provider, causing an error.
+		_, err := os.Stat(filepath.Join(td, ".terraform.lock.hcl"))
+		if !os.IsNotExist(err) {
+			t.Fatal("expected .terraform.lock.hcl file to not exist, but got an unrelated error:", err)
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			"-input=false", // Simulate running in automation where input is disabled
+			//-state-provider-lock-file is not used, and there's no .terraform.lock.hcl file, so no locks are supplied for the state store provider
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output via view
+		output := cleanString(testOutput.All())
+		expectedOutputs := []string{
+			"Error: Missing lock for state store provider",
+			"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
 }
 
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
