@@ -264,6 +264,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				file.Actions = append(file.Actions, cfg)
 			}
 
+		case "typedef":
+			cfg, cfgDiags := decodeTypeDefBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.TypeDefs = append(file.TypeDefs, cfg)
+			}
+
 		default:
 			// Should never happen because the above cases should be exhaustive
 			// for all block type names in our schema.
@@ -370,6 +377,10 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "check",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "typedef",
 			LabelNames: []string{"name"},
 		},
 	},

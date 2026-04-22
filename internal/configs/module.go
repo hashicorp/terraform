@@ -101,6 +101,8 @@ type File struct {
 
 	Checks  []*Check
 	Actions []*Action
+
+	TypeDefs []*TypeDef
 }
 
 // NewModuleWithTests matches NewModule except it will also load in the provided

@@ -60,6 +60,19 @@ type Variable struct {
 	DeclRange hcl.Range
 }
 
+type TypeDef struct {
+	Name       string
+	Definition cty.Type
+	DeclRange  hcl.Range
+
+	// ConstraintType is a type constraint which the result is guaranteed
+	// to conform to when used in the calling module.
+	ConstraintType cty.Type
+	// TypeDefaults describes any optional attribute defaults that should be
+	// applied to the Expr result before type conversion.
+	TypeDefaults *typeexpr.Defaults
+}
+
 func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagnostics) {
 	v := &Variable{
 		Name:      block.Labels[0],
@@ -646,4 +659,42 @@ func checkVariableValidationBlock(varName string, vv *CheckRule) hcl.Diagnostics
 		})
 	}
 	return nil
+}
+
+func decodeTypeDefBlock(block *hcl.Block) (*TypeDef, hcl.Diagnostics) {
+	v := &TypeDef{
+		Name:       block.Labels[0],
+		DeclRange:  block.DefRange,
+		Definition: cty.DynamicPseudoType,
+	}
+
+	content, diags := block.Body.Content(typeDefBlockSchema)
+
+	if !hclsyntax.ValidIdentifier(v.Name) {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid typedef name",
+			Detail:   badIdentifierDetail,
+			Subject:  &block.LabelRanges[0],
+		})
+	}
+
+	if attr, exists := content.Attributes["definition"]; exists {
+		ty, tyDefaults, _, tyDiags := decodeVariableType(attr.Expr) // reusing this for ease, I'm assuming this should work relatively fine? :P
+		diags = append(diags, tyDiags...)
+		v.ConstraintType = ty
+		v.TypeDefaults = tyDefaults
+		v.Definition = ty.WithoutOptionalAttributesDeep()
+	}
+
+	return v, diags
+}
+
+var typeDefBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name:     "definition",
+			Required: true,
+		},
+	},
 }
