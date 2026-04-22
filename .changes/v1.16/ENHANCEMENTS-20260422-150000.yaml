@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'perf: optimize `terraform plan` by caching the base function table across evaluation scopes and replacing `fmt.Sprintf` with direct string concatenation in hot-path address `String()` methods, resulting in 13-16% faster plan times on large configurations'
+time: 2026-04-22T15:00:00.000000-04:00
+custom:
+    Author: "codeflash[bot]"
