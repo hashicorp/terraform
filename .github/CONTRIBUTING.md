@@ -312,7 +312,7 @@ We value open communication about the tools and methods used to build Terraform.
 
 ### Accountability
 
-Understanding that AI usage can range along a spectrum from AI assistance to AI led approaches we strongly prefer an approach that leaves the contributor in the drivers seat. AI is a tool, not a seperate contributor. The responsibility for changes submitted lies entirely with you, the human opening the PR.
+Understanding that AI usage can range along a spectrum from AI assistance to AI led approaches we strongly prefer an approach that leaves the contributor in the drivers seat. AI is a tool, not a separate contributor. The responsibility for changes submitted lies entirely with you, the human opening the PR.
 
 * **Human ownership**: All PRs must be submitted by a real, human-owned account. We do not accept submissions from bot accounts used for code generation.
 * **Human review**: We proceed with the assumption that every line of code has been reviewed by you. You must ensure that the code meets our quality standards, that edge cases are handled, and that appropriate tests are written and passing.
