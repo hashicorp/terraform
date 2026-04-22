@@ -1074,39 +1074,6 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 }
 
-func TestValidWorkspaceName(t *testing.T) {
-	cases := map[string]struct {
-		input string
-		valid bool
-	}{
-		"foobar": {
-			input: "foobar",
-			valid: true,
-		},
-		"valid symbols": {
-			input: "-._~@:",
-			valid: true,
-		},
-		"includes space": {
-			input: "two words",
-			valid: false,
-		},
-		"empty string": {
-			input: "",
-			valid: false,
-		},
-	}
-
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			valid := validWorkspaceName(tc.input)
-			if valid != tc.valid {
-				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
-			}
-		})
-	}
-}
-
 // Test how all workspace subcommands handle unexpected arguments.
 func TestWorkspace_extraArgError(t *testing.T) {
 	newMeta := func() (Meta, *cli.MockUi) {

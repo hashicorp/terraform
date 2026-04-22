@@ -55,8 +55,8 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	name := args[0]
-	if !validWorkspaceName(name) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, name))
+	if !arguments.ValidWorkspaceName(name) {
+		c.Ui.Error(fmt.Sprintf(arguments.EnvInvalidName, name))
 		return 1
 	}
 

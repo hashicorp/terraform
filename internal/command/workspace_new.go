@@ -51,8 +51,8 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	workspace := args[0]
 
-	if !validWorkspaceName(workspace) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, workspace))
+	if !arguments.ValidWorkspaceName(workspace) {
+		c.Ui.Error(fmt.Sprintf(arguments.EnvInvalidName, workspace))
 		return 1
 	}
 
