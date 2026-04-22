@@ -24,17 +24,17 @@ type Resource struct {
 func (r Resource) String() string {
 	switch r.Mode {
 	case ManagedResourceMode:
-		return fmt.Sprintf("%s.%s", r.Type, r.Name)
+		return r.Type + "." + r.Name
 	case DataResourceMode:
-		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+		return "data." + r.Type + "." + r.Name
 	case EphemeralResourceMode:
-		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
+		return "ephemeral." + r.Type + "." + r.Name
 	case ListResourceMode:
-		return fmt.Sprintf("list.%s.%s", r.Type, r.Name)
+		return "list." + r.Type + "." + r.Name
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
-		return fmt.Sprintf("<invalid>.%s.%s", r.Type, r.Name)
+		return "<invalid>." + r.Type + "." + r.Name
 	}
 }
 
@@ -221,7 +221,7 @@ func (r AbsResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
 	}
-	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+	return r.Module.String() + "." + r.Resource.String()
 }
 
 // AffectedAbsResource returns the AbsResource.
@@ -356,7 +356,7 @@ func (r AbsResourceInstance) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
 	}
-	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+	return r.Module.String() + "." + r.Resource.String()
 }
 
 // AffectedAbsResource returns the AbsResource for the instance.
@@ -469,7 +469,7 @@ func (r ConfigResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
 	}
-	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+	return r.Module.String() + "." + r.Resource.String()
 }
 
 func (r ConfigResource) Equal(o ConfigResource) bool {

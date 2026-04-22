@@ -5,6 +5,7 @@ package lang
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2/ext/tryfunc"
 	ctyyaml "github.com/zclconf/go-cty-yaml"
@@ -15,6 +16,15 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/funcs"
+)
+
+// cachedCoreFuncs holds the pre-computed base function table with descriptions
+// and "core::" prefixes already applied. This avoids re-creating ~180 function
+// objects on every Scope.Functions() call. The cached table is immutable once
+// initialized; callers must clone it before making modifications.
+var (
+	cachedCoreFuncsOnce sync.Once
+	cachedCoreFuncs     map[string]function.Function
 )
 
 var impureFunctions = []string{
@@ -49,6 +59,29 @@ var templateFunctions = collections.NewSetCmp[string](
 	"templatestring",
 )
 
+// coreFunctionsTable returns the cached, immutable base function table with
+// descriptions and "core::" prefixes already applied. This is computed once
+// and shared across all Scope instances. Callers must NOT modify the returned
+// map; clone it first if modifications are needed.
+func coreFunctionsTable() map[string]function.Function {
+	cachedCoreFuncsOnce.Do(func() {
+		// baseFunctions uses "." as the baseDir since that's what the
+		// evaluator always passes. The filesystem functions will be
+		// overridden per-scope anyway.
+		base := baseFunctions(".")
+
+		// Apply descriptions and build the core:: namespace, just like the
+		// original Functions() method did on every call.
+		cachedCoreFuncs = make(map[string]function.Function, len(base)*2)
+		for name, fn := range base {
+			fn = funcs.WithDescription(name, fn)
+			cachedCoreFuncs[name] = fn
+			cachedCoreFuncs["core::"+name] = fn
+		}
+	})
+	return cachedCoreFuncs
+}
+
 // Functions returns the set of functions that should be used to when evaluating
 // expressions in the receiving scope.
 func (s *Scope) Functions() map[string]function.Function {
@@ -65,22 +98,31 @@ func (s *Scope) Functions() map[string]function.Function {
 
 	s.funcsLock.Lock()
 	if s.funcs == nil {
-		coreFuncs := baseFunctions(s.BaseDir)
+		// Start from the cached core functions table (immutable, shared).
+		// Clone it so we can apply per-scope overrides.
+		cached := coreFunctionsTable()
+		s.funcs = make(map[string]function.Function, len(cached)+20)
+		for k, v := range cached {
+			s.funcs[k] = v
+		}
 
-		// Modify the functions which behave slightly differently in core.
-		// Filesystem functions will check for consistent results, and the
-		// template functions need to be updated to close over the correct
-		// versions of the filesystem functions.
-		coreFuncs["file"] = funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults))
-		coreFuncs["fileexists"] = funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults))
-		coreFuncs["fileset"] = funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults))
-		coreFuncs["filebase64"] = funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults))
-		coreFuncs["filebase64sha256"] = funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults))
-		coreFuncs["filebase64sha512"] = funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults))
-		coreFuncs["filemd5"] = funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults))
-		coreFuncs["filesha1"] = funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults))
-		coreFuncs["filesha256"] = funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults))
-		coreFuncs["filesha512"] = funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults))
+		// Override filesystem functions that need scope-specific wrappers
+		// for checking consistent results between plan and apply.
+		overrideWithDesc := func(name string, fn function.Function) {
+			fn = funcs.WithDescription(name, fn)
+			s.funcs[name] = fn
+			s.funcs["core::"+name] = fn
+		}
+		overrideWithDesc("file", funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults)))
+		overrideWithDesc("fileexists", funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults)))
+		overrideWithDesc("fileset", funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults)))
+		overrideWithDesc("filebase64", funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults)))
+		overrideWithDesc("filebase64sha256", funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults)))
+		overrideWithDesc("filebase64sha512", funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults)))
+		overrideWithDesc("filemd5", funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults)))
+		overrideWithDesc("filesha1", funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults)))
+		overrideWithDesc("filesha256", funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults)))
+		overrideWithDesc("filesha512", funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults)))
 
 		// Our two template-rendering functions want to be able to call
 		// all of the other functions themselves, but we pass them indirectly
@@ -92,36 +134,28 @@ func (s *Scope) Functions() map[string]function.Function {
 			// overwriting the relevant entries.
 			return s.funcs, filesystemFunctions, templateFunctions
 		}
-		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults))
-		coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
+		overrideWithDesc("templatefile", funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults)))
+		overrideWithDesc("templatestring", funcs.MakeTemplateStringFunc(funcsFunc))
 
 		if s.ConsoleMode {
 			// The type function is only available in terraform console.
-			coreFuncs["type"] = funcs.TypeFunc
+			overrideWithDesc("type", funcs.TypeFunc)
 		}
 
 		if !s.ConsoleMode {
 			// The plantimestamp function doesn't make sense in the terraform
 			// console.
-			coreFuncs["plantimestamp"] = funcs.MakeStaticTimestampFunc(s.PlanTimestamp)
+			overrideWithDesc("plantimestamp", funcs.MakeStaticTimestampFunc(s.PlanTimestamp))
 		}
 
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
 			for _, name := range impureFunctions {
-				coreFuncs[name] = function.Unpredictable(coreFuncs[name])
+				fn := function.Unpredictable(s.funcs[name])
+				s.funcs[name] = fn
+				s.funcs["core::"+name] = fn
 			}
-		}
-
-		// All of the built-in functions are also available under the "core::"
-		// namespace, to distinguish from the "provider::" and "module::"
-		// namespaces that can serve as external extension points.
-		s.funcs = make(map[string]function.Function)
-		for name, fn := range coreFuncs {
-			fn = funcs.WithDescription(name, fn)
-			s.funcs[name] = fn
-			s.funcs["core::"+name] = fn
 		}
 
 		// We'll also bring in any external functions that the caller provided

@@ -5,7 +5,7 @@ package addrs
 
 import (
 	"fmt"
-	"strings"
+	"strconv"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -409,18 +409,20 @@ func (pc AbsProviderConfig) LegacyString() string {
 //   - module.module-name.provider["example.com/namespace/name"]
 //   - module.module-name.provider["example.com/namespace/name"].alias
 func (pc AbsProviderConfig) String() string {
-	var parts []string
-	if len(pc.Module) > 0 {
-		parts = append(parts, pc.Module.String())
+	providerPart := "provider[" + strconv.Quote(pc.Provider.String()) + "]"
+
+	if len(pc.Module) == 0 {
+		if pc.Alias == "" {
+			return providerPart
+		}
+		return providerPart + "." + pc.Alias
 	}
 
-	parts = append(parts, fmt.Sprintf("provider[%q]", pc.Provider))
-
-	if pc.Alias != "" {
-		parts = append(parts, pc.Alias)
+	modStr := pc.Module.String()
+	if pc.Alias == "" {
+		return modStr + "." + providerPart
 	}
-
-	return strings.Join(parts, ".")
+	return modStr + "." + providerPart + "." + pc.Alias
 }
 
 func (pc AbsProviderConfig) Equal(other AbsProviderConfig) bool {
