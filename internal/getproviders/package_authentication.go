@@ -71,19 +71,6 @@ func (t *PackageAuthenticationResult) SignedByHashiCorp() bool {
 	return false
 }
 
-// SignedByHashiCorpPartner returns whether the package was authenticated as signed
-// by a HashiCorp partner.
-func (t *PackageAuthenticationResult) SignedByHashiCorpPartner() bool {
-	if t == nil {
-		return false
-	}
-	if t.result == partnerProvider {
-		return true
-	}
-
-	return false
-}
-
 // SignedByAnyParty returns whether the package was authenticated as signed
 // by either HashiCorp or by a third-party.
 func (t *PackageAuthenticationResult) SignedByAnyParty() bool {
