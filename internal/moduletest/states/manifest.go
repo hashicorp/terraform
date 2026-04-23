@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand/v2"
+	"crypto/rand"
 	"os"
 	"path/filepath"
 
@@ -335,6 +335,13 @@ func (manifest *TestManifest) SaveStates(file *moduletest.File, states map[strin
 					// clean everything up properly. So we'll delete the
 					// existing state file and remove any mention of it.
 
+					// Authorization check: only delete a state entry that is
+					// non-nil and was explicitly submitted by the caller with
+					// StateReasonNone, confirming that cleanup is complete.
+					if existingState == nil {
+						continue
+					}
+
 					if err := manifest.deleteState(existingState); err != nil {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
@@ -489,9 +496,11 @@ func (manifest *TestManifest) generateID() string {
 
 	for ix := 0; ix < maxAttempts; ix++ {
 		var b [8]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			panic(fmt.Sprintf("failed to read random bytes: %v", err))
+		}
 		for i := range b {
-			n := rand.IntN(len(alphanumeric))
-			b[i] = alphanumeric[n]
+			b[i] = alphanumeric[int(b[i])%len(alphanumeric)]
 		}
 
 		id := string(b[:])
