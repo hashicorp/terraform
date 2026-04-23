@@ -62,6 +62,7 @@ func ParseWorkspaceDelete(args []string) (*WorkspaceDelete, tfdiags.Diagnostics)
 			diags = diags.Append(fmt.Errorf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
 		}
 
+		// Checking for extra arguments here, not with a len != 1 check above, allows the name to be returned
 		args = args[1:]
 		if len(args) != 0 {
 			diags = diags.Append(errors.New("Expected a single argument: NAME."))
