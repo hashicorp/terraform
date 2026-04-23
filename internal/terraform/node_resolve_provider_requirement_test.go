@@ -95,10 +95,7 @@ func TestNodeResolveProviderRequirements_References(t *testing.T) {
 						return a.Subject.String() < b.Subject.String()
 					}),
 					cmp.Comparer(func(a, b *addrs.Reference) bool {
-						if a.Subject.String() != b.Subject.String() {
-							return false
-						}
-						return true
+						return a.Subject.String() == b.Subject.String()
 					}),
 				); !eq {
 					t.Fatalf(
