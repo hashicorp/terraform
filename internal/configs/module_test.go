@@ -681,3 +681,55 @@ func TestModule_state_store_multiple(t *testing.T) {
 		}
 	})
 }
+
+func TestModule_typedefs(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/typedefs")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	wantTy1 := cty.String
+	wantTy2 := cty.String
+	wantTy3 := cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+		"a": cty.Number,
+		"b": cty.Bool,
+		"c": cty.List(cty.String),
+		"d": cty.String,
+	}, []string{"d"})
+	wantDefault1 := cty.StringVal("hello world!")
+	wantDefault2 := cty.StringVal("true") // converted from bool to typedef (string)
+	wantDefault3 := cty.ObjectVal(map[string]cty.Value{
+		"a": cty.NumberIntVal(100),
+		"b": cty.True,
+		"c": cty.ListVal([]cty.Value{
+			cty.StringVal("hello"),
+			cty.StringVal("world!"),
+		}),
+		"d": cty.StringVal("default val"),
+	})
+
+	got1 := mod.Variables["example_string_1"]
+	got2 := mod.Variables["example_string_2"]
+	got3 := mod.Variables["example_object"]
+
+	if !got1.Type.Equals(cty.String) {
+		t.Fatalf("expected variable type to be: %s, got: %s", wantTy1.GoString(), got1.Type.GoString())
+	}
+	if !got1.Default.Equals(wantDefault1).True() {
+		t.Fatalf("expected default value to be: %s, got: %s", wantDefault1.AsString(), got1.Default.AsString())
+	}
+
+	if !got2.Type.Equals(cty.String) {
+		t.Fatalf("expected variable type to be: %s, got: %s", wantTy2.GoString(), got2.Type.GoString())
+	}
+	if !got2.Default.Equals(wantDefault2).True() {
+		t.Fatalf("expected default value to be: %s, got: %s", wantDefault2.AsString(), got2.Default.AsString())
+	}
+
+	if !got3.ConstraintType.Equals(wantTy3) { // Use constraint type, because of the optional attribute :P
+		t.Fatalf("expected variable type to be: %s, got: %s", wantTy3.GoString(), got3.Type.GoString())
+	}
+	if !got3.Default.Equals(wantDefault3).True() {
+		t.Fatalf("expected default value to be: %s, got: %s", wantDefault3.AsString(), got3.Default.AsString())
+	}
+}
