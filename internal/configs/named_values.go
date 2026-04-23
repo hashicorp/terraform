@@ -26,6 +26,12 @@ type Variable struct {
 	Description string
 	Default     cty.Value
 
+	// TODO: better names :P
+	// When a variable uses a typedef, it will be declared in the same module (but not always the same file),
+	// so we delay evaluating the type and default expressions until we have loaded all config files for the module
+	typeDefExpression        hcl.Expression
+	typeDefDefaultExpression hcl.Expression
+
 	// Type is the concrete type of the variable value.
 	Type cty.Type
 	// ConstraintType is used for decoding and type conversions, and may
@@ -131,12 +137,21 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["type"]; exists {
-		ty, tyDefaults, parseMode, tyDiags := decodeVariableType(attr.Expr)
-		diags = append(diags, tyDiags...)
-		v.ConstraintType = ty
-		v.TypeDefaults = tyDefaults
-		v.Type = ty.WithoutOptionalAttributesDeep()
-		v.ParsingMode = parseMode
+		// If the configuration has a scope traversal here, we need to check if it's a typedef, if not we
+		// can let the decodeVariableType function handle the diagnostics
+		if trav, ok := attr.Expr.(*hclsyntax.ScopeTraversalExpr); ok && trav.Traversal.RootName() == "typedef" {
+			v.typeDefExpression = attr.Expr
+		}
+
+		// Delay processing type expression until we have collected all config files for the module
+		if v.typeDefExpression == nil {
+			ty, tyDefaults, parseMode, tyDiags := decodeVariableType(attr.Expr)
+			diags = append(diags, tyDiags...)
+			v.ConstraintType = ty
+			v.TypeDefaults = tyDefaults
+			v.Type = ty.WithoutOptionalAttributesDeep()
+			v.ParsingMode = parseMode
+		}
 	}
 
 	if attr, exists := content.Attributes["sensitive"]; exists {
@@ -187,50 +202,14 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
-		val, valDiags := attr.Expr.Value(nil)
-		diags = append(diags, valDiags...)
-
-		// Convert the default to the expected type so we can catch invalid
-		// defaults early and allow later code to assume validity.
-		// Note that this depends on us having already processed any "type"
-		// attribute above.
-		// However, we can't do this if we're in an override file where
-		// the type might not be set; we'll catch that during merge.
-		if v.ConstraintType != cty.NilType {
-			var err error
-			// If the type constraint has defaults, we must apply those
-			// defaults to the variable default value before type conversion,
-			// unless the default value is null. Null is excluded from the
-			// type default application process as a special case, to allow
-			// nullable variables to have a null default value.
-			if v.TypeDefaults != nil && !val.IsNull() {
-				val = v.TypeDefaults.Apply(val)
-			}
-			val, err = convert.Convert(val, v.ConstraintType)
-			if err != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid default value for variable",
-					Detail: fmt.Sprintf(
-						"This default value is not compatible with the variable's type constraint: %s.",
-						tfdiags.FormatError(err),
-					),
-					Subject: attr.Expr.Range().Ptr(),
-				})
-				val = cty.DynamicVal
-			}
+		// If there is a type definition being used, we need to delay processing the default expression
+		if v.typeDefExpression != nil {
+			v.typeDefDefaultExpression = attr.Expr
+		} else {
+			val, valDiags := decodeVariableDefault(v, attr.Expr)
+			diags = append(diags, valDiags...)
+			v.Default = val
 		}
-
-		if !v.Nullable && val.IsNull() {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid default value for variable",
-				Detail:   "A null default value is not valid when nullable=false.",
-				Subject:  attr.Expr.Range().Ptr(),
-			})
-		}
-
-		v.Default = val
 	}
 
 	if attr, exists := content.Attributes["deprecated"]; exists {
@@ -257,6 +236,52 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	return v, diags
+}
+
+func decodeVariableDefault(v *Variable, expr hcl.Expression) (cty.Value, hcl.Diagnostics) {
+	val, diags := expr.Value(nil)
+
+	// Convert the default to the expected type so we can catch invalid
+	// defaults early and allow later code to assume validity.
+	// Note that this depends on us having already processed any "type"
+	// attribute above.
+	// However, we can't do this if we're in an override file where
+	// the type might not be set; we'll catch that during merge.
+	if v.ConstraintType != cty.NilType {
+		var err error
+		// If the type constraint has defaults, we must apply those
+		// defaults to the variable default value before type conversion,
+		// unless the default value is null. Null is excluded from the
+		// type default application process as a special case, to allow
+		// nullable variables to have a null default value.
+		if v.TypeDefaults != nil && !val.IsNull() {
+			val = v.TypeDefaults.Apply(val)
+		}
+		val, err = convert.Convert(val, v.ConstraintType)
+		if err != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid default value for variable",
+				Detail: fmt.Sprintf(
+					"This default value is not compatible with the variable's type constraint: %s.",
+					tfdiags.FormatError(err),
+				),
+				Subject: expr.Range().Ptr(),
+			})
+			val = cty.DynamicVal
+		}
+	}
+
+	if !v.Nullable && val.IsNull() {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid default value for variable",
+			Detail:   "A null default value is not valid when nullable=false.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	return val, diags
 }
 
 func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, VariableParsingMode, hcl.Diagnostics) {
