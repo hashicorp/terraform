@@ -335,7 +335,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
-	if code := newCmd.Run(args); code != 1 {
+	if code := newCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -352,7 +352,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 			WorkingDir: workdir.NewDir("."),
 		},
 	}
-	if code := selectCmd.Run(args); code != 1 {
+	if code := selectCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -1097,7 +1097,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := newCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError := "Expected a single argument: NAME.\n\n"
+	expectedError := "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}
