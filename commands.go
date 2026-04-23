@@ -462,6 +462,12 @@ func initCommands(
 				Meta: meta,
 			}, nil
 		}
+
+		Commands["state migrate"] = func() (cli.Command, error) {
+			return &command.StateMigrateCommand{
+				Meta: meta,
+			}, nil
+		}
 	}
 
 	PrimaryCommands = []string{
