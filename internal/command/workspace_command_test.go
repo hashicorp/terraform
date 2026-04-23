@@ -1135,7 +1135,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := selectCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError = "Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// WorkspaceSelect represent flags and arguments specific to the `terraform workspace new` command.
+// WorkspaceSelect represent flags and arguments specific to the `terraform workspace select` command.
 type WorkspaceSelect struct {
 	Workspace
 
