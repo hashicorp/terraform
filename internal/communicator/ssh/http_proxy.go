@@ -80,7 +80,12 @@ func (p *proxyDialer) Dial(network, addr string) (net.Conn, error) {
 	}
 
 	// If http proxy requires authentication, configure settings for basic authentication.
+	// Credentials must only be sent over HTTPS to prevent plaintext exposure.
 	if p.proxy.userInfo.String() != "" {
+		if p.proxy.scheme != "https" {
+			c.Close()
+			return nil, fmt.Errorf("proxy authentication credentials require an HTTPS proxy, got scheme %q", p.proxy.scheme)
+		}
 		username := p.proxy.userInfo.Username()
 		password, _ := p.proxy.userInfo.Password()
 		req.SetBasicAuth(username, password)
