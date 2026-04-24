@@ -488,6 +488,9 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 // testJSONViewOutputEquals skips the first line of output, since it ought to
 // be a version message that we don't care about for most of our tests.
+//
+// This is used for testing multi-line, structured JSON output from a command like init/plan/apply.
+// This helper is not appropriate for testing single, static log output from views.
 func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]interface{}, options ...cmp.Option) {
 	t.Helper()
 
