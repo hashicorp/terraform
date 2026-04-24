@@ -815,7 +815,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		}
 	}
 
-	return true, configLocks, safeInitAction, authResult, diags
+	return true, configLocks, safeInitAction, stateStoreProviderAuthResult, diags
 }
 
 // getProvidersFromState determines what providers are required by the given state data.
