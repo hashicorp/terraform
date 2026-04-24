@@ -99,6 +99,16 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Invalid data resource lifecycle argument",
 		},
 		{
+			"invalid-files/data-resource-action-trigger.tf",
+			hcl.DiagError,
+			"Invalid data resource lifecycle block",
+		},
+		{
+			"invalid-files/ephemeral-resource-action-trigger.tf",
+			hcl.DiagError,
+			"Invalid ephemeral resource lifecycle block",
+		},
+		{
 			"invalid-files/variable-type-unknown.tf",
 			hcl.DiagError,
 			"Invalid type specification",

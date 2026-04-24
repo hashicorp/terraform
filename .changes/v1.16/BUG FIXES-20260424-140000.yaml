@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`terraform validate` no longer panics when an `action_trigger` block is placed inside a `data` or `ephemeral` resource''s `lifecycle` block, and instead returns a clear diagnostic explaining that `action_trigger` is only valid for managed resources'
+time: 2026-04-24T14:00:00-05:00
+custom:
+    Issue: "38402"
