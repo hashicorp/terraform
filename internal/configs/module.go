@@ -5,10 +5,8 @@ package configs
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
@@ -199,52 +197,6 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 
 	if mod.StateStore != nil {
 		diags = append(diags, mod.resolveStateStoreProviderType()...)
-	}
-
-	if len(mod.TypeDefs) > 0 {
-		// Capsule type so we can smuggle the data collected when we decoded the typedef block
-		typeDefCtyType := cty.Capsule("TypeDef", reflect.TypeOf(TypeDef{}))
-
-		// Build a context to evaluate the expressions with
-		typeDefs := map[string]cty.Value{}
-		for name, typeDef := range mod.TypeDefs {
-			typeDefs[name] = cty.CapsuleVal(typeDefCtyType, typeDef)
-		}
-		typeDefCtx := &hcl.EvalContext{Variables: map[string]cty.Value{"typedef": cty.MapVal(typeDefs)}}
-
-		for i, v := range mod.Variables {
-			if v.typeDefExpression == nil {
-				continue
-			}
-
-			// If the variable has a type definition expression, we delayed processing until the module has all of it's typedef blocks processed.
-			// Here we will update the variable with the final type, default, constraints, etc.
-			tyVal, valDiags := v.typeDefExpression.Value(typeDefCtx)
-			diags = append(diags, valDiags...)
-			if valDiags.HasErrors() {
-				// If we can't decode the type, don't attempt to decode anything that relies on that
-				continue
-			}
-
-			// TODO: probs should check the type first despite it being just above :P
-			typeDef := tyVal.EncapsulatedValue().(*TypeDef)
-			mod.Variables[i].ConstraintType = typeDef.ConstraintType
-			mod.Variables[i].Type = typeDef.Definition
-			mod.Variables[i].TypeDefaults = typeDef.TypeDefaults
-
-			if typeDef.Definition.IsPrimitiveType() {
-				mod.Variables[i].ParsingMode = VariableParseLiteral
-			} else {
-				mod.Variables[i].ParsingMode = VariableParseHCL
-			}
-
-			// Now that we have the type, decode the variable default we delayed earlier
-			if v.typeDefDefaultExpression != nil {
-				val, valDiags := decodeVariableDefault(v, v.typeDefDefaultExpression)
-				diags = append(diags, valDiags...)
-				v.Default = val
-			}
-		}
 	}
 
 	return mod, diags

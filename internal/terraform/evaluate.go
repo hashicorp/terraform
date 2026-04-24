@@ -1256,6 +1256,43 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	return value, diags
 }
 
+// TODO: this doesn't seem like the best place to put this function, keeping it for now for convenience :P
+// maybe embedded like evaluation_data?
+func (d *evaluationStateData) GetTypeDefinition(addr addrs.TypeDefinition, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// First we'll make sure the requested value is declared in configuration,
+	// so we can produce a nice message if not.
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
+	if moduleConfig == nil {
+		// should never happen, since we can't be evaluating in a module
+		// that wasn't mentioned in configuration.
+		panic(fmt.Sprintf("type definition read from %s, which has no configuration", d.ModulePath))
+	}
+
+	config := moduleConfig.Module.TypeDefs[addr.Name]
+	if config == nil {
+		var suggestions []string
+		for k := range moduleConfig.Module.TypeDefs {
+			suggestions = append(suggestions, k)
+		}
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared type definition`,
+			Detail:   fmt.Sprintf(`A type definition with the name %q has not been declared.%s`, addr.Name, suggestion),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
+	return cty.CapsuleVal(typeDefCtyType, config), diags
+}
+
 // moduleDisplayAddr returns a string describing the given module instance
 // address that is appropriate for returning to users in situations where the
 // root module is possible. Specifically, it returns "the root module" if the

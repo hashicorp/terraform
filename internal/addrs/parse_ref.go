@@ -407,6 +407,13 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "action"
 		return parseActionRef(rootRange, remain)
+	case "typedef":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		return &Reference{
+			Subject:     TypeDefinition{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}, diags
 
 	case "string", "number", "bool", "any":
 		if len(traversal) == 1 {

@@ -37,4 +37,5 @@ type Data interface {
 	GetOutput(addrs.OutputValue, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetCheckBlock(addrs.Check, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetRunBlock(addrs.Run, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
+	GetTypeDefinition(addrs.TypeDefinition, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 }

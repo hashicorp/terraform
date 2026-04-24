@@ -210,6 +210,12 @@ func (d *evaluationPlaceholderData) GetOutput(addr addrs.OutputValue, rng tfdiag
 
 }
 
+// GetTypeDefinition implements lang.Data.
+func (d *evaluationPlaceholderData) GetTypeDefinition(addr addrs.TypeDefinition, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	// TODO: I have no idea what to put here since the module path is not an instance :P, saving for later
+	return cty.DynamicVal, nil
+}
+
 // GetResource implements lang.Data.
 func (d *evaluationPlaceholderData) GetResource(addrs.Resource, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// TODO: Once we've implemented the evaluation of placeholders for

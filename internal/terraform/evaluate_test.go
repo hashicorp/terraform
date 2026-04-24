@@ -949,17 +949,18 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 // fakeEvaluationData is an implementation of [lang.Data] that answers most
 // questions just by returning data directly from the maps stored inside it.
 type fakeEvaluationData struct {
-	checkBlocks    map[addrs.Check]cty.Value
-	countAttrs     map[addrs.CountAttr]cty.Value
-	forEachAttrs   map[addrs.ForEachAttr]cty.Value
-	inputVariables map[addrs.InputVariable]cty.Value
-	localValues    map[addrs.LocalValue]cty.Value
-	modules        map[addrs.ModuleCall]cty.Value
-	outputValues   map[addrs.OutputValue]cty.Value
-	pathAttrs      map[addrs.PathAttr]cty.Value
-	resources      map[addrs.Resource]cty.Value
-	runBlocks      map[addrs.Run]cty.Value
-	terraformAttrs map[addrs.TerraformAttr]cty.Value
+	checkBlocks     map[addrs.Check]cty.Value
+	countAttrs      map[addrs.CountAttr]cty.Value
+	forEachAttrs    map[addrs.ForEachAttr]cty.Value
+	inputVariables  map[addrs.InputVariable]cty.Value
+	localValues     map[addrs.LocalValue]cty.Value
+	modules         map[addrs.ModuleCall]cty.Value
+	outputValues    map[addrs.OutputValue]cty.Value
+	pathAttrs       map[addrs.PathAttr]cty.Value
+	resources       map[addrs.Resource]cty.Value
+	runBlocks       map[addrs.Run]cty.Value
+	terraformAttrs  map[addrs.TerraformAttr]cty.Value
+	typeDefinitions map[addrs.TypeDefinition]cty.Value
 
 	// staticValidateRefs optionally implements [lang.Data.StaticValidateReferences],
 	// but can be left as nil to just skip static validation altogether.
@@ -1034,6 +1035,11 @@ func (d *fakeEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange
 // GetTerraformAttr implements lang.Data.
 func (d *fakeEvaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return fakeEvaluationDataLookup(addr, rng, d.terraformAttrs)
+}
+
+// GetTypeDefinition implements lang.Data.
+func (d *fakeEvaluationData) GetTypeDefinition(addr addrs.TypeDefinition, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.typeDefinitions)
 }
 
 // StaticValidateReferences implements lang.Data.

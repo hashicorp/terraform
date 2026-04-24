@@ -4,7 +4,9 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -12,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -58,6 +61,9 @@ func (n *NodeRootVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
+// TODO: move this to somewhere better :P
+var typeDefCtyType = cty.Capsule("configs.TypeDef", reflect.TypeOf(configs.TypeDef{}))
+
 // GraphNodeExecutable
 func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	// Root module variables are special in that they are provided directly
@@ -99,6 +105,89 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 			Subject:  &n.Config.DeprecatedRange,
 			Context:  &n.Config.DeclRange,
 		})
+	}
+
+	// Evaluate the type attribute
+	if n.Config.TypeExpr != nil {
+		refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.TypeExpr)
+		diags = diags.Append(refsDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		if len(refs) > 0 {
+			for _, ref := range refs {
+				switch ref.Subject.(type) {
+				case addrs.TypeDefinition:
+					// These are allowed
+				default:
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid type specification",
+						Detail:   "The variable type can only reference type definitions.",
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					return diags
+				}
+			}
+
+			// TODO: Ensure that type definition is added to the reference evaluator (the context)
+			// this will end up being the capsule type/value
+			tyVal, valueDiags := ctx.EvaluateExpr(n.Config.TypeExpr, typeDefCtyType, nil)
+			diags = diags.Append(valueDiags)
+			if diags.HasErrors() {
+				return diags
+			}
+
+			typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
+			if !ok {
+				panic(fmt.Sprintf("type definition was not the correct capsule value, got: %T", tyVal.EncapsulatedValue()))
+			}
+
+			// TODO: this isn't updating the actual config representation, but not sure that it matters?
+			// It seems like we probably should be updating it, but not sure if:
+			// 		1) that's allowed/expected?
+			// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+			n.Config.ConstraintType = typeDef.ConstraintType
+			n.Config.Type = typeDef.Definition
+			n.Config.TypeDefaults = typeDef.TypeDefaults
+
+			if typeDef.Definition.IsPrimitiveType() {
+				n.Config.ParsingMode = configs.VariableParseLiteral
+			} else {
+				n.Config.ParsingMode = configs.VariableParseHCL
+			}
+		} else {
+			ty, tyDefaults, parseMode, tyDiags := configs.DecodeVariableType(n.Config.TypeExpr)
+			diags = diags.Append(tyDiags)
+			if diags.HasErrors() {
+				return diags
+			}
+
+			// TODO: this isn't updating the actual config representation, but not sure that it matters?
+			// It seems like we probably should be updating it, but not sure if:
+			// 		1) that's allowed/expected?
+			// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+			n.Config.ConstraintType = ty
+			n.Config.TypeDefaults = tyDefaults
+			n.Config.Type = ty.WithoutOptionalAttributesDeep()
+			n.Config.ParsingMode = parseMode
+		}
+	}
+
+	// Evaluate the default attribute
+	if n.Config.DefaultExpr != nil {
+		val, valDiags := configs.DecodeVariableDefault(n.Config, n.Config.DefaultExpr)
+		diags = diags.Append(valDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// TODO: this isn't updating the actual config representation, but not sure that it matters?
+		// It seems like we probably should be updating it, but not sure if:
+		// 		1) that's allowed/expected?
+		// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+		n.Config.Default = val
 	}
 
 	if n.ValidateChecks {

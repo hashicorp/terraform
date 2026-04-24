@@ -296,6 +296,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	forEachAttrs := map[string]cty.Value{}
 	checkBlocks := map[string]cty.Value{}
 	runBlocks := map[string]cty.Value{}
+	typeDefinitions := map[string]cty.Value{}
 	var self cty.Value
 
 	for _, ref := range refs {
@@ -446,6 +447,11 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				Subject:  rng.ToHCL().Ptr(),
 			})
 
+		case addrs.TypeDefinition:
+			val, valDiags := normalizeRefValue(s.Data.GetTypeDefinition(subj, rng))
+			diags = diags.Append(valDiags)
+			typeDefinitions[subj.Name] = val
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -470,6 +476,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
+	vals["typedef"] = cty.ObjectVal(typeDefinitions)
 
 	// Checks, outputs, and run blocks are conditionally included in the
 	// available scope, so we'll only write out their values if we actually have

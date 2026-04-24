@@ -834,6 +834,11 @@ func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.
 	return d.current.GetTerraformAttr(addr, rng)
 }
 
+// GetTypeDefinition implements lang.Data.
+func (d *evaluationData) GetTypeDefinition(addr addrs.TypeDefinition, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.current.GetTypeDefinition(addr, rng)
+}
+
 // StaticValidateReferences implements lang.Data.
 func (d *evaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	// We only handle addrs.Run directly here, with everything else delegated

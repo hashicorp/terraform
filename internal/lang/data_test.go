@@ -11,17 +11,18 @@ import (
 )
 
 type dataForTests struct {
-	CountAttrs     map[string]cty.Value
-	ForEachAttrs   map[string]cty.Value
-	Resources      map[string]cty.Value
-	LocalValues    map[string]cty.Value
-	OutputValues   map[string]cty.Value
-	Modules        map[string]cty.Value
-	PathAttrs      map[string]cty.Value
-	TerraformAttrs map[string]cty.Value
-	InputVariables map[string]cty.Value
-	CheckBlocks    map[string]cty.Value
-	RunBlocks      map[string]cty.Value
+	CountAttrs      map[string]cty.Value
+	ForEachAttrs    map[string]cty.Value
+	Resources       map[string]cty.Value
+	LocalValues     map[string]cty.Value
+	OutputValues    map[string]cty.Value
+	Modules         map[string]cty.Value
+	PathAttrs       map[string]cty.Value
+	TerraformAttrs  map[string]cty.Value
+	InputVariables  map[string]cty.Value
+	CheckBlocks     map[string]cty.Value
+	RunBlocks       map[string]cty.Value
+	TypeDefinitions map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -78,4 +79,8 @@ func (d *dataForTests) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) 
 
 func (d *dataForTests) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.RunBlocks[addr.Name], nil
+}
+
+func (d *dataForTests) GetTypeDefinition(addr addrs.TypeDefinition, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.TypeDefinitions[addr.Name], nil
 }

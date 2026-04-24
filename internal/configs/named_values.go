@@ -24,14 +24,17 @@ const badIdentifierDetail = "A name must start with a letter or underscore and m
 type Variable struct {
 	Name        string
 	Description string
+
+	DefaultExpr hcl.Expression
 	Default     cty.Value
 
 	// TODO: better names :P
 	// When a variable uses a typedef, it will be declared in the same module (but not always the same file),
 	// so we delay evaluating the type and default expressions until we have loaded all config files for the module
-	typeDefExpression        hcl.Expression
-	typeDefDefaultExpression hcl.Expression
+	// typeDefExpression        hcl.Expression
+	// typeDefDefaultExpression hcl.Expression
 
+	TypeExpr hcl.Expression
 	// Type is the concrete type of the variable value.
 	Type cty.Type
 	// ConstraintType is used for decoding and type conversions, and may
@@ -136,22 +139,10 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		v.DescriptionSet = true
 	}
 
+	// TODO: we are completely delaying determining the type until the graph
+	//
 	if attr, exists := content.Attributes["type"]; exists {
-		// If the configuration has a scope traversal here, we need to check if it's a typedef, if not we
-		// can let the decodeVariableType function handle the diagnostics
-		if trav, ok := attr.Expr.(*hclsyntax.ScopeTraversalExpr); ok && trav.Traversal.RootName() == "typedef" {
-			v.typeDefExpression = attr.Expr
-		}
-
-		// Delay processing type expression until we have collected all config files for the module
-		if v.typeDefExpression == nil {
-			ty, tyDefaults, parseMode, tyDiags := decodeVariableType(attr.Expr)
-			diags = append(diags, tyDiags...)
-			v.ConstraintType = ty
-			v.TypeDefaults = tyDefaults
-			v.Type = ty.WithoutOptionalAttributesDeep()
-			v.ParsingMode = parseMode
-		}
+		v.TypeExpr = attr.Expr
 	}
 
 	if attr, exists := content.Attributes["sensitive"]; exists {
@@ -202,14 +193,8 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
-		// If there is a type definition being used, we need to delay processing the default expression
-		if v.typeDefExpression != nil {
-			v.typeDefDefaultExpression = attr.Expr
-		} else {
-			val, valDiags := decodeVariableDefault(v, attr.Expr)
-			diags = append(diags, valDiags...)
-			v.Default = val
-		}
+		v.DefaultExpr = attr.Expr
+		v.Default = cty.DynamicVal
 	}
 
 	if attr, exists := content.Attributes["deprecated"]; exists {
@@ -238,7 +223,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	return v, diags
 }
 
-func decodeVariableDefault(v *Variable, expr hcl.Expression) (cty.Value, hcl.Diagnostics) {
+func DecodeVariableDefault(v *Variable, expr hcl.Expression) (cty.Value, hcl.Diagnostics) {
 	val, diags := expr.Value(nil)
 
 	// Convert the default to the expected type so we can catch invalid
@@ -282,6 +267,10 @@ func decodeVariableDefault(v *Variable, expr hcl.Expression) (cty.Value, hcl.Dia
 	}
 
 	return val, diags
+}
+
+func DecodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, VariableParsingMode, hcl.Diagnostics) {
+	return decodeVariableType(expr)
 }
 
 func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, VariableParsingMode, hcl.Diagnostics) {
