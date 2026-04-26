@@ -148,8 +148,19 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	cmdEnv = os.Environ()
 	cmdEnv = append(cmdEnv, env...)
 
-	// Set up the command
-	cmd := exec.CommandContext(p.ctx, cmdargs[0], cmdargs[1:]...)
+	// Resolve the command path to prevent path manipulation attacks
+	resolvedCmd, err := exec.LookPath(cmdargs[0])
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"local-exec provisioner error",
+			fmt.Sprintf("Failed to resolve command %q: %s", cmdargs[0], err),
+		))
+		return resp
+	}
+
+	// Set up the command. resolvedCmd is validated via exec.LookPath above.
+	cmd := exec.CommandContext(p.ctx, resolvedCmd, cmdargs[1:]...) // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	cmd.Stderr = pw
 	cmd.Stdout = pw
 	// Dir specifies the working directory of the command.
