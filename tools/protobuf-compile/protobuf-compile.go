@@ -238,14 +238,15 @@ func main() {
 		cmdLine = append(cmdLine, baseCmdLine...)
 		cmdLine = append(cmdLine, step.Args...)
 
-		cmd := &exec.Cmd{
-			Path:   cmdLine[0],
-			Args:   cmdLine,
-			Dir:    step.WorkDir,
-			Env:    os.Environ(),
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
+		resolvedPath, err := exec.LookPath(cmdLine[0])
+		if err != nil {
+			log.Fatalf("cannot find executable %s: %s", cmdLine[0], err)
 		}
+		cmd := exec.Command(resolvedPath, cmdLine[1:]...) // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
+		cmd.Dir = step.WorkDir
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		log.Printf("running command: %s", cmd.String())
 		wd, _ := os.Getwd()
 		log.Printf("from directory: %s", wd)
