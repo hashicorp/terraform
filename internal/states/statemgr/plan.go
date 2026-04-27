@@ -60,7 +60,7 @@ func WritePlannedStateUpdate(mgr Transient, planned *statefile.File) error {
 	// the given state file.
 	if mr, ok := mgr.(PersistentMeta); ok {
 		m := mr.StateSnapshotMeta()
-		if planned.Lineage != "" {
+		if planned.Lineage != "" || m.Lineage != "" {
 			if planned.Lineage != m.Lineage {
 				return fmt.Errorf("planned state update is from an unrelated state lineage than the current state")
 			}
