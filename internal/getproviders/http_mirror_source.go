@@ -139,10 +139,7 @@ func (s *HTTPMirrorSource) AvailableVersions(ctx context.Context, provider addrs
 
 	// If we got here then the response had status OK and so our body
 	// will be non-nil and should contain some JSON for us to parse.
-	type ResponseBody struct {
-		Versions map[string]struct{} `json:"versions"`
-	}
-	var bodyContent ResponseBody
+	var bodyContent ListVersionsResponseBody
 
 	dec := json.NewDecoder(body)
 	if err := dec.Decode(&bodyContent); err != nil {
@@ -203,14 +200,7 @@ func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provi
 
 	// If we got here then the response had status OK and so our body
 	// will be non-nil and should contain some JSON for us to parse.
-	type ResponseArchiveMeta struct {
-		RelativeURL string `json:"url"`
-		Hashes      []string
-	}
-	type ResponseBody struct {
-		Archives map[string]*ResponseArchiveMeta `json:"archives"`
-	}
-	var bodyContent ResponseBody
+	var bodyContent ListInstallationPackagesResponseBody
 
 	dec := json.NewDecoder(body)
 	if err := dec.Decode(&bodyContent); err != nil {
@@ -267,6 +257,28 @@ func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provi
 // ForDisplay returns a string description of the source for user-facing output.
 func (s *HTTPMirrorSource) ForDisplay(provider addrs.Provider) string {
 	return "provider mirror at " + s.baseURL.String()
+}
+
+// ListVersionsResponseBody is the JSON structure of a response when a user queries the available versions
+// for a provider in the network mirror, i.e. a GET to path :hostname/:namespace/:type/index.json
+// See: https://developer.hashicorp.com/terraform/internals/provider-network-mirror-protocol#list-available-versions
+type ListVersionsResponseBody struct {
+	Versions map[string]struct{} `json:"versions"`
+}
+
+// ListInstallationPackagesResponseBody is the structure of the JSON response when a user queries the
+// available packages for a given provider version in the network mirror.
+// i.e. at the path :hostname/:namespace/:type/:version.json
+// See: https://developer.hashicorp.com/terraform/internals/provider-network-mirror-protocol#list-available-installation-packages
+type ListInstallationPackagesResponseBody struct {
+	Archives map[string]*ListInstallationPackagesArchiveMeta `json:"archives"`
+}
+
+// ListInstallationPackagesArchiveMeta is the JSON structure of each archive entry for a specific provider
+// version in the network mirror. See ListInstallationPackagesResponseBody.
+type ListInstallationPackagesArchiveMeta struct {
+	RelativeURL string `json:"url"`
+	Hashes      []string
 }
 
 // mirrorHost extracts the hostname portion of the configured base URL and
