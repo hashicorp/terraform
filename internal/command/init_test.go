@@ -6080,14 +6080,12 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, availableProviderVer
 	)
 
 	// Get all the metadata for all provider versions defined in the availableProviderVersions map.
+	// This is needed to enable the http server to serve contents of the correct temporary file.
 	var packages []getproviders.PackageMeta
 	for pSource, versions := range availableProviderVersions {
 		addr := addrs.MustParseProviderSourceString(pSource)
 		for _, versionStr := range versions {
-			version, err := getproviders.ParseVersion(versionStr)
-			if err != nil {
-				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
-			}
+			version := getproviders.MustParseVersion(versionStr)
 			providerMetadata, err := source.PackageMeta(
 				context.Background(),
 				addr,
