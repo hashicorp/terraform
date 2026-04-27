@@ -3897,6 +3897,59 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
+	t.Run("temporary: test showing use of network mirror in mock provider source", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Mock provider still needs to be supplied via testingOverrides despite the mock network mirror
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 from a network mirror.
+		source := newHTTPMirrorProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {"1.0.0", "1.2.3"},
+		}, true)
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			" Installed hashicorp/test v1.2.3 (verified checksum)", // verified checksum message due to hashes matching those described by the network mirror.
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
+
 	t.Run("the init command creates a backend state file, and the default workspace is not made by default", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
@@ -6097,6 +6150,230 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, availableProviderVer
 
 	server.Start()
 	t.Cleanup(server.Close)
+
+	return source
+}
+
+// newHTTPMirrorProviderSourceUsingTestHttpServer returns an HTTPMirrorSource that is backed by a test HTTPS server that acts as a network mirror.
+// The test HTTP server will serve the providers and versions defined in the input map.
+//
+// Calling code has the option of allowing the mirror to report hashes for each provider version, or to force the mirror to not report hashes.
+//
+// All cleanup is handled internally using t.Cleanup.
+func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[string][]string, allowReturnHashes bool) *getproviders.HTTPMirrorSource {
+	t.Helper()
+
+	// Get un-started server so we can obtain the port it'll run on.
+	server := httptest.NewUnstartedServer(nil)
+	address := server.Listener.Addr().String()
+
+	// Parse input map for convenience
+	availableProviderVersions := make(map[addrs.Provider][]getproviders.Version)
+	for pSource, versions := range input {
+		addr := addrs.MustParseProviderSourceString(pSource)
+		var parsedVersions []getproviders.Version
+		for _, versionStr := range versions {
+			version := getproviders.MustParseVersion(versionStr)
+			parsedVersions = append(parsedVersions, version)
+		}
+		availableProviderVersions[addr] = parsedVersions
+	}
+
+	// Get files in temporary locations for all provider versions defined in the availableProviderVersions map,
+	// so they can be served by the mock HTTP server.
+	locations := map[addrs.Provider]map[getproviders.Version]string{}
+	for addr, versions := range availableProviderVersions {
+		for _, version := range versions {
+			f, _, err := getproviders.CreateFakeFileWithChecksumForProvider(t, addr, version, getproviders.CurrentPlatform, "") // file cleanup already handled
+			if err != nil {
+				t.Fatalf("failed to create fake package for provider %s %s: %s", addr, version, err)
+			}
+			if _, ok := locations[addr]; !ok {
+				locations[addr] = make(map[getproviders.Version]string)
+			}
+			locations[addr][version] = f.Name()
+		}
+	}
+
+	// Implement a network mirror
+	server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// List available versions
+		// :hostname/:namespace/:type/index.json
+		if strings.HasSuffix(r.URL.Path, "/index.json") {
+			// Get :hostname/:namespace/:type substring from /:hostname/:namespace/:type/index.json,
+			// and parse it.
+			source := strings.ReplaceAll(r.URL.Path, "/index.json", "")
+			source = source[1:] // Remove leading "/"
+			addr, diag := addrs.ParseProviderSourceString(source)
+			if diag.HasErrors() {
+				t.Fatalf("failed to parse provider source from URL path %q: %s", r.URL.Path, diag.Err())
+			}
+
+			versions, ok := availableProviderVersions[addr]
+			if !ok {
+				t.Fatalf("no package metadata found for provider source %q", addr)
+			}
+
+			// Create response body with the versions available for this provider.
+			response := getproviders.ListVersionsResponseBody{
+				Versions: make(map[string]struct{}),
+			}
+			for _, v := range versions {
+				response.Versions[v.String()] = struct{}{}
+			}
+
+			b, err := json.Marshal(response)
+			if err != nil {
+				t.Fatalf("failed to marshal versions response for provider %s: %s", addr, err)
+			}
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+			return
+		}
+
+		// Show archives for a specific version
+		// :hostname/:namespace/:type/:version.json
+		if regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.json$`).MatchString(r.URL.Path) {
+			// Get source and version data from substrings of path.
+			versionRegex := regexp.MustCompile(`([0-9]+\.[0-9]+\.[0-9]+)`)
+			versionStr := versionRegex.FindString(r.URL.Path)
+			version := getproviders.MustParseVersion(versionStr)
+
+			source := strings.Replace(r.URL.Path, "/"+version.String()+".json", "", 1)
+			source = source[1:] // Remove leading "/"
+			addr, diag := addrs.ParseProviderSourceString(source)
+			if diag.HasErrors() {
+				t.Fatalf("failed to parse provider source from URL path %q: %s", r.URL.Path, diag.Err())
+			}
+
+			// Does the mocked network mirror support that combination of provider source and version?
+			pVersions, ok := availableProviderVersions[addr]
+			if !ok {
+				t.Fatalf("no package metadata found for provider source %q", addr)
+			}
+			found := false
+			for _, pv := range pVersions {
+				if pv.String() == version.String() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("no package metadata found for provider source %q and version %q", addr, version)
+			}
+
+			// Create response body with metadata for single package that matches current platform
+			response := getproviders.ListInstallationPackagesResponseBody{
+				Archives: make(map[string]*getproviders.ListInstallationPackagesArchiveMeta),
+			}
+			// E.g. terraform-provider-foobar_1.0.0_darwin_amd64.zip
+			path := fmt.Sprintf(
+				"terraform-provider-%s_%s_%s.zip",
+				addr.Type,
+				version.String(),
+				getproviders.CurrentPlatform.String(),
+			)
+
+			// Make hashes
+			if _, ok := locations[addr]; !ok {
+				t.Fatalf("no package metadata found for provider source %q", addr)
+			}
+			if _, ok := locations[addr][version]; !ok {
+				t.Fatalf("no package metadata found for provider source %q and version %q", addr, version)
+			}
+			fileLocation := locations[addr][version]
+			zHash, err := getproviders.PackageHashLegacyZipSHA(getproviders.PackageLocalArchive(fileLocation))
+			if err != nil {
+				t.Fatalf("failed to compute hash for provider source %q and version %q: %s", addr, version, err)
+			}
+			h1Hash, err := getproviders.PackageHashV1(getproviders.PackageLocalArchive(fileLocation))
+			if err != nil {
+				t.Fatalf("failed to compute hash for provider source %q and version %q: %s", addr, version, err)
+			}
+
+			m := &getproviders.ListInstallationPackagesArchiveMeta{
+				RelativeURL: path,
+			}
+			if allowReturnHashes {
+				// Test may want no hashes to be returned, to test the behaviour when no authentication data
+				// is available for a provider package.
+				m.Hashes = []string{
+					zHash.String(),
+					h1Hash.String(),
+				}
+			}
+			response.Archives[getproviders.CurrentPlatform.String()] = m
+
+			b, err := json.Marshal(response)
+			if err != nil {
+				t.Fatalf("failed to marshal versions response for provider %s: %s", addr, err)
+			}
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+			return
+		}
+
+		// Handle provider binary download requests.
+		if strings.HasSuffix(r.URL.Path, ".zip") {
+			// Parse :hostname/:namespace/:type/:filename to get the provider addr
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) < 5 {
+				t.Fatalf("unexpected URL path format for provider binary download: %s", r.URL.Path)
+			}
+			source := strings.Join(parts[1:len(parts)-1], "/")
+			addr, diag := addrs.ParseProviderSourceString(source)
+			if diag.HasErrors() {
+				t.Fatalf("failed to parse provider source from URL path %q: %s", r.URL.Path, diag.Err())
+			}
+			versionRegex := regexp.MustCompile(`([0-9]+\.[0-9]+\.[0-9]+)`)
+			versionStr := versionRegex.FindString(r.URL.Path)
+			version := getproviders.MustParseVersion(versionStr)
+
+			// This code returns data in the temporary file that's created by the mock provider source.
+			// This 'download' is not used when Terraform uses the provider after the mock installation completes;
+			// Terraform will look for will use testOverrides in the Meta set up for this test.
+			//
+			// Although it's not used later we need to use this file (versus empty or made-up bytes) to enable installation
+			// logic to receive data with the correct checksum.
+			if _, ok := locations[addr]; !ok {
+				t.Fatalf("no package metadata found for provider source %q", addr)
+			}
+			if _, ok := locations[addr][version]; !ok {
+				t.Fatalf("no package metadata found for provider source %q and version %q", addr, version)
+			}
+			fileLocation := locations[addr][version]
+
+			f, err := os.Open(fileLocation)
+			if err != nil {
+				t.Fatalf("failed to open mock source file: %s", err)
+			}
+			defer f.Close()
+			archiveBytes, err := io.ReadAll(f)
+			if err != nil {
+				t.Fatalf("failed to read mock source file: %s", err)
+			}
+			w.Header().Add("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			w.Write(archiveBytes)
+			return
+		}
+
+		t.Fatalf("unhandled request to mock network mirror HTTP server:\npath: %s\n request: %#v", r.URL.Path, r)
+	})}
+
+	// Server is ready
+	server.Start() // Mock HTTP Mirror source doesn't enforce TLS
+	t.Cleanup(server.Close)
+
+	// Set up mock provider source that mocks installation via HTTP.
+	url := &url.URL{
+		Scheme: "http",
+		Host:   address,
+	}
+
+	source := getproviders.NewMockHTTPMirrorSource(t, url)
 
 	return source
 }
