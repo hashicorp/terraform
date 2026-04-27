@@ -6031,16 +6031,19 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 	return getproviders.NewMockSource(packages, nil)
 }
 
-// newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
-// reports that the provider is going to be accessed via HTTP
+// newMockProviderSourceViaHTTP returns a mock provider source that will return
+// metadata for providers defined by the calling test code. That metadata will
+// report that the provider package is available for download via HTTP from a given
+// address. That address is built using the address parameter.
 //
-// Provider binaries are not available via the mock HTTP provider source. This source is sufficient only to allow Terraform
-// to complete the provider installation process while believing it's installing providers over HTTP.
-// This method is not sufficient to enable Terraform to use providers with those names.
+// The mock HTTP provider source returned by newMockProviderSourceViaHTTP is not
+// sufficient for Terraform to complete a provider installation process successfully;
+// the provider source will supply Terraform with metadata describing where packages
+// can be downloaded from, only. Without an HTTP server that serves files matching the
+// metadata returned from this source, Terraform will fail during provider download.
 //
-// When using `newMockProviderSourceViaHTTP` to set a value for `(Meta).ProviderSource` in a test, also set up `testOverrides`
-// in the same Meta. That way the provider source will allow the download process to complete, and when Terraform attempts to use
-// those binaries it will instead use the testOverride providers.
+// Use newMockProviderSourceUsingTestHttpServer, a helper that sets up a test HTTP server
+// to use in combination with this source.
 func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
@@ -6068,13 +6071,15 @@ func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[st
 	return getproviders.NewMockSource(packages, nil)
 }
 
-// newMockProviderSourceUsingTestHttpServer is a helper that makes it easier to use newMockProviderSourceViaHTTP.
-// This helper sets up a test HTTP server for use with newMockProviderSourceViaHTTP, and configures a handler that will respond when
-// Terraform attempts to download provider binaries during installation. The mock source is returned ready to use and all cleanup is
-// handled internally to this helper.
+// newMockProviderSourceUsingTestHttpServer is a helper that returns a mock provider
+// source that is paired with a test HTTP server. The provider source will tell Terraform
+// that a given provider can be downloaded via HTTP from a given URL, and the test HTTP
+// server will enable Terraform to perform that download successfully.
 //
-// This source is not sufficient for providers to be available to use during a test; when using this helper, also set up testOverrides in
-// the same Meta to provide the actual provider implementations for use during the test.
+// This source is not sufficient for providers to be available to _use_ during a test,
+// it is only sufficient to enable a provider installation process to complete successfully.
+// If your test expects a provider to be installed and then used, ensure that testOverrides
+// provides the actual provider implementations for use during the test.
 func newMockProviderSourceUsingTestHttpServer(t *testing.T, availableProviderVersions map[string][]string) *getproviders.MockSource {
 	t.Helper()
 
@@ -6154,12 +6159,19 @@ func newMockProviderSourceUsingTestHttpServer(t *testing.T, availableProviderVer
 	return source
 }
 
-// newHTTPMirrorProviderSourceUsingTestHttpServer returns an HTTPMirrorSource that is backed by a test HTTPS server that acts as a network mirror.
-// The test HTTP server will serve the providers and versions defined in the input map.
+// newHTTPMirrorProviderSourceUsingTestHttpServer returns an HTTPMirrorSource that is backed
+// by a test HTTPS server that acts as a network mirror. The test HTTP server will serve the
+// providers and versions defined in the input map using the Provider Network Mirror Protocol.
 //
-// Calling code has the option of allowing the mirror to report hashes for each provider version, or to force the mirror to not report hashes.
+// Calling code has the option of allowing the mirror to report hashes for each provider version,
+// or to force the mirror to not report hashes.
 //
 // All cleanup is handled internally using t.Cleanup.
+//
+// This source is not sufficient for providers to be available to _use_ during a test,
+// it is only sufficient to enable a provider installation process to complete successfully.
+// If your test expects a provider to be installed and then used, ensure that testOverrides
+// provides the actual provider implementations for use during the test.
 func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[string][]string, allowReturnHashes bool) *getproviders.HTTPMirrorSource {
 	t.Helper()
 
