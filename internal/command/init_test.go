@@ -6215,15 +6215,11 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 	// Handler for endpoints that list available versions of a provider
 	// GET :hostname/:namespace/:type/index.json
 	handleListEndpoint := func(addr addrs.Provider, w http.ResponseWriter, r *http.Request) {
-		versions, ok := availableProviderVersions[addr]
-		if !ok {
-			t.Fatalf("no package metadata found for provider source %q", addr)
-		}
-
 		// Create response body with the versions available for this provider.
 		response := getproviders.ListVersionsResponseBody{
 			Versions: make(map[string]struct{}),
 		}
+		versions := availableProviderVersions[addr]
 		for _, v := range versions {
 			response.Versions[v.String()] = struct{}{}
 		}
@@ -6240,22 +6236,6 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 	// Handler for endpoints that list data about a specific versions of a provider
 	// GET :hostname/:namespace/:type/:version.json
 	handleVersionEndpoint := func(addr addrs.Provider, v getproviders.Version, w http.ResponseWriter, r *http.Request) {
-		// Does the mocked network mirror support that combination of provider source and version?
-		pVersions, ok := availableProviderVersions[addr]
-		if !ok {
-			t.Fatalf("no package metadata found for provider source %q", addr)
-		}
-		found := false
-		for _, pv := range pVersions {
-			if pv.Same(v) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("no package metadata found for provider source %q and version %q", addr, v)
-		}
-
 		// Create response body with metadata for single package that matches current platform
 		response := getproviders.ListInstallationPackagesResponseBody{
 			Archives: make(map[string]*getproviders.ListInstallationPackagesArchiveMeta),
@@ -6270,10 +6250,10 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 
 		// Make hashes
 		if _, ok := tmpFileLocations[addr]; !ok {
-			t.Fatalf("no package metadata found for provider source %q", addr)
+			t.Fatalf("no package metadata found in the mock network mirror for provider source %q", addr)
 		}
 		if _, ok := tmpFileLocations[addr][v]; !ok {
-			t.Fatalf("no package metadata found for provider source %q and version %q", addr, v)
+			t.Fatalf("no package metadata found in the mock network mirror for provider source %q and version %q", addr, v)
 		}
 		fileLocation := tmpFileLocations[addr][v]
 		zHash, err := getproviders.PackageHashLegacyZipSHA(getproviders.PackageLocalArchive(fileLocation))
@@ -6316,13 +6296,10 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 		//
 		// Although it's not used later we need to use this file (versus empty or made-up bytes) to enable installation
 		// logic to receive data with the correct checksum.
-		if _, ok := tmpFileLocations[addr]; !ok {
-			t.Fatalf("no package metadata found for provider source %q", addr)
+		fileLocation, ok := tmpFileLocations[addr][v]
+		if !ok {
+			t.Fatalf("no package metadata found in the mock network mirror for provider source %q and version %q", addr, v)
 		}
-		if _, ok := tmpFileLocations[addr][v]; !ok {
-			t.Fatalf("no package metadata found for provider source %q and version %q", addr, v)
-		}
-		fileLocation := tmpFileLocations[addr][v]
 
 		f, err := os.Open(fileLocation)
 		if err != nil {
@@ -6338,8 +6315,10 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 		w.Write(archiveBytes)
 	}
 
+	// Set up how the server handles requests.
+	// This includes validating that the request matches a provider version that was specified in the input map
+	// from the calling test code.
 	server.Config = &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Is the request for a provider source and version combo specified by the test?
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) < 5 {
 			t.Fatalf("unexpected URL path in request to test network mirror: %s", r.URL.Path)
@@ -6352,25 +6331,48 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 			t.Fatalf("failed to parse provider source from URL path %q: %s", r.URL.Path, diag.Err())
 		}
 
-		versionRegex := regexp.MustCompile(`([0-9]+\.[0-9]+\.[0-9]+)`)
+		// Is the request for a provider source and version combo specified by the test?
+		if _, ok := availableProviderVersions[providerAddr]; !ok {
+			t.Fatalf("provider source %q is not available in the mock network mirror", providerAddr)
+		}
+		var v getproviders.Version
+		if !strings.HasSuffix(r.URL.Path, "/index.json") {
+			// Only parse and assert version for requests that include a version in the path
+			versionRegex := regexp.MustCompile(`([0-9]+\.[0-9]+\.[0-9]+)`)
+			versionStr := versionRegex.FindString(r.URL.Path)
+			if versionStr == "" {
+				t.Fatalf("expected to be able to parse version from URL path %q", r.URL.Path)
+			}
+			v = getproviders.MustParseVersion(versionStr)
+
+			found := false
+			for _, pv := range availableProviderVersions[providerAddr] {
+				if pv.Same(v) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("provider source %q and version %q is not available in the mock network mirror", providerAddr, v)
+			}
+		}
 
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/index.json"):
 			// List versions for a provider
 			// GET :hostname/:namespace/:type/index.json
 			handleListEndpoint(providerAddr, w, r)
+			return
 		case strings.HasSuffix(r.URL.Path, ".json"):
 			// Show archives for a specific version
 			// GET :hostname/:namespace/:type/:version.json
-			versionStr := versionRegex.FindString(r.URL.Path)
-			v := getproviders.MustParseVersion(versionStr)
 			handleVersionEndpoint(providerAddr, v, w, r)
+			return
 		case strings.HasSuffix(r.URL.Path, ".zip"):
 			// Handle provider binary download requests.
 			// GET :hostname/:namespace/:type/:filename.zip
-			versionStr := versionRegex.FindString(r.URL.Path)
-			v := getproviders.MustParseVersion(versionStr)
 			handleZipDownloadEndpoint(providerAddr, v, w, r)
+			return
 		default:
 			t.Fatalf("unhandled request to mock network mirror HTTP server:\npath: %s\n request: %#v", r.URL.Path, r)
 		}
