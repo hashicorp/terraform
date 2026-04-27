@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed crash when configuration has an invalid `action_trigger` nested block in `data` or `ephemeral` lifecycle blocks
+time: 2026-04-27T09:26:12.662049-04:00
+custom:
+    Issue: "38402"
