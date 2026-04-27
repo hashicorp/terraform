@@ -6019,7 +6019,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), nil
+	return getproviders.NewMockSource(packages, nil), func() {} // Return empty func as
 }
 
 // newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
