@@ -6191,8 +6191,8 @@ func newHTTPMirrorProviderSourceUsingTestHttpServer(t *testing.T, input map[stri
 		availableProviderVersions[addr] = parsedVersions
 	}
 
-	// Get the tmp file locations for all provider versions defined in the availableProviderVersions map,
-	// so they can be served by the mock HTTP server.
+	// Create tmp files for each provider version defined in the availableProviderVersions map.
+	// These files are later served by the mock network mirror HTTP server.
 	tmpFileLocations := map[addrs.Provider]map[getproviders.Version]string{}
 	for addr, versions := range availableProviderVersions {
 		for _, version := range versions {
