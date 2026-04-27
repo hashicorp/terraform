@@ -1983,14 +1983,14 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	// create a provider source which allows installing an invalid package
 	addr := addrs.MustParseProviderSourceString("invalid/package")
 	version := getproviders.MustParseVersion("1.0.0")
-	meta, close, err := getproviders.FakeInstallablePackageMeta(
+	meta, err := getproviders.FakeInstallablePackageMeta(
+		t,
 		addr,
 		version,
 		getproviders.VersionList{getproviders.MustParseVersion("5.0")},
 		getproviders.CurrentPlatform,
 		"terraform-package", // should be "terraform-provider-package"
 	)
-	defer close()
 	if err != nil {
 		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
 	}
@@ -5984,9 +5984,9 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
 //
-// The caller must call the returned close callback once the source is no
-// longer needed, at which point it will clean up all of the temporary files
-// and the packages in the source will no longer be available for installation.
+// This function will automatically close the source at the end of the test/subtest
+// using t.Cleanup, so the caller isn't responsible for cleaning up all of the
+// temporary files and packages in the source.
 //
 // Provider addresses must be valid source strings, and passing only the
 // provider name will be interpreted as a "default" provider under
@@ -6004,31 +6004,22 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]string) (source *getproviders.MockSource, close func()) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
-	var closes []func()
-	close = func() {
-		for _, f := range closes {
-			f()
-		}
-	}
 	for source, versions := range availableProviderVersions {
 		addr := addrs.MustParseProviderSourceString(source)
 		for _, versionStr := range versions {
 			version, err := getproviders.ParseVersion(versionStr)
 			if err != nil {
-				close()
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
+			meta, err := getproviders.FakeInstallablePackageMeta(t, addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
 			if err != nil {
-				close()
 				t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), versionStr, err)
 			}
-			closes = append(closes, close)
 			packages = append(packages, meta)
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), close
+	return getproviders.NewMockSource(packages, nil), nil
 }
 
 // newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider
@@ -6044,31 +6035,27 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 func newMockProviderSourceViaHTTP(t *testing.T, availableProviderVersions map[string][]string, address string) (source *getproviders.MockSource) {
 	t.Helper()
 	var packages []getproviders.PackageMeta
-	var closes []func()
-	close := func() {
-		for _, f := range closes {
-			f()
-		}
-	}
 	for source, versions := range availableProviderVersions {
 		addr := addrs.MustParseProviderSourceString(source)
 		for _, versionStr := range versions {
 			version, err := getproviders.ParseVersion(versionStr)
 			if err != nil {
-				close()
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
 			}
-			meta, close, err := getproviders.FakePackageMetaViaHTTP(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, address, "")
+			meta, err := getproviders.FakePackageMetaViaHTTP(
+				t,
+				addr,
+				version,
+				getproviders.VersionList{getproviders.MustParseVersion("5.0")},
+				getproviders.CurrentPlatform,
+				address)
 			if err != nil {
-				close()
 				t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), versionStr, err)
 			}
-			closes = append(closes, close)
 			packages = append(packages, meta)
 		}
 	}
 
-	t.Cleanup(close)
 	return getproviders.NewMockSource(packages, nil)
 }
 
@@ -6208,10 +6195,9 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
+			meta, err := getproviders.FakeInstallablePackageMeta(t, addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
 			// We're going to install all these fake packages before we return,
 			// so we don't need to preserve them afterwards.
-			defer close()
 			if err != nil {
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
 			}
