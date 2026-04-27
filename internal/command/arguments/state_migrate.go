@@ -35,7 +35,7 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 	var upgrade, inputEnabled bool
 	cmdFlags := defaultFlagSet("state migrate")
 	cmdFlags.StringVar(&srcLockFilePath, "source-provider-lock-file", "", "Path to a provider lock file for the source provider.")
-	cmdFlags.StringVar(&dstLockFilePath, "destination-provider-lock-file", lockFileName, "Path to a provider lock file for the destination provider.")
+	cmdFlags.StringVar(&dstLockFilePath, "destination-provider-lock-file", "", "Path to a provider lock file for the destination provider.")
 	cmdFlags.BoolVar(&upgrade, "upgrade", false, "Trigger upgrade of the provider.")
 	cmdFlags.BoolVar(&inputEnabled, "input", true, "Enable input for interactive prompts.")
 
@@ -45,6 +45,37 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+		return migrate, diags
+	}
+
+	migrate.Upgrade = upgrade
+	migrate.InputEnabled = inputEnabled
+
+	if inputEnabled {
+		// lock file paths are only to be used in automation
+		if srcLockFilePath != "" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting command-line flags provided",
+				"-source-provider-lock-file cannot be used outside of automation (with -input=true)",
+			))
+		}
+		if dstLockFilePath != "" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting command-line flags provided",
+				"-destination-provider-lock-file cannot be used outside of automation (with -input=true)",
+			))
+		}
+		if len(diags) > 0 {
+			return migrate, diags
+		}
+
+	}
+	if dstLockFilePath == "" {
+		// setting default here instead of in the flag definition
+		// to make check above free of side effects
+		dstLockFilePath = lockFileName
 	}
 
 	if srcLockFilePath != "" {
@@ -70,9 +101,6 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 	} else {
 		migrate.DestinationLockFilePath = dstLockFilePath
 	}
-
-	migrate.Upgrade = upgrade
-	migrate.InputEnabled = inputEnabled
 
 	return migrate, diags
 }

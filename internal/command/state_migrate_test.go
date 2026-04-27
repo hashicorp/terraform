@@ -56,6 +56,7 @@ func TestStateMigrate_nonExistentLockFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	args := []string{
+		"-input=false",
 		"-source-provider-lock-file", filepath.Join(tmpDir, ".terraform.lock.hcl"),
 		"-destination-provider-lock-file", filepath.Join(tmpDir, ".terraform.lock.hcl"),
 	}
