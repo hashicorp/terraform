@@ -5,7 +5,7 @@ package http
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -54,6 +54,9 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	}
 	// Set up basic auth
 	if c.Username != "" {
+		if url.Scheme != "https" {
+			return nil, fmt.Errorf("basic auth credentials are configured but the URL scheme is %q; HTTPS is required to prevent credentials from being transmitted in plaintext", url.Scheme)
+		}
 		req.SetBasicAuth(c.Username, c.Password)
 	}
 
@@ -62,8 +65,8 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 		req.Header.Set("Content-Type", "application/json")
 		req.ContentLength = int64(len(*data))
 
-		// Generate the MD5
-		hash := md5.Sum(*data)
+		// Generate the content hash
+		hash := sha256.Sum256(*data)
 		b64 := base64.StdEncoding.EncodeToString(hash[:])
 		req.Header.Set("Content-MD5", b64)
 	}
@@ -194,8 +197,8 @@ func (c *httpClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 
 		payload.MD5 = md5
 	} else {
-		// Generate the MD5
-		hash := md5.Sum(payload.Data)
+		// Generate the content hash
+		hash := sha256.Sum256(payload.Data)
 		payload.MD5 = hash[:]
 	}
 
