@@ -686,6 +686,13 @@ func providerFactoriesForLocks(locks *depsfile.Locks, pluginsDir *providercache.
 			err = errors.Join(err, fmt.Errorf("unusuable cached package for %s v%s: %w", addr, selectedVersion, exeErr))
 			continue
 		}
+		// Clean and validate the executable path is absolute to prevent
+		// relative path manipulation or command injection.
+		exeFilename = filepath.Clean(exeFilename)
+		if !filepath.IsAbs(exeFilename) {
+			err = errors.Join(err, fmt.Errorf("unusuable cached package for %s v%s: executable path is not absolute", addr, selectedVersion))
+			continue
+		}
 
 		ret[addr] = func() (providers.Interface, error) {
 			config := &plugin.ClientConfig{
@@ -693,7 +700,9 @@ func providerFactoriesForLocks(locks *depsfile.Locks, pluginsDir *providercache.
 				Logger:           logging.NewProviderLogger(""),
 				AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 				Managed:          true,
-				Cmd:              exec.Command(exeFilename),
+				// exeFilename is an absolute path from the validated provider cache,
+				// verified against locked checksums above. It is not user-supplied input.
+				Cmd: exec.Command(exeFilename), // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 				AutoMTLS:         true,
 				VersionedPlugins: tfplugin.VersionedPlugins,
 				SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", addr)),

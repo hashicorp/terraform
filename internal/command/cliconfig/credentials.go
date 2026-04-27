@@ -400,6 +400,14 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 			return fmt.Errorf("cannot create temporary file to update credentials: %s", err)
 		}
 		tmpName := f.Name()
+		// Explicitly restrict permissions to owner-only (0600) so that OAuth
+		// tokens stored in the credentials file are not readable by other
+		// users on the system, regardless of the process umask.
+		if chmodErr := os.Chmod(tmpName, 0600); chmodErr != nil {
+			f.Close()
+			os.Remove(tmpName)
+			return fmt.Errorf("cannot set permissions on temporary credentials file: %s", chmodErr)
+		}
 		moved := false
 		defer func(f *os.File, name string) {
 			// Remove the temporary file if it hasn't been moved yet. We're
