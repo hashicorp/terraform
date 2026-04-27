@@ -4,6 +4,9 @@
 package statemgr
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/states"
@@ -22,6 +25,21 @@ import (
 // responsibility to hold the lock at least for the duration of this call.
 // It is not safe to modify the given state concurrently while
 // PlannedStateUpdate is running.
+// stateContentHash computes a SHA-256 hash of the serialized state content,
+// using a version-neutral serialization to ensure the hash is stable across
+// Terraform upgrades between plan and apply operations.
+func stateContentHash(s *states.State) string {
+	if s == nil {
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := statefile.WriteForTest(&statefile.File{State: s}, &buf); err != nil {
+		return ""
+	}
+	h := sha256.Sum256(buf.Bytes())
+	return hex.EncodeToString(h[:])
+}
+
 func PlannedStateUpdate(mgr Transient, planned *states.State) *statefile.File {
 	ret := &statefile.File{
 		State: planned.DeepCopy(),
@@ -34,6 +52,11 @@ func PlannedStateUpdate(mgr Transient, planned *states.State) *statefile.File {
 		ret.Lineage = m.Lineage
 		ret.Serial = m.Serial
 	}
+
+	// Compute a cryptographic hash of the prior state content so that
+	// WritePlannedStateUpdate can detect backend state tampering even when
+	// an attacker preserves the original lineage UUID and serial number.
+	ret.ContentHash = stateContentHash(planned)
 
 	return ret
 }
@@ -67,6 +90,15 @@ func WritePlannedStateUpdate(mgr Transient, planned *statefile.File) error {
 			if planned.Serial != m.Serial {
 				return fmt.Errorf("stored state has been changed by another operation since the given update was planned")
 			}
+		}
+	}
+
+	// Verify the cryptographic content hash to detect backend state tampering
+	// even when an attacker has preserved the original lineage UUID and serial.
+	if planned.ContentHash != "" {
+		currentHash := stateContentHash(mgr.State())
+		if currentHash != "" && planned.ContentHash != currentHash {
+			return fmt.Errorf("state file integrity check failed: backend state content has been modified since the plan was created")
 		}
 	}
 

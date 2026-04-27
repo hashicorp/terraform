@@ -53,6 +53,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		TerraformVersion: tfVersion,
 		Serial:           sV4.Serial,
 		Lineage:          sV4.Lineage,
+		ContentHash:      sV4.ContentHash,
 	}
 
 	state := states.NewState()
@@ -329,6 +330,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		TerraformVersion: terraformVersion,
 		Serial:           file.Serial,
 		Lineage:          file.Lineage,
+		ContentHash:      file.ContentHash,
 		RootOutputs:      map[string]outputStateV4{},
 		Resources:        []resourceStateV4{},
 	}
@@ -668,6 +670,7 @@ type stateV4 struct {
 	TerraformVersion string                   `json:"terraform_version"`
 	Serial           uint64                   `json:"serial"`
 	Lineage          string                   `json:"lineage"`
+	ContentHash      string                   `json:"content_hash,omitempty"`
 	RootOutputs      map[string]outputStateV4 `json:"outputs"`
 	Resources        []resourceStateV4        `json:"resources"`
 	CheckResults     []checkResultsV4         `json:"check_results"`

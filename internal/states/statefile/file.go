@@ -32,6 +32,11 @@ type File struct {
 
 	// State is the actual state represented by this file.
 	State *states.State
+
+	// ContentHash is a SHA-256 hash of the serialized prior state content at
+	// the time a plan was created. It is verified by WritePlannedStateUpdate
+	// to detect tampering of the backend state between plan and apply.
+	ContentHash string
 }
 
 func New(state *states.State, lineage string, serial uint64) *File {
@@ -60,6 +65,7 @@ func (f *File) DeepCopy() *File {
 		TerraformVersion: f.TerraformVersion,
 		Serial:           f.Serial,
 		Lineage:          f.Lineage,
+		ContentHash:      f.ContentHash,
 		State:            f.State.DeepCopy(),
 	}
 }
