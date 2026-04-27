@@ -28,7 +28,6 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/jmespath/go-jmespath"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -646,6 +645,10 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	if ecsRoleName == "" {
 		return
 	}
+	if strings.ContainsAny(ecsRoleName, "/?#@:") {
+		err = fmt.Errorf("invalid ECS role name: %q contains invalid characters", ecsRoleName)
+		return
+	}
 	requestUrl := securityCredURL + ecsRoleName
 	httpRequest, err := http.NewRequest(requests.GET, requestUrl, strings.NewReader(""))
 	if err != nil {
@@ -670,43 +673,27 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 		err = fmt.Errorf("get Ecs sts token err, httpStatus: %d, message = %s", response.GetHttpStatus(), response.GetHttpContentString())
 		return
 	}
-	var data interface{}
+	type ecsCredentialResponse struct {
+		Code            string `json:"Code"`
+		AccessKeyId     string `json:"AccessKeyId"`
+		AccessKeySecret string `json:"AccessKeySecret"`
+		SecurityToken   string `json:"SecurityToken"`
+	}
+	var data ecsCredentialResponse
 	err = json.Unmarshal(response.GetHttpContentBytes(), &data)
 	if err != nil {
 		err = fmt.Errorf("refresh Ecs sts token err, json.Unmarshal fail: %s", err.Error())
 		return
 	}
-	code, err := jmespath.Search("Code", data)
-	if err != nil {
-		err = fmt.Errorf("refresh Ecs sts token err, fail to get Code: %s", err.Error())
-		return
-	}
-	if code.(string) != "Success" {
+	if data.Code != "Success" {
 		err = fmt.Errorf("refresh Ecs sts token err, Code is not Success")
 		return
 	}
-	accessKeyId, err := jmespath.Search("AccessKeyId", data)
-	if err != nil {
-		err = fmt.Errorf("refresh Ecs sts token err, fail to get AccessKeyId: %s", err.Error())
-		return
-	}
-	accessKeySecret, err := jmespath.Search("AccessKeySecret", data)
-	if err != nil {
-		err = fmt.Errorf("refresh Ecs sts token err, fail to get AccessKeySecret: %s", err.Error())
-		return
-	}
-	securityToken, err := jmespath.Search("SecurityToken", data)
-	if err != nil {
-		err = fmt.Errorf("refresh Ecs sts token err, fail to get SecurityToken: %s", err.Error())
-		return
-	}
-
-	if accessKeyId == nil || accessKeySecret == nil || securityToken == nil {
+	if data.AccessKeyId == "" || data.AccessKeySecret == "" || data.SecurityToken == "" {
 		err = fmt.Errorf("there is no any available accesskey, secret and security token for Ecs role %s", ecsRoleName)
 		return
 	}
-
-	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
+	return data.AccessKeyId, data.AccessKeySecret, data.SecurityToken, nil
 }
 
 func getHttpProxyUrl(rawUrl string) (*url.URL, error) {
