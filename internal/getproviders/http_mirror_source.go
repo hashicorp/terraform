@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -55,14 +56,35 @@ func NewHTTPMirrorSource(baseURL *url.URL, creds svcauth.CredentialsSource) *HTT
 		}
 		return nil
 	}
+	// Enforce TLS
+	return newHTTPMirrorSourceWithHTTPClientTLS(baseURL, creds, httpClient)
+}
+
+func NewMockHTTPMirrorSource(t *testing.T, baseURL *url.URL) *HTTPMirrorSource {
+	httpClient := httpclient.New()
+	httpClient.Timeout = requestTimeout
+	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// If we get redirected more than five times we'll assume we're
+		// in a redirect loop and bail out, rather than hanging forever.
+		if len(via) > 5 {
+			return fmt.Errorf("too many redirects")
+		}
+		return nil
+	}
+
+	// In tests we don't enforce TLS and also there are no creds
+	var creds svcauth.CredentialsSource // nil
+	return newHTTPMirrorSourceWithHTTPClient(baseURL, creds, httpClient)
+}
+
+func newHTTPMirrorSourceWithHTTPClientTLS(baseURL *url.URL, creds svcauth.CredentialsSource, httpClient *http.Client) *HTTPMirrorSource {
+	if baseURL.Scheme != "https" {
+		panic("non-https URL for HTTP mirror")
+	}
 	return newHTTPMirrorSourceWithHTTPClient(baseURL, creds, httpClient)
 }
 
 func newHTTPMirrorSourceWithHTTPClient(baseURL *url.URL, creds svcauth.CredentialsSource, httpClient *http.Client) *HTTPMirrorSource {
-	if baseURL.Scheme != "https" {
-		panic("non-https URL for HTTP mirror")
-	}
-
 	// We borrow the retry settings and behaviors from the registry client,
 	// because our needs here are very similar to those of the registry client.
 	retryableClient := retryablehttp.NewClient()
