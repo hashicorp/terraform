@@ -181,10 +181,9 @@ this variable.
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
 			t.Chdir(td)
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
-			defer close()
 
 			p := queryFixtureProvider()
 			view, done := testView(t)
@@ -758,10 +757,9 @@ func TestQuery_JSON(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
 			t.Chdir(td)
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
-			defer close()
 
 			p := queryFixtureProvider()
 			view, done := testView(t)
@@ -875,10 +873,9 @@ func TestQuery_JSON_Raw(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("query", ts.directory)), td)
 			t.Chdir(td)
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
-			defer close()
 
 			p := queryFixtureProvider()
 			view, done := testView(t)

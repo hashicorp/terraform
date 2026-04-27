@@ -310,10 +310,9 @@ func TestPlan_dynamicModuleSource(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	args := []string{"-var", "module_name=example"}
 
@@ -363,10 +362,9 @@ func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 	args := []string{"-var", "module_name=example"}
 
 	initUi := new(cli.MockUi)
@@ -411,10 +409,9 @@ func TestApply_dynamicModuleSource(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 	args := []string{"-var", "module_name=example"}
 
 	initUi := new(cli.MockUi)
@@ -463,10 +460,9 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	initUi := new(cli.MockUi)
 	initView, initDone := testView(t)
@@ -539,10 +535,9 @@ func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	args := []string{"-var", "module_name=example"}
 
@@ -592,10 +587,9 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 	t.Chdir(td)
 
 	p := planFixtureProvider()
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	args := []string{"-var", "module_name=example"}
 

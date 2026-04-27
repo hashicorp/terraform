@@ -480,10 +480,9 @@ func TestTest_Runs(t *testing.T) {
 			store := &testing_command.ResourceStore{
 				Data: make(map[string]cty.Value),
 			}
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -627,10 +626,9 @@ func TestTest_DestroyFail(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	view, done := testView(t)
 
@@ -857,10 +855,9 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 
 	t.Run("cleanup all left-over state", func(t *testing.T) {
 		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"test": {"1.0.0"},
 		})
-		defer close()
 
 		// Run the test command to create the state
 		td := executeTestCmd(provider, providerSource)
@@ -916,10 +913,9 @@ Success!
 
 	t.Run("cleanup failed state only (-repair)", func(t *testing.T) {
 		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"test": {"1.0.0"},
 		})
-		defer close()
 
 		// Run the test command to create the state
 		td := executeTestCmd(provider, providerSource)
@@ -977,10 +973,9 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1066,10 +1061,9 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1146,10 +1140,9 @@ func TestTest_SharedState_Order(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1218,10 +1211,9 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1295,10 +1287,9 @@ func TestTest_Parallel(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1647,10 +1638,9 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			defer closer()
 			t.Chdir(td)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -1817,10 +1807,9 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Data: make(map[string]cty.Value),
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1885,8 +1874,7 @@ func TestTest_ComplexCondition(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2055,8 +2043,7 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2389,11 +2376,10 @@ func TestTest_ModuleDependencies(t *testing.T) {
 	// Let's make the setup provider write into the data for test provider.
 	setup.SetResourcePrefix("data")
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test":  {"1.0.0"},
 		"setup": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2466,10 +2452,9 @@ func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
 	store := &testing_command.ResourceStore{
 		Data: make(map[string]cty.Value),
 	}
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2525,10 +2510,9 @@ func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
 	store := &testing_command.ResourceStore{
 		Data: make(map[string]cty.Value),
 	}
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2584,10 +2568,9 @@ func TestTest_DynamicSourceNested(t *testing.T) {
 	store := &testing_command.ResourceStore{
 		Data: make(map[string]cty.Value),
 	}
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2657,11 +2640,10 @@ func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
 	// Let's make the setup provider write into the data for test provider.
 	setup.SetResourcePrefix("data")
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test":  {"1.0.0"},
 		"setup": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2973,10 +2955,9 @@ can remove the provider configuration again.
 
 			provider := testing_command.NewProvider(nil)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -3040,10 +3021,9 @@ func TestTest_NestedSetupModules(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3095,10 +3075,9 @@ func TestTest_StatePropagation(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3233,10 +3212,9 @@ func TestTest_SkipCleanup(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3334,10 +3312,9 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3464,10 +3441,9 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3595,10 +3571,9 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3723,10 +3698,9 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3858,10 +3832,9 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4447,10 +4420,9 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4722,10 +4694,9 @@ func TestTest_InvalidOverrides(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4822,10 +4793,9 @@ func TestTest_InvalidConfig(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4966,10 +4936,9 @@ There is no backend type named "foobar".
 
 			provider := testing_command.NewProvider(nil)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -5046,10 +5015,9 @@ test_resource_id = 12345`
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5154,10 +5122,9 @@ test_resource_id = %s`, resourceId, resourceId)
 	}
 	provider := testing_command.NewProvider(resourceStore)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5274,10 +5241,9 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 				provider.Provider.ApplyResourceChangeFn = newFunc
 			}
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -5374,10 +5340,9 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 			t.Chdir(td)
 
 			provider := testing_command.NewProvider(nil)
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -5435,10 +5400,9 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 		return resp
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5518,10 +5482,9 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5587,10 +5550,9 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Data: make(map[string]cty.Value),
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5753,10 +5715,9 @@ func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5823,10 +5784,9 @@ func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5878,10 +5838,9 @@ func TestTest_TeardownOrder(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

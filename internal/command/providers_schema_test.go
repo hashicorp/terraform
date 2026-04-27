@@ -61,10 +61,9 @@ func TestProvidersSchema_output(t *testing.T) {
 			testCopyDir(t, inputDir, td)
 			t.Chdir(td)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},
 			})
-			defer close()
 
 			p := providersSchemaFixtureProvider()
 			ui := new(cli.MockUi)

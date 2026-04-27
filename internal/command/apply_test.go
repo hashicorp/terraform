@@ -822,12 +822,11 @@ output "foobar" {
 		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		source, close := newMockProviderSource(t, map[string][]string{
+		source := newMockProviderSource(t, map[string][]string{
 			// The test fixture config has no version constraints, so the latest version will
 			// be used; below is the 'latest' version in the test world.
 			"hashicorp/test": {"1.2.3"},
 		})
-		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -943,10 +942,9 @@ output "foobar" {
 		mockProvider.GetProviderSchemaResponse = &schema
 		mockProviderAddress := addrs.NewBuiltInProvider("terraform")
 
-		source, close := newMockProviderSource(t, map[string][]string{
+		source := newMockProviderSource(t, map[string][]string{
 			"hashicorp/terraform": {"1.2.3"},
 		})
-		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)

@@ -106,10 +106,9 @@ func TestStatePull_stateStore(t *testing.T) {
 		"default": stateBytes,
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	streams, _ := terminal.StreamsForTesting(t)

@@ -213,11 +213,10 @@ func TestInit_two_step_provider_download(t *testing.T) {
 			t.Chdir(td)
 
 			// A provider source containing the random and null providers
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"hashicorp/random": {"1.0.0", "9.9.9"},
 				"hashicorp/null":   {"1.0.0", "9.9.9"},
 			})
-			defer close()
 
 			ui := new(cli.MockUi)
 			view, done := testView(t)
@@ -889,10 +888,9 @@ func TestInit_backendReconfigure(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -964,10 +962,9 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-migrate-while-locked"), td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -1780,7 +1777,7 @@ func TestInit_getProvider(t *testing.T) {
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
 		"exact": {"1.2.3"},
 		// config requires >= 2.3.3
@@ -1788,7 +1785,6 @@ func TestInit_getProvider(t *testing.T) {
 		// config specifies
 		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
-	defer close()
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
@@ -1887,14 +1883,13 @@ func TestInit_getProviderSource(t *testing.T) {
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
 		"acme/alpha": {"1.2.3"},
 		// config doesn't specify versions for other providers
 		"registry.example.com/acme/beta": {"1.0.0"},
 		"gamma":                          {"2.0.0"},
 	})
-	defer close()
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
@@ -1937,10 +1932,9 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
 	view, done := testView(t)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"acme/alpha": {"1.2.3"},
 	})
-	defer close()
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
@@ -2044,11 +2038,10 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// source: the mock source will return ErrRegistryProviderNotKnown for an
 	// unknown provider, and the registry source will allow us to look up the
 	// appropriate namespace if possible.
-	providerSource, psClose := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/foo":           {"1.2.3"},
 		"terraform-providers/baz": {"2.3.4"}, // this will not be installed
 	})
-	defer psClose()
 	registrySource, rsClose := testRegistrySource(t)
 	defer rsClose()
 	multiSource := getproviders.MultiSource{
@@ -2109,12 +2102,11 @@ func TestInit_providerSource(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-required-providers"), td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test":      {"1.2.3", "1.2.4"},
 		"test-beta": {"1.2.4"},
 		"source":    {"1.2.2", "1.2.3", "1.2.1"},
 	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	view, done := testView(t)
@@ -2305,7 +2297,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-get-providers"), td)
 		t.Chdir(td)
 
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			// looking for an exact version
 			"exact": {"1.2.3"},
 			// config requires >= 2.3.3
@@ -2313,7 +2305,6 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			// config specifies > 1.0.0 , < 3.0.0
 			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		})
-		t.Cleanup(close)
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -2452,11 +2443,10 @@ terraform {
 			t.Fatalf("failed to write main.tf: %s", err)
 		}
 
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			// config requires > 1.0.0
 			"test": {"1.2.3", "9.9.9"},
 		})
-		t.Cleanup(close)
 
 		// Mock provider to act as "hashicorp/test"
 		mockProvider := mockPluggableStateStorageProvider()
@@ -2578,11 +2568,10 @@ terraform {
 			t.Fatalf("failed to write main.tf: %s", err)
 		}
 
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			// config requires > 1.0.0
 			"test": {"1.2.3", "9.9.9"},
 		})
-		t.Cleanup(close)
 
 		// Mock provider to act as "hashicorp/test"
 		mockProvider := mockPluggableStateStorageProvider()
@@ -2710,13 +2699,11 @@ terraform {
 			t.Fatalf("failed to write main.tf: %s", err)
 		}
 
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			// config requires > 1.0.0
 			"test":   {"1.2.3", "9.9.9"},
 			"foobar": {"1.2.3", "9.9.9"},
 		})
-		t.Cleanup(close)
-
 		// Mock provider to act as "hashicorp/test"
 		mockProvider := mockPluggableStateStorageProvider()
 
@@ -2846,7 +2833,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for exact version 1.2.3
 		"exact": {"1.2.4"},
 		// config requires >= 2.3.3
@@ -2854,7 +2841,6 @@ func TestInit_getProviderMissing(t *testing.T) {
 		// config specifies
 		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -2971,10 +2957,9 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer os.Chmod(td, os.ModePerm)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3158,8 +3143,7 @@ provider "registry.terraform.io/hashicorp/test" {
 			testCopyDir(t, testFixturePath(tc.fixture), td)
 			t.Chdir(td)
 
-			providerSource, close := newMockProviderSource(t, tc.providers)
-			defer close()
+			providerSource := newMockProviderSource(t, tc.providers)
 
 			ui := new(cli.MockUi)
 			view, done := testView(t)
@@ -3206,8 +3190,7 @@ func TestInit_pluginDirReset(t *testing.T) {
 	t.Chdir(td)
 
 	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
-	defer close()
+	providerSource := newMockProviderSource(t, nil)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3276,8 +3259,7 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	t.Chdir(td)
 
 	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
-	defer close()
+	providerSource := newMockProviderSource(t, nil)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3375,10 +3357,9 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// Our provider source has a suitable package for "between" available,
 	// but we should ignore it because -plugin-dir is set and thus this
 	// source is temporarily overridden during install.
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"between": {"2.3.4"},
 	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	view, done := testView(t)
@@ -3452,8 +3433,7 @@ func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	t.Chdir(td)
 
 	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
-	defer close()
+	providerSource := newMockProviderSource(t, nil)
 
 	ui := cli.NewMockUi()
 	view, done := testView(t)
@@ -3492,8 +3472,7 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	t.Chdir(td)
 
 	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
-	defer close()
+	providerSource := newMockProviderSource(t, nil)
 
 	ui := cli.NewMockUi()
 	view, done := testView(t)
@@ -3658,11 +3637,10 @@ func TestInit_testsWithExternalProviders(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-with-tests-external-providers"), td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/testing": {"1.0.0"},
 		"testing/configure": {"1.0.0"},
 	})
-	defer close()
 
 	hashicorpTestingProviderAddress := addrs.NewDefaultProvider("testing")
 	hashicorpTestingProvider := new(testing_provider.MockProvider)
@@ -3699,10 +3677,9 @@ func TestInit_tests(t *testing.T) {
 
 	provider := applyFixtureProvider() // We just want the types from this provider.
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3729,10 +3706,9 @@ func TestInit_testsWithProvider(t *testing.T) {
 
 	provider := applyFixtureProvider() // We just want the types from this provider.
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3776,10 +3752,9 @@ func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
 
 	provider := applyFixtureProvider() // We just want the types from this provider.
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3806,10 +3781,9 @@ func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 
 	provider := applyFixtureProvider() // We just want the types from this provider.
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3837,10 +3811,9 @@ func TestInit_testsWithModule(t *testing.T) {
 
 	provider := applyFixtureProvider() // We just want the types from this provider.
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -3932,10 +3905,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"},
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4022,10 +3994,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4097,10 +4068,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4165,10 +4135,9 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
 
 		// Allow the test to respond to the prompt to pick an
 		// existing workspace, given the selected one doesn't exist.
@@ -4254,10 +4223,9 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			States: []string{"default"},
 		}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4340,10 +4308,9 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4429,10 +4396,9 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4486,10 +4452,9 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4584,10 +4549,9 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	mockProvider.GetProviderSchemaResponse.StateStores["test_store"].Body.Attributes["value"].Required = false
 
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 	})
-	t.Cleanup(close)
 
 	var originalStateStoreConfigHash uint64
 
@@ -4696,10 +4660,9 @@ func TestInit_stateStore_unset(t *testing.T) {
 	// Make the provider report that it contains a 2nd storage implementation with the above name
 	mockProvider.GetProviderSchemaResponse.StateStores[otherStoreName] = mockProvider.GetProviderSchemaResponse.StateStores[storeName]
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 	})
-	defer close()
 
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
@@ -4796,10 +4759,9 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 	})
-	defer close()
 
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset_withoutProviderRequirements: beginning first init")
@@ -4894,10 +4856,9 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5136,10 +5097,9 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5316,10 +5276,9 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5430,10 +5389,9 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5591,10 +5549,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5831,10 +5788,9 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 
 	mockProvider := mockPluggableStateStorageProvider()
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	tOverrides := &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6001,7 +5957,7 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 // abort the current test using the given testing.T. Therefore a caller can
 // assume that if this function returns then the result is valid and ready
 // to use.
-func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]string) (source *getproviders.MockSource, close func()) {
+func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]string) *getproviders.MockSource {
 	t.Helper()
 	var packages []getproviders.PackageMeta
 	for source, versions := range availableProviderVersions {
@@ -6019,7 +5975,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages, nil), func() {} // Return empty func as
+	return getproviders.NewMockSource(packages, nil)
 }
 
 // newMockProviderSourceViaHTTP is similar to newMockProviderSource except that the metadata (PackageMeta) for each provider

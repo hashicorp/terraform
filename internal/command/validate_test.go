@@ -265,10 +265,9 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -452,10 +451,9 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -656,10 +654,9 @@ The first step in the traversal for a list resource must be an attribute
 			ui := new(cli.MockUi)
 
 			provider := queryFixtureProvider()
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider),

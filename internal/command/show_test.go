@@ -552,11 +552,10 @@ func TestShow_json_output(t *testing.T) {
 
 			expectError := strings.Contains(entry.Name(), "error")
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test":            {"1.2.3"},
 				"hashicorp2/test": {"1.2.3"},
 			})
-			defer close()
 
 			p := showFixtureProvider()
 
@@ -665,8 +664,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	testCopyDir(t, inputDir, td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 
 	p := showFixtureSensitiveProvider()
 
@@ -758,9 +756,7 @@ func TestShow_json_output_actions(t *testing.T) {
 	testCopyDir(t, inputDir, td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
-	defer close()
-
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 	p := showFixtureProvider()
 
 	// init
@@ -855,8 +851,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	testCopyDir(t, inputDir, td)
 	t.Chdir(td)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
 
 	p := showFixtureSensitiveProvider()
 
@@ -964,10 +959,9 @@ func TestShow_json_output_state(t *testing.T) {
 			testCopyDir(t, inputDir, td)
 			t.Chdir(td)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},
 			})
-			defer close()
 
 			p := showFixtureProvider()
 

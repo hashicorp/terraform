@@ -49,10 +49,9 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 			"foobar":  true,
 		}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
@@ -93,10 +92,9 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		// No workspaces exist in the mock
 		mockProvider.MockStates = map[string]interface{}{}
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
-		defer close()
 
 		ui := new(cli.MockUi)
 		view, _ := testView(t)

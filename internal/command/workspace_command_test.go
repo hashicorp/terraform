@@ -42,10 +42,9 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	mock.MockStates = map[string]interface{}{preExistingState: true}
 
 	// Assumes the mocked provider is hashicorp/test
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
@@ -210,10 +209,9 @@ func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
 
 	// Assumes the mocked provider is hashicorp/test
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
 	})
-	defer close()
 
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
