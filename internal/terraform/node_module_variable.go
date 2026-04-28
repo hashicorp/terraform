@@ -287,10 +287,11 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, tfdiags.SourceRange, error) {
+func (n *nodeModuleVariable) evalModuleVariable(parentCtx EvalContext, validateOnly bool) (cty.Value, tfdiags.SourceRange, error) {
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange
+
 	if expr := n.Expr; expr != nil {
 		var moduleInstanceRepetitionData instances.RepetitionData
 
@@ -306,10 +307,97 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		default:
 			// Get the repetition data for this module instance,
 			// so we can create the appropriate scope for evaluating our expression
-			moduleInstanceRepetitionData = ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+			moduleInstanceRepetitionData = parentCtx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
 		}
 
-		scope := ctx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
+		// Evaluate the type attribute (TODO: should be shared with the root module type eval)
+		if n.Config.TypeExpr != nil {
+			// TODO: this feels hacky, but the context of this node is always the parent context, should probably verify this would work with other module expansions
+			moduleCtx := parentCtx.withScope(evalContextModuleInstance{Addr: n.Addr.Module})
+			scope := moduleCtx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
+
+			refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.TypeExpr)
+			diags = diags.Append(refsDiags)
+			if diags.HasErrors() {
+				return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+			}
+
+			if len(refs) > 0 {
+				for _, ref := range refs {
+					switch ref.Subject.(type) {
+					case addrs.TypeDefinition:
+						// These are allowed
+					default:
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid type specification",
+							Detail:   "The variable type can only reference type definitions.",
+							Subject:  ref.SourceRange.ToHCL().Ptr(),
+						})
+						return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+					}
+				}
+
+				// TODO: Ensure that type definition is added to the reference evaluator (the context)
+				// this will end up being the capsule type/value
+				tyVal, valueDiags := scope.EvalExpr(n.Config.TypeExpr, typeDefCtyType)
+				diags = diags.Append(valueDiags)
+				if diags.HasErrors() {
+					return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+				}
+
+				typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
+				if !ok {
+					panic(fmt.Sprintf("type definition was not the correct capsule value, got: %T", tyVal.EncapsulatedValue()))
+				}
+
+				// TODO: this isn't updating the actual config representation, but not sure that it matters?
+				// It seems like we probably should be updating it, but not sure if:
+				// 		1) that's allowed/expected?
+				// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+				n.Config.ConstraintType = typeDef.ConstraintType
+				n.Config.Type = typeDef.Definition
+				n.Config.TypeDefaults = typeDef.TypeDefaults
+
+				if typeDef.Definition.IsPrimitiveType() {
+					n.Config.ParsingMode = configs.VariableParseLiteral
+				} else {
+					n.Config.ParsingMode = configs.VariableParseHCL
+				}
+			} else {
+				ty, tyDefaults, parseMode, tyDiags := configs.DecodeVariableType(n.Config.TypeExpr)
+				diags = diags.Append(tyDiags)
+				if diags.HasErrors() {
+					return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+				}
+
+				// TODO: this isn't updating the actual config representation, but not sure that it matters?
+				// It seems like we probably should be updating it, but not sure if:
+				// 		1) that's allowed/expected?
+				// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+				n.Config.ConstraintType = ty
+				n.Config.TypeDefaults = tyDefaults
+				n.Config.Type = ty.WithoutOptionalAttributesDeep()
+				n.Config.ParsingMode = parseMode
+			}
+		}
+
+		// Evaluate the default attribute
+		if n.Config.DefaultExpr != nil {
+			val, valDiags := configs.DecodeVariableDefault(n.Config, n.Config.DefaultExpr)
+			diags = diags.Append(valDiags)
+			if diags.HasErrors() {
+				return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
+			}
+
+			// TODO: this isn't updating the actual config representation, but not sure that it matters?
+			// It seems like we probably should be updating it, but not sure if:
+			// 		1) that's allowed/expected?
+			// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+			n.Config.Default = val
+		}
+
+		scope := parentCtx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
 		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
