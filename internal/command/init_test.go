@@ -3842,7 +3842,7 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("users do not need to approve trusting a state store provider if it's installed from local archive", func(t *testing.T) {
+	t.Run("no need to interactively approve a state store provider installed from local archive", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -3904,7 +3904,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("users can interactively approve trusting a state store provider downloaded via HTTP", func(t *testing.T) {
+	t.Run("prompted to approve a state store provider downloaded via HTTP", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
@@ -4144,7 +4144,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 		}
 	})
 
-	t.Run("if user rejects a provider and re-attempts the init command they're prompted on the second attempt", func(t *testing.T) {
+	t.Run("re-prompt to approve a provider after rejecting that provider in a previous init", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
