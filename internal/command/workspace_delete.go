@@ -30,7 +30,6 @@ func (c *WorkspaceDeleteCommand) Run(rawArgs []string) int {
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	// Process command-specific arguments.
-	// Currently there are no arguments for this command, so ignore the returned value for now.
 	args, diags := arguments.ParseWorkspaceDelete(rawArgs)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)

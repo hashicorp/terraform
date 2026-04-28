@@ -121,7 +121,7 @@ func TestParseWorkspaceDelete_invalid(t *testing.T) {
 				Workspace: Workspace{
 					ViewType: ViewHuman,
 				},
-				Name:        "", // Isn't set if there are extra arguments supplied
+				Name:        "my-new-workspace", // First positional argument is still captured``
 				Force:       false,
 				Lock:        true,
 				LockTimeout: 0,
