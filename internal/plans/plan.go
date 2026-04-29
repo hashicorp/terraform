@@ -258,6 +258,8 @@ func NewBackend(typeName string, config cty.Value, configSchema *configschema.Bl
 	}, nil
 }
 
+// Validate checks expected data is present, and does not attempt to validate the
+// backend configuration data against the backend schema.
 func (b *Backend) Validate() error {
 	if b == nil {
 		return errors.New("plan contains a nil Backend")
@@ -295,6 +297,8 @@ type StateStore struct {
 	Workspace string
 }
 
+// Validate checks expected data is present, and does not attempt to validate the
+// state_store configuration data against the store's schema.
 func (s *StateStore) Validate() error {
 	if s == nil {
 		return errors.New("plan contains a nil StateStore")
