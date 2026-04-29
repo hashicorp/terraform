@@ -70,6 +70,33 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-get=false", "-var", "module_version=0.0.2"},
 			wantError: "Module version requirements have changed",
 		},
+		"const variable with static validation check 2": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "The module_name variable must be set to \"example\"",
+		},
+		"provider function in const variable validation check": {
+			fixture:   "provider-function-in-const-validation",
+			args:      []string{"-var", "module_name=example"},
+			wantError: "This happens if variable validation is\nbeing used on const variables during init.",
+		},
+		// TODO: interestingly, this receives the correct variable validation error (test passes) but also
+		// source contains to evaluate so you also receive an "Unreadable module directory" error.
+		"const variable with static validation check": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "The module_name variable must be set to \"example\"",
+		},
+		// TODO: Currently, the ignoring of provider function errors in eval causes source + version to just return an unknown value
+		// https://ibm-hashicorp.slack.com/archives/G09KVQL2F61/p1777486406835379?thread_ts=1777480933.303339&cid=G09KVQL2F61
+		"provider function in module source": {
+			fixture:   "provider-function-in-source",
+			wantError: "The module source contains a reference that is unknown during init.", // TODO: This should probably be an error about how provider functions aren't valid here
+		},
+		"provider function in module version": {
+			fixture:   "provider-function-in-version",
+			wantError: "The module version contains a reference that is unknown during init.", // TODO: This should probably be an error about how provider functions aren't valid here
+		},
 	}
 
 	for name, tc := range tests {
@@ -130,6 +157,11 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 		},
 		"path.module in module source": {
 			fixture: "path-attr-in-module-source",
+		},
+		// TODO: I'm not sure if it's intended for this to work, but it does :P
+		"const variable with static validation check": {
+			fixture: "const-var-source-with-validation",
+			args:    []string{"-var", "module_name=example"},
 		},
 	}
 
