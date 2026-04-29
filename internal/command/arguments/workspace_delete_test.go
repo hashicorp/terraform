@@ -134,6 +134,24 @@ func TestParseWorkspaceDelete_invalid(t *testing.T) {
 				),
 			},
 		},
+		"no arguments": {
+			[]string{},
+			&WorkspaceDelete{
+				Workspace: Workspace{
+					ViewType: ViewHuman,
+				},
+				Force:       false,
+				Lock:        true,
+				LockTimeout: 0,
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Expected a single argument: NAME.",
+					"", // No detail
+				),
+			},
+		},
 		"empty string as workspace name": {
 			[]string{""}, // empty string
 			&WorkspaceDelete{

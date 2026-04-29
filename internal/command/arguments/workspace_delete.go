@@ -47,23 +47,25 @@ func ParseWorkspaceDelete(args []string) (*WorkspaceDelete, tfdiags.Diagnostics)
 
 	// `workspace delete` takes only one positional argument: workspace name.
 	args = cmdFlags.Args()
+	var name string
 	if len(args) == 0 {
 		diags = diags.Append(errors.New("Expected a single argument: NAME.")) // Recreating pre-existing error from command package
-	}
+	} else {
 
-	// Obtain and validate name argument
-	//
-	// We purposefully don't use ValidWorkspaceName here; if a user
-	// creates a workspace with an invalid name they should be able to
-	// delete it easily.
-	name := args[0]
-	if name == "" {
-		diags = diags.Append(fmt.Errorf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
-	}
+		// Obtain and validate name argument
+		//
+		// We purposefully don't use ValidWorkspaceName here; if a user
+		// creates a workspace with an invalid name they should be able to
+		// delete it easily.
+		name = args[0]
+		if name == "" {
+			diags = diags.Append(fmt.Errorf("Expected a workspace name as an argument, instead got an empty string: %q\n", args[0]))
+		}
 
-	args = args[1:]
-	if len(args) != 0 {
-		diags = diags.Append(errors.New("Expected a single argument: NAME."))
+		args = args[1:]
+		if len(args) != 0 {
+			diags = diags.Append(errors.New("Expected a single argument: NAME."))
+		}
 	}
 
 	return &WorkspaceDelete{
