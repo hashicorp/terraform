@@ -435,12 +435,12 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	// These allow us to send output to the terminal as events happen, catch
 	// diagnostics, etc.
 	//
-	// The callbacks help create diagnostics based on installation events, output
-	// messages to the user,
-	//
-	// of the things we capture via these callbacks is the location of
-	// providers as we install them. This allows the calling code to determine
-	// what 'safe init' actions need to take place.
+	// We use some callbacks to capture data that's surfaced during the
+	// installation process:
+	// - provider authentication info.
+	// - info about what type of location a provider is sourced from.
+	// These pieces of data are used to determine if additional security features
+	// need to be enabled.
 	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
