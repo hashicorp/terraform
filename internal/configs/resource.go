@@ -509,6 +509,13 @@ func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagn
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
 					}
+				case "action_trigger":
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid ephemeral resource lifecycle nested block",
+						Detail:   fmt.Sprintf("The lifecycle nested block %q is defined only for managed resources (\"resource\" blocks), and is not valid for ephemeral resources.", block.Type),
+						Subject:  block.TypeRange.Ptr(),
+					})
 				default:
 					// The cases above should be exhaustive for all block types
 					// defined in the lifecycle schema, so this shouldn't happen.
@@ -685,6 +692,13 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
 					}
+				case "action_trigger":
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid data resource lifecycle nested block",
+						Detail:   fmt.Sprintf("The lifecycle nested block %q is defined only for managed resources (\"resource\" blocks), and is not valid for data resources.", block.Type),
+						Subject:  block.TypeRange.Ptr(),
+					})
 				default:
 					// The cases above should be exhaustive for all block types
 					// defined in the lifecycle schema, so this shouldn't happen.
