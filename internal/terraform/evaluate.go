@@ -301,7 +301,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// that are disabled, etc. Terraform's static validation leans towards
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
-	if d.Operation == walkValidate {
+	if d.Operation == walkValidate || (d.Operation == walkInit && !config.Const) {
 		// We should still capture the statically-configured marks during
 		// the validate walk.
 		ret := cty.UnknownVal(config.Type)
