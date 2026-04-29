@@ -75,7 +75,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
 
 	return val, diags
 }
@@ -153,7 +153,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(decDiags))
+	diags = diags.Append(checkForUnknownFunctionDiags(decDiags, s.IgnoreUnknownProviderFunctions))
 	return val, diags
 }
 
@@ -179,7 +179,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	}
 
 	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
 
 	if wantType != cty.DynamicPseudoType {
 		var convErr error
@@ -524,16 +524,22 @@ func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfd
 // namespace. The generic unknown function diagnostic from hcl does not direct
 // the user on how to remedy the situation in Terraform, and we can give more
 // useful information in a few Terraform specific cases here.
-func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
+func checkForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFunctions bool) hcl.Diagnostics {
+	var filteredDiags hcl.Diagnostics
 	for _, d := range diags {
 		extra, ok := hcl.DiagnosticExtra[hclsyntax.FunctionCallUnknownDiagExtra](d)
 		if !ok {
+			filteredDiags = filteredDiags.Append(d) // we always want to include unrelated diags
 			continue
 		}
+
 		name := extra.CalledFunctionName()
 		namespace := extra.CalledFunctionNamespace()
 		namespaceParts := strings.Split(namespace, "::")
 		if len(namespaceParts) < 2 {
+			// we always include diags for unknown regular function calls
+			filteredDiags = filteredDiags.Append(d)
+
 			// no namespace (namespace includes ::, so will have at least 2
 			// parts), but check if there is a matching name in a provider
 			// namspace.
@@ -548,6 +554,17 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
 				}
 			}
 			continue
+		}
+
+		// We might run into provider-defined functions during init. We can't filter out all
+		// places where they might be used, so we'll just filter out the diagnostics for the
+		// unknown function calls if we're configured to ignore them. This means that the user will
+		// just get an unknown value result for any provider function calls, which is fine because
+		// we won't have any provider functions available at this point anyway.
+		if ignoreUnknownProviderFunctions {
+			continue
+		} else {
+			filteredDiags = filteredDiags.Append(d)
 		}
 
 		// the diagnostic isn't really shared with anything, and copying would
@@ -598,5 +615,5 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
 		d.Detail = fmt.Sprintf(`There is no function named "%s%s". Ensure that provider name %q is declared in this module's required_providers block, and that this provider offers a function named %q.`, namespace, name, namespaceParts[1], name)
 	}
 
-	return diags
+	return filteredDiags
 }

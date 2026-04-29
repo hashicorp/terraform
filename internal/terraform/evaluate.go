@@ -93,15 +93,16 @@ type Evaluator struct {
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
 	return &lang.Scope{
-		Data:            data,
-		ParseRef:        addrs.ParseRef,
-		SelfAddr:        self,
-		SourceAddr:      source,
-		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:         ".", // Always current working directory for now.
-		PlanTimestamp:   e.PlanTimestamp,
-		ExternalFuncs:   extFuncs,
-		FunctionResults: e.FunctionResults,
+		Data:                           data,
+		ParseRef:                       addrs.ParseRef,
+		SelfAddr:                       self,
+		SourceAddr:                     source,
+		PureOnly:                       e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:                        ".", // Always current working directory for now.
+		PlanTimestamp:                  e.PlanTimestamp,
+		ExternalFuncs:                  extFuncs,
+		FunctionResults:                e.FunctionResults,
+		IgnoreUnknownProviderFunctions: e.Operation == walkInit,
 	}
 }
 
