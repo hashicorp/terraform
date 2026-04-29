@@ -75,7 +75,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions, false))
 
 	return val, diags
 }
@@ -153,7 +153,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(decDiags, s.IgnoreUnknownProviderFunctions))
+	diags = diags.Append(CheckForUnknownFunctionDiags(decDiags, s.IgnoreUnknownProviderFunctions, false))
 	return val, diags
 }
 
@@ -179,7 +179,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	}
 
 	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions, false))
 
 	if wantType != cty.DynamicPseudoType {
 		var convErr error
@@ -517,14 +517,14 @@ func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfd
 	return val, diags
 }
 
-// checkForUnknownFunctionDiags inspects the diagnostics for errors from unknown
+// CheckForUnknownFunctionDiags inspects the diagnostics for errors from unknown
 // function calls, and tailors the messages to better suit Terraform. We now
 // have multiple namespaces where functions may be declared, and it's up to the
 // user to have properly configured the module to populate the provider
 // namespace. The generic unknown function diagnostic from hcl does not direct
 // the user on how to remedy the situation in Terraform, and we can give more
 // useful information in a few Terraform specific cases here.
-func checkForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFunctions bool) hcl.Diagnostics {
+func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFunctions bool, forbidProviderFunctions bool) hcl.Diagnostics {
 	var filteredDiags hcl.Diagnostics
 	for _, d := range diags {
 		extra, ok := hcl.DiagnosticExtra[hclsyntax.FunctionCallUnknownDiagExtra](d)
@@ -562,6 +562,11 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFu
 		// just get an unknown value result for any provider function calls, which is fine because
 		// we won't have any provider functions available at this point anyway.
 		if ignoreUnknownProviderFunctions {
+			if forbidProviderFunctions {
+				d.Detail = fmt.Sprintf("%s The function %q is not available because the provider namespace is not populated in this context. This happens if variable validation are being used on const variables during init. At this time we have neither downloaded nor initialized the provider, hence provider-defined functions are not usable.", d.Detail, namespace+"::"+name)
+				filteredDiags = filteredDiags.Append(d)
+			}
+
 			continue
 		} else {
 			filteredDiags = filteredDiags.Append(d)

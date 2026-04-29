@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -228,7 +229,7 @@ func PrepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
 // EvalModuleCallArgument for variables in descendant modules.
-func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
+func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, walkOp walkOperation) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
 		return nil
@@ -283,7 +284,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	// fake it here by overwriting the unknown value that scope.EvalContext
 	// will have inserted during validate walks with a possibly-more-known value
 	// using the same strategy our special code used to use.
-	if validateWalk {
+	if walkOp == walkValidate {
 		ourVal := ctx.NamedValues().GetInputVariableValue(addr)
 		if ourVal != cty.NilVal {
 			// (it would be weird for ourVal to be nil here, but we'll tolerate it
@@ -312,7 +313,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	}
 
 	for ix, validation := range rules {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix, validateWalk)
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix, walkOp)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
@@ -326,13 +327,13 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, validateWalk bool) (checkResult, tfdiags.Diagnostics) {
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, walkOp walkOperation) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
 
 	result, moreDiags := validation.Condition.Value(hclCtx)
-	diags = diags.Append(moreDiags)
+	diags = diags.Append(lang.CheckForUnknownFunctionDiags(moreDiags, walkOp == walkInit, true))
 	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
 
 	// The following error handling is a workaround to preserve backwards
@@ -430,7 +431,7 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 	}
 
 	if !errorValue.IsKnown() {
-		if validateWalk {
+		if walkOp == walkValidate {
 			log.Printf("[DEBUG] evalVariableValidations: %s rule %s error_message value is unknown, so skipping validation for now", addr, validation.DeclRange)
 			return checkResult{Status: checks.StatusUnknown}, diags
 		}
