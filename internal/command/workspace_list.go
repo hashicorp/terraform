@@ -44,7 +44,11 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	view := newWorkspaceList(args.ViewType, c.View, c.Ui, &c.Meta)
 
 	// Warn against using `terraform env` commands
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	if args.ViewType == arguments.ViewHuman {
+		envCommandShowWarning(c.Ui, c.LegacyName)
+	} else {
+		diags = diags.Append(envCommandWarningDiag(c.LegacyName))
+	}
 
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
@@ -54,8 +58,9 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 
 	// Load the backend
 	configPath := c.WorkingDir.RootModuleDir()
-	b, diags := c.backend(configPath, args.ViewType)
-	if diags.HasErrors() {
+	b, bDiags := c.backend(configPath, args.ViewType)
+	diags = diags.Append(bDiags)
+	if bDiags.HasErrors() {
 		view.List("", nil, diags)
 		return 1
 	}

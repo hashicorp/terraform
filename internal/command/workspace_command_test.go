@@ -965,7 +965,7 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 // Test covers:
 // - `terraform env new`
 // - `terraform env select`
-// - `terraform env list`
+// - `terraform env list` - with and without `-json`
 // - `terraform env delete`
 //
 // Note: there is no `env` equivalent of `terraform workspace show`.
@@ -1048,6 +1048,30 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
 			ui.ErrorWriter.String(),
+		)
+	}
+
+	// Assert `terraform env list -json` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, done := testView(t)
+	listCmd = &WorkspaceListCommand{
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
+		LegacyName: true,
+	}
+	args = []string{"-json"}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	output := cleanString(done(t).All())
+	expectedWarningJSON := "Warning: the \\\"terraform env\\\" family of commands is deprecated."
+	if !strings.Contains(output, expectedWarningJSON) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarningJSON,
+			output,
 		)
 	}
 
