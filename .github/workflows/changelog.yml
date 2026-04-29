@@ -54,7 +54,7 @@ jobs:
                       .changie.yaml
                       .changes/
                   sparse-checkout-cone-mode: false
-                  ref: ${{ github.ref }} # Ref refers to the target branch of this PR
+                  ref: ${{ github.base_ref }} # Base ref refers to the target branch of this PR
 
             - name: "Check for changelog entry"
               uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
