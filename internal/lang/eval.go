@@ -563,7 +563,7 @@ func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFu
 		// we won't have any provider functions available at this point anyway.
 		if ignoreUnknownProviderFunctions {
 			if forbidProviderFunctions {
-				d.Detail = fmt.Sprintf("%s The function %q is not available because the provider namespace is not populated in this context. This happens if variable validation are being used on const variables during init. At this time we have neither downloaded nor initialized the provider, hence provider-defined functions are not usable.", d.Detail, namespace+"::"+name)
+				d.Detail = fmt.Sprintf("%s The function %q is not available because the provider namespace is not populated in this context. This happens if variable validation is being used on const variables during init. At this time we have neither downloaded nor initialized the provider, hence provider-defined functions are not usable.", d.Detail, namespace+"::"+name)
 				filteredDiags = filteredDiags.Append(d)
 			}
 
