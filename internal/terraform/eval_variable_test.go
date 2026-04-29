@@ -1188,7 +1188,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, walkPlan,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1347,7 +1347,7 @@ variable "bar" {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, walkPlan,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1390,7 +1390,7 @@ func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
 		}
 
 		// this should not produce any error when validationWalk is true
-		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, true)
+		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, walkValidate)
 		if got, want := result.Status, checks.StatusUnknown; got != want {
 			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
 		}
@@ -1399,7 +1399,7 @@ func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
 		}
 
 		// any other time this should result in an error
-		result, diags = evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, false)
+		result, diags = evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, walkPlan)
 		if got, want := result.Status, checks.StatusError; got != want {
 			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
 		}
