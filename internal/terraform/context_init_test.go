@@ -697,22 +697,35 @@ module "example" {
 		"non-const variable validation does not run during init": {
 			module: map[string]string{
 				"main.tf": `
+variable "some" {
+ type = string
+}
 variable "name" {
   type    = string
   default = "bad"
 
   validation {
-    condition     = var.name != "bad"
+    condition     = var.name != var.some
     error_message = "must not be bad"
   }
 }
 module "example" {
-    source = "./modules/fixed"
+    source = "./modules/example"
+
+    name = var.name
 }
 `,
 			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+}
+`},
+			},
 			expectLoadModuleCalls: []*configs.ModuleRequest{{
-				SourceAddr: mustModuleSource(t, "./modules/fixed"),
+				SourceAddr: mustModuleSource(t, "./modules/example"),
 			}},
 		},
 	} {
