@@ -726,6 +726,25 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
+	t.Run("removed backends cause errors with extra info", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/removed-backend-type")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expectedErrMsgs := []string{
+			"Error: Unsupported backend type",
+			"The \"artifactory\" backend is not supported in Terraform v1.3 or later.",
+		}
+		for _, msg := range expectedErrMsgs {
+			if !strings.Contains(output.Stderr(), msg) {
+				t.Fatalf("unexpected error content: wanted to include %q, got: %s",
+					msg,
+					output.Stderr(),
+				)
+			}
+		}
+	})
+
 	// We don't validate using the backend's schema due to potential use of the -backend-config flag.
 	t.Run("unknown attributes are not detected by validate command", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
