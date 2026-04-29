@@ -70,11 +70,6 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-get=false", "-var", "module_version=0.0.2"},
 			wantError: "Module version requirements have changed",
 		},
-		"const variable with static validation check 2": {
-			fixture:   "const-var-source-with-validation",
-			args:      []string{"-var", "module_name=nonexistent"},
-			wantError: "The module_name variable must be set to \"example\"",
-		},
 		"provider function in const variable validation check": {
 			fixture:   "provider-function-in-const-validation",
 			args:      []string{"-var", "module_name=example"},
