@@ -279,7 +279,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -288,7 +288,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -297,7 +297,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName3: &terraform.InputValue{
 					Value:      cty.StringVal(varValue3),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -328,7 +328,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -337,7 +337,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -373,7 +373,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -382,7 +382,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
