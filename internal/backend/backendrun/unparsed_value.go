@@ -59,6 +59,11 @@ func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue
 			// variables, because users will often set these globally
 			// when they are used across many (but not necessarily all)
 			// configurations.
+		case terraform.ValueFromCloud:
+			// We allow and ignore undeclared names fetched from the cloud
+			// backend, because users will often set these globally or via
+			// varsets when they are used across many (but not necessarily all)
+			// workspaces.
 		case terraform.ValueFromCLIArg:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
