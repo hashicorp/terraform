@@ -6,6 +6,7 @@ package lang
 import (
 	"fmt"
 	"log"
+	"maps"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -14,8 +15,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"

@@ -75,8 +75,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-var", "module_name=example"},
 			wantError: "This happens if variable validation is\nbeing used on const variables during init.",
 		},
-		// TODO: interestingly, this receives the correct variable validation error (test passes) but also
-		// source contains to evaluate so you also receive an "Unreadable module directory" error.
+		// TODO: variable validation should cause the module installation to stop (currently get unreadable module)
 		"const variable with static validation check": {
 			fixture:   "const-var-source-with-validation",
 			args:      []string{"-var", "module_name=nonexistent"},

@@ -6,10 +6,6 @@ terraform {
   }
 }
 
-variable "" {
-
-}
-
 module "example" {
   source = provider::test::is_true(true) ? "./modules/example" : ""
 }
