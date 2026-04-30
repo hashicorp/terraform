@@ -176,7 +176,11 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 }
 
 func (v *OutputRaw) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	// filter out warnings as these wouldn't be expected in raw mode
+	// as they typically don't influence exit code so user cannot
+	// expect them in stdout
+	errsOnly := diags.ErrorsOnly()
+	v.view.Diagnostics(errsOnly)
 }
 
 // The OutputJSON implementation renders outputs as JSON values. When rendering
