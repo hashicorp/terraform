@@ -612,6 +612,14 @@ func TestEvaluatorGetModule_validateTypedOutputs(t *testing.T) {
 				"out": cty.String,
 			}))),
 		},
+		"empty_count": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.Count = hcltest.MockExprLiteral(cty.NumberIntVal(0))
+			},
+			want: cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+				"out": cty.String,
+			}))),
+		},
 		"for_each": {
 			configureModuleCall: func(call *configs.ModuleCall) {
 				call.ForEach = hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -729,6 +737,15 @@ func TestEvaluatorGetModule_planTypedOutputs(t *testing.T) {
 				cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
 			}),
 		},
+		"empty_count": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, 0)
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				// explicitly setting no values
+			},
+			want: cty.ListValEmpty(cty.Object(map[string]cty.Type{"out": cty.String})),
+		},
 		"for_each": {
 			setupInstances: func(expander *instances.Expander) {
 				expander.SetModuleForEach(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, map[string]cty.Value{
@@ -754,6 +771,15 @@ func TestEvaluatorGetModule_planTypedOutputs(t *testing.T) {
 				"a": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("first").Mark(marks.Sensitive)}),
 				"b": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
 			}),
+		},
+		"empty_for_each": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleForEach(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, map[string]cty.Value{})
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				// no values for empty for_each
+			},
+			want: cty.MapValEmpty(cty.Object(map[string]cty.Type{"out": cty.String})),
 		},
 	}
 

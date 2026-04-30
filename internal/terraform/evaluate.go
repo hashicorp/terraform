@@ -437,23 +437,25 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		noDynamicTypes = noDynamicTypes && !out.ConstraintType.HasDynamicTypes()
 	}
 
-	if d.Operation == walkValidate && typeDefined {
-		atys := make(map[string]cty.Type, len(outputConfigs))
-		as := make(map[string]cty.Value, len(outputConfigs))
-		for name, c := range outputConfigs {
-			// atys is used to create the module object type for expanded modules
-			atys[name] = c.ConstraintType
-			// the unknown val can be used when we return a single module
-			// instance with unknown outputs
-			val := cty.UnknownVal(c.ConstraintType)
+	// build up the type of the configured module output object
+	atys := make(map[string]cty.Type, len(outputConfigs))
+	// and create a single unknown instance value for validation
+	as := make(map[string]cty.Value, len(outputConfigs))
+	for name, c := range outputConfigs {
+		// atys is used to create the module object type for expanded modules
+		atys[name] = c.ConstraintType
 
-			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
-			}
-			as[name] = val
+		// the unknown val can be used when we return a single module
+		// instance with unknown outputs
+		val := cty.UnknownVal(c.ConstraintType)
+		if c.DeprecatedSet {
+			val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
 		}
-		instTy := cty.Object(atys)
+		as[name] = val
+	}
+	instTy := cty.Object(atys)
 
+	if d.Operation == walkValidate && typeDefined {
 		switch {
 		case callConfig.Count != nil && noDynamicTypes:
 			return cty.UnknownVal(cty.List(instTy)), diags
@@ -579,9 +581,12 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			elems = append(elems, instVal)
 			diags = diags.Append(moreDiags)
 		}
-		if noDynamicTypes {
+		switch {
+		case noDynamicTypes && len(elems) == 0:
+			return cty.ListValEmpty(instTy), diags
+		case noDynamicTypes:
 			return cty.ListVal(elems), diags
-		} else {
+		default:
 			return cty.TupleVal(elems), diags
 		}
 
@@ -592,9 +597,13 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			attrs[string(instKey.(addrs.StringKey))] = instVal
 			diags = diags.Append(moreDiags)
 		}
-		if noDynamicTypes {
+
+		switch {
+		case noDynamicTypes && len(attrs) == 0:
+			return cty.MapValEmpty(instTy), diags
+		case noDynamicTypes:
 			return cty.MapVal(attrs), diags
-		} else {
+		default:
 			return cty.ObjectVal(attrs), diags
 		}
 
