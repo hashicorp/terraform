@@ -104,7 +104,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
-			providerSource := newMockProviderSource(t, map[string][]string{
+			providerSource, _ := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
 
@@ -187,7 +187,7 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
-			providerSource := newMockProviderSource(t, map[string][]string{
+			providerSource, _ := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
 
