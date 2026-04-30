@@ -1,0 +1,4 @@
+kind: BUG FIXES
+body: Allow init to reuse locked provider versions with prerelease or suffixed versions when those providers are also present in state
+custom:
+    Issue: "38496"
