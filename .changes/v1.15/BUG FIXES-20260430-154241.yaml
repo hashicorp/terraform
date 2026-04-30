@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Ignore undeclared variable values from the cloud backend
+time: 2026-04-30T15:42:41.89732+02:00
+custom:
+    Issue: "38490"

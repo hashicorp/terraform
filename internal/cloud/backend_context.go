@@ -303,6 +303,6 @@ func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariablePars
 		// roughly speaking, a similar idea to entering variable values at
 		// the interactive CLI prompts. It's not a perfect correspondance,
 		// but it's closer than the other options.
-		SourceType: terraform.ValueFromInput,
+		SourceType: terraform.ValueFromCloud,
 	}, diags
 }
