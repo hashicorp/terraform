@@ -231,6 +231,13 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 		}
 	}
 
+	// For non-PSS (traditional) backends, suppress non-error diagnostics.
+	// Backend warnings such as deprecation notices were already shown during
+	// "terraform init" and should not resurface on every subsequent command.
+	if !stateStoreInUse {
+		return local, nil
+	}
+
 	return local, diags
 }
 
