@@ -80,6 +80,14 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-var", "module_name=nonexistent"},
 			wantError: "The module_name variable must be set to \"example\"",
 		},
+		// This error is in addition to the expected validation error in the test case above and is
+		// a consequence of validation blocks having their own node in the graph, thus a validation
+		// error doesn't prevent the module install node from executing.
+		"const variable with static validation check - module install bug": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
+		},
 		"provider function in module source": {
 			fixture: "provider-function-in-source",
 			// TODO: this error message is going to change
@@ -90,13 +98,6 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			// TODO: this error message is going to change
 			wantError: "The module version contains a reference that is unknown during init.",
 		},
-		// This error is a consequence of validation blocks having their own node, thus an error doesn't
-		// prevent the module install node from executing.
-		"const variable with static validation check - module install bug": {
-			fixture:   "const-var-source-with-validation",
-			args:      []string{"-var", "module_name=nonexistent"},
-			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
-		},
 	}
 
 	for name, tc := range tests {
@@ -105,6 +106,10 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -112,6 +117,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
+					ProviderSource:   providerSource,
 				},
 			}
 
@@ -176,10 +182,6 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
-			providerSource := newMockProviderSource(t, map[string][]string{
-				"hashicorp/test": {"1.0.0"},
-			})
-
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -187,7 +189,6 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
-					ProviderSource:   providerSource,
 				},
 			}
 
