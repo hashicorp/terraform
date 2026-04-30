@@ -169,7 +169,8 @@ func TestRemoteContextWithVars(t *testing.T) {
 			&tfe.VariableCreateOptions{
 				Category: &catTerraform,
 			},
-			`Value for undeclared variable: A variable named "key" was assigned a value, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration.`,
+			// We don't expect an error for values of undeclared variables
+			``,
 		},
 		"environment variable": {
 			&tfe.VariableCreateOptions{
