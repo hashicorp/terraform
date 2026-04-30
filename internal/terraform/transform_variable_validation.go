@@ -33,6 +33,9 @@ type graphNodeValidatableVariable interface {
 	// for example, if the value came from an environment variable -- then
 	// the location of the variable declaration is a plausible substitute.
 	variableValidationRules() (configAddr addrs.ConfigInputVariable, rules []*configs.CheckRule, defnRange hcl.Range)
+
+	// isConst returns the variable's const value.
+	isConst() bool
 }
 
 // Correct behavior requires both of the input variable node types to
@@ -53,7 +56,7 @@ var _ graphNodeValidatableVariable = (*nodeExpandModuleVariable)(nil)
 // with the new [nodeVariableValidation] nodes to prevent downstream nodes
 // from relying on unvalidated values.
 type variableValidationTransformer struct {
-	validateWalk bool
+	operation walkOperation
 }
 
 var _ GraphTransformer = (*variableValidationTransformer)(nil)
@@ -66,12 +69,18 @@ func (t *variableValidationTransformer) Transform(g *Graph) error {
 			continue // irrelevant node
 		}
 
+		// Variable validation nodes don't need to be added to the init graph for non-constant variables since they will always be unknown
+		if !v.isConst() && t.operation == walkInit {
+			continue
+		}
+
 		configAddr, rules, defnRange := v.variableValidationRules()
+
 		newV := &nodeVariableValidation{
 			configAddr:   configAddr,
 			rules:        rules,
 			defnRange:    defnRange,
-			validateWalk: t.validateWalk,
+			validateWalk: t.operation == walkValidate,
 		}
 
 		if len(rules) != 0 {

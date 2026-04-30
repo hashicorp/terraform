@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -160,8 +159,6 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	return &g, nil
 }
 
-const constVariableDetail = "\n\nOnly literal values and constant variables (with const = true) are allowed for this attribute, as well as values derived from these."
-
 func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (addrs.ModuleSource, string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var addr addrs.ModuleSource
@@ -195,46 +192,10 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 	}
 
 	if !value.IsWhollyKnown() {
-		tExpr, ok := sourceExpr.(*hclsyntax.TemplateExpr)
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid module source",
-				Detail:   "The module source contains a reference that is unknown during init." + constVariableDetail,
-				Subject:  sourceExpr.Range().Ptr(),
-			})
-			return nil, "", diags
-		}
-		for _, part := range tExpr.Parts {
-			partVal, partDiags := ctx.EvaluateExpr(part, cty.DynamicPseudoType, nil)
-			diags = diags.Append(partDiags)
-			if diags.HasErrors() {
-				return nil, "", diags
-			}
-
-			scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
-			hclCtx, evalDiags := scope.EvalContext(refs)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return nil, "", diags
-			}
-			if !partVal.IsKnown() {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid module source",
-					Detail:      "The value of a reference in the module source is unknown." + constVariableDetail,
-					Subject:     part.Range().Ptr(),
-					Expression:  part,
-					EvalContext: hclCtx,
-					Extra:       diagnosticCausedByUnknown(true),
-				})
-				return nil, "", diags
-			}
-		}
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid module source",
-			Detail:   "The module source contains a reference that is unknown." + constVariableDetail,
+			Summary:  "Unknown module source",
+			Detail:   `Only literal values and const variables can be evaluated during init.`,
 			Subject:  sourceExpr.Range().Ptr(),
 		})
 		return nil, "", diags
@@ -338,46 +299,10 @@ func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs
 	}
 
 	if !value.IsWhollyKnown() {
-		tExpr, ok := versionExpr.(*hclsyntax.TemplateExpr)
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid module version",
-				Detail:   "The module version contains a reference that is unknown during init." + constVariableDetail,
-				Subject:  versionExpr.Range().Ptr(),
-			})
-			return ret, diags
-		}
-		for _, part := range tExpr.Parts {
-			partVal, partDiags := ctx.EvaluateExpr(part, cty.DynamicPseudoType, nil)
-			diags = diags.Append(partDiags)
-			if diags.HasErrors() {
-				return ret, diags
-			}
-
-			scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
-			hclCtx, evalDiags := scope.EvalContext(refs)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return ret, diags
-			}
-			if !partVal.IsKnown() {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid module version",
-					Detail:      "The value of a reference in the module version is unknown." + constVariableDetail,
-					Subject:     part.Range().Ptr(),
-					Expression:  part,
-					EvalContext: hclCtx,
-					Extra:       diagnosticCausedByUnknown(true),
-				})
-				return ret, diags
-			}
-		}
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid module version",
-			Detail:   "The module version contains a reference that is unknown." + constVariableDetail,
+			Summary:  "Unknown module version",
+			Detail:   `Only literal values and const variables can be evaluated during init.`,
 			Subject:  versionExpr.Range().Ptr(),
 		})
 		return ret, diags

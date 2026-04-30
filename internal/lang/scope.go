@@ -84,6 +84,12 @@ type Scope struct {
 	// marked as ephemeral.
 	// FIXME: plan to officially deprecate this workaround.
 	ForProvider bool
+
+	// IgnoreUnknownProviderFunctions can be set to true to request that any unknown
+	// functions produce unknown value results rather than an error. This is
+	// important during a plan phase to avoid generating errors for functions that
+	// are only available in provider versions that have not yet been selected.
+	IgnoreUnknownProviderFunctions bool
 }
 
 // SetActiveExperiments allows a caller to declare that a set of experiments
