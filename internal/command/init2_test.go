@@ -187,6 +187,10 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -194,6 +198,7 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
+					ProviderSource:   providerSource,
 				},
 			}
 
