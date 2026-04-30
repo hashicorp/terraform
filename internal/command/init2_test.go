@@ -34,7 +34,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 		"non-const variable in module source": {
 			fixture:   "local-source-with-non-const-variable",
 			args:      []string{"-var", "module_name=example"},
-			wantError: "Invalid module source",
+			wantError: "Unknown module source",
 		},
 		"resource reference in module source": {
 			fixture:   "source-with-resource-reference",
@@ -88,15 +88,17 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-var", "module_name=nonexistent"},
 			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
 		},
+
+		// we can't determine if a provider function fails somewhere in the
+		// evaluation chain during init, so we have to return a generic error
+		// about unknown values.
 		"provider function in module source": {
-			fixture: "provider-function-in-source",
-			// TODO: this error message is going to change
-			wantError: "The module source contains a reference that is unknown during init.",
+			fixture:   "provider-function-in-source",
+			wantError: "Only literal values and const variables can be evaluated during init.",
 		},
 		"provider function in module version": {
-			fixture: "provider-function-in-version",
-			// TODO: this error message is going to change
-			wantError: "The module version contains a reference that is unknown during init.",
+			fixture:   "provider-function-in-version",
+			wantError: "Only literal values and const variables can be evaluated during init.",
 		},
 	}
 
@@ -308,9 +310,9 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 }
 
 func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
-	// TODO: -from-module currently panics when the copied configuration
+	// TODO: -from-module currently errors when the copied configuration
 	// contains a dynamic module source (e.g. "./modules/${var.module_name}").
-	t.Skip("skipping: -from-module panics on dynamic module sources (see TODO in from_module.go)")
+	t.Skip("skipping: -from-module errors on dynamic module sources (see TODO in from_module.go)")
 
 	// Create an empty target directory for -from-module to copy into
 	td := t.TempDir()
@@ -330,7 +332,7 @@ func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
 	// into the empty working directory. This should copy the files but the
 	// nested dynamic module won't be resolved by -from-module itself.
 	srcDir := testFixturePath(filepath.Join("dynamic-module-sources", "from-module-with-dynamic-source", "source-module"))
-	args := []string{"-from-module=" + srcDir}
+	args := []string{"-from-module=" + srcDir, "-var", "module_name=test"}
 	code := c.Run(args)
 	testOutput := done(t)
 

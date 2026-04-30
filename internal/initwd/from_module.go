@@ -219,6 +219,17 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 				for _, mc := range mod.ModuleCalls {
 					// TODO improve this
 					sourceVal, _ := mc.SourceExpr.Value(nil)
+
+					if !sourceVal.IsKnown() {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unknown module source",
+							Detail:   "Dynamic module sources cannot be used in conjunction with -from-module",
+							Subject:  mc.SourceExpr.Range().Ptr(),
+						})
+						return diags
+					}
+
 					sourceRaw := sourceVal.AsString()
 					if pathTraversesUp(sourceRaw) {
 						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)

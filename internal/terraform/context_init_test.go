@@ -138,12 +138,12 @@ module "example" {
 				// that this may be caused by a non-const variable used during init.
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  `Invalid module source`,
-					Detail:   "The value of a reference in the module source is unknown." + constVariableDetail,
+					Summary:  `Unknown module source`,
+					Detail:   `Only literal values and const variables can be evaluated during init.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 27, Byte: 82},
-						End:      hcl.Pos{Line: 6, Column: 35, Byte: 90},
+						Start:    hcl.Pos{Line: 6, Column: 14, Byte: 69},
+						End:      hcl.Pos{Line: 6, Column: 37, Byte: 92},
 					},
 				})
 			},
@@ -625,12 +625,12 @@ module "nested" {
 				// that this may be caused by a non-const variable used during init.
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  `Invalid module source`,
-					Detail:   "The value of a reference in the module source is unknown." + constVariableDetail,
+					Summary:  `Unknown module source`,
+					Detail:   `Only literal values and const variables can be evaluated during init.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(mc["./modules/example"].SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 27, Byte: 82},
-						End:      hcl.Pos{Line: 7, Column: 35, Byte: 90},
+						Start:    hcl.Pos{Line: 7, Column: 14, Byte: 69},
+						End:      hcl.Pos{Line: 7, Column: 37, Byte: 92},
 					},
 				})
 			},
