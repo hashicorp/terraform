@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: don't show warnings on terraform output
+body: Avoid warnings in 'terraform output -raw'
 time: 2026-04-30T12:14:33.373975+02:00
 custom:
     Issue: "38487"
