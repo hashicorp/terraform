@@ -162,9 +162,11 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			fixture: "const-var-source-with-validation",
 			args:    []string{"-var", "module_name=example"},
 		},
-		"provider function in variable validation": {
-			fixture: "provider-function-in-validation",
-			args:    []string{"-var", "module_const=hello"},
+		"const variable with validation referencing non-const variable": {
+			fixture: "const-var-with-validation-and-reference",
+			// the non_const_var variable is not defined here since we are only testing init
+			// so the value will always be unknown regardless of input.
+			args: []string{"-var", "const_var=hello"},
 		},
 	}
 
