@@ -1963,6 +1963,43 @@ func TestEnsureProviderVersions(t *testing.T) {
 				}
 			},
 		},
+		"unconstrained locked prerelease version is accepted": {
+			Source: getproviders.NewMockSource(
+				[]getproviders.PackageMeta{
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("1.0.0-beta1"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+				},
+				nil,
+			),
+			LockFile: `
+				provider "example.com/foo/beep" {
+					version     = "1.0.0-beta1"
+					hashes = [
+						"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+					]
+				}
+			`,
+			Mode: InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				beepProvider: nil,
+			},
+			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
+				gotLock := locks.Provider(beepProvider)
+				wantLock := depsfile.NewProviderLock(
+					beepProvider,
+					getproviders.MustParseVersion("1.0.0-beta1"),
+					nil,
+					[]getproviders.Hash{beepProviderHash},
+				)
+				if diff := cmp.Diff(wantLock, gotLock, depsfile.ProviderLockComparer); diff != "" {
+					t.Errorf("wrong lock entry\n%s", diff)
+				}
+			},
+		},
 		"locked version is no longer available": {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{

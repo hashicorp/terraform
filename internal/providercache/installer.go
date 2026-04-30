@@ -243,6 +243,14 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 			// existing selection from the lock file takes priority over
 			// the currently-configured version constraints.
 			if lock := locks.Provider(provider); lock != nil {
+				// An unconstrained requirement can arise from state, which records only
+				// provider addresses and not version constraints. In that case a
+				// previous lock file selection should remain acceptable, including for
+				// pre-release versions that versions.MeetingConstraints would otherwise
+				// exclude from an unconstrained version set.
+				if len(versionConstraints) == 0 {
+					acceptableVersions = versions.All
+				}
 				if !acceptableVersions.Has(lock.Version()) {
 					err := fmt.Errorf(
 						"locked provider %s %s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
