@@ -75,21 +75,27 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-var", "module_name=example"},
 			wantError: "This happens if variable validation is\nbeing used on const variables during init.",
 		},
-		// TODO: variable validation should cause the module installation to stop (currently get unreadable module)
 		"const variable with static validation check": {
 			fixture:   "const-var-source-with-validation",
 			args:      []string{"-var", "module_name=nonexistent"},
 			wantError: "The module_name variable must be set to \"example\"",
 		},
-		// TODO: Currently, the ignoring of provider function errors in eval causes source + version to just return an unknown value
-		// https://ibm-hashicorp.slack.com/archives/G09KVQL2F61/p1777486406835379?thread_ts=1777480933.303339&cid=G09KVQL2F61
 		"provider function in module source": {
-			fixture:   "provider-function-in-source",
-			wantError: "The module source contains a reference that is unknown during init.", // TODO: This should probably be an error about how provider functions aren't valid here
+			fixture: "provider-function-in-source",
+			// TODO: this error message is going to change
+			wantError: "The module source contains a reference that is unknown during init.",
 		},
 		"provider function in module version": {
-			fixture:   "provider-function-in-version",
-			wantError: "The module version contains a reference that is unknown during init.", // TODO: This should probably be an error about how provider functions aren't valid here
+			fixture: "provider-function-in-version",
+			// TODO: this error message is going to change
+			wantError: "The module version contains a reference that is unknown during init.",
+		},
+		// This error is a consequence of validation blocks having their own node, thus an error doesn't
+		// prevent the module install node from executing.
+		"const variable with static validation check - module install bug": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
 		},
 	}
 
@@ -152,10 +158,13 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 		"path.module in module source": {
 			fixture: "path-attr-in-module-source",
 		},
-		// TODO: I'm not sure if it's intended for this to work, but it does :P
 		"const variable with static validation check": {
 			fixture: "const-var-source-with-validation",
 			args:    []string{"-var", "module_name=example"},
+		},
+		"provider function in variable validation": {
+			fixture: "provider-function-in-validation",
+			args:    []string{"-var", "module_const=hello"},
 		},
 	}
 
@@ -165,6 +174,10 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -172,6 +185,7 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
+					ProviderSource:   providerSource,
 				},
 			}
 

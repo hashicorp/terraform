@@ -76,7 +76,9 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Add dynamic values
 		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues, ValidateChecks: true},
 		&ModuleVariableTransformer{Config: b.Config, ValidateChecks: true},
-		&variableValidationTransformer{},
+		&variableValidationTransformer{
+			operation: walkEval,
+		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:   b.Config,

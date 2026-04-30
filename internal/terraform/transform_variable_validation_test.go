@@ -145,3 +145,7 @@ func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInput
 		End:      hcl.InitialPos,
 	}
 }
+
+func (n *nodeTestOnlyInputVariable) isConst() bool {
+	return false
+}

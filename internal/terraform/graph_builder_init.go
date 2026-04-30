@@ -76,7 +76,9 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 			},
 		},
 
-		&variableValidationTransformer{},
+		&variableValidationTransformer{
+			operation: walkInit,
+		},
 
 		&RootTransformer{},
 

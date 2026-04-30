@@ -561,8 +561,18 @@ func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFu
 		// just get an unknown value result for any provider function calls, which is fine because
 		// we won't have any provider functions available at this point anyway.
 		if ignoreUnknownProviderFunctions {
+
+			// For situations during init where provider functions could appear but are not valid, we need to keep
+			// the diagnostic, but we also add some info about why the function cannot be used in this context.
+			//
+			// Currently the only expressions that could encounter this situtation are validation blocks on constant variables.
 			if forbidProviderFunctions {
-				d.Detail = fmt.Sprintf("%s The function %q is not available because the provider namespace is not populated in this context. This happens if variable validation is being used on const variables during init. At this time we have neither downloaded nor initialized the provider, hence provider-defined functions are not usable.", d.Detail, namespace+"::"+name)
+				d.Detail = fmt.Sprintf("%s The function %q is not available because the provider namespace is "+
+					"not populated in this context. This happens if variable validation is being used on const variables during init. "+
+					"At this time we have neither downloaded nor initialized the provider, hence provider-defined functions are not usable and "+
+					"should be removed from the validation block.",
+					d.Detail, namespace+"::"+name)
+
 				filteredDiags = filteredDiags.Append(d)
 			}
 
