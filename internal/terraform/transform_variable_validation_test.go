@@ -71,7 +71,9 @@ func TestVariableValidationTransformer(t *testing.T) {
 	g.Add(barNode)
 	g.Add(bazNode)
 
-	transformer := &variableValidationTransformer{}
+	transformer := &variableValidationTransformer{
+		operation: walkValidate,
+	}
 	err := transformer.Transform(g)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -126,9 +128,143 @@ var.foo (validation)
 	}
 }
 
+func TestVariableValidationTransformer_init(t *testing.T) {
+	g := &Graph{}
+	fooNode := &nodeTestOnlyInputVariable{
+		configAddr: addrs.InputVariable{Name: "foo"}.InModule(addrs.RootModule),
+		rules: []*configs.CheckRule{
+			{
+				// The condition contains a self-reference, which is required
+				// for a realistic input variable validation because otherwise
+				// it wouldn't actually be checking the variable it's
+				// supposed to be validating. (This transformer is not the
+				// one responsible for validating that though, so it's
+				// okay for the examples below to not meet that requirement.)
+				Condition:    hcltest.MockExprTraversalSrc("var.foo"),
+				ErrorMessage: hcltest.MockExprLiteral(cty.StringVal("wrong")),
+			},
+		},
+		config: &configs.Variable{
+			Name:  "foo",
+			Type:  cty.String,
+			Const: true,
+		},
+	}
+	barNode := &nodeTestOnlyInputVariable{
+		configAddr: addrs.InputVariable{Name: "bar"}.InModule(addrs.RootModule),
+		rules: []*configs.CheckRule{
+			{
+				// The condition of this one refers to var.foo
+				Condition:    hcltest.MockExprTraversalSrc("var.foo"),
+				ErrorMessage: hcltest.MockExprLiteral(cty.StringVal("wrong")),
+			},
+		},
+		config: &configs.Variable{
+			Name:  "bar",
+			Type:  cty.String,
+			Const: true,
+		},
+	}
+	bazNode := &nodeTestOnlyInputVariable{
+		configAddr: addrs.InputVariable{Name: "baz"}.InModule(addrs.RootModule),
+		rules: []*configs.CheckRule{
+			{
+				// The error message of this one refers to var.foo
+				Condition:    hcltest.MockExprLiteral(cty.False),
+				ErrorMessage: hcltest.MockExprTraversalSrc("var.foo"),
+			},
+		},
+		config: &configs.Variable{
+			Name:  "baz",
+			Type:  cty.String,
+			Const: true,
+		},
+	}
+	// This variable validation node will be skipped as:
+	// 1. It's not a constant variable
+	// 2. The graph walk for this test is init (which only needs constant variables)
+	quxNode := &nodeTestOnlyInputVariable{
+		configAddr: addrs.InputVariable{Name: "qux"}.InModule(addrs.RootModule),
+		rules: []*configs.CheckRule{
+			{
+				// The error message of this one refers to var.foo
+				Condition:    hcltest.MockExprLiteral(cty.False),
+				ErrorMessage: hcltest.MockExprTraversalSrc("var.foo"),
+			},
+		},
+		config: &configs.Variable{
+			Name:  "qux",
+			Type:  cty.String,
+			Const: false,
+		},
+	}
+	g.Add(fooNode)
+	g.Add(barNode)
+	g.Add(bazNode)
+	g.Add(quxNode)
+
+	transformer := &variableValidationTransformer{
+		operation: walkInit,
+	}
+	err := transformer.Transform(g)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	gotStr := strings.TrimSpace(g.String())
+	wantStr := strings.TrimSpace(`
+var.bar (test fake)
+var.bar (validation)
+  var.bar (test fake)
+var.baz (test fake)
+var.baz (validation)
+  var.baz (test fake)
+var.foo (test fake)
+var.foo (validation)
+  var.foo (test fake)
+var.qux (test fake)
+`)
+	if diff := cmp.Diff(wantStr, gotStr); diff != "" {
+		t.Errorf("wrong graph after transform\n%s", diff)
+	}
+
+	// This transformer is not responsible for wiring up dependencies based
+	// on references -- that's ReferenceTransformer's job -- but we'll
+	// verify that the nodes that were added by this transformer do at least
+	// report the references we expect them to report, in the way that
+	// ReferenceTransformer would expect.
+	gotRefs := map[string]map[string]struct{}{}
+	for _, v := range g.Vertices() {
+		v, ok := v.(*nodeVariableValidation) // the type of all nodes that this transformer adds
+		if !ok {
+			continue
+		}
+		var _ GraphNodeReferencer = v // static assertion just to make sure we'll fail to compile if GraphNodeReferencer changes later
+
+		refs := v.References()
+		gotRefs[v.Name()] = map[string]struct{}{}
+		for _, ref := range refs {
+			gotRefs[v.Name()][ref.Subject.String()] = struct{}{}
+		}
+	}
+	wantRefs := map[string]map[string]struct{}{
+		"var.bar (validation)": {
+			"var.foo": struct{}{},
+		},
+		"var.baz (validation)": {
+			"var.foo": struct{}{},
+		},
+		"var.foo (validation)": {},
+	}
+	if diff := cmp.Diff(wantRefs, gotRefs); diff != "" {
+		t.Errorf("wrong references for the added nodes\n%s", diff)
+	}
+}
+
 type nodeTestOnlyInputVariable struct {
 	configAddr addrs.ConfigInputVariable
 	rules      []*configs.CheckRule
+	config     *configs.Variable
 }
 
 var _ graphNodeValidatableVariable = (*nodeTestOnlyInputVariable)(nil)
@@ -147,5 +283,5 @@ func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInput
 }
 
 func (n *nodeTestOnlyInputVariable) isConst() bool {
-	return false
+	return n.config != nil && n.config.Const
 }
