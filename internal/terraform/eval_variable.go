@@ -333,7 +333,7 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 	var diags tfdiags.Diagnostics
 
 	result, moreDiags := validation.Condition.Value(hclCtx)
-	diags = diags.Append(lang.CheckForUnknownFunctionDiags(moreDiags, walkOp == walkInit, true))
+	diags = diags.Append(lang.CheckForUnknownFunctionDiags(moreDiags, walkOp == walkInit))
 	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
 
 	// The following error handling is a workaround to preserve backwards

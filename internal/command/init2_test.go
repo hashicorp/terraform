@@ -70,11 +70,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-get=false", "-var", "module_version=0.0.2"},
 			wantError: "Module version requirements have changed",
 		},
-		"provider function in const variable validation check": {
-			fixture:   "provider-function-in-const-validation",
-			args:      []string{"-var", "module_name=example"},
-			wantError: "This happens if variable validation is\nbeing used on const variables during init.",
-		},
+
 		"const variable with static validation check": {
 			fixture:   "const-var-source-with-validation",
 			args:      []string{"-var", "module_name=nonexistent"},
@@ -175,6 +171,13 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			// the non_const_var variable is not defined here since we are only testing init
 			// so the value will always be unknown regardless of input.
 			args: []string{"-var", "const_var=hello"},
+		},
+
+		// The validation returns unknown during init, and must wait until
+		// a full validation is actually run.
+		"provider function in const variable validation check": {
+			fixture: "provider-function-in-const-validation",
+			args:    []string{"-var", "module_name=example"},
 		},
 	}
 
