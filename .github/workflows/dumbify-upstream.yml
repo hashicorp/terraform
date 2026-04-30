@@ -1,0 +1,156 @@
+name: Weekly Upstream Dumbify
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# ----------------------------------------------------------------------
+# GLOBAL CONFIGURATION
+# ----------------------------------------------------------------------
+env:
+  GIT_USER_NAME: "Chief Dumbification Officer"
+  GIT_USER_EMAIL: "bot@dumb-hashicorp.local"
+  BRANCH_PREFIX: "dumbify-upstream-"
+  # Space-separated list of dumb words to target
+  DUMB_WORDS: "Terraform Consul Vault Nomad Packer Vagrant Boundary Waypoint HashiCorp Hcp Hcl"
+  # Set to "true" to force-push to main, "false" to create PRs
+  DIRECT_COMMIT: "true"
+  # Upstream settings
+  UPSTREAM_MAIN_BRANCH: "main"
+  # Directories to protect from dumbification (find-compatible patterns)
+  EXCLUDE_PATTERNS: "-not -path './.git/*' -not -path './.changelog/*'"
+
+jobs:
+  dumbify:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'dumbify-upstream-')
+    
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ env.GIT_USER_NAME }}"
+          git config user.email "${{ env.GIT_USER_EMAIL }}"
+
+      - name: Calculate Dynamic Upstream and Timestamp
+        id: vars
+        run: |
+          CURRENT_REPO="${{ github.repository }}"
+          # logic: "dumb-hashicorp/dumb-terraform" -> "hashicorp/terraform"
+          UPSTREAM_REPO="${CURRENT_REPO//dumb-/}"
+          
+          echo "upstream_url=https://github.com/${UPSTREAM_REPO}.git" >> $GITHUB_OUTPUT
+          echo "upstream_path=github.com/${UPSTREAM_REPO}/" >> $GITHUB_OUTPUT
+          echo "current_path=github.com/${CURRENT_REPO}/" >> $GITHUB_OUTPUT
+          echo "branch_name=${{ env.BRANCH_PREFIX }}$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Fetch, Reset, and Purge Upstream
+        run: |
+          git remote add upstream "${{ steps.vars.outputs.upstream_url }}"
+          git fetch upstream
+          git checkout -B main
+          git reset --hard upstream/${{ env.UPSTREAM_MAIN_BRANCH }}
+          rm -rf .github/workflows/*
+
+      - name: Purge Dumb Media
+        run: |
+          echo "Scrubbing all dumb image files"
+          find . -type f ${{ env.EXCLUDE_PATTERNS }} \( -iname \*.png -o -iname \*.jpg -o -iname \*.jpeg -o -iname \*.gif -o -iname \*.svg -o -iname \*.ico -o -iname \*.webp \) -delete
+
+      - name: Dumbify File Contents
+        run: |
+          echo "Rerouting GitHub URLs: ${{ steps.vars.outputs.upstream_path }} -> ${{ steps.vars.outputs.current_path }}"
+          find . -type f ${{ env.EXCLUDE_PATTERNS }} -exec sed -i "s|${{ steps.vars.outputs.upstream_path }}|${{ steps.vars.outputs.current_path }}|g" {} +
+
+          dumb_words=(${{ env.DUMB_WORDS }})
+
+          for word in "${dumb_words[@]}"; do
+            lower_word="${word,,}"
+            upper_word="${word^^}"
+            upper_word="${upper_word//-/_}"
+            
+            echo "Dumbifying: $word"
+
+            # Case 1: Title Case 
+            find . -type f ${{ env.EXCLUDE_PATTERNS }} -exec sed -i "s|$word|Dumb $word|g" {} +
+            
+            # Case 2: lowercase
+            if [ "$word" != "$lower_word" ]; then
+              find . -type f ${{ env.EXCLUDE_PATTERNS }} -exec sed -i "s|$lower_word|dumb-$lower_word|g" {} +
+            fi
+            
+            # Case 3: UPPERCASE
+            if [ "$word" != "$upper_word" ] && [ "$lower_word" != "$upper_word" ]; then
+              find . -type f ${{ env.EXCLUDE_PATTERNS }} -exec sed -i "s|$upper_word|DUMB_$upper_word|g" {} +
+            fi
+          done
+          
+          echo "De-duplicating overlapping prefixes..."
+          find . -type f ${{ env.EXCLUDE_PATTERNS }} -exec sed -E -i "s|(Dumb )+|Dumb |g; s|(dumb-)+|dumb-|g; s|(DUMB_)+|DUMB_|g" {} +
+
+      - name: Dumbify File and Directory Names
+        run: |
+          dumb_words=(${{ env.DUMB_WORDS }})
+
+          for word in "${dumb_words[@]}"; do
+            lower_word="${word,,}"
+            upper_word="${word^^}"
+            upper_word="${upper_word//-/_}"
+            
+            find . -depth ${{ env.EXCLUDE_PATTERNS }} \( -name "*$word*" -o -name "*$lower_word*" -o -name "*$upper_word*" \) | while read -r item; do
+              dir=$(dirname "$item")
+              base=$(basename "$item")
+              
+              new_base="${base//$word/Dumb $word}"
+              if [ "$word" != "$lower_word" ]; then new_base="${new_base//$lower_word/dumb-$lower_word}"; fi
+              if [ "$word" != "$upper_word" ] && [ "$lower_word" != "$upper_word" ]; then new_base="${new_base//$upper_word/DUMB_$upper_word}"; fi
+              
+              new_base=$(echo "$new_base" | sed -E 's/(Dumb )+/Dumb /g; s/(dumb-)+/dumb-/g; s/(DUMB_)+/DUMB_/g')
+              
+              if [ "$base" != "$new_base" ]; then
+                mv "$item" "$dir/$new_base"
+              fi
+            done
+          done
+
+      - name: Validate Changes
+        id: validate
+        run: |
+          if [[ -z $(git status -s) ]]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Direct Commit to Main
+        if: steps.validate.outputs.has_changes == 'true' && env.DIRECT_COMMIT == 'true'
+        run: |
+          git add .
+          git commit -m "chore(upstream): synchronize and dumbify latest changes"
+          git push origin main --force
+
+      - name: Create Dumbify PR
+        if: steps.validate.outputs.has_changes == 'true' && env.DIRECT_COMMIT == 'false'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore(upstream): synchronize and dumbify latest changes"
+          branch: ${{ steps.vars.outputs.branch_name }}
+          base: main
+          title: "chore(upstream): synchronize and dumbify latest changes"
+          body: |
+            This PR pulls the latest upstream changes and properly dumbifies them.
+          labels: |
+            dumbified
