@@ -276,6 +276,48 @@ func TestInit_two_step_provider_download(t *testing.T) {
 	}
 }
 
+// A lock file is insufficient to use a pre-release, version constraints in config are also needed.
+// This is true prior to init being split into two download steps, so we're documenting that behaviour here.
+func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
+	// Create a temporary working directory no tf configuration but has state
+	td := t.TempDir()
+	workDirPath := "init-provider-download-prerelease/state-and-lock-file"
+	testCopyDir(t, testFixturePath(workDirPath), td)
+	os.MkdirAll(td, 0755)
+	t.Chdir(td)
+
+	// A provider source containing the random provider
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+	})
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected exit code 1, got: %d \n%s", code, done(t).All())
+	}
+
+	actual := cleanString(done(t).All())
+	expectedErrorMsgs := []string{
+		`Could not retrieve the list of available versions for provider hashicorp/random: locked provider registry.terraform.io/hashicorp/random 1.2.3-beta does not match configured version constraint `,
+	}
+	for _, errorMsg := range expectedErrorMsgs {
+		if !strings.Contains(cleanString(actual), cleanString(errorMsg)) {
+			t.Fatalf("expected output to contain %q\n, got %q", cleanString(errorMsg), cleanString(actual))
+		}
+	}
+}
+
 // Test that an error is returned if users provide the removed directory argument, which was replaced with -chdir
 // See: https://github.com/hashicorp/terraform/commit/ca23a096d8c48544b9bfc6dbf13c66488f9b6964
 func TestInit_multipleArgs(t *testing.T) {
