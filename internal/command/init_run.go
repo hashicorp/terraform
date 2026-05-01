@@ -297,7 +297,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, config, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configReqs, cReqDiags := config.ProviderRequirements()
+	diags = diags.Append(cReqDiags)
+	if cReqDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
