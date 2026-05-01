@@ -202,6 +202,47 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
+		// Same tests with providers shared between config and state,
+		// but now the version constraint in config specifies a pre-release
+		"pre-release required by only the state file": {
+			workDirPath: "init-provider-download-prerelease/state-file-only",
+			expectedDownloadMsgs: []string{
+				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				`Initializing provider plugins found in the configuration...
+				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins found in the state...
+				- Finding latest version of hashicorp/random...
+				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
+			},
+		},
+		"pre-release not re-downloaded if present in both config and state": {
+			workDirPath: "init-provider-download-prerelease/config-and-state-same-providers",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "1.2.3-beta"...
+				- Installing hashicorp/random v1.2.3-beta...
+				- Installed hashicorp/random v1.2.3-beta`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.2.3-beta`,
+			},
+		},
+		"reuses pre-release provider already represented in a dependency lock file": {
+			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Installing hashicorp/random v1.2.3-beta...
+				- Installed hashicorp/random v1.2.3-beta`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.2.3-beta`,
+			},
+		},
 	}
 
 	for tn, tc := range cases {
