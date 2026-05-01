@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'init: Fixed a bug that impacted use of provider pre-releases during init'
+time: 2026-05-01T02:24:11.413284+01:00
+custom:
+    Issue: "38496"

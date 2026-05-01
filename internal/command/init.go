@@ -469,15 +469,29 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // The calling code is assumed to have already called getProvidersFromConfig, which is used to
 // supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
 
 	if state == nil {
 		// if there is no state there are no providers to get
-		return true, depsfile.NewLocks(), nil
+		return false, depsfile.NewLocks(), diags
 	}
+
+	// Get the state's provider requirements
 	reqs := state.ProviderRequirements()
+
+	// Those requirements lack version constraint data. That matters if the configuration is using a
+	// pre-release of a provider, because installer logic will only be able to use a pre-release of a
+	// provider if a version constraint pins to that pre-release.
+	//
+	// So, we use configuration reqs to replace all entries in the state's requirements with entries
+	// from the config requirements, which may contain additional version constraint information.
+	for providerAddr := range reqs {
+		if r, ok := configReqs[providerAddr]; ok {
+			reqs[providerAddr] = r
+		}
+	}
 
 	for providerAddr := range reqs {
 		if providerAddr.IsLegacy() {

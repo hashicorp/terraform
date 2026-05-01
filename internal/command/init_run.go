@@ -326,7 +326,13 @@ If you do not intend to upgrade the state store provider, please update your con
 
 	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
 	// This is step two of a two-step provider download process
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	configReqs, cReqDiags := config.ProviderRequirements()
+	diags = diags.Append(cReqDiags)
+	if cReqDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)

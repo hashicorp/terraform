@@ -202,6 +202,35 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
+		// Same as some tests above, but now the version constraint in config specifies a pre-release
+		"pre-release not re-downloaded if present in both config and state": {
+			workDirPath: "init-provider-download-prerelease/config-and-state-same-providers",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Finding hashicorp/random versions matching "1.2.3-beta"...
+				- Installing hashicorp/random v1.2.3-beta...
+				- Installed hashicorp/random v1.2.3-beta`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.2.3-beta`,
+			},
+		},
+		"reuses pre-release provider already represented in a dependency lock file": {
+			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
+			expectedDownloadMsgs: []string{
+				// Config
+				`Initializing provider plugins found in the configuration...
+				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Installing hashicorp/random v1.2.3-beta...
+				- Installed hashicorp/random v1.2.3-beta`,
+				// State
+				`Initializing provider plugins found in the state...
+				- Reusing previous version of hashicorp/random
+				- Using previously-installed hashicorp/random v1.2.3-beta`,
+			},
+		},
 	}
 
 	for tn, tc := range cases {
@@ -214,8 +243,8 @@ func TestInit_two_step_provider_download(t *testing.T) {
 
 			// A provider source containing the random and null providers
 			providerSource := newMockProviderSource(t, map[string][]string{
-				"hashicorp/random": {"1.0.0", "9.9.9"},
-				"hashicorp/null":   {"1.0.0", "9.9.9"},
+				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
 			})
 
 			ui := new(cli.MockUi)
@@ -226,13 +255,10 @@ func TestInit_two_step_provider_download(t *testing.T) {
 					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
-
-					AllowExperimentalFeatures: true, // Needed to test init changes for PSS project
 				},
 			}
 
-			args := append(tc.flags, "-enable-pluggable-state-storage-experiment") // Needed to test init changes for PSS project
-			if code := c.Run(args); code != 0 {
+			if code := c.Run(tc.flags); code != 0 {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
@@ -243,6 +269,48 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// A lock file is insufficient to use a pre-release, version constraints in config are also needed.
+// This is true prior to init being split into two download steps, so we're documenting that behaviour here.
+func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
+	// Create a temporary working directory no tf configuration but has state
+	td := t.TempDir()
+	workDirPath := "init-provider-download-prerelease/state-and-lock-file"
+	testCopyDir(t, testFixturePath(workDirPath), td)
+	os.MkdirAll(td, 0755)
+	t.Chdir(td)
+
+	// A provider source containing the random provider
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+	})
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected exit code 1, got: %d \n%s", code, done(t).All())
+	}
+
+	actual := cleanString(done(t).All())
+	expectedErrorMsgs := []string{
+		`Could not retrieve the list of available versions for provider hashicorp/random: locked provider registry.terraform.io/hashicorp/random 1.2.3-beta does not match configured version constraint `,
+	}
+	for _, errorMsg := range expectedErrorMsgs {
+		if !strings.Contains(cleanString(actual), cleanString(errorMsg)) {
+			t.Fatalf("expected output to contain %q\n, got %q", cleanString(errorMsg), cleanString(actual))
+		}
 	}
 }
 
