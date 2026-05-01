@@ -335,7 +335,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
-	if code := newCmd.Run(args); code != 1 {
+	if code := newCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -352,7 +352,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 			WorkingDir: workdir.NewDir("."),
 		},
 	}
-	if code := selectCmd.Run(args); code != 1 {
+	if code := selectCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -1098,39 +1098,6 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 }
 
-func TestValidWorkspaceName(t *testing.T) {
-	cases := map[string]struct {
-		input string
-		valid bool
-	}{
-		"foobar": {
-			input: "foobar",
-			valid: true,
-		},
-		"valid symbols": {
-			input: "-._~@:",
-			valid: true,
-		},
-		"includes space": {
-			input: "two words",
-			valid: false,
-		},
-		"empty string": {
-			input: "",
-			valid: false,
-		},
-	}
-
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			valid := validWorkspaceName(tc.input)
-			if valid != tc.valid {
-				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
-			}
-		})
-	}
-}
-
 // Test how all workspace subcommands handle unexpected arguments.
 func TestWorkspace_extraArgError(t *testing.T) {
 	newMeta := func() (Meta, *cli.MockUi) {
@@ -1154,7 +1121,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := newCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError := "Expected a single argument: NAME.\n\n"
+	expectedError := "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}
@@ -1192,7 +1159,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := selectCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError = "Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}

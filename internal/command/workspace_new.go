@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend/local"
@@ -26,35 +25,22 @@ type WorkspaceNewCommand struct {
 	LegacyName bool
 }
 
-func (c *WorkspaceNewCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Process global flags and configure the view/UI.
+	rawArgs = c.Meta.process(rawArgs)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	var stateLock bool
-	var stateLockTimeout time.Duration
-	var statePath string
-	cmdFlags := c.Meta.defaultFlagSet("workspace new")
-	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&statePath, "state", "", "terraform state file")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: NAME.\n")
+	// Process command-specific arguments.
+	// Currently there are no arguments for this command, so ignore the returned value for now.
+	args, diags := arguments.ParseWorkspaceNew(rawArgs)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return cli.RunResultHelp
 	}
 
-	workspace := args[0]
-
-	if !validWorkspaceName(workspace) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, workspace))
-		return 1
-	}
+	workspace := args.Name
 
 	// You can't ask to create a workspace when you're overriding the
 	// workspace name to be something different.
@@ -63,12 +49,9 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
 	// Load the backend
-	view := arguments.ViewHuman
 	configPath := c.WorkingDir.RootModuleDir()
-	b, diags := c.backend(configPath, view)
+	b, diags := c.backend(configPath, args.ViewType)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -132,7 +115,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 		strings.TrimSpace(envCreated), workspace)))
 
-	if statePath == "" {
+	if args.StatePath == "" {
 		// if we're not loading a state, then we're done
 		return 0
 	}
@@ -144,8 +127,8 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	if stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+	if args.Lock {
+		stateLocker := clistate.NewLocker(args.LockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "workspace-new"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
@@ -158,7 +141,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// read the existing state file
-	f, err := os.Open(statePath)
+	f, err := os.Open(args.StatePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
