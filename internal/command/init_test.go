@@ -256,13 +256,10 @@ func TestInit_two_step_provider_download(t *testing.T) {
 					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
-
-					AllowExperimentalFeatures: true, // Needed to test init changes for PSS project
 				},
 			}
 
-			args := append(tc.flags, "-enable-pluggable-state-storage-experiment") // Needed to test init changes for PSS project
-			if code := c.Run(args); code != 0 {
+			if code := c.Run(tc.flags); code != 0 {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
