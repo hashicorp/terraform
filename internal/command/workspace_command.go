@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -68,6 +69,28 @@ with other concepts.
 The "terraform workspace" commands should be used instead. "terraform env"
 will be removed in a future Terraform version.
 `)
+}
+
+// envCommandWarningDiag returns diagnostic version of the output from envCommandShowWarning.
+// This should be used when the output is being rendered in a machine-readable format.
+func envCommandWarningDiag(show bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if !show {
+		return diags // empty
+	}
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Detail:   `Warning: the "terraform env" family of commands is deprecated.`,
+		Summary: `"Workspace" is now the preferred term for what earlier Terraform versions
+called "environment", to reduce ambiguity caused by the latter term colliding
+with other concepts.
+
+The "terraform workspace" commands should be used instead. "terraform env"
+will be removed in a future Terraform version.
+`,
+	})
+	return diags
 }
 
 const (
