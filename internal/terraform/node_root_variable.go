@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 
@@ -41,6 +40,7 @@ type NodeRootVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
+	_ GraphNodeReferencer     = (*NodeRootVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {
@@ -118,7 +118,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		if len(refs) > 0 {
 			for _, ref := range refs {
 				switch ref.Subject.(type) {
-				case addrs.TypeDefinition:
+				case addrs.TypeDefinition, addrs.ModuleCallInstanceOutput:
 					// These are allowed
 				default:
 					diags = diags.Append(&hcl.Diagnostic{
@@ -141,7 +141,13 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 
 			typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
 			if !ok {
-				panic(fmt.Sprintf("type definition was not the correct capsule value, got: %T", tyVal.EncapsulatedValue()))
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid type specification",
+					Detail:   "The variable type can only reference type definitions.",
+					Subject:  &n.Config.DeclRange, // TODO: this isn't the right range, it should be of the type :P
+				})
+				return diags
 			}
 
 			// TODO: this isn't updating the actual config representation, but not sure that it matters?
@@ -282,4 +288,12 @@ func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable,
 
 func (n *NodeRootVariable) isConst() bool {
 	return n.Config != nil && n.Config.Const
+}
+
+func (n *NodeRootVariable) References() []*addrs.Reference {
+	if n.Config == nil || n.Config.TypeExpr == nil {
+		return nil
+	}
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.TypeExpr)
+	return refs
 }

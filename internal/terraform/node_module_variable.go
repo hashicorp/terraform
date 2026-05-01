@@ -107,16 +107,21 @@ func (n *nodeExpandModuleVariable) ModulePath() addrs.Module {
 
 // GraphNodeReferencer
 func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
+	var result []*addrs.Reference
+	if n.Config != nil && n.Config.TypeExpr != nil {
+		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.TypeExpr)
+		result = append(result, refs...)
+	}
 
 	// If we have no value expression, we cannot depend on anything.
 	if n.Expr == nil {
-		return nil
+		return result
 	}
 
 	// Variables in the root don't depend on anything, because their values
 	// are gathered prior to the graph walk and recorded in the context.
 	if len(n.Module) == 0 {
-		return nil
+		return result
 	}
 
 	// Otherwise, we depend on anything referenced by our value expression.
@@ -130,7 +135,9 @@ func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
 	// our value expression is assigned within a "module" block in the parent
 	// module.
 	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Expr)
-	return refs
+	result = append(result, refs...)
+
+	return result
 }
 
 // GraphNodeReferenceOutside implementation
@@ -325,7 +332,7 @@ func (n *nodeModuleVariable) evalModuleVariable(parentCtx EvalContext, validateO
 			if len(refs) > 0 {
 				for _, ref := range refs {
 					switch ref.Subject.(type) {
-					case addrs.TypeDefinition:
+					case addrs.TypeDefinition, addrs.ModuleCallInstanceOutput:
 						// These are allowed
 					default:
 						diags = diags.Append(&hcl.Diagnostic{
@@ -348,7 +355,13 @@ func (n *nodeModuleVariable) evalModuleVariable(parentCtx EvalContext, validateO
 
 				typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
 				if !ok {
-					panic(fmt.Sprintf("type definition was not the correct capsule value, got: %T", tyVal.EncapsulatedValue()))
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid type specification",
+						Detail:   "The variable type can only reference type definitions.",
+						Subject:  &n.Config.DeclRange, // TODO: this isn't the right range, it should be of the type :P
+					})
+					return cty.DynamicVal, errSourceRange, diags.ErrWithWarnings()
 				}
 
 				// TODO: this isn't updating the actual config representation, but not sure that it matters?

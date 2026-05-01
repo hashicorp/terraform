@@ -420,6 +420,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
 	}
 	outputConfigs := moduleConfig.Module.Outputs
+	typeDefConfigs := moduleConfig.Module.TypeDefs
 
 	// typeDefined tracks if a module has defined any output type at all. We can
 	// use this as a flag to abandon some subtly incorrect legacy behavior.
@@ -439,9 +440,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	}
 
 	// build up the type of the configured module output object
-	atys := make(map[string]cty.Type, len(outputConfigs))
+	atys := make(map[string]cty.Type, len(outputConfigs)+len(typeDefConfigs))
 	// and create a single unknown instance value for validation
-	as := make(map[string]cty.Value, len(outputConfigs))
+	as := make(map[string]cty.Value, len(outputConfigs)+len(typeDefConfigs))
 	for name, c := range outputConfigs {
 		// atys is used to create the module object type for expanded modules
 		atys[name] = c.ConstraintType
@@ -454,6 +455,16 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		}
 		as[name] = val
 	}
+
+	// TODO: just mashing the typedefs on top of outputs for now
+	for name, cfg := range typeDefConfigs {
+		if _, ok := atys[name]; ok {
+			panic(fmt.Sprintf("whoops! typedef %q conflicts with output of the same name", name))
+		}
+		atys[name] = typeDefCtyType
+		as[name] = cty.CapsuleVal(typeDefCtyType, cfg)
+	}
+
 	instTy := cty.Object(atys)
 
 	if d.Operation == walkValidate && typeDefined {
@@ -486,8 +497,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		// In case of an expanded module call we return unknown list/map
 		// This means deprecation can only for non-expanded modules be detected during validate
 		// since we don't want false positives. The plan walk will give definitive warnings.
-		atys := make(map[string]cty.Type, len(outputConfigs))
-		as := make(map[string]cty.Value, len(outputConfigs))
+		atys := make(map[string]cty.Type, len(outputConfigs)+len(typeDefConfigs))
+		as := make(map[string]cty.Value, len(outputConfigs)+len(typeDefConfigs))
 		for name, c := range outputConfigs {
 			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
 			val := cty.UnknownVal(cty.DynamicPseudoType)
@@ -496,6 +507,15 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 			as[name] = val
 		}
+
+		for name, cfg := range typeDefConfigs {
+			if _, ok := atys[name]; ok {
+				panic(fmt.Sprintf("whoops! typedef %q conflicts with output of the same name", name))
+			}
+			atys[name] = typeDefCtyType
+			as[name] = cty.CapsuleVal(typeDefCtyType, cfg)
+		}
+
 		instTy := cty.Object(atys)
 
 		switch {
@@ -531,7 +551,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 		namedVals := d.Evaluator.NamedValues
 		moduleInstAddr := absAddr.Instance(instKey)
-		attrs := make(map[string]cty.Value, len(outputConfigs))
+		attrs := make(map[string]cty.Value, len(outputConfigs)+len(typeDefConfigs))
+
 		for name, cfg := range outputConfigs {
 			outputAddr := moduleInstAddr.OutputValue(name)
 
@@ -555,6 +576,10 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, moduleInstAddr.OutputValue(name).ConfigOutputValue().ForDisplay()))
 			}
 			attrs[name] = outputVal
+		}
+
+		for name, cfg := range typeDefConfigs {
+			attrs[name] = cty.CapsuleVal(typeDefCtyType, cfg)
 		}
 
 		return cty.ObjectVal(attrs), diags
