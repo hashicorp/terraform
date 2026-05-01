@@ -214,8 +214,8 @@ func TestInit_two_step_provider_download(t *testing.T) {
 
 			// A provider source containing the random and null providers
 			providerSource := newMockProviderSource(t, map[string][]string{
-				"hashicorp/random": {"1.0.0", "9.9.9"},
-				"hashicorp/null":   {"1.0.0", "9.9.9"},
+				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
 			})
 
 			ui := new(cli.MockUi)
