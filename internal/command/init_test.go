@@ -284,9 +284,10 @@ func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
 	t.Chdir(td)
 
 	// A provider source containing the random provider
-	providerSource := newMockProviderSource(t, map[string][]string{
+	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 	})
+	t.Cleanup(close)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
