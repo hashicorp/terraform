@@ -373,6 +373,7 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 
 	orphans := n.findOrphans(ctx, moduleInstances)
 
+	// TODO: orphaned resource instances too?
 	for _, res := range orphans {
 		for key := range res.Instances {
 			addr := res.Addr.Instance(key)

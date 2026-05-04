@@ -14,7 +14,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -287,7 +290,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, provider)
+		diags := node.ValidateProvider(ctx, walkPlan, provider)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -308,7 +311,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, provider)
+		diags := node.ValidateProvider(ctx, walkPlan, provider)
 		if !diags.HasErrors() {
 			t.Error("missing expected error with invalid config")
 		}
@@ -321,7 +324,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, provider)
+		diags := node.ValidateProvider(ctx, walkPlan, provider)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with empty config: %s", diags.Err())
 		}
@@ -382,7 +385,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -395,7 +398,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -416,7 +419,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -432,7 +435,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, requiredProvider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, requiredProvider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -453,7 +456,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, requiredProvider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, requiredProvider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -508,7 +511,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -521,7 +524,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -542,7 +545,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, provider, false)
+		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -568,12 +571,213 @@ func TestGetSchemaError(t *testing.T) {
 		},
 	}
 
-	diags := node.ConfigureProvider(ctx, provider, false)
+	diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
 	for _, d := range diags {
 		desc := d.Description()
 		if desc.Address != providerAddr.String() {
 			t.Fatalf("missing provider address from diagnostics: %#v", desc)
 		}
 	}
+}
 
+func TestNodeApplyableProvider_providerVersion(t *testing.T) {
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("aws"),
+	}
+
+	node := &NodeApplyableProvider{
+		NodeAbstractProvider: &NodeAbstractProvider{
+			Addr: providerAddr,
+		},
+	}
+
+	t.Run("with locked version", func(t *testing.T) {
+		lock := depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("aws"),
+			providerreqs.MustParseVersion("5.31.0"),
+			nil,
+			nil,
+		)
+		ctx := &MockEvalContext{
+			ProviderLocksValue: map[addrs.Provider]*depsfile.ProviderLock{
+				addrs.NewDefaultProvider("aws"): lock,
+			},
+		}
+
+		got := node.providerVersion(ctx)
+		if got != "5.31.0" {
+			t.Errorf("wrong version\ngot:  %s\nwant: 5.31.0", got)
+		}
+	})
+
+	t.Run("no lock file", func(t *testing.T) {
+		ctx := &MockEvalContext{}
+
+		got := node.providerVersion(ctx)
+		if got != "" {
+			t.Errorf("expected empty version, got: %s", got)
+		}
+	})
+
+	t.Run("lock file without this provider", func(t *testing.T) {
+		lock := depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("google"),
+			providerreqs.MustParseVersion("4.0.0"),
+			nil,
+			nil,
+		)
+		ctx := &MockEvalContext{
+			ProviderLocksValue: map[addrs.Provider]*depsfile.ProviderLock{
+				addrs.NewDefaultProvider("google"): lock,
+			},
+		}
+
+		got := node.providerVersion(ctx)
+		if got != "" {
+			t.Errorf("expected empty version, got: %s", got)
+		}
+	})
+}
+
+func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("aws"),
+	}
+
+	t.Run("version from lock file is passed in meta", func(t *testing.T) {
+		lock := depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("aws"),
+			providerreqs.MustParseVersion("5.31.0"),
+			nil,
+			nil,
+		)
+
+		mockPolicy := &policy.MockClient{}
+
+		ctx := &MockEvalContext{
+			ProviderLocksValue: map[addrs.Provider]*depsfile.ProviderLock{
+				addrs.NewDefaultProvider("aws"): lock,
+			},
+			PolicyClientValue: mockPolicy,
+		}
+
+		node := &NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:      providerAddr,
+				LocalName: "aws",
+			},
+		}
+
+		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+
+		if !mockPolicy.EvaluateProviderCalled {
+			t.Fatal("EvaluateProvider was not called")
+		}
+
+		meta := mockPolicy.EvaluateProviderRequest.Meta
+
+		gotVersion := meta.Version
+		if gotVersion != "5.31.0" {
+			t.Errorf("wrong version in meta\ngot:  %s\nwant: 5.31.0", gotVersion)
+		}
+	})
+
+	t.Run("empty version when no lock file", func(t *testing.T) {
+		mockPolicy := &policy.MockClient{}
+
+		ctx := &MockEvalContext{
+			PolicyClientValue: mockPolicy,
+		}
+
+		node := &NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:      providerAddr,
+				LocalName: "aws",
+			},
+		}
+
+		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+
+		if !mockPolicy.EvaluateProviderCalled {
+			t.Fatal("EvaluateProvider was not called")
+		}
+
+		meta := mockPolicy.EvaluateProviderRequest.Meta
+		gotVersion := meta.Version
+		if gotVersion != "" {
+			t.Errorf("expected empty version in meta, got: %s", gotVersion)
+		}
+	})
+
+	t.Run("no policy client skips evaluation", func(t *testing.T) {
+		ctx := &MockEvalContext{}
+
+		node := &NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:      providerAddr,
+				LocalName: "aws",
+			},
+		}
+
+		diags := node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		if diags != nil {
+			t.Fatalf("unexpected diagnostics: %s", diags.Err())
+		}
+	})
+
+	t.Run("meta contains all expected fields", func(t *testing.T) {
+		lock := depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("aws"),
+			providerreqs.MustParseVersion("5.31.0"),
+			nil,
+			nil,
+		)
+
+		mockPolicy := &policy.MockClient{}
+
+		ctx := &MockEvalContext{
+			ProviderLocksValue: map[addrs.Provider]*depsfile.ProviderLock{
+				addrs.NewDefaultProvider("aws"): lock,
+			},
+			PolicyClientValue: mockPolicy,
+		}
+
+		node := &NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:      providerAddr,
+				LocalName: "aws",
+			},
+		}
+
+		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+
+		meta := mockPolicy.EvaluateProviderRequest.Meta
+
+		checks := map[string]string{
+			"name":        meta.Name,
+			"alias":       meta.Alias,
+			"type":        meta.Type,
+			"namespace":   meta.Namespace,
+			"source":      meta.Source,
+			"module_path": meta.ModulePath,
+			"version":     meta.Version,
+		}
+		expected := map[string]string{
+			"name":        "aws",
+			"alias":       "",
+			"type":        "aws",
+			"namespace":   "hashicorp",
+			"source":      "registry.terraform.io/hashicorp/aws",
+			"module_path": "",
+			"version":     "5.31.0",
+		}
+		for field, got := range checks {
+			want := expected[field]
+			if got != want {
+				t.Errorf("wrong meta %q\ngot:  %s\nwant: %s", field, got, want)
+			}
+		}
+	})
 }

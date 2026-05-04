@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -90,6 +91,9 @@ type ApplyGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// PolicyClient is the client for evaluating policies.
+	PolicyClient policy.Client
 }
 
 // See GraphBuilder
@@ -142,6 +146,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{
 			Config:       b.Config,
 			DestroyApply: b.Operation == walkDestroy,
+			PolicyClient: b.PolicyClient,
 		},
 		&variableValidationTransformer{
 			operation: b.Operation,
@@ -158,10 +163,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
 		&DiffTransformer{
-			Concrete: concreteResourceInstance,
-			State:    b.State,
-			Changes:  b.Changes,
-			Config:   b.Config,
+			Concrete:     concreteResourceInstance,
+			State:        b.State,
+			Changes:      b.Changes,
+			Config:       b.Config,
+			PolicyClient: b.PolicyClient,
 		},
 
 		&ActionTriggerConfigTransformer{
@@ -212,7 +218,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
+		transformProviders(concreteProvider, b.Config, b.PolicyClient, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},

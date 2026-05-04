@@ -16,11 +16,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -160,6 +162,14 @@ type PlanOpts struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// Locks is a read-only snapshot of provider locks (from the dependency lock
+	// file).
+	Locks map[addrs.Provider]*depsfile.ProviderLock
+
+	// Optional policy client to enable live policy evaluations.
+	PolicyClient  policy.Client
+	PolicyResults policy.EvaluationResponse
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -790,6 +800,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// Hold reference to this so we can store the table data in the plan file.
 	funcResults := lang.NewFunctionResultsTable(nil)
 
+	// Initialize the map to store policy evaluation results.
+	policyResults := plans.NewPolicyResults()
+
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
 		InputState:                 prevRunState,
@@ -802,6 +815,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
+		Locks:                      opts.Locks,
+		PolicyClient:               opts.PolicyClient,
+		PolicyResults:              policyResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -880,8 +896,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
-
 		// Other fields get populated by Context.Plan after we return
+	}
+
+	if policyResults != nil {
+		plan.PolicyResults = policyResults
 	}
 
 	if !schemaDiags.HasErrors() {
@@ -1019,6 +1038,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			queryPlan:                 opts.Query,
 			overridePreventDestroy:    opts.OverridePreventDestroy,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
+	"github.com/hashicorp/terraform/internal/policy/callback"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -223,13 +225,15 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		if diags.HasErrors() {
 			return diags
 		}
+
+		// TODO(sams): Implement pre-apply policy evaluation
 	}
 
 	return nil
 }
 
 // postApplyHook calls the post-Apply hook
-func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err error) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, action plans.Action, state *states.ResourceInstanceObject, priorState cty.Value, err error) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Only managed resources have user-visible apply actions.
@@ -243,6 +247,13 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *sta
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostApply(n.HookResourceIdentity(), addrs.NotDeposed, newState, err)
 		}))
+
+		// Post-apply policy evaluation
+		policyDiags := n.EvalPolicy(ctx, walkApply, action, newState, priorState)
+		diags = diags.Append(policyDiags)
+		if policyDiags.HasErrors() {
+			return diags
+		}
 	}
 
 	return diags
@@ -421,7 +432,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return plan, deferred, diags.Append(err)
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -497,6 +508,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			)
 			return plan, deferred, diags
 		}
+	}
+
+	// Post-plan policy evaluation
+	policyDiags := n.EvalPolicy(ctx, walkPlan, plans.Delete, nullVal, currentState.Value)
+	diags = diags.Append(policyDiags)
+	if policyDiags.HasErrors() {
+		return plan, deferred, diags
 	}
 
 	// Call post-refresh hook
@@ -638,7 +656,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return state, deferred, diags
@@ -881,7 +899,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, deferred, keyData, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1648,7 +1666,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		return newVal, deferred, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return newVal, deferred, diags
@@ -1777,37 +1795,6 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	}))
 
 	return newVal, deferred, diags
-}
-
-func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return metaConfigVal, diags.Append(err)
-	}
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
-			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta.Body == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
-					Subject:  &m.ProviderRange,
-				})
-			} else {
-				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
-				diags = diags.Append(configDiags)
-				var deprecationDiags tfdiags.Diagnostics
-				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
-				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, n.Addr.String()))
-			}
-		}
-	}
-	return metaConfigVal, diags
 }
 
 // planDataSource deals with the main part of the data resource lifecycle:
@@ -2638,7 +2625,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		return state, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return state, diags
@@ -3134,4 +3121,61 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
+}
+
+func (n *NodeAbstractResourceInstance) EvalPolicy(ctx EvalContext, walkOperation walkOperation, action plans.Action, state cty.Value, priorState cty.Value) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
+		return nil
+	}
+
+	// for now, we unmark values before handing them over to policy
+	attrs, _ := state.UnmarkDeep()
+	priorAttrs, _ := priorState.UnmarkDeep()
+	provider, schema, err := getProvider(ctx, n.ResolvedProvider)
+	var diags tfdiags.Diagnostics
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	var actionStr proto.Operation
+	switch action {
+	case plans.Create:
+		actionStr = proto.Operation_CREATE
+	case plans.Delete:
+		actionStr = proto.Operation_DELETE
+	case plans.Update,
+		plans.DeleteThenCreate,
+		plans.CreateThenDelete,
+		plans.CreateThenForget:
+		actionStr = proto.Operation_UPDATE
+	default:
+		// No-op for non-CUD actions
+		return nil
+	}
+
+	meta := &proto.ResourceMetadata{
+		Operation:    actionStr,
+		Type:         n.Addr.Resource.Resource.Type,
+		ProviderType: n.ResolvedProvider.Provider.Type,
+	}
+
+	providerMeta, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	callbacks := callback.Functions{
+		GetResources:  getResourcesForPolicyCallback(ctx, ctx.Config()),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, providerMeta),
+	}
+
+	resource := ctx.Config().Descendant(n.Path().Module()).Module.ResourceByAddr(n.Addr.Resource.Resource)
+	result := evaluatePolicies(ctx, walkOperation, n.Addr, resource, ctx.PolicyClient(), attrs, priorAttrs, meta, callbacks)
+	if ctx.PolicyResults() != nil {
+		ctx.PolicyResults().AddResource(n.Addr, result, resource)
+	}
+	return nil
 }

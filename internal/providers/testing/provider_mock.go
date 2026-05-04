@@ -676,6 +676,15 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
+	// this resource is deferred
+	if r.ProposedNewState.Type().HasAttribute("defer") {
+		if shouldBeDeferred := r.ProposedNewState.GetAttr("defer"); !shouldBeDeferred.IsKnown() || (!shouldBeDeferred.IsNull() && shouldBeDeferred.True()) {
+			resp.Deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
+	}
+
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))

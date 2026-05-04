@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/hcl/v2"
@@ -39,6 +40,8 @@ type ModuleVariableTransformer struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
+
+	PolicyClient policy.Client
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
