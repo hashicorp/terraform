@@ -139,30 +139,36 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 				return diags
 			}
 
-			typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
-			if !ok {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid type specification",
-					Detail:   "The variable type can only reference type definitions.",
-					Subject:  &n.Config.DeclRange, // TODO: this isn't the right range, it should be of the type :P
-				})
-				return diags
-			}
+			if tyVal.IsKnown() {
+				typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
+				if !ok {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid type specification",
+						Detail:   "The variable type can only reference type definitions.",
+						Subject:  &n.Config.DeclRange, // TODO: this isn't the right range, it should be of the type :P
+					})
+					return diags
+				}
 
-			// TODO: this isn't updating the actual config representation, but not sure that it matters?
-			// It seems like we probably should be updating it, but not sure if:
-			// 		1) that's allowed/expected?
-			// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
-			n.Config.ConstraintType = typeDef.ConstraintType
-			n.Config.Type = typeDef.Definition
-			n.Config.TypeDefaults = typeDef.TypeDefaults
+				// TODO: this isn't updating the actual config representation, but not sure that it matters?
+				// It seems like we probably should be updating it, but not sure if:
+				// 		1) that's allowed/expected?
+				// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+				n.Config.ConstraintType = typeDef.ConstraintType
+				n.Config.Type = typeDef.Definition
+				n.Config.TypeDefaults = typeDef.TypeDefaults
 
-			if typeDef.Definition.IsPrimitiveType() {
-				n.Config.ParsingMode = configs.VariableParseLiteral
+				if typeDef.Definition.IsPrimitiveType() {
+					n.Config.ParsingMode = configs.VariableParseLiteral
+				} else {
+					n.Config.ParsingMode = configs.VariableParseHCL
+				}
 			} else {
-				n.Config.ParsingMode = configs.VariableParseHCL
+				n.Config.ConstraintType = cty.DynamicPseudoType
+				n.Config.Type = cty.DynamicPseudoType
 			}
+
 		} else {
 			ty, tyDefaults, parseMode, tyDiags := configs.DecodeVariableType(n.Config.TypeExpr)
 			diags = diags.Append(tyDiags)

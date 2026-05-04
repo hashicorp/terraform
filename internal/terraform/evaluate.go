@@ -578,6 +578,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			attrs[name] = outputVal
 		}
 
+		// TODO: If we ever wanted to reference other type definitions from a type definition, this would become invalid
+		// i.e. it assumes that once we find a type definition config, there is nothing left to evaluation but to read said config.
 		for name, cfg := range typeDefConfigs {
 			attrs[name] = cty.CapsuleVal(typeDefCtyType, cfg)
 		}
