@@ -665,8 +665,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 
 		node := &NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:      providerAddr,
-				LocalName: "aws",
+				Addr: providerAddr,
 			},
 		}
 
@@ -693,8 +692,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 
 		node := &NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:      providerAddr,
-				LocalName: "aws",
+				Addr: providerAddr,
 			},
 		}
 
@@ -716,8 +714,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 
 		node := &NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:      providerAddr,
-				LocalName: "aws",
+				Addr: providerAddr,
 			},
 		}
 
@@ -746,8 +743,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 
 		node := &NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:      providerAddr,
-				LocalName: "aws",
+				Addr: providerAddr,
 			},
 		}
 

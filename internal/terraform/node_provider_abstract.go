@@ -22,11 +22,6 @@ type ConcreteProviderNodeFunc func(*NodeAbstractProvider) dag.Vertex
 type NodeAbstractProvider struct {
 	Addr addrs.AbsProviderConfig
 
-	// LocalName is the name of the provider, as defined in the required
-	// providers block. Most of the time will be the same as the type of the
-	// provider.
-	LocalName string
-
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
