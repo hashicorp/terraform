@@ -30,7 +30,7 @@ func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 	defer cleanup()
 
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), configDir, "tests", true, false)
+	_, instDiags := inst.InstallModules(context.Background(), configDir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatalf("unexpected module installation errors: %s", instDiags.Err().Error())
 	}
