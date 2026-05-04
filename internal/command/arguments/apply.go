@@ -29,6 +29,10 @@ type Apply struct {
 
 	// ViewType specifies which output format to use
 	ViewType ViewType
+
+	// PolicyPath contains an optional path to any defined policies that should
+	// be applied for this apply operation.
+	PolicyPaths []string
 }
 
 // ParseApply processes CLI arguments, returning an Apply value and errors.
@@ -45,6 +49,7 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 	cmdFlags := extendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
 	cmdFlags.BoolVar(&apply.AutoApprove, "auto-approve", false, "auto-approve")
 	cmdFlags.BoolVar(&apply.InputEnabled, "input", true, "input")
+	cmdFlags.Var((*FlagStringSlice)(&apply.PolicyPaths), "policies", "policies")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

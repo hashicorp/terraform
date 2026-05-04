@@ -8,8 +8,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -141,4 +144,86 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 		"type", json.MessageOutputs,
 		"outputs", outputs,
 	)
+}
+
+func (v *JSONView) PolicyResults(results *plans.PolicyResults) {
+	if results == nil {
+		return
+	}
+
+	// Log all non-policy-specific diagnostics if any.
+	for _, diag := range results.Diagnostics {
+		v.logPolicyDiagnostic(diag)
+	}
+
+	for addr, result := range results.Iter() {
+		// Log all the info messages
+		for _, enforcement := range result.EvaluationResponse.Enforcements {
+			if enforcement.Message == "" {
+				continue
+			}
+			var src []byte
+			if enforcement.LocalRange != nil {
+				src = v.view.configSources()[enforcement.LocalRange.Filename]
+			}
+			info := json.NewPolicyInfo(src, enforcement)
+			args := []any{
+				"type", json.MessagePolicyInfo,
+				"target_address", addr,
+				json.MessagePolicyInfo, info,
+				"@policy", "true",
+				"result", enforcement.Result.String(),
+			}
+			if enforcement.Policy != nil {
+				args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
+			}
+			v.log.Info("Policy info", args...)
+		}
+
+		for _, diag := range result.EvaluationResponse.Diagnostics {
+			v.logPolicyDiagnostic(diag, "target_address", addr)
+		}
+
+		for _, policy := range result.EvaluationResponse.Policies {
+			v.log.Info(
+				"Policy Result",
+				"type", json.MessagePolicyEvaluationResult,
+				"result", policy.Result.String(),
+				"target_address", addr,
+				"policy_address", policy.Address,
+				"@policy", "true",
+				"policy_metadata", json.MetadataFromPolicy(*policy),
+			)
+		}
+	}
+}
+
+func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any) {
+	// Log the policy diagnostics. The severity level here is from the policy engine, and terraform
+	// does not use it at all. Therefore, the log level of these diagnostics is only relevant
+	// for policies.
+	sources := v.view.configSources()
+	diagnostic := json.NewDiagnostic(diag, sources)
+
+	args := []any{
+		"type", json.MessagePolicyDiagnostic,
+		"@policy", "true",
+		json.MessagePolicyDiagnostic, diagnostic,
+	}
+	args = append(args, extraArgs...)
+	extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+	if extra != nil {
+		policyMetadata := json.MetadataFromPolicy(extra.Policy)
+		if extra.EnforceIndex != nil {
+			policyMetadata.EnforceIndex = extra.EnforceIndex
+		}
+		args = append(args, "policy_metadata", policyMetadata)
+		args = append(args, "result", extra.Result.String())
+	}
+	switch extra.Severity {
+	case hcl.DiagWarning:
+		v.log.Warn(fmt.Sprintf("Warning: %s", diag.Description().Summary), args...)
+	default:
+		v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
+	}
 }

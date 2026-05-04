@@ -14,10 +14,12 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -26,7 +28,7 @@ import (
 )
 
 // backendrun.Local implementation.
-func (b *Local) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) LocalRun(ctx context.Context, op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	// Make sure the type is invalid. We use this as a way to know not
 	// to ask for input/validate. We're modifying this through a pointer,
 	// so we're mutating an object that belongs to the caller here, which
@@ -35,7 +37,7 @@ func (b *Local) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 	// happens to do.
 	op.Type = backendrun.OperationTypeInvalid
 
-	op.StateLocker = op.StateLocker.WithContext(context.Background())
+	op.StateLocker = op.StateLocker.WithContext(ctx)
 
 	lr, _, stateMgr, diags := b.localRun(op)
 	return lr, stateMgr, diags
@@ -70,8 +72,6 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		return nil, nil, nil, diags
 	}
 
-	ret := &backendrun.LocalRun{}
-
 	// Initialize our context options
 	var coreOpts terraform.ContextOpts
 	if v := b.ContextOpts; v != nil {
@@ -80,11 +80,16 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 	coreOpts.UIInput = op.UIIn
 	coreOpts.Hooks = op.Hooks
 
+	// the run must be closed now
+	ret := &backendrun.LocalRun{
+		PolicyClient: op.PolicyClient,
+	}
+
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
 	if op.PlanFile.IsCloud() {
 		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan when executing Terraform locally is not supported"))
-		return nil, nil, nil, diags
+		return ret, nil, nil, diags
 	}
 
 	if lp, ok := op.PlanFile.Local(); ok {
@@ -100,7 +105,7 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, lp, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
-			return nil, nil, nil, diags
+			return ret, nil, nil, diags
 		}
 
 		// Write sources into the cache of the main loader so that they are
@@ -112,7 +117,7 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 	}
 	diags = diags.Append(ctxDiags)
 	if diags.HasErrors() {
-		return nil, nil, nil, diags
+		return ret, nil, nil, diags
 	}
 
 	// If we have an operation, then we automatically do the input/validate
@@ -126,7 +131,7 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 			inputDiags := ret.Core.Input(ret.Config, mode)
 			diags = diags.Append(inputDiags)
 			if inputDiags.HasErrors() {
-				return nil, nil, nil, diags
+				return ret, nil, nil, diags
 			}
 		}
 
@@ -149,7 +154,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	rootMod, configDiags := op.ConfigLoader.LoadRootModule(op.ConfigDir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 
 	var rawVariables map[string]arguments.UnparsedVariableValue
@@ -170,7 +175,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	variables, varDiags := backendrun.ParseVariableValues(rawVariables, rootMod.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 
 	planOpts := &terraform.PlanOpts{
@@ -183,6 +188,8 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
 		Query:              op.Query,
+		Locks:              providerLocksSnapshot(op.DependencyLocks),
+		PolicyClient:       run.PolicyClient,
 	}
 	run.PlanOpts = planOpts
 
@@ -193,7 +200,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 	run.Core = tfCtx
 
@@ -261,7 +268,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 			errSummary,
 			fmt.Sprintf("Failed to read configuration snapshot from plan file: %s.", err),
 		))
-		return nil, snap, diags
+		return run, snap, diags
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
 	loader.AllowLanguageExperiments(op.ConfigLoader.AllowsLanguageExperiments())
@@ -299,7 +306,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 			errSummary,
 			fmt.Sprintf("Failed to read prior state snapshot from plan file: %s.", err),
 		))
-		return nil, snap, diags
+		return run, snap, diags
 	}
 
 	if currentStateMeta != nil {
@@ -343,7 +350,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 			errSummary,
 			fmt.Sprintf("Failed to read plan from plan file: %s.", err),
 		))
-		return nil, snap, diags
+		return run, snap, diags
 	}
 	// When we're applying a saved plan, we populate Plan instead of PlanOpts,
 	// because a plan object incorporates the subset of data from PlanOps that
@@ -377,7 +384,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 	run.Core = tfCtx
 
@@ -595,4 +602,13 @@ func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsi
 		SourceType:  terraform.ValueFromConfig,
 		SourceRange: tfdiags.SourceRangeFromHCL(v.Expr.Range()),
 	}, diags
+}
+
+// providerLocksSnapshot returns a read-only snapshot of provider locks for
+// use during graph walks. Returns nil if locks is nil.
+func providerLocksSnapshot(locks *depsfile.Locks) map[addrs.Provider]*depsfile.ProviderLock {
+	if locks == nil {
+		return nil
+	}
+	return locks.AllProviders()
 }
