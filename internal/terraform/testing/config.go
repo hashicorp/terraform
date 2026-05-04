@@ -43,7 +43,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
 
-	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false)
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, initwd.ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()
