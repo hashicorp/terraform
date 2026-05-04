@@ -34,6 +34,8 @@ type Operation interface {
 	PlanNextStep(planPath string, genConfigPath string)
 
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	PolicyResults(results *plans.PolicyResults)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -129,6 +131,10 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
+}
+
+func (v *OperationHuman) PolicyResults(results *plans.PolicyResults) {
+	v.view.PolicyResults(results)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -288,6 +294,10 @@ func (v *OperationJSON) PlanNextStep(planPath string, genConfigPath string) {
 
 func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *OperationJSON) PolicyResults(results *plans.PolicyResults) {
+	v.view.PolicyResults(results)
 }
 
 const fatalInterrupt = `

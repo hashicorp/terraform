@@ -24,7 +24,7 @@ import (
 )
 
 // Context implements backendrun.Local.
-func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Remote) LocalRun(ctx context.Context, op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := &backendrun.LocalRun{
 		PlanOpts: &terraform.PlanOpts{
@@ -33,7 +33,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 		},
 	}
 
-	op.StateLocker = op.StateLocker.WithContext(context.Background())
+	op.StateLocker = op.StateLocker.WithContext(ctx)
 
 	// Get the remote workspace name.
 	remoteWorkspaceName := b.getRemoteWorkspaceName(op.Workspace)
@@ -169,6 +169,10 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 	log.Printf("[TRACE] backend/remote: finished building terraform.Context")
 
 	return ret, stateMgr, diags
+}
+
+func (b *Remote) Finish() {
+	// nothing to do
 }
 
 func (b *Remote) getRemoteWorkspaceName(localWorkspaceName string) string {

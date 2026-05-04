@@ -159,7 +159,7 @@ func (b *TestVariableBackend) FetchVariables(ctx context.Context, workspace stri
 	return result, nil
 }
 
-func (b *TestVariableBackend) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+func (b *TestVariableBackend) LocalRun(ctx context.Context, op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	// Sometimes a command (like graph) requires a local backend. The cloud
 	// backend implements LocalRun and will fetch variables from the backend.
 	// But our mock TestVariableBackend will fail in these tests, because it
@@ -177,7 +177,11 @@ func (b *TestVariableBackend) LocalRun(op *backendrun.Operation) (*backendrun.Lo
 		}
 	}
 
-	return b.Local.LocalRun(op)
+	return b.Local.LocalRun(ctx, op)
+}
+
+func (b *TestVariableBackend) Finish() {
+
 }
 
 type testUnparsedVariableValueString struct {

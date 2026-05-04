@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -201,6 +202,8 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
+	policyPaths []string
+
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
@@ -284,6 +287,7 @@ type Meta struct {
 type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
+	PolicyClient policy.Client
 }
 
 // initStatePaths is used to initialize the default values for

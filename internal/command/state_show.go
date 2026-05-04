@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -93,7 +94,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Get the context (required to get the schemas)
-	lr, _, ctxDiags := local.LocalRun(opReq)
+	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
+	defer lr.Finish()
+
 	if ctxDiags.HasErrors() {
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
