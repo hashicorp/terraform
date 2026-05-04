@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy/callback"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -155,6 +157,12 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return h.PostListQuery(rId, results, identityVersion)
 	})
 
+	// Post-list query policy evaluation
+	policyDiags := n.EvalListPolicy(ctx, results)
+	if policyDiags.HasErrors() {
+		return diags.Append(policyDiags)
+	}
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
@@ -162,5 +170,49 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	ctx.Changes().AppendQueryInstance(query)
+	return diags
+}
+
+func (n *NodePlannableResourceInstance) EvalListPolicy(ctx EvalContext, results plans.QueryResults) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+	provider, schema, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	callbacks := callback.Functions{
+		GetResources:  getResourcesForPolicyCallback(ctx, ctx.Config()),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaConfigVal),
+	}
+
+	meta := &proto.ResourceMetadata{
+		Type:         n.Addr.Resource.Resource.Type,
+		ProviderType: n.ResolvedProvider.Provider.Type,
+	}
+
+	for _, data := range results.Value.GetAttr("data").AsValueSlice() {
+		state := data.GetAttr("state")
+		if state.IsNull() {
+			// then the user hasn't set the "include_resource" attribute, so
+			// we can't validate things.
+			continue
+		}
+		// now query the returned state
+		result := evaluatePolicies(ctx, walkPlan, n.Addr, n.Config, ctx.PolicyClient(), state, cty.NilVal, meta, callbacks)
+		if ctx.PolicyResults() != nil {
+			ctx.PolicyResults().AddResource(n.Addr, result, n.Config)
+		}
+	}
 	return diags
 }
