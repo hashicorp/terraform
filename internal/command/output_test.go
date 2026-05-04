@@ -463,3 +463,77 @@ func TestOutputRaw_warningsSuppressed(t *testing.T) {
 		t.Fatalf("expected output \"bar\", got: %#v", actual)
 	}
 }
+
+func TestOutputJSON_warningsSuppressed(t *testing.T) {
+	// Pre-populate the inmem backend with a state containing an output value
+	inmem.Reset()
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Register a backend that wraps inmem with a deprecation warning,
+	// simulating a backend like S3 whose PrepareConfig warns about
+	// deprecated attributes (e.g. dynamodb_table). The same fixture
+	// powering TestOutputRaw_warningsSuppressed also reproduces the
+	// `-json` issue reported in #38512.
+	backendInit.Set("inmem", func() backend.Backend {
+		return &deprecatedInmemBackend{Backend: inmem.New()}
+	})
+	defer backendInit.Set("inmem", inmem.New)
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("output-backend-with-deprecation"), td)
+	t.Chdir(td)
+
+	// Write the state into the inmem backend's default workspace
+	b := inmem.New()
+	b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"lock_id": cty.NullVal(cty.String),
+	}))
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	sMgr.WriteState(originalState)
+	if err := sMgr.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-json", "foo"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit code %d\nstderr:\n%s", code, output.Stderr())
+	}
+
+	// The key assertion: warnings must not appear on stdout because the
+	// caller is piping the output to `jq` or similar and any non-JSON
+	// content there breaks that pipeline. They are also not expected on
+	// stderr in this run because there was no error to surface.
+	stdout := output.Stdout()
+	if strings.Contains(stdout, "deprecated") {
+		t.Fatalf("warnings should be suppressed from stdout in -json mode, got:\n%s", stdout)
+	}
+	stderr := output.Stderr()
+	if strings.Contains(stderr, "deprecated") {
+		t.Fatalf("warnings should be suppressed in -json mode, got on stderr:\n%s", stderr)
+	}
+
+	// What remains on stdout must be parseable JSON containing the value.
+	actual := strings.TrimSpace(stdout)
+	if actual != `"bar"` {
+		t.Fatalf(`expected output "\"bar\"", got: %#v`, actual)
+	}
+}

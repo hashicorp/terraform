@@ -258,7 +258,13 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 }
 
 func (v *OutputJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	// filter out warnings as these wouldn't be expected in JSON mode
+	// either: pipelines like `terraform output -json | jq` cannot
+	// tolerate non-JSON content on stdout, and warnings typically don't
+	// influence the exit code so the user cannot expect them in stdout.
+	// Mirrors the same suppression added for `-raw` in #38487.
+	errsOnly := diags.ErrorsOnly()
+	v.view.Diagnostics(errsOnly)
 }
 
 // For text and raw output modes, an empty map of outputs is considered a

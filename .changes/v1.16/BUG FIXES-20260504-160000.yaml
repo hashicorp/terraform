@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Avoid warnings on stdout in 'terraform output -json' so the result remains parseable JSON
+time: 2026-05-04T16:00:00.000000+00:00
+custom:
+    Issue: "38512"
