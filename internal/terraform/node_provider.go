@@ -11,6 +11,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -40,18 +42,18 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	switch op {
 	case walkValidate:
 		log.Printf("[TRACE] NodeApplyableProvider: validating configuration for %s", n.Addr)
-		return diags.Append(n.ValidateProvider(ctx, provider))
+		return diags.Append(n.ValidateProvider(ctx, op, provider))
 	case walkPlan, walkPlanDestroy, walkApply, walkDestroy:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s", n.Addr)
-		return diags.Append(n.ConfigureProvider(ctx, provider, false))
+		return diags.Append(n.ConfigureProvider(ctx, op, provider, false))
 	case walkImport:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s (requiring that configuration is wholly known)", n.Addr)
-		return diags.Append(n.ConfigureProvider(ctx, provider, true))
+		return diags.Append(n.ConfigureProvider(ctx, op, provider, true))
 	}
 	return diags
 }
 
-func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, op walkOperation, provider providers.Interface) (diags tfdiags.Diagnostics) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())
 
@@ -107,7 +109,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 // ConfigureProvider configures a provider that is already initialized and retrieved.
 // If verifyConfigIsKnown is true, ConfigureProvider will return an error if the
 // provider configVal is not wholly known and is meant only for use during import.
-func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, verifyConfigIsKnown bool) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperation, provider providers.Interface, verifyConfigIsKnown bool) (diags tfdiags.Diagnostics) {
 	config := n.ProviderConfig()
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
@@ -155,12 +157,12 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	// If our config value contains any marked values, ensure those are
 	// stripped out before sending this to the provider
-	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	n.cachedUnmarkedConfigValue, _ = configVal.UnmarkDeep()
 
 	// Allow the provider to validate and insert any defaults into the full
 	// configuration.
 	req := providers.ValidateProviderConfigRequest{
-		Config: unmarkedConfigVal,
+		Config: n.cachedUnmarkedConfigValue,
 	}
 
 	// ValidateProviderConfig is only used for validation. We are intentionally
@@ -185,11 +187,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	// If the provider returns something different, log a warning to help
 	// indicate to provider developers that the value is not used.
 	preparedCfg := validateResp.PreparedConfig
-	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
+	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(n.cachedUnmarkedConfigValue) {
 		log.Printf("[WARN] ValidateProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
+	configDiags := ctx.ConfigureProvider(n.Addr, n.cachedUnmarkedConfigValue)
 	diags = diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() && config == nil {
 		// If there isn't an explicit "provider" block in the configuration,
@@ -201,7 +203,66 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
 		))
 	}
+
+	// Post-provider config policy evaluation
+	policyDiags := n.EvalPolicy(ctx, op, n.cachedUnmarkedConfigValue)
+	diags = diags.Append(policyDiags)
+	if policyDiags.HasErrors() {
+		return diags
+	}
+
 	return diags
+}
+
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, attrs cty.Value) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
+		return nil
+	}
+	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.ProviderMetadata]{
+		Target: n.Addr.Provider.Type,
+		Attrs:  attrs,
+		Meta: &proto.ProviderMetadata{
+			Name:       n.LocalName,
+			Alias:      n.Addr.Alias,
+			Type:       n.Addr.Provider.Type,
+			Namespace:  n.Addr.Provider.Namespace,
+			Source:     n.Addr.Provider.String(),
+			ModulePath: n.Addr.Module.String(),
+			Version:    n.providerVersion(ctx),
+		},
+	})
+
+	// if this was an "implicit provider", and we have no configuration
+	// for it, There's going to be no source information for these errors.
+	if n.Config != nil {
+		ptr := n.Config.DeclRange.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
+	// always add the result to the policy results
+	if ctx.PolicyResults() != nil {
+		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
+	}
+
+	return nil
+}
+
+// providerVersion returns the exact locked version for this provider from the
+// dependency lock file (e.g. "5.31.0"). Returns an empty string if no lock
+// file entry is available for this provider.
+func (n *NodeApplyableProvider) providerVersion(ctx EvalContext) string {
+	if providerLocks := ctx.ProviderLocks(); providerLocks != nil {
+		if lock := providerLocks[n.Addr.Provider]; lock != nil {
+			return lock.Version().String()
+		}
+	}
+	return ""
 }
 
 // nodeExternalProvider is used instead of [NodeApplyableProvider] when an

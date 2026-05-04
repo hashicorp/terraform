@@ -637,6 +637,10 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 						Sensitive: true,
 						Optional:  true,
 					},
+					"defer": {
+						Type:     cty.Bool,
+						Optional: true,
+					},
 					"random": {
 						Type:     cty.String,
 						Optional: true,

@@ -10,7 +10,10 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
@@ -22,6 +25,10 @@ type nodeExpandModule struct {
 	Addr       addrs.Module
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
+
+	// ModuleTree is the configuration bundle within the source that this module call
+	// refers to.
+	ModuleTree *configs.Config
 }
 
 var (
@@ -160,6 +167,10 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 		}
 	}
 
+	if !diags.HasErrors() {
+		return diags.Append(n.EvalPolicy(globalCtx, op))
+	}
+
 	return diags
 
 }
@@ -295,5 +306,53 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 		expander.SetModuleSingle(module, call)
 	}
 
+	if !diags.HasErrors() {
+		return diags.Append(n.EvalPolicy(globalCtx, op))
+	}
+
 	return diags
+}
+
+func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
+		return nil
+	}
+
+	configBundle := n.ModuleTree
+	source := configBundle.SourceAddr.String()
+
+	// Evaluate the module policy with just the metadata. Module variables cannot be sent here,
+	// because it is possible for them to depend on the module's output values, which are not available until after the module is expanded.
+	result := ctx.PolicyClient().EvaluateModule(ctx.StopCtx(), policy.EvaluationRequest[*proto.ModuleMetadata]{
+		Attrs:  cty.NilVal,
+		Target: source,
+		Meta: &proto.ModuleMetadata{
+			Address: n.Addr.String(),
+			Source:  source,
+			Version: func() string {
+				if configBundle.Version == nil {
+					return ""
+				}
+				return configBundle.Version.String()
+			}(),
+		},
+	})
+
+	if n.ModuleCall.Config != nil {
+		ptr := n.ModuleCall.DeclRange.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
+	// always add the result to the policy results
+	if ctx.PolicyResults() != nil {
+		ctx.PolicyResults().AddModule(n.Addr, result, n.ModuleCall)
+	}
+
+	return nil
 }

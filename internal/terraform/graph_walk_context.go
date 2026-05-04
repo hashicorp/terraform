@@ -15,12 +15,14 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -63,6 +65,11 @@ type ContextGraphWalker struct {
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
+
+	Locks map[addrs.Provider]*depsfile.ProviderLock
+
+	PolicyClient  policy.Client
+	PolicyResults *plans.PolicyResults
 
 	once               sync.Once
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
@@ -147,6 +154,9 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
 		ActionsValue:            w.Actions,
+		LocksValue:              w.Locks,
+		PolicyClientValue:       w.PolicyClient,
+		PolicyResultsValue:      w.PolicyResults,
 		DeprecationsValue:       w.Deprecations,
 	}
 

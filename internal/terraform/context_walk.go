@@ -12,12 +12,14 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
@@ -81,6 +83,11 @@ type graphWalkOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	Locks map[addrs.Provider]*depsfile.ProviderLock
+
+	PolicyClient  policy.Client
+	PolicyResults *plans.PolicyResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -202,6 +209,9 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
 		Actions:                 actions.NewActions(),
+		Locks:                   opts.Locks,
+		PolicyClient:            opts.PolicyClient,
+		PolicyResults:           opts.PolicyResults,
 		Deprecations:            deprecation.NewDeprecations(),
 	}
 }

@@ -432,6 +432,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
+		// Post-plan policy evaluation
+		// If this plan is a pre-destroy refresh, we do not evaluate policy
+		// so that we don't end up evaluating policy for the to-be-destroyed state.
+		// A post-plan policy evaluation will be performed from NodePlanDestroyableResourceInstance.
+		// If the resource is deferred, we also do not evaluate policy.
+		if !n.preDestroyRefresh && deferred == nil {
+			policyDiags := n.EvalPolicy(ctx, walkPlan, change.Action, change.After, change.Before)
+			diags = diags.Append(policyDiags)
+			if policyDiags.HasErrors() {
+				return diags
+			}
+		}
+
 		deferrals := ctx.Deferrals()
 		if deferred != nil {
 			// Then this resource has been deferred either during the import,
