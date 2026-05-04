@@ -109,82 +109,18 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 
 	// Evaluate the type attribute
 	if n.Config.TypeExpr != nil {
-		refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.TypeExpr)
-		diags = diags.Append(refsDiags)
+		scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+		ty, constraintType, tyDefaults, parseMode, tyDiags := evalVariableTypeExpr(n.Config.TypeExpr, scope)
+		diags = diags.Append(tyDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		if len(refs) > 0 {
-			for _, ref := range refs {
-				switch ref.Subject.(type) {
-				case addrs.TypeDefinition, addrs.ModuleCallInstanceOutput:
-					// These are allowed
-				default:
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid type specification",
-						Detail:   "The variable type can only reference type definitions.",
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-					return diags
-				}
-			}
-
-			// TODO: Ensure that type definition is added to the reference evaluator (the context)
-			// this will end up being the capsule type/value
-			tyVal, valueDiags := ctx.EvaluateExpr(n.Config.TypeExpr, typeDefCtyType, nil)
-			diags = diags.Append(valueDiags)
-			if diags.HasErrors() {
-				return diags
-			}
-
-			if tyVal.IsKnown() {
-				typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
-				if !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid type specification",
-						Detail:   "The variable type can only reference type definitions.",
-						Subject:  &n.Config.DeclRange, // TODO: this isn't the right range, it should be of the type :P
-					})
-					return diags
-				}
-
-				// TODO: this isn't updating the actual config representation, but not sure that it matters?
-				// It seems like we probably should be updating it, but not sure if:
-				// 		1) that's allowed/expected?
-				// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
-				n.Config.ConstraintType = typeDef.ConstraintType
-				n.Config.Type = typeDef.Definition
-				n.Config.TypeDefaults = typeDef.TypeDefaults
-
-				if typeDef.Definition.IsPrimitiveType() {
-					n.Config.ParsingMode = configs.VariableParseLiteral
-				} else {
-					n.Config.ParsingMode = configs.VariableParseHCL
-				}
-			} else {
-				n.Config.ConstraintType = cty.DynamicPseudoType
-				n.Config.Type = cty.DynamicPseudoType
-			}
-
-		} else {
-			ty, tyDefaults, parseMode, tyDiags := configs.DecodeVariableType(n.Config.TypeExpr)
-			diags = diags.Append(tyDiags)
-			if diags.HasErrors() {
-				return diags
-			}
-
-			// TODO: this isn't updating the actual config representation, but not sure that it matters?
-			// It seems like we probably should be updating it, but not sure if:
-			// 		1) that's allowed/expected?
-			// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
-			n.Config.ConstraintType = ty
-			n.Config.TypeDefaults = tyDefaults
-			n.Config.Type = ty.WithoutOptionalAttributesDeep()
-			n.Config.ParsingMode = parseMode
-		}
+		// TODO: this isn't updating the actual config representation, but not sure that is okay/expected?
+		n.Config.Type = ty
+		n.Config.ConstraintType = constraintType
+		n.Config.TypeDefaults = tyDefaults
+		n.Config.ParsingMode = parseMode
 	}
 
 	// Evaluate the default attribute
@@ -195,10 +131,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 			return diags
 		}
 
-		// TODO: this isn't updating the actual config representation, but not sure that it matters?
-		// It seems like we probably should be updating it, but not sure if:
-		// 		1) that's allowed/expected?
-		// 		2) we need to? (downside ofc being we evaluate the expression every time :P)
+		// TODO: this isn't updating the actual config representation, but not sure that is okay/expected?
 		n.Config.Default = val
 	}
 

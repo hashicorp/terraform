@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -517,4 +518,71 @@ You can correct this by removing references to ephemeral values, or by carefully
 		Status:         status,
 		FailureMessage: errorMessage,
 	}, diags
+}
+
+func evalVariableTypeExpr(typeExpr hcl.Expression, scope *lang.Scope) (cty.Type, cty.Type, *typeexpr.Defaults, configs.VariableParsingMode, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, typeExpr)
+	diags = diags.Append(refsDiags)
+	if diags.HasErrors() {
+		return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+	}
+
+	// No references, so we can decode the type with just the configuration of the variable
+	if len(refs) == 0 {
+		ty, tyDefaults, parseMode, tyDiags := configs.DecodeVariableType(typeExpr)
+		diags = diags.Append(tyDiags)
+		if diags.HasErrors() {
+			return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+		}
+
+		return ty.WithoutOptionalAttributesDeep(), ty, tyDefaults, parseMode, diags
+	}
+
+	for _, ref := range refs {
+		switch ref.Subject.(type) {
+		case addrs.TypeDefinition, addrs.ModuleCallInstanceOutput:
+			// These are allowed
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid type specification",
+				Detail:   "The variable type can only reference type definitions.",
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+		}
+	}
+
+	tyVal, valueDiags := scope.EvalExpr(typeExpr, typeDefCtyType)
+	diags = diags.Append(valueDiags)
+	if diags.HasErrors() {
+		return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+	}
+
+	// If the type value is unknown then the definition might be in a module that hasn't been expanded yet (during the init or validate graph)
+	if !tyVal.IsKnown() {
+		return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+	}
+
+	typeDef, ok := tyVal.EncapsulatedValue().(*configs.TypeDef)
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid type specification",
+			Detail:   "The variable type can only reference type definitions.",
+			Subject:  typeExpr.Range().Ptr(),
+		})
+		return cty.DynamicPseudoType, cty.DynamicPseudoType, nil, configs.VariableParseLiteral, diags
+	}
+
+	var parseMode configs.VariableParsingMode
+	if typeDef.Definition.IsPrimitiveType() {
+		parseMode = configs.VariableParseLiteral
+	} else {
+		parseMode = configs.VariableParseHCL
+	}
+
+	return typeDef.Definition.WithoutOptionalAttributesDeep(), typeDef.ConstraintType, typeDef.TypeDefaults, parseMode, diags
 }
