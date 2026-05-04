@@ -199,6 +199,10 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		}
 	}
 
+	if len(op.PolicyPaths) != 0 {
+		runOptions.PolicyPaths = append(runOptions.PolicyPaths, op.PolicyPaths...)
+	}
+
 	runVariables, err := b.parseRunVariables(op)
 	if err != nil {
 		return nil, err
@@ -316,6 +320,10 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		if err != nil {
 			return r, err
 		}
+	}
+
+	if len(r.PolicyPaths) > 0 && shouldRenderPlan(r) {
+		b.renderer.Streams.Println(b.Colorize().Color(tfpolicyEvalSuccessful))
 	}
 
 	return r, nil
@@ -571,4 +579,8 @@ https://%s/app/%s/%s/runs/%s
 const lockTimeoutErr = `
 [reset][red]Lock timeout exceeded, sending interrupt to cancel the remote operation.
 [reset]
+`
+
+const tfpolicyEvalSuccessful = `
+[reset][green]Terraform policies evaluated successfully.[reset]
 `

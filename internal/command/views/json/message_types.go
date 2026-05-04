@@ -59,4 +59,9 @@ const (
 	MessageActionProgress MessageType = "action_progress"
 	MessageActionComplete MessageType = "action_complete"
 	MessageActionErrored  MessageType = "action_errored"
+
+	// Policy messages
+	MessagePolicyInfo             MessageType = "policy_info"
+	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
+	MessagePolicyEvaluationResult MessageType = "policy_result"
 )

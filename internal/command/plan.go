@@ -4,12 +4,15 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -32,6 +35,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
+	c.Meta.policyPaths = args.PolicyPaths
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -79,7 +83,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -133,14 +137,7 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	return be, diags
 }
 
-func (c *PlanCommand) OperationRequest(
-	be backendrun.OperationsBackend,
-	view views.Plan,
-	viewType arguments.ViewType,
-	args *arguments.Operation,
-	planOutPath string,
-	generateConfigOut string,
-) (*backendrun.Operation, tfdiags.Diagnostics) {
+func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view views.Plan, viewType arguments.ViewType, args *arguments.Operation, planOutPath string, generateConfigOut string, policyPaths []string) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
@@ -156,6 +153,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.ActionTargets = args.ActionTargets
+	opReq.PolicyPaths = policyPaths
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
@@ -176,6 +174,15 @@ func (c *PlanCommand) OperationRequest(
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
 		return nil, diags
+	}
+
+	if len(c.policyPaths) > 0 {
+		var policyDiags policy.Diagnostics
+		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
+		// if there has been any errors when setting up the policy client, we'll want to log them
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+		}
 	}
 
 	return opReq, diags

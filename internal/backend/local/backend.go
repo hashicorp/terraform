@@ -13,6 +13,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -21,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -111,6 +112,10 @@ func NewWithBackend(backend backend.Backend) *Local {
 	return &Local{
 		Backend: backend,
 	}
+}
+
+func (b *Local) Finish() {
+	// nothing to do
 }
 
 func (b *Local) ConfigSchema() *configschema.Block {
