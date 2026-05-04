@@ -1,0 +1,37 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
+
+service CallbackService {
+  rpc GetResources(GetResourcesRequest) returns (GetResourcesResponse);
+  rpc GetDataSource(GetDataSourceRequest) returns (GetDataSourceResponse);
+}
+
+message GetResourcesRequest {
+  string type = 1;
+  bytes data = 2;
+  // evaluation_request_id is the ID of the policy evaluation request that is
+  // making this callback request.
+  uint32 evaluation_request_id = 3;
+}
+
+message GetResourcesResponse {
+  repeated bytes results = 1;
+}
+
+message GetDataSourceRequest {
+  string type = 1;
+  bytes data = 2;
+  // evaluation_request_id is the ID of the policy evaluation request that is
+  // making this callback request.
+  uint32 evaluation_request_id = 3;
+}
+
+message GetDataSourceResponse {
+  bytes result = 1;
+}

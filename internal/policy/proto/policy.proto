@@ -1,0 +1,206 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
+
+import "diagnostics.proto";
+import "types.proto";
+
+// Policy is the main service published by the plugin.
+service Policy {
+  // Setup allows the client and server to exchange known capabilities so they
+  // trigger alternate behaviour to maintain forwards and backwards
+  // compatibility. In addition, this call tells the plugin where to load the
+  // Terraform Policy files from.
+  rpc Setup(PolicySetupRequest) returns (PolicySetupResponse) {}
+  // Evaluate evaluates a resource against the store policies. Essentially,
+  // this function simply calls the equivalent Evaluate function on the
+  // internal Policy go-library.
+  rpc EvaluateResource(PolicyEvaluateResourceRequest) returns (PolicyEvaluateResourceResponse) {}
+  // EvaluateProvider evaluates a provider configuration against the store policies.
+  // This method is specifically designed for provider-level policy evaluation.
+  rpc EvaluateProvider(PolicyEvaluateProviderRequest) returns (PolicyEvaluateProviderResponse) {}
+  // EvaluateModule evaluates a module configuration against the store modules.
+  // This method is specifically designed for module-level policy evaluation.
+  rpc EvaluateModule(PolicyEvaluateModuleRequest) returns (PolicyEvaluateModuleResponse) {}
+}
+
+// SetupRequest is the message body for the Setup RPC.
+message PolicySetupRequest {
+
+  // ClientCapabilities are the set of capabilities the client supports.
+  // At launch, this is empty as we don't have any backwards or forwards
+  // compatibility concerns to worry about.
+  message ClientCapabilities {}
+
+  // client_capabilities should be populated by the client to indicate which
+  // behaviours the client is aware of.
+  ClientCapabilities client_capabilities = 1;
+
+  // source_locations is the list of locations that Policy should use to
+  // source policies. At launch, this will just be local directories but could
+  // in future be extended to include remote sources.
+  repeated string source_locations = 2;
+
+  // callback_service allows Terraform Policy to use the Callback Service API.
+  uint32 callback_service = 3;
+}
+
+// SetupResponse is the message response for the Setup RPC.
+message PolicySetupResponse {
+
+  // A single terraform_configuration block for a Policy file.
+  message TerraformConfiguration {
+    string required_version = 1;
+  }
+
+  // ServerCapabilities are the set of capabilities the server supports.
+  message ServerCapabilities {
+    // All loaded terraform_configuration blocks keyed by Policy file path.
+    map<string, TerraformConfiguration> configurations = 1;
+  }
+
+  // service_capabilities will be populated by the server to indicate which
+  // behaviours the client should expect from the server.
+  ServerCapabilities server_capabilities = 1;
+
+  // The diagnostics will contain any errors or warnings as a result of loading
+  // the Terraform Policy files.
+  repeated Diagnostic diagnostics = 2;
+}
+
+
+// EvaluateResourceRequest is the message body for the EvaluateResource RPC.
+message PolicyEvaluateResourceRequest {
+  // evaluation_id uniquely identifies the policy evaluation request.
+  // The callback service also uses this ID to retrieve the functions
+  // that will be called during this resource's policy evaluation.
+  uint32 evaluation_id = 1;
+
+  // resource is the resource type that the value represents.
+  string resource = 2;
+
+  // attrs contains the data that will eventually be made available within the
+  // resource_value data referenced within Terraform Policy files.
+  bytes attrs = 3;
+
+  // metadata contains the data that will eventually be made available within
+  // the meta object referenced within Terraform Policy files.
+  ResourceMetadata metadata = 4;
+
+  // prior_attrs contains the state of the resource prior to the current operation.
+  bytes prior_attrs = 5;
+}
+
+// PolicyEvaluationDetail contains detailed information about a single policy evaluation
+message PolicyEvaluationDetail {
+  // Address contains the policy address/identifier
+  string address = 1;
+
+  // Result contains the evaluation result for this specific policy
+  EvaluateResult result = 2;
+
+  // File contains the source file path for this policy
+  string file = 3;
+
+  // DefRange contains the range of the entire policy block (for highlighting when policy passes)
+  Range def_range = 4;
+
+  // PolicySetName contains the policy set name from metadata (optional)
+  string policy_set_name = 5;
+
+  // PolicySetEnforcement contains framework-level enforcement preference (optional)
+  string policy_set_enforcement = 6;
+
+  // EnforceResults contains results for each enforce block in the policy
+  repeated EnforceBlockResult enforce_results = 7;
+
+  // Diagnostics contains policy-specific diagnostics
+  repeated Diagnostic diagnostics = 8;
+}
+
+// EnforceBlockResult contains information about a single enforce block evaluation
+message EnforceBlockResult {
+  // Result contains the evaluation result for this enforce block
+  EvaluateResult result = 1;
+
+  // ConditionPassed indicates whether the condition evaluated to true
+  bool condition_passed = 2;
+
+  // Message contains info message (from info_message attribute)
+  string message = 3;
+
+  // Range contains the range of the enforce block (for highlighting when enforce fails)
+  Range range = 4;
+
+  // Diagnostics contains enforce block specific diagnostics
+  repeated Diagnostic diagnostics = 5;
+
+  // Snippet contains code snippet of the enforce block
+  Snippet snippet = 6;
+
+  // BlockIndex contains the index of this enforce block within the policy
+  int32 block_index = 7;
+}
+
+// EvaluateResourceResponse is the message response for the EvaluateResource RPC.
+message PolicyEvaluateResourceResponse {
+  // Result contains a single value for the overall result of the evaluate RPC.
+  // This allows users to differentiate between different types of diagnostics.
+  EvaluateResult result = 1;
+
+  // PolicyDetails contains detailed information about each policy evaluation
+  repeated PolicyEvaluationDetail policy_details = 2;
+}
+
+// EvaluateProviderRequest is the message body for the EvaluateProvider RPC.
+message PolicyEvaluateProviderRequest {
+  // provider_type is the type of the provider (e.g., "aws").
+  string provider_type = 1;
+
+  // attrs contains the provider configuration data that will be made available within the
+  // provider_value data referenced within Terraform Policy files.
+  bytes attrs = 2;
+
+  // metadata contains the provider metadata that will be made available within the
+  // provider_metadata data referenced within Terraform Policy files.
+  ProviderMetadata metadata = 3;
+}
+
+// EvaluateProviderResponse is the message response for the EvaluateProvider RPC.
+message PolicyEvaluateProviderResponse {
+  // Result contains a single value for the overall result of the evaluate provider RPC.
+  // This allows users to differentiate between different types of diagnostics.
+  EvaluateResult result = 1;
+
+  // PolicyDetails contains detailed information about each policy evaluation
+  repeated PolicyEvaluationDetail policy_details = 2;
+}
+
+// EvaluateModuleRequest is the message body for the EvaluateModule RPC.
+message PolicyEvaluateModuleRequest {
+  // module_source is the source for the module that is used (e.g., "./modules/s3_bucket")
+  string module_source = 1;
+
+  // attrs contains the module configuration data that will be made available within the
+  // module_value data referenced within Terraform Policy files.
+  bytes attrs = 2;
+
+  // metadata contains the module metadata that will be made available within the
+  // meta object referenced within module policy blocks.
+  ModuleMetadata metadata = 3;
+}
+
+// EvaluateModuleResponse is the message response for the EvaluateModule RPC.
+message PolicyEvaluateModuleResponse {
+  // Result contains a single value for the overall result of the evaluate module RPC.
+  // This allows users to differentiate between different types of diagnostics.
+  EvaluateResult result = 1;
+
+  // PolicyDetails contains detailed information about each policy evaluation
+  repeated PolicyEvaluationDetail policy_details = 2;
+}

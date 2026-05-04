@@ -1,0 +1,98 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
+
+import "types.proto";
+
+enum Severity {
+  INVALID = 0;
+  WARNING = 1;
+  ERROR = 2;
+}
+
+// Diagnostic is a message that represents a diagnostic message that can be
+// returned by the Terraform Policy server.
+message Diagnostic {
+  Severity severity = 1;
+  string summary = 2;
+  string detail = 3;
+
+  Range subject = 4;
+  Range context = 5;
+
+  // the result allows Terraform to differentiate between a diagnostic
+  // originating from an error or a denied evaluation.
+  DiagnosticResult result = 6;
+
+  // a diagnostic can be associated with a specific attribute in the Terraform
+  // resource.
+  AttributePath attribute = 7;
+
+  // if the server had access to the source code that generated the diagnostic,
+  // it can provide a snippet of the code that caused the diagnostic.
+  Snippet snippet = 8;
+
+  // if the diagnostic is associated with an expression, the values for
+  // variables in the expression can be provided.
+  repeated ExpressionValue expression_values = 9;
+
+  // if the diagnostic originated inside a function call, we can provide that
+  // metadata as well.
+  string function_call = 10;
+
+  // policy set information for the diagnostic
+  PolicySet policy_set = 11;
+}
+
+message PolicySet {
+  string name = 1;
+  string path = 2;
+}
+
+message Range {
+  string filename = 1;
+  Position start = 2;
+  Position end = 3;
+}
+
+message Position {
+  int64 line = 1;
+  int64 column = 2;
+  int64 byte = 3;
+}
+
+message Snippet {
+  message Context {
+    string context = 1;
+  }
+
+  Context context = 1;
+  string code = 2;
+  int64 start_line = 3;
+  int64 highlight_start_offset = 4;
+  int64 highlight_end_offset = 5;
+}
+
+message AttributePath {
+  message Step {
+    oneof step {
+      string attribute = 1;
+      bytes index = 2;
+    }
+  }
+  repeated Step steps = 1;
+}
+
+message ExpressionValue {
+  AttributePath path = 1;
+  bytes value = 2;
+}
+
+message DiagnosticResult {
+  EvaluateResult result = 1;
+}

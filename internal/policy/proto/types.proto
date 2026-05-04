@@ -1,0 +1,76 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
+
+// EvaluateResult contains a single value for the overall result of the evaluate
+// RPC. This allows users to differentiate between different types of
+// diagnostics.
+enum EvaluateResult {
+  // INVALID means the result that was set by the server wasn't recognized by
+  // the client. This means a future version of Terraform Policy has introduced
+  // a new result type, and the client isn't aware of this. Clients should
+  // handle this gracefully.
+  INVALID_EVALUATE_RESULT = 0;
+
+  // UNKNOWN means the result could not be verified at this time. This means
+  // the client sent unknown values to the server as part of the request, and
+  // within Terraform means the request happened at plan time. The
+  // diagnostics will contain only warnings explaning which policies could
+  // not be evaluated.
+  UNKNOWN_EVALUATE_RESULT = 1;
+
+  // ERROR means the policy files themselves were invalid in some way, and so
+  // the policies could not be evaluated. This would cover things like
+  // invalid references or invalid syntax. The diagnostics will contain
+  // errors explaining exactly what went wrong.
+  ERROR_EVALUATE_RESULT = 2;
+
+  // ALLOW means the resource passed all relevant policies. The diagnostics
+  // will not contain any errors, but might contain warnings.
+  ALLOW_EVALUATE_RESULT = 3;
+
+  // DENY means the resource failed at least one relevant policy. The
+  // diagnostics will contain exact explanations as to why and should be
+  // displayed to the user.
+  DENY_EVALUATE_RESULT = 4;
+
+  // SETUP_ERROR means the policy engine failed to set up properly. This
+  // could be due to a missing or invalid configuration file, or a problem
+  // with the policy engine itself. The diagnostics will contain errors
+  // explaining exactly what went wrong.
+  SETUP_ERROR_EVALUATE_RESULT = 5;
+}
+
+// Operation represents the Terraform operation being performed on a resource.
+enum Operation {
+  CREATE = 0;
+  UPDATE = 1;
+  DELETE = 2;
+}
+
+message ResourceMetadata {
+  string type = 1;
+  string provider_type = 2;
+  Operation operation = 3;
+}
+
+message ModuleMetadata {
+  string source = 1;
+  string version = 2;
+  string address = 3;
+}
+
+message ProviderMetadata {
+  string name = 1;
+  string alias = 2;
+  string type = 3;
+  string namespace = 4;
+  string source = 5;
+  string module_path = 6;
+  string version = 7;
+}
