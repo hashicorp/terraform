@@ -223,7 +223,7 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, at
 		Target: n.Addr.Provider.Type,
 		Attrs:  attrs,
 		Meta: &proto.ProviderMetadata{
-			Name:       n.LocalName,
+			Name:       n.Addr.Provider.Type,
 			Alias:      n.Addr.Alias,
 			Type:       n.Addr.Provider.Type,
 			Namespace:  n.Addr.Provider.Namespace,
