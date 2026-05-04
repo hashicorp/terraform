@@ -117,7 +117,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 // policyModuleInstallHook implements initwd.ModuleInstallHook and
 // enables policy evaluation during module installation.
 type policyModuleInstallHook struct {
-	initwd.ModuleInstallHooksImpl
+	initwd.ModuleInstallHookImpl
 	client        policy.Client
 	rootModule    *configs.Module
 	policyResults *plans.PolicyResults
