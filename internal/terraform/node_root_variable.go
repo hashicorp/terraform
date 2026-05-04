@@ -225,6 +225,9 @@ func (n *NodeRootVariable) isConst() bool {
 	return n.Config != nil && n.Config.Const
 }
 
+// TODO: Introducing this to root variables feels incorrect, but it was the only way I could figure
+// how to ensure the type definition in a module was expanded prior to evaluating the type. Feels
+// like a good sign that modules aren't the right fit for custom types.
 func (n *NodeRootVariable) References() []*addrs.Reference {
 	if n.Config == nil || n.Config.TypeExpr == nil {
 		return nil
