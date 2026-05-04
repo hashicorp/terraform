@@ -245,8 +245,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				}
 				stub := &NodeEvalableProvider{
 					&NodeAbstractProvider{
-						LocalName: stubAddr.Provider.Type,
-						Addr:      stubAddr,
+						Addr: stubAddr,
 					},
 				}
 				m[stubAddr.String()] = stub
@@ -405,8 +404,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
-			LocalName: defaultAddr.Provider.Type,
-			Addr:      defaultAddr,
+			Addr: defaultAddr,
 		}).(GraphNodeProvider)
 
 		g.Add(provider)
@@ -619,8 +617,7 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 			}
 
 			abstract := &NodeAbstractProvider{
-				LocalName: name,
-				Addr:      addr,
+				Addr: addr,
 			}
 
 			var v dag.Vertex
@@ -652,8 +649,7 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 		}
 
 		abstract := &NodeAbstractProvider{
-			Addr:      addr,
-			LocalName: p.Name,
+			Addr: addr,
 		}
 		var v dag.Vertex
 		if t.Concrete != nil {
@@ -824,8 +820,7 @@ func (t *externalProviderTransformer) Transform(g *Graph) error {
 			return fmt.Errorf("conflicting %T node for externally-configured provider %s (this is a bug in Terraform)", existing, absAddr)
 		}
 		abstract := &NodeAbstractProvider{
-			Addr:      absAddr,
-			LocalName: absAddr.Provider.Type, // TODO: Set this properly from test and stacks.
+			Addr: absAddr,
 		}
 		concrete := &nodeExternalProvider{
 			NodeAbstractProvider: abstract,
