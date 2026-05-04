@@ -40,6 +40,14 @@ func Override(original Diagnostic, severity Severity, createExtra func() Diagnos
 	}
 }
 
+func OverrideExtra(original Diagnostic, extra any) Diagnostic {
+	return overriddenDiagnostic{
+		original: original,
+		severity: original.Severity(),
+		extra:    extra,
+	}
+}
+
 // UndoOverride will return the original diagnostic that was overridden within
 // the OverrideAll function.
 //

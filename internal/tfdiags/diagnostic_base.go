@@ -13,6 +13,7 @@ type diagnosticBase struct {
 	summary  string
 	detail   string
 	address  string
+	extra    interface{}
 }
 
 var _ Diagnostic = &diagnosticBase{}
@@ -43,5 +44,5 @@ func (d diagnosticBase) FromExpr() *FromExpr {
 }
 
 func (d diagnosticBase) ExtraInfo() interface{} {
-	return nil
+	return d.extra
 }
