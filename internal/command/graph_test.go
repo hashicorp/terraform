@@ -227,7 +227,7 @@ func TestGraph_resourcesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
