@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -22,6 +23,8 @@ type DiffTransformer struct {
 	State    *states.State
 	Changes  *plans.ChangesSrc
 	Config   *configs.Config
+
+	PolicyClient policy.Client
 }
 
 // return true if the given resource instance has either Preconditions or

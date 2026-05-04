@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -172,8 +174,12 @@ type MockEvalContext struct {
 	ActionsCalled bool
 	ActionsState  *actions.Actions
 
-	DeprecationCalled bool
-	DeprecationState  *deprecation.Deprecations
+	ProviderLocksValue map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue  policy.Client
+	PolicyResultsValue *plans.PolicyResults
+	ConfigValue        *configs.Config
+	DeprecationCalled  bool
+	DeprecationState   *deprecation.Deprecations
 }
 
 // MockEvalContext implements EvalContext
@@ -456,6 +462,22 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 func (c *MockEvalContext) Actions() *actions.Actions {
 	c.ActionsCalled = true
 	return c.ActionsState
+}
+
+func (c *MockEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return c.ProviderLocksValue
+}
+
+func (c *MockEvalContext) PolicyClient() policy.Client {
+	return c.PolicyClientValue
+}
+
+func (c *MockEvalContext) Config() *configs.Config {
+	return c.ConfigValue
+}
+
+func (c *MockEvalContext) PolicyResults() *plans.PolicyResults {
+	return c.PolicyResultsValue
 }
 
 func (c *MockEvalContext) Deprecations() *deprecation.Deprecations {

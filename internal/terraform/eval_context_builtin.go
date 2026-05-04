@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -26,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -94,7 +96,26 @@ type BuiltinEvalContext struct {
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
+	LocksValue              map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue       policy.Client
+	PolicyResultsValue      *plans.PolicyResults
 	DeprecationsValue       *deprecation.Deprecations
+}
+
+func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return ctx.LocksValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {
+	return ctx.PolicyClientValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyResults() *plans.PolicyResults {
+	return ctx.PolicyResultsValue
+}
+
+func (ctx *BuiltinEvalContext) Config() *configs.Config {
+	return ctx.Evaluator.Config
 }
 
 // BuiltinEvalContext implements EvalContext

@@ -377,7 +377,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
+	diags = diags.Append(n.postApplyHook(ctx, diffApply.Action, state, diffApply.Change.Before, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
 
 	// Post-conditions might block further progress. We intentionally do this
