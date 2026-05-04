@@ -118,7 +118,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.GenerateConfigPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.GenerateConfigPath, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -164,6 +164,7 @@ func (c *QueryCommand) OperationRequest(
 	view views.Query,
 	viewType arguments.ViewType,
 	generateConfigOut string,
+	policyPaths []string,
 ) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -175,6 +176,7 @@ func (c *QueryCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.View = view.Operation()
 	opReq.Query = true
+	opReq.PolicyPaths = policyPaths
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

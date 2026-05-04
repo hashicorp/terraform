@@ -59,6 +59,8 @@ func (b *Local) opApply(
 
 	// Get our context
 	lr, _, opState, contextDiags := b.localRun(op)
+	defer lr.Finish()
+
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -94,6 +96,8 @@ func (b *Local) opApply(
 	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		// set the policy client to nil for the plan preceding apply
+		lr.PlanOpts.PolicyClient = nil
 		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
@@ -110,6 +114,8 @@ func (b *Local) opApply(
 			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
 				op.View.Plan(plan, schemas)
 			}
+			// Report all policy results that may have accumulated during the plan
+			op.View.PolicyResults(plan.PolicyResults)
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -420,6 +426,10 @@ func (b *Local) opApply(
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
+
+	// We use a new store for the apply policy results, as objects that failed during the plan policy
+	// evaluation may have updated data which yields a different policy evaluation result.
+	policyResults := plans.NewPolicyResults()
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -427,7 +437,10 @@ func (b *Local) opApply(
 
 		log.Printf("[INFO] backend/local: apply calling Apply")
 		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
-			SetVariables: applyTimeValues,
+			SetVariables:  applyTimeValues,
+			Locks:         providerLocksSnapshot(op.DependencyLocks),
+			PolicyClient:  lr.PolicyClient,
+			PolicyResults: policyResults,
 		})
 	}()
 
@@ -435,6 +448,9 @@ func (b *Local) opApply(
 		return
 	}
 	diags = diags.Append(applyDiags)
+
+	// Print the policy results we found during apply
+	op.View.PolicyResults(policyResults)
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.

@@ -97,6 +97,10 @@ func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *QueryOperationHuman) PolicyResults(results *plans.PolicyResults) {
+	v.view.PolicyResults(results)
+}
+
 type QueryOperationJSON struct {
 	view *JSONView
 }
@@ -134,4 +138,8 @@ func (v *QueryOperationJSON) PlanNextStep(planPath string, genConfigPath string)
 
 func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *QueryOperationJSON) PolicyResults(results *plans.PolicyResults) {
+	v.view.PolicyResults(results)
 }
