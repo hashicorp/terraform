@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -519,6 +520,8 @@ You can correct this by removing references to ephemeral values, or by carefully
 		FailureMessage: errorMessage,
 	}, diags
 }
+
+var typeDefCtyType = cty.Capsule("configs.TypeDef", reflect.TypeOf(configs.TypeDef{}))
 
 func evalVariableTypeExpr(typeExpr hcl.Expression, scope *lang.Scope) (cty.Type, cty.Type, *typeexpr.Defaults, configs.VariableParsingMode, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

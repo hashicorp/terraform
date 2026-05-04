@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"log"
-	"reflect"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -60,9 +59,6 @@ func (n *NodeRootVariable) ModulePath() addrs.Module {
 func (n *NodeRootVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
-
-// TODO: move this to somewhere better :P
-var typeDefCtyType = cty.Capsule("configs.TypeDef", reflect.TypeOf(configs.TypeDef{}))
 
 // GraphNodeExecutable
 func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
