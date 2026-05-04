@@ -31,6 +31,9 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -74,7 +77,7 @@ func (c *InitCommand) Run(args []string) int {
 	return c.run(initArgs, view)
 }
 
-func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init, policyClient policy.Client) (output bool, abort bool, policyResults *plans.PolicyResults, diags tfdiags.Diagnostics) {
 	testModules := false // We can also have modules buried in test files.
 	for _, file := range earlyRoot.Tests {
 		for _, run := range file.Runs {
@@ -86,7 +89,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 	if len(earlyRoot.ModuleCalls) == 0 && !testModules {
 		// Nothing to do
-		return false, false, nil
+		return false, false, nil, nil
 	}
 
 	ctx, span := tracer.Start(ctx, "install modules", trace.WithAttributes(
@@ -100,13 +103,24 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		view.Output(views.InitializingModulesMessage)
 	}
 
-	hooks := uiModuleInstallHooks{
+	uiHook := uiModuleInstallHooks{
 		Ui:             c.Ui,
 		ShowLocalPaths: true,
 		View:           view,
 	}
+	hooks := []initwd.ModuleInstallHook{uiHook}
+	var policyHook *policyModuleInstallHook
+	if policyClient != nil {
+		policyResults = plans.NewPolicyResults()
+		policyHook = &policyModuleInstallHook{
+			client:        policyClient,
+			rootModule:    earlyRoot,
+			policyResults: policyResults,
+		}
+		hooks = append(hooks, policyHook)
+	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks...)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
@@ -126,7 +140,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		}
 	}
 
-	return true, installAbort, diags
+	return true, installAbort, policyResults, diags
 }
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
@@ -368,7 +382,7 @@ const (
 // The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook *providerInstallerHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	if config == nil {
 		return false, nil, SafeInitActionNotRelevant, nil, diags
 	}
@@ -495,6 +509,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		ProvidersFetched:     providersFetchedCallback(view),
 	}
 	ctx = evts.OnContext(ctx)
+	inst.SetHook(installerHook)
 
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
@@ -503,18 +518,18 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+	configLocks, installErr := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		view.Diagnostics(diags)
+		view.Diagnostics(diags) // TODO: Why is the output viewed here?
 		return true, nil, SafeInitActionInvalid, nil, diags
 	}
-	if err != nil {
-		// The errors captured in "err" should be redundant with what we
+	if installErr != nil {
+		// The errors captured in "installErr" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
 		// just return those as long as we have some.
 		if !diags.HasErrors() {
-			diags = diags.Append(err)
+			diags = diags.Append(installErr)
 		}
 
 		return true, nil, SafeInitActionInvalid, nil, diags
@@ -562,7 +577,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // The calling code is assumed to have already called getProvidersFromConfig, which is used to
 // supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, pluginDirs []string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook *providerInstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
 
@@ -667,6 +682,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		ProvidersFetched:     providersFetchedCallback(view),
 	}
 	ctx = evts.OnContext(ctx)
+	inst.SetHook(installerHook)
 
 	mode := providercache.InstallNewProvidersOnly
 

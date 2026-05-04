@@ -83,6 +83,10 @@ type Init struct {
 	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
 	// experimental
 	EnablePssExperiment bool
+
+	// PolicyPath contains an optional path to any defined policies that should
+	// be applied for this plan operation.
+	PolicyPaths []string
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
@@ -117,6 +121,7 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.StringVar(&init.StateStoreProviderLockFile, "state-provider-lock-file", "", "path to the dependency lock file used to establish trust in the provider used for state storage. This flag can only be supplied when input is disabled. Defaults to the working directory's .terraform.lock.hcl file.")
+	cmdFlags.Var((*FlagStringSlice)(&init.PolicyPaths), "policies", "policies")
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
