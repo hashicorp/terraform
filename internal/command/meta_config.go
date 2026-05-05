@@ -279,7 +279,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ...initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install modules")
 	defer span.End()
 
@@ -311,9 +311,9 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 			SetVariables: variables,
 		})
 	}
-	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer, hooks...)
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
@@ -334,7 +334,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize directory from module", trace.WithAttributes(
 		attribute.String("source_addr", addr),
 	))
