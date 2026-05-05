@@ -213,9 +213,6 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// set the config sources of the plan
-	plan.ConfigSources = op.ConfigLoader.Sources()
-
 	// Write out any generated config, before we render the plan.
 	wroteConfig, moreDiags := maybeWriteGeneratedConfig(plan, op.GenerateConfigOut)
 	diags = diags.Append(moreDiags)

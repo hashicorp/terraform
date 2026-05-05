@@ -229,6 +229,30 @@ type snippetFormatter struct {
 func (f *snippetFormatter) write() {
 	diag := f.diag
 	buf := f.buf
+
+	snippetPrefix := "  on"
+	if diag.PolicyRange != nil {
+
+		snippetPrefix = "  while evaluating policy for"
+
+		if diag.PolicySnippet == nil {
+			fmt.Fprintf(buf, "  on %s line %d:\n  (source code not available)\n", diag.PolicyRange.Filename, diag.PolicyRange.Start.Line)
+		} else {
+			snippet := diag.PolicySnippet
+			code := snippet.Code
+
+			var contextStr string
+			if snippet.Context != nil {
+				contextStr = fmt.Sprintf(", in %s", *snippet.Context)
+			}
+
+			fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.PolicyRange.Filename, diag.PolicyRange.Start.Line, contextStr)
+			f.writeSnippet(snippet, code)
+		}
+
+		buf.WriteByte('\n')
+	}
+
 	if diag.Address != "" {
 		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
 	}
@@ -242,7 +266,7 @@ func (f *snippetFormatter) write() {
 		// loaded through the main loader. We may load things in other
 		// ways in weird cases, so we'll tolerate it at the expense of
 		// a not-so-helpful error message.
-		fmt.Fprintf(buf, "  on %s line %d:\n  (source code not available)\n", diag.Range.Filename, diag.Range.Start.Line)
+		fmt.Fprintf(buf, "%s %s line %d:\n  (source code not available)\n", snippetPrefix, diag.Range.Filename, diag.Range.Start.Line)
 	} else {
 		snippet := diag.Snippet
 		code := snippet.Code
@@ -251,7 +275,7 @@ func (f *snippetFormatter) write() {
 		if snippet.Context != nil {
 			contextStr = fmt.Sprintf(", in %s", *snippet.Context)
 		}
-		fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.Range.Filename, diag.Range.Start.Line, contextStr)
+		fmt.Fprintf(buf, "%s %s line %d%s:\n", snippetPrefix, diag.Range.Filename, diag.Range.Start.Line, contextStr)
 		f.writeSnippet(snippet, code)
 
 		if diag.DeprecationOriginDescription != "" {
@@ -365,7 +389,6 @@ func (f *snippetFormatter) writeSnippet(snippet *viewsjson.DiagnosticSnippet, co
 			}
 		}
 	}
-
 }
 
 func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {
