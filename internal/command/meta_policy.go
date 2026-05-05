@@ -117,7 +117,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 // policyModuleInstallHook implements initwd.ModuleInstallHook and
 // enables policy evaluation during module installation.
 type policyModuleInstallHook struct {
-	initwd.ModuleInstallHookImpl
+	initwd.ModuleInstallHooksImpl
 	client        policy.Client
 	rootModule    *configs.Module
 	policyResults *plans.PolicyResults
@@ -126,12 +126,11 @@ type policyModuleInstallHook struct {
 func (h *policyModuleInstallHook) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	moduleAddr := req.Path.String()
 	moduleCall := h.rootModule.ModuleCalls[req.Name]
-	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.ModuleMetadata]{
+	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 		Attrs:  cty.NilVal,
 		Target: source,
-		Meta: &proto.ModuleMetadata{
+		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: moduleAddr,
-			Source:  source,
 			Version: version,
 		},
 	})
@@ -209,16 +208,15 @@ func (p *providerInstallerHook) EvaluatePolicy(ctx context.Context, provider add
 	}
 	moduleSources := p.moduleSources()
 	log.Println("[DEBUG] init: evaluating policy for provider", provider.String(), version)
-	result := p.Client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.ProviderMetadata]{
+	result := p.Client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: provider.Type,
 
 		// Configuration attributes may not be available during init, so we will not
 		// send any attributes to the policy client.
 		Attrs: cty.NilVal,
-		Meta: &proto.ProviderMetadata{
+		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:       provider.Type,
 			Namespace:  provider.Namespace,
-			Type:       provider.Type,
 			Source:     provider.String(),
 			ModulePath: moduleSources[provider],
 			Version:    version,
