@@ -317,6 +317,11 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-multiple-files",
 			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
 		},
+		{
+			name:              "only state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/only-state-store-provider-block",
+			diagnosticSummary: `Missing "migrate_from_state_store" block for state store migration`,
+		},
 	}
 
 	for _, test := range tests {
