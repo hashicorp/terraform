@@ -663,10 +663,24 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 		panic("appendStateMigrationFile receives a nil *StateMigrationFile pointer")
 	}
 
+	backendConflictStateStoreProviderDiag := &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+		Detail:   `The "state_store_provider" block can only be used in combination with "migrate_from_state_store" blocks. Either remove the unused "state_store_provider" block, or replace the "migrate_from_backend" block with a "migrate_from_state_store" block.`,
+		// Sourceless because we don't know which block isn't needed.
+	}
+
 	// Validate process of combining data from across multiple files.
+	// This includes identifying duplications or conflicts across files.
 	// Note: Validation of individual files should have happened earlier when they were parsed.
 	if file.StateStoreProvider != nil {
 		if m.StateMigrationInstructions.StateStoreProvider == nil {
+			if m.StateMigrationInstructions.MigrateFromBackend != nil {
+				// Parsed a "state_store_provider" block after a "migrate_from_backend" block
+				diags = diags.Append(backendConflictStateStoreProviderDiag)
+				return diags
+			}
+
 			m.StateMigrationInstructions.StateStoreProvider = file.StateStoreProvider
 		} else {
 			diags = append(diags, &hcl.Diagnostic{
@@ -679,6 +693,12 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 	}
 	if file.MigrateFromBackend != nil {
 		if m.StateMigrationInstructions.MigrateFromBackend == nil {
+			if m.StateMigrationInstructions.StateStoreProvider != nil {
+				// Parsed a "migrate_from_backend" block after a "state_store_provider" block
+				diags = diags.Append(backendConflictStateStoreProviderDiag)
+				return diags
+			}
+
 			m.StateMigrationInstructions.MigrateFromBackend = file.MigrateFromBackend
 		} else {
 			// Duplicate

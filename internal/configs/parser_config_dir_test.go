@@ -307,6 +307,16 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
 			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
 		},
+		{
+			name:              "backend and state_store_provider mutually exclusive",
+			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-same-file",
+			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+		},
+		{
+			name:              "backend and state_store_provider mutually exclusive across multiple files",
+			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-multiple-files",
+			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+		},
 	}
 
 	for _, test := range tests {
