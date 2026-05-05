@@ -28,6 +28,7 @@ const (
 // MatchTestFiles option, or from the default test directory.
 // If this option is not specified, test files will not be loaded.
 // Query files (.tfquery.hcl) are also loaded from the given directory.
+// State Migration files (.tfmigrate.hcl) are also loaded from the given directory.
 //
 // If this method returns nil, that indicates that the given directory does not
 // exist at all or could not be opened for some reason. Callers may wish to
@@ -76,6 +77,18 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 		if mod != nil {
 			for _, qf := range queryFiles {
 				diags = diags.Extend(mod.appendQueryFile(qf))
+			}
+		}
+	}
+	// Check if we need to load state migration files
+	if len(fileSet.StateMigrations) > 0 {
+		mod.StateMigrationInstructions = &StateMigrationInstructions{}
+
+		stateMigrationFiles, fDiags := p.loadStateMigrateFiles(path, fileSet.StateMigrations)
+		diags = append(diags, fDiags...)
+		if mod != nil {
+			for _, smf := range stateMigrationFiles {
+				diags = diags.Extend(mod.appendStateMigrationFile(smf))
 			}
 		}
 	}
@@ -215,6 +228,19 @@ func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, 
 		if f != nil {
 			files = append(files, f)
 		}
+	}
+
+	return files, diags
+}
+
+func (p *Parser) loadStateMigrateFiles(basePath string, paths []string) ([]*StateMigrationFile, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	files := make([]*StateMigrationFile, 0, len(paths))
+	for _, path := range paths {
+		f, fDiags := p.LoadStateMigrationFile(path)
+		diags = append(diags, fDiags...)
+		files = append(files, f)
 	}
 
 	return files, diags

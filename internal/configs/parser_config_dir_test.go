@@ -238,8 +238,77 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	}
 }
 
-func TestParserLoadTestFiles_Invalid(t *testing.T) {
+// Testing happy path use of migrate_from_backend block.
+func TestParserLoadConfigDirWithStateMigrations_migrate_from_backend(t *testing.T) {
+	testFixtures := "testdata/state-migration-files/valid/migration-from-backend"
+	// Below are specified in the config above
+	backendType := "s3"
+	bucketName := "foobar"
 
+	// Parse the directory, including .tfmigrate.hcl files
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir(testFixtures, MatchStateMigrateFiles())
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags)
+	}
+	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.MigrateFromBackend == nil {
+		t.Fatalf("expected mod.StateMigrationInstructions.MigrateFromBackend to be initialized, got:\n mod.StateMigrationInstructions = %#v\n mod.StateMigrationInstructions.MigrateFromBackend = %#v",
+			mod.StateMigrationInstructions,
+			mod.StateMigrationInstructions.MigrateFromBackend,
+		)
+	}
+
+	// Assert that the module includes expected information from migrate_from_backend block
+	b := mod.StateMigrationInstructions.MigrateFromBackend
+	if b.Type != backendType {
+		t.Fatalf("wrong backend type, got %q, want %q", b.Type, backendType)
+	}
+	attributes, diags := b.Config.JustAttributes()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error inspecting backend config: %s", diags)
+	}
+	gotBucketName, diags := attributes["bucket"].Expr.Value(nil)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error inspecting bucket attribute: %s", diags)
+	}
+	if gotBucketName.AsString() != bucketName {
+		t.Fatalf("wrong bucket name, got %q, want %q", gotBucketName, bucketName)
+	}
+}
+
+func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
+	tests := []struct {
+		name              string
+		directory         string
+		diagnosticSummary string
+	}{
+		{
+			name:              "backend duplicated in single file",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-same-file",
+			diagnosticSummary: "Duplicate \"migrate_from_backend\" configuration block",
+		},
+		{
+			name:              "backend duplicated across multiple files",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-multiple-files",
+			diagnosticSummary: "Duplicate \"migrate_from_backend\" configuration block",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parser := NewParser(nil)
+			_, diags := parser.LoadConfigDir(test.directory, MatchStateMigrateFiles())
+			if !diags.HasErrors() {
+				t.Fatalf("expected errors but got none: %s", diags)
+			}
+			if !strings.Contains(diags.Error(), test.diagnosticSummary) {
+				t.Fatalf("expected error to contain %q, but got %q", test.diagnosticSummary, diags.Error())
+			}
+		})
+	}
+}
+
+func TestParserLoadTestFiles_Invalid(t *testing.T) {
 	tcs := map[string][]string{
 		"duplicate_data_overrides": {
 			"duplicate_data_overrides.tftest.hcl:7,3-16: Duplicate override_data block; An override_data block targeting data.aws_instance.test has already been defined at duplicate_data_overrides.tftest.hcl:2,3-16.",
@@ -424,7 +493,6 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestIsEmptyDir(t *testing.T) {

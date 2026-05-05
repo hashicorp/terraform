@@ -41,6 +41,8 @@ type Module struct {
 	ProviderLocalNames   map[addrs.Provider]string
 	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
+	StateMigrationInstructions *StateMigrationInstructions
+
 	Variables map[string]*Variable
 	Locals    map[string]*Local
 	Outputs   map[string]*Output
@@ -646,6 +648,35 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		// set the provider FQN for the resource
 		m.ListResources[key] = ql
 		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
+	}
+
+	return diags
+}
+
+// appendStateMigrationFile controls how multiple .tfmigrate.hcl files are combined
+// to result in the final state migration configuration. This enables multiple blocks
+// to be defined across multiple files.
+func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if file == nil {
+		panic("appendStateMigrationFile receives a nil *StateMigrationFile pointer")
+	}
+
+	// Validate process of combining data from across multiple files.
+	// Note: Validation of individual files should have happened earlier when they were parsed.
+	if file.MigrateFromBackend != nil {
+		if m.StateMigrationInstructions.MigrateFromBackend == nil {
+			m.StateMigrationInstructions.MigrateFromBackend = file.MigrateFromBackend
+		} else {
+			// Duplicate
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "migrate_from_backend" configuration block`,
+				Detail:   fmt.Sprintf(`A "migrate_from_backend" block was already declared at %s. Only one of these blocks can be include in a module's state migration files.`, m.StateMigrationInstructions.MigrateFromBackend.DeclRange),
+				Subject:  &file.MigrateFromBackend.DeclRange,
+			})
+		}
 	}
 
 	return diags
