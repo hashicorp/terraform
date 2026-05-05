@@ -27,6 +27,11 @@
       "meta": {}
     },
     {
+      "source": "git::https://example.com/quux.git",
+      "local": "quux",
+      "meta": {}
+    },
+    {
       "source": "git::https://example.com/removed.git",
       "local": "removed",
       "meta": {}
