@@ -292,6 +292,21 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-multiple-files",
 			diagnosticSummary: "Duplicate \"migrate_from_backend\" configuration block",
 		},
+		{
+			name:              "state_store_provider duplicated in single file",
+			directory:         "testdata/state-migration-files/invalid/duplicate-state-store-provider-block-same-file",
+			diagnosticSummary: "Duplicate \"state_store_provider\" configuration block",
+		},
+		{
+			name:              "state_store_provider duplicated in multiple files",
+			directory:         "testdata/state-migration-files/invalid/duplicate-state-store-provider-block-multiple-files",
+			diagnosticSummary: "Duplicate \"state_store_provider\" configuration block",
+		},
+		{
+			name:              "invalid version constraint in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
+			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
+		},
 	}
 
 	for _, test := range tests {

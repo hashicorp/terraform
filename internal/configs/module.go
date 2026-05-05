@@ -665,6 +665,18 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 
 	// Validate process of combining data from across multiple files.
 	// Note: Validation of individual files should have happened earlier when they were parsed.
+	if file.StateStoreProvider != nil {
+		if m.StateMigrationInstructions.StateStoreProvider == nil {
+			m.StateMigrationInstructions.StateStoreProvider = file.StateStoreProvider
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "state_store_provider" configuration block`,
+				Detail:   fmt.Sprintf(`A "state_store_provider" block was already declared at %s. Only one of these blocks can be include in a module's state migration files.`, m.StateMigrationInstructions.StateStoreProvider.DeclRange),
+				Subject:  &file.StateStoreProvider.DeclRange,
+			})
+		}
+	}
 	if file.MigrateFromBackend != nil {
 		if m.StateMigrationInstructions.MigrateFromBackend == nil {
 			m.StateMigrationInstructions.MigrateFromBackend = file.MigrateFromBackend
