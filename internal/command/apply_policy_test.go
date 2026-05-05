@@ -6,7 +6,6 @@ package command
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -141,10 +140,18 @@ func TestApply_WithPolicyDiagnosticsJSON(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
 
-	all := output.All()
-	if !strings.Contains(all, "policy denied") {
-		t.Fatalf("expected %q in output, got:\n%s", "policy denied", all)
-	}
+	expected := `{"@level":"info","@message":"Terraform 1.15.0-dev","@module":"terraform.ui","terraform":"1.15.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
+{"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"plan"},"type":"change_summary"}
+{"@level":"info","@message":"test_instance.foo: Creating...","@module":"terraform.ui","hook":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"apply_start"}
+{"@level":"info","@message":"test_instance.foo: Creation complete after 0s","@module":"terraform.ui","hook":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"error","@message":"Error: policy denied","@module":"terraform.ui","@policy":"true","target_address":"test_instance.foo","policy_diagnostic":{"severity":"error","summary":"policy denied","detail":"","range":{"filename":"main.tf","start":{"line":1,"column":1,"byte":0},"end":{"line":1,"column":31,"byte":30}},"snippet":{"context":null,"code":"resource \"test_instance\" \"foo\" {","start_line":1,"highlight_start_offset":0,"highlight_end_offset":30,"values":[]},"policy_range":{"filename":"policy_file.tfpolicy.hcl","start":{"line":1,"column":1,"byte":0},"end":{"line":2,"column":4,"byte":0}},"policy_snippet":{"context":null,"code":"\t\tresource_policy \"resource_type\" \"policy_name\" {\n\t\t  enforce_attrs {\n\t\t    key = attr.value == \"foo\"\n\t\t  }\n\t\t}\n\t","start_line":1,"highlight_start_offset":1,"highlight_end_offset":100,"values":null}},"policy_metadata":{"enforce_index":1,"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.foo","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","type":"policy_diagnostic"}
+{"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","policy_address":"resource_policy.foo","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.foo","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","target_address":"test_instance.foo","type":"policy_result"}
+{"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"apply"},"type":"change_summary"}
+{"@level":"info","@message":"Outputs: 0","@module":"terraform.ui","outputs":{},"type":"outputs"}`
+	checkGoldenReferenceStr(t, output, expected)
 }
 
 // This tests that the plan policy diagnostic is superceded by the apply policy evaluation.
@@ -286,12 +293,18 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
 
-	all := output.All()
-	if !strings.Contains(all, "AllowResult") {
-		t.Fatalf("expected %q in output, got:\n%s", "AllowResult", all)
-
-	}
-	if strings.Contains(all, "policy denied") {
-		t.Fatalf("expected apply-time policy result to supersede plan-time denial, got:\n%s", all)
-	}
+	// The resulting json only contains the policy result, because the object that
+	// had a failed policy evaluation during the plan succeeded during apply.
+	// This can occur when more references become known.
+	expected := `{"@level":"info","@message":"Terraform 1.15.0-dev","@module":"terraform.ui","terraform":"1.15.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
+{"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"plan"},"type":"change_summary"}
+{"@level":"info","@message":"test_instance.foo: Creating...","@module":"terraform.ui","hook":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"apply_start"}
+{"@level":"info","@message":"test_instance.foo: Creation complete after 0s","@module":"terraform.ui","hook":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create","elapsed_seconds":0,"id_key":"id"},"type":"apply_complete"}
+{"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","policy_address":"resource_policy.foo","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.foo","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"AllowResult","target_address":"test_instance.foo","type":"policy_result"}
+{"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"apply"},"type":"change_summary"}
+{"@level":"info","@message":"Outputs: 0","@module":"terraform.ui","outputs":{},"type":"outputs"}`
+	checkGoldenReferenceStr(t, output, expected)
 }
