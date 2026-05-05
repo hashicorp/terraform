@@ -69,7 +69,22 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 				file.StateStoreProvider = p
 			}
 		case "migrate_from_state_store":
-			// TODO
+			ss, ssDiags := decodeMigrateFromStateStoreBlock(block)
+			diags = diags.Extend(ssDiags)
+
+			if file.MigrateFromStateStore != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Duplicate "migrate_from_state_store" configuration block`,
+					Detail:   `Only one "migrate_from_state_store" block is allowed in a directory's .tfmigrate.hcl files.`,
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue // Keep file.MigrateFromStateStore as first parsed block in this scenario
+			}
+
+			if ss != nil {
+				file.MigrateFromStateStore = ss
+			}
 		case "migrate_from_backend":
 			b, bDiags := decodeMigrateFromBackendBlock(block)
 			diags = diags.Extend(bDiags)
@@ -289,6 +304,11 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 	}
 
 	return &ssProvider, diags
+}
+
+func decodeMigrateFromStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
+	// migrate_from_state_store blocks are essentially the same as state_store blocks, so reuse logic.
+	return decodeStateStoreBlock(block)
 }
 
 func decodeMigrateFromBackendBlock(block *hcl.Block) (*Backend, hcl.Diagnostics) {

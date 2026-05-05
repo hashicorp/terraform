@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // TestParseLoadConfigDirSuccess is a simple test that just verifies that
@@ -120,7 +121,6 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestParserLoadConfigDirWithTests(t *testing.T) {
@@ -137,7 +137,6 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 
 	for _, directory := range directories {
 		t.Run(directory, func(t *testing.T) {
-
 			testDirectory := DefaultTestDirectory
 			if directory == "testdata/valid-modules/with-tests-very-nested" {
 				testDirectory = "very/nested"
@@ -276,6 +275,54 @@ func TestParserLoadConfigDirWithStateMigrations_migrate_from_backend(t *testing.
 	}
 }
 
+// Testing happy path use of migrate_from_state_store block. This requires use of the state_store_provider
+// block as well, so this also checks the happy path for that block.
+func TestParserLoadConfigDirWithStateMigrations_migrate_from_state_store(t *testing.T) {
+	testFixtures := "testdata/state-migration-files/valid/migration-from-state-store"
+	// Below are specified in the config above
+	stateStoreType := "test_store"
+
+	// Parse the directory, including .tfmigrate.hcl files
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir(testFixtures, MatchStateMigrateFiles())
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags)
+	}
+	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.MigrateFromStateStore == nil || mod.StateMigrationInstructions.StateStoreProvider == nil {
+		t.Fatalf("expected MigrateFromStateStore and StateStoreProvider to be initialized, got:\n mod.StateMigrationInstructions = %#v\n mod.StateMigrationInstructions.MigrateFromStateStore = %#v\n mod.StateMigrationInstructions.StateStoreProvider = %#v",
+			mod.StateMigrationInstructions,
+			mod.StateMigrationInstructions.MigrateFromStateStore,
+			mod.StateMigrationInstructions.StateStoreProvider,
+		)
+	}
+
+	// Assert that the module includes expected information from migrate_from_state_store block
+	ss := mod.StateMigrationInstructions.MigrateFromStateStore
+	if ss.Type != stateStoreType {
+		t.Fatalf("wrong state store type, got %q, want %q", ss.Type, stateStoreType)
+	}
+	if ss.Config == nil {
+		t.Fatalf("expected config to be non-nil")
+	}
+	// Populating provider info isn't done in parsing of config directly.
+	// TODO: Need to decide on where this info is resolved in context of the state migrate command.
+	if !ss.ProviderAddr.IsZero() {
+		t.Fatalf("expected provider addr to be empty, got %q", ss.ProviderAddr)
+	}
+
+	// Assert that the module includes expected information from state_store_provider block
+	ssp := mod.StateMigrationInstructions.StateStoreProvider
+	if ssp.Name != "test" || ssp.Source != "hashicorp/test" || !ssp.Type.Equals(addrs.NewDefaultProvider("test")) {
+		t.Fatalf("unexpected state store provider info, got:\n Name: %q\n Source: %q\n Type: %q\n VersionConstraint: %q",
+			ssp.Name, ssp.Source, ssp.Type, ssp.Requirement,
+		)
+	}
+	expectedConstraint := "1.0.0"
+	if ssp.Requirement.Required.String() != expectedConstraint {
+		t.Fatalf("unexpected version constraint, got %q, want %q", ssp.Requirement.Required.String(), expectedConstraint)
+	}
+}
+
 func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -321,6 +368,21 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			name:              "only state_store_provider block",
 			directory:         "testdata/state-migration-files/invalid/only-state-store-provider-block",
 			diagnosticSummary: `Missing "migrate_from_state_store" block for state store migration`,
+		},
+		{
+			name:              "migrate_from_state_store duplicated in single file",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-same-file",
+			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
+		},
+		{
+			name:              "migrate_from_state_store duplicated in multiple files",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-multiple-files",
+			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
+		},
+		{
+			name:              "only migrate_from_state_store block",
+			directory:         "testdata/state-migration-files/invalid/only-migrate-from-state-store-block",
+			diagnosticSummary: `Missing "state_store_provider" block for state store migration`,
 		},
 	}
 

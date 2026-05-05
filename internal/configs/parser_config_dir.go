@@ -91,6 +91,14 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 				diags = diags.Extend(mod.appendStateMigrationFile(smf))
 			}
 			// Final checks that can only be done after all files are loaded
+			if mod.StateMigrationInstructions.MigrateFromStateStore != nil &&
+				mod.StateMigrationInstructions.StateStoreProvider == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Missing "state_store_provider" block for state store migration`,
+					Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
+				})
+			}
 			if mod.StateMigrationInstructions.StateStoreProvider != nil &&
 				mod.StateMigrationInstructions.MigrateFromStateStore == nil {
 				diags = diags.Append(&hcl.Diagnostic{

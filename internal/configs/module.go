@@ -669,6 +669,12 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 		Detail:   `The "state_store_provider" block can only be used in combination with "migrate_from_state_store" blocks. Either remove the unused "state_store_provider" block, or replace the "migrate_from_backend" block with a "migrate_from_state_store" block.`,
 		// Sourceless because we don't know which block isn't needed.
 	}
+	backendConflictMigrateFromStateStoreDiag := &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid combination of "migrate_from_backend" and "migrate_from_state_store"`,
+		Detail:   `A configuration cannot include both "migrate_from_backend" and "migrate_from_state_store" blocks. Remove one of these blocks, and the remaining block should describe where your existing state should be migrated from.`,
+		// Sourceless because we don't know which block isn't needed.
+	}
 
 	// Validate process of combining data from across multiple files.
 	// This includes identifying duplications or conflicts across files.
@@ -691,8 +697,30 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 			})
 		}
 	}
+	if file.MigrateFromStateStore != nil {
+		if m.StateMigrationInstructions.MigrateFromStateStore == nil {
+			if m.StateMigrationInstructions.MigrateFromBackend != nil {
+				// Parsed a "migrate_from_state_store" block after a "migrate_from_backend" block
+				diags = diags.Append(backendConflictMigrateFromStateStoreDiag)
+				return diags
+			}
+			m.StateMigrationInstructions.MigrateFromStateStore = file.MigrateFromStateStore
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "migrate_from_state_store" configuration block`,
+				Detail:   fmt.Sprintf(`A "migrate_from_state_store" block was already declared at %s. Only one of these blocks can be include in a module's state migration files.`, m.StateMigrationInstructions.MigrateFromStateStore.DeclRange),
+				Subject:  &file.MigrateFromStateStore.DeclRange,
+			})
+		}
+	}
 	if file.MigrateFromBackend != nil {
 		if m.StateMigrationInstructions.MigrateFromBackend == nil {
+			if m.StateMigrationInstructions.MigrateFromStateStore != nil {
+				// Parsed a "migrate_from_backend" block after a "migrate_from_state_store" block
+				diags = diags.Append(backendConflictMigrateFromStateStoreDiag)
+				return diags
+			}
 			if m.StateMigrationInstructions.StateStoreProvider != nil {
 				// Parsed a "migrate_from_backend" block after a "state_store_provider" block
 				diags = diags.Append(backendConflictStateStoreProviderDiag)
