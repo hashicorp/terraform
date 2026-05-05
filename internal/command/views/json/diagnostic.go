@@ -5,6 +5,7 @@ package json
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -14,8 +15,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -41,6 +44,9 @@ type Diagnostic struct {
 	Snippet *DiagnosticSnippet `json:"snippet,omitempty"`
 
 	DeprecationOriginDescription string `json:"deprecation_origin_description,omitempty"`
+
+	PolicyRange   *DiagnosticRange   `json:"policy_range,omitempty"`
+	PolicySnippet *DiagnosticSnippet `json:"policy_snippet,omitempty"`
 }
 
 // Pos represents a position in the source code.
@@ -223,6 +229,8 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		// If we have a source file for the diagnostic, we can emit a code
 		// snippet.
 		if src != nil {
+			// Build the string of the code snippet, tracking at which byte of
+			// the file the snippet starts.
 			diagnostic.Snippet = snippetFromRange(src, highlightRange, snippetRange)
 
 			if fromExpr := diag.FromExpr(); fromExpr != nil {
@@ -275,94 +283,12 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							continue Traversals
 						}
 
-						// We'll skip any value that has a mark that we don't
-						// know how to handle, because in that case we can't
-						// know what that mark is intended to represent and so
-						// must be conservative.
-						_, valMarks := val.Unmark()
-						for mark := range valMarks {
-							switch mark {
-							case marks.Sensitive, marks.Ephemeral:
-								// These are handled below
-								continue
-							default:
-								// All other marks are unhandled, so we'll
-								// skip this traversal entirely.
-								continue Traversals
-							}
+						stmt, ok := statementStr(val, includeUnknown, includeSensitive, includeEphemeral)
+						if !ok {
+							continue Traversals
 						}
-						switch {
-						case marks.Has(val, marks.Sensitive) && marks.Has(val, marks.Ephemeral):
-							// We only mention the combination of sensitive and ephemeral
-							// values if the diagnostic we're rendering is explicitly
-							// marked as being caused by sensitive and ephemeral values,
-							// because otherwise readers tend to be misled into thinking the error
-							// is caused by the sensitive value even when it isn't.
-							if !includeSensitive || !includeEphemeral {
-								continue Traversals
-							}
 
-							value.Statement = "has an ephemeral, sensitive value"
-						case marks.Has(val, marks.Sensitive):
-							// We only mention a sensitive value if the diagnostic
-							// we're rendering is explicitly marked as being
-							// caused by sensitive values, because otherwise
-							// readers tend to be misled into thinking the error
-							// is caused by the sensitive value even when it isn't.
-							if !includeSensitive {
-								continue Traversals
-							}
-							// Even when we do mention one, we keep it vague
-							// in order to minimize the chance of giving away
-							// whatever was sensitive about it.
-							value.Statement = "has a sensitive value"
-						case marks.Has(val, marks.Ephemeral):
-							if !includeEphemeral {
-								continue Traversals
-							}
-							value.Statement = "has an ephemeral value"
-						case !val.IsKnown():
-							// We'll avoid saying anything about unknown or
-							// "known after apply" unless the diagnostic is
-							// explicitly marked as being caused by unknown
-							// values, because otherwise readers tend to be
-							// misled into thinking the error is caused by the
-							// unknown value even when it isn't.
-							if ty := val.Type(); ty != cty.DynamicPseudoType {
-								if includeUnknown {
-									switch {
-									case ty.IsCollectionType():
-										valRng := val.Range()
-										minLen := valRng.LengthLowerBound()
-										maxLen := valRng.LengthUpperBound()
-										const maxLimit = 1024 // (upper limit is just an arbitrary value to avoid showing distracting large numbers in the UI)
-										switch {
-										case minLen == maxLen:
-											value.Statement = fmt.Sprintf("is a %s of length %d, known only after apply", ty.FriendlyName(), minLen)
-										case minLen != 0 && maxLen <= maxLimit:
-											value.Statement = fmt.Sprintf("is a %s with between %d and %d elements, known only after apply", ty.FriendlyName(), minLen, maxLen)
-										case minLen != 0:
-											value.Statement = fmt.Sprintf("is a %s with at least %d elements, known only after apply", ty.FriendlyName(), minLen)
-										case maxLen <= maxLimit:
-											value.Statement = fmt.Sprintf("is a %s with up to %d elements, known only after apply", ty.FriendlyName(), maxLen)
-										default:
-											value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
-										}
-									default:
-										value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
-									}
-								} else {
-									value.Statement = fmt.Sprintf("is a %s", ty.FriendlyName())
-								}
-							} else {
-								if !includeUnknown {
-									continue Traversals
-								}
-								value.Statement = "will be known only after apply"
-							}
-						default:
-							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val))
-						}
+						value.Statement = stmt
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
 					}
@@ -406,69 +332,166 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		diagnostic.DeprecationOriginDescription = deprecationOrigin
 	}
 
+	// Extra policy information from the diagnostics
+	extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+	if extra != nil {
+		if snippet := extra.Snippet; snippet != nil {
+			target := &DiagnosticSnippet{
+				Code:                 snippet.Code,
+				StartLine:            int(snippet.StartLine),
+				HighlightStartOffset: int(snippet.HighlightStartOffset),
+				HighlightEndOffset:   int(snippet.HighlightEndOffset),
+			}
+
+			if snippet.Context != nil {
+				target.Context = &snippet.Context.Context
+			}
+
+			if values := extra.ExpressionValues; values != nil {
+				target.Values = make([]DiagnosticExpressionValue, 0, len(values))
+				seen := make(map[string]struct{}, len(values))
+
+				for _, val := range values {
+					path, err := val.Path.ToCtyPath()
+					if err != nil {
+						continue // then we can't display this value
+					}
+					value := DiagnosticExpressionValue{
+						Traversal: pathStr(path),
+					}
+
+					if _, exists := seen[value.Traversal]; exists {
+						continue
+					}
+					seen[value.Traversal] = struct{}{}
+
+					v, err := msgpack.Unmarshal(val.Value, cty.DynamicPseudoType)
+					if err != nil {
+						continue
+					}
+
+					stmt, ok := statementStr(v, false, false, false)
+					if !ok {
+						continue
+					}
+					value.Statement = stmt
+
+					target.Values = append(target.Values, value)
+				}
+			}
+
+			diagnostic.PolicySnippet = target
+		}
+
+		if rng := extra.Range; rng != nil {
+			diagnostic.PolicyRange = &DiagnosticRange{
+				Filename: rng.Subject.Filename,
+				Start: Pos{
+					Line:   int(rng.Subject.Start.Line),
+					Column: int(rng.Subject.Start.Column),
+					Byte:   int(rng.Subject.Start.Byte),
+				},
+				End: Pos{
+					Line:   int(rng.Subject.End.Line),
+					Column: int(rng.Subject.End.Column),
+					Byte:   int(rng.Subject.End.Byte),
+				},
+			}
+		}
+	}
+
 	return diagnostic
 }
 
-func snippetFromRange(src []byte, highlightRange hcl.Range, snippetRange hcl.Range) *DiagnosticSnippet {
-	snippet := &DiagnosticSnippet{
-		StartLine: snippetRange.Start.Line,
-
-		// Ensure that the default Values struct is an empty array, as this
-		// makes consuming the JSON structure easier in most languages.
-		Values: []DiagnosticExpressionValue{},
-	}
-
-	file, offset := parseRange(src, highlightRange)
-
-	// Some diagnostics may have a useful top-level context to add to
-	// the code snippet output.
-	contextStr := hcled.ContextString(file, offset-1)
-	if contextStr != "" {
-		snippet.Context = &contextStr
-	}
-
-	// Build the string of the code snippet, tracking at which byte of
-	// the file the snippet starts.
-	var codeStartByte int
-	sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
-	var code strings.Builder
-	for sc.Scan() {
-		lineRange := sc.Range()
-		if lineRange.Overlaps(snippetRange) {
-			if codeStartByte == 0 && code.Len() == 0 {
-				codeStartByte = lineRange.Start.Byte
-			}
-			code.Write(lineRange.SliceBytes(src))
-			code.WriteRune('\n')
+func statementStr(val cty.Value, includeUnknown, includeSensitive, includeEphemeral bool) (string, bool) {
+	// We'll skip any value that has a mark that we don't
+	// know how to handle, because in that case we can't
+	// know what that mark is intended to represent and so
+	// must be conservative.
+	_, valMarks := val.Unmark()
+	for mark := range valMarks {
+		switch mark {
+		case marks.Sensitive, marks.Ephemeral:
+			// These are handled below
+			continue
+		default:
+			// All other marks are unhandled, so we'll
+			// skip this traversal entirely.
+			return "", false
 		}
 	}
-	codeStr := strings.TrimSuffix(code.String(), "\n")
-	snippet.Code = codeStr
+	switch {
+	case val.HasMark(marks.Sensitive) && val.HasMark(marks.Ephemeral):
+		// We only mention the combination of sensitive and ephemeral
+		// values if the diagnostic we're rendering is explicitly
+		// marked as being caused by sensitive and ephemeral values,
+		// because otherwise readers tend to be misled into thinking the error
+		// is caused by the sensitive value even when it isn't.
+		if !includeSensitive || !includeEphemeral {
+			return "", false
+		}
 
-	// Calculate the start and end byte of the highlight range relative
-	// to the code snippet string.
-	start := highlightRange.Start.Byte - codeStartByte
-	end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
-
-	// We can end up with some quirky results here in edge cases like
-	// when a source range starts or ends at a newline character,
-	// so we'll cap the results at the bounds of the highlight range
-	// so that consumers of this data don't need to contend with
-	// out-of-bounds errors themselves.
-	if start < 0 {
-		start = 0
-	} else if start > len(codeStr) {
-		start = len(codeStr)
+		return "has an ephemeral, sensitive value", true
+	case val.HasMark(marks.Sensitive):
+		// We only mention a sensitive value if the diagnostic
+		// we're rendering is explicitly marked as being
+		// caused by sensitive values, because otherwise
+		// readers tend to be misled into thinking the error
+		// is caused by the sensitive value even when it isn't.
+		if !includeSensitive {
+			return "", false
+		}
+		// Even when we do mention one, we keep it vague
+		// in order to minimize the chance of giving away
+		// whatever was sensitive about it.
+		return "has a sensitive value", true
+	case val.HasMark(marks.Ephemeral):
+		if !includeEphemeral {
+			return "", false
+		}
+		return "has an ephemeral value", true
+	case !val.IsKnown():
+		// We'll avoid saying anything about unknown or
+		// "known after apply" unless the diagnostic is
+		// explicitly marked as being caused by unknown
+		// values, because otherwise readers tend to be
+		// misled into thinking the error is caused by the
+		// unknown value even when it isn't.
+		if ty := val.Type(); ty != cty.DynamicPseudoType {
+			if includeUnknown {
+				switch {
+				case ty.IsCollectionType():
+					valRng := val.Range()
+					minLen := valRng.LengthLowerBound()
+					maxLen := valRng.LengthUpperBound()
+					const maxLimit = 1024 // (upper limit is just an arbitrary value to avoid showing distracting large numbers in the UI)
+					switch {
+					case minLen == maxLen:
+						return fmt.Sprintf("is a %s of length %d, known only after apply", ty.FriendlyName(), minLen), true
+					case minLen != 0 && maxLen <= maxLimit:
+						return fmt.Sprintf("is a %s with between %d and %d elements, known only after apply", ty.FriendlyName(), minLen, maxLen), true
+					case minLen != 0:
+						return fmt.Sprintf("is a %s with at least %d elements, known only after apply", ty.FriendlyName(), minLen), true
+					case maxLen <= maxLimit:
+						return fmt.Sprintf("is a %s with up to %d elements, known only after apply", ty.FriendlyName(), maxLen), true
+					default:
+						return fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName()), true
+					}
+				default:
+					return fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName()), true
+				}
+			} else {
+				return fmt.Sprintf("is a %s", ty.FriendlyName()), true
+			}
+		} else {
+			if !includeUnknown {
+				return "", false
+			}
+			return "will be known only after apply", true
+		}
+	default:
+		return fmt.Sprintf("is %s", tfdiags.CompactValueStr(val)), true
 	}
-	if end < 0 {
-		end = 0
-	} else if end > len(codeStr) {
-		end = len(codeStr)
-	}
-
-	snippet.HighlightStartOffset = start
-	snippet.HighlightEndOffset = end
-	return snippet
 }
 
 // formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
@@ -521,4 +544,99 @@ func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	}
 
 	return file, offset
+}
+
+func pathStr(path cty.Path) string {
+	// This is a specialized subset of traversal rendering tailored to
+	// producing helpful contextual messages in diagnostics. It is not
+	// comprehensive nor intended to be used for other purposes.
+
+	var buf bytes.Buffer
+	first := true
+	for _, step := range path {
+		switch tStep := step.(type) {
+		case cty.GetAttrStep:
+			if !first {
+				buf.WriteByte('.')
+			}
+			buf.WriteString(tStep.Name)
+		case cty.IndexStep:
+			buf.WriteByte('[')
+			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
+				buf.WriteString(tfdiags.CompactValueStr(tStep.Key))
+			} else {
+				// We'll just use a placeholder for more complex values,
+				// since otherwise our result could grow ridiculously long.
+				buf.WriteString("...")
+			}
+			buf.WriteByte(']')
+		}
+		first = false
+	}
+	return buf.String()
+}
+
+// snippetFromRange builds the code snippet from within the highlight.
+// highlightRange is the range of the entire highlighted code, while the
+// snippetRange is a subset of that.
+func snippetFromRange(src []byte, highlightRange, snippetRange hcl.Range) *DiagnosticSnippet {
+	var codeStartByte int
+	// Build the string of the code snippet, tracking at which byte of
+	// the file the snippet starts.
+	sc := hcl.NewRangeScanner(src, snippetRange.Filename, bufio.ScanLines)
+	var code strings.Builder
+	for sc.Scan() {
+		lineRange := sc.Range()
+		if lineRange.Overlaps(snippetRange) {
+			if codeStartByte == 0 && code.Len() == 0 {
+				codeStartByte = lineRange.Start.Byte
+			}
+			code.Write(lineRange.SliceBytes(src))
+			code.WriteRune('\n')
+		}
+	}
+	codeStr := strings.TrimSuffix(code.String(), "\n")
+
+	// Calculate the start and end byte of the highlight range relative
+	// to the code snippet string.
+	start := highlightRange.Start.Byte - codeStartByte
+	end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
+
+	// We can end up with some quirky results here in edge cases like
+	// when a source range starts or ends at a newline character,
+	// so we'll cap the results at the bounds of the highlight range
+	// so that consumers of this data don't need to contend with
+	// out-of-bounds errors themselves.
+	if start < 0 {
+		start = 0
+	} else if start > len(codeStr) {
+		start = len(codeStr)
+	}
+	if end < 0 {
+		end = 0
+	} else if end > len(codeStr) {
+		end = len(codeStr)
+	}
+
+	snippet := &DiagnosticSnippet{
+		StartLine: snippetRange.Start.Line,
+		Code:      codeStr,
+
+		// Ensure that the default Values struct is an empty array, as this
+		// makes consuming the JSON structure easier in most languages.
+		Values:               []DiagnosticExpressionValue{},
+		HighlightStartOffset: start,
+		HighlightEndOffset:   end,
+	}
+
+	file, offset := parseRange(src, highlightRange)
+
+	// Some diagnostics may have a useful top-level context to add to
+	// the code snippet output.
+	contextStr := hcled.ContextString(file, offset-1)
+	if contextStr != "" {
+		snippet.Context = &contextStr
+	}
+
+	return snippet
 }
