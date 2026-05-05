@@ -82,11 +82,11 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 	}
 	// Check if we need to load state migration files
 	if len(fileSet.StateMigrations) > 0 {
-		mod.StateMigrationInstructions = &StateMigrationInstructions{}
-
 		stateMigrationFiles, fDiags := p.loadStateMigrateFiles(path, fileSet.StateMigrations)
 		diags = append(diags, fDiags...)
+
 		if mod != nil {
+			mod.StateMigrationInstructions = &StateMigrationInstructions{}
 			for _, smf := range stateMigrationFiles {
 				diags = diags.Extend(mod.appendStateMigrationFile(smf))
 			}
