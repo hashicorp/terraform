@@ -10,7 +10,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -118,6 +122,157 @@ func getTestDiags(t *testing.T) tfdiags.Diagnostics {
 	)
 
 	return diags
+}
+
+func TestNewInit_jsonViewPolicyResults(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+
+	newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+	if _, ok := newInit.(*InitJSON); !ok {
+		t.Fatalf("unexpected return type %t", newInit)
+	}
+
+	results := plans.NewPolicyResults()
+	results.AddModule(
+		addrs.RootModule.Child("example"),
+		policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"module policy denied",
+					"module policy blocked installation",
+					policy.DenyResult,
+				),
+			},
+			Policies: []*policy.Policy{
+				{
+					Address:          "module_policy.example",
+					Filename:         "policy_file.tfpolicy.hcl",
+					EnforcementLevel: "mandatory",
+					Result:           policy.DenyResult,
+				},
+			},
+		},
+		nil,
+	)
+
+	newInit.PolicyResults(results)
+
+	version := tfversion.String()
+	want := []map[string]interface{}{
+		{
+			"@level":    "info",
+			"@message":  fmt.Sprintf("Terraform %s", version),
+			"@module":   "terraform.ui",
+			"terraform": version,
+			"type":      "version",
+			"ui":        JSON_UI_VERSION,
+		},
+		{
+			"@level":   "error",
+			"@message": "Error: module policy denied",
+			"@module":  "terraform.ui",
+			"@policy":  "true",
+			"policy_diagnostic": map[string]interface{}{
+				"severity": "error",
+				"summary":  "module policy denied",
+				"detail":   "module policy blocked installation",
+			},
+			"policy_metadata": map[string]interface{}{},
+			"result":          policy.DenyResult.String(),
+			"target_address":  "module.example",
+			"type":            string(viewjson.MessagePolicyDiagnostic),
+		},
+		{
+			"@level":         "info",
+			"@message":       "Policy Result",
+			"@module":        "terraform.ui",
+			"@policy":        "true",
+			"target_address": "module.example",
+			"policy_address": "module_policy.example",
+			"policy_metadata": map[string]interface{}{
+				"policy_name":       "module_policy.example",
+				"file_name":         "policy_file.tfpolicy.hcl",
+				"enforcement_level": "mandatory",
+			},
+			"result": policy.DenyResult.String(),
+			"type":   string(viewjson.MessagePolicyEvaluationResult),
+		},
+	}
+
+	actual := done(t).Stdout()
+	testJSONViewOutputEqualsFull(t, actual, want)
+}
+
+func TestNewInit_humanViewPolicyResults(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+
+	newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
+	if _, ok := newInit.(*InitHuman); !ok {
+		t.Fatalf("unexpected return type %t", newInit)
+	}
+
+	results := plans.NewPolicyResults()
+	results.AddModule(
+		addrs.RootModule.Child("example"),
+		policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"module policy denied",
+					"module policy blocked installation",
+					policy.DenyResult,
+				),
+			},
+		},
+		nil,
+	)
+
+	newInit.PolicyResults(results)
+
+	actual := done(t).All()
+	expected := "\nError: module policy denied\n\nmodule policy blocked installation\n"
+	if !strings.Contains(actual, expected) {
+		t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
+	}
+}
+
+func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+
+	newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
+	if _, ok := newInit.(*InitHuman); !ok {
+		t.Fatalf("unexpected return type %t", newInit)
+	}
+
+	results := plans.NewPolicyResults()
+	results.AddModule(
+		addrs.RootModule.Child("example"),
+		policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result:  policy.AllowResult,
+				Message: "module policy allowed installation",
+				Policy: &policy.Policy{
+					Address: "module_policy.example",
+				},
+			}},
+		},
+		nil,
+	)
+
+	newInit.PolicyResults(results)
+
+	actual := done(t).Stdout()
+	if !strings.Contains(actual, "Policy Info:") {
+		t.Fatalf("expected output to contain policy info header, but got %s", actual)
+	}
+	if !strings.Contains(actual, "module policy allowed installation") {
+		t.Fatalf("expected output to contain policy message, but got %s", actual)
+	}
+	if !strings.Contains(actual, "module_policy.example") {
+		t.Fatalf("expected output to contain policy address fallback, but got %s", actual)
+	}
 }
 
 func TestNewInit_jsonViewOutput(t *testing.T) {
