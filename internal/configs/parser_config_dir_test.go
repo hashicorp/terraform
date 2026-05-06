@@ -392,6 +392,11 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			directory:         "testdata/state-migration-files/invalid/different-providers-between-blocks",
 			diagnosticSummary: `Inconsistent provider information for state migration`,
 		},
+		{
+			name:              "no blocks present in the files",
+			directory:         "testdata/state-migration-files/invalid/no-blocks",
+			diagnosticSummary: `Empty state migration configuration`,
+		},
 	}
 
 	for _, test := range tests {

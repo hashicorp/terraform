@@ -107,6 +107,16 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 					Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
 				})
 			}
+			if mod.StateMigrationInstructions.StateStoreProvider == nil &&
+				mod.StateMigrationInstructions.MigrateFromStateStore == nil &&
+				mod.StateMigrationInstructions.MigrateFromBackend == nil {
+				// There are state migration file present, but they're empty.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Empty state migration configuration`,
+					Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
+				})
+			}
 
 			// In non-error scenarios, migrate_from_state_store and state_store_provider blocks are either both present or absent.
 			// If they're both present, are they in agreement with each other?
