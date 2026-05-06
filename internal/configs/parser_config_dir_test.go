@@ -332,6 +332,7 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 		directory         string
 		diagnosticSummary string
 	}{
+		// Duplicated blocks
 		{
 			name:              "backend duplicated in single file",
 			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-same-file",
@@ -353,15 +354,16 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			diagnosticSummary: "Duplicate \"state_store_provider\" configuration block",
 		},
 		{
-			name:              "invalid version constraint in state_store_provider block",
-			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
-			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
+			name:              "migrate_from_state_store duplicated in single file",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-same-file",
+			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
 		},
 		{
-			name:              "unexpected attribute in state_store_provider block",
-			directory:         "testdata/state-migration-files/invalid/unexpected-attribute-state-store-provider-block",
-			diagnosticSummary: `Invalid state_store_provider object; state_store_provider objects can only contain "version" and "source" attributes.`,
+			name:              "migrate_from_state_store duplicated in multiple files",
+			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-multiple-files",
+			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
 		},
+		// Mutually exclusive blocks
 		{
 			name:              "backend and state_store_provider mutually exclusive",
 			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-same-file",
@@ -372,25 +374,32 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-multiple-files",
 			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
 		},
+		// Missing blocks
 		{
 			name:              "only state_store_provider block",
 			directory:         "testdata/state-migration-files/invalid/only-state-store-provider-block",
 			diagnosticSummary: `Missing "migrate_from_state_store" block for state store migration`,
 		},
 		{
-			name:              "migrate_from_state_store duplicated in single file",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-same-file",
-			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
-		},
-		{
-			name:              "migrate_from_state_store duplicated in multiple files",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-multiple-files",
-			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
-		},
-		{
 			name:              "only migrate_from_state_store block",
 			directory:         "testdata/state-migration-files/invalid/only-migrate-from-state-store-block",
 			diagnosticSummary: `Missing "state_store_provider" block for state store migration`,
+		},
+		{
+			name:              "no blocks present in the files",
+			directory:         "testdata/state-migration-files/invalid/no-blocks",
+			diagnosticSummary: `Empty state migration configuration`,
+		},
+		// Invalid contents of state_store_provider block
+		{
+			name:              "invalid version constraint in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
+			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
+		},
+		{
+			name:              "unexpected attribute in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/unexpected-attribute-state-store-provider-block",
+			diagnosticSummary: `Invalid state_store_provider object; state_store_provider objects can only contain "version" and "source" attributes.`,
 		},
 		{
 			name:              "different providers in migrate_from_state_store and state_store_provider blocks",
@@ -401,11 +410,6 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			name:              "multiple providers described in a state_store_provider block",
 			directory:         "testdata/state-migration-files/invalid/multiple-providers-in-state-store-provider-block",
 			diagnosticSummary: `Unexpected number of providers described in "state_store_provider" configuration block.`,
-		},
-		{
-			name:              "no blocks present in the files",
-			directory:         "testdata/state-migration-files/invalid/no-blocks",
-			diagnosticSummary: `Empty state migration configuration`,
 		},
 	}
 
