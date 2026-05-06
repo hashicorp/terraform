@@ -304,10 +304,13 @@ func TestParserLoadConfigDirWithStateMigrations_migrate_from_state_store(t *test
 	if ss.Config == nil {
 		t.Fatalf("expected config to be non-nil")
 	}
-	// Populating provider info isn't done in parsing of config directly.
-	// TODO: Need to decide on where this info is resolved in context of the state migrate command.
-	if !ss.ProviderAddr.IsZero() {
-		t.Fatalf("expected provider addr to be empty, got %q", ss.ProviderAddr)
+	if !ss.ProviderAddr.Equals(mod.StateMigrationInstructions.StateStoreProvider.Type) {
+		t.Fatalf("expected state store description's provider addr to have been populated with %q, but got %q", mod.StateMigrationInstructions.StateStoreProvider.Type.ForDisplay(), ss.ProviderAddr.ForDisplay())
+	}
+	if ss.ProviderSupplyMode != "" {
+		// This is expected to be populated by calling code
+		// that is reading the config, not by the parser itself.
+		t.Fatal("unexpected data in ProviderSupplyMode")
 	}
 
 	// Assert that the module includes expected information from state_store_provider block
@@ -383,6 +386,11 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			name:              "only migrate_from_state_store block",
 			directory:         "testdata/state-migration-files/invalid/only-migrate-from-state-store-block",
 			diagnosticSummary: `Missing "state_store_provider" block for state store migration`,
+		},
+		{
+			name:              "different providers in migrate_from_state_store and state_store_provider blocks",
+			directory:         "testdata/state-migration-files/invalid/different-providers-between-blocks",
+			diagnosticSummary: `Inconsistent provider information for state migration`,
 		},
 	}
 

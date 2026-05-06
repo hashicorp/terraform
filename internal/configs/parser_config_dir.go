@@ -107,6 +107,25 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 					Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
 				})
 			}
+
+			// In non-error scenarios, migrate_from_state_store and state_store_provider blocks are either both present or absent.
+			// If they're both present, are they in agreement with each other?
+			if mod.StateMigrationInstructions.MigrateFromStateStore != nil &&
+				mod.StateMigrationInstructions.StateStoreProvider != nil {
+				if mod.StateMigrationInstructions.MigrateFromStateStore.Provider.Name != mod.StateMigrationInstructions.StateStoreProvider.Name {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  `Inconsistent provider information for state migration`,
+						Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
+							mod.StateMigrationInstructions.StateStoreProvider.Name,
+							mod.StateMigrationInstructions.MigrateFromStateStore.Provider.Name,
+						),
+					})
+				} else {
+					// They match, so copy across relevant data.
+					mod.StateMigrationInstructions.MigrateFromStateStore.ProviderAddr = mod.StateMigrationInstructions.StateStoreProvider.Type
+				}
+			}
 		}
 	}
 
