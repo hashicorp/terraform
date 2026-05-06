@@ -258,7 +258,10 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 }
 
 func (v *OutputJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	// filter out warnings as we cannot change the current format
+	// to introduce them gracefully (without breaking existing usage)
+	errsOnly := diags.ErrorsOnly()
+	v.view.Diagnostics(errsOnly)
 }
 
 // For text and raw output modes, an empty map of outputs is considered a

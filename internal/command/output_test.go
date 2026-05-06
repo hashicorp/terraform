@@ -5,11 +5,13 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -463,3 +465,84 @@ func TestOutputRaw_warningsSuppressed(t *testing.T) {
 		t.Fatalf("expected output \"bar\", got: %#v", actual)
 	}
 }
+
+func TestOutputJson_warningsSuppressed(t *testing.T) {
+	// Pre-populate the inmem backend with a state containing an output value
+	inmem.Reset()
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Register a backend that wraps inmem with a deprecation warning,
+	// simulating a backend like S3 whose PrepareConfig warns about
+	// deprecated attributes (e.g. dynamodb_table).
+	backendInit.Set("inmem", func() backend.Backend {
+		return &deprecatedInmemBackend{Backend: inmem.New()}
+	})
+	defer backendInit.Set("inmem", inmem.New)
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("output-backend-with-deprecation"), td)
+	t.Chdir(td)
+
+	// Write the state into the inmem backend's default workspace
+	b := inmem.New()
+	b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"lock_id": cty.NullVal(cty.String),
+	}))
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	sMgr.WriteState(originalState)
+	if err := sMgr.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-json"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit code %d\nstderr:\n%s", code, output.Stderr())
+	}
+
+	stderr := output.Stderr()
+	if strings.Contains(stderr, "deprecated") {
+		t.Fatalf("warnings should be suppressed, got:\n%s", stderr)
+	}
+
+	expectedJson := `{
+	"foo":{
+		"sensitive":false,
+		"type":"string",
+		"value":"bar"
+	}
+}`
+	if diff := cmp.Diff(expectedJson, output.Stdout(), transformJSON); diff != "" {
+		t.Fatalf("unexpected output: %s", diff)
+	}
+}
+
+var transformJSON = cmp.FilterValues(func(x, y string) bool {
+	xBytes := []byte(x)
+	yBytes := []byte(y)
+	return json.Valid(xBytes) && json.Valid(yBytes)
+}, cmp.Transformer("ParseJSON", func(in string) (out any) {
+	inBytes := []byte(in)
+	if err := json.Unmarshal(inBytes, &out); err != nil {
+		panic(err)
+	}
+	return out
+}))
