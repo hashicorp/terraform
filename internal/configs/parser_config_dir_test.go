@@ -358,6 +358,11 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
 		},
 		{
+			name:              "unexpected attribute in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/unexpected-attribute-state-store-provider-block",
+			diagnosticSummary: `Invalid state_store_provider object; state_store_provider objects can only contain "version" and "source" attributes.`,
+		},
+		{
 			name:              "backend and state_store_provider mutually exclusive",
 			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-same-file",
 			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
