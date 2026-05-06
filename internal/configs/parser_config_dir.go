@@ -90,50 +90,49 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 			for _, smf := range stateMigrationFiles {
 				diags = diags.Extend(mod.appendStateMigrationFile(smf))
 			}
-			// Final checks that can only be done after all files are loaded
-			if mod.StateMigrationInstructions.MigrateFromStateStore != nil &&
-				mod.StateMigrationInstructions.StateStoreProvider == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Missing "state_store_provider" block for state store migration`,
-					Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
-				})
-			}
-			if mod.StateMigrationInstructions.StateStoreProvider != nil &&
-				mod.StateMigrationInstructions.MigrateFromStateStore == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Missing "migrate_from_state_store" block for state store migration`,
-					Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
-				})
-			}
-			if mod.StateMigrationInstructions.StateStoreProvider == nil &&
-				mod.StateMigrationInstructions.MigrateFromStateStore == nil &&
-				mod.StateMigrationInstructions.MigrateFromBackend == nil {
-				// There are state migration file present, but they're empty.
+
+			// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
+			// Note: Other checks, like mutual exclusivity, were already performed when parsing single files or appending files.
+			ssp := mod.StateMigrationInstructions.StateStoreProvider
+			ss := mod.StateMigrationInstructions.MigrateFromStateStore
+			b := mod.StateMigrationInstructions.MigrateFromBackend
+			switch {
+			case ssp == nil && ss == nil && b == nil:
+				// Files present but all empty
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Empty state migration configuration`,
 					Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
 				})
-			}
-
-			// In non-error scenarios, migrate_from_state_store and state_store_provider blocks are either both present or absent.
-			// If they're both present, are they in agreement with each other?
-			if mod.StateMigrationInstructions.MigrateFromStateStore != nil &&
-				mod.StateMigrationInstructions.StateStoreProvider != nil {
-				if mod.StateMigrationInstructions.MigrateFromStateStore.Provider.Name != mod.StateMigrationInstructions.StateStoreProvider.Name {
+			case ss != nil && ssp == nil:
+				// Missing state_store_provider block
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Missing "state_store_provider" block for state store migration`,
+					Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
+				})
+			case ss == nil && ssp != nil:
+				// Missing migrate_from_state_store block
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Missing "migrate_from_state_store" block for state store migration`,
+					Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
+				})
+			case ss != nil && ssp != nil:
+				// Both migrate_from_state_store and state_store_provider blocks are present,
+				// but are they in agreement with each other?
+				if ss.Provider.Name != ssp.Name {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  `Inconsistent provider information for state migration`,
 						Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
-							mod.StateMigrationInstructions.StateStoreProvider.Name,
-							mod.StateMigrationInstructions.MigrateFromStateStore.Provider.Name,
+							ssp.Name,
+							ss.Provider.Name,
 						),
 					})
 				} else {
 					// They match, so copy across relevant data.
-					mod.StateMigrationInstructions.MigrateFromStateStore.ProviderAddr = mod.StateMigrationInstructions.StateStoreProvider.Type
+					ss.ProviderAddr = ssp.Type
 				}
 			}
 		}
