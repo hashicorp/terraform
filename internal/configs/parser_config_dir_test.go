@@ -393,6 +393,11 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			diagnosticSummary: `Inconsistent provider information for state migration`,
 		},
 		{
+			name:              "multiple providers described in a state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/multiple-providers-in-state-store-provider-block",
+			diagnosticSummary: `Unexpected number of providers described in "state_store_provider" configuration block.`,
+		},
+		{
 			name:              "no blocks present in the files",
 			directory:         "testdata/state-migration-files/invalid/no-blocks",
 			diagnosticSummary: `Empty state migration configuration`,
@@ -405,6 +410,12 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			_, diags := parser.LoadConfigDir(test.directory, MatchStateMigrateFiles())
 			if !diags.HasErrors() {
 				t.Fatalf("expected errors but got none: %s", diags)
+			}
+			if len(diags) != 1 {
+				for _, diag := range diags {
+					t.Log(diag)
+				}
+				t.Fatalf("expected only a single diagnostic to be returned, but got %d: \n%#v", len(diags), diags)
 			}
 			if !strings.Contains(diags.Error(), test.diagnosticSummary) {
 				t.Fatalf("expected error to contain %q, but got %q", test.diagnosticSummary, diags.Error())

@@ -84,11 +84,24 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 	if len(fileSet.StateMigrations) > 0 {
 		stateMigrationFiles, fDiags := p.loadStateMigrateFiles(path, fileSet.StateMigrations)
 		diags = append(diags, fDiags...)
+		// If there are errors they may be duplicated below, so return early.
+		// We return an incomplete module representation.
+		if diags.HasErrors() {
+			mod.SourceDir = path
+			return mod, diags
+		}
 
 		if mod != nil {
 			mod.StateMigrationInstructions = &StateMigrationInstructions{}
 			for _, smf := range stateMigrationFiles {
 				diags = diags.Extend(mod.appendStateMigrationFile(smf))
+			}
+
+			// If there are errors that might raise false positive below, so return early.
+			// We return an incomplete module representation.
+			if diags.HasErrors() {
+				mod.SourceDir = path
+				return mod, diags
 			}
 
 			// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
