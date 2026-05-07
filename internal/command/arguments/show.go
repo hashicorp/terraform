@@ -16,6 +16,10 @@ type Show struct {
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
 
+	// RedactSensitive requests that machine-readable output replace sensitive
+	// values with redacted placeholders.
+	RedactSensitive bool
+
 	Vars *Vars
 }
 
@@ -30,8 +34,10 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	}
 
 	var jsonOutput bool
+	var jsonRedactedOutput bool
 	cmdFlags := extendedFlagSet("show", nil, nil, show.Vars)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&jsonRedactedOutput, "json-redacted", false, "json-redacted")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -54,7 +60,18 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 		show.Path = args[0]
 	}
 
+	if jsonOutput && jsonRedactedOutput {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible command-line flags",
+			"The -json and -json-redacted options cannot be used together.",
+		))
+	}
+
 	switch {
+	case jsonRedactedOutput:
+		show.ViewType = ViewJSON
+		show.RedactSensitive = true
 	case jsonOutput:
 		show.ViewType = ViewJSON
 	default:

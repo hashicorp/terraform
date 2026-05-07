@@ -750,6 +750,88 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	}
 }
 
+func TestShow_json_redacted_output_sensitive(t *testing.T) {
+	td := t.TempDir()
+	inputDir := "testdata/show-json-sensitive"
+	testCopyDir(t, inputDir, td)
+	t.Chdir(td)
+
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
+
+	p := showFixtureSensitiveProvider()
+
+	// init
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	ic := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// plan
+	planView, planDone := testView(t)
+	pc := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{
+		"-out=terraform.plan",
+	}
+	code := pc.Run(args)
+	planOutput := planDone(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
+	}
+
+	// show
+	showView, showDone := testView(t)
+	sc := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             showView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args = []string{
+		"-json-redacted",
+		"terraform.plan",
+	}
+	defer os.Remove("terraform.plan")
+	code = sc.Run(args)
+	showOutput := showDone(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, showOutput.Stderr())
+	}
+
+	got := showOutput.Stdout()
+	if strings.Contains(got, `"password":"secret"`) {
+		t.Fatalf("redacted output unexpectedly contains sensitive resource values: %s", got)
+	}
+	if strings.Contains(got, `"constant_value":"secret"`) {
+		t.Fatalf("redacted output unexpectedly contains sensitive configuration values: %s", got)
+	}
+	if strings.Contains(got, `"value":"bar"`) {
+		t.Fatalf("redacted output unexpectedly contains sensitive variable/output values: %s", got)
+	}
+	if !strings.Contains(got, `"after_sensitive":{"ami":true,"password":true}`) {
+		t.Fatalf("redacted output should retain sensitive masks for callers: %s", got)
+	}
+}
+
 func TestShow_json_output_actions(t *testing.T) {
 	td := t.TempDir()
 	inputDir := "testdata/show-json-actions"
