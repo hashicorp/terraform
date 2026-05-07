@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: cloud backend will now forward -generate-confi-out flag usage to query create request
+time: 2026-05-07T12:07:32.23956-07:00
+custom:
+    Issue: "38539"
