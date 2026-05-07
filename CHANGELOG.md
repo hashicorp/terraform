@@ -11,10 +11,6 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
   - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
   - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
 
-ENHANCEMENTS:
-
-- `terraform show`: Added a new `-json-redacted` option that preserves the machine-readable JSON structure while masking sensitive values for both state and plan output.
-
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
