@@ -281,6 +281,7 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 
 	// TLS configuration is needed; create an object and configure it
 	var tlsConfig tls.Config
+	tlsConfig.MinVersion = tls.VersionTLS12
 	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
 
 	if skipCertVerification {
