@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
 	version "github.com/hashicorp/go-version"
@@ -204,60 +203,44 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 				DeclRange: attr.Range,
 			}
 
-			constraint, valDiags := kv.Value.Value(nil)
-			if valDiags.HasErrors() || !constraint.Type().Equals(cty.String) {
+			versionString, valDiags := kv.Value.Value(nil)
+			if valDiags.HasErrors() || !versionString.Type().Equals(cty.String) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Invalid version constraint",
-					Detail:   "Version must be specified as a string.",
+					Summary:  `Invalid provider version in "state_store_provider" configuration block`,
+					Detail:   "Version must be a string, specifying a single version.",
 					Subject:  kv.Value.Range().Ptr(),
 				})
 				continue
 			}
 
-			constraintStr := constraint.AsString()
-			constraints, err := version.NewConstraint(constraintStr)
+			v, err := versions.ParseVersion(versionString.AsString())
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid provider version in "state_store_provider" configuration block`,
+					Detail:   "The version attribute must specify a single, specific version (e.g. \"1.0.0\") and cannot be a version constraint with an operator.",
+					Subject:  kv.Value.Range().Ptr(),
+				})
+				return nil, diags
+			}
+
+			// We ensure user input can be parsed as a version, but we need to
+			// create a constraint to be part of the returned RequiredProvider struct.
+			// The constraint will pin to a specific version set by the config.
+			constraints, err := version.NewConstraint(v.String())
 			if err != nil {
 				// NewConstraint doesn't return user-friendly errors, so we'll just
 				// ignore the provided error and produce our own generic one.
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Invalid version constraint",
-					Detail:   "This string does not use correct version constraint syntax.",
+					Summary:  `Unable to create version constraint from provider version`,
+					Detail:   fmt.Sprintf("Terraform was unable to create an 'exact' version constraint from the provided version string: %s.", v.String()),
 					Subject:  kv.Value.Range().Ptr(),
 				})
 				return nil, diags
 			}
 
-			// Assert we have a single constraint, for a specific version
-			if len(constraints) != 1 {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid version constraint",
-					Detail:   "The version attribute inside the state_store_provider block must specify a single, specific version (e.g. \"= 1.0.0\").",
-					Subject:  kv.Value.Range().Ptr(),
-				})
-				return nil, diags
-			}
-
-			// A constraint to use v1.2.3 could have an = operator or no operator at all.
-			constraintStr = strings.TrimPrefix(constraintStr, "=") // Remove a preceding `=`, if it exists.
-			constraintStr = strings.TrimSpace(constraintStr)       // There might have been whitespace between the operator and the version.
-
-			_, err = versions.ParseVersion(constraintStr)
-			if err != nil {
-				// Errors indicate that the constraint wasn't a specific version.
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Non-specific version constraint in "state_store_provider" configuration block`,
-					Detail:   "The version constraint defined in a state_store_provider block must specify a single, specific version (e.g. \"= 1.0.0\", or \"1.0.0\").",
-					Subject:  kv.Value.Range().Ptr(),
-				})
-				return nil, diags
-			}
-
-			// We capture the required version as a constraint, but
-			// we know the constraint is to a single version.
 			vc.Required = constraints
 			ssProvider.Requirement = vc
 
@@ -266,7 +249,7 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 			if err != nil || !source.Type().Equals(cty.String) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Invalid source",
+					Summary:  `Invalid source in "state_store_provider" configuration block`,
 					Detail:   "Source must be specified as a string.",
 					Subject:  kv.Value.Range().Ptr(),
 				})

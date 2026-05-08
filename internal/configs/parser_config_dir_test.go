@@ -394,7 +394,7 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 		{
 			name:              "invalid version constraint in state_store_provider block",
 			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
-			diagnosticSummary: `Non-specific version constraint in "state_store_provider" configuration block`,
+			diagnosticSummary: `Invalid provider version in "state_store_provider" configuration block`,
 		},
 		{
 			name:              "unexpected attribute in state_store_provider block",
