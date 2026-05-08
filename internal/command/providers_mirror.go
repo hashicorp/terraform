@@ -114,13 +114,36 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Unlike other commands, this command always consults the origin registry
-	// for every provider so that it can be used to update a local mirror
-	// directory without needing to first disable that local mirror
-	// in the CLI configuration.
-	source := getproviders.NewMemoizeSource(
-		getproviders.NewRegistrySource(c.Services),
-	)
+	// Unlike other commands, this command ignores the installation methods
+	// configured in the CLI configuration and instead chooses an installation
+	// method based on CLI options.
+	//
+	// By default it consults the origin registry for every provider so that
+	// it can be used to update a local mirror directory without needing to
+	// first disable that local mirror in the CLI configuration. With
+	// -net-mirror, it consults the given network mirror instead, which is
+	// useful when re-mirroring from an existing internal network mirror.
+	var source getproviders.Source
+	switch {
+	case parsedArgs.NetMirrorURL != "":
+		u, err := url.Parse(parsedArgs.NetMirrorURL)
+		if err != nil || u.Scheme != "https" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid network mirror URL",
+				"The -net-mirror option requires a valid https: URL as the mirror base URL.",
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		source = getproviders.NewMemoizeSource(
+			getproviders.NewHTTPMirrorSource(u, c.Services.CredentialsSource()),
+		)
+	default:
+		source = getproviders.NewMemoizeSource(
+			getproviders.NewRegistrySource(c.Services),
+		)
+	}
 
 	// Providers from registries always use HTTP, so we don't need the full
 	// generality of go-getter but it's still handy to use the HTTP getter
@@ -393,6 +416,11 @@ Options:
                       By default the mirror command will use the version info
                       in the lock file if the configuration directory has been
                       previously initialized.
+
+  -net-mirror=url     Consult the given network mirror to obtain providers
+                      instead of contacting their origin registries. The URL
+                      must use the https: scheme. This is useful for
+                      re-mirroring from an existing internal network mirror.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
