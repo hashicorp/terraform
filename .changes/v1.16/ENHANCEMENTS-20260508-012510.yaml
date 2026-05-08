@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'feat(cli): terraform providers mirror accepts a -net-mirror flag'
+time: 2026-05-08T01:25:10.551367-04:00
+custom:
+    Issue: "36006"
