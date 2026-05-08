@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"path/filepath"
 	"sort"
@@ -4952,4 +4953,59 @@ resource "test_resource" "bar" {
 	// inconsistent final plan"
 	_, diags = ctx.Apply(plan, m, nil)
 	tfdiags.AssertNoErrors(t, diags)
+}
+
+func TestContext2Apply_WithTypeDefs(t *testing.T) {
+	m := testModule(t, "apply-with-typedefs")
+	ctx := testContext2(t, &ContextOpts{})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"root_string": &InputValue{
+				Value:      cty.NilVal,
+				SourceType: ValueFromConfig,
+			},
+			"root_object": &InputValue{
+				Value:      cty.NilVal,
+				SourceType: ValueFromConfig,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	customStrOut := state.RootOutputValues["root_string_out"].Value
+	customObjOut := state.RootOutputValues["root_object_out"].Value
+	customModuleObj1Out := state.RootOutputValues["nested_module_out"].Value
+
+	if customStrOut.Equals(cty.StringVal("true")).False() { // type will convert to "string" per typedef
+		t.Fatalf("unexpected output value for \"root_string_out\": %s", customStrOut.GoString())
+	}
+
+	if customObjOut.Equals(
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.NumberVal(big.NewFloat(30)),
+			"b": cty.BoolVal(false),
+			"c": cty.SetVal([]cty.Value{cty.StringVal("john"), cty.StringVal("smith")}), // type will convert to "set(string)" per module typedef
+			"d": cty.StringVal("default from nested module!"),                           // applied default from module typedef
+		}),
+	).False() {
+		t.Fatalf("unexpected output value for \"root_object_out\": %s", customObjOut.GoString())
+	}
+
+	if customModuleObj1Out.Equals(
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.NumberVal(big.NewFloat(10)),
+			"b": cty.BoolVal(true),
+			"c": cty.SetVal([]cty.Value{cty.StringVal("smith"), cty.StringVal("john"), cty.StringVal("mod-1")}),
+			"d": cty.StringVal("default from nested module!"), // applied default from module typedef
+		}),
+	).False() {
+		t.Fatalf("unexpected output value for \"nested_module_out\": %s", customModuleObj1Out.GoString())
+	}
 }
