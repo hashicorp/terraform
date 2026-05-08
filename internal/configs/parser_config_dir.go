@@ -60,24 +60,21 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 
 	// Initialize the module
 	mod, modDiags := NewModule(primary, override)
+	mod.SourceDir = path
 	diags = diags.Extend(modDiags)
 
 	// Check if we need to load test files
 	if len(fileSet.Tests) > 0 {
 		testFiles, fDiags := p.loadTestFiles(path, fileSet.Tests)
 		diags = diags.Extend(fDiags)
-		if mod != nil {
-			mod.Tests = testFiles
-		}
+		mod.Tests = testFiles
 	}
 	// Check if we need to load query files
 	if len(fileSet.Queries) > 0 {
 		queryFiles, fDiags := p.loadQueryFiles(path, fileSet.Queries)
 		diags = append(diags, fDiags...)
-		if mod != nil {
-			for _, qf := range queryFiles {
-				diags = diags.Extend(mod.appendQueryFile(qf))
-			}
+		for _, qf := range queryFiles {
+			diags = diags.Extend(mod.appendQueryFile(qf))
 		}
 	}
 	// Check if we need to load state migration files
@@ -91,69 +88,82 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 			return mod, diags
 		}
 
-		if mod != nil {
-			mod.StateMigrationInstructions = &StateMigrationInstructions{}
-			for _, smf := range stateMigrationFiles {
-				diags = diags.Extend(mod.appendStateMigrationFile(smf))
-			}
+		mod.StateMigrationInstructions = &StateMigrationInstructions{}
+		for _, smf := range stateMigrationFiles {
+			diags = diags.Extend(mod.appendStateMigrationFile(smf))
+		}
 
-			// If there are errors that might raise false positive below, so return early.
-			// We return an incomplete module representation.
-			if diags.HasErrors() {
-				mod.SourceDir = path
-				return mod, diags
-			}
+		// If there are errors that might raise false positive below, so return early.
+		// We return an incomplete module representation.
+		if diags.HasErrors() {
+			mod.SourceDir = path
+			return mod, diags
+		}
 
-			// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
-			// Note: Other checks, like mutual exclusivity, were already performed when parsing single files or appending files.
-			ssp := mod.StateMigrationInstructions.StateStoreProvider
-			ss := mod.StateMigrationInstructions.MigrateFromStateStore
-			b := mod.StateMigrationInstructions.MigrateFromBackend
-			switch {
-			case ssp == nil && ss == nil && b == nil:
-				// Files present but all empty
+		// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
+		// Note: Other checks, like mutual exclusivity, were already performed when parsing single files or appending files.
+		ssp := mod.StateMigrationInstructions.StateStoreProvider
+		ss := mod.StateMigrationInstructions.MigrateFromStateStore
+		b := mod.StateMigrationInstructions.MigrateFromBackend
+		switch {
+		case ssp == nil && ss == nil && b == nil:
+			// Files present but all empty
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Empty state migration configuration`,
+				Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
+			})
+		case ss != nil && b != nil:
+			// Mutually exclusive migrate_from_backend and migrate_from_state_store both present
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "migrate_from_backend" and "migrate_from_state_store"`,
+				Detail:   `A configuration cannot include both "migrate_from_backend" and "migrate_from_state_store" blocks. Remove one of these blocks, and the remaining block should describe where your existing state should be migrated from.`,
+				// Sourceless because we don't know which block isn't needed.
+			})
+		case ssp != nil && b != nil:
+			// Mutually exclusive migrate_from_backend and state_store_provider both present
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+				Detail:   `The "state_store_provider" block can only be used in combination with "migrate_from_state_store" blocks. Either remove the unused "state_store_provider" block, or replace the "migrate_from_backend" block with a "migrate_from_state_store" block.`,
+				// Blame the state_store_provider block as the problem, as this case will only be evaluated if
+				// there isn't a migrate_from_state_store block also present.
+				Subject: &ssp.DeclRange,
+			})
+		case ss != nil && ssp == nil:
+			// Missing state_store_provider block
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Missing "state_store_provider" block for state store migration`,
+				Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
+			})
+		case ss == nil && ssp != nil:
+			// Missing migrate_from_state_store block
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Missing "migrate_from_state_store" block for state store migration`,
+				Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
+			})
+		case ss != nil && ssp != nil:
+			// Both migrate_from_state_store and state_store_provider blocks are present,
+			// but are they in agreement with each other?
+			if ss.Provider.Name != ssp.Name {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  `Empty state migration configuration`,
-					Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
+					Summary:  `Inconsistent provider information for state migration`,
+					Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
+						ssp.Name,
+						ss.Provider.Name,
+					),
 				})
-			case ss != nil && ssp == nil:
-				// Missing state_store_provider block
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Missing "state_store_provider" block for state store migration`,
-					Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
-				})
-			case ss == nil && ssp != nil:
-				// Missing migrate_from_state_store block
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Missing "migrate_from_state_store" block for state store migration`,
-					Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
-				})
-			case ss != nil && ssp != nil:
-				// Both migrate_from_state_store and state_store_provider blocks are present,
-				// but are they in agreement with each other?
-				if ss.Provider.Name != ssp.Name {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  `Inconsistent provider information for state migration`,
-						Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
-							ssp.Name,
-							ss.Provider.Name,
-						),
-					})
-				} else {
-					// They match, so copy across relevant data.
-					ss.ProviderAddr = ssp.Type
-				}
+			} else {
+				// They match, so copy across relevant data.
+				ss.ProviderAddr = ssp.Type
 			}
 		}
 	}
-
-	if mod != nil {
-		mod.SourceDir = path
-	}
+	mod.SourceDir = path
 
 	return mod, diags
 }
