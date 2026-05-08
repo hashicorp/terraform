@@ -37,6 +37,15 @@ func TestParseProvidersMirror_valid(t *testing.T) {
 				Vars:      &Vars{},
 			},
 		},
+		"net-mirror": {
+			[]string{"-net-mirror=https://mirror.example.com/", "./mirror"},
+			&ProvidersMirror{
+				NetMirrorURL: "https://mirror.example.com/",
+				LockFile:     true,
+				OutputDir:    "./mirror",
+				Vars:         &Vars{},
+			},
+		},
 	}
 
 	cmpOpts := cmpopts.IgnoreUnexported(Vars{})

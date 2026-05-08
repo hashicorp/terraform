@@ -8,9 +8,10 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // ProvidersMirror represents the command-line arguments for the providers
 // mirror command.
 type ProvidersMirror struct {
-	Platforms FlagStringSlice
-	LockFile  bool
-	OutputDir string
+	Platforms    FlagStringSlice
+	LockFile     bool
+	NetMirrorURL string
+	OutputDir    string
 
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
@@ -28,6 +29,7 @@ func ParseProvidersMirror(args []string) (*ProvidersMirror, tfdiags.Diagnostics)
 	cmdFlags := extendedFlagSet("providers mirror", nil, nil, providersMirror.Vars)
 	cmdFlags.Var(&providersMirror.Platforms, "platform", "target platform")
 	cmdFlags.BoolVar(&providersMirror.LockFile, "lock-file", true, "use lock file")
+	cmdFlags.StringVar(&providersMirror.NetMirrorURL, "net-mirror", "", "network mirror base URL")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
