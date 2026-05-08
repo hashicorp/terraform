@@ -397,22 +397,22 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 func signCertWithPrivateKey(pk string, certificate string) (ssh.AuthMethod, error) {
 	rawPk, err := ssh.ParseRawPrivateKey([]byte(pk))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key %q: %s", pk, err)
+		return nil, fmt.Errorf("failed to parse private key: %s", err)
 	}
 
 	pcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(certificate))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse certificate %q: %s", certificate, err)
+		return nil, fmt.Errorf("failed to parse certificate: %s", err)
 	}
 
 	usigner, err := ssh.NewSignerFromKey(rawPk)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create signer from raw private key %q: %s", rawPk, err)
+		return nil, fmt.Errorf("failed to create signer from private key: %s", err)
 	}
 
 	ucertSigner, err := ssh.NewCertSigner(pcert.(*ssh.Certificate), usigner)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cert signer %q: %s", usigner, err)
+		return nil, fmt.Errorf("failed to create cert signer: %s", err)
 	}
 
 	return ssh.PublicKeys(ucertSigner), nil
