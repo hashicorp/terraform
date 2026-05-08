@@ -135,6 +135,7 @@ func ReadManifestSnapshotForDir(dir string) (Manifest, error) {
 		}
 		return nil, err
 	}
+	defer r.Close()
 	return ReadManifestSnapshot(r)
 }
 
@@ -172,12 +173,19 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 	return err
 }
 
-func (m Manifest) WriteSnapshotToDir(dir string) error {
+func (m Manifest) WriteSnapshotToDir(dir string) (retErr error) {
 	fn := filepath.Join(dir, ManifestSnapshotFilename)
 	log.Printf("[TRACE] modsdir: writing modules manifest to %s", fn)
 	w, err := os.Create(fn)
 	if err != nil {
 		return err
 	}
-	return m.WriteSnapshot(w)
+	defer func() {
+		if closeErr := w.Close(); closeErr != nil && retErr == nil {
+			retErr = closeErr
+		}
+	}()
+
+	retErr = m.WriteSnapshot(w)
+	return retErr
 }
