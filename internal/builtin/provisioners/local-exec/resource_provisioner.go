@@ -194,6 +194,8 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	case <-p.ctx.Done():
 	}
 
+	pr.Close()
+
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
 			tfdiags.Error,

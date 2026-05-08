@@ -138,9 +138,11 @@ func getSrc(v cty.Value) (string, bool, error) {
 		}
 
 		if _, err = file.WriteString(content.AsString()); err != nil {
+			file.Close()
 			return "", true, err
 		}
 
+		file.Close()
 		return file.Name(), true, nil
 
 	case !src.IsNull():

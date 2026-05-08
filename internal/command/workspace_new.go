@@ -146,6 +146,7 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	defer f.Close()
 
 	stateFile, err := statefile.Read(f)
 	if err != nil {
