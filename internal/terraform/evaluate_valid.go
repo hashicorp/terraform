@@ -419,6 +419,32 @@ func staticValidateModuleCallReference(modCfg *configs.Config, addr addrs.Module
 		return diags
 	}
 
+	// If there are remaining traversal steps (which for ModuleCallInstanceOutput
+	// represents the output name being referenced), check that the output exists.
+	if len(remain) > 0 {
+		if firstStep, ok := remain[0].(hcl.TraverseAttr); ok {
+			outputName := firstStep.Name
+			if _, outputExists := modCfg.Module.Outputs[outputName]; !outputExists {
+				var suggestions []string
+				for name := range modCfg.Module.Outputs {
+					suggestions = append(suggestions, name)
+				}
+				sort.Strings(suggestions)
+				suggestion := didyoumean.NameSuggestion(outputName, suggestions)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Reference to undeclared module output`,
+					Detail:   fmt.Sprintf(`No output named %q is declared in module %q.%s`, outputName, addr.Name, suggestion),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+
 	return diags
 }
 

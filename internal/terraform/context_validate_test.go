@@ -1803,6 +1803,53 @@ output "out" {
 	}
 }
 
+func TestContext2Validate_invalidModuleOutputInDependsOn(t *testing.T) {
+	// This test verifies that referencing a non-existent module output in depends_on
+	// produces a proper error instead of silently falling back to the whole module.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+}
+
+resource "test_instance" "example" {
+  # Intentionally referencing a non-existent output of mod1
+  depends_on = [module.mod1.nonexistent_output]
+}
+`,
+		"mod/main.tf": `
+output "real_output" {
+  value = "hello"
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	// Should get an error about the undeclared module output
+	found := false
+	for _, d := range diags {
+		des := d.Description().Summary
+		if strings.Contains(des, "Reference to undeclared module output") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected error about undeclared module output, got: %s", diags.Err())
+	}
+}
+
 func TestContext2Validate_rpcDiagnostics(t *testing.T) {
 	// validate module and output depends_on
 	m := testModuleInline(t, map[string]string{
