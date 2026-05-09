@@ -129,6 +129,79 @@ func (b *binary) RemoveEnv(name string) {
 	}
 }
 
+// IsolateLocalProviderEnv configures the binary's environment so that
+// Terraform's "implicit" local provider search (see
+// implicitProviderSource in provider_source.go) cannot reach any
+// directory that exists outside of this test's temporary tree.
+//
+// Without this isolation, the e2e tests that exercise local-only provider
+// installation can be perturbed by host-machine state: a real
+// $HOME/.terraform.d/plugins, an XDG-located plugins directory, or a
+// macOS ~/Library/Application Support/io.terraform/plugins entry on the
+// developer's workstation will be discovered by the test binary and
+// participate in the install plan. Historically that has caused
+// confusing "Failed to query available provider packages" failures and
+// other intermittent breakage; see GH-37501 for context.
+//
+// We isolate by pointing every environment variable consulted by
+// terraform's CLI-config and provider-discovery code paths at a fresh,
+// empty per-test directory:
+//
+//   - HOME (Linux/macOS): controls cliconfig.ConfigDir() (i.e.
+//     ~/.terraformrc and ~/.terraform.d/plugins) and macOS userdirs
+//     (~/Library/Application Support/io.terraform).
+//   - XDG_* (Linux): consulted by go-userdirs to compute the XDG data
+//     and config search paths.
+//   - APPDATA / LOCALAPPDATA (Windows): consulted by go-userdirs for
+//     the Windows known-folder hierarchy.
+//
+// In addition, callers usually combine this with TF_CLI_CONFIG_FILE
+// pointing at a blank .terraformrc to neutralise the explicit CLI
+// configuration mechanism. Tests that previously did that themselves
+// can keep doing so; this method only addresses the implicit
+// discovery layer that TF_CLI_CONFIG_FILE does NOT cover.
+//
+// The returned path is the empty isolated home directory, so callers
+// that want to drop a custom file under it (for example a synthetic
+// .terraformrc) can do so. The directory is registered with t.TempDir
+// machinery so it's automatically cleaned up when the test ends.
+func (b *binary) IsolateLocalProviderEnv(t testing.TB) string {
+	t.Helper()
+	isolated := t.TempDir()
+
+	// HOME is consulted by cliconfig.ConfigDir on Linux/macOS for
+	// ~/.terraformrc and ~/.terraform.d/plugins, and by go-userdirs's
+	// macOS backend for ~/Library/Application Support/io.terraform.
+	b.AddEnv("HOME=" + isolated)
+
+	// go-userdirs's XDG (Linux) backend prefers these env vars over
+	// HOME-derived defaults; if any of them point at a real directory
+	// on the developer's machine the test will inherit those plugin
+	// paths. We pin them to empty strings so the library falls back to
+	// XDG-spec defaults under our isolated $HOME (which we know is
+	// empty), matching the no-XDG-set unit-test scenario in
+	// go-userdirs/userdirs/app_unix_test.go.
+	for _, name := range []string{
+		"XDG_DATA_HOME",
+		"XDG_DATA_DIRS",
+		"XDG_CONFIG_HOME",
+		"XDG_CONFIG_DIRS",
+		"XDG_CACHE_HOME",
+	} {
+		b.AddEnv(name + "=")
+	}
+
+	// Windows known-folder vars consulted by go-userdirs's windows
+	// backend. The test suite is documented as Linux/macOS only (see
+	// CONTRIBUTING.md) but we set these defensively so that anyone
+	// running these tests on Windows in the future gets the same
+	// isolation.
+	b.AddEnv("APPDATA=" + isolated)
+	b.AddEnv("LOCALAPPDATA=" + isolated)
+
+	return isolated
+}
+
 // Cmd returns an exec.Cmd pre-configured to run the generated Terraform
 // binary with the given arguments in the temporary working directory.
 //

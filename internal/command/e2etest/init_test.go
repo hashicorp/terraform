@@ -166,13 +166,21 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// If you run this test on a workstation with a plugin-cache directory
-	// configured, it will leave a bad directory behind and terraform init will
-	// not work until you remove it.
-	//
-	// To avoid this, we will  "zero out" any existing cli config file by
-	// passing in an empty override file.
-	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	// Pin every host-discoverable provider search location into a
+	// per-test isolated tmpdir. Without this the implicit local
+	// provider source (see implicitProviderSource in
+	// provider_source.go) walks the developer's real $HOME and XDG
+	// data dirs, which can cause unrelated plugins on the host to
+	// participate in the install plan and produce confusing failures.
+	// See GH-37501.
+	isolated := tf.IsolateLocalProviderEnv(t)
+
+	// We still want the explicit CLI-config layer neutralised too:
+	// TF_CLI_CONFIG_FILE bypasses the discovery walk entirely and
+	// points at a single, blank .terraformrc. Combined with
+	// IsolateLocalProviderEnv above this gives the test a fully
+	// hermetic provider-source environment.
+	configFile := emptyConfigFileForTests(t, isolated)
 	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
