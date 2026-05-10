@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: validate: non-existent module output references in depends_on now produce an error instead of silently resolving to the entire module
+time: 2026-05-10T20:47:00.000000+00:00
+custom:
+    Issue: "38396"
