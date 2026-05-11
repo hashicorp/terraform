@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'communicator/ssh: Redact private key and certificate material from error messages to prevent credential exposure in logs'
+time: 2026-05-11T06:26:00.000000Z
+custom:
+    Issue: "38543"
