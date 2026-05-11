@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -331,17 +332,22 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 		name              string
 		directory         string
 		diagnosticSummary string
+		source            string
 	}{
 		// Duplicated blocks
 		{
 			name:              "duplicated 'from' block",
 			directory:         "testdata/state-migration-files/invalid/duplicate-from-block-same-file",
 			diagnosticSummary: "Duplicate \"from\" configuration block",
+			// Assert the source because we reference the second parsed 'from' block
+			source: "1-file.tfmigrate.hcl:17,1-5",
 		},
 		{
 			name:              "duplicated 'from' block across multiple files",
 			directory:         "testdata/state-migration-files/invalid/duplicate-from-block-multiple-files",
 			diagnosticSummary: "Duplicate \"from\" configuration block",
+			// Assert the source because we reference the 'from' block in the second parsed file
+			source: "2-file.tfmigrate.hcl:1,1-5",
 		},
 		{
 			name:              "duplicate 'backend' block in 'from' block",
@@ -358,6 +364,8 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			name:              "backend and state_store are mutually exclusive in same 'from' block",
 			directory:         "testdata/state-migration-files/invalid/both-nested-state-store-and-backend-blocks",
 			diagnosticSummary: `Invalid combination of "backend" and "state_store"`,
+			// Assert the source because we reference the 'from' block as incorrect, instead of one of the nested blocks
+			source: "main.tfmigrate.hcl:4,1-5",
 		},
 		{
 			name:              "backend and state_store_provider are mutually exclusive",
@@ -423,6 +431,13 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 			}
 			if !strings.Contains(diags.Error(), test.diagnosticSummary) {
 				t.Fatalf("expected error to contain %q, but got %q", test.diagnosticSummary, diags.Error())
+			}
+			if test.source != "" {
+				// We're only asserting source content in cases where the fromBlockSource value is used.
+				expectedSource := path.Join(test.directory, test.source)
+				if diags[0].Subject.String() != expectedSource {
+					t.Fatalf("expected error subject to be %q, but got %q", expectedSource, diags[0].Subject.String())
+				}
 			}
 		})
 	}
