@@ -103,8 +103,8 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 		// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
 		// Note: Other checks, like mutual exclusivity, were already performed when parsing single files or appending files.
 		ssp := mod.StateMigrationInstructions.StateStoreProvider
-		ss := mod.StateMigrationInstructions.MigrateFromStateStore
-		b := mod.StateMigrationInstructions.MigrateFromBackend
+		ss := mod.StateMigrationInstructions.StateStore
+		b := mod.StateMigrationInstructions.Backend
 		switch {
 		case ssp == nil && ss == nil && b == nil:
 			// Files present but all empty

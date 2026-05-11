@@ -672,9 +672,9 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 			})
 		}
 	}
-	if file.MigrateFromStateStore != nil {
-		if m.StateMigrationInstructions.MigrateFromStateStore == nil {
-			m.StateMigrationInstructions.MigrateFromStateStore = file.MigrateFromStateStore
+	if file.StateStore != nil {
+		if m.StateMigrationInstructions.StateStore == nil {
+			m.StateMigrationInstructions.StateStore = file.StateStore
 		} else {
 			// If we're encountering a duplicate 'state_store' description it means that a duplicate
 			// 'from' block is present, so we report it as such.
@@ -686,9 +686,9 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 			})
 		}
 	}
-	if file.MigrateFromBackend != nil {
-		if m.StateMigrationInstructions.MigrateFromBackend == nil {
-			m.StateMigrationInstructions.MigrateFromBackend = file.MigrateFromBackend
+	if file.Backend != nil {
+		if m.StateMigrationInstructions.Backend == nil {
+			m.StateMigrationInstructions.Backend = file.Backend
 		} else {
 			// If we're encountering a duplicate 'backend' description it means that a duplicate
 			// 'from' block is present, so we report it as such.

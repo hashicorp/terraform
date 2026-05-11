@@ -27,21 +27,19 @@ import (
 // are no duplicated or mutually-exclusive pieces of information in the original file(s).
 type StateMigrationInstructions struct {
 	StateStoreProvider *RequiredProvider
+	StateStore         *StateStore
 
-	MigrateFromStateStore *StateStore
-	MigrateFromBackend    *Backend
+	Backend *Backend
 }
 
 // StateMigrationFile represents a single state migration file within a configuration directory.
 // A project can include multiple files of this type, and their contents is aggregated.
 type StateMigrationFile struct {
-	StateStoreProvider *RequiredProvider
-
-	MigrateFromStateStore *StateStore
-	MigrateFromBackend    *Backend
+	StateMigrationInstructions
 
 	// fromBlockSource is the source range of the 'from' block in the HCL file,
-	// intended to be used in error diagnostics from parsing.
+	// intended to be used in error diagnostics from parsing,
+	// e.g. multiple from blocks across multiple files.
 	fromBlockSource *hcl.Range
 }
 
@@ -73,7 +71,7 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 				file.fromBlockSource = &block.DefRange
 			}
 		case "from":
-			if file.MigrateFromStateStore != nil || file.MigrateFromBackend != nil {
+			if file.StateStore != nil || file.Backend != nil {
 				// A from block has already been parsed.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -93,8 +91,8 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 				file.fromBlockSource = &block.DefRange
 
 				// Only one of the below is non-nil
-				file.MigrateFromStateStore = i.MigrateFromStateStore
-				file.MigrateFromBackend = i.MigrateFromBackend
+				file.StateStore = i.StateStore
+				file.Backend = i.Backend
 			}
 
 		default:
@@ -111,7 +109,7 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 	// Check for mutually exclusive blocks, etc.
 
 	// Defining two conflicting sources of state for migration.
-	if file.MigrateFromBackend != nil && file.MigrateFromStateStore != nil {
+	if file.Backend != nil && file.StateStore != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid combination of "backend" and "state_store"`,
@@ -120,7 +118,7 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 		})
 	}
 	// Unnecessary state store-related data supplied alongside description of a backend.
-	if file.MigrateFromBackend != nil && file.StateStoreProvider != nil {
+	if file.Backend != nil && file.StateStoreProvider != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid combination of "backend" and "state_store_provider"`,
@@ -146,7 +144,7 @@ func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnos
 			ss, ssDiags := decodeStateStoreBlock(block)
 			diags = diags.Extend(ssDiags)
 
-			if fromData.MigrateFromStateStore != nil {
+			if fromData.StateStore != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Duplicate "state_store" configuration block`,
@@ -157,13 +155,13 @@ func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnos
 			}
 
 			if ss != nil {
-				fromData.MigrateFromStateStore = ss
+				fromData.StateStore = ss
 			}
 		case "backend":
 			b, bDiags := decodeBackendBlock(block)
 			diags = diags.Extend(bDiags)
 
-			if fromData.MigrateFromBackend != nil {
+			if fromData.Backend != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Duplicate "backend" configuration block`,
@@ -174,7 +172,7 @@ func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnos
 			}
 
 			if b != nil {
-				fromData.MigrateFromBackend = b
+				fromData.Backend = b
 			}
 		default:
 			// We don't expect other block types nested inside from blocks.

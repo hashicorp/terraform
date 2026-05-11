@@ -250,15 +250,15 @@ func TestParserLoadConfigDirWithStateMigrations_from_backend(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags)
 	}
-	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.MigrateFromBackend == nil {
+	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.Backend == nil {
 		t.Fatalf("expected mod.StateMigrationInstructions.MigrateFromBackend to be initialized, got:\n mod.StateMigrationInstructions = %#v\n mod.StateMigrationInstructions.MigrateFromBackend = %#v",
 			mod.StateMigrationInstructions,
-			mod.StateMigrationInstructions.MigrateFromBackend,
+			mod.StateMigrationInstructions.Backend,
 		)
 	}
 
 	// Assert that the module includes expected information from 'from { backend }' block
-	b := mod.StateMigrationInstructions.MigrateFromBackend
+	b := mod.StateMigrationInstructions.Backend
 	if b.Type != backendType {
 		t.Fatalf("wrong backend type, got %q, want %q", b.Type, backendType)
 	}
@@ -288,16 +288,16 @@ func TestParserLoadConfigDirWithStateMigrations_from_state_store(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags)
 	}
-	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.MigrateFromStateStore == nil || mod.StateMigrationInstructions.StateStoreProvider == nil {
+	if mod.StateMigrationInstructions == nil || mod.StateMigrationInstructions.StateStore == nil || mod.StateMigrationInstructions.StateStoreProvider == nil {
 		t.Fatalf("expected MigrateFromStateStore and StateStoreProvider to be initialized, got:\n mod.StateMigrationInstructions = %#v\n mod.StateMigrationInstructions.MigrateFromStateStore = %#v\n mod.StateMigrationInstructions.StateStoreProvider = %#v",
 			mod.StateMigrationInstructions,
-			mod.StateMigrationInstructions.MigrateFromStateStore,
+			mod.StateMigrationInstructions.StateStore,
 			mod.StateMigrationInstructions.StateStoreProvider,
 		)
 	}
 
 	// Assert that the module includes expected information from 'from { state_store }' block
-	ss := mod.StateMigrationInstructions.MigrateFromStateStore
+	ss := mod.StateMigrationInstructions.StateStore
 	if ss.Type != stateStoreType {
 		t.Fatalf("wrong state store type, got %q, want %q", ss.Type, stateStoreType)
 	}
