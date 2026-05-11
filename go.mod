@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform
 
-go 1.25.8
+go 1.25.10
 
 godebug winsymlink=0
 
