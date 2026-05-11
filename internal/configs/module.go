@@ -676,11 +676,13 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 		if m.StateMigrationInstructions.MigrateFromStateStore == nil {
 			m.StateMigrationInstructions.MigrateFromStateStore = file.MigrateFromStateStore
 		} else {
+			// If we're encountering a duplicate 'state_store' description it means that a duplicate
+			// 'from' block is present, so we report it as such.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Duplicate "migrate_from_state_store" configuration block`,
-				Detail:   fmt.Sprintf(`A "migrate_from_state_store" block was already declared at %s. Only one of these blocks can be included in a module's state migration files.`, m.StateMigrationInstructions.MigrateFromStateStore.DeclRange),
-				Subject:  &file.MigrateFromStateStore.DeclRange,
+				Summary:  `Duplicate "from" configuration block`,
+				Detail:   `Only one "from" block is allowed in a directory's .tfmigrate.hcl files.`,
+				Subject:  file.fromBlockSource,
 			})
 		}
 	}
@@ -688,12 +690,13 @@ func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnost
 		if m.StateMigrationInstructions.MigrateFromBackend == nil {
 			m.StateMigrationInstructions.MigrateFromBackend = file.MigrateFromBackend
 		} else {
-			// Duplicate
+			// If we're encountering a duplicate 'backend' description it means that a duplicate
+			// 'from' block is present, so we report it as such.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Duplicate "migrate_from_backend" configuration block`,
-				Detail:   fmt.Sprintf(`A "migrate_from_backend" block was already declared at %s. Only one of these blocks can be included in a module's state migration files.`, m.StateMigrationInstructions.MigrateFromBackend.DeclRange),
-				Subject:  &file.MigrateFromBackend.DeclRange,
+				Summary:  `Duplicate "from" configuration block`,
+				Detail:   `Only one "from" block is allowed in a directory's .tfmigrate.hcl files.`,
+				Subject:  file.fromBlockSource,
 			})
 		}
 	}

@@ -7,9 +7,11 @@ state_store_provider {
 
 # The state store below references a different provider to the definition above
 
-migrate_from_state_store "test_store" { 
-  provider "test" { 
-    provider_attr = "foobar" 
-  } 
-  store_attr = "foobar" 
+from {
+  state_store  "test_store" { 
+    provider "test" { 
+      provider_attr = "foobar" 
+    } 
+    store_attr = "foobar" 
+    }
 }

@@ -1,3 +1,5 @@
-migrate_from_backend "s3" {
-  bucket = "foobar"
+from {
+  backend "s3" {
+    bucket = "foobar"
+  }
 }

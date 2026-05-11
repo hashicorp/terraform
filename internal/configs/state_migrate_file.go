@@ -39,6 +39,10 @@ type StateMigrationFile struct {
 
 	MigrateFromStateStore *StateStore
 	MigrateFromBackend    *Backend
+
+	// fromBlockSource is the source range of the 'from' block in the HCL file,
+	// intended to be used in error diagnostics from parsing.
+	fromBlockSource *hcl.Range
 }
 
 func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics) {
@@ -66,41 +70,33 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 
 			if p != nil {
 				file.StateStoreProvider = p
+				file.fromBlockSource = &block.DefRange
 			}
-		case "migrate_from_state_store":
-			ss, ssDiags := decodeMigrateFromStateStoreBlock(block)
-			diags = diags.Extend(ssDiags)
-
-			if file.MigrateFromStateStore != nil {
+		case "from":
+			if file.MigrateFromStateStore != nil || file.MigrateFromBackend != nil {
+				// A from block has already been parsed.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  `Duplicate "migrate_from_state_store" configuration block`,
-					Detail:   `Only one "migrate_from_state_store" block is allowed in a directory's .tfmigrate.hcl files.`,
+					Summary:  `Duplicate "from" configuration block`,
+					Detail:   `Only one "from" block is allowed in a directory's .tfmigrate.hcl files.`,
 					Subject:  block.DefRange.Ptr(),
 				})
-				continue // Keep file.MigrateFromStateStore as first parsed block in this scenario
+				continue
 			}
 
-			if ss != nil {
-				file.MigrateFromStateStore = ss
-			}
-		case "migrate_from_backend":
-			b, bDiags := decodeMigrateFromBackendBlock(block)
-			diags = diags.Extend(bDiags)
+			// We're parsing the first encountered 'from' block.
+			// There could still be duplications within that block, which is detected by the function.
+			i, fromDiags := decodeFromBlock(block)
+			diags = diags.Extend(fromDiags)
 
-			if file.MigrateFromBackend != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Duplicate "migrate_from_backend" configuration block`,
-					Detail:   `Only one "migrate_from_backend" block is allowed in a directory's .tfmigrate.hcl files.`,
-					Subject:  block.DefRange.Ptr(),
-				})
-				continue // Keep file.MigrateFromBackend as first parsed block in this scenario
+			if !fromDiags.HasErrors() {
+				file.fromBlockSource = &block.DefRange
+
+				// Only one of the below is non-nil
+				file.MigrateFromStateStore = i.MigrateFromStateStore
+				file.MigrateFromBackend = i.MigrateFromBackend
 			}
 
-			if b != nil {
-				file.MigrateFromBackend = b
-			}
 		default:
 			// We don't expect other block types in state migration files.
 			diags = diags.Append(&hcl.Diagnostic{
@@ -118,20 +114,80 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 	if file.MigrateFromBackend != nil && file.MigrateFromStateStore != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Invalid combination of "migrate_from_backend" and "migrate_from_state_store"`,
-			Detail:   `The "migrate_from_backend" and "migrate_from_state_store" blocks are mutually-exclusive, only one should be used in a directory's .tfmigrate.hcl files..`,
+			Summary:  `Invalid combination of "backend" and "state_store"`,
+			Detail:   `The "backend" and "state_store" blocks are mutually-exclusive inside a "from" block. Only one should be used in a directory's .tfmigrate.hcl files.`,
+			Subject:  file.fromBlockSource, // We can blame the 'from' block as being invalid.
 		})
 	}
 	// Unnecessary state store-related data supplied alongside description of a backend.
 	if file.MigrateFromBackend != nil && file.StateStoreProvider != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
-			Detail:   `The "state_store_provider" block can only be used in combination with "migrate_from_state_store" blocks. Either remove the unused "state_store_provider" block, or replace the "migrate_from_backend" block with a "migrate_from_state_store" block.`,
+			Summary:  `Invalid combination of "backend" and "state_store_provider"`,
+			Detail:   `The "state_store_provider" block can only be used in combination with a "state_store" block. Either remove the unused "state_store_provider" block, or update your "from" block to contain a "state_store" block instead.`,
+			// No Subject because we don't know which is correct or incorrect.
 		})
 	}
 
 	return file, diags
+}
+
+// decodeFromBlock decodes a 'from' block that can only contain one of 'state_store' or 'backend' blocks.
+func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	fromData := StateMigrationInstructions{}
+
+	fromContent, fromContentDiags := block.Body.Content(fromBlockSchema)
+	diags = diags.Extend(fromContentDiags)
+
+	for _, block := range fromContent.Blocks {
+		switch block.Type {
+		case "state_store":
+			ss, ssDiags := decodeStateStoreBlock(block)
+			diags = diags.Extend(ssDiags)
+
+			if fromData.MigrateFromStateStore != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Duplicate "state_store" configuration block`,
+					Detail:   `Only one "state_store" block, nested in a "from" block, is allowed in a directory's .tfmigrate.hcl files.`,
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue // Keep fromData.MigrateFromStateStore as first parsed block in this scenario
+			}
+
+			if ss != nil {
+				fromData.MigrateFromStateStore = ss
+			}
+		case "backend":
+			b, bDiags := decodeBackendBlock(block)
+			diags = diags.Extend(bDiags)
+
+			if fromData.MigrateFromBackend != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Duplicate "backend" configuration block`,
+					Detail:   `Only one "backend" block, nested in a "from" block, is allowed in a directory's .tfmigrate.hcl files.`,
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue // Keep fromData.MigrateFromBackend as first parsed block in this scenario
+			}
+
+			if b != nil {
+				fromData.MigrateFromBackend = b
+			}
+		default:
+			// We don't expect other block types nested inside from blocks.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid block type",
+				Detail:   fmt.Sprintf("This block type is not valid to be nested inside 'from' blocks within a state migration file: %s", block.Type),
+				Subject:  block.DefRange.Ptr(),
+			})
+		}
+	}
+
+	return &fromData, diags
 }
 
 func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Diagnostics) {
@@ -289,16 +345,6 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 	return &ssProvider, diags
 }
 
-func decodeMigrateFromStateStoreBlock(block *hcl.Block) (*StateStore, hcl.Diagnostics) {
-	// migrate_from_state_store blocks are essentially the same as state_store blocks, so reuse logic.
-	return decodeStateStoreBlock(block)
-}
-
-func decodeMigrateFromBackendBlock(block *hcl.Block) (*Backend, hcl.Diagnostics) {
-	// migrate_from_backend blocks are essentially the same as backend blocks, so reuse logic.
-	return decodeBackendBlock(block)
-}
-
 // stateMigrationFileSchema is the schema for a .tfmigrate.hcl file, for use with
 // the `state migrate` command.
 // Whereas the current Terraform config (.tf) defines the destination that state should
@@ -310,11 +356,20 @@ var stateMigrationFileSchema = &hcl.BodySchema{
 			Type: "state_store_provider",
 		},
 		{
-			Type:       "migrate_from_state_store",
+			Type: "from",
+		},
+	},
+}
+
+// fromBlockSchema is the schema for 'from' blocks within .tfmigrate.hcl files.
+var fromBlockSchema = &hcl.BodySchema{
+	Blocks: []hcl.BlockHeaderSchema{
+		{
+			Type:       "state_store",
 			LabelNames: []string{"type"},
 		},
 		{
-			Type:       "migrate_from_backend",
+			Type:       "backend",
 			LabelNames: []string{"type"},
 		},
 	},

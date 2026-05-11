@@ -9,9 +9,11 @@ state_store_provider {
   }
 }
 
-migrate_from_state_store "test_store" { 
-  provider "test" { 
-    provider_attr = "foobar" 
-  } 
-  store_attr = "foobar" 
+from {
+  state_store  "test_store" { 
+    provider "test" { 
+      provider_attr = "foobar" 
+    } 
+    store_attr = "foobar" 
+  }
 }

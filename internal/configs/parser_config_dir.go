@@ -114,39 +114,39 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 				Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
 			})
 		case ss != nil && b != nil:
-			// Mutually exclusive migrate_from_backend and migrate_from_state_store both present
+			// Mutually exclusive 'from { backend }' and 'from { state_store }' both present
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Invalid combination of "migrate_from_backend" and "migrate_from_state_store"`,
-				Detail:   `A configuration cannot include both "migrate_from_backend" and "migrate_from_state_store" blocks. Remove one of these blocks, and the remaining block should describe where your existing state should be migrated from.`,
+				Summary:  `Invalid combination of "backend" and "state_store"`,
+				Detail:   `A configuration cannot include both "backend" and "state_store" blocks. Remove one of these blocks from inside the "from" block. The remaining block should describe where your existing state should be migrated from.`,
 				// Sourceless because we don't know which block isn't needed.
 			})
 		case ssp != nil && b != nil:
-			// Mutually exclusive migrate_from_backend and state_store_provider both present
+			// Mutually exclusive 'from { backend }' and 'state_store_provider' both present
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
-				Detail:   `The "state_store_provider" block can only be used in combination with "migrate_from_state_store" blocks. Either remove the unused "state_store_provider" block, or replace the "migrate_from_backend" block with a "migrate_from_state_store" block.`,
+				Summary:  `Invalid combination of "backend" and "state_store_provider"`,
+				Detail:   `The "state_store_provider" block can only be used in combination with a "state_store" block. Either remove the unused "state_store_provider" block, or replace the "backend" block with a "state_store" block.`,
 				// Blame the state_store_provider block as the problem, as this case will only be evaluated if
 				// there isn't a migrate_from_state_store block also present.
 				Subject: &ssp.DeclRange,
 			})
 		case ss != nil && ssp == nil:
-			// Missing state_store_provider block
+			// Missing 'state_store_provider' block
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Missing "state_store_provider" block for state store migration`,
-				Detail:   `The configuration includes a "migrate_from_state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
+				Detail:   `The configuration includes a "state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
 			})
 		case ss == nil && ssp != nil:
-			// Missing migrate_from_state_store block
+			// Missing 'from { state_store }' block
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  `Missing "migrate_from_state_store" block for state store migration`,
-				Detail:   `The configuration includes a "state_store_provider" block but is missing the required "migrate_from_state_store" block. Add a "migrate_from_state_store" block to specify the state store to migrate from.`,
+				Summary:  `Missing "state_store" block for state store migration`,
+				Detail:   `The configuration includes a "state_store_provider" block but is missing the required "state_store" block. Add a "state_store" block, nested in a "from" block, to specify the state store to migrate from.`,
 			})
 		case ss != nil && ssp != nil:
-			// Both migrate_from_state_store and state_store_provider blocks are present,
+			// Both 'from { state_store }' and 'state_store_provider' blocks are present,
 			// but are they in agreement with each other?
 			if ss.Provider.Name != ssp.Name {
 				diags = diags.Append(&hcl.Diagnostic{

@@ -237,8 +237,8 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	}
 }
 
-// Testing happy path use of migrate_from_backend block.
-func TestParserLoadConfigDirWithStateMigrations_migrate_from_backend(t *testing.T) {
+// Testing happy path use of 'from { backend }'.
+func TestParserLoadConfigDirWithStateMigrations_from_backend(t *testing.T) {
 	testFixtures := "testdata/state-migration-files/valid/migration-from-backend"
 	// Below are specified in the config above
 	backendType := "s3"
@@ -257,7 +257,7 @@ func TestParserLoadConfigDirWithStateMigrations_migrate_from_backend(t *testing.
 		)
 	}
 
-	// Assert that the module includes expected information from migrate_from_backend block
+	// Assert that the module includes expected information from 'from { backend }' block
 	b := mod.StateMigrationInstructions.MigrateFromBackend
 	if b.Type != backendType {
 		t.Fatalf("wrong backend type, got %q, want %q", b.Type, backendType)
@@ -275,9 +275,9 @@ func TestParserLoadConfigDirWithStateMigrations_migrate_from_backend(t *testing.
 	}
 }
 
-// Testing happy path use of migrate_from_state_store block. This requires use of the state_store_provider
+// Testing happy path use of 'from { state_store }'. This requires use of the state_store_provider
 // block as well, so this also checks the happy path for that block.
-func TestParserLoadConfigDirWithStateMigrations_migrate_from_state_store(t *testing.T) {
+func TestParserLoadConfigDirWithStateMigrations_from_state_store(t *testing.T) {
 	testFixtures := "testdata/state-migration-files/valid/migration-from-state-store"
 	// Below are specified in the config above
 	stateStoreType := "test_store"
@@ -296,7 +296,7 @@ func TestParserLoadConfigDirWithStateMigrations_migrate_from_state_store(t *test
 		)
 	}
 
-	// Assert that the module includes expected information from migrate_from_state_store block
+	// Assert that the module includes expected information from 'from { state_store }' block
 	ss := mod.StateMigrationInstructions.MigrateFromStateStore
 	if ss.Type != stateStoreType {
 		t.Fatalf("wrong state store type, got %q, want %q", ss.Type, stateStoreType)
@@ -334,55 +334,50 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 	}{
 		// Duplicated blocks
 		{
-			name:              "backend duplicated in single file",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-same-file",
-			diagnosticSummary: "Duplicate \"migrate_from_backend\" configuration block",
+			name:              "duplicated 'from' block",
+			directory:         "testdata/state-migration-files/invalid/duplicate-from-block-same-file",
+			diagnosticSummary: "Duplicate \"from\" configuration block",
 		},
 		{
-			name:              "backend duplicated across multiple files",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-backend-block-multiple-files",
-			diagnosticSummary: "Duplicate \"migrate_from_backend\" configuration block",
+			name:              "duplicated 'from' block across multiple files",
+			directory:         "testdata/state-migration-files/invalid/duplicate-from-block-multiple-files",
+			diagnosticSummary: "Duplicate \"from\" configuration block",
 		},
 		{
-			name:              "state_store_provider duplicated in single file",
-			directory:         "testdata/state-migration-files/invalid/duplicate-state-store-provider-block-same-file",
-			diagnosticSummary: "Duplicate \"state_store_provider\" configuration block",
+			name:              "duplicate 'backend' block in 'from' block",
+			directory:         "testdata/state-migration-files/invalid/duplicate-nested-backend-block",
+			diagnosticSummary: "Duplicate \"backend\" configuration block",
 		},
 		{
-			name:              "state_store_provider duplicated in multiple files",
-			directory:         "testdata/state-migration-files/invalid/duplicate-state-store-provider-block-multiple-files",
-			diagnosticSummary: "Duplicate \"state_store_provider\" configuration block",
-		},
-		{
-			name:              "migrate_from_state_store duplicated in single file",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-same-file",
-			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
-		},
-		{
-			name:              "migrate_from_state_store duplicated in multiple files",
-			directory:         "testdata/state-migration-files/invalid/duplicate-migrate-from-state-store-block-multiple-files",
-			diagnosticSummary: "Duplicate \"migrate_from_state_store\" configuration block",
+			name:              "duplicate 'state_store' block in 'from' block",
+			directory:         "testdata/state-migration-files/invalid/duplicate-nested-state-store-block",
+			diagnosticSummary: "Duplicate \"state_store\" configuration block",
 		},
 		// Mutually exclusive blocks
 		{
-			name:              "backend and state_store_provider mutually exclusive",
-			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-same-file",
-			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+			name:              "backend and state_store are mutually exclusive in same 'from' block",
+			directory:         "testdata/state-migration-files/invalid/both-nested-state-store-and-backend-blocks",
+			diagnosticSummary: `Invalid combination of "backend" and "state_store"`,
 		},
 		{
-			name:              "backend and state_store_provider mutually exclusive across multiple files",
+			name:              "backend and state_store_provider are mutually exclusive",
+			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-same-file",
+			diagnosticSummary: `Invalid combination of "backend" and "state_store_provider"`,
+		},
+		{
+			name:              "backend and state_store_provider are mutually exclusive across multiple files",
 			directory:         "testdata/state-migration-files/invalid/backend-and-state-store-provider-multiple-files",
-			diagnosticSummary: `Invalid combination of "migrate_from_backend" and "state_store_provider"`,
+			diagnosticSummary: `Invalid combination of "backend" and "state_store_provider"`,
 		},
 		// Missing blocks
 		{
-			name:              "only state_store_provider block",
+			name:              "only state_store_provider block, missing state_store",
 			directory:         "testdata/state-migration-files/invalid/only-state-store-provider-block",
-			diagnosticSummary: `Missing "migrate_from_state_store" block for state store migration`,
+			diagnosticSummary: `Missing "state_store" block for state store migration`,
 		},
 		{
-			name:              "only migrate_from_state_store block",
-			directory:         "testdata/state-migration-files/invalid/only-migrate-from-state-store-block",
+			name:              "only state_store block, missing state_store_provider",
+			directory:         "testdata/state-migration-files/invalid/only-state-store-block",
 			diagnosticSummary: `Missing "state_store_provider" block for state store migration`,
 		},
 		{
@@ -393,7 +388,7 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 		// Invalid contents of state_store_provider block
 		{
 			name:              "invalid version constraint in state_store_provider block",
-			directory:         "testdata/state-migration-files/invalid/invalid-version-constraint-state-store-provider-block",
+			directory:         "testdata/state-migration-files/invalid/invalid-version-state-store-provider-block",
 			diagnosticSummary: `Invalid provider version in "state_store_provider" configuration block`,
 		},
 		{
