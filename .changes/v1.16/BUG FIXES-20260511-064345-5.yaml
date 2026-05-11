@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/http: Set TLS MinVersion to 1.2 to prevent protocol downgrade attacks against state data in transit'
+time: 2026-05-11T06:29:00.000000Z
+custom:
+    Issue: "38546"
