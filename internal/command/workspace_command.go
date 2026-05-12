@@ -5,11 +5,12 @@ package command
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -47,11 +48,12 @@ func (c *WorkspaceCommand) Synopsis() string {
 // validWorkspaceName returns true is this name is valid to use as a workspace name.
 // Since most named states are accessed via a filesystem path or URL, check if
 // escaping the name would be required.
+//
+// This has been moved to the arguments package but also kept here, as the function is used
+// in some places for reasons other than validating command-line arguments.
+// TODO: Decide whether to keep this function or use arguments package to validate ENV values too.
 func validWorkspaceName(name string) bool {
-	if name == "" {
-		return false
-	}
-	return name == url.PathEscape(name)
+	return arguments.ValidWorkspaceName(name)
 }
 
 func envCommandShowWarning(ui cli.Ui, show bool) {
@@ -68,6 +70,28 @@ with other concepts.
 The "terraform workspace" commands should be used instead. "terraform env"
 will be removed in a future Terraform version.
 `)
+}
+
+// envCommandWarningDiag returns diagnostic version of the output from envCommandShowWarning.
+// This should be used when the output is being rendered in a machine-readable format.
+func envCommandWarningDiag(show bool) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if !show {
+		return diags // empty
+	}
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Detail:   `Warning: the "terraform env" family of commands is deprecated.`,
+		Summary: `"Workspace" is now the preferred term for what earlier Terraform versions
+called "environment", to reduce ambiguity caused by the latter term colliding
+with other concepts.
+
+The "terraform workspace" commands should be used instead. "terraform env"
+will be removed in a future Terraform version.
+`,
+	})
+	return diags
 }
 
 const (
@@ -102,11 +126,6 @@ Workspace %[1]q is your active workspace.
 
 You cannot delete the currently active workspace. Please switch
 to another workspace and try again.
-`
-
-	envInvalidName = `
-The workspace name %q is not allowed. The name must contain only URL safe
-characters, contain no path separators, and not be an empty string.
 `
 
 	envIsOverriddenNote = `

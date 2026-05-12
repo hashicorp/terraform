@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Avoid warnings in 'terraform output -raw'
+time: 2026-04-30T12:14:33.373975+02:00
+custom:
+    Issue: "38487"

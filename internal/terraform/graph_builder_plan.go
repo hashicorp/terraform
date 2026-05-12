@@ -205,7 +205,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			DestroyApply:   false, // always false for planning
 		},
 		&variableValidationTransformer{
-			validateWalk: b.Operation == walkValidate,
+			operation: b.Operation,
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{

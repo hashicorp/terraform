@@ -3,11 +3,7 @@
 
 package arguments
 
-import (
-	"errors"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
-)
+import "net/url"
 
 // Workspace represents the command-line arguments common between all workspace subcommands.
 //
@@ -17,39 +13,17 @@ type Workspace struct {
 	ViewType ViewType
 }
 
-type WorkspaceList struct {
-	Workspace
+// ValidWorkspaceName returns true is this name is valid to use as a workspace name.
+// Since most named states are accessed via a filesystem path or URL, check if
+// escaping the name would be required.
+func ValidWorkspaceName(name string) bool {
+	if name == "" {
+		return false
+	}
+	return name == url.PathEscape(name)
 }
 
-// ParseWorkspaceList processes CLI arguments, returning a WorkspaceList value and errors.
-// If errors are encountered, an WorkspaceList value is still returned representing
-// the best effort interpretation of the arguments.
-func ParseWorkspaceList(args []string) (*WorkspaceList, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	var jsonOutput bool
-	cmdFlags := defaultFlagSet("workspace list")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-
-	if err := cmdFlags.Parse(args); err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			err.Error(),
-		))
-	}
-
-	// `workspace list` takes no positional arguments. Historically there was a DIR argument that was replaced with the -chdir flag.
-	// Here we replicate the old behaviour of suggesting the user to use -chdir if they provide any positional arguments.
-	args = cmdFlags.Args()
-	if len(args) != 0 {
-		diags = diags.Append(errors.New("Too many command line arguments. Did you mean to use -chdir?"))
-	}
-
-	switch {
-	case jsonOutput:
-		return &WorkspaceList{Workspace: Workspace{ViewType: ViewJSON}}, diags
-	default:
-		return &WorkspaceList{Workspace: Workspace{ViewType: ViewHuman}}, diags
-	}
-}
+const EnvInvalidName = `
+The workspace name %q is not allowed. The name must contain only URL safe
+characters, contain no path separators, and not be an empty string.
+`

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/posener/complete"
 )
 
@@ -14,13 +16,16 @@ type WorkspaceShowCommand struct {
 	Meta
 }
 
-func (c *WorkspaceShowCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.extendedFlagSet("workspace show")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
+func (c *WorkspaceShowCommand) Run(rawArgs []string) int {
+	// Process global flags and configure the view/UI.
+	rawArgs = c.Meta.process(rawArgs)
+
+	// Process command-specific arguments.
+	// Currently there are no arguments for this command, so ignore the returned value for now.
+	_, diags := arguments.ParseWorkspaceShow(rawArgs)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return cli.RunResultHelp
 	}
 
 	workspace, err := c.Workspace()

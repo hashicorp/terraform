@@ -265,12 +265,14 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		componentAddrsRaw = append(componentAddrsRaw, componentAddr.String())
 	}
 
-	plannedOutputValues := make(map[string]*tfstackdata1.DynamicValue)
+	outputDescs := make(map[string]*stacks.DynamicValue, len(pc.PlannedOutputValues))
+	plannedOutputValues := make(map[string]*tfstackdata1.DynamicValue, len(outputDescs))
 	for k, v := range pc.PlannedOutputValues {
 		dv, err := stacks.ToDynamicValue(v, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding output value %q: %w", k, err)
 		}
+		outputDescs[k] = dv
 		plannedOutputValues[k] = tfstackdata1.Terraform1ToStackDataDynamicValue(dv)
 	}
 
@@ -327,6 +329,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 						},
 						Actions:      protoChangeTypes,
 						PlanComplete: pc.PlanComplete,
+						OutputValues: outputDescs,
 						// We don't include "applyable" in here since for a
 						// stack operation it's the overall stack plan applyable
 						// flag that matters, and the per-component flags

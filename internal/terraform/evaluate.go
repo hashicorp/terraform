@@ -93,15 +93,16 @@ type Evaluator struct {
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
 	return &lang.Scope{
-		Data:            data,
-		ParseRef:        addrs.ParseRef,
-		SelfAddr:        self,
-		SourceAddr:      source,
-		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:         ".", // Always current working directory for now.
-		PlanTimestamp:   e.PlanTimestamp,
-		ExternalFuncs:   extFuncs,
-		FunctionResults: e.FunctionResults,
+		Data:                           data,
+		ParseRef:                       addrs.ParseRef,
+		SelfAddr:                       self,
+		SourceAddr:                     source,
+		PureOnly:                       e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:                        ".", // Always current working directory for now.
+		PlanTimestamp:                  e.PlanTimestamp,
+		ExternalFuncs:                  extFuncs,
+		FunctionResults:                e.FunctionResults,
+		IgnoreUnknownProviderFunctions: e.Operation == walkInit,
 	}
 }
 
@@ -301,7 +302,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// that are disabled, etc. Terraform's static validation leans towards
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
-	if d.Operation == walkValidate {
+	if d.Operation == walkValidate || (d.Operation == walkInit && !config.Const) {
 		// We should still capture the statically-configured marks during
 		// the validate walk.
 		ret := cty.UnknownVal(config.Type)
@@ -437,23 +438,25 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		noDynamicTypes = noDynamicTypes && !out.ConstraintType.HasDynamicTypes()
 	}
 
-	if d.Operation == walkValidate && typeDefined {
-		atys := make(map[string]cty.Type, len(outputConfigs))
-		as := make(map[string]cty.Value, len(outputConfigs))
-		for name, c := range outputConfigs {
-			// atys is used to create the module object type for expanded modules
-			atys[name] = c.ConstraintType
-			// the unknown val can be used when we return a single module
-			// instance with unknown outputs
-			val := cty.UnknownVal(c.ConstraintType)
+	// build up the type of the configured module output object
+	atys := make(map[string]cty.Type, len(outputConfigs))
+	// and create a single unknown instance value for validation
+	as := make(map[string]cty.Value, len(outputConfigs))
+	for name, c := range outputConfigs {
+		// atys is used to create the module object type for expanded modules
+		atys[name] = c.ConstraintType
 
-			if c.DeprecatedSet {
-				val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
-			}
-			as[name] = val
+		// the unknown val can be used when we return a single module
+		// instance with unknown outputs
+		val := cty.UnknownVal(c.ConstraintType)
+		if c.DeprecatedSet {
+			val = val.Mark(marks.NewDeprecation(c.Deprecated, absAddr.Output(name).ConfigOutputValue().ForDisplay()))
 		}
-		instTy := cty.Object(atys)
+		as[name] = val
+	}
+	instTy := cty.Object(atys)
 
+	if d.Operation == walkValidate && typeDefined {
 		switch {
 		case callConfig.Count != nil && noDynamicTypes:
 			return cty.UnknownVal(cty.List(instTy)), diags
@@ -579,9 +582,12 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			elems = append(elems, instVal)
 			diags = diags.Append(moreDiags)
 		}
-		if noDynamicTypes {
+		switch {
+		case noDynamicTypes && len(elems) == 0:
+			return cty.ListValEmpty(instTy), diags
+		case noDynamicTypes:
 			return cty.ListVal(elems), diags
-		} else {
+		default:
 			return cty.TupleVal(elems), diags
 		}
 
@@ -592,9 +598,13 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			attrs[string(instKey.(addrs.StringKey))] = instVal
 			diags = diags.Append(moreDiags)
 		}
-		if noDynamicTypes {
+
+		switch {
+		case noDynamicTypes && len(attrs) == 0:
+			return cty.MapValEmpty(instTy), diags
+		case noDynamicTypes:
 			return cty.MapVal(attrs), diags
-		} else {
+		default:
 			return cty.ObjectVal(attrs), diags
 		}
 

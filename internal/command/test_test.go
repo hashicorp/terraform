@@ -449,7 +449,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"dynamic_source_non_const_var": {
 			initCode:    1,
-			expectedErr: []string{"Invalid module source"},
+			expectedErr: []string{"Unknown module source"},
 			code:        1,
 		},
 	}

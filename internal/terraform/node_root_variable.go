@@ -190,3 +190,7 @@ func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable,
 	}
 	return n.Addr.InModule(addrs.RootModule), rules, defnRange
 }
+
+func (n *NodeRootVariable) isConst() bool {
+	return n.Config != nil && n.Config.Const
+}

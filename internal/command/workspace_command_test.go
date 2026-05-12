@@ -335,7 +335,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
-	if code := newCmd.Run(args); code != 1 {
+	if code := newCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to create the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -352,7 +352,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 			WorkingDir: workdir.NewDir("."),
 		},
 	}
-	if code := selectCmd.Run(args); code != 1 {
+	if code := selectCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
 	}
 
@@ -965,7 +965,7 @@ func TestWorkspace_selectWithOrCreate(t *testing.T) {
 // Test covers:
 // - `terraform env new`
 // - `terraform env select`
-// - `terraform env list`
+// - `terraform env list` - with and without `-json`
 // - `terraform env delete`
 //
 // Note: there is no `env` equivalent of `terraform workspace show`.
@@ -1051,6 +1051,30 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 		)
 	}
 
+	// Assert `terraform env list -json` returns expected deprecation warning
+	ui = new(cli.MockUi)
+	view, done := testView(t)
+	listCmd = &WorkspaceListCommand{
+		Meta: Meta{
+			Ui:         ui,
+			View:       view,
+			WorkingDir: workdir.NewDir("."),
+		},
+		LegacyName: true,
+	}
+	args = []string{"-json"}
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	output := cleanString(done(t).All())
+	expectedWarningJSON := "Warning: the \\\"terraform env\\\" family of commands is deprecated."
+	if !strings.Contains(output, expectedWarningJSON) {
+		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
+			expectedWarningJSON,
+			output,
+		)
+	}
+
 	// Assert `terraform env delete` returns expected deprecation warning
 	ui = new(cli.MockUi)
 	view, _ = testView(t)
@@ -1071,39 +1095,6 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 			expectedWarning,
 			ui.ErrorWriter.String(),
 		)
-	}
-}
-
-func TestValidWorkspaceName(t *testing.T) {
-	cases := map[string]struct {
-		input string
-		valid bool
-	}{
-		"foobar": {
-			input: "foobar",
-			valid: true,
-		},
-		"valid symbols": {
-			input: "-._~@:",
-			valid: true,
-		},
-		"includes space": {
-			input: "two words",
-			valid: false,
-		},
-		"empty string": {
-			input: "",
-			valid: false,
-		},
-	}
-
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			valid := validWorkspaceName(tc.input)
-			if valid != tc.valid {
-				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
-			}
-		})
 	}
 }
 
@@ -1130,7 +1121,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := newCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError := "Expected a single argument: NAME.\n\n"
+	expectedError := "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}
@@ -1168,7 +1159,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := selectCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError = "Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}
@@ -1182,7 +1173,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := deleteCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	expectedError = "Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if ui.ErrorWriter.String() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
 	}

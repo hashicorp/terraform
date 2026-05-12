@@ -565,6 +565,7 @@ message PlannedChange {
     // unexpected differences caused by such situations as contradictory
     // configuration or provider bugs.
     bool plan_complete = 3;
+    map<string,DynamicValue> output_values = 4;
   }
   message ResourceInstance {
     ResourceInstanceObjectInStackAddr addr = 1;

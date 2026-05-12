@@ -3,93 +3,37 @@
 
 package arguments
 
-import (
-	"testing"
+import "testing"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
-)
-
-func TestParseWorkspaceList_valid(t *testing.T) {
-	testCases := map[string]struct {
-		args []string
-		want *WorkspaceList
+func TestValidWorkspaceName(t *testing.T) {
+	cases := map[string]struct {
+		input string
+		valid bool
 	}{
-		"defaults": {
-			nil,
-			&WorkspaceList{
-				Workspace: Workspace{
-					ViewType: ViewHuman,
-				},
-			},
+		"foobar": {
+			input: "foobar",
+			valid: true,
 		},
-		"json": {
-			[]string{"-json"},
-			&WorkspaceList{
-				Workspace: Workspace{
-					ViewType: ViewJSON,
-				},
-			},
+		"valid symbols": {
+			input: "-._~@:",
+			valid: true,
 		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			got, diags := ParseWorkspaceList(tc.args)
-			if len(diags) > 0 {
-				t.Fatalf("unexpected diags: %v", diags)
-			}
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestParseWorkspaceList_invalid(t *testing.T) {
-	testCases := map[string]struct {
-		args      []string
-		want      *WorkspaceList
-		wantDiags tfdiags.Diagnostics
-	}{
-		"unknown flag": {
-			[]string{"-boop"},
-			&WorkspaceList{
-				Workspace: Workspace{
-					ViewType: ViewHuman,
-				},
-			},
-			tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to parse command-line flags",
-					"flag provided but not defined: -boop",
-				),
-			},
+		"includes space": {
+			input: "two words",
+			valid: false,
 		},
-		"too many arguments": {
-			[]string{"-json", "bar", "baz"},
-			&WorkspaceList{
-				Workspace: Workspace{
-					ViewType: ViewJSON, // -json flag parsed correctly
-				},
-			},
-			tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Too many command line arguments. Did you mean to use -chdir?",
-					"", // No detail
-				),
-			},
+		"empty string": {
+			input: "",
+			valid: false,
 		},
 	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			got, gotDiags := ParseWorkspaceList(tc.args)
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			valid := ValidWorkspaceName(tc.input)
+			if valid != tc.valid {
+				t.Fatalf("unexpected output when processing input %q. Wanted %v got %v", tc.input, tc.valid, valid)
 			}
-			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
 		})
 	}
 }

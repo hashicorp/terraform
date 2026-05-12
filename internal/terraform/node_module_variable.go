@@ -162,6 +162,10 @@ func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputV
 	return n.Addr.InModule(n.Module), rules, defnRange
 }
 
+func (n *nodeExpandModuleVariable) isConst() bool {
+	return n.Config != nil && n.Config.Const
+}
+
 // nodeModuleVariable represents a module variable input during
 // the apply step.
 type nodeModuleVariable struct {

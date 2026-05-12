@@ -34,7 +34,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 		"non-const variable in module source": {
 			fixture:   "local-source-with-non-const-variable",
 			args:      []string{"-var", "module_name=example"},
-			wantError: "Invalid module source",
+			wantError: "Unknown module source",
 		},
 		"resource reference in module source": {
 			fixture:   "source-with-resource-reference",
@@ -70,6 +70,32 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			args:      []string{"-get=false", "-var", "module_version=0.0.2"},
 			wantError: "Module version requirements have changed",
 		},
+
+		"const variable with static validation check": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "The module_name variable must be set to \"example\"",
+		},
+		// This error is in addition to the expected validation error in the test case above and is
+		// a consequence of validation blocks having their own node in the graph, thus a validation
+		// error doesn't prevent the module install node from executing.
+		"const variable with static validation check - module install bug": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
+		},
+
+		// we can't determine if a provider function fails somewhere in the
+		// evaluation chain during init, so we have to return a generic error
+		// about unknown values.
+		"provider function in module source": {
+			fixture:   "provider-function-in-source",
+			wantError: "Only literal values and const variables can be evaluated during init.",
+		},
+		"provider function in module version": {
+			fixture:   "provider-function-in-version",
+			wantError: "Only literal values and const variables can be evaluated during init.",
+		},
 	}
 
 	for name, tc := range tests {
@@ -78,6 +104,10 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -85,6 +115,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
+					ProviderSource:   providerSource,
 				},
 			}
 
@@ -131,6 +162,23 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 		"path.module in module source": {
 			fixture: "path-attr-in-module-source",
 		},
+		"const variable with static validation check": {
+			fixture: "const-var-source-with-validation",
+			args:    []string{"-var", "module_name=example"},
+		},
+		"const variable with validation referencing non-const variable": {
+			fixture: "const-var-with-validation-and-reference",
+			// the non_const_var variable is not defined here since we are only testing init
+			// so the value will always be unknown regardless of input.
+			args: []string{"-var", "const_var=hello"},
+		},
+
+		// The validation returns unknown during init, and must wait until
+		// a full validation is actually run.
+		"provider function in const variable validation check": {
+			fixture: "provider-function-in-const-validation",
+			args:    []string{"-var", "module_name=example"},
+		},
 	}
 
 	for name, tc := range tests {
@@ -139,6 +187,10 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -146,6 +198,7 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(testProvider()),
 					Ui:               ui,
 					View:             view,
+					ProviderSource:   providerSource,
 				},
 			}
 
@@ -265,9 +318,9 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 }
 
 func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
-	// TODO: -from-module currently panics when the copied configuration
+	// TODO: -from-module currently errors when the copied configuration
 	// contains a dynamic module source (e.g. "./modules/${var.module_name}").
-	t.Skip("skipping: -from-module panics on dynamic module sources (see TODO in from_module.go)")
+	t.Skip("skipping: -from-module errors on dynamic module sources (see TODO in from_module.go)")
 
 	// Create an empty target directory for -from-module to copy into
 	td := t.TempDir()
@@ -287,7 +340,7 @@ func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
 	// into the empty working directory. This should copy the files but the
 	// nested dynamic module won't be resolved by -from-module itself.
 	srcDir := testFixturePath(filepath.Join("dynamic-module-sources", "from-module-with-dynamic-source", "source-module"))
-	args := []string{"-from-module=" + srcDir}
+	args := []string{"-from-module=" + srcDir, "-var", "module_name=test"}
 	code := c.Run(args)
 	testOutput := done(t)
 
