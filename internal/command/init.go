@@ -427,7 +427,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	if upgrade {
 		if flagLockfile == "readonly" {
 			diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
-			view.Diagnostics(diags)
 			return true, nil, diags
 		}
 
