@@ -82,6 +82,8 @@ type Init struct {
 	EnablePssExperiment bool
 }
 
+const ReadOnlyLockfileMode = "readonly"
+
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
@@ -156,7 +158,15 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 		))
 	}
 
-	if init.Upgrade && init.Lockfile == "readonly" {
+	if init.Lockfile != "" && init.Lockfile != ReadOnlyLockfileMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid -lockfile option value",
+			fmt.Sprintf("The -lockfile flag's only supported value is \"readonly\". Unsupported value detected: %s", init.Lockfile),
+		))
+	}
+
+	if init.Upgrade && init.Lockfile == ReadOnlyLockfileMode {
 		// This is appended as a Go error because this validation already existed this way
 		// and it's been moved earlier in the process, to the arguments package.
 		diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))

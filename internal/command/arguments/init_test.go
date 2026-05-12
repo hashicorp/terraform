@@ -4,6 +4,7 @@
 package arguments
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -156,8 +157,13 @@ func TestParseInit_invalid(t *testing.T) {
 			wantViewType: ViewHuman,
 		},
 		"with both -upgrade and -lockfile=readonly options set": {
-			args:         []string{"-upgrade", "-lockfile=readonly"},
+			args:         []string{"-upgrade", fmt.Sprintf("-lockfile=%s", ReadOnlyLockfileMode)},
 			wantErr:      "The -upgrade flag conflicts with -lockfile=readonly.",
+			wantViewType: ViewHuman,
+		},
+		"-lockfile options set to invalid value": {
+			args:         []string{"-upgrade", "-lockfile=invalid!"},
+			wantErr:      `Invalid -lockfile option value: The -lockfile flag's only supported value is "readonly".`,
 			wantViewType: ViewHuman,
 		},
 	}
