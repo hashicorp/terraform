@@ -449,7 +449,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
-		BuiltInProviderFailure:   builtInProviderFailureCallback(view, &diags),
+		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
 				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay()) // Message is specific to provide download from config
@@ -475,9 +475,9 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 			cb := fetchPackageBeginCallback(view)
 			cb(provider, version, location)
 		},
-		QueryPackagesFailure: queryPackagesFailureCallback(view, &diags, ctx, inst.ProviderSource(), reqs),
-		QueryPackagesWarning: queryPackagesWarningCallback(view, &diags),
-		LinkFromCacheFailure: linkFromCacheFailureCallback(view, &diags),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
+		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			// 1. Capture auth result if this provider is used for state storage.
@@ -642,7 +642,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
-		BuiltInProviderFailure:   builtInProviderFailureCallback(view, &diags),
+		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
 				view.LogInitMessage(views.ReusingVersionIdentifiedFromConfig, provider.ForDisplay()) // Message is specific to provider download from state
@@ -656,9 +656,9 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 		},
 		LinkFromCacheBegin:   linkFromCacheBeginCallback(view),
 		FetchPackageBegin:    fetchPackageBeginCallback(view),
-		QueryPackagesFailure: queryPackagesFailureCallback(view, &diags, ctx, inst.ProviderSource(), reqs),
-		QueryPackagesWarning: queryPackagesWarningCallback(view, &diags),
-		LinkFromCacheFailure: linkFromCacheFailureCallback(view, &diags),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
+		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
 		FetchPackageSuccess:  fetchPackageSuccessCallback(view),
 		ProvidersLockUpdated: providersLockUpdatedCallback(&c.incompleteProviders),
@@ -1013,7 +1013,7 @@ func builtInProviderAvailableCallback(view views.Init) func(provider addrs.Provi
 }
 
 // Returns a reused callback function for the BuiltinProviderFailure event in a providercache.InstallerEvents struct.
-func builtInProviderFailureCallback(view views.Init, diags *tfdiags.Diagnostics) func(provider addrs.Provider, err error) {
+func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider addrs.Provider, err error) {
 	return func(provider addrs.Provider, err error) {
 		*diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -1038,7 +1038,7 @@ func fetchPackageBeginCallback(view views.Init) func(provider addrs.Provider, ve
 }
 
 // Returns a reused callback function for the QueryPackagesFailure event in a providercache.InstallerEvents struct.
-func queryPackagesFailureCallback(view views.Init, diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements) func(provider addrs.Provider, err error) {
+func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements) func(provider addrs.Provider, err error) {
 	return func(provider addrs.Provider, err error) {
 		switch errorTy := err.(type) {
 		case getproviders.ErrProviderNotFound:
@@ -1130,7 +1130,7 @@ func queryPackagesFailureCallback(view views.Init, diags *tfdiags.Diagnostics, c
 }
 
 // Returns a reused callback function for the QueryPackagesWarning event in a providercache.InstallerEvents struct.
-func queryPackagesWarningCallback(view views.Init, diags *tfdiags.Diagnostics) func(provider addrs.Provider, warnings []string) {
+func queryPackagesWarningCallback(diags *tfdiags.Diagnostics) func(provider addrs.Provider, warnings []string) {
 	return func(provider addrs.Provider, warnings []string) {
 		displayWarnings := make([]string, len(warnings))
 		for i, warning := range warnings {
@@ -1149,7 +1149,7 @@ func queryPackagesWarningCallback(view views.Init, diags *tfdiags.Diagnostics) f
 }
 
 // Returns a reused callback function for the LinkFromCacheFailure event in a providercache.InstallerEvents struct.
-func linkFromCacheFailureCallback(view views.Init, diags *tfdiags.Diagnostics) func(provider addrs.Provider, version getproviders.Version, err error) {
+func linkFromCacheFailureCallback(diags *tfdiags.Diagnostics) func(provider addrs.Provider, version getproviders.Version, err error) {
 	return func(provider addrs.Provider, version getproviders.Version, err error) {
 		*diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
