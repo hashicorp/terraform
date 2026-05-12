@@ -356,6 +356,10 @@ the backend configuration is present and valid.
 // dependency lock data based on the configuration.
 // The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+	if config == nil {
+		return false, nil, diags
+	}
+
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
