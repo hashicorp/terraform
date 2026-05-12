@@ -378,7 +378,7 @@ const (
 // The dependency lock file itself isn't updated here.
 func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	if config == nil {
-		return false, nil, SafeInitActionInvalid, nil, diags
+		return false, nil, SafeInitActionNotRelevant, nil, diags
 	}
 
 	ctx, span := tracer.Start(ctx, "install providers from config")
