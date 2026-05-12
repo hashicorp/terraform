@@ -1221,6 +1221,11 @@ func (m *MockRegistryModules) ReadVersion(ctx context.Context, moduleID tfe.Regi
 	panic("implement me")
 }
 
+func (m *MockRegistryModules) ListTagBindings(ctx context.Context, moduleID string) ([]*tfe.TagBinding, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type MockRuns struct {
 	sync.Mutex
 
@@ -2425,10 +2430,11 @@ func (s *MockWorkspaces) SetDataRetentionPolicyDontDelete(ctx context.Context, w
 type MockQueryRuns struct {
 	sync.Mutex
 
-	client     *MockClient
-	logs       map[string]string
-	Runs       map[string]*tfe.QueryRun
-	workspaces map[string][]*tfe.QueryRun
+	client        *MockClient
+	logs          map[string]string
+	Runs          map[string]*tfe.QueryRun
+	workspaces    map[string][]*tfe.QueryRun
+	CreateOptions tfe.QueryRunCreateOptions // captured on each Create call
 }
 
 func newMockQueryRuns(client *MockClient) *MockQueryRuns {
@@ -2498,6 +2504,7 @@ func (m *MockQueryRuns) Create(ctx context.Context, options tfe.QueryRunCreateOp
 
 	m.Runs[r.ID] = r
 	m.workspaces[options.Workspace.ID] = append(m.workspaces[options.Workspace.ID], r)
+	m.CreateOptions = options
 
 	return r, nil
 }

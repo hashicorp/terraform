@@ -2560,7 +2560,7 @@ terraform {
 			t.Fatalf("command was not expected to complete successfully, but it did:\n%s", done(t).All())
 		}
 		output := done(t).Stderr()
-		expectedError := "Error: Cannot upgrade the provider used for pluggable state storage during \"terraform init -upgrade\""
+		expectedError := "Error: Cannot upgrade the provider used for state storage during \"terraform init -upgrade\""
 		if !strings.Contains(output, expectedError) {
 			t.Fatalf("expected error message not found:\n%s", output)
 		}
@@ -3910,22 +3910,87 @@ func TestInit_testsWithModule(t *testing.T) {
 
 // Testing init's behaviors with `state_store` when run in an empty working directory
 func TestInit_stateStore_newWorkingDir(t *testing.T) {
-	t.Run("temporary: test showing use of HTTP server in mock provider source", func(t *testing.T) {
+	t.Run("no need to interactively approve a state store provider installed from local archive", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
+		// This mock provider source makes Terraform think the provider is coming from a local archive,
+		// so security checks are skipped.
+		source := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// This test doesn't need -safe-init in the flags due to the location of the provider
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"Initializing the state store...",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+	})
+
+	t.Run("prompted to approve a state store provider downloaded via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
 
 		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
 		// This stops Terraform auto-approving the provider installation.
 		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
-			// The test fixture config has no version constraints, so the latest version will
-			// be used; below 1.2.3 is the 'latest' version in the test world.
-			"hashicorp/test": {"1.0.0", "1.2.3"},
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		inputWriter := testInputMap(t, map[string]string{
+			"approve": "yes",
 		})
 
 		ui := new(cli.MockUi)
@@ -3945,17 +4010,20 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
 			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		// Check output
+		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
+			"The state store provider was approved",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -3963,22 +4031,49 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
 			}
 		}
+		// Check output when prompting for approval
+		expectedInputPromptMsg := []string{
+			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
+			getproviders.CurrentPlatform.String(),
+			"Authentication: verified checksum",
+			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+		}
+		for _, expected := range expectedInputPromptMsg {
+			if !strings.Contains(inputWriter.String(), expected) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", expected, inputWriter.String())
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
 	})
 
-	t.Run("temporary: test showing use of network mirror in mock provider source", func(t *testing.T) {
+	t.Run("approval prompt reports provider as unauthorized if no hashes returned from the HTTP mirror", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		// Mock provider still needs to be supplied via testingOverrides despite the mock network mirror
+		// The network mirror the provider will be downloaded from will not return any hashes, so
+		// Terraform won't have any way to check the provider's authenticity.
+		// This affects the prompt for approval, which this test case focuses on.
+		returnApprovedHashes := false
+		source := newHTTPMirrorProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		}, returnApprovedHashes)
+
 		mockProvider := mockPluggableStateStorageProvider()
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 from a network mirror.
-		source := newHTTPMirrorProviderSourceUsingTestHttpServer(t, map[string][]string{
-			"hashicorp/test": {"1.0.0", "1.2.3"},
-		}, true)
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		inputWriter := testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -3997,18 +4092,221 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			Meta: meta,
 		}
 
-		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 0 {
 			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		// Check output
+		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"Initializing the state store...",
-			" Installed hashicorp/test v1.2.3 (verified checksum)", // verified checksum message due to hashes matching those described by the network mirror.
+			"The state store provider was approved",
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+		// Check output when prompting for approval
+		expectedInputPromptMsg := []string{
+			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
+			getproviders.CurrentPlatform.String(),
+			"Authentication: unauthenticated",
+			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+		}
+		for _, expected := range expectedInputPromptMsg {
+			if !strings.Contains(inputWriter.String(), expected) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", expected, inputWriter.String())
+			}
+		}
+
+		// Assert the dependency lock file was created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+	})
+
+	t.Run("users can reject a state store provider downloaded via HTTP", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		// Allow the test to respond to the pause in provider installation for
+		// checking the state storage provider.
+		inputWriter := testInputMap(t, map[string]string{
+			"approve": "no",
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output via view
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"The state store provider was rejected",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+		// Check output when prompting for approval
+		expectedInputPromptMsg := []string{
+			"Do you want to use provider \"test\" (registry.terraform.io/hashicorp/test), version 1.2.3, for managing state?",
+			getproviders.CurrentPlatform.String(),
+			"Authentication: verified checksum",
+			"h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+		}
+		for _, expected := range expectedInputPromptMsg {
+			if !strings.Contains(inputWriter.String(), expected) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", expected, inputWriter.String())
+			}
+		}
+
+		// Assert the dependency lock file was not created
+		lockFile := filepath.Join(td, ".terraform.lock.hcl")
+		_, err := os.Stat(lockFile)
+		if !os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to not exist, but it does")
+		}
+	})
+
+	t.Run("re-prompt to approve a provider after rejecting that provider in a previous init", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		mockProviderVersion := getproviders.MustParseVersion("1.2.3")
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		// Set up providers for use in the second init attempt after the user adds the -safe-init flag.
+		mockProvider := mockPluggableStateStorageProvider()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Init number 1 - reject the provider
+		_ = testInputMap(t, map[string]string{
+			"approve": "no",
+		})
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output := testOutput.All()
+		expectedOutputs := []string{
+			"The state store provider was rejected",
+		}
+		for _, expectedOutput := range expectedOutputs {
+			if !strings.Contains(output, expectedOutput) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expectedOutput, output)
+			}
+		}
+
+		// The rejected provider is present in the local cache after being rejected.
+		// However, this doesn't stop the user being prompted again.
+		cacheDir := meta.providerLocalCacheDir()
+		gotPackages := cacheDir.AllAvailablePackages()
+		wantPackages := map[addrs.Provider][]providercache.CachedProvider{
+			// "between" wasn't previously installed at all, so we installed
+			// the newest available version that matched the version constraints.
+			mockProviderAddress: {
+				{
+					Provider:   mockProviderAddress,
+					Version:    mockProviderVersion,
+					PackageDir: expectedPackageInstallPath(mockProviderAddress.Type, mockProviderVersion.String(), false),
+				},
+			},
+		}
+		if diff := cmp.Diff(wantPackages, gotPackages); diff != "" {
+			t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
+		}
+
+		// Init number 2 - re-prompted for approval
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+		})
+		args = []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		ui = new(cli.MockUi)
+		view, done = testView(t)
+		c.Ui = ui
+		c.View = view
+		code = c.Run(args)
+		testOutput = done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+		output = testOutput.All()
+		expectedOutputs = []string{
+			"Initializing the state store...",
+			"The state store provider was approved",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
