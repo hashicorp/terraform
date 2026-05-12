@@ -4,6 +4,7 @@
 package arguments
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -153,6 +154,12 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 			"Invalid init options",
 			"The -migrate-state and -reconfigure options are mutually-exclusive.",
 		))
+	}
+
+	if init.Upgrade && init.Lockfile == "readonly" {
+		// This is appended as a Go error because this validation already existed this way
+		// and it's been moved earlier in the process, to the arguments package.
+		diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 	}
 
 	init.Args = cmdFlags.Args()

@@ -155,6 +155,11 @@ func TestParseInit_invalid(t *testing.T) {
 			wantErr:      "The -migrate-state and -reconfigure options are mutually-exclusive.",
 			wantViewType: ViewHuman,
 		},
+		"with both -upgrade and -lockfile=readonly options set": {
+			args:         []string{"-upgrade", "-lockfile=readonly"},
+			wantErr:      "The -upgrade flag conflicts with -lockfile=readonly.",
+			wantViewType: ViewHuman,
+		},
 	}
 
 	for name, tc := range testCases {
