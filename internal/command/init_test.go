@@ -6335,7 +6335,7 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 	code := initCmd.Run(args)
 	testOutput := done(t)
 	if code != 1 {
-		t.Fatalf("expected apply to fail with code 1, got code %d: \n%s", code, testOutput.All())
+		t.Fatalf("expected init to fail with code 1, got code %d: \n%s", code, testOutput.All())
 	}
 	log.Printf("[TRACE] TestInit_configErrorsImpactingStateStore: init complete")
 	t.Logf("init output:\n%s", testOutput.Stdout())
@@ -6352,6 +6352,36 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 		if !strings.Contains(cleanString(testOutput.Stderr()), e) {
 			t.Fatalf("unexpected error, expected %q, given: %s", e, testOutput.Stderr())
 		}
+	}
+}
+
+func TestInit_varValueWithoutConfig(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+	cfg1 := `terraform {}`
+
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg1), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			Ui:   ui,
+			View: view,
+		},
+	}
+
+	code := initCmd.Run([]string{"-var", "foo=bar"})
+	testOutput := done(t)
+	if code != 1 {
+		t.Fatalf("expected init to fail with code 1, got code %d: \n%s", code, testOutput.All())
+	}
+
+	expectedErr := "Error: Value for undeclared variable"
+	if !strings.Contains(cleanString(testOutput.Stderr()), expectedErr) {
+		t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
 	}
 }
 
