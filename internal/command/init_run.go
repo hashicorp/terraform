@@ -288,7 +288,6 @@ If you do not intend to upgrade the state store provider, please update your con
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, configLocks, view)
-		defer back.Close()
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)

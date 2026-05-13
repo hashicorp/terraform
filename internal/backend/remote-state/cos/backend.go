@@ -21,7 +21,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -248,12 +247,6 @@ func New() backend.Backend {
 	result.Backend.ConfigureFunc = result.configure
 
 	return result
-}
-
-// Close implements backend.Backend.
-// This is a no-op implementation because as classic remote-state backends don't have resources to release.
-func (b *Backend) Close() tfdiags.Diagnostics {
-	return nil
 }
 
 func validateIntegerInRange(min, max int64) schema.SchemaValidateFunc {

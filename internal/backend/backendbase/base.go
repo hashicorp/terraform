@@ -121,9 +121,3 @@ func (b Base) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics
 
 	return v, diags
 }
-
-// Close is a no-op implementation of the Backend Close method, as classic remote-state backends don't have resources to release.
-// Implementing this method is only necessary in the context of pluggable state stores.
-func (b Base) Close() tfdiags.Diagnostics {
-	return nil
-}

@@ -103,9 +103,4 @@ type Backend interface {
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
 	Workspaces() ([]string, tfdiags.Diagnostics)
-
-	// Close releases any resources held by the backend.
-	// This is only necessary in the context of pluggable state stores.
-	// Remote-state backends are expected to implement this as a no-op.
-	Close() tfdiags.Diagnostics
 }

@@ -165,16 +165,6 @@ func (b *Local) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
-// Close implements backend.Backend.
-// The Local backend doesn't have it's own implementation of this method, as there are no resources to release.
-// The wrapped backend may have a functional or no-op implementation of this method.
-func (b *Local) Close() tfdiags.Diagnostics {
-	if b.Backend != nil {
-		return b.Backend.Close()
-	}
-	return nil
-}
-
 func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if b.Backend != nil {
 		return b.Backend.Configure(obj)

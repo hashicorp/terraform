@@ -159,16 +159,6 @@ func (p *Pluggable) Workspaces() ([]string, tfdiags.Diagnostics) {
 	return resp.States, resp.Diagnostics
 }
 
-// Close implements backend.Backend.
-// When used for resource management, a provider can be released via Close when it's no longer needed.
-// When used for managing state, the provider cannot be released until an operation completes.
-// This method allows calling code to control when the state storage provider is released, but it's
-// likely to be released late in a command's operation, if not deferred until the end of the command.
-func (p *Pluggable) Close() tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	return diags.Append(p.provider.Close())
-}
-
 // DeleteWorkspace deletes the state file for the named workspace.
 // The state storage provider is expected to return error diagnostics
 // if the workspace doesn't exist or it is unable to be deleted.

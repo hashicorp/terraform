@@ -1421,7 +1421,6 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 	if ssDiags.HasErrors() {
 		return nil, ssDiags
 	}
-	defer ssBackend.Close() // We only use the underlying provider process in this function.
 
 	// change of provider configuration
 	cachedProviderVal, err := cfgState.Provider.Config(ssBackend.ProviderSchema())

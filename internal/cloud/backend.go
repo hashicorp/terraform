@@ -437,12 +437,6 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
-// Close implements backend.Backend.
-// This is a no-op implementation because as classic remote-state backends don't have resources to release.
-func (b *Cloud) Close() tfdiags.Diagnostics {
-	return nil
-}
-
 func (b *Cloud) AppName() string {
 	if b != nil && isValidAppName(b.appName) {
 		return b.appName
