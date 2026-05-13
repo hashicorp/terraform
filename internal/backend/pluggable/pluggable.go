@@ -182,3 +182,15 @@ func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnosti
 	// to be passed to the calling code that expects a statemgr.Full
 	return remote.NewRemoteGRPC(p.provider, p.typeName, workspace), nil
 }
+
+// Close closes the provider instance inside the Pluggable.
+// This method is intended to be used if a Pluggable backend instance is created for _brief_ use
+// within a command, e.g. to access schema data from the wrapped provider and no more.
+//
+// We don't call the Close method every time a pluggable state store is used, as in majority of
+// cases Terraform will the ability to manage state throughout the entire operation. In those
+// cases the operation ending is sufficient and appropriate for stopping the child process.
+func (p *Pluggable) Close() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	return diags.Append(p.provider.Close())
+}

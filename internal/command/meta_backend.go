@@ -1416,8 +1416,10 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		}, diags
 	}
 
-	// We need the state store schema to do our comparisons here.
+	// We need the provider and state store schemas for use in comparisons here.
+	// Launch, use, and close an instance of the state store.
 	ssBackend, ssCfgVal, pCfgVal, ssDiags := m.stateStoreInitFromConfig(cfg, pLocks)
+	defer ssBackend.Close()
 	if ssDiags.HasErrors() {
 		return nil, ssDiags
 	}
@@ -2379,8 +2381,10 @@ func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState 
 		return true
 	}
 
-	// We need the state store schema to do our comparisons here.
+	// We need the provider and state store schemas for use in comparisons here.
+	// Launch, use, and close an instance of the state store.
 	ssBackend, ssCfgVal, pCfgVal, ssDiags := m.stateStoreInitFromConfig(cfg, opts.Locks)
+	defer ssBackend.Close()
 	if ssDiags.HasErrors() {
 		log.Printf("[ERROR] Unable to initialise state store: %s", ssDiags)
 		return true
