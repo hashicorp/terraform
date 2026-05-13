@@ -76,7 +76,7 @@ Options:
 
   -destination-provider-lock-file  Path to a provider lock file for the destination provider (requires -input=false).
 
-  -upgrade                         Trigger upgrade of the provider.
+  -upgrade                         Trigger upgrade of the provider used for state storage.
 
   -input=true                      Enable input for interactive prompts (defaults to true, set to false in automation).
 `
