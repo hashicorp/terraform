@@ -72,13 +72,13 @@ Usage: terraform [global options] state migrate [options]
 
 Options:
 
-  -source-provider-lock-file	   Path to a provider lock file for the source provider (requires -input=false).
+  -source-provider-lock-file       Path to a provider lock file for the source provider (requires -input=false).
 
   -destination-provider-lock-file  Path to a provider lock file for the destination provider (requires -input=false).
 
-  -upgrade  					   Trigger upgrade of the provider.
-  
-  -input=true					   Enable input for interactive prompts (defaults to true, set to false in automation).
+  -upgrade                         Trigger upgrade of the provider.
+
+  -input=true                      Enable input for interactive prompts (defaults to true, set to false in automation).
 `
 	return strings.TrimSpace(helpText)
 }
