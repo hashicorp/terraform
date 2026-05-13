@@ -25,7 +25,7 @@ func TestResource(t *testing.T) {
 }
 
 func TestState_basic(t *testing.T) {
-	var tests = map[string]struct {
+	tests := map[string]struct {
 		Config cty.Value
 		Want   cty.Value
 		Err    bool
@@ -366,6 +366,13 @@ func (b backendFailsConfigure) Configure(config cty.Value) tfdiags.Diagnostics {
 	log.Printf("[TRACE] backendFailsConfigure.Configure(%#v)", config)
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(fmt.Errorf("Configure should never be called"))
+	return diags
+}
+
+func (b backendFailsConfigure) Close() tfdiags.Diagnostics {
+	log.Printf("[TRACE] backendFailsConfigure.Close")
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(fmt.Errorf("Close should never be called"))
 	return diags
 }
 

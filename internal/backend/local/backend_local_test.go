@@ -210,8 +210,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	assertBackendStateUnlocked(t, b)
 }
 
-type backendWithStateStorageThatFailsRefresh struct {
-}
+type backendWithStateStorageThatFailsRefresh struct{}
 
 var _ backend.Backend = backendWithStateStorageThatFailsRefresh{}
 
@@ -228,6 +227,10 @@ func (b backendWithStateStorageThatFailsRefresh) PrepareConfig(in cty.Value) (ct
 }
 
 func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Diagnostics {
+	return nil
+}
+
+func (b backendWithStateStorageThatFailsRefresh) Close() tfdiags.Diagnostics {
 	return nil
 }
 

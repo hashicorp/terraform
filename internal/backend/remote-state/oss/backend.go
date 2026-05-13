@@ -33,6 +33,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"golang.org/x/net/http/httpproxy"
 )
@@ -285,6 +286,12 @@ type Backend struct {
 	acl                  string
 	otsEndpoint          string
 	otsTable             string
+}
+
+// Close implements backend.Backend.
+// This is a no-op implementation because as classic remote-state backends don't have resources to release.
+func (b *Backend) Close() tfdiags.Diagnostics {
+	return nil
 }
 
 func (b *Backend) configure(ctx context.Context) error {

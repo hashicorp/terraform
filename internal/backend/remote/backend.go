@@ -199,6 +199,12 @@ func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
+// Close implements backend.Backend.
+// This is a no-op implementation because as classic remote-state backends don't have resources to release.
+func (b *Remote) Close() tfdiags.Diagnostics {
+	return nil
+}
+
 func (b *Remote) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	aliasHostname, err := svchost.ForComparison(genericHostname)
 	if err != nil {
