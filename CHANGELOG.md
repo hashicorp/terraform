@@ -1,4 +1,34 @@
-## 1.16.0 (Unreleased)
+## 1.16.0-alpha20260513 (May 13, 2026)
+
+
+NEW FEATURES:
+
+* Store PlannedPrivate data for providers ([#37986](https://github.com/hashicorp/terraform/issues/37986))
+
+* New store block in terraform_data that can handle ephemeral and sensitive values ([#38298](https://github.com/hashicorp/terraform/issues/38298))
+
+* Providers can now use nested blocks as computed values ([#38305](https://github.com/hashicorp/terraform/issues/38305))
+
+* We now produce builds for Linux s390x (zLinux) ([#38384](https://github.com/hashicorp/terraform/issues/38384))
+
+* workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag ([#38397](https://github.com/hashicorp/terraform/issues/38397))
+
+
+ENHANCEMENTS:
+
+* feat(cli): terraform state show accepts a -json flag ([#23940](https://github.com/hashicorp/terraform/issues/23940))
+
+* Show info when resources are left behind due to skip_cleanup ([#38449](https://github.com/hashicorp/terraform/issues/38449))
+
+
+BUG FIXES:
+
+* import blocks no longer ignore provider local names ([#38338](https://github.com/hashicorp/terraform/issues/38338))
+
+
+UPGRADE NOTES:
+
+* Provisioner bastion_host_key is now correctly applied. Existing usage of bastion_host_key should verify the configured key is correct. ([#38318](https://github.com/hashicorp/terraform/issues/38318))
 
 
 EXPERIMENTS:
