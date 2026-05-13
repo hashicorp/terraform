@@ -5,6 +5,7 @@ package cloud
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -176,5 +177,61 @@ func TestCloud_queryJSONWithDiags(t *testing.T) {
 	testString := "Warning: Something went wrong"
 	if !strings.Contains(output, testString) {
 		t.Fatalf("Expected %q to contain %q but it did not", output, testString)
+	}
+}
+
+func TestCloud_queryGenerateConfigOut(t *testing.T) {
+	tests := []struct {
+		name          string
+		setConfigOut  bool
+		wantGenConfig bool
+	}{
+		{
+			name:          "GenerateConfigOut set",
+			setConfigOut:  true,
+			wantGenConfig: true,
+		},
+		{
+			name:          "GenerateConfigOut not set",
+			setConfigOut:  false,
+			wantGenConfig: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			b, mc, bCleanup := testBackendAndMocksWithName(t)
+			defer bCleanup()
+
+			op, configCleanup, done := testOperationQuery(t, "./testdata/query")
+			defer configCleanup()
+			defer done(t)
+
+			if tc.setConfigOut {
+				// ValidateTargetFile errors if the file already exists, so
+				// use a path inside a temp dir that does not yet exist.
+				op.GenerateConfigOut = filepath.Join(t.TempDir(), "generated.tf")
+			}
+
+			op.Workspace = testBackendSingleWorkspaceName
+
+			run, err := b.Operation(context.Background(), op)
+			if err != nil {
+				t.Fatalf("error starting operation: %v", err)
+			}
+
+			<-run.Done()
+			if run.Result != backendrun.OperationSuccess {
+				t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+			}
+
+			got := mc.QueryRuns.CreateOptions.GenerateConfigOut
+			if got == nil {
+				t.Fatal("expected GenerateConfigOut to be non-nil in QueryRunCreateOptions")
+			}
+			if *got != tc.wantGenConfig {
+				t.Errorf("GenerateConfigOut: got %v, want %v", *got, tc.wantGenConfig)
+			}
+		})
 	}
 }

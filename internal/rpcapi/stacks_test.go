@@ -1816,166 +1816,232 @@ func TestStacksOpenTerraformState_Raw(t *testing.T) {
 }
 
 func TestStacksMigrateTerraformState(t *testing.T) {
-	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
-
-	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		stacks.RegisterStacksServer(srv, stacksServer)
-	})
-	defer close()
-
-	s := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "testing_deferred_resource",
-				Name: "resource",
-			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"hello","value":"world","deferred":false}`),
-				Status:    states.ObjectReady,
-			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("testing"),
-				Module:   addrs.RootModule,
-			},
-		)
-	})
-
-	statePath := stackmigrate.TestStateFile(t, s)
-	stacksClient := stacks.NewStacksClient(grpcClient)
-	resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
-		State: &stacks.OpenTerraformState_Request_ConfigPath{
-			ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hnd := handle[*states.State](resp.StateHandle)
-	state := handles.TerraformState(hnd)
-	if state == nil {
-		t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
-	}
-
-	if !statefile.StatesMarshalEqual(s, state) {
-		t.Fatalf("loaded state does not match original state")
-	}
-
-	// up until now is basically what we did in TestStacksOpenTerraformState_ConfigPath
-	// now we're going to migrate the state and check that the migration worked
-
-	// In normal use a client would have previously opened a source bundle
-	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
-	// of that here.
-
-	sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	sourcesHnd := handles.NewSourceBundle(sources)
-
-	openResp, err := stacksServer.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
-		SourceBundleHandle: sourcesHnd.ForProtobuf(),
-		SourceAddress: &terraform1.SourceAddress{
-			Source: "git::https://example.com/baz.git",
-		},
-	})
-	if err != nil {
-		t.Fatalf("unable to open stack configuration: %s", err)
-	}
-
-	// For this test, we do actually want to use a "real" provider. We'll
-	// use the providerCacheOverride to side-load the testing provider.
-	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
-	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
-		return stacks_testing_provider.NewProvider(t), nil
-	}
-
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	lockHandle := handles.NewDependencyLocks(lock)
-
-	stream, err := stacksClient.MigrateTerraformState(ctx, &stacks.MigrateTerraformState_Request{
-		StateHandle:           resp.StateHandle,
-		ConfigHandle:          openResp.StackConfigHandle,
-		DependencyLocksHandle: lockHandle.ForProtobuf(),
-		Mapping: &stacks.MigrateTerraformState_Request_Simple{
-			Simple: &stacks.MigrateTerraformState_Request_Mapping{
+	testCases := map[string]struct {
+		source          string
+		requestMapping  *stacks.MigrateTerraformState_Request_Mapping
+		wantChangeDescs []*stacks.AppliedChange_ChangeDescription
+	}{
+		"simple-baz": {
+			source: "git::https://example.com/baz.git",
+			requestMapping: &stacks.MigrateTerraformState_Request_Mapping{
 				ResourceAddressMap: map[string]string{
 					"testing_deferred_resource.resource": "component.self",
 				},
 			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	gotEvents := []*stacks.MigrateTerraformState_Event{}
-	for {
-		event, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		gotEvents = append(gotEvents, event)
-	}
-
-	wantChanges := []*stacks.AppliedChange_ChangeDescription{
-		{
-			Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
-			Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
-				ResourceInstance: &stacks.AppliedChange_ResourceInstance{
-					Addr: &stacks.ResourceInstanceObjectInStackAddr{
-						ComponentInstanceAddr: "component.self",
-						ResourceInstanceAddr:  "testing_deferred_resource.resource",
+			wantChangeDescs: []*stacks.AppliedChange_ChangeDescription{
+				{
+					Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
+					Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+						ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_deferred_resource.resource",
+							},
+							NewValue: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+									"id":       cty.StringVal("hello"),
+									"value":    cty.StringVal("world"),
+									"deferred": cty.False,
+								}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+							},
+							ResourceMode: stacks.ResourceMode_MANAGED,
+							ResourceType: "testing_deferred_resource",
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
 					},
-					NewValue: &stacks.DynamicValue{
-						Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
-							"id":       cty.StringVal("hello"),
-							"value":    cty.StringVal("world"),
-							"deferred": cty.False,
-						}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+				},
+				{
+					Key: "CMPTcomponent.self",
+					Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+						ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+							ComponentAddr:         "component.self",
+							ComponentInstanceAddr: "component.self",
+						},
 					},
-					ResourceMode: stacks.ResourceMode_MANAGED,
-					ResourceType: "testing_deferred_resource",
-					ProviderAddr: "registry.terraform.io/hashicorp/testing",
 				},
 			},
 		},
-		{
-			Key: "CMPTcomponent.self",
-			Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
-				ComponentInstance: &stacks.AppliedChange_ComponentInstance{
-					ComponentAddr:         "component.self",
-					ComponentInstanceAddr: "component.self",
+		"nested-modules-with-implicit-provider-config-quux": {
+			source: "git::https://example.com/quux.git",
+			requestMapping: &stacks.MigrateTerraformState_Request_Mapping{
+				ResourceAddressMap: map[string]string{
+					"testing_deferred_resource.resource": "component.self.module.child.module.grand-child.testing_deferred_resource.resource",
+				},
+			},
+			wantChangeDescs: []*stacks.AppliedChange_ChangeDescription{
+				{
+					Key: "RSRCcomponent.self,module.child.module.grand-child.testing_deferred_resource.resource,cur",
+					Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+						ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "module.child.module.grand-child.testing_deferred_resource.resource",
+							},
+							NewValue: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+									"id":       cty.StringVal("hello"),
+									"value":    cty.StringVal("world"),
+									"deferred": cty.False,
+								}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+							},
+							ResourceMode: stacks.ResourceMode_MANAGED,
+							ResourceType: "testing_deferred_resource",
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Key: "CMPTcomponent.self",
+					Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+						ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+							ComponentAddr:         "component.self",
+							ComponentInstanceAddr: "component.self",
+						},
+					},
 				},
 			},
 		},
 	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
 
-	if len(gotEvents) != len(wantChanges) {
-		t.Fatalf("expected %d events, got %d", len(wantChanges), len(gotEvents))
-	}
+			ctx := context.Background()
 
-	gotChanges := make([]*stacks.AppliedChange_ChangeDescription, len(gotEvents))
-	for i, evt := range gotEvents {
-		gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, protocmp.Transform()); diff != "" {
-		t.Fatalf("wrong changes\n%s", diff)
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+			grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				stacks.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			s := states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_deferred_resource",
+						Name: "resource",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"id":"hello","value":"world","deferred":false}`),
+						Status:    states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("testing"),
+						Module:   addrs.RootModule,
+					},
+				)
+			})
+
+			statePath := stackmigrate.TestStateFile(t, s)
+			stacksClient := stacks.NewStacksClient(grpcClient)
+			resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
+				State: &stacks.OpenTerraformState_Request_ConfigPath{
+					ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			hnd := handle[*states.State](resp.StateHandle)
+			state := handles.TerraformState(hnd)
+			if state == nil {
+				t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
+			}
+
+			if !statefile.StatesMarshalEqual(s, state) {
+				t.Fatalf("loaded state does not match original state")
+			}
+
+			// up until now is basically what we did in TestStacksOpenTerraformState_ConfigPath
+			// now we're going to migrate the state and check that the migration worked
+
+			// In normal use a client would have previously opened a source bundle
+			// using Dependencies.OpenSourceBundle, so we'll simulate the effect
+			// of that here.
+
+			sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			sourcesHnd := handles.NewSourceBundle(sources)
+
+			openResp, err := stacksServer.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+				SourceBundleHandle: sourcesHnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unable to open stack configuration: %s", err)
+			}
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			}
+
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			lockHandle := handles.NewDependencyLocks(lock)
+
+			stream, err := stacksClient.MigrateTerraformState(ctx, &stacks.MigrateTerraformState_Request{
+				StateHandle:           resp.StateHandle,
+				ConfigHandle:          openResp.StackConfigHandle,
+				DependencyLocksHandle: lockHandle.ForProtobuf(),
+				Mapping: &stacks.MigrateTerraformState_Request_Simple{
+					Simple: tc.requestMapping,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			gotEvents := []*stacks.MigrateTerraformState_Event{}
+			for {
+				event, err := stream.Recv()
+				if err == io.EOF {
+					break
+				}
+
+				if err != nil {
+					t.Fatalf("unexpected error: %s", err)
+				}
+
+				gotEvents = append(gotEvents, event)
+			}
+
+			if len(gotEvents) != len(tc.wantChangeDescs) {
+				t.Fatalf("expected %d events, got %d", len(tc.wantChangeDescs), len(gotEvents))
+			}
+
+			gotDiags := []*terraform1.Diagnostic{}
+			gotChanges := make([]*stacks.AppliedChange_ChangeDescription, len(gotEvents))
+			for i, evt := range gotEvents {
+				if evt.GetDiagnostic() != nil {
+					gotDiags = append(gotDiags, evt.GetDiagnostic())
+					continue
+				}
+
+				gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
+			}
+
+			if len(gotDiags) > 0 {
+				t.Fatalf("unexpected diags: %v", gotDiags)
+			}
+
+			if diff := cmp.Diff(tc.wantChangeDescs, gotChanges, protocmp.Transform()); diff != "" {
+				t.Fatalf("wrong changes\n%s", diff)
+			}
+		})
 	}
 }
 
