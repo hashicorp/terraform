@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -168,6 +169,19 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 
 	if initArgs.Get {
+		// If the root module declares any const variables that are not yet
+		// satisfied by CLI flags, attempt to fetch them from the configured
+		// backend (e.g. HCP Terraform workspace variables). This is necessary
+		// so that dynamic module source expressions (e.g. `source = var.path`)
+		// can be resolved during module installation below.
+		//
+		// Non-fatal: if the backend isn't reachable yet (e.g. first-time init
+		// before credentials are stored) we proceed and let module installation
+		// fail with a more specific error if needed.
+		if resolveVarDiags := c.resolveConstVariablesForInit(path, initArgs.ViewType); resolveVarDiags.HasErrors() {
+			log.Printf("[WARN] init: failed to resolve const variables from backend: %s", resolveVarDiags.Err())
+		}
+
 		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
 		diags = diags.Append(modsDiags)
 		if modsAbort || modsDiags.HasErrors() {

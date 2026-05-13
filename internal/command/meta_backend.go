@@ -2138,6 +2138,55 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 	return be, diags
 }
 
+// backendForInit is like backend but sets Init: true so it can be used
+// during "terraform init" before the backend has been stored in state.
+// It is restricted to cloud/backend configs only (not state_store) since
+// state_store requires dependency locks that aren't available during init.
+//
+// This is used by resolveConstVariablesForInit to fetch workspace variables
+// early enough for dynamic module source resolution.
+func (m *Meta) backendForInit(configPath string, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if configPath == "" {
+		configPath = "."
+	}
+
+	root, mDiags := m.loadSingleModule(configPath)
+	if mDiags.HasErrors() {
+		diags = diags.Append(mDiags)
+		return nil, diags
+	}
+
+	var opts *BackendOpts
+	switch {
+	case root.Backend != nil:
+		opts = &BackendOpts{
+			BackendConfig: root.Backend,
+			ViewType:      viewType,
+			Init:          true,
+		}
+	case root.CloudConfig != nil:
+		backendConfig := root.CloudConfig.ToBackendConfig()
+		opts = &BackendOpts{
+			BackendConfig: &backendConfig,
+			ViewType:      viewType,
+			Init:          true,
+		}
+	default:
+		// No cloud/backend config; can't fetch variables.
+		return nil, nil
+	}
+
+	be, beDiags := m.Backend(opts)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return be, diags
+}
+
 //-------------------------------------------------------------------
 // State Store Config Scenarios
 // The functions below cover handling all the various scenarios that

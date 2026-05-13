@@ -47,6 +47,23 @@ func (m *Meta) normalizePath(path string) string {
 // If no const variables are unsatisfied, or if the backend does not support
 // supplying variables, this method is a no-op.
 func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
+	return m.fetchAndApplyConstVariables(rootDir, func() (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+		return m.backend(rootDir, viewType)
+	})
+}
+
+// resolveConstVariablesForInit is like resolveConstVariables but uses
+// backendForInit so it can run during "terraform init" before the backend
+// state file exists. This is necessary so that dynamic module source
+// expressions (e.g. `source = var.module_path`) can be resolved during
+// module installation, which happens before backend init completes.
+func (m *Meta) resolveConstVariablesForInit(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
+	return m.fetchAndApplyConstVariables(rootDir, func() (backendrun.OperationsBackend, tfdiags.Diagnostics) {
+		return m.backendForInit(rootDir, viewType)
+	})
+}
+
+func (m *Meta) fetchAndApplyConstVariables(rootDir string, loadBackend func() (backendrun.OperationsBackend, tfdiags.Diagnostics)) tfdiags.Diagnostics {
 	rootMod, diags := m.loadSingleModule(rootDir)
 	if diags.HasErrors() {
 		return diags
@@ -56,9 +73,9 @@ func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType
 		return nil
 	}
 
-	b, backendDiags := m.backend(rootDir, viewType)
+	b, backendDiags := loadBackend()
 	if backendDiags.HasErrors() {
-		// Don't report backend init errors here; they'll surface later.
+		// Don't report backend errors here; they'll surface later during init.
 		return nil
 	}
 

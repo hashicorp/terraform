@@ -10,6 +10,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
@@ -716,5 +720,55 @@ func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
 	want := "Module version requirements have changed"
 	if !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+	}
+}
+
+// TestInit_constVarFromCloudBackend verifies that terraform init fetches
+// workspace variables from HCP Terraform to resolve const variables used in
+// dynamic module source expressions, without requiring -var flags.
+func TestInit_constVarFromCloudBackend(t *testing.T) {
+	// Start a mock HCP Terraform server that serves the "test" workspace and
+	// returns module_name=example as a Terraform-category variable.
+	server := cloudTestServerWithVars(t)
+	defer server.Close()
+	d := testDisco(server)
+
+	// Override the "cloud" backend to use our test server.
+	previousBackend := backendInit.Backend("cloud")
+	backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+	defer backendInit.Set("cloud", previousBackend)
+
+	// Use the existing fixture: cloud {} block pointing to hashicorp/test,
+	// variable "module_name" { const = true }, module "example" { source = "./modules/${var.module_name}" }
+	wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
+	t.Chdir(wd.RootModuleDir())
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+			WorkingDir:       wd,
+			Services:         d,
+		},
+	}
+
+	// Run init without any -var flags; module_name should be resolved from the backend.
+	code := c.Run([]string{})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("expected init to succeed, got exit code %d\n%s", code, output.All())
+	}
+
+	// The module should have been installed into .terraform/modules.
+	moduleDir := filepath.Join(wd.RootModuleDir(), ".terraform", "modules")
+	entries, err := os.ReadDir(moduleDir)
+	if err != nil {
+		t.Fatalf("expected .terraform/modules to exist after init: %s", err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("expected at least one module entry in .terraform/modules after init")
 	}
 }
