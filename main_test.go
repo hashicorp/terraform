@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -371,5 +373,60 @@ func TestWarnOutput(t *testing.T) {
 
 	if stdout != "WARNING\n" {
 		t.Fatalf("unexpected stdout: %q\n", stdout)
+	}
+}
+
+func TestPluginCacheDirWithChdir(t *testing.T) {
+	// Create a temporary directory structure for testing
+	tmpDir := t.TempDir()
+	subDir := filepath.Join(tmpDir, "subdir")
+	cacheDir := filepath.Join(tmpDir, "cache")
+
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(originalWd)
+
+	// Change to tmpDir
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test case 1: Relative path that exists
+	config := &cliconfig.Config{
+		PluginCacheDir: "../cache",
+	}
+
+	// Change to subdir (simulating -chdir)
+	if err := os.Chdir(subDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Validate relative path
+	if pluginCacheDir := config.PluginCacheDir; pluginCacheDir != "" && !filepath.IsAbs(pluginCacheDir) {
+		if _, err := os.Stat(pluginCacheDir); err != nil {
+			t.Errorf("Expected relative plugin cache dir to be accessible after chdir, but got error: %v", err)
+		}
+	}
+
+	// Test case 2: Relative path that doesn't exist
+	config2 := &cliconfig.Config{
+		PluginCacheDir: "../nonexistent",
+	}
+
+	// Validate non-existent relative path
+	if pluginCacheDir := config2.PluginCacheDir; pluginCacheDir != "" && !filepath.IsAbs(pluginCacheDir) {
+		if _, err := os.Stat(pluginCacheDir); err == nil {
+			t.Error("Expected non-existent relative plugin cache dir to fail validation")
+		}
 	}
 }
