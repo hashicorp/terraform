@@ -140,6 +140,17 @@ type LockInfo struct {
 	Path string
 }
 
+// If this env is set, the default lockInfo Object will populate its Info field
+// from this environment variable. If this environment variable is not set, this
+// field will not be set as well.
+const tfLockMetadataEnvName = "TF_LOCK_METADATA"
+
+// If this env is set, the default lockInfo Object will populate its Who field
+// from this environment variable and if not set, the field will defualt to
+// user@host. If there is an error while reading user, it will set the empty
+// string as the default value of user. Same goes for host.
+const tfLockOwnerIdEnvName = "TF_LOCK_OWNER_ID"
+
 // NewLockInfo creates a LockInfo object and populates many of its fields
 // with suitable default values.
 func NewLockInfo() *LockInfo {
@@ -162,12 +173,24 @@ func NewLockInfo() *LockInfo {
 	}
 	host, _ := os.Hostname()
 
+	//read lock owner id from TF_LOCK_OWNER_ID
+	who := fmt.Sprintf("%s@%s", userName, host)
+	if val, present := os.LookupEnv(tfLockOwnerIdEnvName); present {
+		who = val
+	}
+
 	info := &LockInfo{
 		ID:      id,
-		Who:     fmt.Sprintf("%s@%s", userName, host),
+		Who:     who,
 		Version: version.Version,
 		Created: time.Now().UTC(),
 	}
+
+	// read lock metadata from TF_LOCK_METADATA
+	if metadata, metadataPresent := os.LookupEnv(tfLockMetadataEnvName); metadataPresent {
+		info.Info = metadata
+	}
+
 	return info
 }
 
