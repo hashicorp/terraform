@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed a bug that meant errors encountered when renewing ephemeral resources were not shown to users
+time: 2026-05-15T12:00:00.000000Z
+custom:
+    Issue: "38574"

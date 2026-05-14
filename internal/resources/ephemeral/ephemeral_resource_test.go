@@ -5,6 +5,7 @@ package ephemeral
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -272,6 +273,56 @@ func TestResourcesCancellation(t *testing.T) {
 	}
 }
 
+func TestResourcesRenewFailure(t *testing.T) {
+	resources := NewResources()
+
+	addr := addrs.ResourceInstance{
+		Resource: addrs.Resource{
+			Mode: addrs.EphemeralResourceMode,
+			Type: "test",
+			Name: "a",
+		},
+		Key: addrs.NoKey,
+	}.Absolute(addrs.RootModuleInstance)
+
+	ctx := context.TODO()
+
+	renewErr := make(chan struct{})
+	inst := &testResourceInstance{
+		name:          addr.String(),
+		renewInterval: 10 * time.Millisecond,
+		failAfter:     1,
+		notifyErr:     renewErr,
+	}
+
+	resources.RegisterInstance(ctx, addr, ResourceInstanceRegistration{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"test": cty.StringVal("ephemeral.test.a"),
+		}),
+		Impl:    inst,
+		RenewAt: time.Now().Add(10 * time.Millisecond),
+	})
+
+	// Wait for the renewal failure to be processed.
+	select {
+	case <-renewErr:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for renewal failure")
+	}
+
+	// After a failed renewal the instance should no longer be live.
+	_, live := resources.InstanceValue(addr)
+	if live {
+		t.Fatalf("%s should not be live after renewal failure", addr)
+	}
+
+	// Close should surface the renewal error diagnostics.
+	diags := resources.CloseInstances(ctx, addr.ConfigResource())
+	if !diags.HasErrors() {
+		t.Fatal("expected error diagnostics from failed renewal")
+	}
+}
+
 type testResourceInstance struct {
 	sync.Mutex
 	name          string
@@ -279,6 +330,8 @@ type testResourceInstance struct {
 	renewed       int
 	notifyRenew   chan string
 	closed        bool
+	failAfter     int           // if > 0, fail on the Nth renewal
+	notifyErr     chan struct{} // closed after the failing renewal returns
 }
 
 func (r *testResourceInstance) Renew(ctx context.Context, req providers.EphemeralRenew) (*providers.EphemeralRenew, tfdiags.Diagnostics) {
@@ -288,11 +341,22 @@ func (r *testResourceInstance) Renew(ctx context.Context, req providers.Ephemera
 	r.Lock()
 	defer r.Unlock()
 	r.renewed++
-	select {
-	case r.notifyRenew <- r.name:
-	case <-time.After(time.Second):
-		// stop renewing if no-one is listening
-		return nil, nil
+	if r.failAfter > 0 && r.renewed >= r.failAfter {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("renewal failed"))
+		if r.notifyErr != nil {
+			close(r.notifyErr)
+			r.notifyErr = nil
+		}
+		return nil, diags
+	}
+	if r.notifyRenew != nil {
+		select {
+		case r.notifyRenew <- r.name:
+		case <-time.After(time.Second):
+			// stop renewing if no-one is listening
+			return nil, nil
+		}
 	}
 	return nextRenew, nil
 }

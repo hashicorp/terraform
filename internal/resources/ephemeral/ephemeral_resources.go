@@ -102,7 +102,10 @@ func (r *Resources) InstanceValue(addr addrs.AbsResourceInstance) (val cty.Value
 	}
 	// If renewal has failed then we can't assume that the object is still
 	// live, but we can still return the original value regardless.
-	return inst.value, !inst.renewDiags.HasErrors()
+	inst.renewMu.Lock()
+	hasErrors := inst.renewDiags.HasErrors()
+	inst.renewMu.Unlock()
+	return inst.value, !hasErrors
 }
 
 // CloseInstances shuts down any live ephemeral resource instances that are
@@ -246,7 +249,7 @@ func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.W
 			// It's time to renew
 			r.renewMu.Lock()
 			anotherRenew, diags := r.impl.Renew(ctx, *nextRenew)
-			r.renewDiags.Append(diags)
+			r.renewDiags = r.renewDiags.Append(diags)
 			if diags.HasErrors() {
 				// If renewal fails then we'll stop trying to renew.
 				r.renewCancel = noopCancel
