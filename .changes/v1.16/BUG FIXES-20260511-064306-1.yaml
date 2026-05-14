@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Fix resource leaks in provisioners and commands where file handles, HTTP response bodies, or pipe file descriptors were not properly closed
-time: 2026-05-11T06:25:00.000000Z
-custom:
-    Issue: "38541"
