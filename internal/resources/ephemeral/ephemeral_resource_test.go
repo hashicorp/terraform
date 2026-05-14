@@ -5,6 +5,7 @@ package ephemeral
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -303,3 +304,106 @@ func (r *testResourceInstance) Close(ctx context.Context) tfdiags.Diagnostics {
 	r.closed = true
 	return nil
 }
+
+// TestResources_renewalErrorSurfaced verifies that diagnostics from a failed
+// renewal are not silently dropped: InstanceValue must report the resource as
+// not live, and CloseInstances must surface the error to the caller.
+func TestResources_renewalErrorSurfaced(t *testing.T) {
+	ctx := context.Background()
+	resources := NewResources()
+
+	addr := addrs.ResourceInstance{
+		Resource: addrs.Resource{
+			Mode: addrs.EphemeralResourceMode,
+			Type: "test",
+			Name: "a",
+		},
+		Key: addrs.NoKey,
+	}.Absolute(addrs.RootModuleInstance)
+
+	renewCalled := make(chan struct{}, 1)
+	resources.RegisterInstance(ctx, addr, ResourceInstanceRegistration{
+		Value:   cty.EmptyObjectVal,
+		Impl:    &testRenewErrInstance{renewCalled: renewCalled},
+		RenewAt: time.Now().Add(10 * time.Millisecond),
+	})
+
+	select {
+	case <-renewCalled:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for Renew to be called")
+	}
+	resources.wg.Wait() // goroutine exits after the first renewal error
+
+	if _, live := resources.InstanceValue(addr); live {
+		t.Fatal("InstanceValue: got live=true after failed renewal, want false")
+	}
+
+	if diags := resources.CloseInstances(ctx, addr.ConfigResource()); !diags.HasErrors() {
+		t.Fatal("CloseInstances: want renewal error to be surfaced, got none")
+	}
+}
+
+// TestResources_renewalConcurrentInstanceValue calls InstanceValue from
+// multiple goroutines while the renewal goroutine is concurrently writing
+// renewDiags. Run with -race to confirm no data race is present.
+func TestResources_renewalConcurrentInstanceValue(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resources := NewResources()
+
+	addr := addrs.ResourceInstance{
+		Resource: addrs.Resource{
+			Mode: addrs.EphemeralResourceMode,
+			Type: "test",
+			Name: "a",
+		},
+		Key: addrs.NoKey,
+	}.Absolute(addrs.RootModuleInstance)
+
+	resources.RegisterInstance(ctx, addr, ResourceInstanceRegistration{
+		Value:   cty.EmptyObjectVal,
+		Impl:    &testFastRenewInstance{interval: time.Millisecond},
+		RenewAt: time.Now(),
+	})
+
+	var wg sync.WaitGroup
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 100 {
+				resources.InstanceValue(addr)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+// testRenewErrInstance is a ResourceInstance whose Renew always fails.
+type testRenewErrInstance struct {
+	renewCalled chan struct{}
+}
+
+func (r *testRenewErrInstance) Renew(_ context.Context, _ providers.EphemeralRenew) (*providers.EphemeralRenew, tfdiags.Diagnostics) {
+	select {
+	case r.renewCalled <- struct{}{}:
+	default:
+	}
+	return nil, tfdiags.Diagnostics(nil).Append(fmt.Errorf("renewal failed"))
+}
+
+func (r *testRenewErrInstance) Close(_ context.Context) tfdiags.Diagnostics { return nil }
+
+// testFastRenewInstance is a ResourceInstance that renews successfully at a
+// short fixed interval, used to drive concurrent access in race tests.
+type testFastRenewInstance struct {
+	interval time.Duration
+}
+
+func (r *testFastRenewInstance) Renew(_ context.Context, _ providers.EphemeralRenew) (*providers.EphemeralRenew, tfdiags.Diagnostics) {
+	return &providers.EphemeralRenew{RenewAt: time.Now().Add(r.interval)}, nil
+}
+
+func (r *testFastRenewInstance) Close(_ context.Context) tfdiags.Diagnostics { return nil }
