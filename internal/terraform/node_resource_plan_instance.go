@@ -452,21 +452,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// context surrounding the change, rather than the change itself, and
 			// so it's helpful to still include the valid-in-isolation change as
 			// part of the plan as additional context in our error output.
-			//
-			// FIXME: it is currently important that we write resource changes to
-			// the plan (n.writeChange) before we write the corresponding state
-			// (n.writeResourceInstanceState).
-			//
-			// This is because the planned resource state will normally have the
-			// status of states.ObjectPlanned, which causes later logic to refer to
-			// the contents of the plan to retrieve the resource data. Because
-			// there is no shared lock between these two data structures, reversing
-			// the order of these writes will cause a brief window of inconsistency
-			// which can lead to a failed safety check.
-			//
-			// Future work should adjust these APIs such that it is impossible to
-			// update these two data structures incorrectly through any objects
-			// reachable via the terraform.EvalContext API.
 			diags = diags.Append(n.writeChange(ctx, change, ""))
 			if diags.HasErrors() {
 				return diags
