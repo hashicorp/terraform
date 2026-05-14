@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: Fix lost renewal diagnostics for ephemeral resources where Append return value was discarded
+body: Fixed a bug that meant errors encountered when renewing ephemeral resources were not shown to users
 time: 2026-05-11T06:27:00.000000Z
 custom:
     Issue: "38544"
