@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix a `terraform apply` panic when the plan contained a no-op change for a deposed object on a resource whose configuration declared a `lifecycle.precondition` or `lifecycle.postcondition`
+time: 2026-05-14T08:19:15+00:00
+custom:
+    Issue: "38586"

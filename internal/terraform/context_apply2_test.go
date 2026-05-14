@@ -4953,3 +4953,80 @@ resource "test_resource" "bar" {
 	_, diags = ctx.Apply(plan, m, nil)
 	tfdiags.AssertNoErrors(t, diags)
 }
+
+// TestContext2Apply_deposedNoLongerExists_withConditions is a regression test
+// for a panic that occurred when applying a plan that contained a NoOp change
+// for a deposed object on a resource whose config declared a precondition.
+func TestContext2Apply_deposedNoLongerExists_withConditions(t *testing.T) {
+	// count = 0 so the configuration declares no current instances, but the
+	// resource block (with its precondition) is still present in the module.
+	// The precondition must reference something else in configuration; we
+	// reference path.module, which is always defined.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  count       = 0
+  test_string = "ok"
+  lifecycle {
+    create_before_destroy = true
+    precondition {
+      condition     = path.module != "/dev/null"
+      error_message = "never fires"
+    }
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	// Pretend the deposed object has been deleted out-of-band.
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: cty.NullVal(req.PriorState.Type()),
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		states.DeposedKey("deadbeef"),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	// Sanity check: the plan should contain a NoOp change for the deposed
+	// object and nothing else for this address.
+	addr := mustResourceInstanceAddr("test_object.a[0]")
+	deposedChange := plan.Changes.ResourceInstanceDeposed(addr, states.DeposedKey("deadbeef"))
+	if deposedChange == nil {
+		t.Fatalf("expected a deposed change for %s, got none", addr)
+	}
+	if deposedChange.Action != plans.NoOp {
+		t.Fatalf("expected NoOp deposed change for %s, got %s", addr, deposedChange.Action)
+	}
+	if got := plan.Changes.ResourceInstance(addr); got != nil {
+		t.Fatalf("expected no non-deposed change for %s, got %s", addr, got.Action)
+	}
+
+	// Apply must not panic.
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+}
