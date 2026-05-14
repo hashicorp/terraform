@@ -26,6 +26,10 @@ func TestValidWorkspaceName(t *testing.T) {
 			input: "",
 			valid: false,
 		},
+		"path traversal attempt": {
+			input: "../etc/passwd",
+			valid: false, // you shall not pass!
+		},
 	}
 
 	for tn, tc := range cases {
