@@ -138,15 +138,8 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	var changeApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	changeApply, err = n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if changeApply == nil || diags.HasErrors() {
+	changeApply = ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
+	if changeApply == nil {
 		return diags
 	}
 
@@ -195,7 +188,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	// we don't return immediately here on error, so that the state can be
 	// finalized
 
-	err = n.writeResourceInstanceState(ctx, state, workingState)
+	err := n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
 	}

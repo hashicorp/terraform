@@ -112,17 +112,7 @@ func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	change, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	change := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 	// Stop early if we don't actually have a diff
 	if change == nil {
 		return diags
@@ -187,11 +177,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff for apply
-	diffApply, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	diffApply := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
@@ -228,11 +214,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff
-	diff, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	diff := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.

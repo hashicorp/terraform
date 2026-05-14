@@ -60,15 +60,8 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 	var changeApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	changeApply, err = n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if changeApply == nil || diags.HasErrors() {
+	changeApply = ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
+	if changeApply == nil {
 		return diags
 	}
 
