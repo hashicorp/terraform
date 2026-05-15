@@ -283,6 +283,15 @@ func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view vi
 	opReq.ActionTargets = args.ActionTargets
 	opReq.PolicyPaths = policyPaths
 
+	if !c.AllowExperimentalFeatures && len(policyPaths) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -policies flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
+
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed

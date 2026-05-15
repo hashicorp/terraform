@@ -17,12 +17,10 @@ import (
 
 func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics) {
 	var client policy.Client
-	// Policies are currently only supported in alpha versions.
-	// TODO: Uncomment in the public release
-	// if !c.AllowExperimentalFeatures {
-	// 	log.Printf("[DEBUG] Policies are not supported, skipping policy client setup")
-	// 	return client, nil
-	// }
+	if !c.AllowExperimentalFeatures {
+		log.Printf("[DEBUG] Policies are not supported without experiments enabled, skipping policy client setup")
+		return client, nil
+	}
 	if len(policyPaths) == 0 {
 		log.Printf("[DEBUG] No policy paths configured, skipping policy client setup")
 		return client, nil

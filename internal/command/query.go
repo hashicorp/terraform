@@ -178,6 +178,15 @@ func (c *QueryCommand) OperationRequest(
 	opReq.Query = true
 	opReq.PolicyPaths = policyPaths
 
+	if !c.AllowExperimentalFeatures && len(policyPaths) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -policies flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
+
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
