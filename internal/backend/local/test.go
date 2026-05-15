@@ -180,7 +180,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 						// If the filter is invalid, we'll simply skip this
 						// entry and print a warning. But we could still execute
 						// any other tests within the filter.
-						diags.Append(tfdiags.Sourceless(
+						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Warning,
 							"Unknown test file",
 							fmt.Sprintf("The specified test file, %s, could not be found.", name)))

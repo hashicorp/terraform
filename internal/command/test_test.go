@@ -179,6 +179,15 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
+		"multiple_files_with_invalid_filter": {
+			override: "multiple_files",
+			args:     []string{"-filter=nonexistent.tftest.hcl"},
+			expectedOut: []string{
+				"Success! 0 passed, 0 failed.",
+				"Warning: Unknown test file",
+			},
+			code: 0,
+		},
 		"no_state": {
 			expectedOut: []string{"0 passed, 1 failed"},
 			expectedErr: []string{"No value for required variable"},
