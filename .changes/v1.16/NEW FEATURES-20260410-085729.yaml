@@ -1,5 +1,5 @@
 kind: NEW FEATURES
-body: feat(import): add support for import blocks inside modules
+body: 'feat(import): add support for import blocks inside modules'
 time: 2026-04-10T08:57:29.804462-04:00
 custom:
     Issue: "38352"
