@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -163,7 +162,7 @@ func (c *client) Evaluate(ctx context.Context, req EvaluationRequest[*proto.Reso
 
 	req = normalizeRequest(req)
 
-	attrsBytes, err := msgpack.Marshal(req.Attrs, cty.DynamicPseudoType)
+	attrs, err := resourceAttributesToProto(req.Attrs)
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -172,7 +171,7 @@ func (c *client) Evaluate(ctx context.Context, req EvaluationRequest[*proto.Reso
 		}))
 	}
 
-	priorAttrsBytes, err := msgpack.Marshal(req.PriorAttrs, cty.DynamicPseudoType)
+	priorAttrs, err := resourceAttributesToProto(req.PriorAttrs)
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -185,9 +184,9 @@ func (c *client) Evaluate(ctx context.Context, req EvaluationRequest[*proto.Reso
 	request := &proto.PolicyEvaluateResourceRequest{
 		EvaluationId: evalID,
 		Resource:     req.Target,
-		Attrs:        attrsBytes,
+		Attrs:        attrs,
+		PriorAttrs:   priorAttrs,
 		Metadata:     req.Meta,
-		PriorAttrs:   priorAttrsBytes,
 	}
 
 	// Register the callback functions with the callback service, so that they are available
@@ -214,7 +213,7 @@ func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*pr
 	var diags []*proto.Diagnostic
 	req = normalizeRequest(req)
 
-	attrsBytes, err := msgpack.Marshal(req.Attrs, cty.DynamicPseudoType)
+	attrs, err := resourceAttributesToProto(req.Attrs)
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -225,7 +224,7 @@ func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*pr
 
 	request := &proto.PolicyEvaluateProviderRequest{
 		ProviderType: req.Target,
-		Attrs:        attrsBytes,
+		Attrs:        attrs,
 		Metadata:     req.Meta,
 	}
 
@@ -247,8 +246,18 @@ func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*prot
 
 	req = normalizeRequest(req)
 
+	attrs, err := resourceAttributesToProto(req.Attrs)
+	if err != nil {
+		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
+			Severity: proto.Severity_ERROR,
+			Summary:  "Failed to serialize attributes",
+			Detail:   fmt.Sprintf("Failed to serialize attributes: %v.", err),
+		}))
+	}
+
 	request := &proto.PolicyEvaluateModuleRequest{
 		ModuleSource: req.Target,
+		Attrs:        attrs,
 		Metadata:     req.Meta,
 	}
 
@@ -274,11 +283,11 @@ func (c *client) Stop() {
 func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 	attrs := req.Attrs
 	priorAttrs := req.PriorAttrs
-	if attrs == cty.NilVal {
-		attrs = cty.EmptyObjectVal
+	if attrs.Raw == cty.NilVal {
+		attrs.Raw = cty.EmptyObjectVal
 	}
-	if priorAttrs == cty.NilVal {
-		priorAttrs = cty.EmptyObjectVal
+	if priorAttrs.Raw == cty.NilVal {
+		priorAttrs.Raw = cty.EmptyObjectVal
 	}
 
 	return EvaluationRequest[T]{

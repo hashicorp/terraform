@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -54,6 +55,12 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		return nil
 	}
 
+	blockSchema := schema.SchemaForResourceAddr(n.ResourceAddr.Resource.Resource).Body
+	if blockSchema == nil {
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.ResourceAddr.Resource.Resource.Type))
+		return diags
+	}
+
 	attrs, _ := n.After.UnmarkDeep()
 	priorAttrs, _ := n.Before.UnmarkDeep()
 
@@ -95,7 +102,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	rscConfig := modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-	result := evaluatePolicies(ctx, operation, n.ResourceAddr, rscConfig, client, attrs, priorAttrs, meta, callbacks)
+	result := evaluatePolicies(ctx, n.ResourceAddr, rscConfig, blockSchema, attrs, priorAttrs, meta, callbacks)
 	ctx.PolicyResults().AddResource(n.ResourceAddr, result, rscConfig)
 	return diags
 }

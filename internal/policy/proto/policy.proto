@@ -45,7 +45,7 @@ message PolicySetupRequest {
   // source policies. At launch, this will just be local directories but could
   // in future be extended to include remote sources.
   repeated string source_locations = 2;
-
+  
   // callback_service allows Terraform Policy to use the Callback Service API.
   uint32 callback_service = 3;
 }
@@ -86,14 +86,14 @@ message PolicyEvaluateResourceRequest {
 
   // attrs contains the data that will eventually be made available within the
   // resource_value data referenced within Terraform Policy files.
-  bytes attrs = 3;
+  ResourceAttributes attrs = 3;
 
   // metadata contains the data that will eventually be made available within
   // the meta object referenced within Terraform Policy files.
   ResourceMetadata metadata = 4;
 
   // prior_attrs contains the state of the resource prior to the current operation.
-  bytes prior_attrs = 5;
+  ResourceAttributes prior_attrs = 5;
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation
@@ -164,7 +164,7 @@ message PolicyEvaluateProviderRequest {
 
   // attrs contains the provider configuration data that will be made available within the
   // provider_value data referenced within Terraform Policy files.
-  bytes attrs = 2;
+  ResourceAttributes attrs = 2;
 
   // metadata contains the provider metadata that will be made available within the
   // provider_metadata data referenced within Terraform Policy files.
@@ -188,7 +188,7 @@ message PolicyEvaluateModuleRequest {
 
   // attrs contains the module configuration data that will be made available within the
   // module_value data referenced within Terraform Policy files.
-  bytes attrs = 2;
+  ResourceAttributes attrs = 2;
 
   // metadata contains the module metadata that will be made available within the
   // meta object referenced within module policy blocks.

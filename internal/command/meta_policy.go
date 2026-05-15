@@ -125,7 +125,7 @@ func (h *policyModuleInstallHook) EvaluatePolicy(ctx context.Context, req *confi
 	moduleAddr := req.Path.String()
 	moduleCall := h.rootModule.ModuleCalls[req.Name]
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.ModuleMetadata]{
-		Attrs:  cty.NilVal,
+		Attrs:  policy.PolicyValue{Raw: cty.NilVal},
 		Target: source,
 		Meta: &proto.ModuleMetadata{
 			Address: moduleAddr,
@@ -212,7 +212,7 @@ func (p *providerInstallerHook) EvaluatePolicy(ctx context.Context, provider add
 
 		// Configuration attributes may not be available during init, so we will not
 		// send any attributes to the policy client.
-		Attrs: cty.NilVal,
+		Attrs: policy.PolicyValue{Raw: cty.NilVal},
 		Meta: &proto.ProviderMetadata{
 			Name:       provider.Type,
 			Namespace:  provider.Namespace,

@@ -669,7 +669,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, &configschema.Block{}, cty.EmptyObjectVal)
 
 		if !mockPolicy.EvaluateProviderCalled {
 			t.Fatal("EvaluateProvider was not called")
@@ -696,7 +696,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, &configschema.Block{}, cty.EmptyObjectVal)
 
 		if !mockPolicy.EvaluateProviderCalled {
 			t.Fatal("EvaluateProvider was not called")
@@ -718,7 +718,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		diags := node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		diags := node.EvalPolicy(ctx, &configschema.Block{}, cty.EmptyObjectVal)
 		if diags != nil {
 			t.Fatalf("unexpected diagnostics: %s", diags.Err())
 		}
@@ -747,7 +747,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, &configschema.Block{}, cty.EmptyObjectVal)
 
 		meta := mockPolicy.EvaluateProviderRequest.Meta
 

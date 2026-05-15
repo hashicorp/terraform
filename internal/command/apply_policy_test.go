@@ -253,7 +253,7 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 
 	policyClient.EvaluateFn = func(ctx context.Context, er policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		// This is what is returned during the post-plan policy evaluation
-		if !er.Attrs.GetAttr("id").IsWhollyKnown() {
+		if !er.Attrs.Raw.GetAttr("id").IsWhollyKnown() {
 			return evalRespFn(proto.EvaluateResult_DENY_EVALUATE_RESULT)
 		}
 
