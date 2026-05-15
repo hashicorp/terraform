@@ -326,7 +326,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, change.Action, state, change.Change.Before, diags.Err()))
+	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 
 	return diags.Append(updateStateHook(ctx))
 }

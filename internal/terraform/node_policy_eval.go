@@ -3,11 +3,7 @@
 
 package terraform
 
-import (
-	"log"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
-)
+import "github.com/hashicorp/terraform/internal/tfdiags"
 
 // nodePolicyEval is a node that evaluates policy for all resource instances
 // after they have been planned or applied,
@@ -21,12 +17,5 @@ func (n *nodePolicyEval) Name() string {
 }
 
 func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
-	policyGraph := ctx.PolicyGraph()
-	if policyGraph == nil {
-		log.Printf("[DEBUG] policyGraph is nil")
-		return nil, nil
-	}
-	// ensure the graph has a single root
-	addRootNodeToGraph(&policyGraph.graph)
-	return &policyGraph.graph, nil
+	return nil, nil
 }

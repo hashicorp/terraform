@@ -231,7 +231,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 }
 
 // postApplyHook calls the post-Apply hook
-func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, action plans.Action, state *states.ResourceInstanceObject, priorState cty.Value, err error) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err error) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Only managed resources have user-visible apply actions.
@@ -604,10 +604,6 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	changes.AppendResourceInstanceChange(change)
 	if deposedKey == states.NotDeposed {
-		// add the change to the policy graph if it's not a pre-destroy refresh
-		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
-			policyGraph.Add(policyNodeFromChange(change))
-		}
 		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {
 		log.Printf("[TRACE] writeChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
