@@ -25,6 +25,27 @@ permissions:
     pull-requests: write
 
 jobs:
+    # Validate the changelog in the pull request branch
+    validate-changelog-entry:
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog-check') }}
+        name: "Check Changelog Entry"
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  sparse-checkout: |
+                      .changie.yaml
+                      .changes/
+                  sparse-checkout-cone-mode: false
+
+            - name: Validate changie fragment is valid
+              uses: miniscruff/changie-action@11bcad388e7973948cbcecb10863baf024d5f607 # v3.0.0
+              with:
+                  version: latest
+                  args: merge -u "." --dry-run
+
+    # Check target branch of the PR to determine if a changelog is needed and what version folder it should exist in
     check-changelog-entry:
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog-check') }}
         name: "Check Changelog Entry"
@@ -51,8 +72,6 @@ jobs:
               with:
                   sparse-checkout: |
                       version/VERSION
-                      .changie.yaml
-                      .changes/
                   sparse-checkout-cone-mode: false
                   ref: ${{ github.base_ref }} # Base ref refers to the target branch of this PR
 
@@ -187,9 +206,3 @@ jobs:
 
                       // Nothing to complain about, so delete any existing comment
                       await createOrUpdateChangelogComment("", true);
-
-            - name: Validate changie fragment is valid
-              uses: miniscruff/changie-action@11bcad388e7973948cbcecb10863baf024d5f607 # v3.0.0
-              with:
-                  version: latest
-                  args: merge -u "." --dry-run
