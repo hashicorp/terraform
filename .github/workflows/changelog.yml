@@ -28,7 +28,7 @@ jobs:
     # Validate the changelog in the pull request branch
     validate-changelog-entry:
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog-check') }}
-        name: "Check Changelog Entry"
+        name: "Validate Changelog"
         runs-on: ubuntu-latest
 
         steps:
