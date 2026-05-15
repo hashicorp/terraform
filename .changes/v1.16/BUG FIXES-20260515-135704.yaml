@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'workspace: Terraform will now error if an invalid workspace name becomes selected due to actions performed out-of-band'
+time: 2026-05-15T13:57:04.484645+01:00
+custom:
+    Issue: "38594"
