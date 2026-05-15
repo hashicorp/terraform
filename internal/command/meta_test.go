@@ -259,6 +259,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 	})
 }
 
+// Invalid workspace names provided via ENV are validated.
 func TestMeta_Workspace_override(t *testing.T) {
 	m := new(Meta)
 
@@ -317,7 +318,19 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 
 	m := new(Meta)
 
+	// Normally, errors are returned when selecting an invalid workspace.
 	ws, err := m.Workspace()
+	if ws != "" {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err == nil {
+		t.Errorf("Expected error but got none")
+	}
+
+	// But it is possible to select an invalid workspace, enabling some
+	// commands to interact with and correct the issue.
+	m.bypassWorkspaceNameValidityCheck = true
+	ws, err = m.Workspace()
 	if ws != workspace {
 		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
 	}

@@ -44,7 +44,11 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 
 	// You can't ask to create a workspace when you're overriding the
 	// workspace name to be something different.
-	if current, isOverridden := c.WorkspaceOverridden(); current != workspace && isOverridden {
+	//
+	// Any errors about the ENV's value we can ignore as we're erroring
+	// already due to it being set.
+	current, isOverridden, _ := c.WorkspaceOverridden()
+	if current != workspace && isOverridden {
 		c.Ui.Error(envIsOverriddenNewError)
 		return 1
 	}

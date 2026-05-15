@@ -34,13 +34,17 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	}
 
 	// Block selecting a workspace if an environment variable will override the new selection anyway.
-	current, isOverridden := c.WorkspaceOverridden()
+	//
+	// We ignore errors raised about the value of the override ENV, or the value of the currently selected
+	// workspace; this command should help users recover from those errors, not block them.
+	current, isOverridden, _ := c.WorkspaceOverridden()
 	if isOverridden {
 		c.Ui.Error(envIsOverriddenSelectError)
 		return 1
 	}
 
 	// Load the backend
+	c.bypassWorkspaceNameValidityCheck = true // allow selecting a new workspace when the current one is invalid.
 	configPath := c.WorkingDir.RootModuleDir()
 	b, diags := c.backend(configPath, args.ViewType)
 	if diags.HasErrors() {

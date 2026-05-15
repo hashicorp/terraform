@@ -201,6 +201,10 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
+	// Overrides checking the validity of the workspace name set in .terraform/environment (not ENVs).
+	// This is to enable commands used to recover from invalid workspaces to run without the error blocking them.
+	bypassWorkspaceNameValidityCheck bool
+
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------
@@ -764,10 +768,12 @@ var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using
 
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
+//
+// Workspace names are validated via use of the `WorkspaceOverridden` method.
 func (m *Meta) Workspace() (string, error) {
-	current, overridden := m.WorkspaceOverridden()
-	if overridden && !validWorkspaceName(current) {
-		return "", errInvalidWorkspaceNameEnvVar
+	current, _, err := m.WorkspaceOverridden()
+	if err != nil {
+		return "", err
 	}
 	return current, nil
 }
@@ -775,15 +781,29 @@ func (m *Meta) Workspace() (string, error) {
 // WorkspaceOverridden returns the name of the currently configured workspace,
 // corresponding to the desired named state, as well as a bool saying whether
 // this was set via the TF_WORKSPACE environment variable.
-func (m *Meta) WorkspaceOverridden() (string, bool) {
+//
+// The method also validates the workspace name. If it's invalid, an error is
+// returned alongside an empty string. The returned boolean will still reflect
+// whether the workspace is set by ENV or not.
+func (m *Meta) WorkspaceOverridden() (string, bool, error) {
 	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
-		return envVar, true
+		if !validWorkspaceName(envVar) {
+			// Protect against invalid workspace names set via ENV.
+			return "", true, errInvalidWorkspaceNameEnvVar
+		}
+		return envVar, true, nil
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+	envData, err := os.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
+	}
+	if !m.bypassWorkspaceNameValidityCheck && !validWorkspaceName(current) {
+		// This check is active in every command that uses a backend.
+		// It is selectively disabled in commands that are recommended for recovering from an invalid workspace.
+		err := fmt.Errorf("Invalid workspace name: The selected workspace described in %q has an invalid name. This suggests that the file contents were edited by something other than Terraform. To select a different, valid workspace name use commands `terraform workspace select` or `terraform workspace select -or-create`.", filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+		return "", false, err
 	}
 
 	if err != nil && !os.IsNotExist(err) {
@@ -791,7 +811,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		log.Printf("[ERROR] failed to read current workspace: %s", err)
 	}
 
-	return current, false
+	return current, false, nil
 }
 
 // SetWorkspace saves the given name as the current workspace in the local
