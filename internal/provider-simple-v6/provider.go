@@ -364,7 +364,7 @@ func (s simple) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigR
 	}
 
 	var resp providers.ValidateStateStoreConfigResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -377,7 +377,7 @@ func (s simple) ConfigureStateStore(req providers.ConfigureStateStoreRequest) pr
 	}
 
 	var resp providers.ConfigureStateStoreResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -390,7 +390,7 @@ func (s simple) ReadStateBytes(req providers.ReadStateBytesRequest) providers.Re
 	}
 
 	var resp providers.ReadStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -403,7 +403,7 @@ func (s simple) WriteStateBytes(req providers.WriteStateBytesRequest) providers.
 	}
 
 	var resp providers.WriteStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -416,7 +416,7 @@ func (s simple) LockState(req providers.LockStateRequest) providers.LockStateRes
 	}
 
 	var resp providers.LockStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -429,7 +429,7 @@ func (s simple) UnlockState(req providers.UnlockStateRequest) providers.UnlockSt
 	}
 
 	var resp providers.UnlockStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -442,7 +442,7 @@ func (s simple) GetStates(req providers.GetStatesRequest) providers.GetStatesRes
 	}
 
 	var resp providers.GetStatesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -455,7 +455,7 @@ func (s simple) DeleteState(req providers.DeleteStateRequest) providers.DeleteSt
 	}
 
 	var resp providers.DeleteStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
