@@ -8,12 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -26,11 +29,12 @@ import (
 
 func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 	type data struct {
-		config *configs.Config
-		plan   *plans.Plan
-		state  *states.State
-		diags  tfdiags.Diagnostics
-		policy *policy.MockClient
+		config          *configs.Config
+		plan            *plans.Plan
+		state           *states.State
+		diags           tfdiags.Diagnostics
+		policy          *policy.MockClient
+		policyEvalCalls int
 	}
 	cases := []struct {
 		name                string
@@ -41,11 +45,13 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 		planMode            plans.Mode
 		forceReplace        []addrs.AbsResourceInstance
 		deferralAllowed     bool
+		expectCalls         int
 		prepareExpectations func(*testing.T, *data)
 		assertPolicyResults func(*testing.T, *data)
 	}{
 		{
-			name: "make policy evaluation calls",
+			name:        "make policy evaluation calls",
+			expectCalls: 2,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -116,6 +122,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					}),
 				}
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					var actual cty.Value
 					if !req.Attrs.IsNull() {
 						mp := req.Attrs.AsValueMap()
@@ -181,7 +188,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 		},
 
 		{
-			name: "deferred resource: policy is skipped",
+			name:        "deferred resource: policy is skipped",
+			expectCalls: 0,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -234,7 +242,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "orphaned resource instance: policy is evaluated",
+			name:        "orphaned resource instance: policy is evaluated",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -303,6 +312,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				}
 
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					var actual cty.Value
 					if !req.Attrs.IsNull() {
 						mp := req.Attrs.AsValueMap()
@@ -335,7 +345,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "parent resource policy succeeds, child module resource policy fails",
+			name:        "parent resource policy succeeds, child module resource policy fails",
+			expectCalls: 2,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -388,6 +399,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				`,
 			prepareExpectations: func(t *testing.T, data *data) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 						Type:         req.Target,
 						ProviderType: "test",
@@ -481,7 +493,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "destroy plan: policy is evaluated with null attrs",
+			name:        "destroy plan: policy is evaluated with null attrs",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -519,6 +532,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				// EvalPolicy should be called during the actual destroy plan with null attrs
 				var called int
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					called++
 					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 						Type:         "test_resource",
@@ -564,7 +578,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "destroy plan: policy denies destruction",
+			name:        "destroy plan: policy denies destruction",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -600,6 +615,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			}),
 			prepareExpectations: func(t *testing.T, data *data) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					if diff := cmp.Diff(req.Meta, proto.ResourceMetadata{
 						Type:         "test_resource",
 						ProviderType: "test",
@@ -659,7 +675,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "create resource with cbd. policy is evaluated with create operation",
+			name:        "create resource with cbd. policy is evaluated with create operation",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -690,6 +707,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					called++
 					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 						Type:         "test_resource",
@@ -710,7 +728,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "update resource with cbd. policy is evaluated with update operation",
+			name:        "update resource with cbd. policy is evaluated with update operation",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -750,6 +769,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					called++
 					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 						Type:         "test_resource",
@@ -770,7 +790,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name: "replace resource with cbd. policy is evaluated with update operation",
+			name:        "replace resource with cbd. policy is evaluated with update operation",
+			expectCalls: 1,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -811,6 +832,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
 					called++
 					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 						Type:         "test_resource",
@@ -828,6 +850,88 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Expected EvalPolicy to be called once got %d", called)
 					}
 				})
+			},
+		},
+		{
+			name:        "normal plan: removed config should send null attrs to policy",
+			expectCalls: 1,
+			mainConfig: `
+						terraform {
+							required_providers {
+								test = {
+									source = "hashicorp/test"
+									version = "1.0.0"
+								}
+							}
+						}
+						`,
+			childConfig: "",
+			policyConfig: `
+						resource_policy "test_resource" "no_destroy" {
+							enforce {
+								condition = false
+							}
+						}
+						`,
+			planMode: plans.NormalMode,
+			state: states.BuildState(func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"bar","type":"test_resource","sensitive_value":"secret"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					if req.PriorAttrs.IsNull() {
+						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
+						return policy.EvaluationResponse{}
+					}
+
+					return policy.EvaluationResponse{
+						Overall:      policy.DenyResult,
+						Enforcements: []policy.EnforcementResult{},
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
+							{
+								Severity: proto.Severity_ERROR,
+								Summary:  "Destruction not allowed",
+								Detail:   "Policy prevents destruction of test_resource.test",
+								Result: &proto.DiagnosticResult{
+									Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								},
+								Subject: &proto.Range{
+									Filename: "no_destroy.tfpolicy.hcl",
+									Start: &proto.Position{
+										Line:   1,
+										Column: 1,
+									},
+									End: &proto.Position{
+										Line:   4,
+										Column: 10,
+									},
+								},
+							},
+						}, nil),
+					}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateCalled {
+					t.Error("Expected policyClient.Evaluate to be called for destroy plan")
+				}
+				tfdiags.AssertDiagnosticCount(t, d.diags, 1)
+
+				var exp tfdiags.Diagnostics
+				exp = exp.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Destruction not allowed",
+					Detail:   "Policy prevents destruction of test_resource.test",
+				})
+				tfdiags.AssertDiagnosticsMatch(t, d.diags, exp)
 			},
 		},
 	}
@@ -886,6 +990,11 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			data.plan = plan
+
+			if data.policyEvalCalls != tc.expectCalls {
+				t.Fatalf("expected %d resource policy evaluation call(s), got %d", tc.expectCalls, data.policyEvalCalls)
+			}
+
 			for _, result := range plan.PolicyResults.Iter() {
 				data.diags = data.diags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
@@ -896,6 +1005,186 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
+	// This verifies that no resource instance node is run after policy evaluation
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_instance" "test" {
+			count = 2
+			value = tostring(count.index)
+		}
+	`
+
+	policyConfig := `
+		resource_policy "test_instance" "policy_name" {
+			enforce {
+				condition = true
+			}
+		}
+	`
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+
+	var policyRan atomic.Bool
+	var planCalls atomic.Int32
+
+	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		callNum := planCalls.Add(1)
+		if callNum == 2 {
+			time.Sleep(150 * time.Millisecond)
+		}
+
+		if policyRan.Load() {
+			t.Fatalf("resource plan for %s ran after policy evaluation", req.TypeName)
+		}
+
+		resp.PlannedState = req.ProposedNewState
+		return resp
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+		policyRan.Store(true)
+
+		if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
+			Type:         "test_instance",
+			ProviderType: "test",
+			Operation:    proto.Operation_CREATE,
+		}, protocmp.Transform()); diff != "" {
+			t.Errorf("Invalid resource metadata: %s", diff)
+		}
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 4,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected policy evaluation to be called during plan")
+	}
+
+	if len(plan.Changes.Resources) != 2 {
+		t.Fatalf("expected 2 planned resource changes, got %d", len(plan.Changes.Resources))
+	}
+
+	var policyDiags tfdiags.Diagnostics
+	for _, result := range plan.PolicyResults.Iter() {
+		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	}
+	tfdiags.AssertNoDiagnostics(t, policyDiags)
+}
+
+func TestContext2Plan_PolicyEvaluation_ImportBlock(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "a" {
+  id = "importable"
+}
+
+import {
+  to = test_resource.a
+  id = "importable"
+}
+`,
+		"main.tfpolicy.hcl": `
+resource_policy "test_resource" "policy_name" {
+  enforce {
+    condition = true
+  }
+}
+`,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	})
+	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	provider.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_resource",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("importable"),
+					}),
+				},
+			},
+		}
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+		t.Fatalf("expected policy evaluation to be skipped for import block planning, got request for %s", req.Target)
+		return policy.EvaluationResponse{}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if policyClient.EvaluateCalled {
+		t.Fatal("expected policy evaluation not to be called for import block planning")
+	}
+
+	var policyDiags tfdiags.Diagnostics
+	for _, result := range plan.PolicyResults.Iter() {
+		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	}
+	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
 
 func TestContext2Plan_PolicyCallback(t *testing.T) {
@@ -952,9 +1241,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	policyClient := policy.NewTestMockClient(t)
 
 	type callbackResult struct {
-		matchAllCount    int
 		matchAllResults  []cty.Value
-		filteredCount    int
 		filteredResults  []cty.Value
 		noMatchCount     int
 		unknownTypeCount int
@@ -976,7 +1263,6 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		if err != nil {
 			t.Errorf("GetResources(test_instance, null): %v", err)
 		} else {
-			cr.matchAllCount = len(all)
 			cr.matchAllResults = all
 		}
 
@@ -987,7 +1273,6 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		if err != nil {
 			t.Errorf("GetResources(test_instance, ami=bar): %v", err)
 		} else {
-			cr.filteredCount = len(filtered)
 			cr.filteredResults = filtered
 		}
 
@@ -1044,19 +1329,10 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	}
 
 	for ami, cr := range results {
-		var expectedTotal int
+		expectedTotal := 3
 		filteredCount := 1
-		switch ami {
-		case "bar":
-			expectedTotal = 0
-			filteredCount = 0
-		case "qux":
-			expectedTotal = 1
-		case "booper":
-			expectedTotal = 2
-		}
-		if cr.matchAllCount != expectedTotal {
-			t.Errorf("evaluation[%s]: expected %d result for matchAll, got %d", ami, expectedTotal, cr.matchAllCount)
+		if len(cr.matchAllResults) != expectedTotal {
+			t.Errorf("evaluation[%s]: expected %d result for matchAll, got %d", ami, expectedTotal, len(cr.matchAllResults))
 		}
 
 		// Filtering by ami="nonexistent" should always return 0 for all evaluations.
@@ -1070,8 +1346,8 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// The filtered result should only match one resource "bar", except when evaluating "bar" itself.
-		if cr.filteredCount != filteredCount {
-			t.Errorf("evaluation[%s]: expected filtered count %d, got %d", ami, filteredCount, cr.filteredCount)
+		if len(cr.filteredResults) != filteredCount {
+			t.Errorf("evaluation[%s]: expected filtered count %d, got %d", ami, filteredCount, len(cr.filteredResults))
 		}
 	}
 }
