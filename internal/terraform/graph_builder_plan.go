@@ -320,6 +320,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
+		// Request policy evaluation for all resource instances.
+		&policyEvalTransformer{
+			PolicyClient: func() policy.Client {
+				// Skip policy evaluation during predestroy refresh.
+				if b.preDestroyRefresh {
+					return nil
+				}
+				return b.PolicyClient
+			}(),
+		},
+
 		// Close the root module
 		&CloseRootModuleTransformer{},
 

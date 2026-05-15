@@ -92,6 +92,7 @@ type BuiltinEvalContext struct {
 	EphemeralResourcesValue *ephemeral.Resources
 	RefreshStateValue       *states.SyncState
 	PrevRunStateValue       *states.SyncState
+	PolicyGraphValue        *policySubgraph
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
@@ -112,6 +113,10 @@ func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {
 
 func (ctx *BuiltinEvalContext) PolicyResults() *plans.PolicyResults {
 	return ctx.PolicyResultsValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyGraph() *policySubgraph {
+	return ctx.PolicyGraphValue
 }
 
 func (ctx *BuiltinEvalContext) Config() *configs.Config {

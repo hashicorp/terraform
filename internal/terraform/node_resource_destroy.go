@@ -175,6 +175,10 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		return diags
 	}
 
+	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		policyGraph.Add(policyNodeFromChange(changeApply))
+	}
+
 	state, readDiags := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {

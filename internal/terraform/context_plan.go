@@ -1057,6 +1057,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -1073,6 +1074,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 			overridePreventDestroy:    opts.OverridePreventDestroy,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

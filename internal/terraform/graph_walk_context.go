@@ -69,7 +69,8 @@ type ContextGraphWalker struct {
 	Locks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient  policy.Client
-	PolicyResults *plans.PolicyResults
+	PolicyResults *plans.PolicyResults // Used to store policy evaluation results
+	PolicyGraph   *policySubgraph      // Used for writing resource policy evaluation nodes
 
 	once               sync.Once
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
@@ -150,6 +151,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
+		PolicyGraphValue:        w.PolicyGraph,
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
