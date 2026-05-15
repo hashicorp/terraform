@@ -182,6 +182,8 @@ type EvalContext interface {
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
 
+	PolicyGraph() *policySubgraph
+
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
 	// arguments.

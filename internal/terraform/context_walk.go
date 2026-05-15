@@ -195,6 +195,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		RefreshState:            refreshState,
 		Overrides:               opts.Overrides,
 		PrevRunState:            prevRunState,
+		PolicyGraph:             newPolicySubgraph(),
 		Changes:                 changes.SyncWrapper(),
 		NamedValues:             namedvals.NewState(),
 		EphemeralResources:      ephemeral.NewResources(),

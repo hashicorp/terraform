@@ -312,6 +312,16 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	diags = diags.Append(applyDiags)
 
+	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		policyGraph.Add(&nodeResourcePolicy{
+			ResourceAddr: diffApply.Addr,
+			ProviderAddr: diffApply.ProviderAddr,
+			Before:       diffApply.Before,
+			After:        state.Value,
+			Action:       diffApply.Action,
+		})
+	}
+
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
 	err = n.writeChange(ctx, nil, "")

@@ -24,8 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
-	"github.com/hashicorp/terraform/internal/policy/callback"
-	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -247,13 +245,6 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, action pla
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostApply(n.HookResourceIdentity(), addrs.NotDeposed, newState, err)
 		}))
-
-		// Post-apply policy evaluation
-		policyDiags := n.EvalPolicy(ctx, walkApply, action, newState, priorState)
-		diags = diags.Append(policyDiags)
-		if policyDiags.HasErrors() {
-			return diags
-		}
 	}
 
 	return diags
@@ -510,13 +501,6 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 	}
 
-	// Post-plan policy evaluation
-	policyDiags := n.EvalPolicy(ctx, walkPlan, plans.Delete, nullVal, currentState.Value)
-	diags = diags.Append(policyDiags)
-	if policyDiags.HasErrors() {
-		return plan, deferred, diags
-	}
-
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, nil)
@@ -620,6 +604,10 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	changes.AppendResourceInstanceChange(change)
 	if deposedKey == states.NotDeposed {
+		// add the change to the policy graph if it's not a pre-destroy refresh
+		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
+			policyGraph.Add(policyNodeFromChange(change))
+		}
 		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {
 		log.Printf("[TRACE] writeChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
@@ -3121,61 +3109,4 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
-}
-
-func (n *NodeAbstractResourceInstance) EvalPolicy(ctx EvalContext, walkOperation walkOperation, action plans.Action, state cty.Value, priorState cty.Value) tfdiags.Diagnostics {
-	if ctx.PolicyClient() == nil {
-		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
-		return nil
-	}
-
-	// for now, we unmark values before handing them over to policy
-	attrs, _ := state.UnmarkDeep()
-	priorAttrs, _ := priorState.UnmarkDeep()
-	provider, schema, err := getProvider(ctx, n.ResolvedProvider)
-	var diags tfdiags.Diagnostics
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	var actionStr proto.Operation
-	switch action {
-	case plans.Create:
-		actionStr = proto.Operation_CREATE
-	case plans.Delete:
-		actionStr = proto.Operation_DELETE
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
-		actionStr = proto.Operation_UPDATE
-	default:
-		// No-op for non-CUD actions
-		return nil
-	}
-
-	meta := &proto.ResourceMetadata{
-		Operation:    actionStr,
-		Type:         n.Addr.Resource.Resource.Type,
-		ProviderType: n.ResolvedProvider.Provider.Type,
-	}
-
-	providerMeta, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
-	diags = diags.Append(metaDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	callbacks := callback.Functions{
-		GetResources:  getResourcesForPolicyCallback(ctx, ctx.Config()),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, providerMeta),
-	}
-
-	resource := ctx.Config().Descendant(n.Path().Module()).Module.ResourceByAddr(n.Addr.Resource.Resource)
-	result := evaluatePolicies(ctx, walkOperation, n.Addr, resource, ctx.PolicyClient(), attrs, priorAttrs, meta, callbacks)
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddResource(n.Addr, result, resource)
-	}
-	return nil
 }
