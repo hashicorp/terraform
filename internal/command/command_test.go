@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
@@ -294,6 +295,27 @@ func TestApply_PoliciesRequireExperimentalFeatures(t *testing.T) {
 	}
 	if strings.Contains(output.All(), "Failed to connect to policy engine") {
 		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
+}
+
+func TestInit_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			Ui:   new(cli.MockUi),
+			View: view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
 	}
 }
 

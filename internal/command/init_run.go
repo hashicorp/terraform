@@ -168,6 +168,16 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	var client policy.Client
 	if len(initArgs.PolicyPaths) > 0 {
+		if !c.Meta.AllowExperimentalFeatures {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to parse command-line flags",
+				"The -policies flag is only valid in experimental builds of Terraform.",
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
 		var policyDiags policy.Diagnostics
 		client, policyDiags = c.PolicyClient(ctx, initArgs.PolicyPaths)
 		diags = diags.Append(policyDiags.AsTerraformDiags())
