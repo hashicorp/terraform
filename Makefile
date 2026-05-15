@@ -14,6 +14,9 @@ generate:
 protobuf:
 	go run ./tools/protobuf-compile .
 
+tfdiagsappendcheck:
+	go run ./tools/tfdiagsappendcheck/main ./...
+
 fmtcheck:
 	"$(CURDIR)/scripts/gofmtcheck.sh"
 
