@@ -38,6 +38,7 @@ jobs:
                       .changie.yaml
                       .changes/
                   sparse-checkout-cone-mode: false
+                  ref: ${{ github.head_ref }} # Head ref refers to the branch of this PR
 
             - name: Validate changie fragment is valid
               uses: miniscruff/changie-action@11bcad388e7973948cbcecb10863baf024d5f607 # v3.0.0
