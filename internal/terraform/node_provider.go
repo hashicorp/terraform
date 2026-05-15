@@ -11,8 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -204,65 +202,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 		))
 	}
 
-	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, op, n.cachedUnmarkedConfigValue)
-	diags = diags.Append(policyDiags)
-	if policyDiags.HasErrors() {
-		return diags
-	}
-
 	return diags
-}
-
-func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, attrs cty.Value) tfdiags.Diagnostics {
-	if ctx.PolicyClient() == nil {
-		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
-		return nil
-	}
-	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.ProviderMetadata]{
-		Target: n.Addr.Provider.Type,
-		Attrs:  attrs,
-		Meta: &proto.ProviderMetadata{
-			Name:       n.Addr.Provider.Type,
-			Alias:      n.Addr.Alias,
-			Type:       n.Addr.Provider.Type,
-			Namespace:  n.Addr.Provider.Namespace,
-			Source:     n.Addr.Provider.String(),
-			ModulePath: n.Addr.Module.String(),
-			Version:    n.providerVersion(ctx),
-		},
-	})
-
-	// if this was an "implicit provider", and we have no configuration
-	// for it, There's going to be no source information for these errors.
-	if n.Config != nil {
-		ptr := n.Config.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
-	}
-
-	// always add the result to the policy results
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
-	}
-
-	return nil
-}
-
-// providerVersion returns the exact locked version for this provider from the
-// dependency lock file (e.g. "5.31.0"). Returns an empty string if no lock
-// file entry is available for this provider.
-func (n *NodeApplyableProvider) providerVersion(ctx EvalContext) string {
-	if providerLocks := ctx.ProviderLocks(); providerLocks != nil {
-		if lock := providerLocks[n.Addr.Provider]; lock != nil {
-			return lock.Version().String()
-		}
-	}
-	return ""
 }
 
 // nodeExternalProvider is used instead of [NodeApplyableProvider] when an
