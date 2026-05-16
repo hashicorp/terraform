@@ -87,7 +87,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		}
 
 		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
-		diags.Append(addrDiags)
+		diags = diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
 			// If ParseAbsProviderConfigStr returns an error, the state may have
 			// been written before Provider FQNs were introduced and the
