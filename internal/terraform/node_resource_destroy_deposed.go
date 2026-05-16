@@ -321,7 +321,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
 	writeDiags := n.writeResourceInstanceState(ctx, state)
-	diags.Append(writeDiags)
+	diags = diags.Append(writeDiags)
 	if diags.HasErrors() {
 		return diags
 	}
