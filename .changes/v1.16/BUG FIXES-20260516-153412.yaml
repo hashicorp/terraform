@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`terraform query -generate-config-out` no longer panics when the resource state contains a null nested-type attribute (for example an undeclared `timeouts` block).'
+time: 2026-05-16T15:34:12+03:00
+custom:
+    Issue: "38569"

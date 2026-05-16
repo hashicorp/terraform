@@ -458,6 +458,14 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 		return diags
 	}
 
+	// A null parent value carries no per-block data to emit; the downstream
+	// writeConfigNestedBlockFromExisting would skip each block anyway, but
+	// cty.Value.GetAttr panics on a null receiver, so we have to short-
+	// circuit before that call — see issue #38569.
+	if stateVal.IsNull() {
+		return diags
+	}
+
 	// Sort block names so the output will be consistent between runs.
 	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
@@ -476,6 +484,20 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 
 func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	// A null parent value here means the surrounding object has no value
+	// for this nested attribute (e.g. the entire resource state passed in
+	// from a list resource was cty.NullVal, or a null element was emitted
+	// inside a nested list/map). Treat it like a null nested value and
+	// emit a literal `null`, matching how this package handles null
+	// primitive attributes in writeConfigAttributesFromExisting — see
+	// issue #38569. cty.Value.GetAttr panics on a null receiver, so this
+	// guard must run before any of the per-nesting GetAttr calls below.
+	if stateVal.IsNull() && !schema.Sensitive {
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = null\n", name))
+		return diags
+	}
 
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
