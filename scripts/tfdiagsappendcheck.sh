@@ -7,12 +7,15 @@ set -euo pipefail
 
 echo "==> Checking (tfdiags.Diagnostics).Append usage..."
 
+# Use the analyzer binary built from the current branch to check for findings in the currently checked-out code.
+# Output written to the specified location (output_file) is used and cleaned up by calling code.
 collect_findings() {
-  local output_file="$1"
+  local analyzer_bin="$1"
+  local output_file="$2"
   local analyzer_output
 
   set +e
-  analyzer_output="$(go run ./tools/tfdiagsappendcheck/main ./... 2>&1)"
+  analyzer_output="$("${analyzer_bin}" ./... 2>&1)"
   local analyzer_status=$?
   set -e
 
@@ -30,21 +33,32 @@ collect_findings() {
 if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   base_branch="origin/${GITHUB_BASE_REF}"
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "${tmp_dir}"' EXIT
 
   base_output="${tmp_dir}/base-findings.txt"
   head_output="${tmp_dir}/head-findings.txt"
+  analyzer_bin="${tmp_dir}/tfdiagsappendcheck"
   current_head="$(git rev-parse HEAD)"
+
+  cleanup() {
+    git checkout --detach "${current_head}" >/dev/null 2>&1 || true
+    rm -rf "${tmp_dir}"
+  }
+  trap cleanup EXIT
+
+  echo "==> Building analyzer binary from current branch..."
+  go build -o "${analyzer_bin}" ./tools/tfdiagsappendcheck/main
 
   echo "==> Comparing findings against ${base_branch}..."
   git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
 
   git checkout --detach "${base_branch}"
-  collect_findings "${base_output}"
+  collect_findings "${analyzer_bin}" "${base_output}"
 
   git checkout --detach "${current_head}"
-  collect_findings "${head_output}"
+  collect_findings "${analyzer_bin}" "${head_output}"
 
+  # Compare findings between base and head branches, if there is new content present only in head
+  # then the check is failed and details printed to output.
   if new_findings="$(comm -13 "${base_output}" "${head_output}")" && [[ -n "${new_findings}" ]]; then
     echo >&2 "==> Found newly introduced places where (tfdiags.Diagnostics).Append return value is ignored:"
     echo >&2 "${new_findings}"
