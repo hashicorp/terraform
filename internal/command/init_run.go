@@ -180,7 +180,12 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		var policyDiags policy.Diagnostics
 		client, policyDiags = c.PolicyClient(ctx, initArgs.PolicyPaths)
-		diags = diags.Append(policyDiags.AsTerraformDiags())
+		view.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+		if policyDiags.AsTerraformDiags().HasErrors() {
+			diags = diags.Append(fmt.Errorf("Error setting up policy client: See the other diagnostics for more information"))
+			view.Diagnostics(diags)
+			return 1
+		}
 	}
 
 	if initArgs.Get {
