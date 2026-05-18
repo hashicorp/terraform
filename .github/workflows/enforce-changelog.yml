@@ -3,7 +3,7 @@
 # Do not extend this workflow to include checking out the code (e.g. for building and testing purposes) while the pull_request_target trigger is used.
 # Instead, see use of workflow_run in https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
 
-name: Changelog
+name: Enforce Changelog
 
 on:
     # The pull_request_target trigger event allows PRs raised from forks to have write permissions and access secrets.
