@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// nodePolicyEval is a node that evaluates policy for all resource instances
-// after they have been planned or applied,
-// so that the complete resource graph state is available to the policy engine.
+// nodePolicyEval is a node that completes the building of the policy graph,
+// with incoming edges from the resource graph so that policy evaluation
+// is performed only when the resource graph is complete.
 type nodePolicyEval struct{}
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)

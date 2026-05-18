@@ -15,6 +15,8 @@ import (
 )
 
 // nodeResourcePolicy is a node that evaluates a resource instance's policy.
+// The node is not part of the main graph, but is executed as part of the
+// policy subgraph of nodePolicyEval.
 type nodeResourcePolicy struct {
 	ResourceAddr addrs.AbsResourceInstance
 	ProviderAddr addrs.AbsProviderConfig

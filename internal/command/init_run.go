@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -34,6 +36,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	c.Meta.input = initArgs.InputEnabled
 	c.Meta.targetFlags = initArgs.TargetFlags
 	c.Meta.compactWarnings = initArgs.CompactWarnings
+	c.Meta.policyPaths = initArgs.PolicyPaths
 
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state
@@ -163,9 +166,34 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
+	var client policy.Client
+	if len(initArgs.PolicyPaths) > 0 {
+		if !c.Meta.AllowExperimentalFeatures {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to parse command-line flags",
+				"The -policies flag is only valid in experimental builds of Terraform.",
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		var policyDiags policy.Diagnostics
+		client, policyDiags = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		view.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+		if policyDiags.AsTerraformDiags().HasErrors() {
+			diags = diags.Append(fmt.Errorf("Error setting up policy client: See the other diagnostics for more information"))
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+
 	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, client)
 		diags = diags.Append(modsDiags)
+		if policyResults != nil {
+			view.PolicyResults(policyResults)
+		}
 		if modsAbort || modsDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
@@ -210,9 +238,23 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
-	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	reqsByModule, reqDiags := config.ProviderRequirementsByModule()
+	if reqDiags.HasErrors() {
+		view.Diagnostics(diags.Append(reqDiags))
+		return 1
+	}
+	policyResults := plans.NewPolicyResults()
+	providerHook := &providerInstallerHook{
+		Client:        client,
+		Reqs:          reqsByModule,
+		policyResults: policyResults,
+		config:        config,
+	}
+
+	configProvidersOutput, configLocks, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
+		view.PolicyResults(policyResults)
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -332,7 +374,7 @@ If you do not intend to upgrade the state store provider, please update your con
 		view.Diagnostics(diags)
 		return 1
 	}
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -376,6 +418,7 @@ If you do not intend to upgrade the state store provider, please update your con
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
+	view.PolicyResults(policyResults)
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage

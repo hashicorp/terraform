@@ -4,16 +4,21 @@
 package initwd
 
 import (
+	"context"
+
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ModuleInstallHooks is an interface used to provide notifications about the
+// ModuleInstallHook is an interface used to provide notifications about the
 // installation process being orchestrated by InstallModules.
 //
 // This interface may have new methods added in future, so implementers should
 // embed InstallHooksImpl to get no-op implementations of any unimplemented
 // methods.
-type ModuleInstallHooks interface {
+type ModuleInstallHook interface {
+	EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics
 	// Download is called for modules that are retrieved from a remote source
 	// before that download begins, to allow a caller to give feedback
 	// on progress through a possibly-long sequence of downloads.
@@ -24,16 +29,20 @@ type ModuleInstallHooks interface {
 	Install(moduleAddr string, version *version.Version, localPath string)
 }
 
-// ModuleInstallHooksImpl is a do-nothing implementation of InstallHooks that
+// ModuleInstallHookImpl is a do-nothing implementation of InstallHooks that
 // can be embedded in another implementation struct to allow only partial
 // implementation of the interface.
-type ModuleInstallHooksImpl struct {
+type ModuleInstallHookImpl struct {
 }
 
-func (h ModuleInstallHooksImpl) Download(moduleAddr, packageAddr string, version *version.Version) {
+func (h ModuleInstallHookImpl) Download(moduleAddr, packageAddr string, version *version.Version) {
 }
 
-func (h ModuleInstallHooksImpl) Install(moduleAddr string, version *version.Version, localPath string) {
+func (h ModuleInstallHookImpl) Install(moduleAddr string, version *version.Version, localPath string) {
 }
 
-var _ ModuleInstallHooks = ModuleInstallHooksImpl{}
+func (h ModuleInstallHookImpl) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+	return nil
+}
+
+var _ ModuleInstallHook = ModuleInstallHookImpl{}

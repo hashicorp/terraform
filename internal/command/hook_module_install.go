@@ -15,13 +15,13 @@ type view interface {
 	Log(message string, params ...any)
 }
 type uiModuleInstallHooks struct {
-	initwd.ModuleInstallHooksImpl
+	initwd.ModuleInstallHookImpl
 	Ui             cli.Ui
 	ShowLocalPaths bool
 	View           view
 }
 
-var _ initwd.ModuleInstallHooks = uiModuleInstallHooks{}
+var _ initwd.ModuleInstallHook = uiModuleInstallHooks{}
 
 func (h uiModuleInstallHooks) Download(modulePath, packageAddr string, v *version.Version) {
 	if v != nil {

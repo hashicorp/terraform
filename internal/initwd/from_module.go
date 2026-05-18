@@ -48,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg, nil)
+	inst := NewModuleInstaller(instDir, loader, reg, nil, hooks...)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -148,8 +148,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	// wrapHooks filters hook notifications to only include Download calls
 	// and to trim off the initFromModuleRootCallName prefix. We'll produce
 	// our own Install notifications directly below.
-	wrapHooks := installHooksInitDir{
-		Wrapped: hooks,
+	inst.hooks = []ModuleInstallHook{
+		&installHooksInitDir{
+			Wrapped: hooks,
+		},
 	}
 	// Create a manifest record for the root module. This will be used if
 	// there are any relative-pathed modules in the root.
@@ -159,7 +161,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
-	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher)
 	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)
@@ -347,7 +349,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			newRecord.Dir = newDir
 			newRecord.Key = newKey
 			retManifest[newKey] = newRecord
-			hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			// Call the original hooks here, not the wrapper
+			for _, hook := range hooks {
+				hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			}
 			continue
 		}
 
@@ -385,7 +390,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		newRecord.Dir = filepath.Join(instPath, subDir)
 		newRecord.Key = newKey
 		retManifest[newKey] = newRecord
-		hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		// Call the original hooks here, not the wrapper
+		for _, hook := range hooks {
+			hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		}
 	}
 
 	retManifest.WriteSnapshotToDir(modulesDir)
@@ -418,8 +426,19 @@ func pathTraversesUp(path string) bool {
 // does its own installation steps after the initial installation pass
 // has completed.
 type installHooksInitDir struct {
-	Wrapped ModuleInstallHooks
-	ModuleInstallHooksImpl
+	Wrapped []ModuleInstallHook
+	ModuleInstallHookImpl
+}
+
+// EvaluatePolicy calls EvaluatePolicy on each wrapped hook and returns the first error it encounters.
+func (h installHooksInitDir) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+	for _, hook := range h.Wrapped {
+		diags := hook.EvaluatePolicy(ctx, req, source, version)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+	return nil
 }
 
 func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *version.Version) {
@@ -431,5 +450,7 @@ func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *v
 	}
 
 	trimAddr := moduleAddr[len(initFromModuleRootKeyPrefix):]
-	h.Wrapped.Download(trimAddr, packageAddr, version)
+	for _, hook := range h.Wrapped {
+		hook.Download(trimAddr, packageAddr, version)
+	}
 }

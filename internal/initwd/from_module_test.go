@@ -172,6 +172,21 @@ func TestDirFromModule_submodules(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root",
+			PackageAddr: "",
+		},
+		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root.child_a",
+			PackageAddr: "",
+		},
+		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root.child_a.child_b",
+			PackageAddr: "",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "child_a",
 			LocalPath:  filepath.Join(fromModuleDirRealpath, "child_a"),
@@ -304,6 +319,21 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
+		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root",
+			PackageAddr: "",
+		},
+		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root.child_a",
+			PackageAddr: "",
+		},
+		{
+			Name:        "EvaluatePolicy",
+			ModuleAddr:  "root.child_a.child_b",
+			PackageAddr: "",
+		},
 		{
 			Name:       "Install",
 			ModuleAddr: "child_a",

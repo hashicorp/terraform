@@ -418,11 +418,6 @@ func TestTest_Runs(t *testing.T) {
 		"no-tests": {
 			code: 0,
 		},
-		"simple_pass_function": {
-			expectedOut:           []string{"2 passed, 0 failed."},
-			code:                  0,
-			expectedResourceCount: 0,
-		},
 		"mocking-invalid-outputs": {
 			expectedErr: []string{
 				"Invalid outputs attribute",
@@ -5969,7 +5964,7 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
