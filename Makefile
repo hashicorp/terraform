@@ -15,7 +15,7 @@ protobuf:
 	go run ./tools/protobuf-compile .
 
 tfdiagsappendcheck:
-	go run ./tools/tfdiagsappendcheck/main ./...
+	"$(CURDIR)/scripts/tfdiagsappendcheck.sh"
 
 fmtcheck:
 	"$(CURDIR)/scripts/gofmtcheck.sh"

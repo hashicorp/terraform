@@ -159,3 +159,7 @@ jobs:
             echo >&2 $'Affected files:\n'"$CHANGED"
             exit 1
           fi
+
+      - name: "Automated defect checks"
+        run: |
+          make tfdiagsappendcheck
