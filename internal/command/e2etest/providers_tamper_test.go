@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -271,3 +272,54 @@ terraform {
   }
 }
 `
+
+func TestSymlinkProviderTargetDirectory(t *testing.T) {
+	// This test reaches out to releases.hashicorp.com to download the
+	// null provider, so it can only run if network access is allowed.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-tampering-base")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// Create a directory that will be symlinked to inside the plugin cache directory.
+	//
+	// If the provider is downloaded without protections against symlinks present,
+	// the binary will be downloaded to ./other-dir, not the expected
+	// ./terraform/providers/registry.terraform.io/hashicorp/null/3.1.0/<platform>/ location
+	otherDir := tf.Path("other-dir")
+	err := os.MkdirAll(otherDir, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const providerVersion = "3.1.0" // must match the version in the fixture config
+	symlinkPathInCache := tf.Path(
+		".terraform",
+		"providers",
+		addrs.DefaultProviderRegistryHost.String(),
+		"hashicorp",
+		"null",
+		providerVersion,
+		getproviders.CurrentPlatform.String(),
+	)
+
+	err = os.MkdirAll(filepath.Dir(symlinkPathInCache), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Symlink(otherDir, symlinkPathInCache)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, stderr, err := tf.Run("init", "-no-color")
+	if err == nil {
+		t.Fatalf("unexpected init success\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
+	}
+	if !strings.Contains(stderr, "Failed to install provider") {
+		t.Fatalf("missing expected error message\nstderr:\n%s", stderr)
+	}
+	if !strings.Contains(stderr, "symlink") {
+		t.Fatalf("missing expected error message\nstderr:\n%s", stderr)
+	}
+}
