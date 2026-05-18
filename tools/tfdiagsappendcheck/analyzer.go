@@ -14,7 +14,7 @@ import (
 
 // DiagsAppendAnalyzer reports ignored return values from tfdiags.Diagnostics.Append.
 var DiagsAppendAnalyzer = &analysis.Analyzer{
-	Name: "Check tfdiags.Diagnostics.Append usage",
+	Name: "tfdiagsappendcheck",
 	Doc:  "reports ignored return values from tfdiags.Diagnostics.Append",
 	Requires: []*analysis.Analyzer{
 		inspect.Analyzer,
