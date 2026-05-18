@@ -1,3 +1,5 @@
-(╯°□°)╯︵ ┻━┻
-malformed changelog
-┬─┬ノ( º _ ºノ)
+kind: NOTES
+body: abc
+time: 2026-05-18T09:27:07.314132-04:00
+custom:
+    Issue: "123"
