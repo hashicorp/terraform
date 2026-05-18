@@ -179,7 +179,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		if diags.HasErrors() {
 			// If we have a provisioning error, then we just call
 			// the post-apply hook now.
-			diags = diags.Append(n.postApplyHook(ctx, plans.Delete, state, changeApply.Change.Before, diags.Err()))
+			diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 			return diags
 		}
 	}
@@ -198,7 +198,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	}
 
 	// create the err value for postApplyHook
-	diags = diags.Append(n.postApplyHook(ctx, changeApply.Action, state, changeApply.Change.Before, diags.Err()))
+	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
