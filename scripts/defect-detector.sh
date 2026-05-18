@@ -20,7 +20,7 @@ collect_findings() {
   set -e
 
   if [[ ${analyzer_status} -ne 0 ]] && ! grep -q "ignored return value from tfdiags.Diagnostics.Append" <<<"${analyzer_output}"; then
-    echo >&2 "==> tfdiagsappendcheck failed unexpectedly:"
+    echo >&2 "==> defect-detector failed unexpectedly:"
     echo >&2 "${analyzer_output}"
     exit ${analyzer_status}
   fi
@@ -36,7 +36,7 @@ if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
 
   base_output="${tmp_dir}/base-findings.txt"
   head_output="${tmp_dir}/head-findings.txt"
-  analyzer_bin="${tmp_dir}/tfdiagsappendcheck"
+  analyzer_bin="${tmp_dir}/defectdetector"
   current_head="$(git rev-parse HEAD)"
 
   cleanup() {
@@ -46,7 +46,7 @@ if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   trap cleanup EXIT
 
   echo "==> Building analyzer binary from current branch..."
-  go build -o "${analyzer_bin}" ./tools/tfdiagsappendcheck/main
+  go build -o "${analyzer_bin}" ./tools/defect-detector/main
 
   echo "==> Comparing findings against ${base_branch}..."
   git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
@@ -72,7 +72,7 @@ fi
 
 # Script is not running in a pull request context.
 # Run the analyzer on the entire codebase.
-if ! go run ./tools/tfdiagsappendcheck/main ./...; then
+if ! go run ./tools/defect-detector/main ./...; then
   echo "==> Found places where (tfdiags.Diagnostics).Append return value is ignored. Please fix the above issues and try again."
   exit 1
 fi

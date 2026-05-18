@@ -4,10 +4,10 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/tools/tfdiagsappendcheck"
+	defectdetector "github.com/hashicorp/terraform/tools/defect-detector"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 
 func main() {
-	singlechecker.Main(tfdiagsappendcheck.DiagsAppendAnalyzer)
+	singlechecker.Main(defectdetector.DiagsAppendAnalyzer)
 }

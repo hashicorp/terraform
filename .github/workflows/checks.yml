@@ -180,4 +180,4 @@ jobs:
 
       - name: "Appending diagnostics"
         run: |
-          make tfdiagsappendcheck
+          make defect-detector
