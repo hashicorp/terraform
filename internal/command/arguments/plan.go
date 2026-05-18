@@ -32,6 +32,10 @@ type Plan struct {
 
 	// ViewType specifies which output format to use
 	ViewType ViewType
+
+	// PolicyPath contains an optional path to any defined policies that should
+	// be applied for this plan operation.
+	PolicyPaths []string
 }
 
 // ParsePlan processes CLI arguments, returning a Plan value and errors.
@@ -50,6 +54,7 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
 	cmdFlags.StringVar(&plan.GenerateConfigPath, "generate-config-out", "", "generate-config-out")
+	cmdFlags.Var((*FlagStringSlice)(&plan.PolicyPaths), "policies", "policies")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

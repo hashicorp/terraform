@@ -4,10 +4,15 @@
 package views
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -111,18 +116,91 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 	}
 
 	for _, diag := range diags {
-		var msg string
-		if v.colorize.Disable {
-			msg = format.DiagnosticPlain(diag, v.configSources(), v.streams.Stderr.Columns())
-		} else {
-			msg = format.Diagnostic(diag, v.configSources(), v.colorize, v.streams.Stderr.Columns())
-		}
+		msg := v.formatDiagnostic(diag)
 
 		if diag.Severity() == tfdiags.Error {
 			v.streams.Eprint(msg)
 		} else {
 			v.streams.Print(msg)
 		}
+	}
+}
+
+// PolicyResults renders the policy results in human-readable format.
+// This is done separately from the plan rendering because it may require additional
+// source information that is not available in the plan renderer.
+func (v *View) PolicyResults(results *plans.PolicyResults) {
+	if results == nil {
+		return
+	}
+	configSources := v.configSources()
+	var buf strings.Builder
+	var foundInfo bool
+
+	// Print setup diagnostics
+	for _, diag := range results.Diagnostics {
+		msg := v.formatDiagnostic(diag)
+		if diag.Severity() == tfdiags.Error {
+			v.streams.Eprint(msg)
+		} else {
+			v.streams.Print(msg)
+		}
+	}
+	for _, result := range results.Iter() {
+		for _, enforcement := range result.EvaluationResponse.Enforcements {
+			var src []byte
+			if enforcement.LocalRange != nil {
+				src = configSources[enforcement.LocalRange.Filename]
+			}
+			info := json.NewPolicyInfo(src, enforcement)
+			// Print info message attached to the enforcement
+			if info.Message != "" {
+				foundInfo = true
+				buf.WriteString("Policy Info:\n")
+				if info.PolicyRange != nil && info.PolicySnippet != nil {
+					buf.WriteString(fmt.Sprintf(
+						"on %s line %d, in %s\n",
+						info.PolicyRange.Filename,
+						info.PolicyRange.Start.Line,
+						info.PolicySnippet.Code,
+					))
+				} else if enforcement.Policy != nil {
+					buf.WriteString(fmt.Sprintf(
+						"in policy %s\n",
+						enforcement.Policy.Address,
+					))
+				}
+				buf.WriteString(fmt.Sprintf("%q\n", info.Message))
+
+				if !result.ConfigDeclRange.Empty() {
+					cfgRange := result.ConfigDeclRange
+					resourceContext := string(cfgRange.SliceBytes(configSources[cfgRange.Filename]))
+
+					// Here we want the resource source context
+					buf.WriteString(fmt.Sprintf(
+						"\non %s line %d, in %s\n",
+						cfgRange.Filename,
+						cfgRange.Start.Line,
+						resourceContext,
+					))
+				}
+				buf.WriteString("\n")
+			}
+		}
+
+		// Print policy diagnostics
+		for _, diag := range result.EvaluationResponse.Diagnostics {
+			msg := v.formatDiagnostic(diag)
+			if diag.Severity() == tfdiags.Error {
+				v.streams.Eprint(msg)
+			} else {
+				v.streams.Print(msg)
+			}
+		}
+	}
+	if foundInfo {
+		v.streams.Println()
+		v.streams.Println(buf.String())
 	}
 }
 
@@ -163,4 +241,12 @@ func (v *View) errorColumns() int {
 // visually de-emphasize it.
 func (v *View) outputHorizRule() {
 	v.streams.Println(format.HorizontalRule(v.colorize, v.outputColumns()))
+}
+
+func (v *View) formatDiagnostic(diag tfdiags.Diagnostic) string {
+	if v.colorize.Disable {
+		return format.DiagnosticPlain(diag, v.configSources(), v.streams.Stderr.Columns())
+	} else {
+		return format.Diagnostic(diag, v.configSources(), v.colorize, v.streams.Stderr.Columns())
+	}
 }
