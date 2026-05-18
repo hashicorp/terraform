@@ -9,6 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
+	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -51,9 +52,12 @@ func TestClientEvaluate(t *testing.T) {
 	}
 
 	resp := c.Evaluate(ctx, EvaluationRequest[*proto.ResourceMetadata]{
-		Target:     "test_resource",
-		Attrs:      cty.NilVal,
-		PriorAttrs: cty.NilVal,
+		Target: "test_resource",
+		Attrs: PolicyValue{
+			Raw:           cty.ObjectVal(map[string]cty.Value{"secret": cty.StringVal("x")}),
+			RedactedPaths: []cty.Path{cty.GetAttrPath("secret")},
+		},
+		PriorAttrs: PolicyValue{Raw: cty.NilVal},
 	})
 
 	if resp.Overall != AllowResult {
@@ -67,6 +71,12 @@ func TestClientEvaluate(t *testing.T) {
 	}
 	if gotReq.EvaluationId == 0 {
 		t.Fatal("expected non-zero evaluation id")
+	}
+	want := &proto.Path{Steps: []*proto.Path_Step{{
+		Selector: &proto.Path_Step_AttributeName{AttributeName: "secret"},
+	}}}
+	if len(gotReq.Attrs.RedactedPaths) != 1 || !gproto.Equal(gotReq.Attrs.RedactedPaths[0], want) {
+		t.Fatalf("unexpected redacted paths: %#v", gotReq.Attrs.RedactedPaths)
 	}
 }
 
@@ -88,7 +98,10 @@ func TestClientEvaluateProvider(t *testing.T) {
 
 	resp := c.EvaluateProvider(ctx, EvaluationRequest[*proto.ProviderMetadata]{
 		Target: "test_provider",
-		Attrs:  cty.NilVal,
+		Attrs: PolicyValue{
+			Raw:           cty.ObjectVal(map[string]cty.Value{"token": cty.StringVal("x")}),
+			RedactedPaths: []cty.Path{cty.GetAttrPath("token")},
+		},
 	})
 
 	if resp.Overall != AllowResult {
@@ -102,6 +115,12 @@ func TestClientEvaluateProvider(t *testing.T) {
 	}
 	if gotReq.ProviderType != "test_provider" {
 		t.Fatalf("unexpected provider type: got %q, want %q", gotReq.ProviderType, "test_provider")
+	}
+	want := &proto.Path{Steps: []*proto.Path_Step{{
+		Selector: &proto.Path_Step_AttributeName{AttributeName: "token"},
+	}}}
+	if len(gotReq.Attrs.RedactedPaths) != 1 || !gproto.Equal(gotReq.Attrs.RedactedPaths[0], want) {
+		t.Fatalf("unexpected redacted paths: %#v", gotReq.Attrs.RedactedPaths)
 	}
 }
 

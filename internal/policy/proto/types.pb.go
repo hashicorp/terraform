@@ -369,6 +369,191 @@ func (x *ProviderMetadata) GetVersion() string {
 	return ""
 }
 
+type ResourceAttributes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Raw           []byte                 `protobuf:"bytes,1,opt,name=raw,proto3" json:"raw,omitempty"`
+	RedactedPaths []*Path                `protobuf:"bytes,2,rep,name=redacted_paths,json=redactedPaths,proto3" json:"redacted_paths,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResourceAttributes) Reset() {
+	*x = ResourceAttributes{}
+	mi := &file_types_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceAttributes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceAttributes) ProtoMessage() {}
+
+func (x *ResourceAttributes) ProtoReflect() protoreflect.Message {
+	mi := &file_types_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceAttributes.ProtoReflect.Descriptor instead.
+func (*ResourceAttributes) Descriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ResourceAttributes) GetRaw() []byte {
+	if x != nil {
+		return x.Raw
+	}
+	return nil
+}
+
+func (x *ResourceAttributes) GetRedactedPaths() []*Path {
+	if x != nil {
+		return x.RedactedPaths
+	}
+	return nil
+}
+
+// Path represents a set of steps to traverse into a data structure. It is
+// used to refer to a sub-structure within a dynamic data structure presented
+// separately.
+type Path struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Steps         []*Path_Step           `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Path) Reset() {
+	*x = Path{}
+	mi := &file_types_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Path) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Path) ProtoMessage() {}
+
+func (x *Path) ProtoReflect() protoreflect.Message {
+	mi := &file_types_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Path.ProtoReflect.Descriptor instead.
+func (*Path) Descriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Path) GetSteps() []*Path_Step {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+type Path_Step struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Selector:
+	//
+	//	*Path_Step_AttributeName
+	//	*Path_Step_ElementKey
+	Selector      isPath_Step_Selector `protobuf_oneof:"selector"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Path_Step) Reset() {
+	*x = Path_Step{}
+	mi := &file_types_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Path_Step) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Path_Step) ProtoMessage() {}
+
+func (x *Path_Step) ProtoReflect() protoreflect.Message {
+	mi := &file_types_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Path_Step.ProtoReflect.Descriptor instead.
+func (*Path_Step) Descriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *Path_Step) GetSelector() isPath_Step_Selector {
+	if x != nil {
+		return x.Selector
+	}
+	return nil
+}
+
+func (x *Path_Step) GetAttributeName() string {
+	if x != nil {
+		if x, ok := x.Selector.(*Path_Step_AttributeName); ok {
+			return x.AttributeName
+		}
+	}
+	return ""
+}
+
+func (x *Path_Step) GetElementKey() []byte {
+	if x != nil {
+		if x, ok := x.Selector.(*Path_Step_ElementKey); ok {
+			return x.ElementKey
+		}
+	}
+	return nil
+}
+
+type isPath_Step_Selector interface {
+	isPath_Step_Selector()
+}
+
+type Path_Step_AttributeName struct {
+	// Set "attribute_name" to represent looking up an attribute
+	// in the current object value.
+	AttributeName string `protobuf:"bytes,1,opt,name=attribute_name,json=attributeName,proto3,oneof"`
+}
+
+type Path_Step_ElementKey struct {
+	// Set "element_key" to represent looking up an element in
+	// an indexable collection type.
+	ElementKey []byte `protobuf:"bytes,2,opt,name=element_key,json=elementKey,proto3,oneof"`
+}
+
+func (*Path_Step_AttributeName) isPath_Step_Selector() {}
+
+func (*Path_Step_ElementKey) isPath_Step_Selector() {}
+
 var File_types_proto protoreflect.FileDescriptor
 
 const file_types_proto_rawDesc = "" +
@@ -390,7 +575,18 @@ const file_types_proto_rawDesc = "" +
 	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1f\n" +
 	"\vmodule_path\x18\x06 \x01(\tR\n" +
 	"modulePath\x12\x18\n" +
-	"\aversion\x18\a \x01(\tR\aversion*\xbb\x01\n" +
+	"\aversion\x18\a \x01(\tR\aversion\"Z\n" +
+	"\x12ResourceAttributes\x12\x10\n" +
+	"\x03raw\x18\x01 \x01(\fR\x03raw\x122\n" +
+	"\x0eredacted_paths\x18\x02 \x03(\v2\v.proto.PathR\rredactedPaths\"\x8e\x01\n" +
+	"\x04Path\x12&\n" +
+	"\x05steps\x18\x01 \x03(\v2\x10.proto.Path.StepR\x05steps\x1a^\n" +
+	"\x04Step\x12'\n" +
+	"\x0eattribute_name\x18\x01 \x01(\tH\x00R\rattributeName\x12!\n" +
+	"\velement_key\x18\x02 \x01(\fH\x00R\n" +
+	"elementKeyB\n" +
+	"\n" +
+	"\bselector*\xbb\x01\n" +
 	"\x0eEvaluateResult\x12\x1b\n" +
 	"\x17INVALID_EVALUATE_RESULT\x10\x00\x12\x1b\n" +
 	"\x17UNKNOWN_EVALUATE_RESULT\x10\x01\x12\x19\n" +
@@ -419,21 +615,26 @@ func file_types_proto_rawDescGZIP() []byte {
 }
 
 var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_types_proto_goTypes = []any{
-	(EvaluateResult)(0),      // 0: proto.EvaluateResult
-	(Operation)(0),           // 1: proto.Operation
-	(*ResourceMetadata)(nil), // 2: proto.ResourceMetadata
-	(*ModuleMetadata)(nil),   // 3: proto.ModuleMetadata
-	(*ProviderMetadata)(nil), // 4: proto.ProviderMetadata
+	(EvaluateResult)(0),        // 0: proto.EvaluateResult
+	(Operation)(0),             // 1: proto.Operation
+	(*ResourceMetadata)(nil),   // 2: proto.ResourceMetadata
+	(*ModuleMetadata)(nil),     // 3: proto.ModuleMetadata
+	(*ProviderMetadata)(nil),   // 4: proto.ProviderMetadata
+	(*ResourceAttributes)(nil), // 5: proto.ResourceAttributes
+	(*Path)(nil),               // 6: proto.Path
+	(*Path_Step)(nil),          // 7: proto.Path.Step
 }
 var file_types_proto_depIdxs = []int32{
 	1, // 0: proto.ResourceMetadata.operation:type_name -> proto.Operation
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 1: proto.ResourceAttributes.redacted_paths:type_name -> proto.Path
+	7, // 2: proto.Path.steps:type_name -> proto.Path.Step
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_types_proto_init() }
@@ -441,13 +642,17 @@ func file_types_proto_init() {
 	if File_types_proto != nil {
 		return
 	}
+	file_types_proto_msgTypes[5].OneofWrappers = []any{
+		(*Path_Step_AttributeName)(nil),
+		(*Path_Step_ElementKey)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -84,6 +85,24 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 	mod := testModuleInline(t, configFiles)
 	providerAddr := addrs.NewDefaultProvider("test")
 	provider := testProvider("test")
+	provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":              {Type: cty.String, Computed: true},
+					"value":           {Type: cty.String, Optional: true},
+					"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+				},
+			},
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":              {Type: cty.String, Computed: true},
+					"value":           {Type: cty.String, Optional: true},
+					"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+				},
+			},
+		},
+	})
 
 	provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 		cfg := req.Config.AsValueMap()
@@ -106,7 +125,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		}),
 		"test_instance": cty.ObjectVal(map[string]cty.Value{
 			"value":           cty.UnknownVal(cty.String),
-			"sensitive_value": cty.NilVal,
+			"sensitive_value": cty.NullVal(cty.String),
 		}),
 	}
 	actualPlan := make(map[string]cty.Value)
@@ -115,14 +134,26 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		var actualVal cty.Value
 		attrs := req.Attrs
 		target := req.Target
-		if !attrs.IsNull() {
-			mp := attrs.AsValueMap()
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
 			actualVal = cty.ObjectVal(map[string]cty.Value{
 				"value":           mp["value"],
 				"sensitive_value": mp["sensitive_value"],
 			})
 		}
 		actualPlan[target] = actualVal
+
+		if actualVal.Type().HasAttribute("sensitive_value") {
+			if !actualVal.GetAttr("sensitive_value").IsNull() && len(attrs.RedactedPaths) == 0 {
+				t.Errorf("Expected redacted paths for sensitive attributes to be included in the request")
+			}
+
+			for _, path := range attrs.RedactedPaths {
+				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}) {
+					t.Errorf("Unexpected redacted path: %s", path)
+				}
+			}
+		}
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 	t.Cleanup(func() {
@@ -157,7 +188,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		}),
 		"test_instance": cty.ObjectVal(map[string]cty.Value{
 			"value":           cty.StringVal("parent"), // was unknown in the plan
-			"sensitive_value": cty.NilVal,
+			"sensitive_value": cty.NullVal(cty.String),
 		}),
 	}
 	actualApply := make(map[string]cty.Value)
@@ -166,14 +197,26 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
-		if !attrs.IsNull() {
-			mp := attrs.AsValueMap()
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
 			actual = cty.ObjectVal(map[string]cty.Value{
 				"value":           mp["value"],
 				"sensitive_value": mp["sensitive_value"],
 			})
 		}
 		actualApply[target] = actual
+
+		if actual.Type().HasAttribute("sensitive_value") {
+			if !actual.GetAttr("sensitive_value").IsNull() && len(attrs.RedactedPaths) == 0 {
+				t.Errorf("Expected redacted paths for sensitive attributes to be included in the request")
+			}
+
+			for _, path := range attrs.RedactedPaths {
+				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}) {
+					t.Errorf("Unexpected redacted path: %s", path)
+				}
+			}
+		}
 
 		// this return does not actually do anything
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
@@ -286,8 +329,8 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
-		if !attrs.IsNull() {
-			mp := attrs.AsValueMap()
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
 			actual = cty.ObjectVal(map[string]cty.Value{
 				"value":           mp["value"],
 				"sensitive_value": mp["sensitive_value"],
@@ -336,8 +379,8 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
-		if !attrs.IsNull() {
-			mp := attrs.AsValueMap()
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
 			actual = cty.ObjectVal(map[string]cty.Value{
 				"value":           mp["value"],
 				"sensitive_value": mp["sensitive_value"],
@@ -621,14 +664,14 @@ resource "test_resource" "test" {
 				}
 
 				actualAttrs := req.Attrs
-				if !actualAttrs.IsNull() {
-					mp := actualAttrs.AsValueMap()
-					actualAttrs = cty.ObjectVal(map[string]cty.Value{
+				if !actualAttrs.Raw.IsNull() {
+					mp := actualAttrs.Raw.AsValueMap()
+					actualAttrs.Raw = cty.ObjectVal(map[string]cty.Value{
 						"id":              mp["id"],
 						"sensitive_value": mp["sensitive_value"],
 					})
 				}
-				if diff := cmp.Diff(actualAttrs, tc.expectFinalAttr, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+				if diff := cmp.Diff(actualAttrs.Raw, tc.expectFinalAttr, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
 					t.Fatalf("unexpected attrs (-got +want):\n%s", diff)
 				}
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
@@ -700,12 +743,12 @@ func TestContext2Apply_PolicyEvaluation_Destroy(t *testing.T) {
 		}
 
 		// For a destroy plan, attrs (the "after" value) should be null.
-		if !req.Attrs.IsNull() {
+		if !req.Attrs.Raw.IsNull() {
 			t.Errorf("Plan: expected null attrs for destroy evaluation, got %#v", req.Attrs)
 		}
 
 		// PriorAttrs should contain the state being destroyed.
-		if req.PriorAttrs.IsNull() {
+		if req.PriorAttrs.Raw.IsNull() {
 			t.Errorf("Plan: expected non-null PriorAttrs for destroy evaluation")
 		}
 
@@ -756,11 +799,11 @@ func TestContext2Apply_PolicyEvaluation_Destroy(t *testing.T) {
 			t.Errorf("Apply: expected target to be test_resource, got %s", req.Target)
 		}
 
-		if !req.Attrs.IsNull() {
+		if !req.Attrs.Raw.IsNull() {
 			t.Errorf("Apply: expected null attrs for destroy evaluation, got %#v", req.Attrs)
 		}
 
-		if req.PriorAttrs.IsNull() {
+		if req.PriorAttrs.Raw.IsNull() {
 			t.Errorf("Apply: expected non-null PriorAttrs for destroy evaluation")
 		}
 

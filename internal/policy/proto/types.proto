@@ -74,3 +74,26 @@ message ProviderMetadata {
   string module_path = 6;
   string version = 7;
 }
+
+message ResourceAttributes {
+  bytes raw = 1;
+  repeated Path redacted_paths = 2; 
+}
+
+// Path represents a set of steps to traverse into a data structure. It is
+// used to refer to a sub-structure within a dynamic data structure presented
+// separately.
+message Path {
+    message Step {
+        oneof selector {
+            // Set "attribute_name" to represent looking up an attribute
+            // in the current object value.
+            string attribute_name = 1;
+
+            // Set "element_key" to represent looking up an element in
+            // an indexable collection type.
+            bytes element_key = 2;
+        }
+    }
+    repeated Step steps = 1;
+}

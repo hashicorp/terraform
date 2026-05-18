@@ -124,8 +124,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					var actual cty.Value
-					if !req.Attrs.IsNull() {
-						mp := req.Attrs.AsValueMap()
+					if !req.Attrs.Raw.IsNull() {
+						mp := req.Attrs.Raw.AsValueMap()
 						retMP := map[string]cty.Value{
 							"value": mp["value"],
 						}
@@ -148,7 +148,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					}
 
 					// Both resources are being created, so PriorAttrs should be null.
-					if !req.PriorAttrs.IsNull() {
+					if !req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected null PriorAttrs for newly created %s, got non-null", req.Target)
 						return policy.EvaluationResponse{}
 					}
@@ -314,8 +314,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					var actual cty.Value
-					if !req.Attrs.IsNull() {
-						mp := req.Attrs.AsValueMap()
+					if !req.Attrs.Raw.IsNull() {
+						mp := req.Attrs.Raw.AsValueMap()
 						actual = cty.ObjectVal(map[string]cty.Value{
 							"value":           mp["value"],
 							"sensitive_value": mp["sensitive_value"],
@@ -335,7 +335,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					}
 
 					// Both resources have prior state, so PriorAttrs should be non-null.
-					if req.PriorAttrs.IsNull() {
+					if req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected non-null PriorAttrs for %s, got null", req.Target)
 						return policy.EvaluationResponse{}
 					}
@@ -408,7 +408,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
-					if !req.PriorAttrs.IsNull() {
+					if !req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected null PriorAttrs for newly created %s, got non-null", req.Target)
 						return policy.EvaluationResponse{}
 					}
@@ -542,11 +542,11 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
-					if !req.Attrs.IsNull() {
+					if !req.Attrs.Raw.IsNull() {
 						t.Errorf("Expected null attrs for destroy evaluation")
 					}
 
-					if req.PriorAttrs.IsNull() {
+					if req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
 					}
 
@@ -624,7 +624,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
-					if req.PriorAttrs.IsNull() {
+					if req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
 						return policy.EvaluationResponse{}
 					}
@@ -887,7 +887,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
-					if req.PriorAttrs.IsNull() {
+					if req.PriorAttrs.Raw.IsNull() {
 						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
 						return policy.EvaluationResponse{}
 					}
@@ -1295,7 +1295,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// Key by the ami attribute of the resource being evaluated.
-		ami := req.Attrs.GetAttr("ami").AsString()
+		ami := req.Attrs.Raw.GetAttr("ami").AsString()
 		mu.Lock()
 		results[ami] = cr
 		mu.Unlock()

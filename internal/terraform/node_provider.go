@@ -205,7 +205,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, op, n.cachedUnmarkedConfigValue)
+	policyDiags := n.EvalPolicy(ctx, configSchema, n.cachedUnmarkedConfigValue)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -214,14 +214,23 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 	return diags
 }
 
-func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, attrs cty.Value) tfdiags.Diagnostics {
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, schema *configschema.Block, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil
 	}
+
+	var sensitivePaths []cty.Path
+	if schema != nil {
+		sensitivePaths = schema.SensitivePaths(attrs, nil)
+	}
+
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
-		Attrs:  attrs,
+		Attrs: policy.PolicyValue{
+			Raw:           attrs,
+			RedactedPaths: sensitivePaths,
+		},
 		Meta: &proto.ProviderMetadata{
 			Name:       n.Addr.Provider.Type,
 			Alias:      n.Addr.Alias,
