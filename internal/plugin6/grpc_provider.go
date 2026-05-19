@@ -1932,10 +1932,6 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 	}
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-		return resp
-	}
 	if resp.Diagnostics.HasErrors() {
 		return resp
 	}
@@ -1979,6 +1975,7 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	resp.Events = func(yield func(providers.InvokeActionEvent) bool) {
 		logger.Trace("GRPCProvider: InvokeAction: streaming events")
 
+	RECV:
 		for {
 			event, err := protoClient.Recv()
 			if err == io.EOF {
@@ -1996,15 +1993,19 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 
 			switch ev := event.Type.(type) {
 			case *proto6.InvokeAction_Event_Progress_:
-				yield(providers.InvokeActionEvent_Progress{
+				if !yield(providers.InvokeActionEvent_Progress{
 					Message: ev.Progress.Message,
-				})
+				}) {
+					break RECV
+				}
 
 			case *proto6.InvokeAction_Event_Completed_:
 				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
-				yield(providers.InvokeActionEvent_Completed{
+				if !yield(providers.InvokeActionEvent_Completed{
 					Diagnostics: diags,
-				})
+				}) {
+					break RECV
+				}
 
 			default:
 				panic(fmt.Sprintf("unexpected event type %T in InvokeAction response", event.Type))
