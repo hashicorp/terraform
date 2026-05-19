@@ -1309,7 +1309,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"action config refers to before triggering resource leads to validation error": {
+			"action config refers to triggering resource": {
 				module: map[string]string{
 					"main.tf": `
 action "test_action" "hello" {
@@ -1328,7 +1328,57 @@ resource "test_object" "a" {
 }
 `,
 				},
-				expectPlanActionCalled: true, // The cycle only appears in the apply graph
+				expectPlanActionCalled: true,
+			},
+
+			"caller can be used for triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+			},
+
+			"caller is invalid for standalone action": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+}
+`,
+				},
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if len(diags) != 1 {
+						t.Fatalf("expected exactly 1 diagnostic but had %d", len(diags))
+					}
+
+					if diags[0].Severity() != tfdiags.Error {
+						t.Error("expected error diagnostic")
+					}
+
+					if diags[0].Description().Summary != `Invalid "caller" reference` {
+						t.Errorf("expected diagnostics about invalid caller, got %s", diags[0].Description().Summary)
+					}
+				},
 			},
 
 			"secret values": {
