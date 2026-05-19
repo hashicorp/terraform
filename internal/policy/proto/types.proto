@@ -52,22 +52,3 @@ enum Operation {
   UPDATE = 1;
   DELETE = 2;
 }
-
-message ResourceMetadata {
-  string provider_type = 1;
-  Operation operation = 2;
-}
-
-message ModuleMetadata {
-  string version = 1;
-  string address = 2;
-}
-
-message ProviderMetadata {
-  string name = 1;
-  string alias = 2;
-  string namespace = 3;
-  string source = 4;
-  string module_path = 5;
-  string version = 6;
-}

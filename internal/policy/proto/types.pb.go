@@ -157,213 +157,11 @@ func (Operation) EnumDescriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{1}
 }
 
-type ResourceMetadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProviderType  string                 `protobuf:"bytes,1,opt,name=provider_type,json=providerType,proto3" json:"provider_type,omitempty"`
-	Operation     Operation              `protobuf:"varint,2,opt,name=operation,proto3,enum=proto.Operation" json:"operation,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ResourceMetadata) Reset() {
-	*x = ResourceMetadata{}
-	mi := &file_types_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResourceMetadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResourceMetadata) ProtoMessage() {}
-
-func (x *ResourceMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_types_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResourceMetadata.ProtoReflect.Descriptor instead.
-func (*ResourceMetadata) Descriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ResourceMetadata) GetProviderType() string {
-	if x != nil {
-		return x.ProviderType
-	}
-	return ""
-}
-
-func (x *ResourceMetadata) GetOperation() Operation {
-	if x != nil {
-		return x.Operation
-	}
-	return Operation_CREATE
-}
-
-type ModuleMetadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
-	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ModuleMetadata) Reset() {
-	*x = ModuleMetadata{}
-	mi := &file_types_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ModuleMetadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ModuleMetadata) ProtoMessage() {}
-
-func (x *ModuleMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_types_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ModuleMetadata.ProtoReflect.Descriptor instead.
-func (*ModuleMetadata) Descriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ModuleMetadata) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
-func (x *ModuleMetadata) GetAddress() string {
-	if x != nil {
-		return x.Address
-	}
-	return ""
-}
-
-type ProviderMetadata struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
-	Namespace     string                 `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
-	ModulePath    string                 `protobuf:"bytes,5,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
-	Version       string                 `protobuf:"bytes,6,opt,name=version,proto3" json:"version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ProviderMetadata) Reset() {
-	*x = ProviderMetadata{}
-	mi := &file_types_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProviderMetadata) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProviderMetadata) ProtoMessage() {}
-
-func (x *ProviderMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_types_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProviderMetadata.ProtoReflect.Descriptor instead.
-func (*ProviderMetadata) Descriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ProviderMetadata) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *ProviderMetadata) GetAlias() string {
-	if x != nil {
-		return x.Alias
-	}
-	return ""
-}
-
-func (x *ProviderMetadata) GetNamespace() string {
-	if x != nil {
-		return x.Namespace
-	}
-	return ""
-}
-
-func (x *ProviderMetadata) GetSource() string {
-	if x != nil {
-		return x.Source
-	}
-	return ""
-}
-
-func (x *ProviderMetadata) GetModulePath() string {
-	if x != nil {
-		return x.ModulePath
-	}
-	return ""
-}
-
-func (x *ProviderMetadata) GetVersion() string {
-	if x != nil {
-		return x.Version
-	}
-	return ""
-}
-
 var File_types_proto protoreflect.FileDescriptor
 
 const file_types_proto_rawDesc = "" +
 	"\n" +
-	"\vtypes.proto\x12\x05proto\"g\n" +
-	"\x10ResourceMetadata\x12#\n" +
-	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
-	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\"D\n" +
-	"\x0eModuleMetadata\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\tR\aversion\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\"\xad\x01\n" +
-	"\x10ProviderMetadata\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x1c\n" +
-	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x16\n" +
-	"\x06source\x18\x04 \x01(\tR\x06source\x12\x1f\n" +
-	"\vmodule_path\x18\x05 \x01(\tR\n" +
-	"modulePath\x12\x18\n" +
-	"\aversion\x18\x06 \x01(\tR\aversion*\xbb\x01\n" +
+	"\vtypes.proto\x12\x05proto*\xbb\x01\n" +
 	"\x0eEvaluateResult\x12\x1b\n" +
 	"\x17INVALID_EVALUATE_RESULT\x10\x00\x12\x1b\n" +
 	"\x17UNKNOWN_EVALUATE_RESULT\x10\x01\x12\x19\n" +
@@ -392,21 +190,16 @@ func file_types_proto_rawDescGZIP() []byte {
 }
 
 var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_types_proto_goTypes = []any{
-	(EvaluateResult)(0),      // 0: proto.EvaluateResult
-	(Operation)(0),           // 1: proto.Operation
-	(*ResourceMetadata)(nil), // 2: proto.ResourceMetadata
-	(*ModuleMetadata)(nil),   // 3: proto.ModuleMetadata
-	(*ProviderMetadata)(nil), // 4: proto.ProviderMetadata
+	(EvaluateResult)(0), // 0: proto.EvaluateResult
+	(Operation)(0),      // 1: proto.Operation
 }
 var file_types_proto_depIdxs = []int32{
-	1, // 0: proto.ResourceMetadata.operation:type_name -> proto.Operation
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_types_proto_init() }
@@ -420,14 +213,13 @@ func file_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_types_proto_goTypes,
 		DependencyIndexes: file_types_proto_depIdxs,
 		EnumInfos:         file_types_proto_enumTypes,
-		MessageInfos:      file_types_proto_msgTypes,
 	}.Build()
 	File_types_proto = out.File
 	file_types_proto_goTypes = nil

@@ -93,6 +93,11 @@ message PolicyEvaluateResourceRequest {
 
   // prior_attrs contains the state of the resource prior to the current operation.
   bytes prior_attrs = 5;
+
+  message ResourceMetadata {
+    string provider_type = 1;
+    Operation operation = 2;
+  }
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation
@@ -168,6 +173,15 @@ message PolicyEvaluateProviderRequest {
   // metadata contains the provider metadata that will be made available within the
   // provider_metadata data referenced within Terraform Policy files.
   ProviderMetadata metadata = 3;
+
+  message ProviderMetadata {
+    string name = 1;
+    string alias = 2;
+    string namespace = 3;
+    string source = 4;
+    string module_path = 5;
+    string version = 6;
+  }
 }
 
 // EvaluateProviderResponse is the message response for the EvaluateProvider RPC.
@@ -192,6 +206,11 @@ message PolicyEvaluateModuleRequest {
   // metadata contains the module metadata that will be made available within the
   // meta object referenced within module policy blocks.
   ModuleMetadata metadata = 3;
+
+  message ModuleMetadata {
+    string version = 1;
+    string address = 2;
+  }
 }
 
 // EvaluateModuleResponse is the message response for the EvaluateModule RPC.

@@ -157,7 +157,7 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 	}
 }
 
-func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse {
+func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {
 	log.Printf("[DEBUG] Evaluating policy for resource %s", req.Target)
 	var diags []*proto.Diagnostic
 
@@ -209,7 +209,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 	return EvaluationFromProtoResponse(response.Result, response.PolicyDetails)
 }
 
-func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*proto.ProviderMetadata]) EvaluationResponse {
+func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse {
 	log.Printf("[DEBUG] Evaluating policy for provider %s", req.Target)
 	var diags []*proto.Diagnostic
 	req = normalizeRequest(req)
@@ -241,7 +241,7 @@ func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*pr
 	return EvaluationFromProtoResponse(response.Result, response.PolicyDetails)
 }
 
-func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*proto.ModuleMetadata]) EvaluationResponse {
+func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse {
 	log.Printf("[DEBUG] Evaluating policy for module %s", req.Target)
 	var diags []*proto.Diagnostic
 

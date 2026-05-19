@@ -165,7 +165,7 @@ func TestClientEvaluate(t *testing.T) {
 				callbackRegistry: registry,
 			}
 
-			resp := c.EvaluateResource(ctx, EvaluationRequest[*proto.ResourceMetadata]{
+			resp := c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 				Target:     "test_resource",
 				Attrs:      test.attrs,
 				PriorAttrs: test.priorAttrs,
@@ -308,7 +308,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 				callbackRegistry: callback.NewRegistry(),
 			}
 
-			resp := c.EvaluateProvider(ctx, EvaluationRequest[*proto.ProviderMetadata]{
+			resp := c.EvaluateProvider(ctx, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 				Target: "test_provider",
 				Attrs:  test.attrs,
 			})
@@ -417,7 +417,7 @@ func TestClientEvaluateModule(t *testing.T) {
 				callbackRegistry: callback.NewRegistry(),
 			}
 
-			resp := c.EvaluateModule(ctx, EvaluationRequest[*proto.ModuleMetadata]{
+			resp := c.EvaluateModule(ctx, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 				Target: "./child",
 			})
 

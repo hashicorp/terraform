@@ -17,9 +17,9 @@ import (
 // Client is an interface for interacting with a policy engine.
 type Client interface {
 	Setup(context.Context, SetupRequest) SetupResponse
-	EvaluateResource(context.Context, EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse
-	EvaluateProvider(context.Context, EvaluationRequest[*proto.ProviderMetadata]) EvaluationResponse
-	EvaluateModule(context.Context, EvaluationRequest[*proto.ModuleMetadata]) EvaluationResponse
+	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
+	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
+	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
 	Stop()
 }
 
