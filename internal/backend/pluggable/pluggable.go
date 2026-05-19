@@ -192,5 +192,6 @@ func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnosti
 // cases the operation ending is sufficient and appropriate for stopping the child process.
 func (p *Pluggable) Close() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	return diags.Append(p.provider.Close())
+	diags.Append(p.provider.Close())
+	return diags
 }
