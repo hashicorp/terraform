@@ -26,7 +26,7 @@ type Server struct {
 }
 
 func (s *Server) GetResources(_ context.Context, request *proto.GetResourcesRequest) (*proto.GetResourcesResponse, error) {
-	attrs, err := msgpack.Unmarshal(request.Data, cty.DynamicPseudoType)
+	attrs, err := msgpack.Unmarshal(request.Attributes, cty.DynamicPseudoType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unserialize data: %w", err)
 	}
@@ -54,7 +54,7 @@ func (s *Server) GetResources(_ context.Context, request *proto.GetResourcesRequ
 }
 
 func (s *Server) GetDataSource(_ context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {
-	attrs, err := msgpack.Unmarshal(request.Data, cty.DynamicPseudoType)
+	config, err := msgpack.Unmarshal(request.Config, cty.DynamicPseudoType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unserialize data: %w", err)
 	}
@@ -63,7 +63,7 @@ func (s *Server) GetDataSource(_ context.Context, request *proto.GetDataSourceRe
 	if !ok {
 		return nil, fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 	}
-	datasource, err := functions.GetDataSource(request.Type, attrs)
+	datasource, err := functions.GetDataSource(request.Type, config)
 	if err != nil {
 		return nil, err
 	}

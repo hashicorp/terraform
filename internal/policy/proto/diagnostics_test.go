@@ -14,7 +14,6 @@ import (
 
 func TestDiagnosticToHCL(t *testing.T) {
 	index, _ := msgpack.Marshal(cty.StringVal("name"), cty.DynamicPseudoType)
-
 	protoDiag := &Diagnostic{
 		Severity: Severity_WARNING,
 		Summary:  "policy warning",
@@ -38,9 +37,14 @@ func TestDiagnosticToHCL(t *testing.T) {
 				{Step: &AttributePath_Step_Index{Index: index}},
 			},
 		},
-		Snippet: &Snippet{Code: "some policy code snippet"},
+		Snippet: &Snippet{
+			Context: func() *string {
+				ret := "Some context around the code"
+				return &ret
+			}(),
+			Code: "some policy code snippet"},
 		ExpressionValues: []*ExpressionValue{{
-			Path: &AttributePath{
+			Traversal: &AttributePath{
 				Steps: []*AttributePath_Step{{Step: &AttributePath_Step_Attribute{Attribute: "example"}}},
 			},
 			Value: []byte("value-bytes"),
@@ -107,8 +111,8 @@ func TestDiagnosticToHCL(t *testing.T) {
 		if len(expressionValuesExtra.ExpressionValues) != 1 {
 			t.Fatalf("unexpected expression values count: got %d, want 1", len(expressionValuesExtra.ExpressionValues))
 		}
-		if expressionValuesExtra.ExpressionValues[0].Path == nil || len(expressionValuesExtra.ExpressionValues[0].Path.Steps) != 1 {
-			t.Fatalf("unexpected expression value path: %#v", expressionValuesExtra.ExpressionValues[0].Path)
+		if expressionValuesExtra.ExpressionValues[0].Traversal == nil || len(expressionValuesExtra.ExpressionValues[0].Traversal.Steps) != 1 {
+			t.Fatalf("unexpected expression value path: %#v", expressionValuesExtra.ExpressionValues[0].Traversal)
 		}
 		if expressionValuesExtra.ExpressionValues[0].Value == nil {
 			t.Fatalf("expected expression value bytes to be present")

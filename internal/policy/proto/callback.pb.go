@@ -25,9 +25,9 @@ const (
 )
 
 type GetResourcesRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Type  string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Data  []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Type       string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Attributes []byte                 `protobuf:"bytes,2,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	// evaluation_request_id is the ID of the policy evaluation request that is
 	// making this callback request.
 	EvaluationRequestId uint32 `protobuf:"varint,3,opt,name=evaluation_request_id,json=evaluationRequestId,proto3" json:"evaluation_request_id,omitempty"`
@@ -72,9 +72,9 @@ func (x *GetResourcesRequest) GetType() string {
 	return ""
 }
 
-func (x *GetResourcesRequest) GetData() []byte {
+func (x *GetResourcesRequest) GetAttributes() []byte {
 	if x != nil {
-		return x.Data
+		return x.Attributes
 	}
 	return nil
 }
@@ -131,9 +131,9 @@ func (x *GetResourcesResponse) GetResults() [][]byte {
 }
 
 type GetDataSourceRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Type  string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Data  []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Type   string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Config []byte                 `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 	// evaluation_request_id is the ID of the policy evaluation request that is
 	// making this callback request.
 	EvaluationRequestId uint32 `protobuf:"varint,3,opt,name=evaluation_request_id,json=evaluationRequestId,proto3" json:"evaluation_request_id,omitempty"`
@@ -178,9 +178,9 @@ func (x *GetDataSourceRequest) GetType() string {
 	return ""
 }
 
-func (x *GetDataSourceRequest) GetData() []byte {
+func (x *GetDataSourceRequest) GetConfig() []byte {
 	if x != nil {
-		return x.Data
+		return x.Config
 	}
 	return nil
 }
@@ -240,16 +240,18 @@ var File_callback_proto protoreflect.FileDescriptor
 
 const file_callback_proto_rawDesc = "" +
 	"\n" +
-	"\x0ecallback.proto\x12\x05proto\"q\n" +
+	"\x0ecallback.proto\x12\x05proto\"}\n" +
 	"\x13GetResourcesRequest\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data\x122\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
+	"\n" +
+	"attributes\x18\x02 \x01(\fR\n" +
+	"attributes\x122\n" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"0\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
-	"\aresults\x18\x01 \x03(\fR\aresults\"r\n" +
+	"\aresults\x18\x01 \x03(\fR\aresults\"v\n" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data\x122\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
+	"\x06config\x18\x02 \x01(\fR\x06config\x122\n" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"/\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
 	"\x06result\x18\x01 \x01(\fR\x06result2\xa6\x01\n" +

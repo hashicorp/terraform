@@ -14,7 +14,7 @@ service CallbackService {
 
 message GetResourcesRequest {
   string type = 1;
-  bytes data = 2;
+  bytes attributes = 2;
   // evaluation_request_id is the ID of the policy evaluation request that is
   // making this callback request.
   uint32 evaluation_request_id = 3;
@@ -26,7 +26,7 @@ message GetResourcesResponse {
 
 message GetDataSourceRequest {
   string type = 1;
-  bytes data = 2;
+  bytes config = 2;
   // evaluation_request_id is the ID of the policy evaluation request that is
   // making this callback request.
   uint32 evaluation_request_id = 3;

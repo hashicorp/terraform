@@ -50,7 +50,10 @@ message Diagnostic {
 }
 
 message PolicySet {
+  // name is the name of the policy set.
   string name = 1;
+
+  // path is the path to the policy set directory.
   string path = 2;
 }
 
@@ -66,12 +69,14 @@ message Position {
   int64 byte = 3;
 }
 
+// Snippet represents a snippet of code that is relevant to a diagnostic.
 message Snippet {
-  message Context {
-    string context = 1;
-  }
 
-  Context context = 1;
+  // context is a high-level summary of the root context of the diagnostic: for example, 
+  // the policy block in which an expression causes an error.
+  optional string context = 1;
+
+  // code is the entire code that is relevant to the diagnostic.
   string code = 2;
   int64 start_line = 3;
   int64 highlight_start_offset = 4;
@@ -81,7 +86,11 @@ message Snippet {
 message AttributePath {
   message Step {
     oneof step {
+      // attribute is used to look up an attribute in the object value.
       string attribute = 1;
+      
+      // index is used to look up an element in an indexable collection type.
+      // The index can be a string or a number, depending on the collection type.
       bytes index = 2;
     }
   }
@@ -89,7 +98,10 @@ message AttributePath {
 }
 
 message ExpressionValue {
-  AttributePath path = 1;
+  // traversal is the path taken to reach this value in the object graph.
+  AttributePath traversal = 1;
+
+  // value is the raw value of the expression.
   bytes value = 2;
 }
 

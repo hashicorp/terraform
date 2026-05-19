@@ -211,9 +211,11 @@ func (x *Diagnostic) GetPolicySet() *PolicySet {
 }
 
 type PolicySet struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// name is the name of the policy set.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// path is the path to the policy set directory.
+	Path          string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,13 +384,17 @@ func (x *Position) GetByte() int64 {
 	return 0
 }
 
+// Snippet represents a snippet of code that is relevant to a diagnostic.
 type Snippet struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Context              *Snippet_Context       `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Code                 string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	StartLine            int64                  `protobuf:"varint,3,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
-	HighlightStartOffset int64                  `protobuf:"varint,4,opt,name=highlight_start_offset,json=highlightStartOffset,proto3" json:"highlight_start_offset,omitempty"`
-	HighlightEndOffset   int64                  `protobuf:"varint,5,opt,name=highlight_end_offset,json=highlightEndOffset,proto3" json:"highlight_end_offset,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// context is a high-level summary of the root context of the diagnostic: for example,
+	// the policy block in which an expression causes an error.
+	Context *string `protobuf:"bytes,1,opt,name=context,proto3,oneof" json:"context,omitempty"`
+	// code is the entire code that is relevant to the diagnostic.
+	Code                 string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	StartLine            int64  `protobuf:"varint,3,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
+	HighlightStartOffset int64  `protobuf:"varint,4,opt,name=highlight_start_offset,json=highlightStartOffset,proto3" json:"highlight_start_offset,omitempty"`
+	HighlightEndOffset   int64  `protobuf:"varint,5,opt,name=highlight_end_offset,json=highlightEndOffset,proto3" json:"highlight_end_offset,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -423,11 +429,11 @@ func (*Snippet) Descriptor() ([]byte, []int) {
 	return file_diagnostics_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Snippet) GetContext() *Snippet_Context {
-	if x != nil {
-		return x.Context
+func (x *Snippet) GetContext() string {
+	if x != nil && x.Context != nil {
+		return *x.Context
 	}
-	return nil
+	return ""
 }
 
 func (x *Snippet) GetCode() string {
@@ -503,9 +509,11 @@ func (x *AttributePath) GetSteps() []*AttributePath_Step {
 }
 
 type ExpressionValue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          *AttributePath         `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Value         []byte                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// traversal is the path taken to reach this value in the object graph.
+	Traversal *AttributePath `protobuf:"bytes,1,opt,name=traversal,proto3" json:"traversal,omitempty"`
+	// value is the raw value of the expression.
+	Value         []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -540,9 +548,9 @@ func (*ExpressionValue) Descriptor() ([]byte, []int) {
 	return file_diagnostics_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *ExpressionValue) GetPath() *AttributePath {
+func (x *ExpressionValue) GetTraversal() *AttributePath {
 	if x != nil {
-		return x.Path
+		return x.Traversal
 	}
 	return nil
 }
@@ -598,50 +606,6 @@ func (x *DiagnosticResult) GetResult() EvaluateResult {
 	return EvaluateResult_INVALID_EVALUATE_RESULT
 }
 
-type Snippet_Context struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Context       string                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Snippet_Context) Reset() {
-	*x = Snippet_Context{}
-	mi := &file_diagnostics_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Snippet_Context) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Snippet_Context) ProtoMessage() {}
-
-func (x *Snippet_Context) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Snippet_Context.ProtoReflect.Descriptor instead.
-func (*Snippet_Context) Descriptor() ([]byte, []int) {
-	return file_diagnostics_proto_rawDescGZIP(), []int{4, 0}
-}
-
-func (x *Snippet_Context) GetContext() string {
-	if x != nil {
-		return x.Context
-	}
-	return ""
-}
-
 type AttributePath_Step struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Step:
@@ -655,7 +619,7 @@ type AttributePath_Step struct {
 
 func (x *AttributePath_Step) Reset() {
 	*x = AttributePath_Step{}
-	mi := &file_diagnostics_proto_msgTypes[9]
+	mi := &file_diagnostics_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -667,7 +631,7 @@ func (x *AttributePath_Step) String() string {
 func (*AttributePath_Step) ProtoMessage() {}
 
 func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[9]
+	mi := &file_diagnostics_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -713,10 +677,13 @@ type isAttributePath_Step_Step interface {
 }
 
 type AttributePath_Step_Attribute struct {
+	// attribute is used to look up an attribute in the object value.
 	Attribute string `protobuf:"bytes,1,opt,name=attribute,proto3,oneof"`
 }
 
 type AttributePath_Step_Index struct {
+	// index is used to look up an element in an indexable collection type.
+	// The index can be a string or a number, depending on the collection type.
 	Index []byte `protobuf:"bytes,2,opt,name=index,proto3,oneof"`
 }
 
@@ -754,24 +721,24 @@ const file_diagnostics_proto_rawDesc = "" +
 	"\bPosition\x12\x12\n" +
 	"\x04line\x18\x01 \x01(\x03R\x04line\x12\x16\n" +
 	"\x06column\x18\x02 \x01(\x03R\x06column\x12\x12\n" +
-	"\x04byte\x18\x03 \x01(\x03R\x04byte\"\xfb\x01\n" +
-	"\aSnippet\x120\n" +
-	"\acontext\x18\x01 \x01(\v2\x16.proto.Snippet.ContextR\acontext\x12\x12\n" +
+	"\x04byte\x18\x03 \x01(\x03R\x04byte\"\xcf\x01\n" +
+	"\aSnippet\x12\x1d\n" +
+	"\acontext\x18\x01 \x01(\tH\x00R\acontext\x88\x01\x01\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1d\n" +
 	"\n" +
 	"start_line\x18\x03 \x01(\x03R\tstartLine\x124\n" +
 	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
-	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset\x1a#\n" +
-	"\aContext\x12\x18\n" +
-	"\acontext\x18\x01 \x01(\tR\acontext\"\x88\x01\n" +
+	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffsetB\n" +
+	"\n" +
+	"\b_context\"\x88\x01\n" +
 	"\rAttributePath\x12/\n" +
 	"\x05steps\x18\x01 \x03(\v2\x19.proto.AttributePath.StepR\x05steps\x1aF\n" +
 	"\x04Step\x12\x1e\n" +
 	"\tattribute\x18\x01 \x01(\tH\x00R\tattribute\x12\x16\n" +
 	"\x05index\x18\x02 \x01(\fH\x00R\x05indexB\x06\n" +
-	"\x04step\"Q\n" +
-	"\x0fExpressionValue\x12(\n" +
-	"\x04path\x18\x01 \x01(\v2\x14.proto.AttributePathR\x04path\x12\x14\n" +
+	"\x04step\"[\n" +
+	"\x0fExpressionValue\x122\n" +
+	"\ttraversal\x18\x01 \x01(\v2\x14.proto.AttributePathR\ttraversal\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value\"A\n" +
 	"\x10DiagnosticResult\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result*/\n" +
@@ -793,7 +760,7 @@ func file_diagnostics_proto_rawDescGZIP() []byte {
 }
 
 var file_diagnostics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_diagnostics_proto_goTypes = []any{
 	(Severity)(0),              // 0: proto.Severity
 	(*Diagnostic)(nil),         // 1: proto.Diagnostic
@@ -804,9 +771,8 @@ var file_diagnostics_proto_goTypes = []any{
 	(*AttributePath)(nil),      // 6: proto.AttributePath
 	(*ExpressionValue)(nil),    // 7: proto.ExpressionValue
 	(*DiagnosticResult)(nil),   // 8: proto.DiagnosticResult
-	(*Snippet_Context)(nil),    // 9: proto.Snippet.Context
-	(*AttributePath_Step)(nil), // 10: proto.AttributePath.Step
-	(EvaluateResult)(0),        // 11: proto.EvaluateResult
+	(*AttributePath_Step)(nil), // 9: proto.AttributePath.Step
+	(EvaluateResult)(0),        // 10: proto.EvaluateResult
 }
 var file_diagnostics_proto_depIdxs = []int32{
 	0,  // 0: proto.Diagnostic.severity:type_name -> proto.Severity
@@ -819,15 +785,14 @@ var file_diagnostics_proto_depIdxs = []int32{
 	2,  // 7: proto.Diagnostic.policy_set:type_name -> proto.PolicySet
 	4,  // 8: proto.Range.start:type_name -> proto.Position
 	4,  // 9: proto.Range.end:type_name -> proto.Position
-	9,  // 10: proto.Snippet.context:type_name -> proto.Snippet.Context
-	10, // 11: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
-	6,  // 12: proto.ExpressionValue.path:type_name -> proto.AttributePath
-	11, // 13: proto.DiagnosticResult.result:type_name -> proto.EvaluateResult
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	9,  // 10: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
+	6,  // 11: proto.ExpressionValue.traversal:type_name -> proto.AttributePath
+	10, // 12: proto.DiagnosticResult.result:type_name -> proto.EvaluateResult
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_diagnostics_proto_init() }
@@ -836,7 +801,8 @@ func file_diagnostics_proto_init() {
 		return
 	}
 	file_types_proto_init()
-	file_diagnostics_proto_msgTypes[9].OneofWrappers = []any{
+	file_diagnostics_proto_msgTypes[4].OneofWrappers = []any{}
+	file_diagnostics_proto_msgTypes[8].OneofWrappers = []any{
 		(*AttributePath_Step_Attribute)(nil),
 		(*AttributePath_Step_Index)(nil),
 	}
@@ -846,7 +812,7 @@ func file_diagnostics_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_diagnostics_proto_rawDesc), len(file_diagnostics_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
