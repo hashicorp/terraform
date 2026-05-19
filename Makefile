@@ -14,6 +14,9 @@ generate:
 protobuf:
 	go run ./tools/protobuf-compile .
 
+defect-detector:
+	"$(CURDIR)/scripts/defect-detector.sh"
+
 fmtcheck:
 	"$(CURDIR)/scripts/gofmtcheck.sh"
 
