@@ -373,7 +373,7 @@ func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext) tfdiags.D
 	var diags tfdiags.Diagnostics
 
 	for _, trigger := range n.actionTriggers {
-		diags = diags.Append(trigger.invoke(ctx, walkApply))
+		diags = diags.Append(trigger.invoke(ctx, n.Addr.Resource))
 		if diags.HasErrors() {
 			break
 		}
