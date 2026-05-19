@@ -1646,6 +1646,37 @@ func TestGRPCProvider_planAction_invalid_config(t *testing.T) {
 	checkDiagsHasError(t, resp.Diagnostics)
 }
 
+func TestGRPCProvider_planAction_invalid_defer(t *testing.T) {
+	client := mockProviderClient(t)
+
+	client.EXPECT().PlanAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.PlanAction_Response{
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_RESOURCE_CONFIG_UNKNOWN,
+		},
+	}, nil)
+
+	p := &GRPCProvider{
+		Addr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "terraform.io",
+		},
+		client: client,
+	}
+
+	resp := p.PlanAction(providers.PlanActionRequest{
+		ActionType: "action",
+		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
 // Mock implementation of the ListResource stream client
 type mockListResourceStreamClient struct {
 	events  []*proto.ListResource_Event

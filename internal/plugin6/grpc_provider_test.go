@@ -2138,7 +2138,36 @@ func TestGRPCProvider_invokeAction_invalid(t *testing.T) {
 
 	checkDiagsHasError(t, resp.Diagnostics)
 }
+func TestGRPCProvider_planAction_invalid_defer(t *testing.T) {
+	client := mockProviderClient(t)
 
+	client.EXPECT().PlanAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.PlanAction_Response{
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_RESOURCE_CONFIG_UNKNOWN,
+		},
+	}, nil)
+
+	p := &GRPCProvider{
+		Addr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "terraform.io",
+		},
+		client: client,
+	}
+
+	resp := p.PlanAction(providers.PlanActionRequest{
+		ActionType: "action",
+		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
 func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *testing.T) {
 	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
 
