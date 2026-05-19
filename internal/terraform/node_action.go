@@ -56,16 +56,9 @@ func (n NodeActionConfig) Name() string {
 	return n.Addr.String()
 }
 
-// The action config does not expand or execute itself during plan or apply, but
-// for Validate it does verify valid configuration.
-func (n *NodeActionConfig) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	if op != walkValidate {
-		return nil
-	}
-	return n.validate(ctx)
-}
-
-func (n *NodeActionConfig) validate(ctx EvalContext) tfdiags.Diagnostics {
+// Validate validates the action config, with an optional caller address if the
+// action is invoked from a resource action trigger.
+func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -117,7 +110,7 @@ func (n *NodeActionConfig) validate(ctx EvalContext) tfdiags.Diagnostics {
 		config = hcl.EmptyBody()
 	}
 
-	configVal, _, valDiags := ctx.EvaluateBlock(config, schema.ConfigSchema, nil, keyData)
+	configVal, _, valDiags := ctx.EvaluateBlock(config, schema.ConfigSchema, caller, keyData)
 	if valDiags.HasErrors() {
 		// If there was no config block at all, we'll add a Context range to the returned diagnostic
 		if n.Config.Config == nil {
@@ -276,12 +269,12 @@ func (n *NodeActionConfig) repetitionData(ctx EvalContext) ([]instances.Repetiti
 // addrs.NoKey This function uses addrs.ActionInstance even though it only needs
 // the key because we need to use use a full instance addr for the resulting map
 // keys anyway.
-func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
 
 	switch key := addr.Key.(type) {
 	case addrs.IntKey, addrs.StringKey:
-		val, diags := n.EvalInstance(ctx, key, callRange)
+		val, diags := n.EvalInstance(ctx, key, callRange, caller)
 		if diags.HasErrors() {
 			return all, diags
 		}
@@ -289,12 +282,12 @@ func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInsta
 		return all, diags
 
 	default:
-		return n.eval(ctx, addr.Key, callRange)
+		return n.eval(ctx, addr.Key, callRange, caller)
 	}
 }
 
 // EvalInstance returns the value from the expanded action block
-func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// we first validate the correct type of key is being used for the action
 	switch {
@@ -368,7 +361,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, 
 		}
 	}
 
-	vals, diags := n.eval(ctx, key, callRange)
+	vals, diags := n.eval(ctx, key, callRange, caller)
 	if diags.HasErrors() {
 		return cty.DynamicVal, diags
 	}
@@ -380,7 +373,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, 
 // Eval one or more instances of the action. This function expects that the key
 // is already validated for the the calling context, and will not produce
 // diagnostics for incorrect key types.
-func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
 
@@ -401,7 +394,7 @@ func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRang
 			return all, diags
 		}
 
-		val, evalDiags := n.evalInstance(ctx, actionInstances[int(key)])
+		val, evalDiags := n.evalInstance(ctx, actionInstances[int(key)], caller)
 		diags = append(diags, evalDiags...)
 		all.Put(n.Addr.Action.Instance(key), val)
 
@@ -413,7 +406,7 @@ func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRang
 			if inst.EachKey.AsString() != string(key) {
 				continue
 			}
-			val, evalDiags := n.evalInstance(ctx, inst)
+			val, evalDiags := n.evalInstance(ctx, inst, caller)
 			diags = diags.Append(evalDiags)
 			if evalDiags.HasErrors() {
 				return all, diags
@@ -436,7 +429,7 @@ func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRang
 
 	default:
 		for _, inst := range actionInstances {
-			val, evalDiags := n.evalInstance(ctx, inst)
+			val, evalDiags := n.evalInstance(ctx, inst, caller)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return all, diags
@@ -458,7 +451,7 @@ func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRang
 	}
 }
 
-func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// This should have been caught already
@@ -469,7 +462,7 @@ func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.Repet
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
 	if n.Config.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), nil, repData)
+		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), caller, repData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return configVal, diags
