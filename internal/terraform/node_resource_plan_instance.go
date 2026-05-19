@@ -676,7 +676,7 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		panic(fmt.Sprintf("unknown action address type: %T", sub))
 	}
 
-	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Key, actionRef.configRef.Expr.Range().Ptr())
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Key, actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
@@ -708,6 +708,9 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		ProposedActionData: unmarkedConfig,
 		ClientCapabilities: cc,
 	})
+	// FIXME: we can allow deferrals for stacks operation, but we're going to
+	// limit the reason to only ProviderConfigUnknown to avoid infinite planning
+	// loops with the calling resource.
 
 	// FIXME: config body is not the entire action config block
 	// Our diagnostics expect to be associated with a config body, but we may not have one due to the structure of actions.
