@@ -374,6 +374,13 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 			Remaining:   traversal[1:],
 		}, diags
 
+	case "caller":
+		return &Reference{
+			Subject:     Caller,
+			SourceRange: tfdiags.SourceRangeFromHCL(rootRange),
+			Remaining:   traversal[1:],
+		}, diags
+
 	case "terraform":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
