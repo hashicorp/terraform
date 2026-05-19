@@ -31,8 +31,7 @@ type PolicySetupRequest struct {
 	// behaviours the client is aware of.
 	ClientCapabilities *PolicySetupRequest_ClientCapabilities `protobuf:"bytes,1,opt,name=client_capabilities,json=clientCapabilities,proto3" json:"client_capabilities,omitempty"`
 	// source_locations is the list of locations that Policy should use to
-	// source policies. At launch, this will just be local directories but could
-	// in future be extended to include remote sources.
+	// source policies.
 	SourceLocations []string `protobuf:"bytes,2,rep,name=source_locations,json=sourceLocations,proto3" json:"source_locations,omitempty"`
 	// callback_service allows Terraform Policy to use the Callback Service API.
 	CallbackService uint32 `protobuf:"varint,3,opt,name=callback_service,json=callbackService,proto3" json:"callback_service,omitempty"`

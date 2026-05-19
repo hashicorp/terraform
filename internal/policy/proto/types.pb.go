@@ -159,9 +159,8 @@ func (Operation) EnumDescriptor() ([]byte, []int) {
 
 type ResourceMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	ProviderType  string                 `protobuf:"bytes,2,opt,name=provider_type,json=providerType,proto3" json:"provider_type,omitempty"`
-	Operation     Operation              `protobuf:"varint,3,opt,name=operation,proto3,enum=proto.Operation" json:"operation,omitempty"`
+	ProviderType  string                 `protobuf:"bytes,1,opt,name=provider_type,json=providerType,proto3" json:"provider_type,omitempty"`
+	Operation     Operation              `protobuf:"varint,2,opt,name=operation,proto3,enum=proto.Operation" json:"operation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -194,13 +193,6 @@ func (x *ResourceMetadata) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ResourceMetadata.ProtoReflect.Descriptor instead.
 func (*ResourceMetadata) Descriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ResourceMetadata) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
 }
 
 func (x *ResourceMetadata) GetProviderType() string {
@@ -281,11 +273,10 @@ type ProviderMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Namespace     string                 `protobuf:"bytes,4,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Source        string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
-	ModulePath    string                 `protobuf:"bytes,6,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
-	Version       string                 `protobuf:"bytes,7,opt,name=version,proto3" json:"version,omitempty"`
+	Namespace     string                 `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	ModulePath    string                 `protobuf:"bytes,5,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
+	Version       string                 `protobuf:"bytes,6,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -334,13 +325,6 @@ func (x *ProviderMetadata) GetAlias() string {
 	return ""
 }
 
-func (x *ProviderMetadata) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
 func (x *ProviderMetadata) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
@@ -373,24 +357,22 @@ var File_types_proto protoreflect.FileDescriptor
 
 const file_types_proto_rawDesc = "" +
 	"\n" +
-	"\vtypes.proto\x12\x05proto\"{\n" +
-	"\x10ResourceMetadata\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12#\n" +
-	"\rprovider_type\x18\x02 \x01(\tR\fproviderType\x12.\n" +
-	"\toperation\x18\x03 \x01(\x0e2\x10.proto.OperationR\toperation\"\\\n" +
+	"\vtypes.proto\x12\x05proto\"g\n" +
+	"\x10ResourceMetadata\x12#\n" +
+	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
+	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\"\\\n" +
 	"\x0eModuleMetadata\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12\x18\n" +
-	"\aaddress\x18\x03 \x01(\tR\aaddress\"\xc1\x01\n" +
+	"\aaddress\x18\x03 \x01(\tR\aaddress\"\xad\x01\n" +
 	"\x10ProviderMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1c\n" +
-	"\tnamespace\x18\x04 \x01(\tR\tnamespace\x12\x16\n" +
-	"\x06source\x18\x05 \x01(\tR\x06source\x12\x1f\n" +
-	"\vmodule_path\x18\x06 \x01(\tR\n" +
+	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x1c\n" +
+	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x16\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\x12\x1f\n" +
+	"\vmodule_path\x18\x05 \x01(\tR\n" +
 	"modulePath\x12\x18\n" +
-	"\aversion\x18\a \x01(\tR\aversion*\xbb\x01\n" +
+	"\aversion\x18\x06 \x01(\tR\aversion*\xbb\x01\n" +
 	"\x0eEvaluateResult\x12\x1b\n" +
 	"\x17INVALID_EVALUATE_RESULT\x10\x00\x12\x1b\n" +
 	"\x17UNKNOWN_EVALUATE_RESULT\x10\x01\x12\x19\n" +

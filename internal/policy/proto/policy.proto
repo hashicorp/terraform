@@ -42,8 +42,7 @@ message PolicySetupRequest {
   ClientCapabilities client_capabilities = 1;
 
   // source_locations is the list of locations that Policy should use to
-  // source policies. At launch, this will just be local directories but could
-  // in future be extended to include remote sources.
+  // source policies.
   repeated string source_locations = 2;
 
   // callback_service allows Terraform Policy to use the Callback Service API.
