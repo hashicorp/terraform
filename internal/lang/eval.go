@@ -302,18 +302,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		rng := ref.SourceRange
 
 		rawSubj := ref.Subject
-		if rawSubj == addrs.Self {
+		if _, ok := rawSubj.(addrs.SelfType); ok {
 			if selfAddr == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Invalid "self" reference`,
-					// This detail message mentions some current practice that
-					// this codepath doesn't really "know about". If the "self"
-					// object starts being supported in more contexts later then
-					// we'll need to adjust this message.
-					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
-					Subject: ref.SourceRange.ToHCL().Ptr(),
-				})
+				diags = diags.Append(SelfContextDiagnostics(ref))
 				continue
 			}
 
@@ -488,6 +479,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+		vals["caller"] = self
 	}
 
 	if len(listResources) > 0 {
@@ -614,4 +606,30 @@ func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFu
 	}
 
 	return filteredDiags
+}
+
+// SelfContextDiagnostics produces a diagnostic message for incorrect usage of
+// the self object with the correct context for "self" vs "caller"
+func SelfContextDiagnostics(ref *addrs.Reference) *hcl.Diagnostic {
+	switch sub := ref.Subject.(type) {
+	case addrs.SelfType:
+		summary := fmt.Sprintf("Invalid %q reference", sub)
+		detail := fmt.Sprintf("The %q object is not available in this context. ", sub)
+		switch {
+		case sub == addrs.Self:
+			detail += "This object can be used only in resource provisioner, connection, and postcondition blocks."
+		case sub == addrs.Caller:
+			detail += "This object can be used only in action blocks triggered from a resource instance."
+		}
+
+		return &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  summary,
+			Detail:   detail,
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		}
+
+	default:
+		panic(fmt.Sprintf("reference %T is not a self type", ref))
+	}
 }
