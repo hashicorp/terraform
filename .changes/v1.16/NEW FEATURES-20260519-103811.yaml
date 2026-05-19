@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'state: New `terraform state find` command enables searching for resources in Terraform state files by matching keywords against resource addresses, types, names, and attribute values. Supports both text and JSON output formats, with options for exact matching and case sensitivity control'
+time: 2026-05-19T10:38:11+05:30
+custom:
+    Issue: "38612"
