@@ -443,6 +443,12 @@ func initCommands(
 			}, nil
 		},
 
+		"state find": func() (cli.Command, error) {
+			return &command.StateSearchCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"stacks": func() (cli.Command, error) {
 			return &command.StacksCommand{
 				Meta: meta,
