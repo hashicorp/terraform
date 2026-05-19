@@ -67,6 +67,29 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 				return diags
 			}
 		}
+		diags = diags.Append(n.validateActions(ctx))
+	}
+
+	return diags
+}
+
+func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// There may be many triggers and many actions within a trigger, but for the
+	// purposes of validation we don't need to repeat them. Just collect all
+	// known actions and validate them once each.
+	actions := addrs.MakeMap[addrs.ConfigAction, actionRef]()
+	for _, trigger := range n.actionTriggers {
+		for _, ref := range trigger.actionRefs {
+			actions.Put(ref.actionNode.Addr, ref)
+		}
+	}
+
+	_, self := n.stubRepetitionData()
+
+	for _, ref := range actions.Iter() {
+		diags = diags.Append(ref.actionNode.Validate(ctx, self))
 	}
 
 	return diags
@@ -140,7 +163,7 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 }
 
 func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
 	val, hclBody, diags := ctx.EvaluateBlock(body, schema, selfAddr, keyData)
 
@@ -587,7 +610,7 @@ func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Express
 	return result, diags
 }
 
-func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) (instances.RepetitionData, addrs.Referenceable) {
+func (n *NodeValidatableResource) stubRepetitionData() (instances.RepetitionData, addrs.Referenceable) {
 	keyData := EvalDataForNoInstanceKey
 	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
 
@@ -624,7 +647,7 @@ func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) 
 func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
 	for _, cr := range config.Preconditions {
 		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, nil, keyData)
