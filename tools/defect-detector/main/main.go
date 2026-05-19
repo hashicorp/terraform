@@ -9,5 +9,5 @@ import (
 )
 
 func main() {
-	singlechecker.Main(defectdetector.DiagsAppendAnalyzer)
+	singlechecker.Main(defectdetector.IgnoredReturnedDiagsAnalyzer)
 }

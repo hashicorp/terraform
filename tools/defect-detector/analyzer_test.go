@@ -16,5 +16,5 @@ func TestAnalyzer(t *testing.T) {
 	// Note, assertions are made in comments in the testdata files.
 	// See comments in ./testpkg/testpkg.go
 	// See docs for analysistest.Run for more info: https://pkg.go.dev/golang.org/x/tools/go/analysis/analysistest#Run
-	analysistest.Run(t, testdata, DiagsAppendAnalyzer, "github.com/hashicorp/terraform/tools/tfdiagsappendcheck/testpkg")
+	analysistest.Run(t, testdata, IgnoredReturnedDiagsAnalyzer, "github.com/hashicorp/terraform/tools/testpkg")
 }

@@ -12,17 +12,18 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
-// DiagsAppendAnalyzer reports ignored return values from tfdiags.Diagnostics.Append.
-var DiagsAppendAnalyzer = &analysis.Analyzer{
-	Name: "tfdiagsappendcheck",
-	Doc:  "reports ignored return values from tfdiags.Diagnostics.Append",
+// IgnoredReturnedDiagsAnalyzer reports ignored return values with type tfdiags.Diagnostics.
+// It emits a more specific message for ignored tfdiags.Diagnostics.Append calls.
+var IgnoredReturnedDiagsAnalyzer = &analysis.Analyzer{
+	Name: "ignored_diag_returns",
+	Doc:  "reports ignored tfdiags.Diagnostics return values",
 	Requires: []*analysis.Analyzer{
 		inspect.Analyzer,
 	},
-	Run: run,
+	Run: ignoredDiagReturns,
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func ignoredDiagReturns(pass *analysis.Pass) (interface{}, error) {
 	ins, ok := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	if !ok {
 		return nil, nil
@@ -36,22 +37,36 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 
-		sel, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok || sel.Sel == nil || sel.Sel.Name != "Append" {
+		// Report a specialized message for ignored tfdiags.Diagnostics.Append calls.
+		if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel != nil && sel.Sel.Name == "Append" {
+			selInfo, ok := pass.TypesInfo.Selections[sel]
+			if ok && selInfo.Kind() == types.MethodVal && isTfdiagsDiagnostics(selInfo.Recv()) {
+				pass.Reportf(sel.Sel.Pos(), "ignored return value from tfdiags.Diagnostics.Append")
+				return
+			}
+		}
+
+		callType := pass.TypesInfo.TypeOf(call)
+		if callType == nil {
 			return
 		}
 
-		selInfo, ok := pass.TypesInfo.Selections[sel]
-		if !ok || selInfo.Kind() != types.MethodVal {
+		diagsReturn := false
+		switch t := callType.(type) {
+		case *types.Tuple:
+			if t.Len() != 1 {
+				return
+			}
+			diagsReturn = isTfdiagsDiagnostics(t.At(0).Type())
+		default:
+			diagsReturn = isTfdiagsDiagnostics(t)
+		}
+
+		if !diagsReturn {
 			return
 		}
 
-		if !isTfdiagsDiagnostics(selInfo.Recv()) {
-			// Ignore calls to other Append methods that aren't tfdiags.Diagnostics.Append.
-			return
-		}
-
-		pass.Reportf(sel.Sel.Pos(), "ignored return value from tfdiags.Diagnostics.Append")
+		pass.Reportf(call.Pos(), "ignored return value with type tfdiags.Diagnostics")
 	})
 
 	return nil, nil
