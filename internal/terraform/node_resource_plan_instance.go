@@ -984,11 +984,17 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 	iter := state.ElementIterator()
 	for iter.Next() {
 		_, val := iter.Element()
-		// we still need to generate the resource block even if the state is not given,
-		// so that the import block can reference it.
-		stateVal := cty.NullVal(schema.Body.ImpliedType())
+		// We still need to generate the resource block even if the state is
+		// not given, so that the import block can reference it. Use the
+		// schema's empty value (a non-null object with null attributes)
+		// rather than a null object: downstream genconfig assumes the
+		// parent value is non-null when descending into nested-type
+		// attributes, and a fully null value would panic. See issue #38569.
+		stateVal := schema.Body.EmptyValue()
 		if val.Type().HasAttribute("state") {
-			stateVal = val.GetAttr("state")
+			if s := val.GetAttr("state"); !s.IsNull() {
+				stateVal = s
+			}
 		}
 
 		config, genDiags := n.generateResourceConfig(ctx, stateVal)

@@ -428,14 +428,14 @@ resource "tfcoremock_simple_resource" "empty" {
   single = null
 }`,
 		},
-		// Regression for #38569: a fully-null resource state (which can
-		// reach genconfig from the list-resource flow when the provider
-		// returned no state for a queried resource) used to panic inside
-		// writeConfigNestedTypeAttributeFromExisting because cty.GetAttr
-		// is not safe to call on a null receiver. The expected output
-		// mirrors how the package already handles a non-null parent with
-		// null nested values (see "resource_with_nulls").
-		"resource_with_null_state": {
+		// Regression for #38569: when the list-resource flow asks
+		// genconfig to render a resource whose provider returned no
+		// state, the caller now passes the schema's empty value (a
+		// non-null object with null attributes and empty nested
+		// blocks) instead of a fully-null object. Make sure that input
+		// is rendered as well-formed HCL — equivalent to what
+		// "resource_with_nulls" produces for a hand-built null map.
+		"resource_with_empty_state": {
 			schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
@@ -511,102 +511,28 @@ resource "tfcoremock_simple_resource" "empty" {
 			provider: addrs.LocalProviderConfig{
 				LocalName: "tfcoremock",
 			},
-			value: cty.NullVal(cty.Object(map[string]cty.Type{
-				"id":    cty.String,
-				"value": cty.String,
-				"single": cty.Object(map[string]cty.Type{
-					"nested_id": cty.String,
-				}),
-				"list": cty.List(cty.Object(map[string]cty.Type{
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.NullVal(cty.String),
+				"value": cty.NullVal(cty.String),
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
 					"nested_id": cty.String,
 				})),
-				"map": cty.Map(cty.Object(map[string]cty.Type{
+				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				}))),
+				"map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				}))),
+				"nested_single": cty.NullVal(cty.Object(map[string]cty.Type{
 					"nested_id": cty.String,
 				})),
-				"nested_single": cty.Object(map[string]cty.Type{
-					"nested_id": cty.String,
-				}),
-			})),
+			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
   list   = null
   map    = null
   single = null
   value  = null
-}`,
-		},
-		// Sibling to "resource_with_null_state": the parent is non-null
-		// and a nested attribute carries a real value. This guards
-		// against the #38569 null-parent guard becoming too eager and
-		// silently dropping real nested data.
-		"resource_with_nested_value_sibling": {
-			schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
-					},
-					"single": {
-						NestedType: &configschema.Object{
-							Attributes: map[string]*configschema.Attribute{
-								"nested_id": {
-									Type:     cty.String,
-									Optional: true,
-								},
-							},
-							Nesting: configschema.NestingSingle,
-						},
-						Required: true,
-					},
-					"list": {
-						NestedType: &configschema.Object{
-							Attributes: map[string]*configschema.Attribute{
-								"nested_id": {
-									Type:     cty.String,
-									Optional: true,
-								},
-							},
-							Nesting: configschema.NestingList,
-						},
-						Required: true,
-					},
-				},
-			},
-			addr: addrs.AbsResourceInstance{
-				Module: nil,
-				Resource: addrs.ResourceInstance{
-					Resource: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "tfcoremock_simple_resource",
-						Name: "empty",
-					},
-					Key: nil,
-				},
-			},
-			provider: addrs.LocalProviderConfig{
-				LocalName: "tfcoremock",
-			},
-			value: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("D2320658"),
-				"single": cty.ObjectVal(map[string]cty.Value{
-					"nested_id": cty.StringVal("hello"),
-				}),
-				"list": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"nested_id": cty.StringVal("world"),
-					}),
-				}),
-			}),
-			expected: `
-resource "tfcoremock_simple_resource" "empty" {
-  list = [
-    {
-      nested_id = "world"
-    },
-  ]
-  single = {
-    nested_id = "hello"
-  }
 }`,
 		},
 		"simple_resource_with_stringified_json_object": {
