@@ -211,9 +211,8 @@ func (x *ResourceMetadata) GetOperation() Operation {
 
 type ModuleMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
+	Version       string                 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -246,13 +245,6 @@ func (x *ModuleMetadata) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ModuleMetadata.ProtoReflect.Descriptor instead.
 func (*ModuleMetadata) Descriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ModuleMetadata) GetSource() string {
-	if x != nil {
-		return x.Source
-	}
-	return ""
 }
 
 func (x *ModuleMetadata) GetVersion() string {
@@ -360,11 +352,10 @@ const file_types_proto_rawDesc = "" +
 	"\vtypes.proto\x12\x05proto\"g\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
-	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\"\\\n" +
-	"\x0eModuleMetadata\x12\x16\n" +
-	"\x06source\x18\x01 \x01(\tR\x06source\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\x12\x18\n" +
-	"\aaddress\x18\x03 \x01(\tR\aaddress\"\xad\x01\n" +
+	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\"D\n" +
+	"\x0eModuleMetadata\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\tR\aversion\x12\x18\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\"\xad\x01\n" +
 	"\x10ProviderMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x1c\n" +

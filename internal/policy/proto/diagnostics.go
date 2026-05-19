@@ -130,10 +130,17 @@ func (rng *Range) ToHclRange() hcl.Range {
 	if rng == nil {
 		return hcl.Range{}
 	}
+	var start, end hcl.Pos
+	if rng.Start != nil {
+		start = rng.Start.ToHclPos()
+	}
+	if rng.End != nil {
+		end = rng.End.ToHclPos()
+	}
 	return hcl.Range{
 		Filename: rng.Filename,
-		Start:    rng.Start.ToHclPos(),
-		End:      rng.End.ToHclPos(),
+		Start:    start,
+		End:      end,
 	}
 }
 
@@ -175,6 +182,7 @@ func (step *AttributePath_Step) ToCtyPathStep() (cty.PathStep, error) {
 			Key: index,
 		}, nil
 	default:
+		// The switch case is exhaustive, so this should never happen
 		panic(fmt.Errorf("unsupported Step type: %T", step))
 	}
 }

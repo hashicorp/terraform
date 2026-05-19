@@ -3,7 +3,11 @@
 
 package policy
 
-import "github.com/hashicorp/terraform/internal/policy/proto"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/internal/policy/proto"
+)
 
 type EvaluateResult int
 
@@ -34,6 +38,6 @@ func ResultFromProto(result proto.EvaluateResult) EvaluateResult {
 		return SetupErrorResult
 	default:
 		// should be exhaustive
-		panic("unhandled EvaluateResult")
+		panic(fmt.Errorf("unhandled EvaluateResult type: %T", result))
 	}
 }
