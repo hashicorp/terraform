@@ -94,7 +94,7 @@ type NodeAbstractResource struct {
 	overridePreventDestroy bool
 
 	// actionTriggers records all triggers and their referenced actions. The
-	// Action nodes are referenced directly from the referencing trigger, so
+	// We hold a pointer to the action nodes from the referencing trigger, so
 	// that the action nodes can be resolved to the correct provider in the
 	// graph, while allowing the triggering node to also connect to the same
 	// provider.
