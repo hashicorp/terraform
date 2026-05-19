@@ -15,6 +15,15 @@ type Functions struct {
 	GetDataSource func(datasource string, attrs cty.Value) (cty.Value, error)
 }
 
+type Registry interface {
+	Get(id uint32) (Functions, bool)
+	NextID() uint32
+	Register(id uint32, fns Functions)
+	Unregister(id uint32)
+}
+
+var _ Registry = (*InternalRegistry)(nil)
+
 // InternalRegistry stores a mapping of evaluation IDs to callback functions,
 // allowing resources to register functions that will be called during their
 // policy evaluation.

@@ -17,7 +17,7 @@ import (
 // Client is an interface for interacting with a policy engine.
 type Client interface {
 	Setup(context.Context, SetupRequest) SetupResponse
-	Evaluate(context.Context, EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse
+	EvaluateResource(context.Context, EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.ModuleMetadata]) EvaluationResponse
 	Stop()
@@ -138,12 +138,17 @@ func EvaluationFromProtoResponse(overall proto.EvaluateResult, policyDetails []*
 	}
 	for _, protoPolicy := range policyDetails {
 		rng := protoPolicy.DefRange.ToHclRange()
+		var filename string
+		if rng.Filename != "" {
+			filename = filepath.Base(rng.Filename)
+		}
+
 		policy := &Policy{
 			Result:           ResultFromProto(protoPolicy.Result),
 			Address:          protoPolicy.Address,
 			Directory:        protoPolicy.File,
 			PolicySetName:    protoPolicy.PolicySetName,
-			Filename:         filepath.Base(rng.Filename),
+			Filename:         filename,
 			EnforcementLevel: protoPolicy.PolicySetEnforcement,
 			Range:            rng.Ptr(),
 		}

@@ -66,7 +66,7 @@ func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupRes
 	return resp
 }
 
-func (p *MockClient) Evaluate(ctx context.Context, r EvaluationRequest[*proto.ResourceMetadata]) (resp EvaluationResponse) {
+func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.ResourceMetadata]) (resp EvaluationResponse) {
 	defer p.beginWrite()()
 
 	p.EvaluateCalled = true

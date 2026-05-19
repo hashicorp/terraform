@@ -20,7 +20,7 @@ var (
 
 type Server struct {
 	ID       uint32
-	Registry *InternalRegistry
+	Registry Registry
 	Grpc     *grpc.Server
 	proto.UnimplementedCallbackServiceServer
 }

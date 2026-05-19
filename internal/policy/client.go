@@ -84,7 +84,7 @@ type client struct {
 
 	broker           *plugin.GRPCBroker
 	client           proto.PolicyClient
-	callbackRegistry *callback.InternalRegistry
+	callbackRegistry callback.Registry
 	cbServer         *callback.Server
 }
 
@@ -157,7 +157,7 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 	}
 }
 
-func (c *client) Evaluate(ctx context.Context, req EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse {
+func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse {
 	log.Printf("[DEBUG] Evaluating policy for resource %s", req.Target)
 	var diags []*proto.Diagnostic
 
