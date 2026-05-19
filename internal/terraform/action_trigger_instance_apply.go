@@ -30,7 +30,7 @@ var (
 	_ GraphNodeProviderConsumer = (*actionTriggerApplyInstance)(nil)
 )
 
-func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, wo walkOperation) tfdiags.Diagnostics {
+func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provider, _, err := getProvider(ctx, n.resolvedProvider)
@@ -55,7 +55,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, wo walkOperation) t
 	}
 
 	// FIXME: missing action trigger reference for diags
-	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr.Action.Key, nil)
+	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr.Action.Key, nil, caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags

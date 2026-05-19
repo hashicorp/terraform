@@ -116,7 +116,7 @@ func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags
 func (n *nodeActionPlanInvoke) invokeActions(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil)
+	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil, nil)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
@@ -202,5 +202,5 @@ func (n *nodeActionInvokeApplyInstance) Name() string {
 }
 
 func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.invoke(ctx, op)
+	return n.invoke(ctx, nil)
 }
