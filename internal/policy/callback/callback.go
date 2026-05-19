@@ -15,6 +15,8 @@ type Functions struct {
 	GetDataSource func(datasource string, attrs cty.Value) (cty.Value, error)
 }
 
+// Registry is an interface for managing callback functions for resources and
+// data sources during policy evaluation.
 type Registry interface {
 	Get(id uint32) (Functions, bool)
 	NextID() uint32

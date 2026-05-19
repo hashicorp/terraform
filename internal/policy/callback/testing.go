@@ -56,9 +56,6 @@ func (m *MockRegistry) NextID() uint32 {
 	defer m.mu.Unlock()
 
 	m.NextIDCalled = true
-	if m.NextIDValue != 0 {
-		return m.NextIDValue
-	}
 	m.NextIDValue++
 	return m.NextIDValue
 }
