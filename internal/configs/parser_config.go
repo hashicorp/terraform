@@ -59,6 +59,17 @@ func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
 	return query, diags
 }
 
+func (p *Parser) LoadStateMigrationFile(path string) (*StateMigrationFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	stateMigrations, stateMigrationsDiags := loadStateMigrationFile(body)
+	diags = diags.Extend(stateMigrationsDiags)
+	return stateMigrations, diags
+}
+
 // LoadMockDataFile reads the file at the given path and parses it as a
 // Terraform mock data file.
 //

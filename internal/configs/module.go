@@ -40,6 +40,8 @@ type Module struct {
 	ProviderLocalNames   map[addrs.Provider]string
 	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
+	StateMigrationInstructions *StateMigrationInstructions
+
 	Variables map[string]*Variable
 	Locals    map[string]*Local
 	Outputs   map[string]*Output
@@ -106,9 +108,7 @@ type File struct {
 // test files.
 func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[string]*TestFile) (*Module, hcl.Diagnostics) {
 	mod, diags := NewModule(primaryFiles, overrideFiles)
-	if mod != nil {
-		mod.Tests = testFiles
-	}
+	mod.Tests = testFiles
 	return mod, diags
 }
 
@@ -645,6 +645,59 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		// set the provider FQN for the resource
 		m.ListResources[key] = ql
 		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
+	}
+
+	return diags
+}
+
+// appendStateMigrationFile controls how multiple .tfmigrate.hcl files are combined
+// to result in the final state migration configuration. This enables multiple blocks
+// to be defined across multiple files.
+func (m *Module) appendStateMigrationFile(file *StateMigrationFile) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// Validate process of combining data from across multiple files.
+	// This includes identifying duplications or conflicts across files.
+	// Note: Validation of individual files should have happened earlier when they were parsed.
+	if file.StateStoreProvider != nil {
+		if m.StateMigrationInstructions.StateStoreProvider == nil {
+			m.StateMigrationInstructions.StateStoreProvider = file.StateStoreProvider
+		} else {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "state_store_provider" configuration block`,
+				Detail:   fmt.Sprintf(`A "state_store_provider" block was already declared at %s. Only one of these blocks can be included in a module's state migration files.`, m.StateMigrationInstructions.StateStoreProvider.DeclRange),
+				Subject:  &file.StateStoreProvider.DeclRange,
+			})
+		}
+	}
+	if file.StateStore != nil {
+		if m.StateMigrationInstructions.StateStore == nil {
+			m.StateMigrationInstructions.StateStore = file.StateStore
+		} else {
+			// If we're encountering a duplicate 'state_store' description it means that a duplicate
+			// 'from' block is present, so we report it as such.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "from" configuration block`,
+				Detail:   `Only one "from" block is allowed in a directory's .tfmigrate.hcl files.`,
+				Subject:  file.fromBlockSource,
+			})
+		}
+	}
+	if file.Backend != nil {
+		if m.StateMigrationInstructions.Backend == nil {
+			m.StateMigrationInstructions.Backend = file.Backend
+		} else {
+			// If we're encountering a duplicate 'backend' description it means that a duplicate
+			// 'from' block is present, so we report it as such.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Duplicate "from" configuration block`,
+				Detail:   `Only one "from" block is allowed in a directory's .tfmigrate.hcl files.`,
+				Subject:  file.fromBlockSource,
+			})
+		}
 	}
 
 	return diags
