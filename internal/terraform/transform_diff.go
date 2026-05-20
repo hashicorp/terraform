@@ -95,8 +95,12 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// For a no-op change we don't take any action but we still
 			// run any condition checks associated with the object, to
 			// make sure that they still hold when considering the
-			// results of other changes.
-			update = t.hasConfigConditions(addr)
+			// results of other changes. However, if the object is also
+			// deposed, then the instance no longer exists and there is
+			// no reason to process conditions.
+			if dk == states.NotDeposed {
+				update = t.hasConfigConditions(addr)
+			}
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
