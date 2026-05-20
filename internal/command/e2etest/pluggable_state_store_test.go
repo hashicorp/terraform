@@ -170,6 +170,123 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	<-closeCh
 }
 
+// If a user changes between a Terraform managed and unmanaged state store provider we
+// don't know if they're the same provider version/code or not. In these scenarios we
+// force a state migration.
+func TestPrimary_stateStore_detectChangeInProviderSupplyMode(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	t.Setenv("TF_ENABLE_PLUGGABLE_STATE_STORAGE", "1")
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	//// INIT with provider from filesystem mirror - means that a version is locked in dependency lock file
+	providerVersion := "1.2.3"
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6", providerVersion, platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6", providerVersion, platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(tf.WorkDir())
+
+	stdout, stderr, err := tf.Run("init", "-plugin-dir=cache", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
+	}
+
+	if _, err := os.Stat(filepath.Join(tf.WorkDir(), ".terraform.lock.hcl")); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("unexpected error: %s", err)
+		} else {
+			t.Fatal("expected .terraform.lock.hcl file to exist after init, but it does not exist")
+		}
+	}
+
+	//// INIT with provider now reattached.
+	// This causes Terraform to return early and prompt the user run either `terraform state migrate` or `terraform init -reconfigure` to continue with init.
+	reattachCh := make(chan *plugin.ReattachConfig)
+	closeCh := make(chan struct{})
+	provider := &providerServer{
+		ProviderServer: grpcwrap.Provider6(simple.Provider()),
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go plugin.Serve(&plugin.ServeConfig{
+		Logger: hclog.New(&hclog.LoggerOptions{
+			Name:   "plugintest",
+			Level:  hclog.Trace,
+			Output: io.Discard,
+		}),
+		Test: &plugin.ServeTestConfig{
+			Context:          ctx,
+			ReattachConfigCh: reattachCh,
+			CloseCh:          closeCh,
+		},
+		GRPCServer: plugin.DefaultGRPCServer,
+		VersionedPlugins: map[int]plugin.PluginSet{
+			6: {
+				"provider": &tfplugin.GRPCProviderPlugin{
+					GRPCProvider: func() proto.ProviderServer {
+						return provider
+					},
+				},
+			},
+		},
+	})
+	config := <-reattachCh
+	if config == nil {
+		t.Fatalf("no reattach config received")
+	}
+	reattachStr, err := json.Marshal(map[string]reattachConfig{
+		"hashicorp/simple6": {
+			Protocol:        string(config.Protocol),
+			ProtocolVersion: 6,
+			Pid:             config.Pid,
+			Test:            true,
+			Addr: reattachConfigAddr{
+				Network: config.Addr.Network(),
+				String:  config.Addr.String(),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
+	stdout, stderr, err = tf.Run("init", "-no-color")
+	if err == nil {
+		t.Fatalf("expected init error, but got none\nstderr:\n%s\nstdout:\n%s", stderr, stdout)
+	}
+	expectedErrorMsgs := []string{
+		`Error: State store initialization required, please run "terraform state migrate" or "terraform init -reconfigure"`,
+		`supply mode changed`,
+	}
+	for _, msg := range expectedErrorMsgs {
+		if !strings.Contains(stderr, msg) {
+			t.Errorf("expected error message %q not found in init error output:\n%s", msg, stderr)
+		}
+	}
+	cancel()
+	<-closeCh
+}
+
 // Tests using `terraform workspace` commands in combination with pluggable state storage.
 func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if !canRunGoBuild {
