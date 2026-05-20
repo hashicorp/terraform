@@ -4605,6 +4605,118 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 	// >>> Currently this is handled at a lower level in `internal/command/meta_backend_test.go`
 }
 
+// Test a scenario where a state store is introduced via `init -reconfigure` in a working directory
+// that previously used the local backend and contains local state files. These are a special case
+// that's handled outside of the usual state migration UX.
+func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T) {
+	// Create a temporary, uninitialized working directory with configuration including a state store
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-state-store"), td)
+	t.Chdir(td)
+
+	// Make a pre-existing local state file
+	statePath := filepath.Join(td, DefaultStateFilename)
+	preExistingState := `{
+    "version": 4,
+    "terraform_version": "1.16.0",
+    "serial": 2,
+    "lineage": "43f9a61a-43ae-7158-0a90-87fc8a4ab5e9",
+    "outputs": {
+        "greeting": {
+            "value": "hello world",
+            "type": "string"
+        }
+    },
+    "resources": [],
+    "check_results": null
+}`
+	if err := os.WriteFile(statePath, []byte(preExistingState), 0644); err != nil {
+		t.Fatalf("failed to write pre-existing state file: %s", err)
+	}
+
+	// Make a pre-existing backend state file describing using the local backend
+	if err := os.Mkdir(filepath.Join(td, DefaultDataDir), 0755); err != nil {
+		t.Fatal(err)
+	}
+	backendStatePath := filepath.Join(td, DefaultDataDir, DefaultStateFilename)
+	backendState := `{
+  "version": 3,
+  "terraform_version": "1.14.0",
+  "backend": {
+    "type": "local",
+    "config": {
+      "path": null,
+      "workspace_dir": "my-other-workspaces"
+    },
+    "hash": 549668327
+  }
+}`
+	if err := os.WriteFile(backendStatePath, []byte(backendState), 0644); err != nil {
+		t.Fatalf("failed to write pre-existing backend state file: %s", err)
+	}
+
+	// This mock provider source makes Terraform think the provider is coming from a local archive,
+	// so security checks are skipped.
+	source := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	meta := Meta{
+		Ui:                        ui,
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				mockProviderAddress: providers.FactoryFixed(mockProvider),
+			},
+		},
+		ProviderSource: source,
+	}
+	c := &InitCommand{
+		Meta: meta,
+	}
+
+	// Allow the test to respond to the pause in provider installation for
+	// checking the state storage provider.
+	_ = testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
+
+	args := []string{
+		"-reconfigure",
+		"-enable-pluggable-state-storage-experiment",
+	}
+	code := c.Run(args)
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+	}
+
+	// Check output
+	output := testOutput.All()
+	expectedOutputs := []string{
+		"Initializing the state store...",
+		"Terraform has been successfully initialized!",
+	}
+	for _, expected := range expectedOutputs {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+		}
+	}
+
+	// Assert the dependency lock file was created
+	lockFile := filepath.Join(td, ".terraform.lock.hcl")
+	_, err := os.Stat(lockFile)
+	if os.IsNotExist(err) {
+		t.Fatal("expected dependency lock file to exist, but it doesn't")
+	}
+}
+
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
 // doesn't match the backend state file.
 func TestInit_stateStore_configUnchanged(t *testing.T) {
