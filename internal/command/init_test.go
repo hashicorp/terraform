@@ -4906,6 +4906,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		// Check output
 		expectedErrMsgs := []string{
 			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			"Reason: State store \"test_store\" (hashicorp/test) configuration changed",
 		}
 		output := cleanString(testOutput.Stderr())
 		for _, expectedErr := range expectedErrMsgs {
