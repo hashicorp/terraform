@@ -6486,6 +6486,36 @@ func TestInit_varValueWithoutConfig(t *testing.T) {
 	}
 }
 
+func TestInit_invalidConfig(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+	cfg1 := `module "test" { version = "1" }`
+
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg1), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			Ui:   ui,
+			View: view,
+		},
+	}
+
+	code := initCmd.Run([]string{})
+	testOutput := done(t)
+	if code != 1 {
+		t.Fatalf("expected init to fail with code 1, got code %d: \n%s", code, testOutput.All())
+	}
+
+	expectedErr := "Error: Missing required argument"
+	if !strings.Contains(cleanString(testOutput.Stderr()), expectedErr) {
+		t.Fatalf("unexpected error, expected %q, given: %s", expectedErr, testOutput.Stderr())
+	}
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
