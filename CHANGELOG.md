@@ -1,3 +1,16 @@
+## 1.15.4 (May 20, 2026)
+
+
+NEW FEATURES:
+
+* We now produce builds for Linux s390x (zLinux) ([#38615](https://github.com/hashicorp/terraform/issues/38615))
+
+
+BUG FIXES:
+
+* init: Prevent provider binaries from being installed into symlinked directories ([#38611](https://github.com/hashicorp/terraform/issues/38611))
+
+
 ## 1.15.3 (May 13, 2026)
 
 
