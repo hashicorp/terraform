@@ -190,7 +190,6 @@ func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnosti
 // We don't call the Close method every time a pluggable state store is used, as in majority of
 // cases Terraform will the ability to manage state throughout the entire operation. In those
 // cases the operation ending is sufficient and appropriate for stopping the child process.
-func (p *Pluggable) Close() tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	return diags.Append(p.provider.Close())
+func (p *Pluggable) Close() {
+	_ = p.provider.Close()
 }
