@@ -217,9 +217,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			mod, _ := loader.Parser().LoadConfigDir(rootDir) // ignore diagnostics since we're just doing value-add here anyway
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
-					// TODO improve this
 					sourceVal, _ := mc.SourceExpr.Value(nil)
-
 					if !sourceVal.IsKnown() {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
