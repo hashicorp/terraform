@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: hide check-scoped data sources from plan output
+time: 2026-04-14T12:00:00.000000-04:00
+custom:
+  Issue: "36536"
