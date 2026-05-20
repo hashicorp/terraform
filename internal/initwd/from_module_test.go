@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
@@ -357,4 +358,38 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 		gotTraces[path] = varDesc
 	})
 	assertResultDeepEqual(t, gotTraces, wantTraces)
+}
+
+func TestDirFromModule_submodulesWithDynamicSources(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/empty")
+	fromModuleDir, err := filepath.Abs("./testdata/local-module-dynamic-sources")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+	modInstallDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+
+	wantDiags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Unknown module source",
+		Detail:   "Dynamic module sources cannot be used in conjunction with -from-module",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(dir, "main.tf"),
+			Start:    hcl.Pos{Line: 2, Column: 12, Byte: 27},
+			End:      hcl.Pos{Line: 2, Column: 27, Byte: 42},
+		},
+	})
+	tfdiags.AssertDiagnosticsMatch(t, diags, wantDiags)
 }
