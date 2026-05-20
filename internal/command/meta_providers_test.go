@@ -134,6 +134,33 @@ func TestEnsureProviderVersions_devOverrideAndReattachedProviders(t *testing.T) 
 				providerD.ForDisplay(), // Pre-existing lock for D is expected to be unaffected by use of reattachment/unmanaged.
 			},
 		},
+		"dev override present at first-time installation of provider": {
+			providerDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				providerD: "/path/to/local/provider-d",
+			},
+			unmanagedProviders: map[addrs.Provider]*plugin.ReattachConfig{},
+			priorLocks:         priorLocksJustA, // Prior locks contain only provider A.
+			expectedProviderTypesInLocks: []string{
+				providerA.ForDisplay(),
+				providerB.ForDisplay(),
+				providerC.ForDisplay(),
+				providerD.ForDisplay(), // D is installed despite being dev overridden
+			},
+		},
+
+		"dev override present at subsequent installation of provider": {
+			providerDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				providerD: "/path/to/local/provider-d",
+			},
+			unmanagedProviders: map[addrs.Provider]*plugin.ReattachConfig{},
+			priorLocks:         priorLocksABCD, // Prior locks include the provider that's being dev overridden.
+			expectedProviderTypesInLocks: []string{
+				providerA.ForDisplay(),
+				providerB.ForDisplay(),
+				providerC.ForDisplay(),
+				providerD.ForDisplay(), // Pre-existing lock for D is expected to be unaffected by use of dev_override.
+			},
+		},
 	}
 
 	for name, tc := range cases {
