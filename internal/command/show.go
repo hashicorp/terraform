@@ -48,7 +48,8 @@ func (e *errUnusableDataMisc) Unwrap() error {
 // contents of a Terraform plan or state file.
 type ShowCommand struct {
 	Meta
-	viewType arguments.ViewType
+	viewType        arguments.ViewType
+	redactSensitive bool
 }
 
 func (c *ShowCommand) Run(rawArgs []string) int {
@@ -64,9 +65,10 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	c.viewType = args.ViewType
+	c.redactSensitive = args.RedactSensitive
 
 	// Set up view
-	view := views.NewShow(args.ViewType, c.View)
+	view := views.NewShow(args.ViewType, args.RedactSensitive, c.View)
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
@@ -112,6 +114,8 @@ Options:
   -no-color           If specified, output won't contain any color.
   -json               If specified, output the Terraform plan or state in
                       a machine-readable form.
+  -json-redacted      If specified, output the Terraform plan or state in
+                      a machine-readable form with sensitive values redacted.
 
 `
 	return strings.TrimSpace(helpText)
@@ -283,6 +287,9 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 	if lp, ok := pf.Local(); ok {
 		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures, c.Meta.VariableValues)
 	} else if cp, ok := pf.Cloud(); ok {
+		// Request the unredacted external JSON format whenever we are in JSON
+		// output mode (including -json-redacted, which applies redaction after
+		// fetch). Request the redacted human-display format otherwise.
 		redacted := c.viewType != arguments.ViewJSON
 		jsonPlan, err = c.getDataFromCloudPlan(cp, redacted)
 	}
