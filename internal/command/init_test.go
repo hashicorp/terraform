@@ -3944,7 +3944,6 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
-			// This test doesn't need -safe-init in the flags due to the location of the provider
 		}
 		code := c.Run(args)
 		testOutput := done(t)
@@ -4226,7 +4225,7 @@ func TestInit_stateStore_newWorkingDir(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		// Set up providers for use in the second init attempt after the user adds the -safe-init flag.
+		// Set up providers for use in the second init attempt.
 		mockProvider := mockPluggableStateStorageProvider()
 
 		ui := new(cli.MockUi)
@@ -4942,16 +4941,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 	// TODO: once state migrate command is implemented, add test cases in state_migrate_test.go matching the tests
 	// removed from this file in the same commit as this TODO.
-}
-
-func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Skip("See TODOs below. This test was removed as part of TF-36263")
-	// TODO: Add a test showing that provider updated in init that affect the PSS provider are blocked and users
-	// are prompted to run state migrate or pin the PSS provider version and re-run init -upgrade.
-
-	// TODO: once state migrate command is implemented, add test cases in state_migrate_test.go that show:
-	// 1) a migration when the provider version is updated.
-	// 2) a migration when the provider version is updated and the schema has a breaking change.
 }
 
 // Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
