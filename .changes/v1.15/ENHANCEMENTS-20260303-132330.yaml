@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: add Alicloud CloudSSO mode credential support for oss backend
+time: 2026-03-03T13:23:30.643274+08:00
+custom:
+    Issue: "38228"
