@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: Required provider' source and version can now be evaluated from variables
+time: 2026-04-23T12:05:56.014251+02:00
+custom:
+    Issue: "38405"
