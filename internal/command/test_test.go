@@ -5957,10 +5957,9 @@ func TestTest_ParallelDeps(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
