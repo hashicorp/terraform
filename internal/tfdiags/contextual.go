@@ -62,6 +62,52 @@ func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 	return ret
 }
 
+// WithSubject returns a copy of the receiver with the given range as the source information
+// for all diagnostics. Only hcl-based diagnostics are affected.
+func (diags Diagnostics) WithSubject(rng *hcl.Range) Diagnostics {
+	if len(diags) == 0 || rng == nil {
+		return nil
+	}
+
+	ret := make(Diagnostics, len(diags))
+	for i, srcDiag := range diags {
+		ret[i] = diagWithSubject(srcDiag, rng)
+		if diag, isOverride := srcDiag.(overriddenDiagnostic); isOverride {
+			ret[i] = overriddenDiagnostic{
+				original: diagWithSubject(diag.original, rng),
+				severity: diag.severity,
+				extra:    diag.extra,
+			}
+		}
+	}
+
+	return ret
+}
+
+func diagWithSubject(diag Diagnostic, rng *hcl.Range) Diagnostic {
+	if rng == nil {
+		return nil
+	}
+
+	if hclDiag, isHCL := diag.(hclDiagnostic); isHCL {
+		if hclDiag.diag.Subject == nil {
+			hclDiag.diag.Subject = rng
+		}
+
+		// If there is a context, it needs to contain the subject, otherwise
+		// we set it to the subject.
+		if hclDiag.diag.Context != nil {
+			contains := hclDiag.diag.Context.Overlaps(*hclDiag.diag.Subject)
+			if !contains {
+				hclDiag.diag.Context = rng
+			}
+		}
+		return hclDiag
+	}
+
+	return diag
+}
+
 // AttributeValue returns a diagnostic about an attribute value in an implied current
 // configuration context. This should be returned only from functions whose
 // interface specifies a clear configuration context that this will be
@@ -91,6 +137,20 @@ func AttributeValue(severity Severity, summary, detail string, attrPath cty.Path
 			severity: severity,
 			summary:  summary,
 			detail:   detail,
+		},
+		attrPath: attrPath,
+	}
+}
+
+// AttributeValueWithExtra matches AttributeValue but allows setting an extra
+// value.
+func AttributeValueWithExtra(severity Severity, summary, detail string, attrPath cty.Path, extra interface{}) Diagnostic {
+	return &attributeDiagnostic{
+		diagnosticBase: diagnosticBase{
+			severity: severity,
+			summary:  summary,
+			detail:   detail,
+			extra:    extra,
 		},
 		attrPath: attrPath,
 	}
