@@ -219,13 +219,12 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, at
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil
 	}
-	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.ProviderMetadata]{
+	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
 		Attrs:  attrs,
-		Meta: &proto.ProviderMetadata{
+		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:       n.Addr.Provider.Type,
 			Alias:      n.Addr.Alias,
-			Type:       n.Addr.Provider.Type,
 			Namespace:  n.Addr.Provider.Namespace,
 			Source:     n.Addr.Provider.String(),
 			ModulePath: n.Addr.Module.String(),

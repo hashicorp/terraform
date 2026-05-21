@@ -72,8 +72,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		return nil
 	}
 
-	meta := &proto.ResourceMetadata{
-		Type:         n.ResourceAddr.Resource.Resource.Type,
+	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    policyOperation,
 	}

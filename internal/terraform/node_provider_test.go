@@ -754,7 +754,6 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 		checks := map[string]string{
 			"name":        meta.Name,
 			"alias":       meta.Alias,
-			"type":        meta.Type,
 			"namespace":   meta.Namespace,
 			"source":      meta.Source,
 			"module_path": meta.ModulePath,
@@ -763,7 +762,6 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 		expected := map[string]string{
 			"name":        "aws",
 			"alias":       "",
-			"type":        "aws",
 			"namespace":   "hashicorp",
 			"source":      "registry.terraform.io/hashicorp/aws",
 			"module_path": "",
