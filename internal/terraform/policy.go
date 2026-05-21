@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := client.Evaluate(ctx.StopCtx(), policy.EvaluationRequest[*proto.ResourceMetadata]{
+func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+	result := client.EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
 		Attrs:      attrs,
 		PriorAttrs: priorAttrs,

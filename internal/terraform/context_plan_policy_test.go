@@ -121,7 +121,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						"value": cty.StringVal("foo"),
 					}),
 				}
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					var actual cty.Value
 					if !req.Attrs.IsNull() {
@@ -139,8 +139,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Unexpected diff (-got +want):\n%s", diff)
 					}
 
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         req.Target,
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
 					}, protocmp.Transform()); diff != "" {
@@ -156,13 +155,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
-				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ModuleMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
 					if req.Meta != nil {
 						if req.Meta.Address != "module.child" {
 							t.Errorf(`Expected module address to be "module.child", got "%s"`, req.Meta.Address)
-						}
-						if req.Meta.Source != "./child" {
-							t.Errorf(`Expected module source to be "./child", got "%s"`, req.Meta.Source)
 						}
 					}
 
@@ -225,7 +221,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				`,
 			deferralAllowed: true,
 			prepareExpectations: func(t *testing.T, data *data) {
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					t.Fatalf("Expected policy evaluation to be skipped for deferred resource, but got request for %s", req.Target)
 					return policy.EvaluationResponse{}
 				}
@@ -311,7 +307,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					"test_instance": cty.NilVal,
 				}
 
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					var actual cty.Value
 					if !req.Attrs.IsNull() {
@@ -326,8 +322,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Unexpected diff (-got +want):\n%s", diff)
 					}
 
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         req.Target,
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
 					}, protocmp.Transform()); diff != "" {
@@ -398,10 +393,9 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				}
 				`,
 			prepareExpectations: func(t *testing.T, data *data) {
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         req.Target,
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
 					}, protocmp.Transform()); diff != "" {
@@ -531,11 +525,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				// EvalPolicy should be called during the actual destroy plan with null attrs
 				var called int
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					called++
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         "test_resource",
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
 					}, protocmp.Transform()); diff != "" {
@@ -614,10 +607,9 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				)
 			}),
 			prepareExpectations: func(t *testing.T, data *data) {
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
-					if diff := cmp.Diff(req.Meta, proto.ResourceMetadata{
-						Type:         "test_resource",
+					if diff := cmp.Diff(req.Meta, proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
 					}, protocmp.Transform()); diff != "" {
@@ -706,11 +698,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			state: states.NewState(),
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					called++
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         "test_resource",
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
 					}, protocmp.Transform()); diff != "" {
@@ -768,11 +759,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			}),
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					called++
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         "test_resource",
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_UPDATE,
 					}, protocmp.Transform()); diff != "" {
@@ -831,11 +821,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			forceReplace: []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_resource.test")},
 			prepareExpectations: func(t *testing.T, data *data) {
 				var called int
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					called++
-					if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-						Type:         "test_resource",
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_UPDATE,
 					}, protocmp.Transform()); diff != "" {
@@ -885,7 +874,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				)
 			}),
 			prepareExpectations: func(t *testing.T, data *data) {
-				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
 					if req.PriorAttrs.IsNull() {
 						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
@@ -1059,11 +1048,10 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 	}
 
 	policyClient := policy.NewTestMockClient(t)
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		policyRan.Store(true)
 
-		if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
-			Type:         "test_instance",
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_CREATE,
 		}, protocmp.Transform()); diff != "" {
@@ -1157,7 +1145,7 @@ resource_policy "test_resource" "policy_name" {
 	}
 
 	policyClient := policy.NewTestMockClient(t)
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		t.Fatalf("expected policy evaluation to be skipped for import block planning, got request for %s", req.Target)
 		return policy.EvaluationResponse{}
 	}
@@ -1250,7 +1238,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	var mu sync.Mutex
 	results := make(map[string]callbackResult)
 
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		cr := callbackResult{}
 
 		if req.Callbacks.GetResources == nil {

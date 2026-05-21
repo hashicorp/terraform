@@ -324,12 +324,11 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 
 	// Evaluate the module policy with just the metadata. Module variables cannot be sent here,
 	// because it is possible for them to depend on the module's output values, which are not available until after the module is expanded.
-	result := ctx.PolicyClient().EvaluateModule(ctx.StopCtx(), policy.EvaluationRequest[*proto.ModuleMetadata]{
+	result := ctx.PolicyClient().EvaluateModule(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 		Attrs:  cty.NilVal,
 		Target: source,
-		Meta: &proto.ModuleMetadata{
+		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: n.Addr.String(),
-			Source:  source,
 			Version: func() string {
 				if configBundle.Version == nil {
 					return ""
