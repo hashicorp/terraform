@@ -73,7 +73,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			addr := tv.ResourceAddr()
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
-			providerFqn := tv.Provider()
+			providerFqn := tv.Provider().FQN()
 
 			schema, err := t.Plugins.ResourceTypeSchema(providerFqn, mode, typeName)
 			if err != nil {
@@ -119,7 +119,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 		if tv, ok := v.(GraphNodeAttachActionSchema); ok {
 			addr := tv.ActionAddr()
-			providerFqn := tv.Provider()
+			providerFqn := tv.Provider().FQN()
 			schema, err := t.Plugins.ActionTypeSchema(providerFqn, addr.Action.Type)
 			if err != nil {
 				return fmt.Errorf("failed to read schema for %s in %s: %s", addr, providerFqn, err)

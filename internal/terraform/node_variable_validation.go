@@ -128,7 +128,7 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 			moduleCtx,
 			n.rules,
 			n.defnRange,
-			n.validateWalk,
+			op,
 		))
 	}
 

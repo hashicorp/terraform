@@ -121,6 +121,12 @@ func testLoadWithSnapshot(dir string, loader *configload.Loader, vars InputValue
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
 func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...configs.Option) *configs.Config {
+	return testModuleInlineWithVars(t, sources, nil, parserOpts...)
+}
+
+// testModuleInlineWithVars is the same as testModuleInline but also allows passing in variable values to be used when loading the config.
+func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars InputValues, parserOpts ...configs.Option) *configs.Config {
+
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -170,9 +176,19 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadStaticConfigWithTests(cfgPath, "tests")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		vars,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	if buildDiags.HasErrors() {
+		t.Fatal(buildDiags.Err())
 	}
 
 	return config

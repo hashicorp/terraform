@@ -6,6 +6,8 @@ package arguments
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -19,6 +21,7 @@ func TestParseValidate_valid(t *testing.T) {
 			&Validate{
 				Path:          ".",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewHuman,
 			},
 		},
@@ -27,6 +30,7 @@ func TestParseValidate_valid(t *testing.T) {
 			&Validate{
 				Path:          ".",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewJSON,
 			},
 		},
@@ -35,6 +39,7 @@ func TestParseValidate_valid(t *testing.T) {
 			&Validate{
 				Path:          "foo",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewJSON,
 			},
 		},
@@ -43,6 +48,7 @@ func TestParseValidate_valid(t *testing.T) {
 			&Validate{
 				Path:          ".",
 				TestDirectory: "other",
+				Vars:          &Vars{},
 				ViewType:      ViewHuman,
 			},
 		},
@@ -51,8 +57,55 @@ func TestParseValidate_valid(t *testing.T) {
 			&Validate{
 				Path:          ".",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewHuman,
 				NoTests:       true,
+			},
+		},
+	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseValidate(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseValidate_vars(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want []FlagNameValue
+	}{
+		"var": {
+			args: []string{"-var", "foo=bar"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+			},
+		},
+		"var-file": {
+			args: []string{"-var-file", "cool.tfvars"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
+			},
+		},
+		"both": {
+			args: []string{
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
+			},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
 			},
 		},
 	}
@@ -63,8 +116,8 @@ func TestParseValidate_valid(t *testing.T) {
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected vars: %#v", vars)
 			}
 		})
 	}
@@ -81,6 +134,7 @@ func TestParseValidate_invalid(t *testing.T) {
 			&Validate{
 				Path:          ".",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
@@ -96,6 +150,7 @@ func TestParseValidate_invalid(t *testing.T) {
 			&Validate{
 				Path:          "bar",
 				TestDirectory: "tests",
+				Vars:          &Vars{},
 				ViewType:      ViewJSON,
 			},
 			tfdiags.Diagnostics{
@@ -108,10 +163,12 @@ func TestParseValidate_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseValidate(tc.args)
-			if *got != *tc.want {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)

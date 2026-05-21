@@ -3215,83 +3215,6 @@ resource "test_object" "a" {
 				},
 			},
 
-			"using self in before_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-  name = "foo"
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      condition = self.name == "foo"
-      actions = [action.test_action.hello]
-    }
-    action_trigger {
-      events = [after_update]
-      condition = self.name == "bar"
-      actions = [action.test_action.world]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: false,
-
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Self reference not allowed",
-						Detail:   `The condition expression cannot reference "self".`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 193},
-							End:      hcl.Pos{Line: 9, Column: 37, Byte: 211},
-						},
-					})
-				},
-			},
-
-			"using self in after_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-  name = "foo"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = self.name == "foo"
-      actions = [action.test_action.hello]
-    }
-    action_trigger {
-      events = [after_update]
-      condition = self.name == "bar"
-      actions = [action.test_action.world]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: false,
-
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					// We only expect one diagnostic, as the other condition is valid
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Self reference not allowed",
-						Detail:   `The condition expression cannot reference "self".`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 19, Byte: 192},
-							End:      hcl.Pos{Line: 9, Column: 37, Byte: 210},
-						},
-					})
-				},
-			},
-
 			"referencing triggering resource in before_* condition": {
 				module: map[string]string{
 					"main.tf": `
@@ -3359,49 +3282,6 @@ resource "test_object" "a" {
 				},
 			},
 
-			"using each in before_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-  for_each = toset(["foo", "bar"])
-  name = each.key
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      condition = each.key == "foo"
-      actions = [action.test_action.hello]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: false,
-
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Each reference not allowed",
-						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 231},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 248},
-						},
-					}).Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Each reference not allowed",
-						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 231},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 248},
-						},
-					})
-				},
-			},
-
 			"using each in after_* condition": {
 				module: map[string]string{
 					"main.tf": `
@@ -3433,62 +3313,6 @@ resource "test_object" "a" {
 					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
 						t.Errorf("Expected action 'action.test_action.hello', got %s", p.Changes.ActionInvocations[0].Addr.String())
 					}
-				},
-			},
-
-			"using count.index in before_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-	count = 3
-	name = "item-${count.index}"
-	lifecycle {
-		action_trigger {
-			events = [before_create]
-			condition = count.index == 1
-			actions = [action.test_action.hello]
-		}
-		action_trigger {
-			events = [before_update]
-			condition = count.index == 2
-			actions = [action.test_action.world]
-		}
-	}
-}`,
-				},
-				expectPlanActionCalled: false,
-
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Count reference not allowed",
-						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
-						},
-					}).Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Count reference not allowed",
-						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
-						},
-					}).Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Count reference not allowed",
-						Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 210},
-							End:      hcl.Pos{Line: 10, Column: 37, Byte: 226},
-						},
-					})
 				},
 			},
 
@@ -3524,54 +3348,6 @@ resource "test_object" "a" {
 					if p.Changes.ActionInvocations[0].Addr.String() != "action.test_action.hello" {
 						t.Errorf("Expected action invocation %q, got %q", "action.test_action.hello", p.Changes.ActionInvocations[0].Addr.String())
 					}
-				},
-			},
-
-			"using each.value in before_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-				for_each = {"foo" = "value1", "bar" = "value2"}
-				name = each.value
-				lifecycle {
-						action_trigger {
-								events = [before_create]
-								condition = each.value == "value1"
-								actions = [action.test_action.hello]
-						}
-						action_trigger {
-								events = [before_update]
-								condition = each.value == "value2"
-								actions = [action.test_action.world]
-						}
-				}
-}
-				`,
-				},
-				expectPlanActionCalled: false,
-
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Each reference not allowed",
-						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 260},
-							End:      hcl.Pos{Line: 10, Column: 43, Byte: 282},
-						},
-					}).Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Each reference not allowed",
-						Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 21, Byte: 260},
-							End:      hcl.Pos{Line: 10, Column: 43, Byte: 282},
-						},
-					})
 				},
 			},
 

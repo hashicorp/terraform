@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -34,7 +34,7 @@ func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -65,7 +65,7 @@ func TestLocalRun_error(t *testing.T) {
 	// should then cause LocalRun to return with the state unlocked.
 	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -92,7 +92,7 @@ func TestLocalRun_cloudPlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	planPath := "./testdata/plan-bookmark/bookmark.json"
@@ -127,7 +127,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3

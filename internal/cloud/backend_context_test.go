@@ -16,10 +16,10 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -169,7 +169,8 @@ func TestRemoteContextWithVars(t *testing.T) {
 			&tfe.VariableCreateOptions{
 				Category: &catTerraform,
 			},
-			`Value for undeclared variable: A variable named "key" was assigned a value, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration.`,
+			// We don't expect an error for values of undeclared variables
+			``,
 		},
 		"environment variable": {
 			&tfe.VariableCreateOptions{
@@ -186,7 +187,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)
@@ -279,7 +280,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -288,7 +289,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -297,7 +298,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName3: &terraform.InputValue{
 					Value:      cty.StringVal(varValue3),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -328,7 +329,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -337,7 +338,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -373,7 +374,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			terraform.InputValues{
 				varName1: &terraform.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -382,7 +383,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 				varName2: &terraform.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: terraform.ValueFromCloud,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -409,7 +410,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)

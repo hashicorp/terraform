@@ -297,7 +297,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 			host:        bastionHost,
 			privateKey:  connInfo.BastionPrivateKey,
 			password:    connInfo.BastionPassword,
-			hostKey:     connInfo.HostKey,
+			hostKey:     connInfo.BastionHostKey,
 			certificate: connInfo.BastionCertificate,
 			sshAgent:    sshAgent,
 		})

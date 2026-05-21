@@ -18,8 +18,10 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-var _ providers.Interface = (*MockProvider)(nil)
-var _ providers.StateStoreChunkSizeSetter = (*MockProvider)(nil)
+var (
+	_ providers.Interface                 = (*MockProvider)(nil)
+	_ providers.StateStoreChunkSizeSetter = (*MockProvider)(nil)
+)
 
 // MockProvider implements providers.Interface but mocks out all the
 // calls for testing purposes.
@@ -244,7 +246,6 @@ func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentit
 
 	resp := providers.GetResourceIdentitySchemasResponse{IdentityTypes: make(map[string]providers.IdentitySchema)}
 	if p.GetProviderSchemaResponse != nil {
-
 		for typeName, schema := range p.GetProviderSchemaResponse.ResourceTypes {
 			if schema.Identity != nil {
 				resp.IdentityTypes[typeName] = providers.IdentitySchema{
@@ -253,7 +254,6 @@ func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentit
 				}
 			}
 		}
-
 	}
 
 	return resp
@@ -495,7 +495,6 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		resp.UpgradedState = v
 	case len(r.RawStateJSON) > 0:
 		v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
-
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -534,7 +533,6 @@ func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 	identityType := schema.Identity.ImpliedType()
 
 	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
-
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -1119,7 +1117,7 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 	if _, match := p.MockStates[r.StateId]; match {
 		delete(p.MockStates, r.StateId)
 	} else {
-		resp.Diagnostics.Append(&hcl.Diagnostic{
+		resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Workspace cannot be deleted",
 			Detail:   fmt.Sprintf("The workspace %q does not exist, so cannot be deleted", r.StateId),

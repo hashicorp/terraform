@@ -11,6 +11,9 @@ import (
 
 // StateMv represents the command-line arguments for the state mv command.
 type StateMv struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
+
 	// DryRun, if true, prints out what would be moved without actually
 	// moving anything.
 	DryRun bool
@@ -51,9 +54,11 @@ type StateMv struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateMv(args []string) (*StateMv, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	mv := &StateMv{}
+	mv := &StateMv{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("state mv")
+	cmdFlags := extendedFlagSet("state mv", nil, nil, mv.Vars)
 	cmdFlags.BoolVar(&mv.DryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&mv.BackupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&mv.BackupOutPath, "backup-out", "-", "backup")

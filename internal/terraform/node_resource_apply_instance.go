@@ -54,36 +54,7 @@ func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance 
 
 // GraphNodeReferencer, overriding NodeAbstractResourceInstance
 func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
-	// Start with the usual resource instance implementation
-	ret := n.NodeAbstractResourceInstance.References()
-
-	// Applying a resource must also depend on the destruction of any of its
-	// dependencies, since this may for example affect the outcome of
-	// evaluating an entire list of resources with "count" set (by reducing
-	// the count).
-	//
-	// However, we can't do this in create_before_destroy mode because that
-	// would create a dependency cycle. We make a compromise here of requiring
-	// changes to be updated across two applies in this case, since the first
-	// plan will use the old values.
-	if !n.CreateBeforeDestroy() {
-		for _, ref := range ret {
-			switch tr := ref.Subject.(type) {
-			case addrs.ResourceInstance:
-				newRef := *ref // shallow copy so we can mutate
-				newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
-				newRef.Remaining = nil // can't access attributes of something being destroyed
-				ret = append(ret, &newRef)
-			case addrs.Resource:
-				newRef := *ref // shallow copy so we can mutate
-				newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
-				newRef.Remaining = nil // can't access attributes of something being destroyed
-				ret = append(ret, &newRef)
-			}
-		}
-	}
-
-	return ret
+	return n.NodeAbstractResourceInstance.References()
 }
 
 // GraphNodeAttachDependencies
@@ -141,17 +112,7 @@ func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	change, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	change := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 	// Stop early if we don't actually have a diff
 	if change == nil {
 		return diags
@@ -216,11 +177,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff for apply
-	diffApply, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	diffApply := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
@@ -257,11 +214,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff
-	diff, err := n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
+	diff := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.

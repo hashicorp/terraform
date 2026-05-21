@@ -229,12 +229,9 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	}
 
 	req := providers.ConfigureProviderRequest{
-		TerraformVersion: version.String(),
-		Config:           cfg,
-		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
-			WriteOnlyAttributesAllowed: true,
-		},
+		TerraformVersion:   version.String(),
+		Config:             cfg,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	}
 
 	resp := p.ConfigureProvider(req)
@@ -660,6 +657,8 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 	return providers.ClientCapabilities{
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
+		StorePlannedPrivate:        true,
+		ComputedBlocksAllowed:      true,
 	}
 }
 

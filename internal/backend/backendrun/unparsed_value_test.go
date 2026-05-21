@@ -221,6 +221,196 @@ func TestUnparsedValue(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+
+	t.Run("ParseVariableValues constOnly", func(t *testing.T) {
+		vv := map[string]arguments.UnparsedVariableValue{
+			"declared1": testUnparsedVariableValue("5"),
+		}
+
+		decls := map[string]*configs.Variable{
+			"declared1": {
+				Name:           "declared1",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_required": {
+				Name:           "missing_const_required",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          true,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 3, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 3, Column: 1, Byte: 0},
+				},
+			},
+			"missing_nonconst_required": {
+				Name:           "missing_nonconst_required",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          false,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 4, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 4, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_optional": {
+				Name:           "missing_const_optional",
+				Type:           cty.String,
+				ConstraintType: cty.String,
+				ParsingMode:    configs.VariableParseLiteral,
+				Const:          true,
+				Default:        cty.StringVal("default"),
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 5, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 5, Column: 1, Byte: 0},
+				},
+			},
+		}
+
+		gotVals, diags := ParseConstVariableValues(vv, decls)
+
+		if got, want := len(diags), 1; got != want {
+			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
+		}
+
+		const missingRequired = `No value for required variable`
+
+		if got, want := diags[0].Description().Summary, missingRequired; got != want {
+			t.Fatalf("wrong summary for diagnostic 0\ngot:  %s\nwant: %s", got, want)
+		}
+
+		if got, want := diags[0].Description().Detail, `"missing_const_required"`; !strings.Contains(got, want) {
+			t.Fatalf("wrong detail for diagnostic 0\ngot:  %s\nmust contain: %s", got, want)
+		}
+
+		wantVals := terraform.InputValues{
+			"declared1": {
+				Value:      cty.StringVal("5"),
+				SourceType: terraform.ValueFromNamedFile,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tfvars",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_required": {
+				Value:      cty.DynamicVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 3, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 3, Column: 1, Byte: 0},
+				},
+			},
+			"missing_nonconst_required": {
+				Value:      cty.DynamicVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 4, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 4, Column: 1, Byte: 0},
+				},
+			},
+			"missing_const_optional": {
+				Value:      cty.NilVal,
+				SourceType: terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "fake.tf",
+					Start:    tfdiags.SourcePos{Line: 5, Column: 1, Byte: 0},
+					End:      tfdiags.SourcePos{Line: 5, Column: 1, Byte: 0},
+				},
+			},
+		}
+
+		if diff := cmp.Diff(wantVals, gotVals, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+}
+
+func TestHasUnsatisfiedConstVariables(t *testing.T) {
+	testCases := map[string]struct {
+		vv    map[string]arguments.UnparsedVariableValue
+		decls map[string]*configs.Variable
+		want  bool
+	}{
+		"no variables": {
+			vv:    nil,
+			decls: map[string]*configs.Variable{},
+			want:  false,
+		},
+		"no const variables": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"regular": {
+					Name: "regular",
+				},
+			},
+			want: false,
+		},
+		"const with default": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"has_default": {
+					Name:    "has_default",
+					Const:   true,
+					Default: cty.StringVal("default"),
+				},
+			},
+			want: false,
+		},
+		"const required and missing": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"required_const": {
+					Name:  "required_const",
+					Const: true,
+				},
+			},
+			want: true,
+		},
+		"const required but provided": {
+			vv: map[string]arguments.UnparsedVariableValue{
+				"required_const": testUnparsedVariableValue("value"),
+			},
+			decls: map[string]*configs.Variable{
+				"required_const": {
+					Name:  "required_const",
+					Const: true,
+				},
+			},
+			want: false,
+		},
+		"non-const required and missing": {
+			vv: nil,
+			decls: map[string]*configs.Variable{
+				"regular_required": {
+					Name: "regular_required",
+				},
+			},
+			want: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := HasUnsatisfiedConstVariables(tc.vv, tc.decls)
+			if got != tc.want {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
 
 type testUnparsedVariableValue string

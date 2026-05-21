@@ -15,12 +15,13 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.TestOutput, int) {
@@ -263,10 +264,9 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -304,6 +304,137 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	}
 }
 
+func TestValidate_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+
+		wantError := "Error: No value for required variable"
+		if !strings.Contains(output.Stderr(), wantError) {
+			t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		p := testProvider()
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"network_interface": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"device_index": {Type: cty.String, Optional: true},
+										"description":  {Type: cty.String, Optional: true},
+										"name":         {Type: cty.String, Optional: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-var", "module_name=child",
+		}
+
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		p := testProvider()
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"network_interface": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"device_index": {Type: cty.String, Optional: true},
+										"description":  {Type: cty.String, Optional: true},
+										"name":         {Type: cty.String, Optional: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+}
+
 func TestValidateWithInvalidOverrides(t *testing.T) {
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
@@ -319,10 +450,9 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -444,6 +574,46 @@ func TestValidate_json(t *testing.T) {
 	}
 }
 
+func TestValidate_ensure_json_diags(t *testing.T) {
+	t.Run("-var error diags are rendered using the correct view ", func(t *testing.T) {
+		output, code := setupTest(t, "validate-invalid", "-json", "-var", "foo")
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
+
+		gotString := output.Stdout()
+
+		var got map[string]any
+		err := json.Unmarshal([]byte(gotString), &got)
+		if err != nil {
+			t.Fatalf("Test did not produce valid JSON: %s", err)
+		}
+	})
+
+	t.Run("Flag/argument parsing error diags are rendered using the correct view ", func(t *testing.T) {
+		output, code := setupTest(t, "validate-invalid", "-json", "-foobar")
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
+
+		gotString := output.Stdout()
+
+		var got map[string]any
+		err := json.Unmarshal([]byte(gotString), &got)
+		if err != nil {
+			t.Fatalf("Test did not produce valid JSON: %s", err)
+		}
+	})
+}
+
 func TestValidateWithInvalidListResource(t *testing.T) {
 	td := t.TempDir()
 	cases := []struct {
@@ -483,10 +653,9 @@ The first step in the traversal for a list resource must be an attribute
 			ui := new(cli.MockUi)
 
 			provider := queryFixtureProvider()
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider),
@@ -527,6 +696,8 @@ The first step in the traversal for a list resource must be an attribute
 }
 
 func TestValidate_backendBlocks(t *testing.T) {
+	// This type of error is detected when parsing hcl, and isn't validation
+	// specific to backend blocks.
 	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/repeated-attr")
 		if code != 1 {
@@ -555,333 +726,51 @@ func TestValidate_backendBlocks(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
+	t.Run("removed backends cause errors with extra info", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/removed-backend-type")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expectedErrMsgs := []string{
+			"Error: Unsupported backend type",
+			"The \"artifactory\" backend is not supported in Terraform v1.3 or later.",
+		}
+		for _, msg := range expectedErrMsgs {
+			if !strings.Contains(output.Stderr(), msg) {
+				t.Fatalf("unexpected error content: wanted to include %q, got: %s",
+					msg,
+					output.Stderr(),
+				)
+			}
+		}
+	})
+
+	// We don't validate using the backend's schema due to potential use of the -backend-config flag.
+	t.Run("unknown attributes are not detected by validate command", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
 		}
-		expectedErr := "Error: Unsupported argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
+		expected := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expected) {
 			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
+				expected,
+				output.Stdout(),
 			)
 		}
 	})
 
-	t.Run("invalid when a required attribute is unset", func(t *testing.T) {
+	// We don't validate using the backend's schema due to potential use of the -backend-config flag.
+	t.Run("unset required attributes are not detected by validate command", func(t *testing.T) {
 		output, code := setupTest(t, "invalid-backend-configuration/missing-required-attr")
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
 		}
-		expectedErr := "Error: Missing required argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
+		expected := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expected) {
 			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-}
-
-func TestValidate_stateStoreBlocks(t *testing.T) {
-	t.Run("invalid when state_store block contains a repeated attribute", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/repeated-attr-in-store"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Attribute redefined"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when state_store's provider block contains a repeated attribute", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/repeated-attr-in-provider"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Attribute redefined"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when the state store type is unknown in that provider", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/unknown-store-type"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: State store not implemented by the provider"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when the state store provider doesn't implement any stores", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/unknown-store-type" // ok to reuse; see mock provider for test setup
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		mock.GetProviderSchemaResponse.StateStores = map[string]providers.Schema{} // override to have no state stores
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Provider does not support pluggable state storage"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when there's an unknown attribute present in the states_store block", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/unknown-attr-in-store"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Unsupported argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when there's an unknown attribute present in the states_store's provider block", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/unknown-attr-in-provider"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Unsupported argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when a required attribute in state_store block is unset", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/missing-required-attr-in-store"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Missing required argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when a required attribute in state_store's provider block is unset", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/missing-required-attr-in-provider"
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		// Make the provider's schema require an attribute that isn't set in the test fixture
-		mock.GetProviderSchemaResponse.Provider.Body = &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"required_attr": {Type: cty.String, Required: true},
-			},
-		}
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error: Missing required argument"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when the state_store's provider's ValidateProviderConfig method returns an error", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/valid-config" // mock provider creates the errors
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		// Make the provider respond as if there's a problem with the provider config.
-		mock.ValidateProviderConfigResponse = &providers.ValidateProviderConfigResponse{
-			Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error from test",
-				"This test is forcing an error to be returned from the provider's ValidateProviderConfig method.",
-			)),
-		}
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error from test"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
-			)
-		}
-	})
-
-	t.Run("invalid when the state_store's provider's ValidateStateStoreConfig method returns an error", func(t *testing.T) {
-		fixturePath := "invalid-state-store-configuration/valid-config" // mock provider creates the errors
-		view, done := testView(t)
-		mock := mockPluggableStateStorageProvider()
-		// Make the provider respond as if there's a problem with the state store config.
-		// The provider's ValidateStateStoreConfig method is called inside the PrepareConfig method of a Pluggable.
-		mock.ValidateStateStoreConfigResponse = &providers.ValidateStateStoreConfigResponse{
-			Diagnostics: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error from test",
-				"This test is forcing an error to be returned from the provider's ValidateStateStoreConfig method.",
-			)),
-		}
-		// Make mock happy.
-		// This check -that a provider is configured before state store config is validated- is specific to the mock
-		// and isn't performed by user-facing code in Terraform. The mock's behaviour is to highlight abnormal situations/
-		// breaking of assumptions.
-		// Here we know validate doesn't configure the provider before using validation methods, so we can set this flag
-		// to bypass.
-		mock.ConfigureProviderCalled = true
-		c := &ValidateCommand{
-			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(mock),
-				View:                      view,
-				AllowExperimentalFeatures: true,
-			},
-		}
-		args := []string{"-no-color", testFixturePath(fixturePath)}
-		code := c.Run(args)
-		output := done(t)
-
-		if code != 1 {
-			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stdout())
-		}
-		expectedErr := "Error from test"
-		if !strings.Contains(output.Stderr(), expectedErr) {
-			t.Fatalf("unexpected error content: wanted %q, got: %s",
-				expectedErr,
-				output.Stderr(),
+				expected,
+				output.Stdout(),
 			)
 		}
 	})

@@ -59,6 +59,11 @@ func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue
 			// variables, because users will often set these globally
 			// when they are used across many (but not necessarily all)
 			// configurations.
+		case terraform.ValueFromCloud:
+			// We allow and ignore undeclared names fetched from the cloud
+			// backend, because users will often set these globally or via
+			// varsets when they are used across many (but not necessarily all)
+			// workspaces.
 		case terraform.ValueFromCLIArg:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -147,6 +152,19 @@ func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
 func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, false)
+}
+
+// ParseConstVariableValues is like ParseVariableValues but only produces
+// errors for missing const variables. Non-const required variables that are
+// missing will still receive placeholder values but won't produce errors.
+// This is used during early configuration loading (e.g. module installation)
+// where only const variables are needed for module source resolution.
+func ParseConstVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, true)
+}
+
+func parseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable, constOnly bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	ret, diags := ParseDeclaredVariableValues(vv, decls)
 	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 
@@ -166,14 +184,20 @@ func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls ma
 		// specific error message which mentions -var and -var-file command
 		// line options, whereas the one in Terraform Core is more general
 		// due to supporting both root and child module variables.
-		if vc.Required() {
+		shouldError := vc.Required()
+		if constOnly {
+			shouldError = vc.Const && vc.Required()
+		}
+		if shouldError {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "No value for required variable",
 				Detail:   fmt.Sprintf("The root module input variable %q is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.", name),
 				Subject:  vc.DeclRange.Ptr(),
 			})
+		}
 
+		if vc.Required() {
 			// We'll include a placeholder value anyway, just so that our
 			// result is complete for any calling code that wants to cautiously
 			// analyze it for diagnostic purposes. Since our diagnostics now
@@ -201,59 +225,17 @@ func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls ma
 	return ret, diags
 }
 
-func ParseConstVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
-	ret, diags := ParseDeclaredVariableValues(vv, decls)
-	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
-
-	diags = diags.Append(diagsUndeclared)
-
-	// By this point we should've gathered all of the required root module
-	// variables from one of the many possible sources. We'll now populate
-	// any we haven't gathered as unset placeholders which Terraform Core
-	// can then react to.
+// HasUnsatisfiedConstVariables checks whether any const variables declared in
+// the given module are required but not yet present in the provided variable
+// values map. This is used to determine whether we need to fetch additional
+// variable values from a backend before loading the full configuration.
+func HasUnsatisfiedConstVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) bool {
 	for name, vc := range decls {
-		if isDefinedAny(name, ret, undeclared) {
-			continue
-		}
-
-		// This check is redundant with a check made in Terraform Core when
-		// processing undeclared variables, but allows us to generate a more
-		// specific error message which mentions -var and -var-file command
-		// line options, whereas the one in Terraform Core is more general
-		// due to supporting both root and child module variables.
 		if vc.Const && vc.Required() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "No value for required variable",
-				Detail:   fmt.Sprintf("The root module input variable %q is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.", name),
-				Subject:  vc.DeclRange.Ptr(),
-			})
-		}
-
-		if vc.Required() {
-			// We'll include a placeholder value anyway, just so that our
-			// result is complete for any calling code that wants to cautiously
-			// analyze it for diagnostic purposes. Since our diagnostics now
-			// includes an error, normal processing will ignore this result.
-			ret[name] = &terraform.InputValue{
-				Value:       cty.DynamicVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
-			}
-		} else {
-			// We're still required to put an entry for this variable
-			// in the mapping to be explicit to Terraform Core that we
-			// visited it, but its value will be cty.NilVal to represent
-			// that it wasn't set at all at this layer, and so Terraform Core
-			// should substitute a default if available, or generate an error
-			// if not.
-			ret[name] = &terraform.InputValue{
-				Value:       cty.NilVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
+			if _, defined := vv[name]; !defined {
+				return true
 			}
 		}
 	}
-
-	return ret, diags
+	return false
 }

@@ -1,0 +1,43 @@
+# This workflow validates the entire changelog when combined with changie entries introduced
+# by the PR.
+#
+# This is separate from the "enforce-changelog" workflow as it needs to run in the context of
+# the PR branch, which is generally discouraged for "pull_request_target" triggered workflows.
+
+name: Changelog Validation
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+
+jobs:
+  validate-changelog:
+      if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog-check') }}
+      name: "Validate Changelog"
+      runs-on: ubuntu-latest
+
+      steps:
+          - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+            with:
+                sparse-checkout: |
+                    .changie.yaml
+                    .changes/
+                sparse-checkout-cone-mode: false
+
+          - name: Validate changie fragment is valid
+            uses: miniscruff/changie-action@11bcad388e7973948cbcecb10863baf024d5f607 # v3.0.0
+            with:
+                version: latest
+                args: merge -u "." --dry-run

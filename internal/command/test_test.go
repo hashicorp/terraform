@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -183,6 +184,15 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-filter=one.tftest.hcl"},
 			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
+		},
+		"multiple_files_with_invalid_filter": {
+			override: "multiple_files",
+			args:     []string{"-filter=nonexistent.tftest.hcl"},
+			expectedOut: []string{
+				"Success! 0 passed, 0 failed.",
+				"Warning: Unknown test file",
+			},
+			code: 0,
 		},
 		"no_state": {
 			expectedOut: []string{"0 passed, 1 failed"},
@@ -438,6 +448,25 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
+		"dynamic_source_with_default": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"dynamic_source_missing_var": {
+			initCode:    1,
+			expectedErr: []string{"No value for required variable"},
+			code:        1,
+		},
+		"dynamic_source_nonexistent_module": {
+			initCode:    1,
+			expectedErr: []string{"Unreadable module directory"},
+			code:        1,
+		},
+		"dynamic_source_non_const_var": {
+			initCode:    1,
+			expectedErr: []string{"Unknown module source"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -466,10 +495,9 @@ func TestTest_Runs(t *testing.T) {
 			store := &testing_command.ResourceStore{
 				Data: make(map[string]cty.Value),
 			}
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -613,10 +641,9 @@ func TestTest_DestroyFail(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	view, done := testView(t)
 
@@ -801,6 +828,10 @@ func TestTest_Cleanup(t *testing.T) {
   run "test_three"... pass
   run "test_four"... pass
 main.tftest.hcl... tearing down
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_two because the skip_cleanup attribute was set:
+  - test_resource.resource
 main.tftest.hcl... fail
 
 Failure! 4 passed, 0 failed.
@@ -843,10 +874,9 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 
 	t.Run("cleanup all left-over state", func(t *testing.T) {
 		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"test": {"1.0.0"},
 		})
-		defer close()
 
 		// Run the test command to create the state
 		td := executeTestCmd(provider, providerSource)
@@ -902,10 +932,9 @@ Success!
 
 	t.Run("cleanup failed state only (-repair)", func(t *testing.T) {
 		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
+		providerSource := newMockProviderSource(t, map[string][]string{
 			"test": {"1.0.0"},
 		})
-		defer close()
 
 		// Run the test command to create the state
 		td := executeTestCmd(provider, providerSource)
@@ -938,6 +967,10 @@ Success!
 
 		expectedCleanup := `main.tftest.hcl... in progress
 main.tftest.hcl... tearing down
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_two because the skip_cleanup attribute was set:
+  - test_resource.resource
 main.tftest.hcl... pass
 
 Success!
@@ -963,10 +996,9 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1052,10 +1084,9 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1132,10 +1163,9 @@ func TestTest_SharedState_Order(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1204,10 +1234,9 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1281,10 +1310,9 @@ func TestTest_Parallel(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1633,10 +1661,9 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			defer closer()
 			t.Chdir(td)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -1803,10 +1830,9 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Data: make(map[string]cty.Value),
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -1871,8 +1897,7 @@ func TestTest_ComplexCondition(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2041,8 +2066,7 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
-	defer close()
+	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2375,11 +2399,10 @@ func TestTest_ModuleDependencies(t *testing.T) {
 	// Let's make the setup provider write into the data for test provider.
 	setup.SetResourcePrefix("data")
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test":  {"1.0.0"},
 		"setup": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2441,6 +2464,263 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		} else {
 			t.Errorf("should have deleted all resources on completion but left %s", setup.ResourceString())
 		}
+	}
+}
+
+func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "dynamic_source_with_var_flag")), td)
+	t.Chdir(td)
+
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run([]string{"-var", "module_name=example"}); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{Meta: meta}
+	code := c.Run([]string{"-var", "module_name=example", "-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d:\n\n%s", code, output.All())
+	}
+
+	if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+		t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+	}
+
+	if len(store.Data) != 0 {
+		t.Errorf("should have deleted all resources on completion but left %d", len(store.Data))
+	}
+}
+
+func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "dynamic_source_with_local_value")), td)
+	t.Chdir(td)
+
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run([]string{"-var", "module_name=example"}); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{Meta: meta}
+	code := c.Run([]string{"-var", "module_name=example", "-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d:\n\n%s", code, output.All())
+	}
+
+	if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+		t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+	}
+
+	if len(store.Data) != 0 {
+		t.Errorf("should have deleted all resources on completion but left %d", len(store.Data))
+	}
+}
+
+func TestTest_DynamicSourceNested(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "dynamic_source_nested")), td)
+	t.Chdir(td)
+
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+					return testing_command.NewProvider(store).Provider, nil
+				},
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run([]string{"-var", "child_name=child"}); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{Meta: meta}
+	code := c.Run([]string{"-var", "child_name=child", "-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d:\n\n%s", code, output.All())
+	}
+
+	if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+		t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+	}
+
+	if len(store.Data) != 0 {
+		t.Errorf("should have deleted all resources on completion but left %d", len(store.Data))
+	}
+}
+
+func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "dynamic_source_with_setup_module")), td)
+	t.Chdir(td)
+
+	// Our two providers will share a common set of values to make things
+	// easier.
+	store := &testing_command.ResourceStore{
+		Data: make(map[string]cty.Value),
+	}
+
+	// We set it up so the setup provider will write into the data sources
+	// available to the test provider.
+	test := testing_command.NewProvider(store)
+	setup := testing_command.NewProvider(store)
+
+	test.SetDataPrefix("data")
+	test.SetResourcePrefix("resource")
+
+	// Let's make the setup provider write into the data for test provider.
+	setup.SetResourcePrefix("data")
+
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test":  {"1.0.0"},
+		"setup": {"1.0.0"},
+	})
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"):  providers.FactoryFixed(test.Provider),
+				addrs.NewDefaultProvider("setup"): providers.FactoryFixed(setup.Provider),
+			},
+		},
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{Meta: meta}
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	printedOutput := false
+
+	if code != 0 {
+		printedOutput = true
+		t.Errorf("expected status code 0 but got %d:\n\n%s", code, output.All())
+	}
+
+	if !strings.Contains(output.Stdout(), "2 passed, 0 failed.") {
+		if !printedOutput {
+			t.Errorf("output didn't contain expected string:\n\n%s", output.All())
+		} else {
+			t.Errorf("output didn't contain expected string: %q", output.Stdout())
+		}
+	}
+
+	if test.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %s", test.ResourceString())
+	}
+
+	if setup.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %s", setup.ResourceString())
 	}
 }
 
@@ -2698,10 +2978,9 @@ can remove the provider configuration again.
 
 			provider := testing_command.NewProvider(nil)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -2765,10 +3044,9 @@ func TestTest_NestedSetupModules(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2820,10 +3098,9 @@ func TestTest_StatePropagation(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -2958,10 +3235,9 @@ func TestTest_SkipCleanup(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3020,6 +3296,10 @@ main.tftest.hcl... in progress
   run "test_four"... pass
   run "test_five"... pass
 main.tftest.hcl... tearing down
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_three because the skip_cleanup attribute was set:
+  - test_resource.resource
 main.tftest.hcl... pass
 
 Success! 5 passed, 0 failed.
@@ -3059,10 +3339,9 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3110,6 +3389,10 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
   run "test_two"... pass
   run "test_three"... pass
 main.tftest.hcl... tearing down
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_two because the skip_cleanup attribute was set:
+  - test_resource.resource
 main.tftest.hcl... pass
 
 Success! 3 passed, 0 failed.
@@ -3189,10 +3472,9 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3292,6 +3574,7 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 			`{"@level":"info","@message":"  \"test_five\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_five","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_five","status":"pass"},"type":"test_run"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"teardown"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test_three\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"teardown","run":"test_three"},"type":"test_run"}`,
+			`{"@level":"info","@message":"Terraform left some resources in state after executing main.tftest.hcl/test_three because the skip_cleanup attribute was set.","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_cleanup":{"skipped_resources":[{"instance":"test_resource.resource"}]},"type":"test_cleanup"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}`,
 			`{"@level":"info","@message":"Success! 5 passed, 0 failed.","@module":"terraform.ui","test_summary":{"errored":0,"failed":0,"passed":5,"skipped":0,"status":"pass"},"type":"test_summary"}`,
 		}
@@ -3320,10 +3603,9 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3373,6 +3655,10 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
   run "test_four"... pass
   run "test_five"... pass
 main.tftest.hcl... tearing down
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_four because the skip_cleanup attribute was set:
+  - test_resource.resource
 main.tftest.hcl... pass
 
 Success! 5 passed, 0 failed.
@@ -3448,10 +3734,9 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -3583,10 +3868,9 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4172,10 +4456,9 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4447,10 +4730,9 @@ func TestTest_InvalidOverrides(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4547,10 +4829,9 @@ func TestTest_InvalidConfig(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4691,10 +4972,9 @@ There is no backend type named "foobar".
 
 			provider := testing_command.NewProvider(nil)
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -4771,10 +5051,9 @@ test_resource_id = 12345`
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4879,10 +5158,9 @@ test_resource_id = %s`, resourceId, resourceId)
 	}
 	provider := testing_command.NewProvider(resourceStore)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -4999,10 +5277,9 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 				provider.Provider.ApplyResourceChangeFn = newFunc
 			}
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -5099,10 +5376,9 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 			t.Chdir(td)
 
 			provider := testing_command.NewProvider(nil)
-			providerSource, close := newMockProviderSource(t, map[string][]string{
+			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
-			defer close()
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
@@ -5160,10 +5436,9 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 		return resp
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5243,10 +5518,9 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5312,10 +5586,9 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Data: make(map[string]cty.Value),
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5478,10 +5751,9 @@ func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5548,10 +5820,9 @@ func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5603,10 +5874,9 @@ func TestTest_TeardownOrder(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -5845,9 +6115,19 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadStaticConfigWithTests(cfgPath, "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags.Error())
+	}
+
+	config, diags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	if diags.HasErrors() {
-		t.Fatal(diags.Error())
+		t.Fatal(diags.Err())
 	}
 
 	return config, cfgPath, func() {

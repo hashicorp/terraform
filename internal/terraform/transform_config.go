@@ -37,10 +37,6 @@ type ConfigTransformer struct {
 	// Module is the module to add resources from.
 	Config *configs.Config
 
-	// Mode will only add resources that match the given mode
-	ModeFilter bool
-	Mode       addrs.ResourceMode
-
 	// some actions are skipped during the destroy process
 	destroy bool
 
@@ -127,7 +123,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				importTargets = append(importTargets, target)
 			}
 		default:
-			if target.Config.ToResource.Module.Equal(config.Path) {
+			// target.AbsToAddr is the absolute config resource, target.Config.ToResource is
+			// relative to the module of the import block
+			if target.AbsToConfigResource.Module.Equal(config.Path) {
 				importTargets = append(importTargets, target)
 			}
 		}
@@ -158,11 +156,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 	for _, r := range allResources {
 		relAddr := r.Addr()
-
-		if t.ModeFilter && relAddr.Mode != t.Mode {
-			// Skip non-matching modes
-			continue
-		}
 
 		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
 		var diags tfdiags.Diagnostics
@@ -225,7 +218,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				imports = append(imports, i)
 
 			}
-			if i.Config != nil && i.Config.ToResource.Equal(configAddr) {
+			if i.Config != nil && i.AbsToConfigResource.Equal(configAddr) {
 				// This import target has been claimed by an actual resource,
 				// let's make a note of this to remove it from the targets.
 				matchedIndices = append(matchedIndices, ix)

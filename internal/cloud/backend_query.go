@@ -56,10 +56,13 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 		return &QueryRunResult{}, err
 	}
 
+	generateConfigOut := len(op.GenerateConfigOut) > 0
+
 	queryRunOptions := tfe.QueryRunCreateOptions{
 		ConfigurationVersion: cv,
 		Workspace:            w,
 		Source:               tfe.QueryRunSourceAPI,
+		GenerateConfigOut:    &generateConfigOut,
 	}
 
 	runVariables, err := b.parseRunVariables(op)

@@ -12,10 +12,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -107,8 +109,16 @@ func TestDirFromModule_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	tfdiags.AssertNoDiagnostics(t, buildDiags)
 
 	wantTraces := map[string]string{
 		"":                     "in example",
@@ -187,8 +197,16 @@ func TestDirFromModule_submodules(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	tfdiags.AssertNoDiagnostics(t, buildDiags)
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -312,8 +330,16 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadStaticConfig(".")
-	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, buildDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	tfdiags.AssertNoDiagnostics(t, buildDiags)
 
 	wantTraces := map[string]string{
 		"":                "in root module",
@@ -332,4 +358,38 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 		gotTraces[path] = varDesc
 	})
 	assertResultDeepEqual(t, gotTraces, wantTraces)
+}
+
+func TestDirFromModule_submodulesWithDynamicSources(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/empty")
+	fromModuleDir, err := filepath.Abs("./testdata/local-module-dynamic-sources")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+	modInstallDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+
+	wantDiags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Unknown module source",
+		Detail:   "Dynamic module sources cannot be used in conjunction with -from-module",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(dir, "main.tf"),
+			Start:    hcl.Pos{Line: 2, Column: 12, Byte: 27},
+			End:      hcl.Pos{Line: 2, Column: 27, Byte: 42},
+		},
+	})
+	tfdiags.AssertDiagnosticsMatch(t, diags, wantDiags)
 }

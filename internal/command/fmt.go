@@ -32,6 +32,7 @@ var (
 		".tfvars",
 		".tftest.hcl",
 		".tfmock.hcl",
+		".tfquery.hcl",
 	}
 )
 
@@ -50,10 +51,6 @@ type FmtCommand struct {
 func (c *FmtCommand) Run(args []string) int {
 	if c.input == nil {
 		c.input = os.Stdin
-	}
-
-	if c.Meta.AllowExperimentalFeatures {
-		fmtSupportedExts = append(fmtSupportedExts, ".tfquery.hcl")
 	}
 
 	args = c.Meta.process(args)

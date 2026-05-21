@@ -5,12 +5,14 @@ package command
 
 import (
 	"bytes"
-	"io/ioutil"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -23,13 +25,8 @@ func TestStatePull(t *testing.T) {
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
 	t.Chdir(td)
 
-	expected, err := ioutil.ReadFile("local-state.tfstate")
-	if err != nil {
-		t.Fatalf("error reading state: %v", err)
-	}
-
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -42,9 +39,28 @@ func TestStatePull(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	actual := ui.OutputWriter.Bytes()
-	if bytes.Equal(actual, expected) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "a",
+      "provider": "provider[\"registry.terraform.io/-/null\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "8521602373864259745",
+            "triggers": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := ui.OutputWriter.String()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
 }
 
@@ -86,14 +102,13 @@ func TestStatePull_stateStore(t *testing.T) {
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
 	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
+	mockProvider.MockStates = map[string]any{
 		"default": stateBytes,
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
-	defer close()
 
 	ui := cli.NewMockUi()
 	streams, _ := terminal.StreamsForTesting(t)
@@ -120,9 +135,27 @@ func TestStatePull_stateStore(t *testing.T) {
 	}
 
 	// Test that the state in the output matches the original state
-	actual := ui.OutputWriter.Bytes()
-	if bytes.Equal(actual, stateBytes) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, stateBytes)
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "foo",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "input": "foobar"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := ui.OutputWriter.String()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
 }
 
@@ -148,6 +181,120 @@ func TestStatePull_noState(t *testing.T) {
 	if actual != "" {
 		t.Fatalf("bad: %s", actual)
 	}
+}
+
+func TestStatePull_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=child"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		expectedResource := `
+    {
+      "module": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {},
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+		actual := ui.OutputWriter.String()
+		if !strings.Contains(actual, expectedResource) {
+			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		expectedResource := `
+    {
+      "module": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {},
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+		actual := ui.OutputWriter.String()
+		if !strings.Contains(actual, expectedResource) {
+			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+		}
+	})
 }
 
 func TestStatePull_checkRequiredVersion(t *testing.T) {

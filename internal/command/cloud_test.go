@@ -99,12 +99,12 @@ func testDisco(s *httptest.Server) *disco.Disco {
 	host, _ := url.Parse(s.URL)
 	defaultHostname := "app.terraform.io"
 	tfeHost := svchost.Hostname(defaultHostname)
-	services := map[string]interface{}{
+	services := map[string]any{
 		"cloudplugin.v1": fmt.Sprintf("%s/api/cloudplugin/v1/", s.URL),
 		"tfe.v2":         fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 
-	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]any{
 		tfeHost: {"token": "test-auth-token"},
 	})
 

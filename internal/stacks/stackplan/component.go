@@ -52,6 +52,14 @@ type Component struct {
 	// that have changes that are deferred to a later plan and apply cycle.
 	DeferredResourceInstanceChanges addrs.Map[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc]
 
+	// ActionInvocations describes planned action invocations that should be
+	// preserved into the modules runtime apply plan.
+	ActionInvocations []*plans.ActionInvocationInstanceSrc
+
+	// DeferredActionInvocations describes action invocations that were deferred
+	// to a later plan and apply cycle.
+	DeferredActionInvocations []*plans.DeferredActionInvocationSrc
+
 	// PlanTimestamp is the time Terraform Core recorded as the single "plan
 	// timestamp", which is used only for the result of the "plantimestamp"
 	// function during apply and must not be used for any other purpose.
@@ -114,6 +122,18 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 		}
 	}
 
+	for _, action := range c.ActionInvocations {
+		if action != nil {
+			changes.ActionInvocations = append(changes.ActionInvocations, action)
+		}
+	}
+
+	for _, deferredAction := range c.DeferredActionInvocations {
+		if deferredAction != nil {
+			plan.DeferredActionInvocations = append(plan.DeferredActionInvocations, deferredAction)
+		}
+	}
+
 	priorState := states.NewState()
 	ss := priorState.SyncWrapper()
 	for _, elem := range c.ResourceInstancePriorState.Elems {
@@ -161,6 +181,24 @@ func (c *Component) RequiredProviderInstances() addrs.Set[addrs.RootProviderConf
 		providerInstances.Add(addrs.RootProviderConfig{
 			Provider: elem.Value.Provider,
 			Alias:    elem.Value.Alias,
+		})
+	}
+	for _, action := range c.ActionInvocations {
+		if action == nil {
+			continue
+		}
+		providerInstances.Add(addrs.RootProviderConfig{
+			Provider: action.ProviderAddr.Provider,
+			Alias:    action.ProviderAddr.Alias,
+		})
+	}
+	for _, deferredAction := range c.DeferredActionInvocations {
+		if deferredAction == nil || deferredAction.ActionInvocationInstanceSrc == nil {
+			continue
+		}
+		providerInstances.Add(addrs.RootProviderConfig{
+			Provider: deferredAction.ActionInvocationInstanceSrc.ProviderAddr.Provider,
+			Alias:    deferredAction.ActionInvocationInstanceSrc.ProviderAddr.Alias,
 		})
 	}
 	return providerInstances

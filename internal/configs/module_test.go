@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // TestNewModule_provider_fqns exercises module.gatherProviderLocalNames()
@@ -680,4 +681,15 @@ func TestModule_state_store_multiple(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
+}
+
+func TestModule_nested_import_blocks(t *testing.T) {
+	m, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/import-blocks-in-module")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	if len(m.Children["child"].Module.Import) != 2 {
+		t.Fatal("child module is missing nested import blocks")
+	}
 }

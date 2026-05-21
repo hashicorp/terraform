@@ -276,7 +276,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, err
 	var err error
 
 	ret.Address = ""
-	rs, err := marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
+	rs, err := marshalResources(s.RootModule().Resources, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -330,7 +330,7 @@ func marshalModules(
 		// the module may be resourceless and contain only submodules, it will then be nil here
 		stateMod := s.Module(child)
 		if stateMod != nil {
-			rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
+			rs, err := marshalResources(stateMod.Resources, schemas)
 			if err != nil {
 				return nil, err
 			}
@@ -356,7 +356,7 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
+func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]Resource, error) {
 	var ret []Resource
 
 	var sortedResources []*states.Resource
@@ -368,7 +368,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	})
 
 	for _, r := range sortedResources {
-
 		var sortedKeys []addrs.InstanceKey
 		for k := range r.Instances {
 			sortedKeys = append(sortedKeys, k)

@@ -186,9 +186,8 @@ func TestFmt_QueryFiles(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := &FmtCommand{
 				Meta: Meta{
-					testingOverrides:          metaOverridesForProvider(testProvider()),
-					Ui:                        ui,
-					AllowExperimentalFeatures: true,
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
 				},
 			}
 			args := []string{gotFile}

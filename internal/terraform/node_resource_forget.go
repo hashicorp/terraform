@@ -38,12 +38,14 @@ func (n *NodeForgetResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (forget)"
 }
 
-func (n *NodeForgetResourceInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *NodeForgetResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// Indicate that this node does not require a configured provider
-		return nil, true
+		p := n.NodeAbstractResourceInstance.Provider()
+		p.NoProvider = true
+		return p
 	}
-	return n.NodeAbstractResourceInstance.ProvidedBy()
+	return n.NodeAbstractResourceInstance.Provider()
 }
 
 // GraphNodeExecutable
@@ -58,15 +60,8 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 	var changeApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	changeApply, err = n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if changeApply == nil || diags.HasErrors() {
+	changeApply = ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
+	if changeApply == nil {
 		return diags
 	}
 

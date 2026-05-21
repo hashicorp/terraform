@@ -98,8 +98,6 @@ func TestMetaInputMode(t *testing.T) {
 func TestMetaInputMode_envVar(t *testing.T) {
 	test = false
 	defer func() { test = true }()
-	old := os.Getenv(InputModeEnvVar)
-	defer os.Setenv(InputModeEnvVar, old)
 
 	m := new(Meta)
 	args := []string{}
@@ -122,7 +120,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		os.Setenv(InputModeEnvVar, tc.EnvVar)
+		t.Setenv(InputModeEnvVar, tc.EnvVar)
 		if m.InputMode() != tc.Expected {
 			t.Fatalf("expected InputMode: %#v, got: %#v", tc.Expected, m.InputMode())
 		}
@@ -228,10 +226,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 		}
 	})
 	t.Run("with valid interval greater than the default", func(t *testing.T) {
-		os.Setenv(StatePersistIntervalEnvVar, "25")
-		t.Cleanup(func() {
-			os.Unsetenv(StatePersistIntervalEnvVar)
-		})
+		t.Setenv(StatePersistIntervalEnvVar, "25")
 
 		interval := m.StatePersistInterval()
 		if interval != 25 {
@@ -239,10 +234,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 		}
 	})
 	t.Run("with a valid interval less than the default", func(t *testing.T) {
-		os.Setenv(StatePersistIntervalEnvVar, "10")
-		t.Cleanup(func() {
-			os.Unsetenv(StatePersistIntervalEnvVar)
-		})
+		t.Setenv(StatePersistIntervalEnvVar, "10")
 
 		interval := m.StatePersistInterval()
 		if interval != DefaultStatePersistInterval {
@@ -250,10 +242,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 		}
 	})
 	t.Run("with invalid integer interval", func(t *testing.T) {
-		os.Setenv(StatePersistIntervalEnvVar, "foo")
-		t.Cleanup(func() {
-			os.Unsetenv(StatePersistIntervalEnvVar)
-		})
+		t.Setenv(StatePersistIntervalEnvVar, "foo")
 
 		interval := m.StatePersistInterval()
 		if interval != DefaultStatePersistInterval {
@@ -261,10 +250,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 		}
 	})
 	t.Run("with negative integer interval", func(t *testing.T) {
-		os.Setenv(StatePersistIntervalEnvVar, "-10")
-		t.Cleanup(func() {
-			os.Unsetenv(StatePersistIntervalEnvVar)
-		})
+		t.Setenv(StatePersistIntervalEnvVar, "-10")
 
 		interval := m.StatePersistInterval()
 		if interval != DefaultStatePersistInterval {
@@ -274,10 +260,6 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 }
 
 func TestMeta_Workspace_override(t *testing.T) {
-	defer func(value string) {
-		os.Setenv(WorkspaceNameEnvVar, value)
-	}(os.Getenv(WorkspaceNameEnvVar))
-
 	m := new(Meta)
 
 	testCases := map[string]struct {
@@ -300,7 +282,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			os.Setenv(WorkspaceNameEnvVar, name)
+			t.Setenv(WorkspaceNameEnvVar, name)
 			workspace, err := m.Workspace()
 			if workspace != tc.workspace {
 				t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", workspace, tc.workspace)

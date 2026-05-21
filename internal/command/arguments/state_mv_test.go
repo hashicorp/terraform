@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -18,6 +21,7 @@ func TestParseStateMv_valid(t *testing.T) {
 		"addresses only": {
 			[]string{"test_instance.foo", "test_instance.bar"},
 			&StateMv{
+				Vars:          &Vars{},
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
@@ -28,6 +32,7 @@ func TestParseStateMv_valid(t *testing.T) {
 		"dry run": {
 			[]string{"-dry-run", "test_instance.foo", "test_instance.bar"},
 			&StateMv{
+				Vars:          &Vars{},
 				DryRun:        true,
 				BackupPath:    "-",
 				BackupOutPath: "-",
@@ -50,6 +55,7 @@ func TestParseStateMv_valid(t *testing.T) {
 				"test_instance.bar",
 			},
 			&StateMv{
+				Vars:                &Vars{},
 				DryRun:              true,
 				BackupPath:          "backup.tfstate",
 				BackupOutPath:       "backup-out.tfstate",
@@ -64,14 +70,62 @@ func TestParseStateMv_valid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseStateMv(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			if *got != *tc.want {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseStateMv_vars(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want []FlagNameValue
+	}{
+		"var": {
+			args: []string{"-var", "foo=bar", "test_instance.foo", "test_instance.bar"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+			},
+		},
+		"var-file": {
+			args: []string{"-var-file", "cool.tfvars", "test_instance.foo", "test_instance.bar"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
+			},
+		},
+		"both": {
+			args: []string{
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
+				"test_instance.foo",
+				"test_instance.bar",
+			},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseStateMv(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected vars: %#v", vars)
 			}
 		})
 	}
@@ -86,6 +140,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 		"no arguments": {
 			nil,
 			&StateMv{
+				Vars:          &Vars{},
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
@@ -101,6 +156,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 		"one argument": {
 			[]string{"test_instance.foo"},
 			&StateMv{
+				Vars:          &Vars{},
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
@@ -117,6 +173,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"a", "b", "c"},
 			&StateMv{
+				Vars:          &Vars{},
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
@@ -134,6 +191,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-boop"},
 			&StateMv{
+				Vars:          &Vars{},
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
@@ -153,10 +211,12 @@ func TestParseStateMv_invalid(t *testing.T) {
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Vars{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, gotDiags := ParseStateMv(tc.args)
-			if *got != *tc.want {
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
 			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)

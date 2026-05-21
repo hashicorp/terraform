@@ -154,6 +154,7 @@ func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 
@@ -867,6 +868,7 @@ func (p *provider) PlanAction(_ context.Context, req *tfplugin5.PlanAction_Reque
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 
@@ -899,6 +901,7 @@ func (p *provider) InvokeAction(req *tfplugin5.InvokeAction_Request, server tfpl
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 

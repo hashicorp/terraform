@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Allow filesystem functions to return inconsistent results when evaluated within provider configuration
-time: 2025-11-03T11:20:34.913068-05:00
-custom:
-    Issue: "37854"

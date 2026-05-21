@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: Fixed a bug that prevented migrating resources under multiple layers of module nesting with implicit provider configuration.'
+time: 2026-05-05T18:15:49.425645-04:00
+custom:
+    Issue: "38528"

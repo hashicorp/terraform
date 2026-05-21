@@ -281,16 +281,27 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	t.Diagnostics(run, file, diags)
 
 	skipCleanup := run != nil && run.Config.SkipCleanup
-	if state.HasManagedResourceInstanceObjects() && !skipCleanup {
-		// FIXME: This message says "resources" but this is actually a list
-		// of resource instance objects.
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
-		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
-			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
-				continue
+	if state.HasManagedResourceInstanceObjects() {
+		if skipCleanup {
+			t.view.streams.Print(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier), t.view.outputColumns()))
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Printf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Printf("  - %s\n", resource.ResourceInstance)
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+		} else {
+			// FIXME: This message says "resources" but this is actually a list
+			// of resource instance objects.
+			t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			}
 		}
 	}
 }
@@ -612,30 +623,54 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 
 func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
 	skipCleanup := run != nil && run.Config.SkipCleanup
-	if state.HasManagedResourceInstanceObjects() && !skipCleanup {
-		cleanup := json.TestFileCleanup{}
-		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
-			cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{
-				Instance:   resource.ResourceInstance.String(),
-				DeposedKey: resource.DeposedKey.String(),
-			})
-		}
+	if state.HasManagedResourceInstanceObjects() {
+		if skipCleanup {
+			cleanup := json.TestFileCleanupSkipped{}
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				cleanup.SkippedResources = append(cleanup.SkippedResources, json.TestFailedResource{
+					Instance:   resource.ResourceInstance.String(),
+					DeposedKey: resource.DeposedKey.String(),
+				})
+			}
 
-		if run != nil {
-			t.view.log.Error(
-				fmt.Sprintf("Terraform left some resources in state after executing %s/%s, they need to be cleaned up manually.", file.Name, run.Name),
-				"type", json.MessageTestCleanup,
-				json.MessageTestCleanup, cleanup,
-				"@testfile", file.Name,
-				"@testrun", run.Name)
+			if run != nil {
+				t.view.log.Info(
+					fmt.Sprintf("Terraform left some resources in state after executing %s/%s because the skip_cleanup attribute was set.", file.Name, run.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			} else {
+				t.view.log.Info(
+					fmt.Sprintf("Terraform left some resources in state after executing %s because the skip_cleanup attribute was set.", file.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name)
+			}
 		} else {
-			t.view.log.Error(
-				fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
-				"type", json.MessageTestCleanup,
-				json.MessageTestCleanup, cleanup,
-				"@testfile", file.Name)
-		}
+			cleanup := json.TestFileCleanup{}
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{
+					Instance:   resource.ResourceInstance.String(),
+					DeposedKey: resource.DeposedKey.String(),
+				})
+			}
 
+			if run != nil {
+				t.view.log.Error(
+					fmt.Sprintf("Terraform left some resources in state after executing %s/%s, they need to be cleaned up manually.", file.Name, run.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			} else {
+				t.view.log.Error(
+					fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name)
+			}
+		}
 	}
 
 	t.Diagnostics(run, file, diags)

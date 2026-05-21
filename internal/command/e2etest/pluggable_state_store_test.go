@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -114,9 +115,6 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if !provider.ReadStateBytesCalled() {
 		t.Error("ReadStateBytes not called on un-managed provider")
 	}
-	if !provider.WriteStateBytesCalled() {
-		t.Error("WriteStateBytes not called on un-managed provider")
-	}
 	provider.ResetReadStateBytesCalled()
 	provider.ResetWriteStateBytesCalled()
 
@@ -211,12 +209,9 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-	fi, err := os.Stat(path.Join(tf.WorkDir(), workspaceDirName, "default", "terraform.tfstate"))
-	if err != nil {
-		t.Fatalf("failed to open default workspace's state file: %s", err)
-	}
-	if fi.Size() == 0 {
-		t.Fatal("default workspace's state file should not have size 0 bytes")
+	_, err = os.Stat(path.Join(tf.WorkDir(), workspaceDirName, "default", "terraform.tfstate"))
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("expected default workspace's state file to not exist, but it exists")
 	}
 
 	//// Create Workspace: terraform workspace new
@@ -229,7 +224,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 	if !strings.Contains(stdout, expectedMsg) {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
 	}
-	fi, err = os.Stat(path.Join(tf.WorkDir(), workspaceDirName, newWorkspace, "terraform.tfstate"))
+	fi, err := os.Stat(path.Join(tf.WorkDir(), workspaceDirName, newWorkspace, "terraform.tfstate"))
 	if err != nil {
 		t.Fatalf("failed to open %s workspace's state file: %s", newWorkspace, err)
 	}
@@ -248,13 +243,13 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 
 	//// Select Workspace: terraform workspace select
 	selectedWorkspace := "default"
-	stdout, stderr, err = tf.Run("workspace", "select", selectedWorkspace, "-no-color")
+	stdout, stderr, err = tf.Run("workspace", "select", "-or-create", selectedWorkspace, "-no-color")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-	expectedMsg = fmt.Sprintf("Switched to workspace %q.", selectedWorkspace)
+	expectedMsg = fmt.Sprintf("Created and switched to workspace %q!", selectedWorkspace)
 	if !strings.Contains(stdout, expectedMsg) {
-		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, stdout)
+		t.Errorf("unexpected output, expected %s, but got:\n%s", expectedMsg, stdout)
 	}
 
 	//// Show Workspace: terraform workspace show
@@ -640,13 +635,7 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstderr:\n%s", err, stderr)
 	}
-	fi, err := os.Stat(path.Join(tf.WorkDir(), workspaceDirName, "default", "terraform.tfstate"))
-	if err != nil {
-		t.Fatalf("failed to open default workspace's state file: %s", err)
-	}
-	if fi.Size() == 0 {
-		t.Fatal("default workspace's state file should not have size 0 bytes")
-	}
+	// Note: The default state was already created earlier in the test
 
 	//// Providers: `terraform providers`
 	stdout, stderr, err := tf.Run("providers", "-no-color")

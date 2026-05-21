@@ -656,6 +656,110 @@ func TestMigrate(t *testing.T) {
 				},
 			},
 		},
+		"deeply nested module resources with implicit provider configs": {
+			path: filepath.Join("for-stacks-migrate", "with-deeply-nested-module"),
+			state: func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "another",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+				ss.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "another",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+					},
+					mustDefaultRootProvider("testing"),
+				)
+			},
+			resources: map[string]string{
+				"testing_resource.data":       "component.parent.module.child_mod.module.grand_child_mod.testing_resource.grand_child_data",
+				"testing_resource.another[0]": "component.parent.module.child_mod.module.grand_child_mod.testing_resource.another_grand_child_data[0]",
+				"testing_resource.another[1]": "component.parent.module.child_mod.module.grand_child_mod.testing_resource.another_grand_child_data[1]",
+			},
+			expected: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.parent"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+					OutputValues:          map[addrs.OutputValue]cty.Value{},
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						{Name: "input"}: cty.DynamicVal,
+					},
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.module.child_mod.module.grand_child_mod.testing_resource.another_grand_child_data[0]"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.module.child_mod.module.grand_child_mod.testing_resource.another_grand_child_data[1]"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.module.child_mod.module.grand_child_mod.testing_resource.grand_child_data"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "hello",
+						}),
+						Status:  states.ObjectReady,
+						Private: nil,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+		},
 		"missing config resource": {
 			path: filepath.Join("for-stacks-migrate", "with-nested-module"),
 			state: func(ss *states.SyncState) {

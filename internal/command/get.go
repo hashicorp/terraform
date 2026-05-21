@@ -5,9 +5,9 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -18,16 +18,26 @@ type GetCommand struct {
 }
 
 func (c *GetCommand) Run(args []string) int {
-	var update bool
-	var testsDirectory string
+	parsedArgs, diags := arguments.ParseGet(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("get")
-	cmdFlags.BoolVar(&update, "update", false, "update")
-	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -35,15 +45,22 @@ func (c *GetCommand) Run(args []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	path, err := ModulePath(cmdFlags.Args())
+	path, err := ModulePath(nil)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
+	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	path = c.normalizePath(path)
 
-	abort, diags := getModules(ctx, &c.Meta, path, testsDirectory, update)
+	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update)
+	diags = diags.Append(moreDiags)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
@@ -75,7 +92,16 @@ Options:
 
   -no-color             Disable text coloring in the output.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -var 'foo=bar'        Set a value for one of the input variables in the root
+                        module of the configuration. Use this option more than
+                        once to set more than one variable.
+
+  -var-file=filename    Load variable values from the given file, in addition
+                        to the default files terraform.tfvars and *.auto.tfvars.
+                        Use this option more than once to include more than one
+                        variables file.
 
 `
 	return strings.TrimSpace(helpText)

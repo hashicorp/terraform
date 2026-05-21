@@ -62,6 +62,9 @@ func loadProviderSchema(providerAddr addrs.Provider, version getproviders.Versio
 	}
 
 	resp := provider.GetProviderSchema()
+	if err := provider.Close(); err != nil {
+		return providers.GetProviderSchemaResponse{}, fmt.Errorf("failed to close provider plugin: %w", err)
+	}
 	return resp, nil
 }
 
@@ -141,6 +144,7 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *depe
 
 	mrtSchemas := make(map[string]*dependencies.Schema, len(schemaResp.ResourceTypes))
 	drtSchemas := make(map[string]*dependencies.Schema, len(schemaResp.DataSources))
+	actionSchemas := make(map[string]*dependencies.ActionSchema, len(schemaResp.Actions))
 
 	for name, elem := range schemaResp.ResourceTypes {
 		mrtSchemas[name] = schemaElementToProto(elem)
@@ -148,17 +152,29 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *depe
 	for name, elem := range schemaResp.DataSources {
 		drtSchemas[name] = schemaElementToProto(elem)
 	}
+	for name, elem := range schemaResp.Actions {
+		actionSchemas[name] = actionElementToProto(elem)
+	}
 
 	return &dependencies.ProviderSchema{
 		ProviderConfig:       schemaElementToProto(schemaResp.Provider),
 		ManagedResourceTypes: mrtSchemas,
 		DataResourceTypes:    drtSchemas,
+		ActionTypes:          actionSchemas,
 	}
 }
 
 func schemaElementToProto(elem providers.Schema) *dependencies.Schema {
 	return &dependencies.Schema{
 		Block: schemaBlockToProto(elem.Body),
+	}
+}
+
+func actionElementToProto(elem providers.ActionSchema) *dependencies.ActionSchema {
+	return &dependencies.ActionSchema{
+		Schema: &dependencies.Schema{
+			Block: schemaBlockToProto(elem.ConfigSchema),
+		},
 	}
 }
 

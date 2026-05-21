@@ -161,25 +161,6 @@ func (n *NodeAbstractResourceInstance) SetOverride(override *configs.Override) {
 	n.override = override
 }
 
-// readDiff returns the planned change for a particular resource instance
-// object.
-func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.ProviderSchema) (*plans.ResourceInstanceChange, error) {
-	changes := ctx.Changes()
-	addr := n.ResourceInstanceAddr()
-
-	schema := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
-	if schema.Body == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
-	}
-
-	change := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
-
-	log.Printf("[TRACE] readDiff: Read %s change from plan for %s", change.Action, n.Addr)
-
-	return change, nil
-}
-
 func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	if change == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil
@@ -755,12 +736,15 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema.Body)
-	if !newState.RawEquals(resp.NewState) {
-		// We had to fix up this object in some way, and we still need to
-		// accept any changes for compatibility, so all we can do is log a
-		// warning about the change.
-		log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks for %q during refresh\n", n.ResolvedProvider.Provider, n.Addr)
+	newState := resp.NewState
+	if !schema.Body.AssertNoLegacyBehavior() {
+		newState = objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema.Body)
+		if !newState.RawEquals(resp.NewState) {
+			// We had to fix up this object in some way, and we still need to
+			// accept any changes for compatibility, so all we can do is log a
+			// warning about the change.
+			log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks for %q during refresh\n", n.ResolvedProvider.Provider, n.Addr)
+		}
 	}
 
 	ret := state.DeepCopy()
@@ -816,7 +800,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// If we're importing and generating config, generate it now.
-	if n.Config == nil {
+	if n.Config == nil && n.generateConfigPath == "" {
 		// This shouldn't happen. A node that isn't generating config should
 		// have embedded config, and the rest of Terraform should enforce this.
 		// If, however, we didn't do things correctly the next line will panic,
@@ -835,10 +819,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	if n.preDestroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
-
+	var plannedPrivate []byte
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
+
+		plannedPrivate = plannedChange.Private
 	}
 
 	// Evaluate the configuration
@@ -947,6 +933,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
 	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
 
+	// remove computable block values from config
+	unmarkedConfigVal = objchange.PrepareComputedBlocks(schema.Body, unmarkedConfigVal)
+
 	proposedNewVal := objchange.ProposedNew(schema.Body, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
@@ -984,13 +973,14 @@ func (n *NodeAbstractResourceInstance) plan(
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:           n.Addr.Resource.Resource.Type,
-			Config:             unmarkedConfigVal,
+			Config:             objchange.PrepareComputedBlocks(schema.Body, unmarkedConfigVal),
 			PriorState:         unmarkedPriorVal,
 			ProposedNewState:   proposedNewVal,
 			PriorPrivate:       priorPrivate,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
 			PriorIdentity:      priorIdentity,
+			PlannedPrivate:     plannedPrivate,
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -1012,7 +1002,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	plannedNewVal := resp.PlannedState
-	plannedPrivate := resp.PlannedPrivate
+	plannedPrivate = resp.PlannedPrivate
 	plannedIdentity := resp.PlannedIdentity
 
 	// These checks are only relevant if the provider is not deferring the
@@ -1171,6 +1161,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			unmarkedConfigVal, _ = origConfigVal.UnmarkDeep()
 		}
 
+		// remove computable block values from config
+		unmarkedConfigVal = objchange.PrepareComputedBlocks(schema.Body, unmarkedConfigVal)
+
 		// create a new proposed value from the null state and the config
 		proposedNewVal = objchange.ProposedNew(schema.Body, nullPriorVal, unmarkedConfigVal)
 
@@ -1189,7 +1182,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 				TypeName:           n.Addr.Resource.Resource.Type,
-				Config:             unmarkedConfigVal,
+				Config:             objchange.PrepareComputedBlocks(schema.Body, unmarkedConfigVal),
 				PriorState:         nullPriorVal,
 				ProposedNewState:   proposedNewVal,
 				PriorPrivate:       plannedPrivate,

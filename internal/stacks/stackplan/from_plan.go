@@ -37,6 +37,9 @@ type PlanProducer interface {
 
 	// ResourceSchema returns the schema for a resource type from a provider.
 	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (providers.Schema, error)
+
+	// ActionSchema returns the schema for an action type from a provider.
+	ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error)
 }
 
 func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, refreshPlan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
@@ -172,6 +175,62 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 			ResourceInstancePlanned: plannedChangeResourceInstance,
 		})
 		seenObjects.Add(objAddr)
+	}
+
+	// Handle action invocations from the plan
+	for _, actionChange := range plan.Changes.ActionInvocations {
+		schema, err := producer.ActionSchema(
+			ctx,
+			actionChange.ProviderAddr.Provider,
+			actionChange.Addr.Action.Action.Type,
+		)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Can't fetch provider schema to save plan",
+				fmt.Sprintf(
+					"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+					actionChange.Addr, actionChange.ProviderAddr.Provider, err,
+				),
+			))
+			continue
+		}
+
+		changes = append(changes, &PlannedChangeActionInvocationInstancePlanned{
+			ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
+				Component: producer.Addr(),
+				Item:      actionChange.Addr,
+			},
+			Invocation:         actionChange,
+			Schema:             schema,
+			ProviderConfigAddr: actionChange.ProviderAddr,
+		})
+	}
+
+	// Handle deferred action invocations from the plan
+	for _, deferredAction := range plan.DeferredActionInvocations {
+		invocation := deferredAction.ActionInvocationInstanceSrc
+
+		if invocation == nil {
+			continue
+		}
+
+		// For deferred actions, the provider address is typically empty because
+		// actions are deferred before being fully evaluated. We create the planned
+		// change without schema since we can't fetch it without a provider address.
+		plannedActionInvocation := PlannedChangeActionInvocationInstancePlanned{
+			ActionInvocationAddr: stackaddrs.AbsActionInvocationInstance{
+				Component: producer.Addr(),
+				Item:      invocation.Addr,
+			},
+			Invocation:         invocation,
+			Schema:             providers.ActionSchema{}, // Empty schema for deferred actions
+			ProviderConfigAddr: invocation.ProviderAddr,  // Will be empty, that's expected
+		}
+		changes = append(changes, &PlannedChangeDeferredActionInvocation{
+			DeferredReason:          deferredAction.DeferredReason,
+			ActionInvocationPlanned: plannedActionInvocation,
+		})
 	}
 
 	// We also need to catch any objects that exist in the "prior state"

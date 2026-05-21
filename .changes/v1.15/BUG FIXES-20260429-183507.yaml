@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix non-const variable checks on `init`
+time: 2026-04-29T18:35:07.99622+02:00
+custom:
+    Issue: "38470"

@@ -161,29 +161,60 @@ configuration or state have been made.`, initReason)
 	)
 }
 
+// errBackendToStateStoreInitDiag is a variation of errBackendInitDiag specific to when
+// migrating from a backend to a state store. Text needs to resemble the old backend-specific diagnostic,
+// but the recommended actions are different (using new terraform state migrate command).
+func errBackendToStateStoreInitDiag(initReason string) tfdiags.Diagnostic {
+	msg := fmt.Sprintf(`Reason: %s
+
+The "backend" is the interface that Terraform uses to store state,
+perform operations, etc. If this message is showing up, it means that the
+Terraform configuration you're using is using a custom configuration for
+the Terraform backend.
+
+Changes to backend configurations require reinitialization. This allows
+Terraform to set up the new configuration, copy existing state, etc. Please run
+"terraform state migrate" to migrate existing state to the new state store,
+or run "terraform init -reconfigure" to use the current configuration without
+migrating existing state.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.`, initReason)
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Backend initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+		msg,
+	)
+}
+
 type ssInitReason struct {
-	Reason  string
-	Subject *hcl.Range
+	MigrationNeeded bool
+	Reason          string
+	Subject         *hcl.Range
 }
 
 // errStateStoreInitDiag creates a diagnostic to present to users when
 // users attempt to run a non-init command after making a change to their
 // state_store configuration.
 func errStateStoreInitDiag(ir *ssInitReason) tfdiags.Diagnostics {
-	var msg string
-	if ir != nil {
-		msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
+	if ir == nil {
+		panic("errStateStoreInitDiag requires a non-nil reason argument")
 	}
 
-	msg += `The "state store" is the interface that Terraform uses to store state when
-performing operations on the local machine. If this message is showing up,
-it means that the Terraform configuration you're using is using a custom
-configuration for state storage in Terraform.
+	var msg string
+	msg += fmt.Sprintf("Reason: %s\n\n", ir.Reason)
 
-Changes to state store configurations require reinitialization. This allows
-Terraform to set up the new configuration, copy existing state, etc. Please run
-"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
-use the current configuration.
+	msg += `A "state store" is an interface that Terraform uses to store state.
+Changes to state store configurations require reinitialization, and a
+decision whether to migrate any existing state or not.
+
+If you want to migrate existing state using the current configuration,
+please run "terraform state migrate".
+
+If you don't want to migrate existing state and just reconfigure how state is
+stored using the current configuration, please run "terraform init -reconfigure".
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
@@ -191,11 +222,19 @@ configuration or state have been made.`
 
 	var diags tfdiags.Diagnostics
 
-	if ir != nil && ir.Subject != nil {
+	var summary string
+	if ir.MigrationNeeded {
+		summary = "State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\""
+	} else {
+		// When no migration is needed we're just initializing a state store for the first time.
+		summary = "State store initialization required, please run \"terraform init\""
+	}
+
+	if ir.Subject != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Subject:  ir.Subject,
 			Severity: hcl.DiagError,
-			Summary:  "State store initialization required, please run \"terraform init\"",
+			Summary:  summary,
 			Detail:   msg,
 		})
 		return diags
@@ -203,7 +242,7 @@ configuration or state have been made.`
 
 	diags = diags.Append(tfdiags.Sourceless(
 		tfdiags.Error,
-		"State store initialization required, please run \"terraform init\"",
+		summary,
 		msg,
 	))
 
@@ -280,23 +319,6 @@ If the backend already contains existing workspaces, you may need to update
 the backend configuration.`
 }
 
-func errStateStoreWorkspaceCreateDiag(innerError error, storeType string) tfdiags.Diagnostic {
-	msg := fmt.Sprintf(`Error creating the default workspace using pluggable state store %s: %s
-
-This could be a bug in the provider used for state storage, or a bug in
-Terraform. Please file an issue with the provider developers before reporting
-a bug for Terraform.`,
-		storeType,
-		innerError,
-	)
-
-	return tfdiags.Sourceless(
-		tfdiags.Error,
-		"Cannot create the default workspace",
-		msg,
-	)
-}
-
 // migrateOrReconfigDiag creates a diagnostic to present to users when
 // an init command encounters a mismatch in backend state and the current config
 // and Terraform needs users to provide additional instructions about how Terraform
@@ -305,31 +327,5 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
-		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
-		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
-
-// migrateOrReconfigStateStoreDiag creates a diagnostic to present to users when
-// an init command encounters a mismatch in state store config state and the current config
-// and Terraform needs users to provide additional instructions about how it
-// should proceed.
-var migrateOrReconfigStateStoreDiag = tfdiags.Sourceless(
-	tfdiags.Error,
-	"State store configuration changed",
-	"A change in the state store configuration has been detected, which may require migrating existing state.\n\n"+
-		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
-		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
-
-// errStateStoreClearSaved is a custom error used to alert users that
-// Terraform failed to empty the state store state file's contents.
-type errStateStoreClearSaved struct {
-	innerError error
-}
-
-func (e *errStateStoreClearSaved) Error() string {
-	return fmt.Sprintf(`Error clearing the state store configuration: %s
-
-Terraform removes the saved state store configuration when you're removing a
-configured state store. This must be done so future Terraform runs know to not
-use the state store configuration. Please look at the error above, resolve it,
-and try again.`, e.innerError)
-}
+		"If you wish to attempt automatic migration of the state, run \"terraform init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, run "terraform init -reconfigure".`)

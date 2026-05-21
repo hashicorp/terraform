@@ -11,5 +11,6 @@ func ClientCapabilities() providers.ClientCapabilities {
 	return providers.ClientCapabilities{
 		DeferralAllowed:            true,
 		WriteOnlyAttributesAllowed: true,
+		ComputedBlocksAllowed:      true,
 	}
 }

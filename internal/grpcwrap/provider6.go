@@ -1196,6 +1196,7 @@ func (p *provider6) PlanAction(_ context.Context, req *tfplugin6.PlanAction_Requ
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 
@@ -1228,6 +1229,7 @@ func (p *provider6) InvokeAction(req *tfplugin6.InvokeAction_Request, server tfp
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 

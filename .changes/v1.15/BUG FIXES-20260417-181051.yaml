@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix `validate` not returning JSON for some early diagnostics
+time: 2026-04-17T18:10:51.004741+02:00
+custom:
+    Issue: "38400"

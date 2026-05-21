@@ -545,10 +545,6 @@ func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceabl
 			return m.mapKey(path, ri.ContainingResource())
 		}
 
-		if rip, ok := addr.(addrs.ResourceInstancePhase); ok {
-			return m.mapKey(path, rip.ContainingResource())
-		}
-
 		if mcio, ok := addr.(addrs.ModuleCallInstanceOutput); ok {
 
 			// A module call instance output is a reference to an output of a

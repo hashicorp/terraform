@@ -833,6 +833,30 @@ Error: first error
 this time it is very bad
 `,
 		},
+		"state_with_skip_cleanup": {
+			run:  &moduletest.Run{Name: "run_block", Config: &configs.TestRun{SkipCleanup: true}},
+			file: &moduletest.File{Name: "main.tftest.hcl"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			stdout: `
+Terraform left the following resources in state after executing
+main.tftest.hcl/run_block because the skip_cleanup attribute was set:
+  - test.foo
+`,
+		},
 		"state_only_warnings": {
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Warning, "first warning", "some thing not very bad happened"),
@@ -1973,6 +1997,42 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 					"@testrun":  "run_block",
 					"test_cleanup": map[string]interface{}{
 						"failed_resources": []interface{}{
+							map[string]interface{}{
+								"instance": "test.foo",
+							},
+						},
+					},
+					"type": "test_cleanup",
+				},
+			},
+		},
+		"state_from_run_skip_cleanup": {
+			file: &moduletest.File{Name: "main.tftest.hcl"},
+			run:  &moduletest.Run{Name: "run_block", Config: &configs.TestRun{SkipCleanup: true}},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "Terraform left some resources in state after executing main.tftest.hcl/run_block because the skip_cleanup attribute was set.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest.hcl",
+					"@testrun":  "run_block",
+					"test_cleanup": map[string]interface{}{
+						"skipped_resources": []interface{}{
 							map[string]interface{}{
 								"instance": "test.foo",
 							},

@@ -108,6 +108,7 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 		ClientCapabilities: providers.ClientCapabilities{
 			DeferralAllowed:            ctx.deferralAllowed,
 			WriteOnlyAttributesAllowed: true,
+			ComputedBlocksAllowed:      true,
 		},
 	})
 

@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
@@ -29,7 +28,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		t.Fatal("expected empty result from empty config")
 	}
 
-	cfg, diags := testModuleFromFileWithExperiments("testdata/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleCfgFromFileWithExperiments("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}

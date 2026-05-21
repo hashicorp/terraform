@@ -141,8 +141,8 @@ func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 				},
 			}
 			got := node.Provider()
-			if got != test.Want {
-				t.Errorf("wrong result\naddr:  %s\nconfig: %#v\ngot:   %s\nwant:  %s", test.Addr, test.Config, got, test.Want)
+			if got.FQN() != test.Want {
+				t.Errorf("wrong result\naddr:  %s\nconfig: %#v\ngot:   %s\nwant:  %s", test.Addr, test.Config, got.FQN(), test.Want)
 			}
 		})
 	}

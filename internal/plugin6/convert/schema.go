@@ -195,6 +195,7 @@ func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
 		DescriptionKind:    schemaStringKind(b.DescriptionKind),
 		Deprecated:         b.Deprecated,
 		DeprecationMessage: b.DeprecationMessage,
+		Computed:           b.Computed,
 	}
 
 	for _, a := range b.Attributes {

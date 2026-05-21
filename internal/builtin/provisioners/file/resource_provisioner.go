@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/communicator"
@@ -125,22 +124,28 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	return resp
 }
 
-// getSrc returns the file to use as source
+// getSrc returns the file to use as source.
+//
+// If the "content" attribute is set, a temporary file with that content will be created and used.
+// This temporary file needs to be deleted by the caller after the copying process is complete.
+// The boolean return value indicates whether the caller needs to do this.
 func getSrc(v cty.Value) (string, bool, error) {
 	content := v.GetAttr("content")
 	src := v.GetAttr("source")
 
 	switch {
 	case !content.IsNull():
-		file, err := ioutil.TempFile("", "tf-file-content")
+		file, err := os.CreateTemp("", "tf-file-content")
 		if err != nil {
 			return "", true, err
 		}
 
 		if _, err = file.WriteString(content.AsString()); err != nil {
+			file.Close()
 			return "", true, err
 		}
 
+		file.Close()
 		return file.Name(), true, nil
 
 	case !src.IsNull():

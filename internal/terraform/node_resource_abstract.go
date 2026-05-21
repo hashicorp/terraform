@@ -293,27 +293,36 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
+func (n *NodeAbstractResource) Provider() ProviderRef {
 	// Once the provider is fully resolved, we can return the known value.
 	if n.ResolvedProvider.Provider.Type != "" {
-		return n.ResolvedProvider, true
+		return ProviderRef{
+			addr:     n.ResolvedProvider,
+			resolved: true,
+		}
 	}
 
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
-		relAddr := n.Config.ProviderConfigAddr()
-		return addrs.LocalProviderConfig{
-			LocalName: relAddr.LocalName,
-			Alias:     relAddr.Alias,
-		}, false
+		return ProviderRef{
+			addr: addrs.AbsProviderConfig{
+				Provider: n.Config.Provider,
+				Alias:    n.Config.ProviderConfigAddr().Alias,
+				Module:   n.ModulePath(),
+			},
+		}
 	}
 
 	// See if we have a valid provider config from the state.
 	if n.storedProviderConfig.Provider.Type != "" {
-		// An address from the state must match exactly, since we must ensure
-		// we refresh/destroy a resource with the same provider configuration
-		// that created it.
-		return n.storedProviderConfig, true
+		// An address from the state must match exactly, since we must ensure we
+		// refresh/destroy a resource with the same provider configuration that
+		// created it. Since we have no config, and no ResolvedProvider, the
+		// provider from the state counts as it being fully resolved.
+		return ProviderRef{
+			addr:     n.storedProviderConfig,
+			resolved: true,
+		}
 	}
 
 	// We might have an import target that is providing a specific provider,
@@ -324,39 +333,26 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 		// of them should be. They should also all have the same provider, so it
 		// shouldn't matter which we check here, as they'll all give the same.
 		if n.importTargets[0].Config != nil && n.importTargets[0].Config.ProviderConfigRef != nil {
-			return addrs.LocalProviderConfig{
-				LocalName: n.importTargets[0].Config.ProviderConfigRef.Name,
-				Alias:     n.importTargets[0].Config.ProviderConfigRef.Alias,
-			}, false
+			ref := ProviderRef{
+				addr: addrs.AbsProviderConfig{
+					Provider: n.importTargets[0].Config.Provider,
+					Alias:    n.importTargets[0].Config.ProviderConfigRef.Alias,
+					Module:   n.ModulePath(),
+				},
+			}
+
+			ref.addr.Alias = n.importTargets[0].Config.ProviderConfigRef.Alias
+			return ref
 		}
 	}
 
 	// No provider configuration found; return a default address
-	return addrs.AbsProviderConfig{
-		Provider: n.Provider(),
-		Module:   n.ModulePath(),
-	}, false
-}
-
-// GraphNodeProviderConsumer
-func (n *NodeAbstractResource) Provider() addrs.Provider {
-	if n.Config != nil {
-		return n.Config.Provider
+	return ProviderRef{
+		addr: addrs.AbsProviderConfig{
+			Provider: addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider()),
+			Module:   n.ModulePath(),
+		},
 	}
-	if n.storedProviderConfig.Provider.Type != "" {
-		return n.storedProviderConfig.Provider
-	}
-
-	if len(n.importTargets) > 0 {
-		// The import targets should either all be defined via config or none
-		// of them should be. They should also all have the same provider, so it
-		// shouldn't matter which we check here, as they'll all give the same.
-		if n.importTargets[0].Config != nil {
-			return n.importTargets[0].Config.Provider
-		}
-	}
-
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer

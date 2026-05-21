@@ -346,14 +346,9 @@ func (m *migration) findProviderConfig(source addrs.AbsResourceInstance, module 
 		}
 	}
 
-	// if we reach here, then the provider was not passed to the module call.
-	// Let's check the provider within the child module configuration.
-	r := next.Module.ResourceByAddr(resource)
-	if r == nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource mapped to non-existent target", fmt.Sprintf("Could not migrate resource %q. Resource %q not found component %q.", source, resource.InModule(module), component)))
-		return addrs.LocalProviderConfig{}, diags
-	}
-	return r.ProviderConfigAddr(), diags
+	// if we reach here, then the provider was not explicitly passed to the module call
+	// so we can just return the provider config determined by the resource.
+	return provider, diags
 }
 
 // loadConfig loads the module and component configuration from the stack directory.

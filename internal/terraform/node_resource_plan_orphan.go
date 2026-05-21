@@ -66,12 +66,14 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	}
 }
 
-func (n *NodePlannableResourceInstanceOrphan) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *NodePlannableResourceInstanceOrphan) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
-		return nil, true
+		p := n.NodeAbstractResourceInstance.Provider()
+		p.NoProvider = true
+		return p
 	}
-	return n.NodeAbstractResourceInstance.ProvidedBy()
+	return n.NodeAbstractResourceInstance.Provider()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {

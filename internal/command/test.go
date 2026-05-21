@@ -321,6 +321,57 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		return
 	}
 
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	registerFileSource := func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	}
+
+	// Collect variables for "terraform test"
+	preparation.TestVariables, moreDiags = arguments.CollectValuesForTests(preparation.Args.TestDirectory, registerFileSource)
+	diags = diags.Append(moreDiags)
+
+	// Collect variable values and add them to the operation request.
+	// We must collect these before loading config, because
+	// loadConfigWithTests needs const variable values available in
+	// m.VariableValues to resolve dynamic module sources.
+	var varDiags tfdiags.Diagnostics
+	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(registerFileSource)
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+
+	// Only populate m.VariableValues with variables that are declared
+	// as const in the root module. loadConfigWithTests uses
+	// m.VariableValues to resolve dynamic module sources via
+	// ParseConstVariableValues, which would otherwise error on
+	// undeclared variables passed via -var that are intended for
+	// test runs rather than the root module.
+	//
+	// We do an early load of just the root module to discover which
+	// variables are const. We discard non-error diagnostics from this
+	// early load since loadConfigWithTests will re-parse and report them.
+	earlyMod, earlyDiags := m.loadSingleModuleWithTests(".", preparation.Args.TestDirectory)
+	if earlyDiags.HasErrors() {
+		diags = diags.Append(earlyDiags)
+		view.Diagnostics(nil, nil, diags)
+		return
+	}
+	constVars := make(map[string]arguments.UnparsedVariableValue)
+	for name, val := range preparation.Variables {
+		if decl, exists := earlyMod.Variables[name]; exists && decl.Const {
+			constVars[name] = val
+		}
+	}
+	m.VariableValues = constVars
+
 	preparation.Config, moreDiags = m.loadConfigWithTests(".", preparation.Args.TestDirectory)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -373,30 +424,6 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	}
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return
-	}
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(nil, nil, diags)
-		return
-	}
-
-	registerFileSource := func(filename string, src []byte) {
-		loader.Parser().ForceFileSource(filename, src)
-	}
-
-	// Collect variables for "terraform test"
-	preparation.TestVariables, moreDiags = arguments.CollectValuesForTests(preparation.Args.TestDirectory, registerFileSource)
-	diags = diags.Append(moreDiags)
-
-	// Collect variable value and add them to the operation request
-	var varDiags tfdiags.Diagnostics
-	preparation.Variables, varDiags = preparation.Args.Vars.CollectValues(registerFileSource)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return
 	}

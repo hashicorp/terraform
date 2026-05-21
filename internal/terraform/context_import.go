@@ -22,12 +22,17 @@ type ImportOpts struct {
 	SetVariables InputValues
 }
 
-// ImportTarget is a single resource to import,
-// in legacy (CLI) import mode.
+// ImportTarget is a single resource to import.
 type ImportTarget struct {
 	// Config is the original import block for this import. This might be null
 	// if the import did not originate in config.
 	Config *configs.Import
+
+	// The RelModule contains the module that the original import block was
+	// configured in, while the Config.ToResource is relative to the module it was in.
+	// We re-evaluate the Config.To (hcl.Expression) during plan, so this needs to be stored.
+	RelModule           addrs.Module
+	AbsToConfigResource addrs.ConfigResource
 
 	// LegacyAddr is the import address set from the command line arguments
 	// when using the import command.

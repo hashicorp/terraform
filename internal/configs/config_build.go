@@ -362,15 +362,6 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 		})
 	}
 
-	if len(mod.Import) > 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid import configuration",
-			Detail:   fmt.Sprintf("An import block was detected in %q. Import blocks are only allowed in the root module.", cfg.Path),
-			Subject:  mod.Import[0].DeclRange.Ptr(),
-		})
-	}
-
 	if len(mod.ListResources) > 0 {
 		first := slices.Collect(maps.Values(mod.ListResources))[0]
 		diags = diags.Append(&hcl.Diagnostic{

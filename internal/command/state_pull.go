@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StatePullCommand is a Command implementation that allows downloading
@@ -21,9 +22,25 @@ type StatePullCommand struct {
 }
 
 func (c *StatePullCommand) Run(args []string) int {
-	_, diags := arguments.ParseStatePull(c.Meta.process(args))
+	parsedArgs, diags := arguments.ParseStatePull(c.Meta.process(args))
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
+		return 1
+	}
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
 		return 1
 	}
 
@@ -89,6 +106,17 @@ Usage: terraform [global options] state pull [options]
 
   The primary use of this is for state stored remotely. This command
   will still work with local state but is less useful for this.
+
+Options:
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 
 `
 	return strings.TrimSpace(helpText)

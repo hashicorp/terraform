@@ -322,7 +322,7 @@ func TestBase64TextDecode(t *testing.T) {
 			cty.StringVal("<invalid base64>"),
 			cty.StringVal("cp437"),
 			cty.UnknownVal(cty.String).RefineNotNull(),
-			`the given value is has an invalid base64 symbol at offset 0`,
+			`the given value has an invalid base64 symbol at offset 0`,
 		},
 		{
 			cty.StringVal("gQ=="), // this is 0x81, which is not defined in windows-1250

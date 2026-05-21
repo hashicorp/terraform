@@ -5,7 +5,6 @@ package localexec
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -17,7 +16,9 @@ import (
 )
 
 func TestResourceProvider_Apply(t *testing.T) {
-	defer os.Remove("test_out")
+	td := t.TempDir()
+	t.Chdir(td)
+
 	output := cli.NewMockUi()
 	p := New()
 	schema := p.GetSchema().Provisioner
@@ -38,7 +39,7 @@ func TestResourceProvider_Apply(t *testing.T) {
 	}
 
 	// Check the file
-	raw, err := ioutil.ReadFile("test_out")
+	raw, err := os.ReadFile("test_out")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -131,10 +132,16 @@ is not really an interpreter`
 	}
 }
 
+// The provisioner can be configured to use a directory other than the current working directory.
 func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
+	// Avoid refactoring to using t.TempDir here; t.TempDir creates a symlink to the actual temp directory and there's a mismatch
+	// between the path returned by t.TempDir (symlink) and the path returned by the `pwd` command (actual path).
+	// This occurs on macOS.
+	//
+	// So, continue to create a directory in this test's directory and avoid symlinks.
 	testdir := "working_dir_test"
 	os.Mkdir(testdir, 0755)
-	defer os.Remove(testdir)
+	t.Cleanup(func() { os.Remove(testdir) })
 
 	output := cli.NewMockUi()
 	p := New()
@@ -239,7 +246,6 @@ func TestResourceProvisioner_nullsInOptionals(t *testing.T) {
 		}),
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-
 			cfg, err := schema.CoerceValue(cfg)
 			if err != nil {
 				t.Fatal(err)

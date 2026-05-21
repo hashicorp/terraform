@@ -237,11 +237,7 @@ func (n *nodeEphemeralResourceClose) Execute(ctx EvalContext, op walkOperation) 
 	return resources.CloseInstances(ctx.StopCtx(), n.addr)
 }
 
-func (n *nodeEphemeralResourceClose) ProvidedBy() (addrs.ProviderConfig, bool) {
-	return n.resourceNode.ProvidedBy()
-}
-
-func (n *nodeEphemeralResourceClose) Provider() addrs.Provider {
+func (n *nodeEphemeralResourceClose) Provider() ProviderRef {
 	return n.resourceNode.Provider()
 }
 

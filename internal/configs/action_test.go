@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -66,7 +67,16 @@ func TestDecodeActionBlock(t *testing.T) {
 }
 
 func TestDecodeActionTriggerBlock(t *testing.T) {
-	conditionExpr := hcltest.MockExprLiteral(cty.True)
+	trueConditionExpr := hcltest.MockExprLiteral(cty.True)
+	countExpr, hclDiags := hclsyntax.ParseExpression([]byte("test_resource.a[count.index]"), "", hcl.InitialPos)
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags)
+	}
+	eachExpr, hclDiags := hclsyntax.ParseExpression([]byte("test_resource.a[each.key]"), "", hcl.InitialPos)
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags)
+	}
+
 	eventsListExpr := hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("after_create"), hcltest.MockExprTraversalSrc("after_update")})
 
 	fooActionExpr := hcltest.MockExprTraversalSrc("action.action_type.foo")
@@ -87,14 +97,14 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": conditionExpr,
+						"condition": trueConditionExpr,
 						"events":    eventsListExpr,
 						"actions":   fooAndBarExpr,
 					}),
 				}),
 			},
 			&ActionTrigger{
-				Condition: conditionExpr,
+				Condition: trueConditionExpr,
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
 				Actions: []ActionRef{
 					{
@@ -114,14 +124,14 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": conditionExpr,
+						"condition": trueConditionExpr,
 						"events":    eventsListExpr,
 						"actions":   hcltest.MockExprList([]hcl.Expression{moduleActionExpr}),
 					}),
 				}),
 			},
 			&ActionTrigger{
-				Condition: conditionExpr,
+				Condition: trueConditionExpr,
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
 				Actions: []ActionRef{
 					{
@@ -140,14 +150,14 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": conditionExpr,
+						"condition": trueConditionExpr,
 						"events":    eventsListExpr,
 						"actions":   hcltest.MockExprList([]hcl.Expression{fooDataSourceExpr}),
 					}),
 				}),
 			},
 			&ActionTrigger{
-				Condition: conditionExpr,
+				Condition: trueConditionExpr,
 				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
 				Actions: []ActionRef{
 					{
@@ -166,14 +176,14 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": conditionExpr,
+						"condition": trueConditionExpr,
 						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("not_an_event")}),
 						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
 					}),
 				}),
 			},
 			&ActionTrigger{
-				Condition: conditionExpr,
+				Condition: trueConditionExpr,
 				Events:    []ActionTriggerEvent{},
 				Actions: []ActionRef{
 					{
@@ -187,20 +197,19 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				":0,0-0: No events specified; At least one event must be specified for an action_trigger.",
 			},
 		},
-
 		"error - duplicate event": {
 			&hcl.Block{
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": conditionExpr,
+						"condition": trueConditionExpr,
 						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("before_create"), hcltest.MockExprTraversalSrc("before_create")}),
 						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
 					}),
 				}),
 			},
 			&ActionTrigger{
-				Condition: conditionExpr,
+				Condition: trueConditionExpr,
 				Events:    []ActionTriggerEvent{BeforeCreate},
 				Actions: []ActionRef{
 					{
@@ -211,6 +220,81 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			},
 			[]string{
 				`MockExprTraversal:0,0-13: Duplicate "before_create" event; The event is already defined in this action_trigger block.`,
+			},
+		},
+		"error - condition references self": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition": hcltest.MockExprTraversalSrc("self.id"),
+						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("before_create"), hcltest.MockExprTraversalSrc("after_create")}),
+						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: hcltest.MockExprTraversalSrc("self.id"),
+				Events:    []ActionTriggerEvent{BeforeCreate, AfterCreate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`MockExprTraversal:0,0-7: Self reference not allowed; The condition expression cannot reference "self".`,
+			},
+		},
+		"error - condition uses count.index and includes before_event": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition": countExpr,
+						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("before_create"), hcltest.MockExprTraversalSrc("after_create")}),
+						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: countExpr,
+				Events:    []ActionTriggerEvent{BeforeCreate, AfterCreate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`:1,1-29: Count reference not allowed; The condition expression cannot reference "count" if the action is run before the resource is applied.`,
+			},
+		},
+		"error - condition uses each.value and includes before_event": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition": eachExpr,
+						"events":    hcltest.MockExprList([]hcl.Expression{hcltest.MockExprTraversalSrc("before_create"), hcltest.MockExprTraversalSrc("after_create")}),
+						"actions":   hcltest.MockExprList([]hcl.Expression{fooActionExpr}),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: eachExpr,
+				Events:    []ActionTriggerEvent{BeforeCreate, AfterCreate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`:1,1-26: Each reference not allowed; The condition expression cannot reference "each" if the action is run before the resource is applied.`,
 			},
 		},
 	}

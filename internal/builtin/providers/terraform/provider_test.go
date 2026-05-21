@@ -42,12 +42,14 @@ func TestMoveResourceState_DataStore(t *testing.T) {
 		t.Errorf("unexpected diagnostics: %s", resp.Diagnostics.Err())
 	}
 
-	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
-		"id":               cty.StringVal("test"),
-		"input":            cty.NullVal(cty.DynamicPseudoType),
-		"output":           cty.NullVal(cty.DynamicPseudoType),
-		"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
-	})
+	expected, err := dataStoreResourceSchema().Body.CoerceValue(cty.EmptyObjectVal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedMap := expected.AsValueMap()
+
+	expectedMap["id"] = cty.StringVal("test")
+	expectedTargetState := cty.ObjectVal(expectedMap)
 
 	if !resp.TargetState.RawEquals(expectedTargetState) {
 		t.Errorf("expected state was:\n%#v\ngot state is:\n%#v\n", expectedTargetState, resp.TargetState)

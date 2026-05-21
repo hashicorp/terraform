@@ -14,6 +14,9 @@ type StateShow struct {
 
 	// Address is the resource instance address to show.
 	Address string
+
+	// ViewType specifies which output format to use: human or JSON are supported
+	ViewType ViewType
 }
 
 // ParseStateShow processes CLI arguments, returning a StateShow value and
@@ -21,11 +24,14 @@ type StateShow struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateShow(args []string) (*StateShow, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	show := &StateShow{}
+	show := &StateShow{ViewType: ViewHuman}
 
 	var statePath string
 	cmdFlags := defaultFlagSet("state show")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
+
+	var jsonOutput bool
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -45,6 +51,9 @@ func ParseStateShow(args []string) (*StateShow, tfdiags.Diagnostics) {
 	}
 
 	show.StatePath = statePath
+	if jsonOutput {
+		show.ViewType = ViewJSON
+	}
 
 	if len(args) > 0 {
 		show.Address = args[0]

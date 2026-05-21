@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: Providers can now use nested blocks as computed values
+time: 2026-03-26T12:44:26.231549-04:00
+custom:
+    Issue: "38305"

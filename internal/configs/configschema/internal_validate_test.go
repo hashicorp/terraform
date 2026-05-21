@@ -335,6 +335,38 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"bad: NestingSet attributes may not contain WriteOnly attributes"},
 		},
+
+		"nested computed block with non-computed attr": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"partial": &NestedBlock{
+						Block: Block{
+							Computed: true,
+							Attributes: map[string]*Attribute{
+								"required": {Type: cty.String, Required: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+
+							BlockTypes: map[string]*NestedBlock{
+								"nested": &NestedBlock{
+									Block: Block{
+										Attributes: map[string]*Attribute{
+											"optional": {Type: cty.String, Optional: true},
+										},
+									},
+									Nesting: NestingList,
+								},
+							},
+						},
+						Nesting: NestingList,
+					},
+				},
+			},
+			[]string{
+				`partial.required: all attributes within computed blocks must also be computed`,
+				`partial.nested: all nested blocks within computed blocks must also be computed`,
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -460,10 +492,15 @@ func joinedErrors(err error) []error {
 		Unwrap() []error
 	}
 
+	var res []error
+
 	switch terr := err.(type) {
 	case Unwrapper:
-		return terr.Unwrap()
+		for _, err := range terr.Unwrap() {
+			res = append(res, joinedErrors(err)...)
+		}
 	default:
 		return []error{err}
 	}
+	return res
 }

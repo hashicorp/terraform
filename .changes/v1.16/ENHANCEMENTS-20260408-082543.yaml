@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'feat(cli): terraform state show accepts a -json flag'
+time: 2026-04-08T08:25:43.767443-04:00
+custom:
+    Issue: "23940"

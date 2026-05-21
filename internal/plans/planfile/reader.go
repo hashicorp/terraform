@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -189,34 +188,6 @@ func (r *Reader) ReadPrevStateFile() (*statefile.File, error) {
 // source files, without attempting to parse them.
 func (r *Reader) ReadConfigSnapshot() (*configload.Snapshot, error) {
 	return ReadConfigSnapshot(&r.zip.Reader)
-}
-
-// ReadConfig reads the configuration embedded in the plan file.
-//
-// Internally this function delegates to the configs/configload package to
-// parse the embedded configuration and so it returns diagnostics (rather than
-// a native Go error as with other methods on Reader).
-// TODO remove?
-func (r *Reader) ReadConfig(allowLanguageExperiments bool) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	snap, err := r.ReadConfigSnapshot()
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to read configuration from plan file",
-			fmt.Sprintf("The configuration file snapshot in the plan file could not be read: %s.", err),
-		))
-		return nil, diags
-	}
-
-	loader := configload.NewLoaderFromSnapshot(snap)
-	loader.AllowLanguageExperiments(allowLanguageExperiments)
-	rootDir := snap.Modules[""].Dir // Root module base directory
-	config, configDiags := loader.LoadStaticConfig(rootDir)
-	diags = diags.Append(configDiags)
-
-	return config, diags
 }
 
 // ReadDependencyLocks reads the dependency lock information embedded in

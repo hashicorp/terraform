@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'test: Terraform will now raise a warning when a file referenced via `-filter` flag does not exist.'
+time: 2026-05-15T20:13:07.430709+01:00
+custom:
+    Issue: "38603"

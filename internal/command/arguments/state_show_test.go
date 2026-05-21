@@ -17,7 +17,8 @@ func TestParseStateShow_valid(t *testing.T) {
 		"address only": {
 			[]string{"test_instance.foo"},
 			&StateShow{
-				Address: "test_instance.foo",
+				Address:  "test_instance.foo",
+				ViewType: ViewHuman,
 			},
 		},
 		"with state path": {
@@ -25,6 +26,7 @@ func TestParseStateShow_valid(t *testing.T) {
 			&StateShow{
 				StatePath: "foobar.tfstate",
 				Address:   "test_instance.foo",
+				ViewType:  ViewHuman,
 			},
 		},
 	}
@@ -50,7 +52,7 @@ func TestParseStateShow_invalid(t *testing.T) {
 	}{
 		"no arguments": {
 			nil,
-			&StateShow{},
+			&StateShow{ViewType: ViewHuman},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -62,7 +64,8 @@ func TestParseStateShow_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"test_instance.foo", "test_instance.bar"},
 			&StateShow{
-				Address: "test_instance.foo",
+				Address:  "test_instance.foo",
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -74,7 +77,7 @@ func TestParseStateShow_invalid(t *testing.T) {
 		},
 		"unknown flag": {
 			[]string{"-boop"},
-			&StateShow{},
+			&StateShow{ViewType: ViewHuman},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,

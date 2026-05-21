@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Show info when resources are left behind due to skip_cleanup
+time: 2026-04-27T11:26:04.782451-04:00
+custom:
+    Issue: "38449"

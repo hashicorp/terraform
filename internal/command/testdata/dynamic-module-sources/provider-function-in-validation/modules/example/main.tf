@@ -1,0 +1,3 @@
+variable "in" {
+  type = string
+}

@@ -33,9 +33,8 @@ type ModuleVariableTransformer struct {
 	// variables in the current module, skipping any child modules.
 	ModuleOnly bool
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user-defined validations for child module variables
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -122,11 +121,11 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Module:       c.Path,
-			Config:       v,
-			Expr:         expr,
-			Planning:     t.Planning,
-			DestroyApply: t.DestroyApply,
+			Module:         c.Path,
+			Config:         v,
+			Expr:           expr,
+			ValidateChecks: t.ValidateChecks,
+			DestroyApply:   t.DestroyApply,
 		}
 		g.Add(node)
 	}

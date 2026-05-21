@@ -12,29 +12,29 @@ import (
 )
 
 // AssertPlanValid checks checks whether a planned new state returned by a
-// provider's PlanResourceChange method is suitable to achieve a change
-// from priorState to config. It returns a slice with nonzero length if
-// any problems are detected. Because problems here indicate bugs in the
-// provider that generated the plannedState, they are written with provider
-// developers as an audience, rather than end-users.
+// provider's PlanResourceChange method is suitable to achieve a change from
+// priorState to config. It returns a slice with nonzero length if any problems
+// are detected. Because problems here indicate bugs in the provider that
+// generated the plannedState, they are written with provider developers as an
+// audience, rather than end-users.
 //
 // All of the given values must have the same type and must conform to the
 // implied type of the given schema, or this function may panic or produce
-// garbage results.
+// garbage results. The config value should reflect exactly what was sent to the
+// provider, after all processing of ignore_changes and computable blocks.
 //
-// During planning, a provider may only make changes to attributes that are
-// null (unset) in the configuration and are marked as "computed" in the
-// resource type schema, in order to insert any default values the provider
-// may know about. If the default value cannot be determined until apply time,
-// the provider can return an unknown value. Providers are forbidden from
-// planning a change that disagrees with any non-null argument in the
-// configuration.
+// During planning, a provider may only make changes to attributes that are null
+// (unset) in the configuration and are marked as "computed" in the resource
+// type schema, in order to insert any default values the provider may know
+// about. If the default value cannot be determined until apply time, the
+// provider can return an unknown value. Providers are forbidden from planning a
+// change that disagrees with any non-null argument in the configuration.
 //
 // As a special exception, providers _are_ allowed to provide attribute values
 // conflicting with configuration if and only if the planned value exactly
 // matches the corresponding attribute value in the prior state. The provider
-// can use this to signal that the new value is functionally equivalent to
-// the old and thus no change is required.
+// can use this to signal that the new value is functionally equivalent to the
+// old and thus no change is required.
 func AssertPlanValid(schema *configschema.Block, priorState, config, plannedState cty.Value) []error {
 	return assertPlanValid(schema, priorState, config, plannedState, nil)
 }
@@ -68,6 +68,28 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 		if !priorState.IsNull() {
 			priorV = priorState.GetAttr(name)
 		}
+
+		// make sure the provider didn't accidentally return a null value for
+		// anything, since the computed path will return early.
+		if blockS.Nesting != configschema.NestingSingle {
+			// single mode is allowed to be null
+			mode := ""
+			switch blockS.Nesting {
+			case configschema.NestingList:
+				mode = "list"
+			case configschema.NestingMap:
+				mode = "map"
+			case configschema.NestingSet:
+				mode = "set"
+			case configschema.NestingGroup:
+				mode = "group"
+			}
+			if plannedV.IsNull() {
+				errs = append(errs, path.NewErrorf("attribute representing a %s of nested blocks must be empty to indicate no blocks, not null", mode))
+				continue
+			}
+		}
+
 		if plannedV.RawEquals(configV) {
 			// Easy path: nothing has changed at all
 			continue
@@ -75,18 +97,26 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 
 		if !configV.IsKnown() {
 			// An unknown config block represents a dynamic block where the
-			// for_each value is unknown, and therefor cannot be altered by the
+			// for_each value is unknown, and therefore cannot be altered by the
 			// provider.
 			errs = append(errs, path.NewErrorf("planned value %#v for unknown dynamic block", plannedV))
 			continue
 		}
 
+		if configV.IsNull() && blockS.Computed {
+			// There was no config so provider can insert any type-compatible
+			// value here.
+			continue
+		}
+
+		// none of the validation below was written to handle unknown blocks,
+		// so check them as a whole first.
 		if !plannedV.IsKnown() {
-			// Only dynamic configuration can set blocks to unknown, so this is
-			// not allowed from the provider. This means that either the config
-			// and plan should match, or we have an error where the plan
-			// changed the config value, both of which have been checked.
-			errs = append(errs, path.NewErrorf("attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
+			if !blockS.Computed {
+				errs = append(errs, path.NewErrorf("planned unknown value for non-computed block"))
+			} else {
+				errs = append(errs, path.NewErrorf("planned unknown value for configured block"))
+			}
 			continue
 		}
 
@@ -94,22 +124,21 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 		case configschema.NestingSingle, configschema.NestingGroup:
 			moreErrs := assertPlanValid(&blockS.Block, priorV, configV, plannedV, path)
 			errs = append(errs, moreErrs...)
+
 		case configschema.NestingList:
 			// A NestingList might either be a list or a tuple, depending on
 			// whether there are dynamically-typed attributes inside. However,
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
-			if plannedV.IsNull() {
-				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
-				continue
-			}
 
 			if configV.IsNull() {
-				// Configuration cannot decode a block into a null value, but
-				// we could be dealing with a null returned by a legacy
-				// provider and inserted via ignore_changes. Fix the value in
-				// place so the length can still be compared.
-				configV = cty.ListValEmpty(configV.Type().ElementType())
+				if !blockS.Computed {
+					// Configuration cannot decode a block into a null value, but
+					// we could be dealing with a null returned by a legacy
+					// provider and inserted via ignore_changes. Fix the value in
+					// place so the length can still be compared.
+					configV = cty.ListValEmpty(configV.Type().ElementType())
+				}
 			}
 
 			plannedL := plannedV.LengthInt()
@@ -139,11 +168,6 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				errs = append(errs, moreErrs...)
 			}
 		case configschema.NestingMap:
-			if plannedV.IsNull() {
-				errs = append(errs, path.NewErrorf("attribute representing a map of nested blocks must be empty to indicate no blocks, not null"))
-				continue
-			}
-
 			// A NestingMap might either be a map or an object, depending on
 			// whether there are dynamically-typed attributes inside, but
 			// that's decided statically and so all values will have the same
@@ -213,11 +237,6 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				}
 			}
 		case configschema.NestingSet:
-			if plannedV.IsNull() {
-				errs = append(errs, path.NewErrorf("attribute representing a set of nested blocks must be empty to indicate no blocks, not null"))
-				continue
-			}
-
 			// Because set elements have no identifier with which to correlate
 			// them, we can't robustly validate the plan for a nested block
 			// backed by a set, and so unfortunately we need to just trust the

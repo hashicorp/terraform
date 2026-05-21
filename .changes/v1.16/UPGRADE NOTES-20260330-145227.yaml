@@ -1,0 +1,5 @@
+kind: UPGRADE NOTES
+body: Provisioner bastion_host_key is now correctly applied. Existing usage of bastion_host_key should verify the configured key is correct.
+time: 2026-03-30T14:52:27.996705-04:00
+custom:
+    Issue: "38318"

@@ -448,6 +448,8 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 	return providers.ClientCapabilities{
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
+		StorePlannedPrivate:        true,
+		ComputedBlocksAllowed:      true,
 	}
 }
 

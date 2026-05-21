@@ -18,7 +18,7 @@ import (
 //
 // The caller of the above functions is required to know whether the next value
 // in the path is a list type or an object type and call the relevant function,
-// otherwise these functions will crash/panic.
+// otherwise no match will be returned.
 //
 // The Matches function returns true if the paths you have traversed until now
 // ends.
@@ -151,8 +151,18 @@ func (p *PathMatcher) GetChildWithKey(key string) Matcher {
 			continue
 		}
 
-		if path[0].(string) == key {
-			child.Paths = append(child.Paths, path[1:])
+		switch val := path[0].(type) {
+		case string:
+			if val == key {
+				child.Paths = append(child.Paths, path[1:])
+			}
+		case float64:
+			// here we must assume the path being looked up no longer matches
+			// the given data structure, so the caller in incorrect. This is
+			// fine, because it only means that we don't match any paths.
+		default:
+			panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
+
 		}
 	}
 	return child
@@ -190,15 +200,12 @@ func (p *PathMatcher) GetChildWithIndex(index int) Matcher {
 
 		switch val := path[0].(type) {
 		case float64:
-			if int(path[0].(float64)) == index {
+			if int(val) == index {
 				child.Paths = append(child.Paths, path[1:])
 			}
 		case string:
 			f, err := strconv.ParseFloat(val, 64)
-			if err != nil {
-				panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
-			}
-			if int(f) == index {
+			if err == nil && int(f) == index {
 				child.Paths = append(child.Paths, path[1:])
 			}
 		default:

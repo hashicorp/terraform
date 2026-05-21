@@ -285,19 +285,19 @@ func (p *Provider) ListResource(req providers.ListResourceRequest) providers.Lis
 
 func (p *Provider) ValidateStateStoreConfig(req providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var resp providers.ValidateStateStoreConfigResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ConfigureStateStore(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	var resp providers.ConfigureStateStoreResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
 	var resp providers.ReadStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
@@ -309,25 +309,25 @@ func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) provide
 
 func (p *Provider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
 	var resp providers.LockStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
 	var resp providers.UnlockStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
 	var resp providers.GetStatesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
 	var resp providers.DeleteStateResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 

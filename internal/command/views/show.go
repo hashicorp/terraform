@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -27,6 +28,9 @@ type Show interface {
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	// DisplayResourceInstanceState displays the state for a single resource instance. Diagnostics from the state show command are included in the json output.
+	DisplayResourceInstanceState(jsonformat.State, tfdiags.Diagnostics) int
 }
 
 func NewShow(vt arguments.ViewType, view *View) Show {
@@ -45,6 +49,22 @@ type ShowHuman struct {
 }
 
 var _ Show = (*ShowHuman)(nil)
+
+func (v *ShowHuman) DisplayResourceInstanceState(state jsonformat.State, diags tfdiags.Diagnostics) int {
+	renderer := jsonformat.Renderer{
+		Streams:             v.view.streams,
+		Colorize:            v.view.colorize,
+		RunningInAutomation: v.view.runningInAutomation,
+	}
+
+	if diags.HasErrors() {
+		v.Diagnostics(diags)
+		return 1
+	}
+
+	renderer.RenderHumanState(state)
+	return 0
+}
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	renderer := jsonformat.Renderer{
@@ -166,4 +186,68 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 // primarily for backwards compatibility.
 func (v *ShowJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *ShowJSON) DisplayResourceInstanceState(jsonState jsonformat.State, diags tfdiags.Diagnostics) int {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const FormatVersion = "1.0"
+
+	type Output struct {
+		FormatVersion string                  `json:"format_version"`
+		Resource      jsonstate.Resource      `json:"resource"`
+		Diagnostics   []*viewsjson.Diagnostic `json:"diagnostics"`
+	}
+
+	output := Output{
+		FormatVersion: FormatVersion,
+	}
+
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, v.view.configSources()))
+	}
+	if output.Diagnostics == nil {
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		output.Diagnostics = []*viewsjson.Diagnostic{}
+	}
+
+	var rs jsonstate.Resource
+	if !jsonState.Empty() {
+		// we know there's only one resource instance, but we need to find it.
+		if len(jsonState.RootModule.Resources) > 0 {
+			rs = jsonState.RootModule.Resources[0]
+		} else {
+			rs = findResourceInChildModules(jsonState.RootModule)
+		}
+	}
+
+	output.Resource = rs
+
+	j, err := json.MarshalIndent(&output, "", "  ")
+	if err != nil {
+		// Should never happen because we fully-control the input here
+		panic(err)
+	}
+	v.view.streams.Println(string(j))
+
+	if diags.HasErrors() {
+		return 1
+	}
+	return 0
+}
+
+func findResourceInChildModules(mod jsonstate.Module) jsonstate.Resource {
+	for _, cm := range mod.ChildModules {
+		if len(cm.Resources) == 1 {
+			return cm.Resources[0]
+		}
+	}
+	for _, child := range mod.ChildModules {
+		return findResourceInChildModules(child)
+	}
+	// this shouldn't be possible; we would have returned an error earlier if
+	// the resource wasn't found.
+	panic("resource not found in state")
 }

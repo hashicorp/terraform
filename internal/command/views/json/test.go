@@ -41,6 +41,10 @@ type TestFileCleanup struct {
 	FailedResources []TestFailedResource `json:"failed_resources"`
 }
 
+type TestFileCleanupSkipped struct {
+	SkippedResources []TestFailedResource `json:"skipped_resources"`
+}
+
 type TestFailedResource struct {
 	Instance   string `json:"instance"`
 	DeposedKey string `json:"deposed_key,omitempty"`

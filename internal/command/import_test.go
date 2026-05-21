@@ -173,10 +173,9 @@ func TestImport_remoteState(t *testing.T) {
 
 	statePath := "imported.tfstate"
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": []string{"1.2.3"},
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
 	})
-	defer close()
 
 	// init our backend
 	ui := cli.NewMockUi()
@@ -285,10 +284,9 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	statePath := "imported.tfstate"
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": []string{"1.2.3"},
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
 	})
-	defer close()
 
 	// init our backend
 	ui := cli.NewMockUi()
@@ -781,10 +779,9 @@ func TestImportModuleVarFile(t *testing.T) {
 		},
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": []string{"1.2.3"},
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
 	})
-	defer close()
 
 	// init to install the module
 	ui := new(cli.MockUi)
@@ -855,10 +852,9 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 		},
 	}
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.2.3"},
 	})
-	defer close()
 
 	// init to install the module
 	ui := new(cli.MockUi)

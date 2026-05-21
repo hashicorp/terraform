@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -55,14 +56,35 @@ func NewHTTPMirrorSource(baseURL *url.URL, creds svcauth.CredentialsSource) *HTT
 		}
 		return nil
 	}
+	// Enforce TLS
+	return newHTTPMirrorSourceWithHTTPClientTLS(baseURL, creds, httpClient)
+}
+
+func NewMockHTTPMirrorSource(t *testing.T, baseURL *url.URL) *HTTPMirrorSource {
+	httpClient := httpclient.New()
+	httpClient.Timeout = requestTimeout
+	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// If we get redirected more than five times we'll assume we're
+		// in a redirect loop and bail out, rather than hanging forever.
+		if len(via) > 5 {
+			return fmt.Errorf("too many redirects")
+		}
+		return nil
+	}
+
+	// In tests we don't enforce TLS and also there are no creds
+	var creds svcauth.CredentialsSource // nil
+	return newHTTPMirrorSourceWithHTTPClient(baseURL, creds, httpClient)
+}
+
+func newHTTPMirrorSourceWithHTTPClientTLS(baseURL *url.URL, creds svcauth.CredentialsSource, httpClient *http.Client) *HTTPMirrorSource {
+	if baseURL.Scheme != "https" {
+		panic("non-https URL for HTTP mirror")
+	}
 	return newHTTPMirrorSourceWithHTTPClient(baseURL, creds, httpClient)
 }
 
 func newHTTPMirrorSourceWithHTTPClient(baseURL *url.URL, creds svcauth.CredentialsSource, httpClient *http.Client) *HTTPMirrorSource {
-	if baseURL.Scheme != "https" {
-		panic("non-https URL for HTTP mirror")
-	}
-
 	// We borrow the retry settings and behaviors from the registry client,
 	// because our needs here are very similar to those of the registry client.
 	retryableClient := retryablehttp.NewClient()
@@ -117,10 +139,7 @@ func (s *HTTPMirrorSource) AvailableVersions(ctx context.Context, provider addrs
 
 	// If we got here then the response had status OK and so our body
 	// will be non-nil and should contain some JSON for us to parse.
-	type ResponseBody struct {
-		Versions map[string]struct{} `json:"versions"`
-	}
-	var bodyContent ResponseBody
+	var bodyContent ListVersionsResponseBody
 
 	dec := json.NewDecoder(body)
 	if err := dec.Decode(&bodyContent); err != nil {
@@ -181,14 +200,7 @@ func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provi
 
 	// If we got here then the response had status OK and so our body
 	// will be non-nil and should contain some JSON for us to parse.
-	type ResponseArchiveMeta struct {
-		RelativeURL string `json:"url"`
-		Hashes      []string
-	}
-	type ResponseBody struct {
-		Archives map[string]*ResponseArchiveMeta `json:"archives"`
-	}
-	var bodyContent ResponseBody
+	var bodyContent ListInstallationPackagesResponseBody
 
 	dec := json.NewDecoder(body)
 	if err := dec.Decode(&bodyContent); err != nil {
@@ -245,6 +257,28 @@ func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provi
 // ForDisplay returns a string description of the source for user-facing output.
 func (s *HTTPMirrorSource) ForDisplay(provider addrs.Provider) string {
 	return "provider mirror at " + s.baseURL.String()
+}
+
+// ListVersionsResponseBody is the JSON structure of a response when a user queries the available versions
+// for a provider in the network mirror, i.e. a GET to path :hostname/:namespace/:type/index.json
+// See: https://developer.hashicorp.com/terraform/internals/provider-network-mirror-protocol#list-available-versions
+type ListVersionsResponseBody struct {
+	Versions map[string]struct{} `json:"versions"`
+}
+
+// ListInstallationPackagesResponseBody is the structure of the JSON response when a user queries the
+// available packages for a given provider version in the network mirror.
+// i.e. at the path :hostname/:namespace/:type/:version.json
+// See: https://developer.hashicorp.com/terraform/internals/provider-network-mirror-protocol#list-available-installation-packages
+type ListInstallationPackagesResponseBody struct {
+	Archives map[string]*ListInstallationPackagesArchiveMeta `json:"archives"`
+}
+
+// ListInstallationPackagesArchiveMeta is the JSON structure of each archive entry for a specific provider
+// version in the network mirror. See ListInstallationPackagesResponseBody.
+type ListInstallationPackagesArchiveMeta struct {
+	RelativeURL string `json:"url"`
+	Hashes      []string
 }
 
 // mirrorHost extracts the hostname portion of the configured base URL and

@@ -14,6 +14,9 @@ import (
 	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -140,6 +143,84 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 	if string(lockfile) != expected {
 		t.Fatalf("wrong lockfile content")
 	}
+}
+
+func TestProvidersLock_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=example", "-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected command to proceed past const variable resolution")
+		}
+
+		output := ui.ErrorWriter.String()
+		if !strings.Contains(output, "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		server := cloudTestServerWithVars(t)
+		defer server.Close()
+		d := testDisco(server)
+
+		previousBackend := backendInit.Backend("cloud")
+		backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+		defer backendInit.Set("cloud", previousBackend)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := cli.NewMockUi()
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+				Services:         d,
+			},
+		}
+
+		args := []string{"-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected command to proceed past const variable resolution")
+		}
+
+		output := ui.ErrorWriter.String()
+		if !strings.Contains(output, "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		}
+	})
 }
 
 func TestProvidersLock_args(t *testing.T) {

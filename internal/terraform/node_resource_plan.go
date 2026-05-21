@@ -173,118 +173,131 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			continue
 		}
 
-		if imp.Config.ForEach == nil {
-			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
-			diags = diags.Append(hds)
-			to, tds := addrs.ParseAbsResourceInstance(traversal)
-			diags = diags.Append(tds)
-			if diags.HasErrors() {
-				return knownImports, unknownImports, diags
-			}
-
-			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
-
-			var importID cty.Value
-			var evalDiags tfdiags.Diagnostics
-			if imp.Config.ID != nil {
-				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
-			} else if imp.Config.Identity != nil {
-				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
-				if err != nil {
-					diags = diags.Append(err)
+		// "to" here needs the containing resource
+		// but I don't know how to work that out at this point (with expansion)
+		// do I need to get all possible expansions for the imp.RelModule and then only use the one for this actual node?
+		allMods := ctx.InstanceExpander().AllInstances().InstancesForModule(imp.RelModule, false)
+		for _, mod := range allMods {
+			// get the context from the module the import was defined in
+			ctx = evalContextForModuleInstance(ctx, mod)
+			state = ctx.State()
+			if imp.Config.ForEach == nil {
+				traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
+				diags = diags.Append(hds)
+				to, tds := addrs.ParseAbsResourceInstance(traversal)
+				diags = diags.Append(tds)
+				if diags.HasErrors() {
 					return knownImports, unknownImports, diags
 				}
-				schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+				// add the module that the import block was configured in to the resource addr
+				to.Module = append(mod, to.Module...)
 
-				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, allowUnknown)
-			} else {
-				// Should never happen
-				return knownImports, unknownImports, diags
-			}
+				diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
 
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return knownImports, unknownImports, diags
-			}
+				var importID cty.Value
+				var evalDiags tfdiags.Diagnostics
+				if imp.Config.ID != nil {
+					importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
+				} else if imp.Config.Identity != nil {
+					providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+					if err != nil {
+						diags = diags.Append(err)
+						return knownImports, unknownImports, diags
+					}
+					schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
 
-			knownImports.Put(to, importID)
-
-			log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
-			continue
-		}
-
-		forEachData, known, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, allowUnknown).ImportValues()
-		diags = diags.Append(forEachDiags)
-		if forEachDiags.HasErrors() {
-			return knownImports, unknownImports, diags
-		}
-
-		if !known {
-			// Then we need to parse the target address as a PartialResource
-			// instead of a known resource.
-			addr, evalDiags := evalImportUnknownToExpression(imp.Config.To)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return knownImports, unknownImports, diags
-			}
-
-			// We're going to work out which instances this import block might
-			// target actually already exist.
-			knownInstances := addrs.MakeSet[addrs.AbsResourceInstance]()
-
-			cfg := addr.ConfigResource()
-			modInsts := state.ModuleInstances(cfg.Module)
-			for _, modInst := range modInsts {
-				abs := cfg.Absolute(modInst)
-				resource := state.Resource(cfg.Absolute(modInst))
-				if resource == nil {
-					// Then we are creating every instance of this resource.
-					continue
-				}
-
-				for inst := range resource.Instances {
-					knownInstances.Add(abs.Instance(inst))
-				}
-			}
-
-			unknownImports.Put(addr, knownInstances)
-			continue
-		}
-
-		for _, keyData := range forEachData {
-			var evalDiags tfdiags.Diagnostics
-			res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return knownImports, unknownImports, diags
-			}
-
-			diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
-
-			var importID cty.Value
-			if imp.Config.ID != nil {
-				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
-			} else if imp.Config.Identity != nil {
-				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
-				if err != nil {
-					diags = diags.Append(err)
+					importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, allowUnknown)
+				} else {
+					// Should never happen
 					return knownImports, unknownImports, diags
 				}
-				schema := providerSchema.SchemaForResourceAddr(res.Resource.Resource)
 
-				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, allowUnknown)
-			} else {
-				// Should never happen
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return knownImports, unknownImports, diags
+				}
+
+				knownImports.Put(to, importID)
+
+				log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
+				continue
+			}
+
+			forEachData, known, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, allowUnknown).ImportValues()
+			diags = diags.Append(forEachDiags)
+			if forEachDiags.HasErrors() {
 				return knownImports, unknownImports, diags
 			}
 
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return knownImports, unknownImports, diags
+			if !known {
+				// Then we need to parse the target address as a PartialResource
+				// instead of a known resource.
+				addr, evalDiags := evalImportUnknownToExpression(imp.Config.To)
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return knownImports, unknownImports, diags
+				}
+
+				// We're going to work out which instances this import block might
+				// target actually already exist.
+				knownInstances := addrs.MakeSet[addrs.AbsResourceInstance]()
+
+				cfg := addr.ConfigResource()
+				modInsts := state.ModuleInstances(append(imp.RelModule, cfg.Module...))
+				for _, modInst := range modInsts {
+					abs := cfg.Absolute(modInst)
+					resource := state.Resource(cfg.Absolute(modInst))
+					if resource == nil {
+						// Then we are creating every instance of this resource.
+						continue
+					}
+
+					for inst := range resource.Instances {
+						knownInstances.Add(abs.Instance(inst))
+					}
+				}
+
+				unknownImports.Put(addr, knownInstances)
+				continue
 			}
 
-			knownImports.Put(res, importID)
-			log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
+			for _, keyData := range forEachData {
+				var evalDiags tfdiags.Diagnostics
+				res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return knownImports, unknownImports, diags
+				}
+				// add the module that the import block was configured in to the resource addr
+				res.Module = append(mod, res.Module...)
+
+				diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
+
+				var importID cty.Value
+				if imp.Config.ID != nil {
+					importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
+				} else if imp.Config.Identity != nil {
+					providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+					if err != nil {
+						diags = diags.Append(err)
+						return knownImports, unknownImports, diags
+					}
+					schema := providerSchema.SchemaForResourceAddr(res.Resource.Resource)
+
+					importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, allowUnknown)
+				} else {
+					// Should never happen
+					return knownImports, unknownImports, diags
+				}
+
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return knownImports, unknownImports, diags
+				}
+
+				knownImports.Put(res, importID)
+				log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
+			}
 		}
 	}
 
@@ -591,7 +604,10 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		}
 
 		if importID, ok := knownImports.GetOk(a.Addr); ok {
-			m.importTarget = importID
+			m.importTarget = importTarget{
+				target:       importID,
+				importConfig: n.importTargets[0].Config,
+			}
 		} else {
 			// We're going to check now if this resource instance *might* be
 			// targeted by one of the unknown imports. If it is, we'll set the
@@ -610,7 +626,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 						continue
 					}
 
-					m.importTarget = cty.UnknownVal(cty.String)
+					m.importTarget = importTarget{target: cty.UnknownVal(cty.String)}
 				}
 			}
 		}

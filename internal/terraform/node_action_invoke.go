@@ -29,22 +29,22 @@ type nodeActionInvokeExpand struct {
 	resolvedProvider addrs.AbsProviderConfig // set during the graph walk
 }
 
-func (n *nodeActionInvokeExpand) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *nodeActionInvokeExpand) Provider() ProviderRef {
 	// Once the provider is fully resolved, we can return the known value.
 	if n.resolvedProvider.Provider.Type != "" {
-		return n.resolvedProvider, true
+		return ProviderRef{
+			addr:     n.resolvedProvider,
+			resolved: true,
+		}
 	}
 
-	// Since we always have a config, we can use it
-	relAddr := n.Config.ProviderConfigAddr()
-	return addrs.LocalProviderConfig{
-		LocalName: relAddr.LocalName,
-		Alias:     relAddr.Alias,
-	}, false
-}
+	addr := addrs.AbsProviderConfig{
+		Provider: n.Config.Provider,
+		Alias:    n.Config.ProviderConfigAddr().Alias,
+		Module:   n.ModulePath(),
+	}
 
-func (n *nodeActionInvokeExpand) Provider() (provider addrs.Provider) {
-	return n.Config.Provider
+	return ProviderRef{addr: addr}
 }
 
 func (n *nodeActionInvokeExpand) SetProvider(p addrs.AbsProviderConfig) {

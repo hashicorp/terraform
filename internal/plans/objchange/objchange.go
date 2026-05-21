@@ -73,12 +73,6 @@ func PlannedDataResourceObject(schema *configschema.Block, config cty.Value) cty
 
 func proposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if config.IsNull() || !config.IsKnown() {
-		// A block config should never be null at this point. The only nullable
-		// block type is NestingSingle, which will return early before coming
-		// back here. We'll allow the null here anyway to free callers from
-		// needing to specifically check for these cases, and any mismatch will
-		// be caught in validation, so just take the prior value rather than
-		// the invalid null.
 		return prior
 	}
 
@@ -495,4 +489,46 @@ func validPriorFromConfig(schema nestedSchema, prior, config cty.Value) bool {
 	})
 
 	return valid
+}
+
+// PrepareComputedBlock walks over the given plan value, and converts empty
+// computed block values to null in order to indicate to the provider that it
+// can insert its own computed value. The val argument must conform to the
+// schema type, and must be entirely unmarked.
+func PrepareComputedBlocks(schema *configschema.Block, val cty.Value) cty.Value {
+	if !schema.ContainsComputedBlocks() {
+		// fast path so we don't need to transform the value
+		return val
+	}
+
+	val, _ = cty.Transform(val, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() || v.IsNull() {
+			// an unknown value must have some configuration no matter the type,
+			// and a null is already null
+			return v, nil
+		}
+
+		nestedBlock := schema.NestedBlockByPath(p)
+		if nestedBlock == nil || !nestedBlock.Computed {
+			// either not a block, or not computed, doesn't matter, nothing to change
+			return v, nil
+		}
+
+		switch nestedBlock.Nesting {
+		case configschema.NestingSingle, configschema.NestingGroup:
+			// NestingSingle is the only block type which can natively be null,
+			// so there's no transformation to do. NestingGroup can't be
+			// computed, so should not have reached this point anyway.
+			return v, nil
+		}
+
+		// Any other known block value type must have a length.
+		if v.LengthInt() == 0 {
+			v = cty.NullVal(v.Type())
+		}
+
+		return v, nil
+	})
+
+	return val
 }

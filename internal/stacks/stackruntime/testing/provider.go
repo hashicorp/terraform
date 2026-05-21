@@ -113,6 +113,14 @@ var (
 			Nesting: configschema.NestingSingle,
 		},
 	}
+
+	TestingActionSchema = providers.ActionSchema{
+		ConfigSchema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"message": {Type: cty.String, Optional: true},
+			},
+		},
+	}
 )
 
 // MockProvider wraps the standard MockProvider with a simple in-memory
@@ -223,6 +231,9 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						ReturnType: cty.DynamicPseudoType,
 					},
 				},
+				Actions: map[string]providers.ActionSchema{
+					"testing_action": TestingActionSchema,
+				},
 				ServerCapabilities: providers.ServerCapabilities{
 					MoveResourceState: true,
 				},
@@ -320,6 +331,29 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 					Result: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.StringVal("secret"),
 					}),
+				}
+			},
+			PlanActionFn: func(request providers.PlanActionRequest) providers.PlanActionResponse {
+				// Simple action planning - no drift, just validation
+				return providers.PlanActionResponse{
+					Diagnostics: tfdiags.Diagnostics{},
+				}
+			},
+			InvokeActionFn: func(request providers.InvokeActionRequest) providers.InvokeActionResponse {
+				// Simple action invocation - just emit a completed event
+				return providers.InvokeActionResponse{
+					Events: func(yield func(providers.InvokeActionEvent) bool) {
+						yield(providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{},
+						})
+					},
+					Diagnostics: tfdiags.Diagnostics{},
+				}
+			},
+			ValidateActionConfigFn: func(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+				// No validation errors for testing actions
+				return providers.ValidateActionConfigResponse{
+					Diagnostics: tfdiags.Diagnostics{},
 				}
 			},
 		},

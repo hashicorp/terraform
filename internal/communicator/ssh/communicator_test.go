@@ -103,6 +103,19 @@ func newMockLineServer(t *testing.T, signer ssh.Signer, pubKey string) string {
 			}
 			t.Log("Accepted channel")
 
+			go func() {
+				buf := make([]byte, 64)
+				n, _ := channel.Read(buf)
+				if n > 0 {
+					// this unusual test server ends up here when we're trying
+					// to handshake through a bastion instance. It's the only
+					// test that uses this path, and only if the test wasn't
+					// working, so just close the channel and let it fail.
+					t.Logf("unexpected test server read: %q, closing channel\n", buf[:n])
+					channel.Close()
+				}
+			}()
+
 			go func(in <-chan *ssh.Request) {
 				defer channel.Close()
 				for req := range in {
@@ -899,5 +912,43 @@ func acceptPublicKey(keystr string) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.
 		}
 
 		return nil, fmt.Errorf("public key rejected")
+	}
+}
+
+func TestBastionHostKey(t *testing.T) {
+	bastionAddr := newMockLineServer(t, nil, testClientPublicKey)
+	bastionHost, p, _ := net.SplitHostPort(bastionAddr)
+	bastionPort, _ := strconv.Atoi(p)
+
+	// there doesn't need to be a real end server, we should abort before
+	// initiating the second connection because BastionHostKey is wrong for
+	// testServerPrivateKey
+	connInfo := &connectionInfo{
+		User:     "none",
+		Password: "none",
+		Host:     "127.0.0.1",
+		Port:     uint16(9999),
+		Timeout:  "1s",
+
+		BastionUser:     "user",
+		BastionPassword: "pass",
+		BastionHost:     bastionHost,
+		BastionHostKey:  testClientPublicKey,
+		BastionPort:     uint16(bastionPort),
+	}
+
+	cfg, err := prepareSSHConfig(connInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &Communicator{
+		connInfo: connInfo,
+		config:   cfg,
+	}
+
+	_, err = c.newSession()
+	if err == nil || !strings.Contains(err.Error(), "Error connecting to bastion: ssh: handshake failed: knownhosts: key mismatch") {
+		t.Fatalf("expected host key mismatch, got error:%v", err)
 	}
 }

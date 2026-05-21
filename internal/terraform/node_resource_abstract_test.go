@@ -108,8 +108,8 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Config: test.Config,
 			}
 			got := node.Provider()
-			if got != test.Want {
-				t.Errorf("wrong result\naddr:  %s\nconfig: %#v\ngot:   %s\nwant:  %s", test.Addr, test.Config, got, test.Want)
+			if got.FQN() != test.Want {
+				t.Errorf("wrong result\naddr:  %s\nconfig: %#v\ngot:   %s\nwant:  %s", test.Addr, test.Config, got.FQN(), test.Want)
 			}
 		})
 	}
@@ -140,21 +140,6 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 		},
 	}
 
-	p, exact := node.ProvidedBy()
-	if exact {
-		t.Fatalf("no exact provider should be found from this confniguration, got %q\n", p)
-	}
-
-	// the implied non-exact provider should be "terraform"
-	lpc, ok := p.(addrs.LocalProviderConfig)
-	if !ok {
-		t.Fatalf("expected LocalProviderConfig, got %#v\n", p)
-	}
-
-	if lpc.LocalName != "terraform" {
-		t.Fatalf("expected non-exact provider of 'terraform', got %q", lpc.LocalName)
-	}
-
 	// now set a resolved provider for the resource
 	resolved := addrs.AbsProviderConfig{
 		Provider: addrs.Provider{
@@ -167,14 +152,9 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 	}
 
 	node.SetProvider(resolved)
-	p, exact = node.ProvidedBy()
-	if !exact {
-		t.Fatalf("exact provider should be found, got %q\n", p)
-	}
-
-	apc, ok := p.(addrs.AbsProviderConfig)
-	if !ok {
-		t.Fatalf("expected AbsProviderConfig, got %#v\n", p)
+	apc := node.Provider()
+	if !apc.Resolved() {
+		t.Fatalf("exact provider should be found, got %q\n", apc)
 	}
 
 	if apc.String() != resolved.String() {

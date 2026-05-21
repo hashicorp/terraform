@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: New store block in terraform_data that can handle ephemeral and sensitive values
+time: 2026-03-20T08:51:23.141458-04:00
+custom:
+    Issue: "38298"

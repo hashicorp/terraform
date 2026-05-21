@@ -12,9 +12,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -1476,6 +1475,40 @@ variable "test" {
   validation {
 	condition     = var.test != "nope"
 	error_message = "Value must not be \"nope\"."
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
+	}
+}
+
+func TestContext2Validate_constVariableCustomValidationPass(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+  a      = "valid"
+}
+`,
+		"child/main.tf": `
+variable "a" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.a == "valid"
+    error_message = "Value must be valid."
   }
 }
 `,
@@ -5373,4 +5406,9 @@ output "test_output" {
 			OriginDescription: "module.mod.old",
 		},
 	}))
+}
+
+func TestContextValidate_importNestedModule_ValidateInputVar(t *testing.T) {
+	// nested module + input variable
+
 }

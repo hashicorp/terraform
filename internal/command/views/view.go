@@ -4,11 +4,12 @@
 package views
 
 import (
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/colorstring"
 )
 
 // View is the base layer for command views, encapsulating a set of I/O

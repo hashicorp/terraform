@@ -31,8 +31,7 @@ import (
 func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices func(srv *grpc.Server)) (conn grpc.ClientConnInterface, close func()) {
 	fakeListener := bufconn.Listen(1024 /* buffer size */)
 	srv := grpc.NewServer(
-		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
 
 	// Caller gets an opportunity to register specific services before
@@ -54,8 +53,7 @@ func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices fu
 		ctx, "testfake",
 		grpc.WithContextDialer(fakeDialer),
 		grpc.WithInsecure(),
-		grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
-		grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
 		t.Fatalf("failed to connect to the fake server: %s", err)

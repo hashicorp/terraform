@@ -160,6 +160,11 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 		o.Ephemeral = oo.Ephemeral
 		o.EphemeralSet = oo.EphemeralSet
 	}
+	if oo.TypeSet {
+		o.ConstraintType = oo.ConstraintType
+		o.TypeDefaults = oo.TypeDefaults
+		o.TypeSet = oo.TypeSet
+	}
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.

@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package refactoring
+package refactoring_test
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -59,8 +60,8 @@ func TestFindRemoveStatements(t *testing.T) {
 
 	configModuleInModule := addrs.Module{"child", "grandchild"}
 
-	want := addrs.MakeMap[addrs.ConfigMoveable, RemoveStatement](
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configResourceBasic, RemoveStatement{
+	want := addrs.MakeMap[addrs.ConfigMoveable, refactoring.RemoveStatement](
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configResourceBasic, refactoring.RemoveStatement{
 			From:    configResourceBasic,
 			Destroy: false,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -69,7 +70,7 @@ func TestFindRemoveStatements(t *testing.T) {
 				End:      hcl.Pos{Line: 2, Column: 8, Byte: 34},
 			}),
 		}),
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configResourceWithModule, RemoveStatement{
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configResourceWithModule, refactoring.RemoveStatement{
 			From:    configResourceWithModule,
 			Destroy: false,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -78,7 +79,7 @@ func TestFindRemoveStatements(t *testing.T) {
 				End:      hcl.Pos{Line: 10, Column: 8, Byte: 145},
 			}),
 		}),
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configModuleBasic, RemoveStatement{
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configModuleBasic, refactoring.RemoveStatement{
 			From:    configModuleBasic,
 			Destroy: false,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -87,7 +88,7 @@ func TestFindRemoveStatements(t *testing.T) {
 				End:      hcl.Pos{Line: 18, Column: 8, Byte: 260},
 			}),
 		}),
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configResourceOverridden, RemoveStatement{
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configResourceOverridden, refactoring.RemoveStatement{
 			From:    configResourceOverridden,
 			Destroy: true,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -96,7 +97,7 @@ func TestFindRemoveStatements(t *testing.T) {
 				End:      hcl.Pos{Line: 30, Column: 8, Byte: 435},
 			}),
 		}),
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configResourceInModule, RemoveStatement{
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configResourceInModule, refactoring.RemoveStatement{
 			From:    configResourceInModule,
 			Destroy: true,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -105,7 +106,7 @@ func TestFindRemoveStatements(t *testing.T) {
 				End:      hcl.Pos{Line: 10, Column: 8, Byte: 148},
 			}),
 		}),
-		addrs.MakeMapElem[addrs.ConfigMoveable, RemoveStatement](configModuleInModule, RemoveStatement{
+		addrs.MakeMapElem[addrs.ConfigMoveable, refactoring.RemoveStatement](configModuleInModule, refactoring.RemoveStatement{
 			From:    configModuleInModule,
 			Destroy: false,
 			DeclRange: tfdiags.SourceRangeFromHCL(hcl.Range{
@@ -116,7 +117,7 @@ func TestFindRemoveStatements(t *testing.T) {
 		}),
 	)
 
-	got, diags := FindRemoveStatements(rootCfg)
+	got, diags := refactoring.FindRemoveStatements(rootCfg)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err().Error())
 	}

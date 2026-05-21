@@ -40,22 +40,23 @@ func TestParseInit_basicValid(t *testing.T) {
 					FlagName: "-backend-config",
 					Items:    &flagNameValue,
 				},
-				Vars:                   &Vars{},
-				InputEnabled:           true,
-				CompactWarnings:        false,
-				TargetFlags:            nil,
-				CreateDefaultWorkspace: true,
+				Vars:            &Vars{},
+				InputEnabled:    true,
+				CompactWarnings: false,
+				TargetFlags:     nil,
 			},
 		},
 		"setting multiple options": {
-			[]string{"-backend=false", "-force-copy=true",
+			[]string{
+				"-backend=false", "-force-copy=true",
 				"-from-module=./main-dir", "-json", "-get=false",
 				"-lock=false", "-lock-timeout=10s", "-reconfigure=true",
-				"-upgrade=true", "-lockfile=readonly", "-compact-warnings=true",
-				"-ignore-remote-version=true", "-test-directory=./test-dir"},
+				"-upgrade=true", "-compact-warnings=true",
+				"-ignore-remote-version=true", "-test-directory=./test-dir",
+			},
 			&Init{
 				FromModule:          "./main-dir",
-				Lockfile:            "readonly",
+				Lockfile:            "",
 				TestsDirectory:      "./test-dir",
 				ViewType:            ViewJSON,
 				Backend:             false,
@@ -73,12 +74,11 @@ func TestParseInit_basicValid(t *testing.T) {
 					FlagName: "-backend-config",
 					Items:    &flagNameValue,
 				},
-				Vars:                   &Vars{},
-				InputEnabled:           true,
-				Args:                   []string{},
-				CompactWarnings:        true,
-				TargetFlags:            nil,
-				CreateDefaultWorkspace: true,
+				Vars:            &Vars{},
+				InputEnabled:    true,
+				Args:            []string{},
+				CompactWarnings: true,
+				TargetFlags:     nil,
 			},
 		},
 		"with cloud option": {
@@ -103,12 +103,11 @@ func TestParseInit_basicValid(t *testing.T) {
 					FlagName: "-backend-config",
 					Items:    &[]FlagNameValue{{Name: "-backend-config", Value: "backend.config"}},
 				},
-				Vars:                   &Vars{},
-				InputEnabled:           false,
-				Args:                   []string{},
-				CompactWarnings:        false,
-				TargetFlags:            []string{"foo_bar.baz"},
-				CreateDefaultWorkspace: true,
+				Vars:            &Vars{},
+				InputEnabled:    false,
+				Args:            []string{},
+				CompactWarnings: false,
+				TargetFlags:     []string{"foo_bar.baz"},
 			},
 		},
 	}
@@ -156,6 +155,11 @@ func TestParseInit_invalid(t *testing.T) {
 			wantErr:      "The -migrate-state and -reconfigure options are mutually-exclusive.",
 			wantViewType: ViewHuman,
 		},
+		"with both -upgrade and -lockfile=readonly options set": {
+			args:         []string{"-upgrade", "-lockfile=readonly"},
+			wantErr:      "The -upgrade flag conflicts with -lockfile=readonly.",
+			wantViewType: ViewHuman,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -193,30 +197,6 @@ func TestParseInit_experimentalFlags(t *testing.T) {
 			},
 			experimentsEnabled: false,
 			wantErr:            "Cannot use -enable-pluggable-state-storage-experiment flag without experiments enabled",
-		},
-		"error: -create-default-workspace=false and experiments are disabled": {
-			args:               []string{"-create-default-workspace=false"},
-			experimentsEnabled: false,
-			wantErr:            "Cannot use -create-default-workspace flag without experiments enabled",
-		},
-		"error: TF_SKIP_CREATE_DEFAULT_WORKSPACE is set and experiments are disabled": {
-			envs: map[string]string{
-				"TF_SKIP_CREATE_DEFAULT_WORKSPACE": "1",
-			},
-			experimentsEnabled: false,
-			wantErr:            "Cannot use -create-default-workspace flag without experiments enabled",
-		},
-		"error: -create-default-workspace=false used without -enable-pluggable-state-storage-experiment, while experiments are enabled": {
-			args:               []string{"-create-default-workspace=false"},
-			experimentsEnabled: true,
-			wantErr:            "Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
-		},
-		"error: TF_SKIP_CREATE_DEFAULT_WORKSPACE used without -enable-pluggable-state-storage-experiment, while experiments are enabled": {
-			envs: map[string]string{
-				"TF_SKIP_CREATE_DEFAULT_WORKSPACE": "1",
-			},
-			experimentsEnabled: true,
-			wantErr:            "Cannot use -create-default-workspace=false flag unless the pluggable state storage experiment is enabled",
 		},
 	}
 

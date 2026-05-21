@@ -19,12 +19,44 @@ func dataStoreResourceSchema() providers.Schema {
 	return providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"input":            {Type: cty.DynamicPseudoType, Optional: true},
-				"output":           {Type: cty.DynamicPseudoType, Computed: true},
+				"id": {Type: cty.String, Computed: true},
+
+				// forces replacement of the entire resource when changed
 				"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
-				"id":               {Type: cty.String, Computed: true},
+
+				// input is reflected in output after apply, and changes to
+				// input always result in a re-computation of output.
+				"input":  {Type: cty.DynamicPseudoType, Optional: true},
+				"output": {Type: cty.DynamicPseudoType, Computed: true},
+			},
+			BlockTypes: map[string]*configschema.NestedBlock{
+				"store": {
+					Nesting: configschema.NestingSingle,
+					Block: configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							// The input attribute will be exposed as a stable
+							// value in store.output or store.sensitive_output.
+							"input":            {Type: cty.DynamicPseudoType, Optional: true, WriteOnly: true},
+							"output":           {Type: cty.DynamicPseudoType, Computed: true},
+							"sensitive_output": {Type: cty.DynamicPseudoType, Computed: true, Sensitive: true},
+							// If there is a version value, a change in that
+							// value will trigger a change in the stored output
+							// or sensitive_output. If there is no version
+							// value, then input will be compared directly
+							// against output.
+							"version": {Type: cty.DynamicPseudoType, Optional: true},
+
+							"sensitive": {Type: cty.Bool, Optional: true},
+
+							// replace causes the resource to be replaced when
+							// there is a change to a store output value.
+							"replace": {Type: cty.Bool, Optional: true},
+						},
+					},
+				},
 			},
 		},
+
 		Identity: dataStoreResourceIdentitySchema().Body,
 	}
 }
@@ -61,8 +93,9 @@ func validateDataStoreResourceConfig(req providers.ValidateResourceConfigRequest
 }
 
 func upgradeDataStoreResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := dataStoreResourceSchema().Body.ImpliedType()
-	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
+	// We've only added new nullable block attributes, so unmarshaling from json
+	// will complete the data structure correctly.
+	val, err := ctyjson.Unmarshal(req.RawStateJSON, dataStoreResourceSchema().Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -79,57 +112,191 @@ func upgradeDataStoreResourceIdentity(providers.UpgradeResourceIdentityRequest) 
 
 func readDataStoreResourceState(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	resp.NewState = req.PriorState
+	resp.Private = req.Private
 	return resp
 }
 
 func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+	resp.PlannedState = req.ProposedNewState
+
 	if req.ProposedNewState.IsNull() {
 		// destroy op
-		resp.PlannedState = req.ProposedNewState
 		return resp
 	}
 
 	planned := req.ProposedNewState.AsValueMap()
+	prior := req.PriorState
 
-	input := req.ProposedNewState.GetAttr("input")
-	trigger := req.ProposedNewState.GetAttr("triggers_replace")
-
-	switch {
-	case req.PriorState.IsNull():
-		// Create
-		// Set the id value to unknown.
-		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
-
-		// Output type must always match the input, even when it's null.
-		if input.IsNull() {
-			planned["output"] = input
-		} else {
-			planned["output"] = cty.UnknownVal(input.Type())
-		}
-
-		resp.PlannedState = cty.ObjectVal(planned)
-		return resp
-
-	case !req.PriorState.GetAttr("triggers_replace").RawEquals(trigger):
+	// first determine if this is a create or replace
+	if !prior.IsNull() && !prior.GetAttr("triggers_replace").RawEquals(req.ProposedNewState.GetAttr("triggers_replace")) {
 		// trigger changed, so we need to replace the entire instance
 		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("triggers_replace"))
-		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
 
-		// We need to check the input for the replacement instance to compute a
-		// new output.
+		// set the prior value to null so that that everything else is treated
+		// as if it's a new instance
+		prior = cty.NullVal(req.ProposedNewState.Type())
+	}
+
+	// creating a new instance, so we need a new ID
+	if prior.IsNull() {
+		// New instances, so set the id value to unknown.
+		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
+	}
+
+	// check the input/output for changes
+	input := req.ProposedNewState.GetAttr("input")
+	priorInput := cty.NullVal(cty.DynamicPseudoType)
+	if !prior.IsNull() {
+		priorInput = prior.GetAttr("input")
+	}
+
+	if !priorInput.RawEquals(input) {
 		if input.IsNull() {
-			planned["output"] = input
+			// we reflect the type even if the value is null
+			planned["output"] = cty.NullVal(input.Type())
 		} else {
+			// input changed, so we need to re-compute output
 			planned["output"] = cty.UnknownVal(input.Type())
 		}
+	}
 
-	case !req.PriorState.GetAttr("input").RawEquals(input):
-		// only input changed, so we only need to re-compute output
-		planned["output"] = cty.UnknownVal(input.Type())
+	// check the store object for changes
+	if store := req.ProposedNewState.GetAttr("store"); !store.IsNull() {
+		objMap := storeMap(store.AsValueMap())
+		priorVersion := cty.NullVal(cty.DynamicPseudoType)
+		priorSensitive := cty.NullVal(cty.Bool)
+
+		for _, mustKnow := range []string{"sensitive", "replace"} {
+			if !store.GetAttr(mustKnow).IsKnown() {
+				resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"unexpected unknown value",
+					fmt.Sprintf("the %q attribute must be known in order to plan changes to this resource", mustKnow),
+					cty.GetAttrPath("store").GetAttr(mustKnow),
+				))
+				return resp
+			}
+		}
+
+		if !prior.IsNull() && !prior.GetAttr("store").IsNull() {
+			priorVersion = prior.GetAttr("store").GetAttr("version")
+			priorSensitive = prior.GetAttr("store").GetAttr("sensitive")
+		}
+
+		// if sensitive changed, just move the data between outputs
+		if !priorSensitive.RawEquals(objMap.sensitive()) {
+			objMap.swapOutputs()
+		}
+
+		// Plan an update if the version changed, or if the input and output don't
+		// match in the absence of a version value.
+		switch {
+		// if input and outputs are all null, just pass through a possible null type.
+		case objMap.valuesNull():
+			objMap.storeNull()
+
+		// if there is a version, checked if it has changed
+		case objMap.hasVersion():
+			// The version value comparison is done within this case, because we
+			// don't want to fall into the input comparison case when there is a
+			// version, nor do we want to prevent evaluating that case if the
+			// input and output changed.
+			if !objMap.version().RawEquals(priorVersion) {
+				objMap.storeChange()
+			}
+
+		// if there is no version, we automatically update if the input and output
+		// don't match
+		case objMap.hasChange():
+			objMap.storeChange()
+		}
+
+		// see if we want store to replace the resource
+		if objMap.replace() {
+			planned["id"] = cty.UnknownVal(cty.String)
+			resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("store").GetAttr("input"))
+		}
+
+		// and the input must always be returned as the unset null value because it
+		// is write-only
+		objMap.clearInput()
+
+		planned["store"] = cty.ObjectVal(objMap)
 	}
 
 	resp.PlannedState = cty.ObjectVal(planned)
 	return resp
+}
+
+// storeMap encapsulates some of the logic around handling the various
+// combinations of the object attributes. There are a few accessors and simple
+// set functions just to make accessing the data consistent, so nothing needs to
+// index the map directly.
+type storeMap map[string]cty.Value
+
+func (d storeMap) valuesNull() bool {
+	return d["input"].IsNull() && d["output"].IsNull() && d["sensitive_output"].IsNull()
+}
+
+func (d storeMap) isSensitive() bool {
+	return !d["sensitive"].IsNull() && d["sensitive"].True()
+}
+
+func (d storeMap) sensitive() cty.Value {
+	return d["sensitive"]
+}
+
+func (d storeMap) hasVersion() bool {
+	return !d["version"].IsNull()
+}
+
+func (d storeMap) version() cty.Value {
+	return d["version"]
+}
+
+func (d storeMap) storeNull() {
+	d.write(cty.NullVal(d["input"].Type()))
+}
+
+func (d storeMap) storeChange() {
+	d.write(cty.UnknownVal(d["input"].Type()))
+}
+
+func (d storeMap) swapOutputs() {
+	output := d["output"]
+	if tmp := d["sensitive_output"]; !tmp.IsNull() {
+		output = tmp
+	}
+
+	d.write(output)
+}
+
+func (d storeMap) write(v cty.Value) {
+	if d.isSensitive() {
+		d["sensitive_output"] = v
+		d["output"] = cty.NullVal(cty.DynamicPseudoType)
+		return
+	}
+
+	d["output"] = v
+	d["sensitive_output"] = cty.NullVal(cty.DynamicPseudoType)
+}
+
+func (d storeMap) clearInput() {
+	d["input"] = cty.NullVal(cty.DynamicPseudoType)
+}
+
+func (d storeMap) hasChange() bool {
+	old := d["output"]
+	if !d["sensitive_output"].IsNull() {
+		old = d["sensitive_output"]
+	}
+
+	return !old.RawEquals(d["input"])
+}
+
+func (d storeMap) replace() bool {
+	return d["replace"].True() && !(d["output"].IsKnown() && d["sensitive_output"].IsKnown())
 }
 
 var testUUIDHook func() string
@@ -140,35 +307,51 @@ func applyDataStoreResourceChange(req providers.ApplyResourceChangeRequest) (res
 		return resp
 	}
 
-	newState := req.PlannedState.AsValueMap()
-
-	if !req.PlannedState.GetAttr("output").IsKnown() {
-		newState["output"] = req.PlannedState.GetAttr("input")
-	}
-
-	if !req.PlannedState.GetAttr("id").IsKnown() {
-		idString, err := uuid.GenerateUUID()
-		// Terraform would probably never get this far without a good random
-		// source, but catch the error anyway.
-		if err != nil {
-			diag := tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Error generating id",
-				err.Error(),
-				cty.GetAttrPath("id"),
-			)
-
-			resp.Diagnostics = resp.Diagnostics.Append(diag)
+	// Applying a plan only consists of filling in any unknown values. We can
+	// write this as a single transformation, and base the logic on the path of
+	// the transform value.
+	resp.NewState, _ = cty.Transform(req.PlannedState, func(path cty.Path, val cty.Value) (cty.Value, error) {
+		if val.IsKnown() {
+			return val, nil
 		}
 
-		if testUUIDHook != nil {
-			idString = testUUIDHook()
+		// val is unknown, so find the correct value based on our path
+		switch {
+		case path.Equals(cty.GetAttrPath("id")):
+			idString, err := uuid.GenerateUUID()
+			// Terraform would probably never get this far without a good random
+			// source, but catch the error anyway.
+			if err != nil {
+				diag := tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Error generating id",
+					err.Error(),
+					cty.GetAttrPath("id"),
+				)
+
+				resp.Diagnostics = resp.Diagnostics.Append(diag)
+			}
+
+			if testUUIDHook != nil {
+				idString = testUUIDHook()
+			}
+			return cty.StringVal(idString), nil
+
+		case path.Equals(cty.GetAttrPath("output")):
+			return req.PlannedState.GetAttr("input"), nil
+
+		case path.Equals(cty.GetAttrPath("store").GetAttr("output")):
+			// input is write-only, so won't be in the planned state. We ned to get
+			// the latest ephemeral value directly from the config.
+			return req.Config.GetAttr("store").GetAttr("input"), nil
+
+		case path.Equals(cty.GetAttrPath("store").GetAttr("sensitive_output")):
+			// input is write-only, so won't be in the planned state. We ned to get
+			// the latest ephemeral value directly from the config.
+			return req.Config.GetAttr("store").GetAttr("input"), nil
 		}
-
-		newState["id"] = cty.StringVal(idString)
-	}
-
-	resp.NewState = cty.ObjectVal(newState)
+		return val, nil
+	})
 
 	return resp
 }

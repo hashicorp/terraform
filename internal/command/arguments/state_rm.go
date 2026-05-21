@@ -11,6 +11,9 @@ import (
 
 // StateRm represents the command-line arguments for the state rm command.
 type StateRm struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
+
 	// DryRun, if true, prints out what would be removed without actually
 	// removing anything.
 	DryRun bool
@@ -41,9 +44,11 @@ type StateRm struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateRm(args []string) (*StateRm, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	rm := &StateRm{}
+	rm := &StateRm{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("state rm")
+	cmdFlags := extendedFlagSet("state rm", nil, nil, rm.Vars)
 	cmdFlags.BoolVar(&rm.DryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&rm.BackupPath, "backup", "-", "backup")
 	cmdFlags.BoolVar(&rm.StateLock, "lock", true, "lock state")

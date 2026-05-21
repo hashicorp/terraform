@@ -43,6 +43,23 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	empty, err := configs.IsEmptyDir(configPath, parsedArgs.TestsDirectory)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -63,6 +80,12 @@ func (c *ProvidersCommand) Run(args []string) int {
 			"No configuration files",
 			fmt.Sprintf("The directory %s contains no Terraform configuration files.", absPath),
 		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	diags = diags.Append(c.resolveConstVariables(configPath, arguments.ViewHuman))
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -178,5 +201,14 @@ Usage: terraform [global options] providers [options] [DIR]
 
 Options:
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -var 'foo=bar'        Set a value for one of the input variables in the root
+                        module of the configuration. Use this option more than
+                        once to set more than one variable.
+
+  -var-file=filename    Load variable values from the given file, in addition
+                        to the default files terraform.tfvars and *.auto.tfvars.
+                        Use this option more than once to include more than one
+                        variables file.
 `

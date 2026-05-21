@@ -156,16 +156,6 @@ func TestRoundtrip(t *testing.T) {
 		}
 	})
 
-	t.Run("ReadConfig", func(t *testing.T) {
-		// Reading from snapshots is tested in the configload package, so
-		// here we'll just test that we can successfully do it, to see if the
-		// glue code in _this_ package is correct.
-		_, diags := pr.ReadConfig(false)
-		if diags.HasErrors() {
-			t.Errorf("when reading config: %s", diags.Err())
-		}
-	})
-
 	t.Run("ReadDependencyLocks", func(t *testing.T) {
 		locksOut, diags := pr.ReadDependencyLocks()
 		if diags.HasErrors() {

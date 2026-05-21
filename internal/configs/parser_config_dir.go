@@ -28,6 +28,7 @@ const (
 // MatchTestFiles option, or from the default test directory.
 // If this option is not specified, test files will not be loaded.
 // Query files (.tfquery.hcl) are also loaded from the given directory.
+// State Migration files (.tfmigrate.hcl) are also loaded from the given directory.
 //
 // If this method returns nil, that indicates that the given directory does not
 // exist at all or could not be opened for some reason. Callers may wish to
@@ -59,30 +60,110 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 
 	// Initialize the module
 	mod, modDiags := NewModule(primary, override)
+	mod.SourceDir = path
 	diags = diags.Extend(modDiags)
 
 	// Check if we need to load test files
 	if len(fileSet.Tests) > 0 {
 		testFiles, fDiags := p.loadTestFiles(path, fileSet.Tests)
 		diags = diags.Extend(fDiags)
-		if mod != nil {
-			mod.Tests = testFiles
-		}
+		mod.Tests = testFiles
 	}
 	// Check if we need to load query files
 	if len(fileSet.Queries) > 0 {
-		queryFiles, fDiags := p.loadQueryFiles(path, fileSet.Queries)
+		queryFiles, fDiags := p.loadQueryFiles(fileSet.Queries)
 		diags = append(diags, fDiags...)
-		if mod != nil {
-			for _, qf := range queryFiles {
-				diags = diags.Extend(mod.appendQueryFile(qf))
+		for _, qf := range queryFiles {
+			diags = diags.Extend(mod.appendQueryFile(qf))
+		}
+	}
+	// Check if we need to load state migration files
+	if len(fileSet.StateMigrations) > 0 {
+		stateMigrationFiles, fDiags := p.loadStateMigrateFiles(path, fileSet.StateMigrations)
+		diags = append(diags, fDiags...)
+		// If there are errors they may be duplicated below, so return early.
+		// We return an incomplete module representation.
+		if diags.HasErrors() {
+			mod.SourceDir = path
+			return mod, diags
+		}
+
+		mod.StateMigrationInstructions = &StateMigrationInstructions{}
+		for _, smf := range stateMigrationFiles {
+			diags = diags.Extend(mod.appendStateMigrationFile(smf))
+		}
+
+		// If there are errors that might raise false positive below, so return early.
+		// We return an incomplete module representation.
+		if diags.HasErrors() {
+			mod.SourceDir = path
+			return mod, diags
+		}
+
+		// Now, we perform some final checks that can only be done once all .tfmigrate.hcl files are loaded.
+		// Note: Other checks, like mutual exclusivity, were already performed when parsing single files or appending files.
+		ssp := mod.StateMigrationInstructions.StateStoreProvider
+		ss := mod.StateMigrationInstructions.StateStore
+		b := mod.StateMigrationInstructions.Backend
+		switch {
+		case ssp == nil && ss == nil && b == nil:
+			// Files present but all empty
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Empty state migration configuration`,
+				Detail:   `The configuration includes .tfmigrate.hcl files, but they are empty. Please make sure they include the necessary blocks to define a state migration, or remove the files from your project.`,
+			})
+		case ss != nil && b != nil:
+			// Mutually exclusive 'from { backend }' and 'from { state_store }' both present
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "backend" and "state_store"`,
+				Detail:   `A configuration cannot include both "backend" and "state_store" blocks. Remove one of these blocks from inside the "from" block. The remaining block should describe where your existing state should be migrated from.`,
+				// Sourceless because we don't know which block isn't needed.
+			})
+		case ssp != nil && b != nil:
+			// Mutually exclusive 'from { backend }' and 'state_store_provider' both present
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "backend" and "state_store_provider"`,
+				Detail:   `The "state_store_provider" block can only be used in combination with a "state_store" block. Either remove the unused "state_store_provider" block, or replace the "backend" block with a "state_store" block.`,
+				// Blame the state_store_provider block as the problem, as this case will only be evaluated if
+				// there isn't a migrate_from_state_store block also present.
+				Subject: &ssp.DeclRange,
+			})
+		case ss != nil && ssp == nil:
+			// Missing 'state_store_provider' block
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Missing "state_store_provider" block for state store migration`,
+				Detail:   `The configuration includes a "state_store" block but is missing the required "state_store_provider" block. Add a "state_store_provider" block to specify the provider to use when migrating state out of that state store.`,
+			})
+		case ss == nil && ssp != nil:
+			// Missing 'from { state_store }' block
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Missing "state_store" block for state store migration`,
+				Detail:   `The configuration includes a "state_store_provider" block but is missing the required "state_store" block. Add a "state_store" block, nested in a "from" block, to specify the state store to migrate from.`,
+			})
+		case ss != nil && ssp != nil:
+			// Both 'from { state_store }' and 'state_store_provider' blocks are present,
+			// but are they in agreement with each other?
+			if ss.Provider.Name != ssp.Name {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Inconsistent provider information for state migration`,
+					Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
+						ssp.Name,
+						ss.Provider.Name,
+					),
+				})
+			} else {
+				// They match, so copy across relevant data.
+				ss.ProviderAddr = ssp.Type
 			}
 		}
 	}
-
-	if mod != nil {
-		mod.SourceDir = path
-	}
+	mod.SourceDir = path
 
 	return mod, diags
 }
@@ -151,7 +232,7 @@ func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []
 
 // IsConfigDir determines whether the given path refers to a directory that
 // exists and contains at least one Terraform config file (with a .tf or
-// .tf.json extension.). Note, we explicitely exclude checking for tests here
+// .tf.json extension.). Note, we explicitly exclude checking for tests here
 // as tests must live alongside actual .tf config files. Same goes for query files.
 func (p *Parser) IsConfigDir(path string, opts ...Option) bool {
 	pathSet, _ := p.dirFileSet(path, opts...)
@@ -205,7 +286,7 @@ func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*Tes
 	return tfs, diags
 }
 
-func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, hcl.Diagnostics) {
+func (p *Parser) loadQueryFiles(paths []string) ([]*QueryFile, hcl.Diagnostics) {
 	files := make([]*QueryFile, 0, len(paths))
 	var diags hcl.Diagnostics
 
@@ -215,6 +296,19 @@ func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, 
 		if f != nil {
 			files = append(files, f)
 		}
+	}
+
+	return files, diags
+}
+
+func (p *Parser) loadStateMigrateFiles(basePath string, paths []string) ([]*StateMigrationFile, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	files := make([]*StateMigrationFile, 0, len(paths))
+	for _, path := range paths {
+		f, fDiags := p.LoadStateMigrationFile(path)
+		diags = append(diags, fDiags...)
+		files = append(files, f)
 	}
 
 	return files, diags

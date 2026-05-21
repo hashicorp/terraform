@@ -11,6 +11,9 @@ type ProvidersMirror struct {
 	Platforms FlagStringSlice
 	LockFile  bool
 	OutputDir string
+
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseProvidersMirror processes CLI arguments, returning a ProvidersMirror
@@ -18,9 +21,11 @@ type ProvidersMirror struct {
 // still returned representing the best effort interpretation of the arguments.
 func ParseProvidersMirror(args []string) (*ProvidersMirror, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	providersMirror := &ProvidersMirror{}
+	providersMirror := &ProvidersMirror{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("providers mirror")
+	cmdFlags := extendedFlagSet("providers mirror", nil, nil, providersMirror.Vars)
 	cmdFlags.Var(&providersMirror.Platforms, "platform", "target platform")
 	cmdFlags.BoolVar(&providersMirror.LockFile, "lock-file", true, "use lock file")
 

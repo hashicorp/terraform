@@ -680,7 +680,7 @@ func ExtractLegacyConfigFromState(schema *configschema.Block, state cty.Value) c
 
 		// find the attribute or block schema representing the value
 		attr := schema.AttributeByPath(path)
-		block := schema.BlockByPath(path)
+		nestedBlock := schema.NestedBlockByPath(path)
 		switch {
 		case attr != nil:
 			// deprecated attributes
@@ -712,8 +712,8 @@ func ExtractLegacyConfigFromState(schema *configschema.Block, state cty.Value) c
 			}
 			return v, nil
 
-		case block != nil:
-			if block.Deprecated {
+		case nestedBlock != nil:
+			if nestedBlock.Deprecated {
 				return null, nil
 			}
 		}

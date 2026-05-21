@@ -713,9 +713,12 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 // config.
 func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
-	for _, ic := range config.Module.Import {
+	importStatements := refactoring.FindImportStatements(config)
+	for _, ic := range importStatements.Values() {
 		importTargets = append(importTargets, &ImportTarget{
-			Config: ic,
+			Config:              ic.Import,
+			RelModule:           ic.ContainingModule,
+			AbsToConfigResource: ic.AbsToResource,
 		})
 	}
 	return importTargets

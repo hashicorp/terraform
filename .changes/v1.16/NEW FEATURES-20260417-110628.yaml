@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag'
+time: 2026-04-17T11:06:28.651099+01:00
+custom:
+    Issue: "38397"

@@ -9,6 +9,8 @@ import (
 
 // StatePull represents the command-line arguments for the state pull command.
 type StatePull struct {
+	// Vars are the variable-related flags (-var, -var-file).
+	Vars *Vars
 }
 
 // ParseStatePull processes CLI arguments, returning a StatePull value and
@@ -16,9 +18,11 @@ type StatePull struct {
 // representing the best effort interpretation of the arguments.
 func ParseStatePull(args []string) (*StatePull, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	pull := &StatePull{}
+	pull := &StatePull{
+		Vars: &Vars{},
+	}
 
-	cmdFlags := defaultFlagSet("state pull")
+	cmdFlags := extendedFlagSet("state pull", nil, nil, pull.Vars)
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(

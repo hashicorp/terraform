@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'validate: Removed validation of attributes inside `backend` blocks due to incompatibility with workflows using the `-backend-config` flag.'
+time: 2026-04-29T16:40:13.802731+01:00
+custom:
+    Issue: "38466"

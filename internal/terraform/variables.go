@@ -105,6 +105,10 @@ const (
 	// ValueFromCaller indicates that the value was explicitly overridden by
 	// a caller to Context.SetVariable after the context was constructed.
 	ValueFromCaller ValueSourceType = 'S'
+
+	// ValueFromCloud indicates that the value was retrieved from a remote source,
+	// such as HCP Terraform or Terraform Enterprise.
+	ValueFromCloud ValueSourceType = 'T'
 )
 
 func (v *InputValue) GoString() string {
@@ -153,6 +157,8 @@ func (v ValueSourceType) DiagnosticLabel() string {
 		return "set by an interactive input"
 	case ValueFromPlan:
 		return "set by the plan"
+	case ValueFromCloud:
+		return "set by the cloud backend"
 	default:
 		return "unknown"
 	}

@@ -39,12 +39,14 @@ func (n *NodeDestroyResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
-func (n *NodeDestroyResourceInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+func (n *NodeDestroyResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
-		return nil, true
+		p := n.NodeAbstractResourceInstance.Provider()
+		p.NoProvider = true
+		return p
 	}
-	return n.NodeAbstractResourceInstance.ProvidedBy()
+	return n.NodeAbstractResourceInstance.Provider()
 }
 
 // GraphNodeDestroyer
@@ -79,26 +81,8 @@ func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
-	normalAddrs := n.NodeAbstractResourceInstance.ReferenceableAddrs()
-	destroyAddrs := make([]addrs.Referenceable, len(normalAddrs))
-
-	phaseType := addrs.ResourceInstancePhaseDestroy
-	if n.CreateBeforeDestroy() {
-		phaseType = addrs.ResourceInstancePhaseDestroyCBD
-	}
-
-	for i, normalAddr := range normalAddrs {
-		switch ta := normalAddr.(type) {
-		case addrs.Resource:
-			destroyAddrs[i] = ta.Phase(phaseType)
-		case addrs.ResourceInstance:
-			destroyAddrs[i] = ta.Phase(phaseType)
-		default:
-			destroyAddrs[i] = normalAddr
-		}
-	}
-
-	return destroyAddrs
+	// a destroy node is not referenceable
+	return []addrs.Referenceable{}
 }
 
 // GraphNodeReferencer, overriding NodeAbstractResource
@@ -154,15 +138,8 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	var changeApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	changeApply, err = n.readDiff(ctx, providerSchema)
-	diags = diags.Append(err)
-	if changeApply == nil || diags.HasErrors() {
+	changeApply = ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
+	if changeApply == nil {
 		return diags
 	}
 
@@ -211,7 +188,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	// we don't return immediately here on error, so that the state can be
 	// finalized
 
-	err = n.writeResourceInstanceState(ctx, state, workingState)
+	err := n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
 	}

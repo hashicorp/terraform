@@ -331,7 +331,7 @@ func TestBlockByPath(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			block := schema.BlockByPath(tc.path)
+			block := schema.NestedBlockByPath(tc.path)
 			if !tc.exists && block == nil {
 				return
 			}

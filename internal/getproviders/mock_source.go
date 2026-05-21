@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -147,49 +148,14 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // standard terraform-provider-NAME_X.Y.Z format, but can be overridden with
 // the execFilename argument.
 //
-// It's the caller's responsibility to call the close callback returned
-// alongside the result in order to clean up the temporary file. The caller
-// should call the callback even if this function returns an error, because
-// some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
-	f, err := os.CreateTemp("", "terraform-getproviders-fake-package-")
+// Cleanup functions are handled internally using t.Cleanup.
+func FakeInstallablePackageMeta(t *testing.T, provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, error) {
+	t.Helper()
+
+	f, checksum, err := CreateFakeFileWithChecksumForProvider(t, provider, version, target, execFilename)
 	if err != nil {
-		return PackageMeta{}, func() {}, err
+		return PackageMeta{}, err
 	}
-
-	// After this point, all of our return paths should include this as the
-	// close callback.
-	close := func() {
-		f.Close()
-		os.Remove(f.Name())
-	}
-
-	if execFilename == "" {
-		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
-		if target.OS == "windows" {
-			// For a little more (technically unnecessary) realism...
-			execFilename += ".exe"
-		}
-	}
-
-	zw := zip.NewWriter(f)
-	fw, err := zw.Create(execFilename)
-	if err != nil {
-		return PackageMeta{}, close, fmt.Errorf("failed to add %s to mock zip file: %s", execFilename, err)
-	}
-	fmt.Fprintf(fw, "This is a fake provider package for %s %s, not a real provider.\n", provider, version)
-	err = zw.Close()
-	if err != nil {
-		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
-	}
-
-	// Compute the SHA256 checksum of the generated file, to allow package
-	// authentication code to be exercised.
-	f.Seek(0, io.SeekStart)
-	h := sha256.New()
-	io.Copy(h, f)
-	checksum := [32]byte{}
-	h.Sum(checksum[:0])
 
 	meta := PackageMeta{
 		Provider:         provider,
@@ -208,7 +174,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 
 		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
-	return meta, close, nil
+	return meta, nil
 }
 
 // This is basically the same as FakePackageMeta, except that we'll use a PackageHTTPURL instead of a PackageLocalArchive when creating metadata for the provider.
@@ -216,45 +182,11 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 //
 // The caller is responsible for calling the close callback to clean up the temporary file.
 // The temporary file is only used to calculate checksums and isn't actually used to install the provider in the test.
-func FakePackageMetaViaHTTP(provider addrs.Provider, version Version, protocols VersionList, target Platform, locationBaseUrl string, execFilename string) (PackageMeta, func(), error) {
-	f, err := os.CreateTemp("", "terraform-getproviders-fake-package-")
+func FakePackageMetaViaHTTP(t *testing.T, provider addrs.Provider, version Version, protocols VersionList, target Platform, locationBaseUrl string) (PackageMeta, error) {
+	f, checksum, err := CreateFakeFileWithChecksumForProvider(t, provider, version, target, "")
 	if err != nil {
-		return PackageMeta{}, func() {}, err
+		return PackageMeta{}, err
 	}
-
-	// After this point, all of our return paths should include this as the
-	// close callback.
-	close := func() {
-		f.Close()
-		os.Remove(f.Name())
-	}
-
-	if execFilename == "" {
-		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
-		if target.OS == "windows" {
-			// For a little more (technically unnecessary) realism...
-			execFilename += ".exe"
-		}
-	}
-
-	zw := zip.NewWriter(f)
-	fw, err := zw.Create(execFilename)
-	if err != nil {
-		return PackageMeta{}, close, fmt.Errorf("failed to add %s to mock zip file: %s", execFilename, err)
-	}
-	fmt.Fprintf(fw, "This is a fake provider package for %s %s, not a real provider.\n", provider, version)
-	err = zw.Close()
-	if err != nil {
-		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
-	}
-
-	// Compute the SHA256 checksum of the generated file, to allow package
-	// authentication code to be exercised.
-	f.Seek(0, io.SeekStart)
-	h := sha256.New()
-	io.Copy(h, f)
-	checksum := [32]byte{}
-	h.Sum(checksum[:0])
 
 	meta := PackageMeta{
 		Provider:         provider,
@@ -281,7 +213,62 @@ func FakePackageMetaViaHTTP(provider addrs.Provider, version Version, protocols 
 
 		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
-	return meta, close, nil
+	return meta, nil
+}
+
+// CreateFakeFileWithChecksumForProvider creates a temporary zip file containing a fake provider executable for a given combo of:
+//   - provider address
+//   - version
+//   - target platform
+//
+// The function returns an os.File pointing to the temp file and a checksum of its contents. These are intended to be used to
+// create mock provider sources.
+//
+// Cleanup functions (closing the file and deleting it) are handled internally using t.Cleanup.
+func CreateFakeFileWithChecksumForProvider(t *testing.T, provider addrs.Provider, version Version, target Platform, execFilename string) (*os.File, [32]byte, error) {
+	t.Helper()
+
+	f, err := os.CreateTemp("", "terraform-getproviders-fake-package-")
+	if err != nil {
+		return nil, [32]byte{}, err
+	}
+
+	// Handle cleanup of the temporary file using t.Cleanup.
+	close := func() {
+		f.Close()
+		os.Remove(f.Name())
+	}
+	t.Cleanup(close)
+
+	if execFilename == "" {
+		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		if target.OS == "windows" {
+			// For a little more (technically unnecessary) realism...
+			execFilename += ".exe"
+		}
+	}
+
+	// Create mock zip file
+	zw := zip.NewWriter(f)
+	fw, err := zw.Create(execFilename)
+	if err != nil {
+		return nil, [32]byte{}, fmt.Errorf("failed to add %s to mock zip file: %s", execFilename, err)
+	}
+	fmt.Fprintf(fw, "This is a fake provider package for %s %s, not a real provider.\n", provider, version)
+	err = zw.Close()
+	if err != nil {
+		return nil, [32]byte{}, fmt.Errorf("failed to close the mock zip file: %s", err)
+	}
+
+	// Compute the SHA256 checksum of the generated file, to allow package
+	// authentication code to be exercised.
+	f.Seek(0, io.SeekStart)
+	h := sha256.New()
+	io.Copy(h, f)
+	checksum := [32]byte{}
+	h.Sum(checksum[:0])
+
+	return f, checksum, nil
 }
 
 func (s *MockSource) ForDisplay(provider addrs.Provider) string {

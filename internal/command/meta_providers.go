@@ -187,6 +187,14 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	}
 }
 
+func (m *Meta) isProviderDevOverride(pAddr addrs.Provider) bool {
+	if len(m.ProviderDevOverrides) == 0 {
+		return false
+	}
+	_, overridden := m.ProviderDevOverrides[pAddr]
+	return overridden
+}
+
 func (m *Meta) removeDevOverrides(reqs providerreqs.Requirements) providerreqs.Requirements {
 	// Deep copy the requirements to avoid mutating the input
 	copiedReqs := make(providerreqs.Requirements)
