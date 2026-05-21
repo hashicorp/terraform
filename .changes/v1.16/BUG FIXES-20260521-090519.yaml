@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "test: fix dependency ordering in parallel cleanup"
+time: 2026-05-21T09:05:19.581965+02:00
+custom:
+  Issue: "38247"
