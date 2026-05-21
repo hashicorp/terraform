@@ -366,10 +366,10 @@ the backend configuration is present and valid.
 type SafeInitAction rune
 
 const (
-	SafeInitActionInvalid        SafeInitAction = 0
-	SafeInitActionProceed        SafeInitAction = 'P'
-	SafeInitActionPromptForInput SafeInitAction = 'I'
-	SafeInitActionNotRelevant    SafeInitAction = 'N' // For when a state store isn't in use at all!
+	SafeInitActionInvalid         SafeInitAction = 0
+	SafeInitActionProceed         SafeInitAction = 'P'
+	SafeInitActionRequireApproval SafeInitAction = 'I'
+	SafeInitActionNotRelevant     SafeInitAction = 'N' // For when a state store isn't in use at all!
 )
 
 // getProvidersFromConfig determines what providers are required by the given configuration data.
@@ -378,7 +378,7 @@ const (
 // The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	if config == nil {
 		return false, nil, SafeInitActionNotRelevant, nil, diags
 	}
@@ -507,13 +507,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		mode = providercache.InstallUpgrades
 	}
 
-	// Previous locks from dep locks file are needed so we don't re-download any providers
-	previousLocks, moreDiags := c.lockedDependencies()
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, nil, diags
-	}
-
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
 	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
@@ -559,7 +552,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 				safeInitAction = SafeInitActionProceed
 			case getproviders.PackageHTTPURL:
 				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionPromptForInput
+				safeInitAction = SafeInitActionRequireApproval
 			default:
 				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
 			}
@@ -1005,6 +998,13 @@ Options:
   -enable-pluggable-state-storage-experiment [EXPERIMENTAL]
                           A flag to enable an alternative init command that allows use of
                           pluggable state storage. Only usable with experiments enabled.
+
+  -state-provider-lock-file [EXPERIMENTAL]
+                          Specifies a lock file Terraform should use to establish trust in 
+                          a provider before initializing a state store for the first time.
+                          Only usable when input is disabled through -input=false.
+                          Only usable with experiments enabled and the
+                          -enable-pluggable-state-storage-experiment flag present.
 `
 	return strings.TrimSpace(helpText)
 }
