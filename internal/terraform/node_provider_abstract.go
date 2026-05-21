@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -26,6 +28,10 @@ type NodeAbstractProvider struct {
 
 	Config *configs.Provider
 	Schema *configschema.Block
+
+	// cachedUnmarkedConfigValue is set when the provider is configured, so
+	// that other nodes don't need to recalculate the config value.
+	cachedUnmarkedConfigValue cty.Value
 }
 
 var (

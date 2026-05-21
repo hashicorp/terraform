@@ -8,15 +8,17 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
+func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, policyClient policy.Client, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
 	return GraphTransformMulti(
 		// Add placeholder nodes for any externally-configured providers
 		&externalProviderTransformer{
@@ -125,6 +127,38 @@ func (r ProviderRef) String() string {
 // Returns the FQN string from the provider type.
 func (r ProviderRef) ForDisplay() string {
 	return r.addr.Provider.ForDisplay()
+}
+
+func (r ProviderRef) getProviderMeta(ctx EvalContext, resource addrs.ResourceInstance, metas map[addrs.Provider]*configs.ProviderMeta) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+
+	_, providerSchema, err := getProvider(ctx, r.addr)
+	if err != nil {
+		return metaConfigVal, diags.Append(err)
+	}
+
+	if metas != nil {
+		if m, ok := metas[r.addr.Provider]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if providerSchema.ProviderMeta.Body == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", r.addr.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", resource.String()),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				var deprecationDiags tfdiags.Diagnostics
+				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
+				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, r.addr.String()))
+			}
+		}
+	}
+	return metaConfigVal, diags
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to providers

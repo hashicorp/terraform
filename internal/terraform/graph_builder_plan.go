@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -117,6 +118,8 @@ type PlanGraphBuilder struct {
 	// validation of the graph.
 	SkipGraphValidation bool
 
+	PolicyClient policy.Client
+
 	// If true, the graph builder will generate a query plan instead of a
 	// normal plan. This is used for the "terraform query" command.
 	queryPlan bool
@@ -203,6 +206,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:         b.Config,
 			ValidateChecks: true,
 			DestroyApply:   false, // always false for planning
+			PolicyClient:   b.PolicyClient,
 		},
 		&variableValidationTransformer{
 			operation: b.Operation,
@@ -263,7 +267,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(b.ConcreteProvider, b.Config, b.ExternalProviderConfigs),
+		transformProviders(b.ConcreteProvider, b.Config, b.PolicyClient, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
@@ -315,6 +319,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Request policy evaluation for all resource instances.
+		&policyEvalTransformer{
+			PolicyClient: func() policy.Client {
+				// Skip policy evaluation during predestroy refresh.
+				if b.preDestroyRefresh {
+					return nil
+				}
+				return b.PolicyClient
+			}(),
+		},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
