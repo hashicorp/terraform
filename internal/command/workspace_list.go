@@ -75,7 +75,12 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	env, isOverridden := c.WorkspaceOverridden()
+	env, isOverridden, err := c.WorkspaceOverridden()
+	if err != nil {
+		diags = diags.Append(err)
+		view.List("", nil, diags)
+		return 1
+	}
 
 	if isOverridden {
 		warn := tfdiags.Sourceless(
