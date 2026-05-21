@@ -2260,6 +2260,7 @@ func (m *Meta) stateStore_C_s(c *configs.StateStore, stateStoreHash int, backend
 		return nil, diags
 	}
 
+	s.Backend = nil // unset this; user may be running `terraform init -reconfigure` and there's a preexisting backend state file.
 	s.StateStore = &workdir.StateStoreConfigState{
 		Type: c.Type,
 		Hash: uint64(stateStoreHash),
