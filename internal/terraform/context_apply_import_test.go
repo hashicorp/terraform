@@ -81,7 +81,7 @@ func TestContextApply_import_in_module(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got, want := attrs["id"], "testa"; got != want {
-		t.Fatalf("wrong id for \"first\" got:  %#v\nwant: %#v", got, want)
+		t.Fatalf("wrong id for \"first\" got:  %#v  want: %#v\n", got, want)
 	}
 
 	rs = state.ResourceInstance(mustResourceInstanceAddr("module.child.test_object.bar[\"second\"]"))
@@ -93,7 +93,7 @@ func TestContextApply_import_in_module(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got, want := attrs["id"], "testb"; got != want {
-		t.Fatalf("wrong id for \"second\" got:  %#v\nwant: %#v", got, want)
+		t.Fatalf("wrong id for \"second\" got:  %#v  want: %#v\n", got, want)
 	}
 }
 
@@ -198,5 +198,68 @@ func TestContextApply_import_in_expanded_module(t *testing.T) { // count AND for
 
 	if !p.ImportResourceStateCalled {
 		t.Fatal("resources not imported")
+	}
+}
+
+func TestContextApply_import_duplication(t *testing.T) {
+	// two imports to the same resource - one in root, one in the child mod
+	m := testModule(t, "import-block-duplication")
+
+	p := mockProviderWithResourceTypeSchema("test_object", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":          {Type: cty.String, Computed: true},
+			"test_string": {Type: cty.String, Optional: true},
+		},
+	})
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("importable"),
+					"id":          cty.StringVal(req.ID),
+				}),
+			}},
+		}
+	}
+	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+		id := r.PriorState.GetAttr("id")
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"test_string": cty.StringVal("importable"),
+				"id":          id,
+			}),
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	rs := state.ResourceInstance(mustResourceInstanceAddr("module.child.test_object.foo"))
+	if rs == nil {
+		t.Fatal("imported resource not found in module")
+	}
+	var attrs map[string]interface{}
+	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// the parent module import takes precedence (confirming the comment in refactoring/import_statement.go)
+	if got, want := attrs["id"], "rootimport"; got != want {
+		t.Fatalf("wrong id! got:  %#v  want: %#v\n", got, want)
 	}
 }
