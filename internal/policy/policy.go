@@ -181,6 +181,7 @@ func EvaluationFromProtoResponse(overall proto.EvaluateResult, policyDetails []*
 	return ret
 }
 
+// Empty returns true if the response indicates that the policy engine has no matched policy for the object.
 func (r EvaluationResponse) Empty() bool {
 	// The policy engine sends an allow result when the object has no matched policy, consequently
 	// impliciting allowing it. However, such object really had no policy, and may not need to be rendered.

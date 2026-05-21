@@ -169,6 +169,10 @@ type Plan struct {
 	// and builtin calls which may access external state so that calls during
 	// apply can be checked for consistency.
 	FunctionResults []lang.FunctionResultHash
+
+	// PolicyResults stores the results of policy evaluations that were performed
+	// while making this plan.
+	PolicyResults *PolicyResults
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
