@@ -137,6 +137,13 @@ func (r SourceRange) ToHCL() hcl.Range {
 	}
 }
 
+// FromHCL converts an hcl.Diagnostic into a Diagnostic implementation.
+func FromHCL(diag *hcl.Diagnostic) Diagnostic {
+	return hclDiagnostic{
+		diag: diag,
+	}
+}
+
 // ToHCL constructs a hcl.Diagnostics containing the same diagnostic messages
 // as the receiving tfdiags.Diagnostics.
 //
