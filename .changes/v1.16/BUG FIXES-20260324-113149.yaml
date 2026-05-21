@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Close module manifest snapshot files after writing to avoid leaking file descriptors.
+time: 2026-03-24T11:31:49-07:00
+custom:
+    Issue: "38302"
