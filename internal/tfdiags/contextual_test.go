@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
@@ -580,6 +581,123 @@ simple_attr = "val"
 			for _, problem := range deep.Equal(gotRange, tc.ExpectedRange) {
 				t.Error(problem)
 			}
+		})
+	}
+}
+
+func TestWithSubject(t *testing.T) {
+	subject := &hcl.Range{
+		Filename: "test.tf",
+		Start:    hcl.Pos{Line: 2, Column: 3, Byte: 12},
+		End:      hcl.Pos{Line: 2, Column: 7, Byte: 16},
+	}
+	containingContext := &hcl.Range{
+		Filename: "test.tf",
+		Start:    hcl.Pos{Line: 2, Column: 1, Byte: 10},
+		End:      hcl.Pos{Line: 2, Column: 10, Byte: 19},
+	}
+	nonContainingContext := &hcl.Range{
+		Filename: "test.tf",
+		Start:    hcl.Pos{Line: 10, Column: 1, Byte: 100},
+		End:      hcl.Pos{Line: 10, Column: 5, Byte: 104},
+	}
+	existingSubject := &hcl.Range{
+		Filename: "other.tf",
+		Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		End:      hcl.Pos{Line: 1, Column: 2, Byte: 1},
+	}
+
+	testCases := []struct {
+		name   string
+		diag   Diagnostic
+		assert func(t *testing.T, got Diagnostic)
+	}{
+		{
+			name: "adds subject to hcl diagnostic with no source",
+			diag: hclDiagnostic{diag: &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "summary",
+				Detail:   "detail",
+			}},
+			assert: func(t *testing.T, got Diagnostic) {
+				t.Helper()
+				hclDiag := got.(hclDiagnostic)
+				if diff := cmp.Diff(subject, hclDiag.diag.Subject); diff != "" {
+					t.Fatalf("wrong subject\nwant: %#v\ngot:  %#v", subject, hclDiag.diag.Subject)
+				}
+				if hclDiag.diag.Context != nil {
+					t.Fatalf("expected nil context, got %#v", hclDiag.diag.Context)
+				}
+			},
+		},
+		{
+			name: "preserves existing subject but replaces non-overlapping context",
+			diag: hclDiagnostic{diag: &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "summary",
+				Detail:   "detail",
+				Subject:  existingSubject,
+				Context:  containingContext,
+			}},
+			assert: func(t *testing.T, got Diagnostic) {
+				t.Helper()
+				hclDiag := got.(hclDiagnostic)
+				if diff := cmp.Diff(existingSubject, hclDiag.diag.Subject); diff != "" {
+					t.Fatalf("wrong subject\nwant: %#v\ngot:  %#v", existingSubject, hclDiag.diag.Subject)
+				}
+				if diff := cmp.Diff(subject, hclDiag.diag.Context); diff != "" {
+					t.Fatalf("wrong context\nwant: %#v\ngot:  %#v", subject, hclDiag.diag.Context)
+				}
+			},
+		},
+		{
+			name: "leaves non hcl diagnostic unchanged",
+			diag: Sourceless(Error, "summary", "detail"),
+			assert: func(t *testing.T, got Diagnostic) {
+				t.Helper()
+				if got.Source().Subject != nil {
+					t.Fatalf("expected nil subject, got %#v", got.Source().Subject)
+				}
+			},
+		},
+		{
+			name: "updates wrapped original in overridden diagnostic",
+			diag: Override(hclDiagnostic{diag: &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "summary",
+				Detail:   "detail",
+				Context:  nonContainingContext,
+			}}, Warning, nil),
+			assert: func(t *testing.T, got Diagnostic) {
+				t.Helper()
+				override, ok := got.(overriddenDiagnostic)
+				if !ok {
+					t.Fatalf("wrong diagnostic type %T", got)
+				}
+				if override.Severity() != Warning {
+					t.Fatalf("wrong severity %s", override.Severity())
+				}
+				hclDiag, ok := override.original.(hclDiagnostic)
+				if !ok {
+					t.Fatalf("wrong wrapped diagnostic type %T", override.original)
+				}
+				if !reflect.DeepEqual(subject, hclDiag.diag.Subject) {
+					t.Fatalf("wrong subject\nwant: %#v\ngot:  %#v", subject, hclDiag.diag.Subject)
+				}
+				if !reflect.DeepEqual(subject, hclDiag.diag.Context) {
+					t.Fatalf("wrong context\nwant: %#v\ngot:  %#v", subject, hclDiag.diag.Context)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Diagnostics{tc.diag}.WithSubject(subject)
+			if len(got) != 1 {
+				t.Fatalf("wrong number of diagnostics %d", len(got))
+			}
+			tc.assert(t, got[0])
 		})
 	}
 }
