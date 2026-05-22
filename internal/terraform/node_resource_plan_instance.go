@@ -576,21 +576,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 func (n *NodePlannableResourceInstance) reportDeferredActionTriggers(ctx EvalContext, reason providers.DeferredReason) {
 	deferrals := ctx.Deferrals()
 
-	// FIXME: if the resource is being deferred, we don't even know what the
-	// event is regardless of what the deferral claims, because an update could
-	// instead result in a create, destroy, or noop events.
-	for _, trigger := range n.actionTriggers {
-		for _, action := range trigger.actionRefs {
+	for blockIdx, trigger := range n.actionTriggers {
+		for listIdx, action := range trigger.actionRefs {
 			deferrals.ReportActionInvocationDeferred(plans.ActionInvocationInstance{
-				// FIXME: actions don't expand with modules, so this address
-				// isn't really representative of the real address.
-				//
-				// FIXME x2: we may or may not be able to expand the referenced
-				// instance depending on the deferral, so how should deferrals
-				// handle that?
 				Addr: action.actionNode.Addr.Absolute(n.Addr.Module).Instance(addrs.NoKey),
 				ActionTrigger: &plans.ResourceActionTrigger{
-					TriggeringResourceAddr: n.Addr,
+					TriggeringResourceAddr:  n.Addr,
+					ActionTriggerBlockIndex: blockIdx,
+					ActionsListIndex:        listIdx,
 				},
 			}, reason)
 		}
