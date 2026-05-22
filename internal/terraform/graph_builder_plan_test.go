@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 )
@@ -89,6 +91,61 @@ openstack_floating_ip.random
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Fatalf("g.ResourceGraph has changed g (should not have modified it)\n%s", diff)
 			}
+		}
+	})
+}
+
+func TestPlanGraphBuilder_PolicyClient(t *testing.T) {
+	awsProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"aws_security_group": {Body: simpleTestSchema()},
+				"aws_instance":       {Body: simpleTestSchema()},
+				"aws_load_balancer":  {Body: simpleTestSchema()},
+			},
+		},
+	}
+	openstackProvider := mockProviderWithResourceTypeSchema("openstack_floating_ip", simpleTestSchema())
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("aws"):       providers.FactoryFixed(awsProvider),
+		addrs.NewDefaultProvider("openstack"): providers.FactoryFixed(openstackProvider),
+	}, nil, nil)
+
+	t.Run("with policy client", func(t *testing.T) {
+		b := &PlanGraphBuilder{
+			Config:       testModule(t, "graph-builder-plan-basic"),
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 1 {
+			t.Fatalf("expected 1 policy evaluation node in plan graph with policy client, got %d", nodes)
+		}
+	})
+
+	t.Run("without policy client", func(t *testing.T) {
+		b := &PlanGraphBuilder{
+			Config:    testModule(t, "graph-builder-plan-basic"),
+			Plugins:   plugins,
+			Operation: walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 0 {
+			t.Fatalf("expected 0 policy evaluation nodes in plan graph without policy client, got %d", nodes)
 		}
 	})
 }
