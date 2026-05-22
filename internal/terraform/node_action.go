@@ -56,6 +56,68 @@ func (n NodeActionConfig) Name() string {
 	return n.Addr.String()
 }
 
+func (n *NodeActionConfig) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Validation happens without expansion, and Validate will be called from
+	// either a validateable node or a triggering node.
+	if op == walkValidate {
+		return nil
+	}
+
+	// Action configuration is always evaluated from the context of the
+	// triggering node, so all this node needs to do for Execute is record the
+	// instance expansion. This also makes sure we determine whether we need
+	// to be deferred due to unknown expansion before we get to the resources
+	// triggering the action.
+	return n.recordActionExpansion(ctx)
+}
+
+func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME: this is hard-coded to false for now to match existing behavior,
+	// but actions will need to conform to the same deferral system as all other
+	// objects.
+	// deferralAllowed := ctx.Deferrals().DeferralAllowed()
+	deferralAllowed := false
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module, false) {
+		moduleCtx := evalContextForModuleInstance(ctx, module)
+
+		switch {
+		case n.Config.Count != nil:
+			count, countDiags := evaluateCountExpression(n.Config.Count, moduleCtx, deferralAllowed)
+			diags = diags.Append(countDiags)
+			if diags.HasErrors() {
+				return diags
+			}
+			if count >= 0 {
+				expander.SetActionCount(module, n.Addr.Action, count)
+
+			} else {
+				expander.SetActionCountUnknown(module, n.Addr.Action)
+			}
+
+		case n.Config.ForEach != nil:
+			forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, moduleCtx, deferralAllowed)
+			diags = diags.Append(forEachDiags)
+			if forEachDiags.HasErrors() {
+				return diags
+			}
+			if known {
+				expander.SetActionForEach(module, n.Addr.Action, forEach)
+			} else {
+				expander.SetActionForEachUnknown(module, n.Addr.Action)
+			}
+
+		default:
+			expander.SetActionSingle(module, n.Addr.Action)
+		}
+	}
+
+	return diags
+}
+
 // Validate validates the action config, with an optional caller address if the
 // action is invoked from a resource action trigger.
 func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
@@ -225,70 +287,47 @@ func (n *NodeActionConfig) AttachDependencies(deps []addrs.ConfigResource) {
 	n.Dependencies = deps
 }
 
-func (n *NodeActionConfig) repetitionData(ctx EvalContext) ([]instances.RepetitionData, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	var reps []instances.RepetitionData
-
-	switch {
-	case n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, false)
-		diags = diags.Append(countDiags)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		for i := 0; i < count; i++ {
-			reps = append(reps, instances.RepetitionData{
-				CountIndex: cty.NumberIntVal(int64(i)),
-			})
-		}
-		return reps, diags
-
-	case n.Config.ForEach != nil:
-		forEach, _, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-		diags = diags.Append(forEachDiags)
-		if forEachDiags.HasErrors() {
-			return reps, diags
-		}
-
-		for key, value := range forEach {
-			reps = append(reps, instances.RepetitionData{
-				EachKey:   cty.StringVal(key),
-				EachValue: value,
-			})
-		}
-		return reps, diags
-
-	default:
-		return []instances.RepetitionData{EvalDataForNoInstanceKey}, diags
-	}
-}
-
 // The invoke command can reference an action block to invoke all instances, so
 // here we return a value representing the entire block if we have an
 // addrs.NoKey This function uses addrs.ActionInstance even though it only needs
 // the key because we need to use use a full instance addr for the resulting map
 // keys anyway.
 func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
 
-	switch key := addr.Key.(type) {
-	case addrs.IntKey, addrs.StringKey:
-		val, diags := n.EvalInstance(ctx, key, callRange, caller)
+	var instances []addrs.AbsActionInstance
+
+	expander := ctx.InstanceExpander()
+	if addr.Key == addrs.NoKey {
+		// this might be a single instance with no key, or all instances, so we
+		// must expand for both cases
+		instances = expander.ExpandAction(n.Addr.Absolute(ctx.Path()))
+	} else {
+		// definitely looking for a single instance because we have an index of
+		// some sort
+		instances = []addrs.AbsActionInstance{addr.Absolute(ctx.Path())}
+	}
+
+	for _, instAddr := range instances {
+		repData := expander.GetActionInstanceRepetitionData(instAddr)
+		val, evalDiags := n.evalInstance(ctx, repData, callRange, caller)
+		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			return all, diags
 		}
-		all.Put(addr, val)
-		return all, diags
-
-	default:
-		return n.eval(ctx, addr.Key, callRange, caller)
+		all.Put(instAddr.Action, val)
 	}
+
+	return all, diags
 }
 
 // EvalInstance returns the value from the expanded action block
-func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	key := inst.Action.Key
+
 	// we first validate the correct type of key is being used for the action
 	switch {
 	case n.Config.Count != nil:
@@ -361,97 +400,36 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, key addrs.InstanceKey, 
 		}
 	}
 
-	vals, diags := n.eval(ctx, key, callRange, caller)
-	if diags.HasErrors() {
+	instAddr := n.Addr.Absolute(ctx.Path()).Instance(key)
+
+	expander := ctx.InstanceExpander()
+	// first we have to make sure the instance is valid because the expander only panics
+	instances := expander.ExpandAction(inst.ContainingAction())
+	found := false
+	for _, instAddr := range instances {
+		if instAddr.Equal(inst) {
+			found = true
+		}
+	}
+	if !found {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to non-existent action instance",
+			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", key),
+			Subject:  callRange,
+		})
 		return cty.DynamicVal, diags
 	}
 
-	val := vals.Get(n.Addr.Action.Instance(key))
-	return val, diags
+	repData := expander.GetActionInstanceRepetitionData(instAddr)
+
+	return n.evalInstance(ctx, repData, callRange, caller)
 }
 
 // Eval one or more instances of the action. This function expects that the key
 // is already validated for the the calling context, and will not produce
 // diagnostics for incorrect key types.
-func (n *NodeActionConfig) eval(ctx EvalContext, key addrs.InstanceKey, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
-
-	actionInstances, diags := n.repetitionData(ctx)
-	if diags.HasErrors() {
-		return all, diags
-	}
-
-	switch key := key.(type) {
-	case addrs.IntKey:
-		if int(key) >= len(actionInstances) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reference to non-existent action instance",
-				Detail:   fmt.Sprintf("The given key %d does not identify an instance of %s", key, n.Addr.Absolute(ctx.Path())),
-				Subject:  callRange,
-			})
-			return all, diags
-		}
-
-		val, evalDiags := n.evalInstance(ctx, actionInstances[int(key)], caller)
-		diags = append(diags, evalDiags...)
-		all.Put(n.Addr.Action.Instance(key), val)
-
-		return all, diags
-
-	case addrs.StringKey:
-		for _, inst := range actionInstances {
-			// find the one instance we're looking for
-			if inst.EachKey.AsString() != string(key) {
-				continue
-			}
-			val, evalDiags := n.evalInstance(ctx, inst, caller)
-			diags = diags.Append(evalDiags)
-			if evalDiags.HasErrors() {
-				return all, diags
-			}
-
-			all.Put(n.Addr.Action.Instance(key), val)
-		}
-
-		if all.Len() == 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reference to non-existent action instance",
-				Detail:   fmt.Sprintf("The given key %s does not identify an instance of %s", key, n.Addr.Absolute(ctx.Path())),
-				Subject:  callRange,
-			})
-			return all, diags
-		}
-
-		return all, diags
-
-	default:
-		for _, inst := range actionInstances {
-			val, evalDiags := n.evalInstance(ctx, inst, caller)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return all, diags
-			}
-
-			// we need to generate keys out of any new repetition Data
-			switch {
-			case inst.CountIndex != cty.NilVal:
-				idx, _ := inst.CountIndex.AsBigFloat().Int64()
-				key = addrs.IntKey(int(idx))
-			case inst.EachKey != cty.NilVal:
-				key = addrs.StringKey(inst.EachKey.AsString())
-			}
-
-			all.Put(n.Addr.Action.Instance(key), val)
-		}
-
-		return all, diags
-	}
-}
-
-func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// This should have been caught already
