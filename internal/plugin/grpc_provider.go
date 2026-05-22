@@ -1510,12 +1510,22 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 
 	// We only allow deferral from the provider as a whole. The provider must be
 	// able to accept unknown configuration.
-	if protoResp.Deferred != nil && protoResp.Deferred.Reason != proto.Deferred_PROVIDER_CONFIG_UNKNOWN {
-		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
-			tfdiags.Error,
-			"Invalid deferred reason",
-			fmt.Sprintf("An action can only be deferred due to an unknown provider configuration. Provider %s returned %s.", p.Addr.ForDisplay(), protoResp.Deferred.Reason),
-		))
+	if protoResp.Deferred != nil {
+		if !r.ClientCapabilities.DeferralAllowed {
+			tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferral",
+				fmt.Sprintf("The provider %s signaled a deferred action, but deferrals are not enabled for this client.", p.Addr.ForDisplay()),
+			)
+		}
+
+		if protoResp.Deferred.Reason != proto.Deferred_PROVIDER_CONFIG_UNKNOWN {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferred reason",
+				fmt.Sprintf("An action can only be deferred due to an unknown provider configuration. Provider %s returned %s.", p.Addr.ForDisplay(), protoResp.Deferred.Reason),
+			))
+		}
 	}
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
