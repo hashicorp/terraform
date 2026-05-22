@@ -52,9 +52,7 @@ func NewPolicyInfo(sourceCode []byte, enforcement policy.EnforcementResult) Poli
 			StartLine:            int(snippet.StartLine),
 			HighlightStartOffset: int(snippet.HighlightStartOffset),
 			HighlightEndOffset:   int(snippet.HighlightEndOffset),
-		}
-		if snippet.Context != nil && snippet.Context.Context != "" {
-			ret.PolicySnippet.Context = &snippet.Context.Context
+			Context:              snippet.Context,
 		}
 	}
 
