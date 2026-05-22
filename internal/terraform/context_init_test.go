@@ -727,6 +727,100 @@ variable "name" {
 				SourceAddr: mustModuleSource(t, "./modules/example"),
 			}},
 		},
+
+		"registry with version and local with null version": {
+			module: map[string]string{
+				"main.tf": `
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+}
+
+module "local" {
+  source  = "./modules/local"
+  version = null
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}, {
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "~> 5.0"),
+			}},
+		},
+
+		"conditional version with mixed sources - null on local": {
+			module: map[string]string{
+				"main.tf": `
+variable "use_local" {
+  type  = bool
+  const = true
+}
+
+locals {
+  source = var.use_local ? "./modules/local" : "terraform-aws-modules/vpc/aws"
+}
+
+module "example" {
+  source  = local.source
+  version = var.use_local ? null : "5.0.0"
+}
+`,
+			},
+			vars: InputValues{
+				"use_local": &InputValue{Value: cty.BoolVal(true), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
+
+		"conditional version with mixed sources - version on registry": {
+			module: map[string]string{
+				"main.tf": `
+variable "use_local" {
+  type  = bool
+  const = true
+}
+
+locals {
+  source = var.use_local ? "./modules/local" : "terraform-aws-modules/vpc/aws"
+}
+
+module "example" {
+  source  = local.source
+  version = var.use_local ? null : "5.0.0"
+}
+`,
+			},
+			vars: InputValues{
+				"use_local": &InputValue{Value: cty.BoolVal(false), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "5.0.0"),
+			}},
+		},
+
+		"version from const variable set to null": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  type    = string
+  const   = true
+  default = null
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testRootModuleInline(t, tc.module)
