@@ -547,11 +547,19 @@ type Plan struct {
 	// An unordered set of target addresses to include when applying. If no
 	// target addresses are present, the plan applies to the whole
 	// configuration.
+	//
+	// Mutually exclusive with exclude_addrs.
 	TargetAddrs []string `protobuf:"bytes,5,rep,name=target_addrs,json=targetAddrs,proto3" json:"target_addrs,omitempty"`
 	// An unordered set of action addresses that must be invoked when applying.
 	// If no actions are specified then only resource-triggered actions should
 	// be executed.
 	ActionTargetAddrs []string `protobuf:"bytes,32,rep,name=action_target_addrs,json=actionTargetAddrs,proto3" json:"action_target_addrs,omitempty"`
+	// An unordered set of target addresses to exclude when applying. If no
+	// exclude addresses are present, the plan applies to the whole
+	// configuration.
+	//
+	// Mutually exclusive with target_addrs.
+	ExcludeAddrs []string `protobuf:"bytes,33,rep,name=exclude_addrs,json=excludeAddrs,proto3" json:"exclude_addrs,omitempty"`
 	// An unordered set of force-replace addresses to include when applying.
 	// This must match the set of addresses that was used when creating the
 	// plan, or else applying the plan will fail when it reaches a different
@@ -713,6 +721,13 @@ func (x *Plan) GetTargetAddrs() []string {
 func (x *Plan) GetActionTargetAddrs() []string {
 	if x != nil {
 		return x.ActionTargetAddrs
+	}
+	return nil
+}
+
+func (x *Plan) GetExcludeAddrs() []string {
+	if x != nil {
+		return x.ExcludeAddrs
 	}
 	return nil
 }
@@ -2231,8 +2246,7 @@ var File_planfile_proto protoreflect.FileDescriptor
 
 const file_planfile_proto_rawDesc = "" +
 	"\n" +
-	"\x0eplanfile.proto\x12\x06tfplan\"\xfb\n" +
-	"\n" +
+	"\x0eplanfile.proto\x12\x06tfplan\"\xa0\v\n" +
 	"\x04Plan\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x04R\aversion\x12%\n" +
 	"\aui_mode\x18\x11 \x01(\x0e2\f.tfplan.ModeR\x06uiMode\x12\x1c\n" +
@@ -2249,7 +2263,8 @@ const file_planfile_proto_rawDesc = "" +
 	"\rcheck_results\x18\x13 \x03(\v2\x14.tfplan.CheckResultsR\fcheckResults\x12O\n" +
 	"\x12action_invocations\x18\x1e \x03(\v2 .tfplan.ActionInvocationInstanceR\x11actionInvocations\x12!\n" +
 	"\ftarget_addrs\x18\x05 \x03(\tR\vtargetAddrs\x12.\n" +
-	"\x13action_target_addrs\x18  \x03(\tR\x11actionTargetAddrs\x12.\n" +
+	"\x13action_target_addrs\x18  \x03(\tR\x11actionTargetAddrs\x12#\n" +
+	"\rexclude_addrs\x18! \x03(\tR\fexcludeAddrs\x12.\n" +
 	"\x13force_replace_addrs\x18\x10 \x03(\tR\x11forceReplaceAddrs\x12+\n" +
 	"\x11terraform_version\x18\x0e \x01(\tR\x10terraformVersion\x12)\n" +
 	"\abackend\x18\r \x01(\v2\x0f.tfplan.BackendR\abackend\x123\n" +

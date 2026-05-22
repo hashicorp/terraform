@@ -105,12 +105,22 @@ message Plan {
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
     // configuration.
+    //
+    // Mutually exclusive with exclude_addrs.
     repeated string target_addrs = 5;
 
     // An unordered set of action addresses that must be invoked when applying.
     // If no actions are specified then only resource-triggered actions should
     // be executed.
     repeated string action_target_addrs = 32;
+
+
+    // An unordered set of target addresses to exclude when applying. If no
+    // exclude addresses are present, the plan applies to the whole
+    // configuration.
+    //
+    // Mutually exclusive with target_addrs.
+    repeated string exclude_addrs = 33;
 
     // An unordered set of force-replace addresses to include when applying.
     // This must match the set of addresses that was used when creating the

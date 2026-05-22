@@ -72,6 +72,7 @@ type Plan struct {
 	DeferredActionInvocations []*DeferredActionInvocationSrc
 	TargetAddrs               []addrs.Targetable
 	ActionTargetAddrs         []addrs.Targetable
+	ExcludeAddrs              []addrs.Targetable
 	ForceReplaceAddrs         []addrs.AbsResourceInstance
 
 	Backend    *Backend
