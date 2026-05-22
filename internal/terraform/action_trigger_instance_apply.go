@@ -55,7 +55,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 	}
 
 	// FIXME: missing action trigger reference for diags
-	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr.Action.Key, nil, caller)
+	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
