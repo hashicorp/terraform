@@ -17,30 +17,48 @@ import (
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
 	SetTargets([]addrs.Targetable)
+	SetExcludes([]addrs.Targetable)
 }
 
-// TargetsTransformer is a GraphTransformer that, when the user specifies a
-// list of resources to target, limits the graph to only those resources and
-// their dependencies.
+// TargetsTransformer is a GraphTransformer that:
+//   - when the user specifies a list of resources to target,
+//     limits the graph to only those resources and their dependencies.
+//   - when the user specifies a list of resources to exclude,
+//     limits the graph to everything except those resources and their dependencies.
+//
+// Targets, Excludes, and ActionTargets are mutually exclusive
 type TargetsTransformer struct {
 	// List of targeted resource names specified by the user.
 	Targets []addrs.Targetable
+
+	// List of excluded resource names specified by the user.
+	Excludes []addrs.Targetable
 
 	// List of targeted actions specified by the user.
 	ActionTargets []addrs.Targetable
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) == 0 && len(t.ActionTargets) == 0 {
+	if len(t.Targets) == 0 && len(t.ActionTargets) == 0 && len(t.Excludes) == 0 {
 		return nil
 	}
 
 	// in practice, these are mutually exclusive so only one of these function
 	// calls will do any work
 
-	targetedNodes := t.selectTargetedNodes(g, t.Targets)
-	targetedActions := t.selectTargetedNodes(g, t.ActionTargets)
+	targetedNodes := t.selectTargetedNodes(g, t.Targets, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetTargets(addrs) })
+	targetedActions := t.selectTargetedNodes(g, t.ActionTargets, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetTargets(addrs) })
+	excludedNodes := t.selectTargetedNodes(g, t.Excludes, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetExcludes(addrs) })
 	for _, v := range g.Vertices() {
+		// If we're excluding then we only want to compare the vertex with excludedNodes
+		if len(t.Excludes) > 0 {
+			if excludedNodes.Include(v) {
+				log.Printf("[DEBUG] Removing %q, filtered by targeting (excluded).", dag.VertexName(v))
+				g.Remove(v)
+			}
+			continue
+		}
+
 		if !targetedNodes.Include(v) && !targetedActions.Include(v) {
 			log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
 			g.Remove(v)
@@ -53,7 +71,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable, setTargetableAddrs func(GraphNodeTargetable, []addrs.Targetable)) dag.Set {
 	targetedNodes := make(dag.Set)
 	if len(addrs) == 0 {
 		return targetedNodes
@@ -72,7 +90,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(addrs)
+				setTargetableAddrs(tn, addrs)
 			}
 
 			if _, ok := v.(*nodeExpandPlannableResource); ok {

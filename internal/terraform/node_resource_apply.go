@@ -141,7 +141,7 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 		},
 
 		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
+		&TargetsTransformer{Targets: n.Targets, Excludes: n.Excludes},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

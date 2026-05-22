@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-func TestTargetsTransformer(t *testing.T) {
+func TestTargetsTransformer_target_basic(t *testing.T) {
 	mod := testModule(t, "transform-targets-basic")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -61,7 +61,57 @@ aws_vpc.me
 	}
 }
 
-func TestTargetsTransformer_downstream(t *testing.T) {
+func TestTargetsTransformer_exclude_basic(t *testing.T) {
+	mod := testModule(t, "transform-targets-basic")
+
+	g := Graph{Path: addrs.RootModuleInstance}
+	{
+		tf := &ConfigTransformer{Config: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &ReferenceTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{
+			Excludes: []addrs.Targetable{
+				addrs.RootModuleInstance.Resource(
+					addrs.ManagedResourceMode, "aws_instance", "me",
+				),
+			},
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.notme
+aws_instance.notmeeither
+aws_subnet.notme
+aws_vpc.notme
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
+
+func TestTargetsTransformer_target_downstream(t *testing.T) {
 	mod := testModule(t, "transform-targets-downstream")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -133,9 +183,82 @@ output.grandchild_id (expand)
 	}
 }
 
+func TestTargetsTransformer_exclude_downstream(t *testing.T) {
+	mod := testModule(t, "transform-targets-downstream")
+
+	g := Graph{Path: addrs.RootModuleInstance}
+	{
+		transform := &ConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &OutputTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &ReferenceTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{
+			Excludes: []addrs.Targetable{
+				addrs.RootModuleInstance.
+					Child("child", addrs.NoKey).
+					Child("grandchild", addrs.NoKey).
+					Resource(
+						addrs.ManagedResourceMode, "aws_instance", "foo",
+					),
+			},
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	// Even though we only asked to exclude the grandchild resource, all of the
+	// outputs that descend from it are also excluded.
+	expected := strings.TrimSpace(`
+aws_instance.foo
+module.child.aws_instance.foo
+module.child.output.id (expand)
+  module.child.aws_instance.foo
+output.child_id (expand)
+  module.child.output.id (expand)
+output.root_id (expand)
+  aws_instance.foo
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
+
 // This tests the TargetsTransformer targeting a whole module,
 // rather than a resource within a module instance.
-func TestTargetsTransformer_wholeModule(t *testing.T) {
+func TestTargetsTransformer_target_wholeModule(t *testing.T) {
 	mod := testModule(t, "transform-targets-downstream")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -198,6 +321,78 @@ module.child.output.grandchild_id (expand)
   module.child.module.grandchild.output.id (expand)
 output.grandchild_id (expand)
   module.child.output.grandchild_id (expand)
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
+
+// This tests the TargetsTransformer excluding a whole module,
+// rather than a resource within a module instance.
+func TestTargetsTransformer_exclude_wholeModule(t *testing.T) {
+	mod := testModule(t, "transform-targets-downstream")
+
+	g := Graph{Path: addrs.RootModuleInstance}
+	{
+		transform := &ConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &OutputTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	{
+		transform := &ReferenceTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{
+			Excludes: []addrs.Targetable{
+				addrs.RootModule.
+					Child("child").
+					Child("grandchild"),
+			},
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("%T failed: %s", transform, err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	// Even though we only asked to exclude the grandchild module, all of the
+	// outputs that descend from it are also excluded.
+	expected := strings.TrimSpace(`
+aws_instance.foo
+module.child.aws_instance.foo
+module.child.output.id (expand)
+  module.child.aws_instance.foo
+output.child_id (expand)
+  module.child.output.id (expand)
+output.root_id (expand)
+  aws_instance.foo
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)

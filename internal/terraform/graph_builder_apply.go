@@ -58,6 +58,8 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
+	Excludes []addrs.Targetable
+
 	// ActionTargets are actions to target. As with Targets we need to remove
 	// outputs, so when/if we remove Targets we can remove this as well.
 	ActionTargets []addrs.Targetable
@@ -266,7 +268,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
+		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets, Excludes: b.Excludes},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
