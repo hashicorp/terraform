@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 )
 
-// PolicyResults represents the results of policy evaluation of resources and providers for a single plan.
+// PolicyResults represents the results of policy evaluation of resources, modules, and providers for a single plan.
 type PolicyResults struct {
 	mu *sync.Mutex
 	// Diagnostics holds diagnostics not tied to any policy
@@ -23,6 +23,7 @@ type PolicyResults struct {
 	mset        addrs.Map[addrs.Module, PolicyEvaluation]
 }
 
+// PolicyEvaluation holds the result of a policy evaluation for a single resource, module, or provider.
 type PolicyEvaluation struct {
 	EvaluationResponse policy.EvaluationResponse
 	ConfigDeclRange    hcl.Range
