@@ -144,7 +144,7 @@ func TestEnsureProviderVersions_devOverrideAndReattachedProviders(t *testing.T) 
 				providerA.ForDisplay(),
 				providerB.ForDisplay(),
 				providerC.ForDisplay(),
-				providerD.ForDisplay(), // D is installed despite being dev overridden
+				// D is not installed due to being dev override
 			},
 		},
 

@@ -252,6 +252,10 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 			// unmanaged providers do not require installation
 			continue
 		}
+		if _, ok := i.devOverrideTypes[provider]; ok {
+			// development override providers do not require installation
+			continue
+		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
 		if !mode.forceQueryAllProviders() {
 			// If we're not forcing potential changes of version then an
