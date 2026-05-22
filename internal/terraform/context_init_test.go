@@ -93,7 +93,7 @@ module "example2" {
 				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
 			}, {
 				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
-				VersionConstraint: mustVersionContraint(t, "= 6.6.0"),
+				VersionConstraint: mustVersionContraint(t, "6.6.0"),
 			}},
 		},
 
@@ -214,8 +214,7 @@ module "example2" {
 			},
 
 			expectLoadModuleCalls: []*configs.ModuleRequest{{
-				SourceAddr:        mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
-				VersionConstraint: mustVersionContraint(t, ">= 1.2.3"),
+				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
 			}},
 		},
 
@@ -759,27 +758,37 @@ variable "name" {
 				t.Fatalf("expected %d LoadModule calls, got %d", len(tc.expectLoadModuleCalls), len(moduleWalker.Calls))
 			}
 
-			// Create a map of expected sources for easier comparison
-			expectedSources := make(map[string]bool)
+			// Create a map of expected sources and version constraints for comparison
+			type expectedCall struct {
+				found             bool
+				versionConstraint string
+			}
+			expectedSources := make(map[string]*expectedCall)
 			foundSources := []string{}
 			for _, expected := range tc.expectLoadModuleCalls {
-				expectedSources[expected.SourceAddr.String()] = false
+				expectedSources[expected.SourceAddr.String()] = &expectedCall{
+					versionConstraint: expected.VersionConstraint.Required.String(),
+				}
 			}
 
-			// Mark sources as found
+			// Mark sources as found and check version constraints
 			for _, call := range moduleWalker.Calls {
 				source := call.SourceAddr.String()
 				foundSources = append(foundSources, source)
-				if _, exists := expectedSources[source]; !exists {
+				if ec, exists := expectedSources[source]; !exists {
 					t.Errorf("unexpected LoadModule call for source %q", source)
 				} else {
-					expectedSources[source] = true
+					ec.found = true
+					gotConstraint := call.VersionConstraint.Required.String()
+					if gotConstraint != ec.versionConstraint {
+						t.Errorf("LoadModule call for source %q: expected version constraint %q, got %q", source, ec.versionConstraint, gotConstraint)
+					}
 				}
 			}
 
 			// Check all expected sources were called
-			for source, found := range expectedSources {
-				if !found {
+			for source, ec := range expectedSources {
+				if !ec.found {
 					t.Errorf("expected LoadModule call for source %q but it was not called. Calls that were made: \n %s", source, strings.Join(foundSources, ", "))
 				}
 			}
