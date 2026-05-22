@@ -344,7 +344,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 			}
 
 			if snippet.Context != nil {
-				target.Context = &snippet.Context.Context
+				target.Context = snippet.Context
 			}
 
 			if values := extra.ExpressionValues; values != nil {
@@ -352,7 +352,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				seen := make(map[string]struct{}, len(values))
 
 				for _, val := range values {
-					path, err := val.Path.ToCtyPath()
+					path, err := val.Traversal.ToCtyPath()
 					if err != nil {
 						continue // then we can't display this value
 					}
