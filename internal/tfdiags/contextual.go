@@ -96,20 +96,6 @@ func AttributeValue(severity Severity, summary, detail string, attrPath cty.Path
 	}
 }
 
-// AttributeValueWithExtra matches AttributeValue but allows setting an extra
-// value.
-func AttributeValueWithExtra(severity Severity, summary, detail string, attrPath cty.Path, extra interface{}) Diagnostic {
-	return &attributeDiagnostic{
-		diagnosticBase: diagnosticBase{
-			severity: severity,
-			summary:  summary,
-			detail:   detail,
-			extra:    extra,
-		},
-		attrPath: attrPath,
-	}
-}
-
 // GetAttribute extracts an attribute cty.Path from a diagnostic if it contains
 // one. Normally this is not accessed directly, and instead the config body is
 // added to the Diagnostic to create a more complete message for the user. In
