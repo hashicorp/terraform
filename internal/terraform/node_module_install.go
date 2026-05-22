@@ -80,6 +80,7 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 	}
 
 	var version configs.VersionConstraint
+	hasVersion := false
 	if n.ModuleCall.VersionExpr != nil {
 		var versionDiags tfdiags.Diagnostics
 		version, versionDiags = evalVersionConstraint(n.ModuleCall.VersionExpr, ctx)
@@ -87,9 +88,9 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		if diags.HasErrors() {
 			return diags
 		}
+		hasVersion = version.Required.Len() > 0
 	}
 
-	hasVersion := n.ModuleCall.VersionExpr != nil
 	source, sourceRaw, sourceDiags := evalSource(n.ModuleCall.SourceExpr, hasVersion, ctx)
 	diags = diags.Append(sourceDiags)
 	if diags.HasErrors() {
