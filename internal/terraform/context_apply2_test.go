@@ -4953,3 +4953,139 @@ resource "test_resource" "bar" {
 	_, diags = ctx.Apply(plan, m, nil)
 	tfdiags.AssertNoErrors(t, diags)
 }
+
+// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding all instances
+// of a resource also excludes it's NodeApplyableProvider (which may be in use by something else!)
+func TestContext2Apply_excludedCount(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Excludes: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar.0:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.bar.1:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.bar.2:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+	`)
+}
+
+// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding a single instance
+// of a resource also excludes it's NodeApplyableProvider (expansion hasn't happened at that point, so excluding
+// at that point also doesn't make sense anyways :P)
+func TestContext2Apply_excludeCountIndex(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Excludes: []addrs.Targetable{
+			addrs.RootModuleInstance.ResourceInstance(
+				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
+			),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo.0:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.foo.2:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+	`)
+}
+
+// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding a single instance
+// of a resource excludes all of the resources instances :P
+func TestContext2Apply_excludeCountCombo(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Excludes: []addrs.Targetable{
+			addrs.RootModuleInstance.ResourceInstance(
+				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
+			),
+			addrs.RootModuleInstance.ResourceInstance(
+				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(0),
+			),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo.0:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.foo.2:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.bar.1:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.bar.2:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+	`)
+}
