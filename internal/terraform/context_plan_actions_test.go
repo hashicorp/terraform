@@ -1019,7 +1019,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "The given key 2 does not identify an instance of action.test_action.hello",
+						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
@@ -2236,6 +2236,8 @@ resource "test_object" "a" {
 					}
 				},
 			},
+
+			// FIXME: this is checking for non-defer errors while deferrals are allowed
 			"action expansion with unknown instances": {
 				module: map[string]string{
 					"main.tf": `

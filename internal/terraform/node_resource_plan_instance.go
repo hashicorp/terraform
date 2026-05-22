@@ -661,7 +661,7 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		panic(fmt.Sprintf("unknown action address type: %T", sub))
 	}
 
-	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Key, actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource)
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
