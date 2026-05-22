@@ -74,11 +74,21 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 		builtinProviderTypes = append(builtinProviderTypes, ty)
 	}
 	inst.SetBuiltInProviderTypes(builtinProviderTypes)
+
+	// Overridden providers consist of both:
+	// 1. reattached providers
+	// 2. development override providers
 	unmanagedProviderTypes := make(map[addrs.Provider]struct{}, len(m.UnmanagedProviders))
 	for ty := range m.UnmanagedProviders {
 		unmanagedProviderTypes[ty] = struct{}{}
 	}
 	inst.SetUnmanagedProviderTypes(unmanagedProviderTypes)
+	devOverrideProviderTypes := make(map[addrs.Provider]struct{}, len(m.ProviderDevOverrides))
+	for ty := range m.ProviderDevOverrides {
+		devOverrideProviderTypes[ty] = struct{}{}
+	}
+	inst.SetDevOverrideTypes(devOverrideProviderTypes)
+
 	return inst
 }
 
