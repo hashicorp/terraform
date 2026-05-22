@@ -789,6 +789,18 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 		}
 	}
 
+	// now check if the action config was deferred
+	configAddr := ai.Addr.ConfigAction()
+	if !d.partialExpandedActionsDeferred.Has(configAddr) {
+		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, providers.DeferredReason]())
+	}
+
+	for partial := range d.partialExpandedActionsDeferred.Get(configAddr).Iter() {
+		if partial.MatchesAction(ai.Addr.ContainingAction()) {
+			return true, diags
+		}
+	}
+
 	return false, diags
 }
 
