@@ -317,7 +317,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
 	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
-	if initArgs.Upgrade && !initArgs.Reconfigure && config.Module.StateStore != nil {
+	// We only check to see if the state store provider was upgraded if the provider supply mode is ManagedByTerraform; providers overridden
+	// using dev_override or unmanaged providers blocks any upgrade process impacting that provider.
+	// For more context, see: https://github.com/hashicorp/terraform/pull/38633
+	if initArgs.Upgrade &&
+		!initArgs.Reconfigure &&
+		config.Module.StateStore != nil &&
+		config.Module.StateStore.ProviderSupplyMode == getproviders.ManagedByTerraform {
 		pAddr := config.Module.StateStore.ProviderAddr
 		old := alteredPreviousLocks.Provider(pAddr)
 		new := configLocks.Provider(pAddr)
