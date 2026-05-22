@@ -168,8 +168,7 @@ type PlanOpts struct {
 	Locks map[addrs.Provider]*depsfile.ProviderLock
 
 	// Optional policy client to enable live policy evaluations.
-	PolicyClient  policy.Client
-	PolicyResults policy.EvaluationResponse
+	PolicyClient policy.Client
 }
 
 // Plan generates an execution plan by comparing the given configuration
