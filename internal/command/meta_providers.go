@@ -18,7 +18,6 @@ import (
 	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
 	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
@@ -203,21 +202,6 @@ func (m *Meta) isProviderDevOverride(pAddr addrs.Provider) bool {
 	}
 	_, overridden := m.ProviderDevOverrides[pAddr]
 	return overridden
-}
-
-func (m *Meta) removeDevOverrides(reqs providerreqs.Requirements) providerreqs.Requirements {
-	// Deep copy the requirements to avoid mutating the input
-	copiedReqs := make(providerreqs.Requirements)
-	for provider, versions := range reqs {
-		// Only copy if the provider is not overridden
-		if _, overridden := m.ProviderDevOverrides[provider]; !overridden {
-			copiedVersions := make(providerreqs.VersionConstraints, len(versions))
-			copy(copiedVersions, versions)
-			copiedReqs[provider] = copiedVersions
-		}
-	}
-
-	return copiedReqs
 }
 
 // providerDevOverrideRuntimeWarnings returns a diagnostics that contains at

@@ -248,7 +248,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 		}
 	})
 
-	t.Run("dev_override causes provider to be removed from dependency lock file during init", func(t *testing.T) {
+	t.Run("dev_override providers are still represented in the dependency lock file after init", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -286,29 +286,18 @@ provider "registry.terraform.io/hashicorp/simple6" {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
 
-		// Lockfile has been altered to remove the simple6 provider
+		// Lockfile is unchanged despite use of a dev_override simple6 provider
 		buf, err := os.ReadFile(lockFile)
 		if err != nil {
 			t.Fatalf("unexpected error accessing lock file: %s", err)
 		}
 		buf = bytes.TrimSpace(buf)
-		expectedLockFile := fmt.Sprintf(`# This file is maintained automatically by "terraform init".
-# Manual edits may be lost in future updates.
-
-provider "registry.terraform.io/hashicorp/simple" {
-  version = "1.0.0"
-  hashes = [
-    "%s",
-  ]
-}`,
-			simple5v1_0_0Hash,
-		)
-		if diff := cmp.Diff(expectedLockFile, string(buf)); diff != "" {
+		if diff := cmp.Diff(priorLockFile, string(buf)); diff != "" {
 			t.Fatalf("unexpected difference in lock file content: %s", diff)
 		}
 	})
 
-	t.Run("dev_override also causes provider to be removed from dependency lock file during init -upgrade", func(t *testing.T) {
+	t.Run("dev_override providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -363,8 +352,16 @@ provider "registry.terraform.io/hashicorp/simple" {
   hashes = [
     "%s",
   ]
+}
+
+provider "registry.terraform.io/hashicorp/simple6" {
+  version = "1.0.0"
+  hashes = [
+    "%s",
+  ]
 }`,
 			simple5v2_0_0Hash,
+			simple6v1_0_0Hash, // not upgraded to 2.0.0
 		)
 		if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
 			t.Errorf("unexpected difference in lock file content: %s", diff)
@@ -500,7 +497,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 		}
 	})
 
-	t.Run("reattached providers do NOT cause provider to be removed from dependency lock file during init", func(t *testing.T) {
+	t.Run("reattached providers are still represented in the dependency lock file after init", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -613,7 +610,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
   ]
 }`,
 			simple5v2_0_0Hash,
-			simple6v1_0_0Hash,
+			simple6v1_0_0Hash, // not upgraded to 2.0.0
 		)
 		if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
 			t.Errorf("unexpected difference in lock file content: %s", diff)
