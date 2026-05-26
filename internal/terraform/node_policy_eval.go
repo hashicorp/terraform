@@ -6,6 +6,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -15,6 +16,7 @@ import (
 type nodePolicyEval struct{}
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
+var _ dag.TolerantVertex = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
 	return "(evaluate policies)"
@@ -29,4 +31,12 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	// ensure the graph has a single root
 	addRootNodeToGraph(&policyGraph.graph)
 	return &policyGraph.graph, nil
+}
+
+// AllowUpstreamFailure allows failures from upstream nodes to be tolerated
+// so that the policy evaluation can proceed even if some resource instance nodes
+// evaluated with error diagnostics.
+func (n *nodePolicyEval) AllowUpstreamFailure(dep dag.Vertex) bool {
+	_, ok := dep.(GraphNodeConfigResource)
+	return ok
 }

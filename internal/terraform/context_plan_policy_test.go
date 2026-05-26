@@ -1175,6 +1175,95 @@ resource_policy "test_resource" "policy_name" {
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
 
+func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "ok" {
+			value = "ok"
+		}
+
+		resource "test_resource" "fail" {
+			value = "fail"
+		}
+		`
+
+	policyConfig := `
+		resource_policy "test_resource" "policy_name" {
+			enforce {
+				condition = true
+			}
+		}
+	`
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		planned := req.ProposedNewState.AsValueMap()
+		if planned["value"].AsString() == "fail" {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"plan failed",
+				"simulated provider plan failure",
+			))
+			return resp
+		}
+		planned["id"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(planned)
+		return resp
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	evaluatedPolicyValues := map[string]struct{}{}
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evaluatedPolicyValues[req.Attrs.GetAttr("value").AsString()] = struct{}{}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected plan to fail")
+	}
+
+	var policyDiags tfdiags.Diagnostics
+	for _, result := range plan.PolicyResults.Iter() {
+		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	}
+
+	// now check that the policy evaluation results match our expectations
+	// we only expect evaluation for the "ok" resource, not the "fail" resource
+	expectedValues := map[string]struct{}{"ok": {}}
+	if diff := cmp.Diff(evaluatedPolicyValues, expectedValues); diff != "" {
+		t.Errorf("unexpected evaluated policy values: %s", diff)
+	}
+	if len(policyDiags) != 0 {
+		t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
+	}
+}
+
 func TestContext2Plan_PolicyCallback(t *testing.T) {
 	// This test verifies that the GetResources callback provided during policy
 	// evaluation works correctly: matching all resources, filtering by
