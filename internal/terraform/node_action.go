@@ -74,11 +74,7 @@ func (n *NodeActionConfig) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// FIXME: this is hard-coded to false for now to match existing behavior,
-	// but actions will need to conform to the same deferral system as all other
-	// objects.
-	// deferralAllowed := ctx.Deferrals().DeferralAllowed()
-	deferralAllowed := false
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Addr.Module, false) {
@@ -96,6 +92,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 
 			} else {
 				expander.SetActionCountUnknown(module, n.Addr.Action)
+				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
 			}
 
 		case n.Config.ForEach != nil:
@@ -108,6 +105,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 				expander.SetActionForEach(module, n.Addr.Action, forEach)
 			} else {
 				expander.SetActionForEachUnknown(module, n.Addr.Action)
+				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
 			}
 
 		default:
