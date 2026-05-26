@@ -4954,8 +4954,41 @@ resource "test_resource" "bar" {
 	tfdiags.AssertNoErrors(t, diags)
 }
 
-// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding all instances
-// of a resource also excludes it's NodeApplyableProvider (which may be in use by something else!)
+// TODO: This shows an example of all resource instances of a provider being excluded, thus leaving
+// a hanging NodeApplyableProvider instance (and close node). The test doesn't show visible side-effects
+// from this but it seems like undesired behavior that should be cleaned up in a full implementation.
+func TestContext2Apply_excludedAll(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Excludes: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "bar",
+			),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `<no state>`)
+}
+
 func TestContext2Apply_excludedCount(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
@@ -4984,23 +5017,20 @@ func TestContext2Apply_excludedCount(t *testing.T) {
 
 	checkStateString(t, state, `
 aws_instance.bar.0:
-  ID = bar
+  ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   type = aws_instance
 aws_instance.bar.1:
-  ID = bar
+  ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   type = aws_instance
 aws_instance.bar.2:
-  ID = bar
+  ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   type = aws_instance
 	`)
 }
 
-// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding a single instance
-// of a resource also excludes it's NodeApplyableProvider (expansion hasn't happened at that point, so excluding
-// at that point also doesn't make sense anyways :P)
 func TestContext2Apply_excludeCountIndex(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
@@ -5016,6 +5046,9 @@ func TestContext2Apply_excludeCountIndex(t *testing.T) {
 		Mode: plans.NormalMode,
 		Excludes: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
+				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(0),
+			),
+			addrs.RootModuleInstance.ResourceInstance(
 				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
 			),
 		},
@@ -5028,6 +5061,14 @@ func TestContext2Apply_excludeCountIndex(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
+aws_instance.bar.1:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+aws_instance.bar.2:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo.0:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
@@ -5039,8 +5080,6 @@ aws_instance.foo.2:
 	`)
 }
 
-// TODO: This test shows that the logic added to transform target for excludes isn't quite right, as excluding a single instance
-// of a resource excludes all of the resources instances :P
 func TestContext2Apply_excludeCountCombo(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
@@ -5055,11 +5094,11 @@ func TestContext2Apply_excludeCountCombo(t *testing.T) {
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		Excludes: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
 			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(0),
+				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(2),
 			),
 		},
 	})
@@ -5071,20 +5110,12 @@ func TestContext2Apply_excludeCountCombo(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
-aws_instance.foo.0:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  type = aws_instance
-aws_instance.foo.2:
+aws_instance.bar.0:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   type = aws_instance
 aws_instance.bar.1:
-  ID = bar
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  type = aws_instance
-aws_instance.bar.2:
-  ID = bar
+  ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   type = aws_instance
 	`)

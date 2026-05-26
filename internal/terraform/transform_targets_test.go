@@ -102,8 +102,10 @@ func TestTargetsTransformer_exclude_basic(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
 aws_instance.notme
-aws_instance.notmeeither
+aws_subnet.me
+  aws_vpc.me
 aws_subnet.notme
+aws_vpc.me
 aws_vpc.notme
 	`)
 	if actual != expected {

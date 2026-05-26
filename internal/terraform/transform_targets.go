@@ -46,11 +46,12 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	// in practice, these are mutually exclusive so only one of these function
 	// calls will do any work
 
-	targetedNodes := t.selectTargetedNodes(g, t.Targets, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetTargets(addrs) })
-	targetedActions := t.selectTargetedNodes(g, t.ActionTargets, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetTargets(addrs) })
-	excludedNodes := t.selectTargetedNodes(g, t.Excludes, func(tn GraphNodeTargetable, addrs []addrs.Targetable) { tn.SetExcludes(addrs) })
+	targetedNodes := t.selectTargetedNodes(g, t.Targets)
+	targetedActions := t.selectTargetedNodes(g, t.ActionTargets)
+	excludedNodes := t.selectExcludedNodes(g, t.Excludes)
 	for _, v := range g.Vertices() {
-		// If we're excluding then we only want to compare the vertex with excludedNodes
+		// TODO: Exclude logic should probably just move to a different transformer since it barely has anything to do with
+		// the rest of this file :P
 		if len(t.Excludes) > 0 {
 			if excludedNodes.Include(v) {
 				log.Printf("[DEBUG] Removing %q, filtered by targeting (excluded).", dag.VertexName(v))
@@ -71,7 +72,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable, setTargetableAddrs func(GraphNodeTargetable, []addrs.Targetable)) dag.Set {
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
 	targetedNodes := make(dag.Set)
 	if len(addrs) == 0 {
 		return targetedNodes
@@ -90,7 +91,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				setTargetableAddrs(tn, addrs)
+				tn.SetTargets(addrs)
 			}
 
 			if _, ok := v.(*nodeExpandPlannableResource); ok {
@@ -256,4 +257,95 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 			}
 		}
 	}
+}
+
+func (t *TargetsTransformer) selectExcludedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
+	excludedNodes := make(dag.Set)
+	if len(addrs) == 0 {
+		return excludedNodes
+	}
+
+	vertices := g.Vertices()
+
+	for _, v := range vertices {
+		if t.nodeIsExcluded(v, addrs) {
+			// Add node and any descendants to excludedNodes
+			t.addVertexDependenciesToExcludedNodes(g, v, excludedNodes, addrs)
+
+			// We inform nodes that ask about the list of excludes - helps for nodes
+			// that need to dynamically expand. Note that this only occurs for nodes
+			// that are already directly excluded.
+			if tn, ok := v.(GraphNodeTargetable); ok {
+				tn.SetExcludes(addrs)
+			}
+
+			// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
+			// getting refactored so I'm not really sure if/where they will be in the graph after that :P
+		}
+	}
+
+	// TODO: What about outputs? Targeting has specialized logic for them, but I'm not sure we need that here since I believe they
+	// should be excluded by just being a descendant.
+
+	return excludedNodes
+}
+
+func (t *TargetsTransformer) nodeIsExcluded(v dag.Vertex, excludes []addrs.Targetable) bool {
+	var vertexAddr addrs.Targetable
+	switch r := v.(type) {
+	case *nodeApplyableDeferredPartialInstance:
+		// TODO: This is handled in targeting, although I'm not sure yet how/if we need to implement this for excluding
+		//
+		// for _, excludeAddr := range excludes {
+		// 	if r.PartialAddr.IsTargetedBy(excludeAddr) {
+		// 		return true
+		// 	}
+		// }
+
+		return false
+
+	case GraphNodeResourceInstance:
+		vertexAddr = r.ResourceInstanceAddr()
+	case GraphNodeConfigResource:
+		vertexAddr = r.ResourceAddr()
+
+	// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
+	// getting refactored so I'm not really sure if/where they will be in the graph after that :P
+	//
+	// case *nodeActionInvokeExpand:
+	// 	vertexAddr = r.Target
+	// case *nodeActionTriggerApplyInstance:
+	// 	vertexAddr = r.ActionInvocation.Addr
+
+	default:
+		// Only partial nodes and resource and resource instance nodes can be
+		// targeted.
+		return false
+	}
+
+	for _, excludeAddr := range excludes {
+		// In the case of an absolute instance, we cannot exclude the node (or it's dependants) until expansion has occurred,
+		// so we cannot generalize the excludeAddr like targeting does.
+		if excludeAddr.TargetContains(vertexAddr) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// addVertexDependenciesToExcludedNodes adds dependencies of the excluded vertex to the
+// excludedNodes set. This includes all descendants in the graph.
+func (t *TargetsTransformer) addVertexDependenciesToExcludedNodes(g *Graph, v dag.Vertex, excludedNodes dag.Set, addrs []addrs.Targetable) {
+	if excludedNodes.Include(v) {
+		return
+	}
+	excludedNodes.Add(v)
+
+	for _, d := range g.Descendants(v) {
+		t.addVertexDependenciesToExcludedNodes(g, d, excludedNodes, addrs)
+	}
+
+	// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
+	// getting refactored so I'm not really sure if/where they will be in the graph after that :P
 }
