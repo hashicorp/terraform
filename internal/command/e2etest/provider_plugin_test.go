@@ -447,7 +447,7 @@ func TestProviderInstall_unmanaged(t *testing.T) {
 
 	// Launch a separate simple6 provider process to be re-used as an unmanaged provider.
 	// Tests will use this via the TF_REATTACH_PROVIDERS environment variable.
-	reattachConfig := reattachConfigForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+	reattachConfig, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 
 	t.Run("unmanaged provider not installed when provider not present in dependency lock file", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
@@ -621,7 +621,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 // reattachConfigForTest launches a provider process and returns a reattach config string
 // that can be used as the value for the TF_REATTACH_PROVIDERS environment variable in tests.
 // Cleanup of the provider process is handled internally.
-func reattachConfigForTest(t *testing.T, provider addrs.Provider, protocol int) string {
+func reattachedProviderForTest(t *testing.T, provider addrs.Provider, protocol int) (string, *providerServer) {
 	t.Helper()
 	if !slices.Contains([]int{5, 6}, protocol) {
 		t.Fatalf("test setup tried to create a provider using protocol version %d, which is unsupported. Choose between 5 and 6.", protocol)
@@ -678,5 +678,5 @@ func reattachConfigForTest(t *testing.T, provider addrs.Provider, protocol int) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	return string(reattachStr)
+	return string(reattachStr), server
 }
