@@ -89,7 +89,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	callbacks := callback.Functions{
-		GetResources:  getResourcesForPolicyCallback(ctx, config),
+		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
 	}
 
