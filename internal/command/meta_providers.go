@@ -196,6 +196,29 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	}
 }
 
+// providerDevOverrideProviderLockWarnings is just like providerDevOverrideInitWarnings
+// except the diagnostic is written with a message specific to the `providers lock` command.
+// Similarly, diags will only be returned if there is 1+ dev_overrides in effect, and no error
+// diags will be returned.
+func (m *Meta) providerDevOverrideProvidersLockWarnings() tfdiags.Diagnostics {
+	if len(m.ProviderDevOverrides) == 0 {
+		return nil
+	}
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following provider development overrides are set in the CLI configuration:\n")
+	for addr, path := range m.ProviderDevOverrides {
+		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
+	}
+	detailMsg.WriteString("\nThese provider locks will not be recorded because the provider is overwritten. If this is unintentional please re-run without the development overrides set.")
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Provider development overrides are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
 func (m *Meta) isProviderDevOverride(pAddr addrs.Provider) bool {
 	if len(m.ProviderDevOverrides) == 0 {
 		return false
