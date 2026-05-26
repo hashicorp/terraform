@@ -8,7 +8,6 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -746,18 +745,8 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsAction, reason providers.D
 }
 
 // ShouldDeferActionInvocation returns true if there is a reason to defer the
-// action invocation instance. We want to defer an action invocation only if
-// the triggering resource was deferred. In addition, we will check if the
-// underlying action was deferred via a reference, and consider it an error if
-// the triggering resource wasn't also deferred.
-//
-// The reason behind the slightly different behaviour here, is that if an
-// action invocation is deferred, then that implies the triggering action
-// should also be deferred.
-//
-// We don't yet have the capability to retroactively defer a resource, so for
-// now actions initiating deferrals themselves is considered an error.
-func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance, triggerRange *hcl.Range) (bool, tfdiags.Diagnostics) {
+// action invocation instance.
+func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstance) (bool, tfdiags.Diagnostics) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -778,14 +767,7 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 
 	if c, ok := d.actionExpansionDeferred.GetOk(ai.Addr.ConfigAction()); ok {
 		if c.Has(ai.Addr.ContainingAction()) {
-			// Then in this case, the resource wasn't deferred but the action
-			// was and so we will consider this to be an error.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid action deferral",
-				Detail:   fmt.Sprintf("The action %s was marked as deferred, but was triggered by a non-deferred resource %s. To work around this, use the -target argument to first apply only the resources that the action block depends on.", ai.Addr, at.TriggeringResourceAddr),
-				Subject:  triggerRange,
-			})
+			return true, diags
 		}
 	}
 
@@ -802,12 +784,6 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 	}
 
 	return false, diags
-}
-
-// ShouldDeferAction returns true if the action should be deferred. This is the case if a
-// dependency of the action is deferred.
-func (d *Deferred) ShouldDeferAction(deps []addrs.ConfigResource) bool {
-	return d.DependenciesDeferred(deps)
 }
 
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
