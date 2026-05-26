@@ -636,7 +636,10 @@ func reattachedProviderForTest(t *testing.T, provider addrs.Provider, protocol i
 		ProviderServer: grpcwrap.Provider6(simple.Provider()),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
+	t.Cleanup(func() {
+		cancel()
+		<-closeCh
+	})
 	go plugin.Serve(&plugin.ServeConfig{
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
