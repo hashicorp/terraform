@@ -369,9 +369,9 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 }
 
-// TestProviderInstall_reattached verifies provider plugin installation behaviour
-// when a reattached/unmanaged provider is in use.
-func TestProviderInstall_reattached(t *testing.T) {
+// TestProviderInstall_unmanaged verifies provider plugin installation behaviour
+// when an unmanaged provider is in use.
+func TestProviderInstall_unmanaged(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -445,11 +445,11 @@ func TestProviderInstall_reattached(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Launch a separate simple6 provider process to be re-used as a reattached provider.
+	// Launch a separate simple6 provider process to be re-used as an unmanaged provider.
 	// Tests will use this via the TF_REATTACH_PROVIDERS environment variable.
-	reattachConfig := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+	reattachConfig := reattachConfigForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 
-	t.Run("reattached provider not installed when provider not present in dependency lock file", func(t *testing.T) {
+	t.Run("unmanaged provider not installed when provider not present in dependency lock file", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -463,7 +463,7 @@ func TestProviderInstall_reattached(t *testing.T) {
 			t.Fatalf("expected error due to file not existing, got different error: %s", err)
 		}
 
-		// The simple6 provider is reattached/unmanaged
+		// The simple6 provider is unmanaged
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init process should succeed.
@@ -479,7 +479,7 @@ func TestProviderInstall_reattached(t *testing.T) {
 		}
 		buf = bytes.TrimSpace(buf)
 
-		// We expect the lock file to not contain the simple6 provider that's being reattached/unmanaged,
+		// We expect the lock file to not contain the simple6 provider that's being unmanaged,
 		// because that provider is skipped during the installation process.
 		// The simple (v5) provider is installed as usual, pulling in the latest version.
 		expectedLockFileContent := fmt.Sprintf(`# This file is maintained automatically by "terraform init".
@@ -497,7 +497,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 		}
 	})
 
-	t.Run("reattached providers are still represented in the dependency lock file after init", func(t *testing.T) {
+	t.Run("unmanaged providers are still represented in the dependency lock file after init", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -526,7 +526,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 			t.Fatalf("error writing prior lock file: %s", err)
 		}
 
-		// The simple6 provider is reattached/unmanaged
+		// The simple6 provider is unmanaged
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init process should succeed.
@@ -535,7 +535,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
 		}
 
-		// Lockfile is unchanged despite use of a reattached/unmanaged simple6 provider
+		// Lockfile is unchanged despite use of an unmanaged simple6 provider
 		buf, err := os.ReadFile(lockFile)
 		if err != nil {
 			t.Fatalf("unexpected error accessing lock file: %s", err)
@@ -546,7 +546,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 		}
 	})
 
-	t.Run("reattached providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
+	t.Run("unmanaged providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
@@ -575,7 +575,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 			t.Fatalf("error writing prior lock file: %s", err)
 		}
 
-		// The simple6 provider is reattached/unmanaged
+		// The simple6 provider is unmanaged
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init -upgrade process should succeed.
@@ -586,7 +586,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 
 		// Lockfile shows evidence of upgrade process
 		// simple provider is upgraded to the newer 2.0.0 version,
-		// but the reattached simple6 provider is unchanged due to being reattached.
+		// but the unmanaged simple6 provider is unchanged due to being unmanaged.
 		buf, err := os.ReadFile(lockFile)
 		if err != nil {
 			t.Fatalf("unexpected error accessing lock file: %s", err)
@@ -618,10 +618,10 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 }
 
-// reattachedProviderForTest launches a provider process and returns a reattach config string
+// reattachConfigForTest launches a provider process and returns a reattach config string
 // that can be used as the value for the TF_REATTACH_PROVIDERS environment variable in tests.
 // Cleanup of the provider process is handled internally.
-func reattachedProviderForTest(t *testing.T, provider addrs.Provider, protocol int) string {
+func reattachConfigForTest(t *testing.T, provider addrs.Provider, protocol int) string {
 	t.Helper()
 	if !slices.Contains([]int{5, 6}, protocol) {
 		t.Fatalf("test setup tried to create a provider using protocol version %d, which is unsupported. Choose between 5 and 6.", protocol)

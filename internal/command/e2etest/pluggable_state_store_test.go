@@ -32,9 +32,9 @@ import (
 )
 
 // Test that users can do the full init-plan-apply workflow with pluggable state storage
-// when the state storage provider is reattached/unmanaged by Terraform.
+// when the state storage provider is unmanaged by Terraform.
 // As well as ensuring that the state store can be initialised ok, this tests that
-// the state store's details can be stored in the plan file despite the fact it's reattached.
+// the state store's details can be stored in the plan file despite the fact it's unmanaged.
 func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
