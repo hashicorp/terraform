@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-azure-helpers/lang/response"
@@ -43,6 +44,8 @@ type RemoteClient struct {
 	keyName            string
 	leaseID            string
 	snapshot           bool
+	// TODO: Cache the lockinfo here instead of persisting it in the blob metadata as it is always in the memory in this client instance for the whole lifecycle of TF.
+	//       In case the TF crashes in the middle of a run, the lock info persisted in the blob metadata is useless, only the lease matters, which requires a manual release.
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
@@ -171,38 +174,29 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 	ctx := newCtx()
 
-	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
-	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
+	resp, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
-		// error if we had issues getting the blob
-		if !response.WasNotFound(properties.HttpResponse) {
+		if resp.HttpResponse.StatusCode != http.StatusNotFound {
 			return "", getLockInfoErr(err)
 		}
-		// if we don't find the blob, we need to build it
-
+		// This indicates the state blob not exists yet, need to create it first
 		contentType := "application/json"
 		putGOptions := blobs.PutBlockBlobInput{
 			ContentType: &contentType,
 		}
-
 		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
+		if err != nil {
+			return "", err
+		}
+
+		resp, err = c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
 	}
 
-	// if the blob is already locked then error
-	if properties.LeaseStatus == blobs.Locked {
-		return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
-	}
-
-	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
-	if err != nil {
-		return "", getLockInfoErr(err)
-	}
-
-	info.ID = leaseID.LeaseID
-	c.leaseID = leaseID.LeaseID
+	info.ID = resp.LeaseID
+	c.leaseID = resp.LeaseID
 
 	if err := c.writeLockInfo(info); err != nil {
 		return "", err
@@ -272,6 +266,9 @@ func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
 func (c *RemoteClient) Unlock(id string) error {
 	lockErr := &statemgr.LockError{}
 
+	// TODO: There is no need to get the metadata for the lease id since we can just go ahead to use the "id" as the lease id to clean the metadata and release the lease.
+	// If the id doesn't match, these requests will just fail with 412.
+	// This saves a API call.
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
 		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
