@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-func TestTargetsTransformer(t *testing.T) {
+func TestExcludesTransformer(t *testing.T) {
 	mod := testModule(t, "transform-targets-basic")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -36,8 +36,8 @@ func TestTargetsTransformer(t *testing.T) {
 	}
 
 	{
-		transform := &TargetsTransformer{
-			Targets: []addrs.Targetable{
+		transform := &ExcludesTransformer{
+			Excludes: []addrs.Targetable{
 				addrs.RootModuleInstance.Resource(
 					addrs.ManagedResourceMode, "aws_instance", "me",
 				),
@@ -50,18 +50,19 @@ func TestTargetsTransformer(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
-aws_instance.me
-  aws_subnet.me
+aws_instance.notme
 aws_subnet.me
   aws_vpc.me
+aws_subnet.notme
 aws_vpc.me
+aws_vpc.notme
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
 	}
 }
 
-func TestTargetsTransformer_downstream(t *testing.T) {
+func TestExcludesTransformer_downstream(t *testing.T) {
 	mod := testModule(t, "transform-targets-downstream")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -101,8 +102,8 @@ func TestTargetsTransformer_downstream(t *testing.T) {
 	}
 
 	{
-		transform := &TargetsTransformer{
-			Targets: []addrs.Targetable{
+		transform := &ExcludesTransformer{
+			Excludes: []addrs.Targetable{
 				addrs.RootModuleInstance.
 					Child("child", addrs.NoKey).
 					Child("grandchild", addrs.NoKey).
@@ -117,25 +118,26 @@ func TestTargetsTransformer_downstream(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
-	// Even though we only asked to target the grandchild resource, all of the
-	// outputs that descend from it are also targeted.
+	// Even though we only asked to exclude the grandchild resource, all of the
+	// outputs that descend from it are also excluded.
 	expected := strings.TrimSpace(`
-module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id (expand)
-  module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id (expand)
-  module.child.module.grandchild.output.id (expand)
-output.grandchild_id (expand)
-  module.child.output.grandchild_id (expand)
+aws_instance.foo
+module.child.aws_instance.foo
+module.child.output.id (expand)
+  module.child.aws_instance.foo
+output.child_id (expand)
+  module.child.output.id (expand)
+output.root_id (expand)
+  aws_instance.foo
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
 	}
 }
 
-// This tests the TargetsTransformer targeting a whole module,
+// This tests the ExcludesTransformer excluding a whole module,
 // rather than a resource within a module instance.
-func TestTargetsTransformer_wholeModule(t *testing.T) {
+func TestExcludesTransformer_wholeModule(t *testing.T) {
 	mod := testModule(t, "transform-targets-downstream")
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -175,8 +177,8 @@ func TestTargetsTransformer_wholeModule(t *testing.T) {
 	}
 
 	{
-		transform := &TargetsTransformer{
-			Targets: []addrs.Targetable{
+		transform := &ExcludesTransformer{
+			Excludes: []addrs.Targetable{
 				addrs.RootModule.
 					Child("child").
 					Child("grandchild"),
@@ -188,16 +190,17 @@ func TestTargetsTransformer_wholeModule(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
-	// Even though we only asked to target the grandchild module, all of the
-	// outputs that descend from it are also targeted.
+	// Even though we only asked to exclude the grandchild module, all of the
+	// outputs that descend from it are also excluded.
 	expected := strings.TrimSpace(`
-module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id (expand)
-  module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id (expand)
-  module.child.module.grandchild.output.id (expand)
-output.grandchild_id (expand)
-  module.child.output.grandchild_id (expand)
+aws_instance.foo
+module.child.aws_instance.foo
+module.child.output.id (expand)
+  module.child.aws_instance.foo
+output.child_id (expand)
+  module.child.output.id (expand)
+output.root_id (expand)
+  aws_instance.foo
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)

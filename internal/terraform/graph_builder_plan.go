@@ -302,8 +302,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			skip: b.Operation != walkPlanDestroy,
 		},
 
-		// Target
-		&TargetsTransformer{Targets: b.Targets, Excludes: b.Excludes},
+		// Targeting
+		&TargetsTransformer{Targets: b.Targets},
+		&ExcludesTransformer{Excludes: b.Excludes},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
