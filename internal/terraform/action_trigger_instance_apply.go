@@ -64,7 +64,8 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Action configuration unknown during apply",
-			Detail:   fmt.Sprintf("The action %s was not fully known during apply.", n.ActionInvocation.Addr),
+			Detail: fmt.Sprintf("The action %s was not fully known during apply. "+
+				"This may be caused by using the caller object in conjunction with a before event.", n.ActionInvocation.Addr),
 			// FIXME: maybe turn this into an attribute path diagnostic?
 			Subject: n.actionNode.Config.DeclRange.Ptr(),
 		})

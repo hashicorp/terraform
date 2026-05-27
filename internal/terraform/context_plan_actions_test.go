@@ -3114,7 +3114,6 @@ resource "test_object" "a" {
 }
 `,
 				},
-				// expectPlanActionCalled: false,
 				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
@@ -3125,20 +3124,29 @@ resource "test_object" "a" {
 						},
 					},
 				},
-				// FIXME: conditions can be unknown, but verify how they are planned
-				//
-				// expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-				// 	return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-				// 		Severity: hcl.DiagError,
-				// 		Summary:  "Condition must be known",
-				// 		Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
-				// 		Subject: &hcl.Range{
-				// 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-				// 			Start:    hcl.Pos{Line: 10, Column: 19, Byte: 184},
-				// 			End:      hcl.Pos{Line: 10, Column: 36, Byte: 201},
-				// 		},
-				// 	})
-				// },
+			},
+
+			"before_create references caller": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      condition = self.name == "new"
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
 			},
 
 			"non-boolean condition": {
