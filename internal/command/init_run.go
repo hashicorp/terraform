@@ -167,6 +167,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
+	if rootModEarly.StateStore != nil { // We know rootModEarly is not nil.
+		rootModEarly.StateStore.ProviderSupplyMode = c.Meta.getProviderSupplyModeForStateStore(rootModEarly)
+		if rootModEarly.StateStore.ProviderSupplyMode == getproviders.Unset {
+			panic("unset provider supply mode for state store")
+		}
+	}
+
 	if initArgs.Get {
 		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
 		diags = diags.Append(modsDiags)
@@ -182,6 +189,12 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
 	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	if config != nil && config.Module != nil && config.Module.StateStore != nil {
+		config.Module.StateStore.ProviderSupplyMode = c.Meta.getProviderSupplyModeForStateStore(config.Module)
+		if config.Module.StateStore.ProviderSupplyMode == getproviders.Unset {
+			panic("unset provider supply mode for state store")
+		}
+	}
 	// configDiags will be handled after:
 	// - the version constraint check has happened
 	// - and, the backend/state_store is initialised

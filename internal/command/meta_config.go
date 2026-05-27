@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -482,6 +484,17 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 // registryClient instantiates and returns a new Terraform Registry client.
 func (m *Meta) registryClient() *registry.Client {
 	return registry.NewClient(m.Services, nil)
+}
+
+func (m *Meta) getProviderSupplyModeForStateStore(config *configs.Module) getproviders.ProviderSupplyMode {
+	if config == nil || config.StateStore == nil {
+		return getproviders.Unset
+	}
+	isReattached, err := reattach.IsProviderReattached(config.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", config.StateStore.ProviderAddr.ForDisplay(), err))
+	}
+	return getproviders.DetermineProviderSupplyMode(m.isProviderDevOverride(config.StateStore.ProviderAddr), isReattached, config.StateStore.ProviderAddr.IsBuiltIn())
 }
 
 // configValueFromCLI parses a configuration value that was provided in a
