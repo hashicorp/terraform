@@ -16,8 +16,8 @@ import (
 // provided will contain every target provided, and each implementing graph
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
-	SetTargets([]addrs.Targetable)
-	SetExcludes([]addrs.Targetable)
+	SetTargets([]addrs.Targetable)  // TargetsTransformer
+	SetExcludes([]addrs.Targetable) // ExcludesTransformer
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a

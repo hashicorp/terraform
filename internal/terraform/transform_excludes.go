@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
-// ExcludesTransformer is a GraphTransformer that:
-//   - when the user specifies a list of resources to exclude,
-//     limits the graph to everything except those resources and their dependencies.
+// ExcludesTransformer is a GraphTransformer that, when the user specifies a
+// list of resources to exclude, limits the graph to everything except those
+// resources and anything dependent on those resources.
 type ExcludesTransformer struct {
 	// List of excluded resource names specified by the user.
 	Excludes []addrs.Targetable
