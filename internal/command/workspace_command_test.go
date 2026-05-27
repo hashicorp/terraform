@@ -1564,3 +1564,101 @@ func TestWorkspace_list_jsonOutput(t *testing.T) {
 		t.Fatalf("expected stderr to be empty, but got: %s", output.Stderr())
 	}
 }
+
+// Show how a user can recover from the .terraform/environment file being edited out-of-band
+// and containing an invalid workspace name. In particular this scenario shows that the path
+// traversal attempt is blocked and that users can select a different workspace to recover.
+func TestInvalidWorkspaceSelectedOutOfBand(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// Create some config
+	cfg := `output "greeting" {
+  value = "hello"
+}`
+
+	if err := os.WriteFile("main.tf", []byte(cfg), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Initialize the working directory
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	meta := Meta{
+		Ui:   ui,
+		View: view,
+	}
+	initCmd := &InitCommand{
+		Meta: meta,
+	}
+	if code := initCmd.Run(nil); code != 0 {
+		t.Fatalf("unexpected non-zero exit code: %d\n output: %s", code, done(t).All())
+	}
+
+	// Make a custom workspace.
+	customWorkspace := "custom"
+	ui = new(cli.MockUi)
+	view, done = testView(t)
+	meta.Ui = ui
+	meta.View = view
+	newCmd := &WorkspaceNewCommand{
+		Meta: meta,
+	}
+	if code := newCmd.Run([]string{customWorkspace}); code != 0 {
+		t.Fatalf("unexpected non-zero exit code: %d\n output: %s", code, done(t).All())
+	}
+
+	// Manually edit the .terraform/environment file to have an invalid workspace name.
+	invalidWorkspace := "../invalid"
+	path := filepath.Join(meta.DataDir(), local.DefaultWorkspaceFile)
+	if err := os.WriteFile(path, []byte(invalidWorkspace), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedError := "Invalid workspace name"
+
+	// Errors block users from performing init with the invalid workspace selected.
+	ui = new(cli.MockUi)
+	view, done = testView(t)
+	meta.Ui = ui
+	meta.View = view
+	initCmd = &InitCommand{
+		Meta: meta,
+	}
+	if code := initCmd.Run(nil); code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n output: %s", code, done(t).All())
+	}
+	if !strings.Contains(done(t).All(), expectedError) {
+		t.Fatalf("expected error message %q, got %q", expectedError, done(t).All())
+	}
+
+	// Errors block users from performing apply with the invalid workspace selected.
+	ui = new(cli.MockUi)
+	view, done = testView(t)
+	meta.Ui = ui
+	meta.View = view
+	applyCmd := &ApplyCommand{
+		Meta: meta,
+	}
+	if code := applyCmd.Run(nil); code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n output: %s", code, done(t).All())
+	}
+	if !strings.Contains(done(t).All(), expectedError) {
+		t.Fatalf("expected error message %q, got %q", expectedError, done(t).All())
+	}
+
+	// Users can select a different workspace to recover from the issue
+	ui = new(cli.MockUi)
+	view, _ = testView(t)
+	meta.Ui = ui
+	meta.View = view
+	selectCmd := &WorkspaceSelectCommand{
+		Meta: meta,
+	}
+	if code := selectCmd.Run([]string{"default"}); code != 0 {
+		t.Fatalf("expected exit code 0, got %d\n output: %s", code, ui.ErrorWriter)
+	}
+
+	// In this scenario the invalid workspace name only exists in the .terraform/environment file.
+	// Therefore there's no 'bad' workspace that really exists and needs to be deleted.
+}
