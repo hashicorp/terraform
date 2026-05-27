@@ -56,7 +56,6 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 						// FIXME: this doesn't deal with deposed or forget instances
 						n.actionTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
 							ActionInvocation: ai,
-							resolvedProvider: ai.ProviderAddr,
 							actionNode:       actionConfig,
 						})
 						foundNode = true
@@ -68,7 +67,6 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 				if n, ok := atn.(*NodeApplyableResourceInstance); ok {
 					n.actionTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
 						ActionInvocation: ai,
-						resolvedProvider: ai.ProviderAddr,
 						actionNode:       actionConfig,
 					})
 					foundNode = true
