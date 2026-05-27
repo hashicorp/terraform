@@ -48,13 +48,8 @@ type RemoteClient struct {
 
 func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	options := blobs.GetInput{}
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
-	}
-
 	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, options)
+	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, blobs.GetInput{})
 	if err != nil {
 		if response.WasNotFound(blob.HttpResponse) {
 			return nil, nil
@@ -84,9 +79,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	setOptions := blobs.SetPropertiesInput{}
 	putOptions := blobs.PutBlockBlobInput{}
 
-	options := blobs.GetInput{}
 	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
 		setOptions.LeaseID = &c.leaseID
 		putOptions.LeaseID = &c.leaseID
 	}
@@ -94,7 +87,10 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	ctx := newCtx()
 
 	if c.snapshot {
-		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+		snapshotInput := blobs.SnapshotInput{}
+		if c.leaseID != "" {
+			snapshotInput.LeaseID = &c.leaseID
+		}
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
 		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.containerName, c.keyName, snapshotInput); err != nil {
@@ -252,7 +248,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	ctx := newCtx()
 
 	// Clear the lockinfo from the blob metadata prior to release the lease.
-	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &id})
+	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		return fmt.Errorf("failed to get lock info from metadata: %s", err)
 	}
