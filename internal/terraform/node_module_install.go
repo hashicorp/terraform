@@ -73,7 +73,14 @@ func (n *nodeInstallModule) References() []*addrs.Reference {
 func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	if n.ModuleCall.SourceExpr == nil {
+		// Cannot install a module without a source
+		// Outer diags should already contain a parsing error
+		return diags
+	}
+
 	var version configs.VersionConstraint
+	hasVersion := false
 	if n.ModuleCall.VersionExpr != nil {
 		var versionDiags tfdiags.Diagnostics
 		version, versionDiags = evalVersionConstraint(n.ModuleCall.VersionExpr, ctx)
@@ -81,9 +88,9 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		if diags.HasErrors() {
 			return diags
 		}
+		hasVersion = version.Required.Len() > 0
 	}
 
-	hasVersion := n.ModuleCall.VersionExpr != nil
 	source, sourceRaw, sourceDiags := evalSource(n.ModuleCall.SourceExpr, hasVersion, ctx)
 	diags = diags.Append(sourceDiags)
 	if diags.HasErrors() {
@@ -139,6 +146,12 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
+
+	if n.Config == nil {
+		// Cannot expand without a config. This can happen when something goes wrong
+		// during module installation/Execute() above.
+		return nil, diags
+	}
 
 	expander := ctx.InstanceExpander()
 	_, call := n.Addr.Call()
