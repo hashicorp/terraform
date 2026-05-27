@@ -152,6 +152,20 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		}
 	}
 
+	// This error wrap function is to return a statemgr.LockError in case the blob is locked by someone else.
+	// The statemgr.LockError will then result into retry if -lock-timeout is specified.
+	getLockInfoErr := func(err error) error {
+		lockInfo, infoErr := c.getLockInfo()
+		if infoErr != nil {
+			err = errors.Join(err, infoErr)
+		}
+
+		return &statemgr.LockError{
+			Err:  err,
+			Info: lockInfo,
+		}
+	}
+
 	leaseOptions := blobs.AcquireLeaseInput{
 		ProposedLeaseID: &proposedLockID,
 		LeaseDuration:   -1,
@@ -160,36 +174,30 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	resp, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
-		if resp.HttpResponse.StatusCode != http.StatusNotFound {
+		switch resp.HttpResponse.StatusCode {
+		case http.StatusNotFound:
+			// This indicates the state blob not exists yet, need to create it first.
+			// Note that in this case, there is still a window that someone else create and lock the same blob,
+			// hence we need to try to wrap the error to be statemgr.LockInfo.
+			contentType := "application/json"
+			putGOptions := blobs.PutBlockBlobInput{
+				ContentType: &contentType,
+			}
+
+			_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
+			if err != nil {
+				return "", getLockInfoErr(err)
+			}
+
+			resp, err = c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
+			if err != nil {
+				return "", getLockInfoErr(err)
+			}
+		case http.StatusConflict:
+			// This indicates the state blob is already locked.
+			return "", getLockInfoErr(err)
+		default:
 			return "", err
-		}
-		// This indicates the state blob not exists yet, need to create it first
-		contentType := "application/json"
-		putGOptions := blobs.PutBlockBlobInput{
-			ContentType: &contentType,
-		}
-
-		// This error wrap function is to return a statemgr.LockError in case the blob is locked by someone else.
-		getLockInfoErr := func(err error) error {
-			lockInfo, infoErr := c.getLockInfo()
-			if infoErr != nil {
-				err = errors.Join(err, infoErr)
-			}
-
-			return &statemgr.LockError{
-				Err:  err,
-				Info: lockInfo,
-			}
-		}
-
-		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
-		if err != nil {
-			return "", getLockInfoErr(err)
-		}
-
-		resp, err = c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
-		if err != nil {
-			return "", getLockInfoErr(err)
 		}
 	}
 
