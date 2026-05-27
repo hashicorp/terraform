@@ -42,10 +42,8 @@ type RemoteClient struct {
 	accountName        string
 	containerName      string
 	keyName            string
-	leaseID            string
 	snapshot           bool
-	// TODO: Cache the lockinfo here instead of persisting it in the blob metadata as it is always in the memory in this client instance for the whole lifecycle of TF.
-	//       In case the TF crashes in the middle of a run, the lock info persisted in the blob metadata is useless, only the lease matters, which requires a manual release.
+	leaseID            string
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
@@ -83,14 +81,12 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	getOptions := blobs.GetPropertiesInput{}
 	setOptions := blobs.SetPropertiesInput{}
 	putOptions := blobs.PutBlockBlobInput{}
 
 	options := blobs.GetInput{}
 	if c.leaseID != "" {
 		options.LeaseID = &c.leaseID
-		getOptions.LeaseID = &c.leaseID
 		setOptions.LeaseID = &c.leaseID
 		putOptions.LeaseID = &c.leaseID
 	}
@@ -108,7 +104,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 		log.Print("[DEBUG] Created blob snapshot")
 	}
 
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		if !response.WasNotFound(blob.HttpResponse) {
 			return diags.Append(err)
@@ -147,29 +143,17 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	stateName := fmt.Sprintf("%s/%s", c.containerName, c.keyName)
 	info.Path = stateName
 
-	if info.ID == "" {
-		lockID, err := uuid.GenerateUUID()
+	proposedLockID := info.ID
+	if proposedLockID == "" {
+		var err error
+		proposedLockID, err = uuid.GenerateUUID()
 		if err != nil {
 			return "", err
-		}
-
-		info.ID = lockID
-	}
-
-	getLockInfoErr := func(err error) error {
-		lockInfo, infoErr := c.getLockInfo()
-		if infoErr != nil {
-			err = errors.Join(err, infoErr)
-		}
-
-		return &statemgr.LockError{
-			Err:  err,
-			Info: lockInfo,
 		}
 	}
 
 	leaseOptions := blobs.AcquireLeaseInput{
-		ProposedLeaseID: &info.ID,
+		ProposedLeaseID: &proposedLockID,
 		LeaseDuration:   -1,
 	}
 	ctx := newCtx()
@@ -177,16 +161,30 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	resp, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
 		if resp.HttpResponse.StatusCode != http.StatusNotFound {
-			return "", getLockInfoErr(err)
+			return "", err
 		}
 		// This indicates the state blob not exists yet, need to create it first
 		contentType := "application/json"
 		putGOptions := blobs.PutBlockBlobInput{
 			ContentType: &contentType,
 		}
+
+		// This error wrap function is to return a statemgr.LockError in case the blob is locked by someone else.
+		getLockInfoErr := func(err error) error {
+			lockInfo, infoErr := c.getLockInfo()
+			if infoErr != nil {
+				err = errors.Join(err, infoErr)
+			}
+
+			return &statemgr.LockError{
+				Err:  err,
+				Info: lockInfo,
+			}
+		}
+
 		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
 		if err != nil {
-			return "", err
+			return "", getLockInfoErr(err)
 		}
 
 		resp, err = c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
@@ -195,10 +193,21 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		}
 	}
 
+	// Cache the lockinfo with the actual lock id (i.e. lease id)
 	info.ID = resp.LeaseID
 	c.leaseID = resp.LeaseID
 
-	if err := c.writeLockInfo(info); err != nil {
+	// Update the lock info in the blob metadata
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
+	if err != nil {
+		return "", err
+	}
+	blob.MetaData[lockInfoMetaKey] = base64.StdEncoding.EncodeToString(info.Marshal())
+	opts := blobs.SetMetaDataInput{
+		LeaseID:  &info.ID,
+		MetaData: blob.MetaData,
+	}
+	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
 		return "", err
 	}
 
@@ -206,13 +215,8 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
-	options := blobs.GetPropertiesInput{}
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
-	}
-
 	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, options)
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -236,34 +240,11 @@ func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	return lockInfo, nil
 }
 
-// writes info to blob meta data
-func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
-	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
-	if err != nil {
-		return err
-	}
-
-	if info == nil {
-		delete(blob.MetaData, lockInfoMetaKey)
-	} else {
-		value := base64.StdEncoding.EncodeToString(info.Marshal())
-		blob.MetaData[lockInfoMetaKey] = value
-	}
-
-	opts := blobs.SetMetaDataInput{
-		LeaseID:  &c.leaseID,
-		MetaData: blob.MetaData,
-	}
-
-	_, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts)
-	return err
-}
-
 func (c *RemoteClient) Unlock(id string) error {
 	ctx := newCtx()
 
-	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
+	// Clear the lockinfo from the blob metadata prior to release the lease.
+	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &id})
 	if err != nil {
 		return fmt.Errorf("failed to get lock info from metadata: %s", err)
 	}
@@ -271,7 +252,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	delete(propResp.MetaData, lockInfoMetaKey)
 
 	opts := blobs.SetMetaDataInput{
-		LeaseID:  &c.leaseID,
+		LeaseID:  &id,
 		MetaData: propResp.MetaData,
 	}
 
