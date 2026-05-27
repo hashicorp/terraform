@@ -199,13 +199,17 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
 	},
-	"state_store_provider_approved_message": {
-		HumanValue: "\n[reset][bold]The state store provider was approved.",
-		JSONValue:  "The state store provider was approved.",
+	"state_store_provider_interactive_approved_message": {
+		HumanValue: "\n[reset][bold]The state store provider was approved by the user.",
+		JSONValue:  "The state store provider was approved by the user.",
 	},
-	"state_store_provider_rejected_message": {
-		HumanValue: "\n[reset][bold]The state store provider was rejected.",
-		JSONValue:  "The state store provider was rejected.",
+	"state_store_provider_interactive_rejected_message": {
+		HumanValue: "\n[reset][bold]The state store provider was rejected by the user.",
+		JSONValue:  "The state store provider was rejected by the user.",
+	},
+	"state_store_provider_automation_approved_message": {
+		HumanValue: "\n[reset][bold]The state store provider was approved automatically.",
+		JSONValue:  "The state store provider was approved automatically.",
 	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
@@ -335,25 +339,26 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage                 InitMessageCode = "copying_configuration_message"
-	EmptyMessage                                InitMessageCode = "empty_message"
-	OutputInitEmptyMessage                      InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage                    InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage               InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage                 InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage            InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage                     InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage           InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
-	StateStoreProviderApprovedMessage           InitMessageCode = "state_store_provider_approved_message"
-	StateStoreProviderRejectedMessage           InitMessageCode = "state_store_provider_rejected_message"
-	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
-	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
-	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
-	LockInfo                                    InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
+	EmptyMessage                                 InitMessageCode = "empty_message"
+	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage                  InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage             InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage                      InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage            InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage                   InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage                   InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage                InitMessageCode = "initializing_state_store_message"
+	StateStoreProviderInteractiveApprovedMessage InitMessageCode = "state_store_provider_interactive_approved_message"
+	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
+	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
+	InitializingProviderPluginFromConfigMessage  InitMessageCode = "initializing_provider_plugin_from_config_message"
+	InitializingProviderPluginFromStateMessage   InitMessageCode = "initializing_provider_plugin_from_state_message"
+	ReusingVersionIdentifiedFromConfig           InitMessageCode = "reusing_version_during_state_provider_init"
+	LockInfo                                     InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
