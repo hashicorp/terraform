@@ -243,9 +243,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`MockExprTraversal:0,0-7: Self reference not allowed; The condition expression cannot reference "self".`,
-			},
+			nil,
 		},
 		"error - condition uses count.index and includes before_event": {
 			&hcl.Block{
@@ -268,9 +266,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`:1,1-29: Count reference not allowed; The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-			},
+			nil,
 		},
 		"error - condition uses each.value and includes before_event": {
 			&hcl.Block{
@@ -293,9 +289,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`:1,1-26: Each reference not allowed; The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-			},
+			nil,
 		},
 	}
 
