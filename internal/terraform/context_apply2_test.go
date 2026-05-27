@@ -5120,3 +5120,74 @@ aws_instance.bar.1:
   type = aws_instance
 	`)
 }
+
+func TestContext2Apply_excludedDestroy(t *testing.T) {
+	m := testModule(t, "destroy-targeted")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "out"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
+
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	if diags := ctx.Validate(m, nil); diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
+	}
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		Excludes: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
+				addrs.ManagedResourceMode, "aws_instance", "b",
+			),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 0 {
+		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
+	}
+
+	if len(state.RootOutputValues) != 0 {
+		t.Fatalf("expected 0 outputs, got: %#v", state.RootOutputValues)
+	}
+
+	// the module instance should remain since it was excluded
+	mod = state.Module(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resources, got: %#v", mod.Resources)
+	}
+}

@@ -53,14 +53,8 @@ func (t *ExcludesTransformer) selectExcludedNodes(g *Graph, addrs []addrs.Target
 			if tn, ok := v.(GraphNodeTargetable); ok {
 				tn.SetExcludes(addrs)
 			}
-
-			// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
-			// getting refactored so I'm not really sure if/where they will be in the graph after that :P
 		}
 	}
-
-	// TODO: What about outputs? TargetsTransformer has specialized logic for them, but I'm not sure we need that here since I believe they
-	// should be excluded by just being a descendant.
 
 	return excludedNodes
 }
@@ -69,14 +63,9 @@ func (t *ExcludesTransformer) nodeIsExcluded(v dag.Vertex, excludes []addrs.Targ
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
 	case *nodeApplyableDeferredPartialInstance:
-		// TODO: This is handled in targeting, although I'm not sure yet how/if we need to implement this for excluding
+		// TODO: Should verify that this comment is true + that we don't need to implement anything further for deferred changes.
 		//
-		// for _, excludeAddr := range excludes {
-		// 	if r.PartialAddr.IsTargetedBy(excludeAddr) {
-		// 		return true
-		// 	}
-		// }
-
+		// We can't exclude partial nodes as we don't have enough information to be certain that they should be excluded.
 		return false
 
 	case GraphNodeResourceInstance:
@@ -84,23 +73,14 @@ func (t *ExcludesTransformer) nodeIsExcluded(v dag.Vertex, excludes []addrs.Targ
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
 
-	// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
-	// getting refactored so I'm not really sure if/where they will be in the graph after that :P
-	//
-	// case *nodeActionInvokeExpand:
-	// 	vertexAddr = r.Target
-	// case *nodeActionTriggerApplyInstance:
-	// 	vertexAddr = r.ActionInvocation.Addr
-
 	default:
-		// Only partial nodes and resource and resource instance nodes can be
-		// targeted.
+		// Only resource and resource instance nodes can be excluded.
 		return false
 	}
 
 	for _, excludeAddr := range excludes {
 		// In the case of an absolute instance, we cannot exclude the node (or it's dependants) until expansion has occurred,
-		// so we cannot generalize the excludeAddr like targeting does.
+		// so we cannot generalize the excludeAddr like TargetTransformer does.
 		if excludeAddr.TargetContains(vertexAddr) {
 			return true
 		}
@@ -117,10 +97,8 @@ func (t *ExcludesTransformer) addVertexDependenciesToExcludedNodes(g *Graph, v d
 	}
 	excludedNodes.Add(v)
 
+	// TODO: Consider nodes that could appear as descendants that we don't want to exclude, for example: nodeCloseModule
 	for _, d := range g.Descendants(v) {
 		t.addVertexDependenciesToExcludedNodes(g, d, excludedNodes, addrs)
 	}
-
-	// TODO: What about actions? I think we'll want to also exclude action triggers but it's actively
-	// getting refactored so I'm not really sure if/where they will be in the graph after that :P
 }
