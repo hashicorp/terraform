@@ -14,7 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 func TestInitProviders(t *testing.T) {
@@ -55,7 +57,6 @@ func TestInitProviders(t *testing.T) {
 	if !strings.Contains(stdout, "Terraform has created a lock file") {
 		t.Errorf("lock file notification is missing from output:\n%s", stdout)
 	}
-
 }
 
 func TestInitProvidersInternal(t *testing.T) {
@@ -140,7 +141,6 @@ func TestInitProvidersVendored(t *testing.T) {
 	if !strings.Contains(stdout, "- Installing hashicorp/null v1.0.0+local") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 	}
-
 }
 
 func TestInitProvidersLocalOnly(t *testing.T) {
@@ -425,7 +425,100 @@ func TestInitProviderWarnings(t *testing.T) {
 	if !strings.Contains(stdout, "This provider is archived and no longer needed.") {
 		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
+}
 
+// This is a regression test asserting that `terraform init -upgrade` doesn't error
+// when the state storage provider is unmanaged by Terraform. The check to see if the
+// state storage provider was affected by the upgrade process should be skipped when
+// the provider is not managed by Terraform. Previously the check wasn't skipped and
+// panicked due to how the provider was supplied.
+//
+// See the TestInit_getUpgradePlugins integration test for similar testing when using a
+// dev_override provider.
+func TestInitStateStoreUsingUnmanagedProvider(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	// In temp dir create a plugin cache to be used in the test cases.
+	// The cache is supplied to commands using the -plugin-dir init flag.
+	// There are 2 versions of the simple6 provider: 0.0.1 and 2.0.0
+	// This enables us to test an upgrade scenario where a newer provider version is available.
+	td := t.TempDir()
+	providerVersionOld := "0.0.1"
+	providerVersionNew := "2.0.0"
+	platform := getproviders.CurrentPlatform.String()
+	absolutePathToCache := filepath.Join(td, "cache")
+	simple6Provider := filepath.Join(td, "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+	for _, v := range []string{providerVersionOld, providerVersionNew} {
+		dir := filepath.Join(absolutePathToCache, "registry.terraform.io/hashicorp", "simple6", v, platform)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		// Create an executable copy of the simple6ProviderExe file per version in the cache dir
+		data, err := os.ReadFile(simple6ProviderExe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "terraform-provider-simple6"), data, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Setenv(e2e.TestExperimentFlag, "true")
+	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-unmanaged")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// Assert the existing lockfile describes the older version of the provider.
+	lockFile := tf.Path(".terraform.lock.hcl")
+	buf, err := os.ReadFile(lockFile)
+	if err != nil {
+		t.Fatalf("unexpected error accessing lock file: %s", err)
+	}
+	buf = bytes.TrimSpace(buf)
+
+	expectedLockFileContent := fmt.Sprintf(`# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/simple6" {
+  version = "%s"
+}`, providerVersionOld)
+	if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
+		t.Errorf("unexpected difference in lock file content: %s", diff)
+	}
+
+	// The simple6 provider is unmanaged
+	reattachConfig, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+	tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
+
+	// The init -upgrade process should succeed.
+	stdout, stderr, err := tf.Run(
+		"init",
+		"-upgrade",
+		"-enable-pluggable-state-storage-experiment",
+		fmt.Sprintf("-plugin-dir=%s", absolutePathToCache),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+	}
+
+	// Lockfile should be unchanged because the only provider in the config is unmanaged.
+	buf, err = os.ReadFile(lockFile)
+	if err != nil {
+		t.Fatalf("unexpected error accessing lock file: %s", err)
+	}
+	buf = bytes.TrimSpace(buf)
+
+	if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
+		t.Errorf("unexpected difference in lock file content: %s", diff)
+	}
 }
 
 // emptyConfigFileForTests creates a blank .terraformrc file in the requested

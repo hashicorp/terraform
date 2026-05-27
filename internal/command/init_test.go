@@ -2610,6 +2610,136 @@ terraform {
 		}
 	})
 
+	// A dev_override setting stops a provider being upgraded. That behaviour is tested elsewhere.
+	// This test is a regression test asserting that checks ensuring the state storage provider wasn't
+	// upgraded during `init -upgrade` doesn't panic when the state storage provider is a dev_override.
+	//
+	// An equivalent test for this scenario where the state storage provider is unmanaged is implemented
+	// as an E2E test, as that's the only place unmanaged providers can be used in tests.
+	t.Run("no errors if `init -upgrade` is run while the state store provider is a dev_override ", func(t *testing.T) {
+		// Create a temporary working directory and copy in test fixtures
+		td := t.TempDir()
+		t.Chdir(td)
+
+		// Configuration uses a state store and has other provider requirements.
+		cfg := `
+terraform {
+
+  required_providers {
+    test = {
+      source  = "hashicorp/test"
+      version = "> 1.0.0"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {
+    }
+
+    value = "foobar"
+  }
+}`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("failed to write main.tf: %s", err)
+		}
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// config requires > 1.0.0
+			"test": {"1.2.3", "9.9.9"},
+		})
+
+		// Mock provider to act as "hashicorp/test"
+		mockProvider := mockPluggableStateStorageProvider()
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		m := Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+
+			// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PROVIDER IS A DEV OVERRIDE.
+			// The mock is still accessed via testingOverrides, but Terraform believes that it's a dev override due to
+			// its presence in the ProviderDevOverrides map.
+			ProviderDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				mockProviderAddress: ".",
+			},
+		}
+
+		// Make Terraform believe that we already have version 1.2.3 installed.
+		installFakeProviderPackages(t, &m, map[string][]string{
+			"test": {"1.2.3"},
+		})
+		// Create a dependency lock file describing the hashicorp/test provider at version 1.2.3, to simulate a previous init with that version.
+		locks := depsfile.NewLocks()
+		locks.SetProvider(
+			addrs.NewDefaultProvider("test"),
+			getproviders.MustParseVersion("1.2.3"),
+			getproviders.MustParseVersionConstraints("> 1.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+			},
+		)
+		if err := depsfile.SaveLocksToFile(locks, ".terraform.lock.hcl"); err != nil {
+			t.Fatalf("failed to write provider locks file: %s", err)
+		}
+
+		c := &InitCommand{
+			Meta: m,
+		}
+
+		args := []string{
+			"-upgrade=true",
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("expected code 0, but got code %d. \nOutput:\n%s", code, done(t).All())
+		}
+
+		// Assert that no providers were upgraded.
+		//
+		// Unlike other test scenarios, "test" v9.9.9 will not be installed in the cache.
+		// This is because the installation process skips installing providers that are
+		// dev_overrides. That logic is used in both upgrade and non-upgrade operations.
+		cacheDir := m.providerLocalCacheDir()
+		gotPackages := cacheDir.AllAvailablePackages()
+		wantPackages := map[addrs.Provider][]providercache.CachedProvider{
+			mockProviderAddress: {
+				// No v9.9.9 entry
+				{
+					Provider:   mockProviderAddress,
+					Version:    getproviders.MustParseVersion("1.2.3"),
+					PackageDir: expectedPackageInstallPath("test", "1.2.3", false),
+				},
+			},
+		}
+		if diff := cmp.Diff(wantPackages, gotPackages); diff != "" {
+			t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
+		}
+
+		// The provider locks should not have changed.
+		locks, err := m.lockedDependencies()
+		if err != nil {
+			t.Fatalf("failed to get locked dependencies: %s", err)
+		}
+		gotProviderLocks := locks.AllProviders()
+		wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+			mockProviderAddress: depsfile.NewProviderLock(
+				mockProviderAddress,
+				getproviders.MustParseVersion("1.2.3"),
+				getproviders.MustParseVersionConstraints("> 1.0.0"),
+				[]getproviders.Hash{
+					getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+				},
+			),
+		}
+		if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
+			t.Errorf("wrong version selections after upgrade\n%s", diff)
+		}
+	})
+
 	t.Run("`init -upgrade -reconfigure` can be used to upgrade the state store provider", func(t *testing.T) {
 		// Create a temporary working directory and copy in test fixtures
 		td := t.TempDir()
