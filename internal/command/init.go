@@ -401,8 +401,6 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 		return false, nil, SafeInitActionInvalid, nil, diags
 	}
 
-	reqs = c.removeDevOverrides(reqs)
-
 	for providerAddr := range reqs {
 		if providerAddr.IsLegacy() {
 			diags = diags.Append(tfdiags.Sourceless(
