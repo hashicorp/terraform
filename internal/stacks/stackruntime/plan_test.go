@@ -6454,7 +6454,7 @@ func TestPlanWithActionInvocationHooks(t *testing.T) {
 		},
 		PendingComponentInstancePlan: collections.NewSet(webComponentInstance),
 		BeginComponentInstancePlan:   collections.NewSet(webComponentInstance),
-		EndComponentInstancePlan:     collections.NewSet(webComponentInstance),
+		DeferComponentInstancePlan:   collections.NewSet(webComponentInstance),
 		ReportResourceInstanceStatus: []*hooks.ResourceInstanceStatusHookData{
 			{
 				Addr:         testResourceObject,
