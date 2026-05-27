@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	leaseHeader = "x-ms-lease-id"
 	// Must be lower case
 	lockInfoMetaKey = "terraformlockid"
 )
@@ -76,14 +75,6 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	setOptions := blobs.SetPropertiesInput{}
-	putOptions := blobs.PutBlockBlobInput{}
-
-	if c.lockInfo != nil {
-		setOptions.LeaseID = &c.lockInfo.ID
-		putOptions.LeaseID = &c.lockInfo.ID
-	}
-
 	ctx := newCtx()
 
 	if c.snapshot {
@@ -101,10 +92,15 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	}
 
 	contentType := "application/json"
-	putOptions.Content = &data
-	putOptions.ContentType = &contentType
-	putOptions.MetaData = map[string]string{
-		lockInfoMetaKey: base64.StdEncoding.EncodeToString(c.lockInfo.Marshal()),
+	putOptions := blobs.PutBlockBlobInput{
+		Content:     &data,
+		ContentType: &contentType,
+	}
+	if c.lockInfo != nil {
+		putOptions.LeaseID = &c.lockInfo.ID
+		putOptions.MetaData = map[string]string{
+			lockInfoMetaKey: base64.StdEncoding.EncodeToString(c.lockInfo.Marshal()),
+		}
 	}
 	if _, err := c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions); err != nil {
 		return diags.Append(err)
@@ -167,6 +163,9 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	resp, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
+		if resp.HttpResponse == nil {
+			return "", err
+		}
 		switch resp.HttpResponse.StatusCode {
 		case http.StatusNotFound:
 			// This indicates the state blob not exists yet, need to create it first.
@@ -206,6 +205,11 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		},
 	}
 	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
+		err = fmt.Errorf("failed to set metadata: %v", err)
+		// Try to release the lock before error out
+		if _, rerr := c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: info.ID}); rerr != nil {
+			err = errors.Join(err, fmt.Errorf("failed to lease %q, may need manual release: %w", info.ID, err))
+		}
 		return "", err
 	}
 
@@ -240,6 +244,10 @@ func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 
 func (c *RemoteClient) Unlock(id string) error {
 	ctx := newCtx()
+
+	if c.lockInfo != nil && c.lockInfo.ID != id {
+		return fmt.Errorf("lock id %q does not match the current lock %q", id, c.lockInfo.ID)
+	}
 
 	// Clear the lockinfo from the blob metadata prior to release the lease.
 	opts := blobs.SetMetaDataInput{
