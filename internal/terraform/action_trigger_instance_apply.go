@@ -16,7 +16,6 @@ import (
 
 type actionTriggerApplyInstance struct {
 	ActionInvocation *plans.ActionInvocationInstanceSrc
-	resolvedProvider addrs.AbsProviderConfig
 
 	// actionNode links the trigger to it's action config node.
 	// This is connected by the diff transformer.
@@ -33,11 +32,11 @@ var (
 func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	provider, _, err := getProvider(ctx, n.resolvedProvider)
+	provider, _, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Failed to get provider for %s", n.resolvedProvider),
+			Summary:  fmt.Sprintf("Failed to get provider for %s", n.ActionInvocation.ProviderAddr),
 			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
 			Subject:  n.actionNode.Config.DeclRange.Ptr(),
 		})
@@ -65,7 +64,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Action configuration unknown during apply",
-			Detail:   fmt.Sprintf("The action %s was not fully known during apply.\n\nThis is a bug in Terraform, please report it.", n.ActionInvocation.Addr),
+			Detail:   fmt.Sprintf("The action %s was not fully known during apply.", n.ActionInvocation.Addr),
 			// FIXME: maybe turn this into an attribute path diagnostic?
 			Subject: n.actionNode.Config.DeclRange.Ptr(),
 		})
@@ -102,7 +101,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		return diags
 	}
 
-	if resp.Events != nil { // should only occur in misconfigured tests
+	if resp.Events != nil {
 		for event := range resp.Events {
 			switch ev := event.(type) {
 			case providers.InvokeActionEvent_Progress:
@@ -148,7 +147,8 @@ func (n *actionTriggerApplyInstance) Provider() ProviderRef {
 }
 
 func (n *actionTriggerApplyInstance) SetProvider(config addrs.AbsProviderConfig) {
-	n.resolvedProvider = config
+	// keep this method to satisfy GraphNodeProviderConsumer, but we already
+	// have a resolved provider saved in the plan
 }
 
 func (n *actionTriggerApplyInstance) References() []*addrs.Reference {
