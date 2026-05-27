@@ -43,7 +43,7 @@ type RemoteClient struct {
 	containerName      string
 	keyName            string
 	snapshot           bool
-	leaseID            string
+	lockInfo           *statemgr.LockInfo
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
@@ -79,17 +79,17 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	setOptions := blobs.SetPropertiesInput{}
 	putOptions := blobs.PutBlockBlobInput{}
 
-	if c.leaseID != "" {
-		setOptions.LeaseID = &c.leaseID
-		putOptions.LeaseID = &c.leaseID
+	if c.lockInfo != nil {
+		setOptions.LeaseID = &c.lockInfo.ID
+		putOptions.LeaseID = &c.lockInfo.ID
 	}
 
 	ctx := newCtx()
 
 	if c.snapshot {
 		snapshotInput := blobs.SnapshotInput{}
-		if c.leaseID != "" {
-			snapshotInput.LeaseID = &c.leaseID
+		if c.lockInfo != nil {
+			snapshotInput.LeaseID = &c.lockInfo.ID
 		}
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
@@ -100,20 +100,17 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 		log.Print("[DEBUG] Created blob snapshot")
 	}
 
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
-	if err != nil {
-		if !response.WasNotFound(blob.HttpResponse) {
-			return diags.Append(err)
-		}
-	}
-
 	contentType := "application/json"
 	putOptions.Content = &data
 	putOptions.ContentType = &contentType
-	putOptions.MetaData = blob.MetaData
-	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions)
+	putOptions.MetaData = map[string]string{
+		lockInfoMetaKey: base64.StdEncoding.EncodeToString(c.lockInfo.Marshal()),
+	}
+	if _, err := c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions); err != nil {
+		return diags.Append(err)
+	}
 
-	return diags.Append(err)
+	return nil
 }
 
 func (c *RemoteClient) Delete() tfdiags.Diagnostics {
@@ -121,8 +118,8 @@ func (c *RemoteClient) Delete() tfdiags.Diagnostics {
 
 	options := blobs.DeleteInput{}
 
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
+	if c.lockInfo != nil {
+		options.LeaseID = &c.lockInfo.ID
 	}
 
 	ctx := newCtx()
@@ -199,17 +196,14 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	// Cache the lockinfo with the actual lock id (i.e. lease id)
 	info.ID = resp.LeaseID
-	c.leaseID = resp.LeaseID
+	c.lockInfo = info
 
 	// Update the lock info in the blob metadata
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
-	if err != nil {
-		return "", err
-	}
-	blob.MetaData[lockInfoMetaKey] = base64.StdEncoding.EncodeToString(info.Marshal())
 	opts := blobs.SetMetaDataInput{
-		LeaseID:  &info.ID,
-		MetaData: blob.MetaData,
+		LeaseID: &info.ID,
+		MetaData: map[string]string{
+			lockInfoMetaKey: base64.StdEncoding.EncodeToString(info.Marshal()),
+		},
 	}
 	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
 		return "", err
@@ -248,27 +242,20 @@ func (c *RemoteClient) Unlock(id string) error {
 	ctx := newCtx()
 
 	// Clear the lockinfo from the blob metadata prior to release the lease.
-	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
-	if err != nil {
-		return fmt.Errorf("failed to get lock info from metadata: %s", err)
-	}
-
-	delete(propResp.MetaData, lockInfoMetaKey)
-
 	opts := blobs.SetMetaDataInput{
 		LeaseID:  &id,
-		MetaData: propResp.MetaData,
+		MetaData: map[string]string{},
 	}
 
-	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
+	if _, err := c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
 		return fmt.Errorf("failed to clear lock info from metadata: %s", err)
 	}
 
-	if _, err = c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id}); err != nil {
+	if _, err := c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id}); err != nil {
 		return err
 	}
 
-	c.leaseID = ""
+	c.lockInfo = nil
 
 	return nil
 }
