@@ -236,13 +236,10 @@ func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	return lockInfo, nil
 }
 
-// writes info to blob meta data, deletes metadata entry if info is nil
+// writes info to blob meta data
 func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
 	ctx := newCtx()
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		return err
 	}
@@ -264,34 +261,26 @@ func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &statemgr.LockError{}
-
-	// TODO: There is no need to get the metadata for the lease id since we can just go ahead to use the "id" as the lease id to clean the metadata and release the lease.
-	// If the id doesn't match, these requests will just fail with 412.
-	// This saves a API call.
-	lockInfo, err := c.getLockInfo()
-	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-		return lockErr
-	}
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	c.leaseID = lockInfo.ID
-	if err := c.writeLockInfo(nil); err != nil {
-		lockErr.Err = fmt.Errorf("failed to delete lock info from metadata: %s", err)
-		return lockErr
-	}
-
 	ctx := newCtx()
-	_, err = c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id})
+
+	propResp, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
 	if err != nil {
-		lockErr.Err = err
-		return lockErr
+		return fmt.Errorf("failed to get lock info from metadata: %s", err)
+	}
+
+	delete(propResp.MetaData, lockInfoMetaKey)
+
+	opts := blobs.SetMetaDataInput{
+		LeaseID:  &c.leaseID,
+		MetaData: propResp.MetaData,
+	}
+
+	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
+		return fmt.Errorf("failed to clear lock info from metadata: %s", err)
+	}
+
+	if _, err = c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id}); err != nil {
+		return err
 	}
 
 	c.leaseID = ""
