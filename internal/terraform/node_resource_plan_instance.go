@@ -605,7 +605,7 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 	var actionInvocations []*plans.ActionInvocationInstance
 
 	for _, trigger := range n.actionTriggers {
-		scope := ctx.EvaluationScope(nil, nil, resRepData)
+		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
 		if trigger.config.Condition != nil {
 			cond, conditionEvalDiags := scope.EvalExpr(trigger.config.Condition, cty.Bool)
 			diags = diags.Append(conditionEvalDiags)
@@ -620,15 +620,17 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 			}
 		}
 
-		for _, event := range actionIsTriggeredByEvent(trigger.config.Events, n.change.Action) {
+		// FIXME: this looks strange, because actions can have multiple events,
+		// but we're just repeating the same plan. Refactoring is annoying
+		// though because the event is set within a nested interface inside a
+		// pointer to the ActionInvocationInstance.
+		for _, event := range eventsForPlannedAction(trigger.config.Events, n.change.Action) {
 			for _, action := range trigger.actionRefs {
 				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event)
 				diags = diags.Append(planDiags)
 				if diags.HasErrors() {
 					return diags
 				}
-
-				actionInvocations = append(actionInvocations, ai)
 
 				if deferred {
 					log.Printf("[DEBUG] NodePlannableResourceInstance %s is being deferred due to action %s", n.Addr, action.actionNode.Addr)
@@ -646,6 +648,8 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 					n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 					return diags
 				}
+
+				actionInvocations = append(actionInvocations, ai)
 			}
 		}
 	}
@@ -1307,7 +1311,7 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+func eventsForPlannedAction(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
 	triggeredEvents := []configs.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {

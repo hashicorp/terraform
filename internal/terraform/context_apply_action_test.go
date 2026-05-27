@@ -571,7 +571,8 @@ resource "test_object" "b" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Action configuration unknown during apply",
-					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
+					Detail: "The action action.action_example.hello was not fully known during apply. " +
+						"This may be caused by using the caller object in conjunction with a before event.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 46},
@@ -1493,6 +1494,44 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
+		},
+
+		"before_create references caller": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "test" {
+  config {
+    attr = caller.test_string
+  }
+}
+resource "test_object" "a" {
+  test_string = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+      condition = self.test_string == "new"
+      actions = [action.action_example.test]
+    }
+  }
+}
+`,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"test_string": "old"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "action_example",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("new"),
+				}),
+			}},
 		},
 
 		"simple condition evaluation - false": {
