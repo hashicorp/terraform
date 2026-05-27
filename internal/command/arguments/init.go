@@ -116,7 +116,7 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
-	cmdFlags.StringVar(&init.StateStoreProviderLockFile, "state-provider-lock-file", "", "path to the dependency lock file to use when establishing trust in the provider used for state storage. This is only used when input is disabled. Otherwise, users will be shown interactive prompts instead. Defaults to the working directory's .terraform.lock.hcl file.")
+	cmdFlags.StringVar(&init.StateStoreProviderLockFile, "state-provider-lock-file", "", "path to the dependency lock file used to establish trust in the provider used for state storage. This flag can only be supplied when input is disabled. Defaults to the working directory's .terraform.lock.hcl file.")
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
