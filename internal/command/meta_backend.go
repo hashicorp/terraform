@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"log"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -42,7 +41,6 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -2094,19 +2092,12 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 			ViewType:      viewType,
 		}
 	case root.StateStore != nil:
-		// Annotate state_store config representation with info about how the provider
-		// is supplied to Terraform.
-		isReattached, err := reattach.IsProviderReattached(root.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
-		if err != nil {
-			panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", root.StateStore.ProviderAddr.ForDisplay(), err))
-		}
-		root.StateStore.ProviderSupplyMode = getproviders.DetermineProviderSupplyMode(m.isProviderDevOverride(root.StateStore.ProviderAddr), isReattached, root.StateStore.ProviderAddr.IsBuiltIn())
-
 		// Check the provider for state storage is present, either via the dependency lock file or
 		// supplied via developer overrides, reattach config, or being built-in.
 		//
 		// Remember, the (Meta).backend method is used for non-init commands, so we expect dependency locks
 		// to be present or for the provider to be otherwise available, e.g. via reattach config.
+		root.StateStore.ProviderSupplyMode = m.getProviderSupplyModeForStateStore(root)
 		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.ProviderRequirements, root.StateStore.ProviderSupplyMode)
 		diags = diags.Append(depsDiags)
 		if depsDiags.HasErrors() {
