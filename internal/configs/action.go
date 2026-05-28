@@ -66,6 +66,11 @@ const (
 	Invoke
 )
 
+var (
+	BeforeEvents = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
+	AfterEvents  = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+)
+
 // ActionRef represents a reference to a configured Action
 type ActionRef struct {
 	Expr  hcl.Expression
@@ -84,23 +89,8 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	diags = append(diags, bodyDiags...)
 
 	var refs []*addrs.Reference
-	var refDiags tfdiags.Diagnostics
 	if attr, exists := content.Attributes["condition"]; exists {
 		a.Condition = attr.Expr
-
-		refs, refDiags = langrefs.ReferencesInExpr(addrs.ParseRef, attr.Expr)
-		diags = append(diags, refDiags.ToHCL()...)
-
-		for _, ref := range refs {
-			if ref.Subject == addrs.Self {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Self reference not allowed",
-					Detail:   `The condition expression cannot reference "self".`,
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
-		}
 	}
 
 	if attr, exists := content.Attributes["events"]; exists {
