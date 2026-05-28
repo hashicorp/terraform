@@ -195,6 +195,11 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// merge all of the generated locks together at the end.
 	updatedLocks := map[getproviders.Platform]*depsfile.Locks{}
 	selectedVersions := map[addrs.Provider]getproviders.Version{}
+
+	// Warn users about any development overrides in effect; they will block
+	// locks being obtained for the overridden providers.
+	c.showDiagnostics(c.providerDevOverrideProvidersLockWarnings())
+
 	for _, platform := range platforms {
 		tempDir, err := ioutil.TempDir("", "terraform-providers-lock")
 		if err != nil {

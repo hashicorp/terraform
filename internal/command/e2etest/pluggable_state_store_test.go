@@ -5,11 +5,8 @@ package e2etest
 
 import (
 	"bytes"
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,24 +14,18 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 // Test that users can do the full init-plan-apply workflow with pluggable state storage
-// when the state storage provider is reattached/unmanaged by Terraform.
+// when the state storage provider is unmanaged by Terraform.
 // As well as ensuring that the state store can be initialised ok, this tests that
-// the state store's details can be stored in the plan file despite the fact it's reattached.
+// the state store's details can be stored in the plan file despite the fact it's unmanaged.
 func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
@@ -51,55 +42,7 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	reattachCh := make(chan *plugin.ReattachConfig)
-	closeCh := make(chan struct{})
-	provider := &providerServer{
-		ProviderServer: grpcwrap.Provider6(simple.Provider()),
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go plugin.Serve(&plugin.ServeConfig{
-		Logger: hclog.New(&hclog.LoggerOptions{
-			Name:   "plugintest",
-			Level:  hclog.Trace,
-			Output: io.Discard,
-		}),
-		Test: &plugin.ServeTestConfig{
-			Context:          ctx,
-			ReattachConfigCh: reattachCh,
-			CloseCh:          closeCh,
-		},
-		GRPCServer: plugin.DefaultGRPCServer,
-		VersionedPlugins: map[int]plugin.PluginSet{
-			6: {
-				"provider": &tfplugin.GRPCProviderPlugin{
-					GRPCProvider: func() proto.ProviderServer {
-						return provider
-					},
-				},
-			},
-		},
-	})
-	config := <-reattachCh
-	if config == nil {
-		t.Fatalf("no reattach config received")
-	}
-	reattachStr, err := json.Marshal(map[string]reattachConfig{
-		"hashicorp/simple6": {
-			Protocol:        string(config.Protocol),
-			ProtocolVersion: 6,
-			Pid:             config.Pid,
-			Test:            true,
-			Addr: reattachConfigAddr{
-				Network: config.Addr.Network(),
-				String:  config.Addr.String(),
-			},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	reattachStr, provider := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
 	// Required for the local state files to be written to the temp directory,
@@ -165,9 +108,6 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
-
-	cancel()
-	<-closeCh
 }
 
 // Tests using `terraform workspace` commands in combination with pluggable state storage.

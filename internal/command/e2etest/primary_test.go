@@ -4,10 +4,7 @@
 package e2etest
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,18 +13,13 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/plans"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -404,9 +396,9 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 	// that change doesn't impact the hash of the state store. The hash is impacted by the Version data, and all unmanaged
 	// providers used for PSS will have null version data.
 	//
-	// In contrast, swapping between a managed provider and any of reattached/dev_override/builtin WILL trigger a hash mismatch
+	// In contrast, swapping between a managed provider and any of unmanaged/dev_override/builtin WILL trigger a hash mismatch
 	// because the version data will change.
-	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
+	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from unmanaged to dev_override) between init and plan+apply", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -422,65 +414,16 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-		reattachCh := make(chan *plugin.ReattachConfig)
-		closeCh := make(chan struct{})
-		provider := &providerServer{
-			ProviderServer: grpcwrap.Provider6(simple.Provider()),
-		}
-		ctx, cancel := context.WithCancel(context.Background())
-		t.Cleanup(cancel)
-
-		go plugin.Serve(&plugin.ServeConfig{
-			Logger: hclog.New(&hclog.LoggerOptions{
-				Name:   "plugintest",
-				Level:  hclog.Trace,
-				Output: io.Discard,
-			}),
-			Test: &plugin.ServeTestConfig{
-				Context:          ctx,
-				ReattachConfigCh: reattachCh,
-				CloseCh:          closeCh,
-			},
-			GRPCServer: plugin.DefaultGRPCServer,
-			VersionedPlugins: map[int]plugin.PluginSet{
-				6: {
-					"provider": &tfplugin.GRPCProviderPlugin{
-						GRPCProvider: func() proto.ProviderServer {
-							return provider
-						},
-					},
-				},
-			},
-		})
-		config := <-reattachCh
-		if config == nil {
-			t.Fatalf("no reattach config received")
-		}
-		reattachStr, err := json.Marshal(map[string]reattachConfig{
-			"hashicorp/simple6": {
-				Protocol:        string(config.Protocol),
-				ProtocolVersion: 6,
-				Pid:             config.Pid,
-				Test:            true,
-				Addr: reattachConfigAddr{
-					Network: config.Addr.Network(),
-					String:  config.Addr.String(),
-				},
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
-		//// INIT - using reattached provider.
+		//// INIT - using unmanaged provider.
 		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
 		if err != nil {
 			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
 
-		// Assert backend state file says the provider is a reattached
+		// Assert backend state file says the provider is unmanaged
 		statePath := filepath.Join(tf.WorkDir(), ".terraform", command.DefaultStateFilename)
 		sMgr := &clistate.LocalState{Path: statePath}
 		if err := sMgr.RefreshState(); err != nil {
@@ -496,7 +439,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 
 		//// PLAN - using same provider but supplied via dev_override instead of reattach config.
 
-		// No longer using reattached providers.
+		// No longer using unmanaged providers.
 		tf.RemoveEnv("TF_REATTACH_PROVIDERS")
 
 		// Build the provider binary and direct Terraform to use it via dev_override, which should cause Terraform to treat it as a dev_override in a CLI configuration file.
@@ -740,9 +683,9 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 	// that change doesn't impact the hash of the state store. The hash is impacted by the Version data, and all unmanaged
 	// providers used for PSS will have null version data.
 	//
-	// In contrast, swapping between a managed provider and any of reattached/dev_override/builtin WILL trigger a hash mismatch
+	// In contrast, swapping between a managed provider and any of unmanaged/dev_override/builtin WILL trigger a hash mismatch
 	// because the version data will change.
-	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from reattached to dev_override) between init and plan+apply", func(t *testing.T) {
+	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from unmanaged to dev_override) between init and plan+apply", func(t *testing.T) {
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -758,65 +701,16 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-		reattachCh := make(chan *plugin.ReattachConfig)
-		closeCh := make(chan struct{})
-		provider := &providerServer{
-			ProviderServer: grpcwrap.Provider6(simple.Provider()),
-		}
-		ctx, cancel := context.WithCancel(context.Background())
-		t.Cleanup(cancel)
-
-		go plugin.Serve(&plugin.ServeConfig{
-			Logger: hclog.New(&hclog.LoggerOptions{
-				Name:   "plugintest",
-				Level:  hclog.Trace,
-				Output: io.Discard,
-			}),
-			Test: &plugin.ServeTestConfig{
-				Context:          ctx,
-				ReattachConfigCh: reattachCh,
-				CloseCh:          closeCh,
-			},
-			GRPCServer: plugin.DefaultGRPCServer,
-			VersionedPlugins: map[int]plugin.PluginSet{
-				6: {
-					"provider": &tfplugin.GRPCProviderPlugin{
-						GRPCProvider: func() proto.ProviderServer {
-							return provider
-						},
-					},
-				},
-			},
-		})
-		config := <-reattachCh
-		if config == nil {
-			t.Fatalf("no reattach config received")
-		}
-		reattachStr, err := json.Marshal(map[string]reattachConfig{
-			"hashicorp/simple6": {
-				Protocol:        string(config.Protocol),
-				ProtocolVersion: 6,
-				Pid:             config.Pid,
-				Test:            true,
-				Addr: reattachConfigAddr{
-					Network: config.Addr.Network(),
-					String:  config.Addr.String(),
-				},
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
-		//// INIT 1 - using reattached provider.
+		//// INIT 1 - using unmanaged provider.
 		_, stderr, err := tf.Run("init", "-enable-pluggable-state-storage-experiment=true", "-no-color")
 		if err != nil {
 			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 		}
 
-		// Assert backend state file says the provider is a reattached
+		// Assert backend state file says the provider is unmanaged
 		statePath := filepath.Join(tf.WorkDir(), ".terraform", command.DefaultStateFilename)
 		sMgr := &clistate.LocalState{Path: statePath}
 		if err := sMgr.RefreshState(); err != nil {
@@ -832,7 +726,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 
 		//// INIT 2 - using same provider but supplied via dev_override instead of reattach config.
 
-		// No longer using reattached providers.
+		// No longer using unmanaged providers.
 		tf.RemoveEnv("TF_REATTACH_PROVIDERS")
 
 		// Build the provider binary and direct Terraform to use it via dev_override, which should cause Terraform to treat it as a dev_override in a CLI configuration file.

@@ -1343,30 +1343,41 @@ func TestTest_Parallel(t *testing.T) {
 	// Split the log into lines
 	lines := strings.Split(output, "\n")
 
-	// Find the positions of "test_d", "test_c", "test_setup" in the log output
-	var testDIndex, testCIndex, testSetupIndex int
+	// Find first positions in the log output
+	testSetupIndex, testBIndex, testCIndex, testDIndex := -1, -1, -1, -1
 	for i, line := range lines {
-		if strings.Contains(line, "run \"setup\"") {
-			testSetupIndex = i
-		} else if strings.Contains(line, "run \"test_d\"") {
-			testDIndex = i
-		} else if strings.Contains(line, "run \"test_c\"") {
-			testCIndex = i
+		switch {
+		case strings.Contains(line, `run "setup"`):
+			if testSetupIndex == -1 {
+				testSetupIndex = i
+			}
+		case strings.Contains(line, `run "test_b"`):
+			if testBIndex == -1 {
+				testBIndex = i
+			}
+		case strings.Contains(line, `run "test_c"`):
+			if testCIndex == -1 {
+				testCIndex = i
+			}
+		case strings.Contains(line, `run "test_d"`):
+			if testDIndex == -1 {
+				testDIndex = i
+			}
 		}
 	}
-	if testDIndex == 0 || testCIndex == 0 || testSetupIndex == 0 {
-		t.Fatalf("test_d, test_c, or test_setup not found in the log output")
-	}
 
-	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
-	// and would therefore run in parallel to much earlier tests which test_c depends on.
-	if testDIndex > testCIndex {
-		t.Errorf("test_d appears after test_c in the log output")
+	if testSetupIndex == -1 || testBIndex == -1 || testCIndex == -1 || testDIndex == -1 {
+		t.Fatalf("test_setup, test_b, test_c, or test_d not found in the log output")
 	}
 
 	// Ensure "test_d" appears after "test_setup", because they have the same state key
 	if testDIndex < testSetupIndex {
-		t.Errorf("test_d appears before test_setup in the log output")
+		t.Errorf("invalid ordering: test_d appears before test_setup in the log output")
+	}
+
+	// Ensure "test_c" appears after "test_b", because they have the same state key
+	if testCIndex < testBIndex {
+		t.Errorf("invalid ordering: test_c appears before test_b in the log output")
 	}
 }
 

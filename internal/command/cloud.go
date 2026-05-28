@@ -172,7 +172,8 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 
 	currentWorkspace, err := c.Workspace()
 	if err != nil {
-		// The only possible error here is "you set TF_WORKSPACE badly"
+		// The only possible errors here are "you set TF_WORKSPACE badly",
+		// or "someone other than Terraform CLI tampered with your .terraform/environment file".
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Bad current workspace",

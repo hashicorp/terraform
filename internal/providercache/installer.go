@@ -58,6 +58,12 @@ type Installer struct {
 	// lifecycle for, and therefore does not need to worry about the
 	// installation of.
 	unmanagedProviderTypes map[addrs.Provider]struct{}
+
+	// devOverrideTypes is a set of provider addresses that should be
+	// considered implemented. Binaries of these providers are supplied
+	// from the users machine via CLI configuration, so Terraform does
+	// not need to worry about installing them.
+	devOverrideTypes map[addrs.Provider]struct{}
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -161,6 +167,15 @@ func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{})
 	i.unmanagedProviderTypes = types
 }
 
+// SetDevOverrideTypes tells the receiver to consider the providers
+// indicated by the passed addrs.Providers as dev overrides. Terraform should not
+// try to install these providers and record their versions in the dependency lock
+// file; the binaries supplied via CLI configuration have no version information
+// available.
+func (i *Installer) SetDevOverrideTypes(types map[addrs.Provider]struct{}) {
+	i.devOverrideTypes = types
+}
+
 // EnsureProviderVersions compares the given provider requirements with what
 // is already available in the installer's target directory and then takes
 // appropriate installation actions to ensure that suitable packages
@@ -235,6 +250,10 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 		}
 		if _, ok := i.unmanagedProviderTypes[provider]; ok {
 			// unmanaged providers do not require installation
+			continue
+		}
+		if _, ok := i.devOverrideTypes[provider]; ok {
+			// development override providers do not require installation
 			continue
 		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
