@@ -162,7 +162,7 @@ func (h *policyModuleInstallHook) EvaluatePolicy(ctx context.Context, req *confi
 	return nil
 }
 
-type providerInstallerHook struct {
+type providerPolicyHook struct {
 	Reqs          *configs.ModuleRequirements
 	Client        policy.Client
 	moduleMap     map[addrs.Provider]string
@@ -170,7 +170,7 @@ type providerInstallerHook struct {
 	config        *configs.Config
 }
 
-func (p *providerInstallerHook) moduleSources() map[addrs.Provider]string {
+func (p *providerPolicyHook) moduleSources() map[addrs.Provider]string {
 	if p.moduleMap != nil {
 		return p.moduleMap
 	}
@@ -202,10 +202,13 @@ func (p *providerInstallerHook) moduleSources() map[addrs.Provider]string {
 	return p.moduleMap
 }
 
-func (p *providerInstallerHook) EvaluatePolicy(ctx context.Context, provider addrs.Provider, version string) policy.EvaluationResponse {
+// ProviderVersionSelected satisfies the [providers.InstallerHook] interface.
+// When a provider version is selected, this method performs policy evaluation for the provider,
+// and aborts the installation if the policy evaluation fails.
+func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error {
 	// If the client is nil, then policy evaluation is disabled, so we can skip.
 	if p.Client == nil {
-		return policy.EvaluationResponse{}
+		return nil
 	}
 	moduleSources := p.moduleSources()
 	log.Println("[DEBUG] init: evaluating policy for provider", provider.String(), version)
@@ -230,5 +233,5 @@ func (p *providerInstallerHook) EvaluatePolicy(ctx context.Context, provider add
 
 	p.policyResults.AddProvider(addr, result, providerConfig)
 
-	return result
+	return fmt.Errorf("Provider download failed due to policy violations. Please review other diagnostics for details.")
 }

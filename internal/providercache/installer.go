@@ -17,7 +17,6 @@ import (
 	copydir "github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/policy"
 )
 
 // Installer is the main type in this package, representing a provider installer
@@ -204,7 +203,7 @@ func (i *Installer) SetHook(hook InstallerHook) {
 // failures then those notifications will be redundant with the ones included
 // in the final returned error value so callers should show either one or the
 // other, and not both.
-func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode) (*depsfile.Locks, error) {
+func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode, hooks ...InstallerHook) (*depsfile.Locks, error) {
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
 
@@ -371,19 +370,19 @@ NeedProvider:
 			return nil, err
 		}
 
-		if i.hook != nil {
+		for _, hook := range hooks {
 			// For each needed provider, we will send the version
 			// and provider to the hook for policy evaluation.
 			// If the hook returns an error, we'll abort the installation.
 			// We do this before checking the lock file, so that we also
 			// evaluate policy for providers that are already installed.
-			result := i.hook.EvaluatePolicy(ctx, provider, version.String())
+			err := hook.ProviderVersionSelected(ctx, provider, version.String())
 
 			// return a generic error here that the init command returns to the CLI.
 			// The detailed policy diagnostics are included in the policy results
 			// and will be formatted in the CLI output.
-			if len(result.Diagnostics) > 0 && result.Diagnostics.AsTerraformDiags().HasErrors() {
-				return nil, fmt.Errorf("Provider download failed due to policy violations. Please review other diagnostics for details.")
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -825,7 +824,10 @@ func (err InstallerError) Error() string {
 }
 
 type InstallerHook interface {
-	// EvaluatePolicy is called for each provider version that is being installed
-	// or upgraded, allowing the caller to implement custom policy evaluation.
-	EvaluatePolicy(ctx context.Context, provider addrs.Provider, version string) policy.EvaluationResponse
+	// ProviderVersionSelected is called after the installer has selected a provider
+	// version and before it decides whether install the selected package, either from
+	// the local cache or from a remote registry.
+	//
+	// Returning an error aborts installation.
+	ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error
 }
