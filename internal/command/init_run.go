@@ -248,7 +248,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 	policyResults := plans.NewPolicyResults()
-	providerHook := &providerInstallerHook{
+	providerHook := &providerPolicyHook{
 		Client:        client,
 		Reqs:          reqsByModule,
 		policyResults: policyResults,
