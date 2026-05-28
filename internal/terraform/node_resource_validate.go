@@ -80,7 +80,29 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 	// purposes of validation we don't need to repeat them. Just collect all
 	// known actions and validate them once each.
 	actions := addrs.MakeMap[addrs.ConfigAction, actionRef]()
+
 	for _, trigger := range n.actionTriggers {
+		// Self refs are allowed, but we'll at least prevent before_create from
+		// using them. Technically a resource can plan known computed
+		// attributes, but we'll guard against the common case for now.
+	EVENTS:
+		for _, event := range trigger.config.Events {
+			if event == configs.BeforeCreate {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
+				for _, ref := range refs {
+					if _, isSelf := ref.Subject.(addrs.SelfType); isSelf {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Reference to self in before_create condition",
+							Detail:   "Computed attributes from self may not be known before the resource is created.",
+							Subject:  trigger.config.Condition.Range().Ptr(),
+						})
+						break EVENTS
+					}
+				}
+			}
+		}
+
 		for _, ref := range trigger.actionRefs {
 			actions.Put(ref.actionNode.Addr, ref)
 		}

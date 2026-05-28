@@ -3139,7 +3139,6 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      condition = self.name == "new"
       actions = [action.test_action.test]
     }
   }
