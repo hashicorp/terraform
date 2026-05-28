@@ -76,6 +76,9 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	// check that we have the correct reference type for any action expansion
+	repData, _ := n.stubRepetitionData()
+
 	// There may be many triggers and many actions within a trigger, but for the
 	// purposes of validation we don't need to repeat them. Just collect all
 	// known actions and validate them once each.
@@ -108,6 +111,15 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 
 		for _, ref := range trigger.actionRefs {
 			actions.Put(ref.actionNode.Addr, ref)
+
+			actionInst, ds := evaluateActionExpression(ref.configRef.Expr, repData)
+			diags = diags.Append(ds)
+			if diags.HasErrors() {
+				// validateInstanceKey won't work if the value is invalid
+				continue
+			}
+
+			diags = diags.Append(ref.actionNode.validateInstanceKey(actionInst.Absolute(ctx.Path()), ref.configRef.Range.Ptr()))
 		}
 	}
 

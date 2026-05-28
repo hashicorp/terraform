@@ -351,7 +351,7 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
 
 	// get the reference to lookup changes in the plan
-	ref, diags := evalReplaceTriggeredByExpr(expr, repData)
+	ref, diags := evalSemiStaticExpr(expr, repData)
 	if diags.HasErrors() {
 		return nil, false, diags
 	}

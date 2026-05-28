@@ -19,7 +19,7 @@ func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  `Invalid action argument inside action_triggers`,
-		Detail:   `action_triggers.actions must only refer to actions in the current module.`,
+		Detail:   `action_triggers.actions must only refer to actions in the current module, count.index, or each.key.`,
 		Subject:  subj,
 	}
 }
@@ -83,6 +83,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		Events:    []ActionTriggerEvent{},
 		Actions:   []ActionRef{},
 		Condition: nil,
+		DeclRange: block.DefRange,
 	}
 
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
@@ -346,6 +347,7 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 	}
 	actionRefs := make([]ActionRef, len(exprs))
 
+EXPRS:
 	for i, expr := range exprs {
 		// Since we are manually parsing the action_trigger.Actions argument, we
 		// need to specially handle json configs, in which case the values will
@@ -387,6 +389,8 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 			switch ref.Subject.(type) {
 			case addrs.Action, addrs.ActionInstance:
 				actionCount++
+			case addrs.CountAttr, addrs.ForEachAttr:
+				// these are OK
 			case addrs.ModuleCall, addrs.ModuleCallInstance, addrs.ModuleCallInstanceOutput:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -394,13 +398,11 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 					Detail:   "Actions can only be referenced in the module they are declared in.",
 					Subject:  expr.Range().Ptr(),
 				})
-				continue
-			case addrs.Resource, addrs.ResourceInstance:
+				continue EXPRS
+			default:
 				// definitely not an action
 				diags = append(diags, invalidActionDiag(expr.Range().Ptr()))
-				continue
-			default:
-				// we've checked what we can
+				continue EXPRS
 			}
 		}
 

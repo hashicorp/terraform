@@ -309,13 +309,12 @@ func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInsta
 	return all, diags
 }
 
-// EvalInstance returns the value from the expanded action block
-func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+// validate the correct type of key is being used for the action block
+func (n *NodeActionConfig) validateInstanceKey(addr addrs.AbsActionInstance, callRange *hcl.Range) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	key := inst.Action.Key
+	key := addr.Action.Key
 
-	// we first validate the correct type of key is being used for the action
 	switch {
 	case n.Config.Count != nil:
 		switch key := key.(type) {
@@ -329,15 +328,17 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 				Detail:   fmt.Sprintf("Invalid string key %s for action with count", key),
 				Subject:  callRange,
 			})
-			return cty.DynamicVal, diags
 		default:
+			if key == addrs.WildcardKey {
+				return diags
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing index",
 				Detail:   "An action with count must be referenced via an integer key",
 				Subject:  callRange,
 			})
-			return cty.DynamicVal, diags
 		}
 
 	case n.Config.ForEach != nil:
@@ -349,24 +350,25 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 				Detail:   fmt.Sprintf("Invalid key %d for action with for_each", key),
 				Subject:  callRange,
 			})
-			return cty.DynamicVal, diags
 
 		case addrs.StringKey:
 			// OK
 
 		default:
+			if key == addrs.WildcardKey {
+				return diags
+			}
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing index",
 				Detail:   "An action with for_each must be referenced via a string key",
 				Subject:  callRange,
 			})
-			return cty.DynamicVal, diags
 		}
 
 	default:
 		switch key := key.(type) {
-		case addrs.IntKey:
+		case addrs.IntKey, addrs.StringKey:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid index",
@@ -374,20 +376,30 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 				Subject:  callRange,
 			})
 
-			return cty.DynamicVal, diags
-
-		case addrs.StringKey:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid index",
-				Detail:   fmt.Sprintf("Unexpanded action referenced with instance key %s", key),
-				Subject:  callRange,
-			})
-			return cty.DynamicVal, diags
+		default:
+			if key == addrs.WildcardKey {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid index",
+					Detail:   fmt.Sprintf("Unexpanded action referenced with instance key %s", key),
+					Subject:  callRange,
+				})
+			}
 		}
 	}
+	return diags
+}
 
-	instAddr := n.Addr.Absolute(ctx.Path()).Instance(key)
+// EvalInstance returns the value from the expanded action block
+func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(n.validateInstanceKey(inst, callRange))
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	instAddr := n.Addr.Absolute(ctx.Path()).Instance(inst.Action.Key)
 
 	expander := ctx.InstanceExpander()
 	// first we have to make sure the instance is valid because the expander only panics
@@ -402,7 +414,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Reference to non-existent action instance",
-			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", key),
+			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", inst.Action.Key),
 			Subject:  callRange,
 		})
 		return cty.DynamicVal, diags

@@ -667,20 +667,10 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 // This function uses named result parameters.
 func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRepData instances.RepetitionData, actionRef actionRef, event configs.ActionTriggerEvent) (ai *plans.ActionInvocationInstance, deferred bool, diags tfdiags.Diagnostics) {
 
-	ref, evalActionDiags := evaluateActionExpression(actionRef.configRef.Expr, resRepData)
+	actionInst, evalActionDiags := evaluateActionExpression(actionRef.configRef.Expr, resRepData)
 	diags = append(diags, evalActionDiags...)
 	if diags.HasErrors() {
 		return
-	}
-
-	var actionInst addrs.ActionInstance
-	switch sub := ref.Subject.(type) {
-	case addrs.Action:
-		actionInst = sub.Instance(addrs.NoKey)
-	case addrs.ActionInstance:
-		actionInst = sub
-	default:
-		panic(fmt.Sprintf("unknown action address type: %T", sub))
 	}
 
 	ai = &plans.ActionInvocationInstance{
