@@ -347,10 +347,10 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 	// 	 value = var.input
 	// }
 	// resource "test_instance" "test2" {
-	// 	 value = resource.test_instance.test.id
+	// 	 value = var.input2
 	// }
 	// output "output" {
-	// 	 value = test_instance.test2.value
+	// 	 value = resource.test_instance.test.value
 	// }
 	//
 	// This is a valid terraform module call, but the input2 value depends on the module's output,

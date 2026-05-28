@@ -50,10 +50,12 @@ type ApplyOpts struct {
 	AllowRootEphemeralOutputs bool
 
 	// Locks is a read-only snapshot of provider locks (from the dependency lock
-	// file).
+	// file). This is required by policy evaluations against providers to access version information.
 	Locks map[addrs.Provider]*depsfile.ProviderLock
 
-	// Optional policy client to enable live policy evaluations.
+	// Optional policy client.
+	// When set, policy evaluation logic will be executed in the graph.
+	// When nil, that logic will be skipped.
 	PolicyClient  policy.Client
 	PolicyResults *plans.PolicyResults
 }

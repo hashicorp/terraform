@@ -958,16 +958,21 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					default = "default"
 				}
 
+				variable "input2" {
+					type    = string
+					default = "default"
+				}
+
 				resource "test_instance" "test" {
 					value = var.input
 				}
 				
 				resource "test_instance" "test2" {
-					value = resource.test_instance.test.id
+					value = var.input2
 				}
 
 				output "output" {
-					value = test_instance.test2.value
+					value = resource.test_instance.test.value
 				}
 			`,
 			prepareExpectations: func(t *testing.T, data *data) {

@@ -171,7 +171,7 @@ type Plan struct {
 	FunctionResults []lang.FunctionResultHash
 
 	// PolicyResults stores the results of policy evaluations that were performed
-	// while making this plan.
+	// while making this plan. These policy results will not be serialized in the plan file.
 	PolicyResults *PolicyResults
 }
 
