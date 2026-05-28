@@ -686,6 +686,151 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 	}
 }
 
+func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
+	tests := map[string]struct {
+		fixture   string
+		args      []string
+		wantError string
+	}{
+		"non-const variable in provider source": {
+			fixture:   "provider-source-with-non-const-variable",
+			args:      []string{"-var", "provider_src=hashicorp/test"},
+			wantError: "Unknown provider source",
+		},
+		"non-const variable in provider version": {
+			fixture:   "provider-version-with-non-const-variable",
+			args:      []string{"-var", "provider_ver=1.0.0"},
+			wantError: "Unknown provider version",
+		},
+		"resource reference in provider source": {
+			fixture:   "provider-source-with-resource-reference",
+			wantError: "Unknown provider source",
+		},
+		"required const variable not set": {
+			fixture:   "provider-source-with-variable-no-value",
+			wantError: "No value for required variable",
+		},
+		"invalid provider source after evaluation": {
+			fixture:   "provider-source-invalid-after-eval",
+			args:      []string{"-var", "provider_src=!!!invalid"},
+			wantError: "", // any error; the source string is invalid
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 1 {
+				t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+
+			if tc.wantError != "" {
+				got := testOutput.All()
+				if !strings.Contains(got, tc.wantError) {
+					t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, tc.wantError)
+				}
+			}
+		})
+	}
+}
+
+func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
+	tests := map[string]struct {
+		fixture   string
+		args      []string
+		providers map[string][]string
+	}{
+		"const variable via -var": {
+			fixture: "provider-source-with-variable",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+		"const variable for source and version": {
+			fixture: "provider-source-and-version-with-variables",
+			args:    []string{"-var", "provider_src=hashicorp/test", "-var", "provider_ver=1.0.0"},
+		},
+		"const variable with default value": {
+			fixture: "provider-source-with-variable-default",
+		},
+		"string interpolation in provider source": {
+			fixture: "provider-source-with-interpolation",
+			args:    []string{"-var", "provider_ns=hashicorp"},
+		},
+		"local value referencing const variable": {
+			fixture: "provider-source-with-local-value",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+		"const variable from tfvars file": {
+			fixture: "provider-source-with-varsfile",
+			args:    []string{"-var-file", "test.tfvars"},
+		},
+		"mixed static and dynamic providers": {
+			fixture: "provider-source-mixed-static-dynamic",
+			args:    []string{"-var", "dyn_src=hashicorp/dynamic"},
+			providers: map[string][]string{
+				"hashicorp/dynamic": {"1.0.0"},
+				"hashicorp/static":  {"1.0.0"},
+			},
+		},
+		"child module with dynamic provider source": {
+			fixture: "provider-source-in-child-module",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providers := tc.providers
+			if providers == nil {
+				providers = map[string][]string{
+					"hashicorp/test": {"1.0.0"},
+				}
+			}
+			providerSource := newMockProviderSource(t, providers)
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 0 {
+				t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+		})
+	}
+}
+
 func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "plan-with-version-mismatch")), td)
