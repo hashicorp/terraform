@@ -113,10 +113,9 @@ func evalProviderSource(
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid provider source",
-				Detail: "The provider source can only reference constant " +
-					"input variables and local values." + constVariableDetail,
-				Subject: ref.SourceRange.ToHCL().Ptr(),
+				Summary:  "Unknown provider source",
+				Detail:   "Only literal values and const variables can be evaluated during init.",
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return "", addrs.Provider{}, diags
 		}
@@ -131,10 +130,9 @@ func evalProviderSource(
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid provider source",
-			Detail: "The provider source contains a reference that is " +
-				"unknown during init.",
-			Subject: sourceExpr.Range().Ptr(),
+			Summary:  "Unknown provider source",
+			Detail:   "Only literal values and const variables can be evaluated during init.",
+			Subject:  sourceExpr.Range().Ptr(),
 		})
 		return "", addrs.Provider{}, diags
 	}
@@ -178,10 +176,9 @@ func evalProviderVersion(
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid provider version",
-				Detail: "The provider version can only reference constant " +
-					"input variables and local values." + constVariableDetail,
-				Subject: ref.SourceRange.ToHCL().Ptr(),
+				Summary:  "Unknown provider version",
+				Detail:   "Only literal values and const variables can be evaluated during init.",
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return ret, diags
 		}
@@ -196,10 +193,9 @@ func evalProviderVersion(
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid provider version",
-			Detail: "The provider version contains a reference that is " +
-				"unknown during init.",
-			Subject: versionExpr.Range().Ptr(),
+			Summary:  "Unknown provider version",
+			Detail:   "Only literal values and const variables can be evaluated during init.",
+			Subject:  versionExpr.Range().Ptr(),
 		})
 		return ret, diags
 	}

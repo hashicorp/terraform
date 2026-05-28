@@ -213,10 +213,10 @@ variable "test-provider_src" {
 				if !diags.HasErrors() {
 					t.Fatalf("expect error when non const variable is being used")
 				}
-				if diags.Err().Error() != "Invalid provider source: The provider source contains a reference that is unknown during init." {
+				if diags.Err().Error() != "Unknown provider source: Only literal values and const variables can be evaluated during init." {
 					t.Fatalf(
 						"expected error msg: %s, got %s",
-						"Invalid provider source: The provider source contains a reference that is unknown during init.",
+						"Unknown provider source: Only literal values and const variables can be evaluated during init.",
 						diags.Err().Error(),
 					)
 				}
