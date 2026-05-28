@@ -4379,6 +4379,33 @@ resource "test_instance" "foo" {
 			"Missing required argument: The argument \"host\" is required, but was not set.",
 			false,
 		},
+
+		"self ref in before_create condition": {
+			`
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+      version = "1.0.0"
+    }
+  }
+}
+action "test_other" "foo" {
+  config {}
+}
+resource "test_instance" "foo" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+	  condition = self.foo != "oops"
+      actions = [action.test_other.foo]
+    }
+  }
+}
+				`,
+			"Reference to self in before_create condition: Computed attributes from self may not be known before the resource is created.",
+			true,
+		},
 	}
 
 	for name, test := range tests {
