@@ -262,7 +262,18 @@ resource "test_object" "a" {
 								Start:    hcl.Pos{Line: 8, Column: 10, Byte: 110},
 								End:      hcl.Pos{Line: 8, Column: 40, Byte: 138},
 							},
-						})
+						},
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unexpected attribute in action reference",
+							Detail:   "Actions have no referenceable attributes.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 8, Column: 39, Byte: 138},
+								End:      hcl.Pos{Line: 8, Column: 43, Byte: 143},
+							},
+						},
+					)
 				},
 			},
 
@@ -312,6 +323,16 @@ output "my_output2" {
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 								Start:    hcl.Pos{Line: 17, Column: 13, Byte: 258},
 								End:      hcl.Pos{Line: 17, Column: 43, Byte: 286},
+							},
+						},
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unexpected attribute in action reference",
+							Detail:   "Actions have no referenceable attributes.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 17, Column: 39, Byte: 286},
+								End:      hcl.Pos{Line: 17, Column: 44, Byte: 291},
 							},
 						},
 					)
@@ -728,11 +749,11 @@ resource "test_object" "a" {
 `,
 				},
 				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Invalid action expression",
-						Detail:   "Unexpected expression found in action_triggers.actions.",
+						Summary:  "Invalid instance reference",
+						Detail:   "Only object references with dynamic indexes are allowed in this context.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 159},
@@ -1024,6 +1045,73 @@ resource "test_object" "a" {
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
 							End:      hcl.Pos{Line: 13, Column: 47, Byte: 235},
+						},
+					})
+				},
+			},
+
+			"action count invalid index": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello[2]]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid index",
+						Detail:   "Unexpanded action referenced with instance key 2",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 18, Byte: 180},
+							End:      hcl.Pos{Line: 13, Column: 45, Byte: 207},
+						},
+					})
+				},
+			},
+
+			"action referenced without index": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  count = 1
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing index",
+						Detail:   "An action with count must be referenced via an integer key",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 18, Byte: 192},
+							End:      hcl.Pos{Line: 13, Column: 42, Byte: 216},
 						},
 					})
 				},
