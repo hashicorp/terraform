@@ -1,5 +1,0 @@
-kind: NOTES
-body: 'providers: The `providers locks` command will now warn users about any dev_overrides in effect, as these will stop provider locks from being downloaded.'
-time: 2026-05-26T16:47:38.947615+01:00
-custom:
-    Issue: "38634"
