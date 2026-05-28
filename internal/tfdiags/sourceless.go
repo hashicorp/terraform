@@ -8,14 +8,9 @@ package tfdiags
 // caused by or relate to the environment where Terraform is running rather
 // than to the provided configuration.
 func Sourceless(severity Severity, summary, detail string) Diagnostic {
-	return SourcelessWithExtra(severity, summary, detail, nil)
-}
-
-func SourcelessWithExtra(severity Severity, summary, detail string, extra any) Diagnostic {
 	return diagnosticBase{
 		severity: severity,
 		summary:  summary,
 		detail:   detail,
-		extra:    extra,
 	}
 }

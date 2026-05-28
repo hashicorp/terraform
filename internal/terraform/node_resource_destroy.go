@@ -150,10 +150,6 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		return diags
 	}
 
-	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-		policyGraph.Add(policyNodeFromChange(changeApply))
-	}
-
 	state, readDiags := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
@@ -195,6 +191,18 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	err := n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
+	}
+
+	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		// The resource has been destroyed, so we add a policy node to send its data
+		// for policy evaluation.
+		policyGraph.Add(&nodeResourcePolicy{
+			ResourceAddr: changeApply.Addr,
+			ProviderAddr: changeApply.ProviderAddr,
+			Before:       changeApply.Before,
+			After:        state.Value,
+			Action:       changeApply.Action,
+		})
 	}
 
 	// create the err value for postApplyHook

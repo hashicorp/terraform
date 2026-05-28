@@ -146,7 +146,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{
 			Config:       b.Config,
 			DestroyApply: b.Operation == walkDestroy,
-			PolicyClient: b.PolicyClient,
 		},
 		&variableValidationTransformer{
 			operation: b.Operation,
@@ -163,11 +162,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
 		&DiffTransformer{
-			Concrete:     concreteResourceInstance,
-			State:        b.State,
-			Changes:      b.Changes,
-			Config:       b.Config,
-			PolicyClient: b.PolicyClient,
+			Concrete: concreteResourceInstance,
+			State:    b.State,
+			Changes:  b.Changes,
+			Config:   b.Config,
 		},
 
 		&ActionTriggerConfigTransformer{
@@ -218,7 +216,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(concreteProvider, b.Config, b.PolicyClient, b.ExternalProviderConfigs),
+		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
@@ -280,7 +278,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Request policy evaluation for all resource instances.
+		// Request policy evaluation for resources, modules, and providers.
 		&policyEvalTransformer{PolicyClient: b.PolicyClient},
 
 		// close the root module

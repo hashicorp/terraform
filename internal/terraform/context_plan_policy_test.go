@@ -182,7 +182,6 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				tfdiags.AssertNoDiagnostics(t, d.diags)
 			},
 		},
-
 		{
 			name:        "deferred resource: policy is skipped",
 			expectCalls: 0,
@@ -921,6 +920,74 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					Detail:   "Policy prevents destruction of test_resource.test",
 				})
 				tfdiags.AssertDiagnosticsMatch(t, d.diags, exp)
+			},
+		},
+		{
+			// This test uses a configuration that would result in cyclic errors
+			// if module inputs were resolved and sent for module policy evaluation.
+			name:        "module inputs omitted from module policy evaluation",
+			expectCalls: 2,
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				module "child" {
+					source = "./child"
+					input  = "child-value"
+					input2 = module.child.output
+				}
+			`,
+			childConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				variable "input" {
+					type    = string
+					default = "default"
+				}
+
+				resource "test_instance" "test" {
+					value = var.input
+				}
+				
+				resource "test_instance" "test2" {
+					value = resource.test_instance.test.id
+				}
+
+				output "output" {
+					value = test_instance.test2.value
+				}
+			`,
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+					if !req.Attrs.RawEquals(cty.NilVal) {
+						t.Fatalf("expected module policy evaluation for %s to omit attrs, got %#v", req.Target, req.Attrs)
+					}
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateModuleCalled {
+					t.Fatal("Expected policyClient.EvaluateModule to be called")
+				}
+				tfdiags.AssertNoDiagnostics(t, d.diags)
 			},
 		},
 	}

@@ -182,6 +182,10 @@ type EvalContext interface {
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
 
+	// PolicyGraph returns the policy subgraph for this context.
+	// It is used to store resource policy nodes that are collected during the resource
+	// graph evaluation. Each resource that produces a plan or state change
+	// will have a corresponding policy node in this graph.
 	PolicyGraph() *policySubgraph
 
 	// InstanceExpander returns a helper object for tracking the expansion of
@@ -232,7 +236,12 @@ type EvalContext interface {
 	// version per provider selected during init).
 	ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock
 
+	// PolicyClient returns the policy client object which allows evaluation of
+	// policy for resources, modules, and providers via the policy plugin.
+	// Absent if policy evaluation is not enabled.
 	PolicyClient() policy.Client
+
+	// PolicyResults returns the object that tracks policy evaluation results.
 	PolicyResults() *plans.PolicyResults
 
 	Config() *configs.Config

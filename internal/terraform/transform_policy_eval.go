@@ -32,6 +32,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	for v := range g.VerticesSeq() {
 		if ri, ok := v.(GraphNodeConfigResource); ok {
 			addr := ri.ResourceAddr()
+			// we are only interested in managed resources
 			if addr.Resource.Mode == addrs.ManagedResourceMode {
 				resourceNodes = append(resourceNodes, v)
 			}
@@ -51,7 +52,8 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	policyNode := &nodePolicyEval{}
 	g.Add(policyNode)
 
-	// The policy node must execute after every managed resource instance node.
+	// Connect every resource node to the policy node,
+	// so that the policy node executes after every managed resource instance node.
 	for _, rsNode := range resourceNodes {
 		g.Connect(dag.BasicEdge(policyNode, rsNode))
 	}

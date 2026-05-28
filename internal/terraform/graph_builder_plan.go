@@ -206,7 +206,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:         b.Config,
 			ValidateChecks: true,
 			DestroyApply:   false, // always false for planning
-			PolicyClient:   b.PolicyClient,
 		},
 		&variableValidationTransformer{
 			operation: b.Operation,
@@ -267,7 +266,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(b.ConcreteProvider, b.Config, b.PolicyClient, b.ExternalProviderConfigs),
+		transformProviders(b.ConcreteProvider, b.Config, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
@@ -320,7 +319,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Request policy evaluation for all resource instances.
+		// Request policy evaluation for resources, modules, and providers.
 		&policyEvalTransformer{
 			PolicyClient: func() policy.Client {
 				// Skip policy evaluation during predestroy refresh.

@@ -204,8 +204,6 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		if diags.HasErrors() {
 			return diags
 		}
-
-		// TODO(sams): Implement pre-apply policy evaluation
 	}
 
 	return nil
@@ -585,7 +583,10 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	changes.AppendResourceInstanceChange(change)
 	if deposedKey == states.NotDeposed {
-		// add the change to the policy graph if it's not a pre-destroy refresh
+		// add the change to the policy graph if it's not a pre-destroy refresh.
+		// Pre-destroy refreshes do not need to be sent for policy evaluation because
+		// they are just used internally by Terraform to refresh resources before
+		// they are destroyed (See comments in https://github.com/hashicorp/terraform/blob/d4ca814cbea037dcf2a59d083f8a540bf5d38d3a/internal/terraform/context_plan.go#L46-L53).
 		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
 			policyGraph.Add(policyNodeFromChange(change))
 		}

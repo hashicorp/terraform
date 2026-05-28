@@ -313,6 +313,11 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 	return diags
 }
 
+// EvalPolicy evaluates the module policy.
+// Contrary to resource policy evaluation, module policy evaluation is done inline,
+// allowing us to block the evaluation of the module's resources within the graph if the policy fails.
+// Module policies have no support for callback functions, so we do not need to worry about
+// them retrieving objects that are not yet available in the state.
 func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
@@ -322,14 +327,44 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 	configBundle := n.ModuleTree
 	source := configBundle.SourceAddr.String()
 
-	// Evaluate the module policy with just the metadata. Module variables cannot be sent here,
-	// because it is possible for them to depend on the module's output values, which are not available until after the module is expanded.
+	// We will evaluate the module policy with just the metadata and not the module inputs.
+	// Terraform modules act as namespace scopes and do not directly participate
+	// in the reference flow in the graph.
+	// This allows references in their inputs to be deferred until
+	// they are used by a concrete object in the module.
+	// Since policy evaluation is supposed to be done before evaluating the module's
+	// objects, evaluating module inputs here would be incorrect as
+	// it could lead to cyclic dependencies.
+	// For example: Given the below module call,
+	//
+	// module "child" {
+	// 	 source = "./child"
+	// 	 input  = "child-value"
+	// 	 input2 = module.child.output
+	// }
+	//
+	// resource "test_instance" "test" {
+	// 	 value = var.input
+	// }
+	// resource "test_instance" "test2" {
+	// 	 value = resource.test_instance.test.id
+	// }
+	// output "output" {
+	// 	 value = test_instance.test2.value
+	// }
+	//
+	// This is a valid terraform module call, but the input2 value depends on the module's output,
+	// which is not available until after the module is expanded, and potentially resources have been created.
+	// In the above example, the reference to `module.child.output` is deferred until the resource
+	// `test_instance.test2` is evaluated, and any attempt to evaluate it here would result in a cyclic dependency error.
 	result := ctx.PolicyClient().EvaluateModule(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 		Attrs:  cty.NilVal,
 		Target: source,
 		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: n.Addr.String(),
 			Version: func() string {
+				// local modules do not have versions, so we just return
+				// an empty string in that case.
 				if configBundle.Version == nil {
 					return ""
 				}
@@ -338,6 +373,7 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 		},
 	})
 
+	// add local range to diagnostics if the module call has a config body.
 	if n.ModuleCall.Config != nil {
 		ptr := n.ModuleCall.DeclRange.Ptr()
 		for idx, diag := range result.Diagnostics {

@@ -13,12 +13,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, policyClient policy.Client, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
+func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
 	return GraphTransformMulti(
 		// Add placeholder nodes for any externally-configured providers
 		&externalProviderTransformer{

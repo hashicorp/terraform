@@ -99,6 +99,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	return diags
 }
 
+// policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.
 func policyNodeFromChange(change *plans.ResourceInstanceChange) *nodeResourcePolicy {
 	return &nodeResourcePolicy{
 		ResourceAddr: change.Addr,

@@ -214,6 +214,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 	return diags
 }
 
+// EvalPolicy evaluates the provider policy.
+// Contrary to resource policy evaluation, provider policy evaluation is done inline,
+// allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
+// Provider policies have no support for callback functions, so we do not need to worry about
+// them retrieving objects that are not yet available in the state.
 func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)

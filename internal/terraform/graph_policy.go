@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// policySubgraph is a subgraph that stores resource policy nodes.
 type policySubgraph struct {
 	lock  sync.Mutex
 	graph Graph

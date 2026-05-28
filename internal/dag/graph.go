@@ -43,6 +43,9 @@ type NamedVertex interface {
 // to allow it to tolerate upstream failures.
 type TolerantVertex interface {
 	Vertex
+
+	// AllowUpstreamFailure returns true if the receiver vertex can tolerate a
+	// failure in the given vertex.
 	AllowUpstreamFailure(Vertex) bool
 }
 

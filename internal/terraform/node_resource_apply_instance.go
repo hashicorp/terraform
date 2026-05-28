@@ -266,6 +266,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	diags = diags.Append(applyDiags)
 
 	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		// The resource has been applied, so we add a policy node to send its data
+		// for policy evaluation.
 		policyGraph.Add(&nodeResourcePolicy{
 			ResourceAddr: diffApply.Addr,
 			ProviderAddr: diffApply.ProviderAddr,
