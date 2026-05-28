@@ -167,6 +167,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
+	if rootModEarly.StateStore != nil { // We know rootModEarly is not nil.
+		rootModEarly.StateStore.ProviderSupplyMode = c.Meta.getProviderSupplyModeForStateStore(rootModEarly)
+		if rootModEarly.StateStore.ProviderSupplyMode == getproviders.Unset {
+			panic("unset provider supply mode for state store")
+		}
+	}
+
 	if initArgs.Get {
 		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
 		diags = diags.Append(modsDiags)
@@ -182,6 +189,12 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
 	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	if config != nil && config.Module != nil && config.Module.StateStore != nil {
+		config.Module.StateStore.ProviderSupplyMode = c.Meta.getProviderSupplyModeForStateStore(config.Module)
+		if config.Module.StateStore.ProviderSupplyMode == getproviders.Unset {
+			panic("unset provider supply mode for state store")
+		}
+	}
 	// configDiags will be handled after:
 	// - the version constraint check has happened
 	// - and, the backend/state_store is initialised
@@ -304,7 +317,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
 	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
-	if initArgs.Upgrade && !initArgs.Reconfigure && config.Module.StateStore != nil {
+	// We only check to see if the state store provider was upgraded if the provider supply mode is ManagedByTerraform; providers overridden
+	// using dev_override or unmanaged providers blocks any upgrade process impacting that provider.
+	// For more context, see: https://github.com/hashicorp/terraform/pull/38633
+	if initArgs.Upgrade &&
+		!initArgs.Reconfigure &&
+		config.Module.StateStore != nil &&
+		config.Module.StateStore.ProviderSupplyMode == getproviders.ManagedByTerraform {
 		pAddr := config.Module.StateStore.ProviderAddr
 		old := alteredPreviousLocks.Provider(pAddr)
 		new := configLocks.Provider(pAddr)
