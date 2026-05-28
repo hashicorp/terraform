@@ -3182,7 +3182,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"referencing triggering resource in after_* condition": {
+			"referencing triggering resource address": {
 				module: map[string]string{
 					"main.tf": `
 action "test_action" "hello" {}
@@ -3195,20 +3195,16 @@ resource "test_object" "a" {
       condition = test_object.a.name == "foo"
       actions = [action.test_action.hello]
     }
-    action_trigger {
-      events = [after_update]
-      condition = test_object.a.name == "bar"
-      actions = [action.test_action.world]
-    }
   }
 }
 `,
 				},
-				expectPlanActionCalled: true,
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 1 {
-						t.Errorf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					for _, d := range diags {
+						if d.Description().Summary != "Self-referential block" {
+							t.Errorf("expected Self-referential block diagnostic, got %s", d.Description().Summary)
+						}
 					}
 				},
 			},

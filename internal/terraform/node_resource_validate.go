@@ -103,6 +103,9 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 			}
 		}
 
+		// check condition for full address self-refs
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, trigger.config.Condition))
+
 		for _, ref := range trigger.actionRefs {
 			actions.Put(ref.actionNode.Addr, ref)
 		}
