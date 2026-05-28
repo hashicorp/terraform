@@ -121,7 +121,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -154,23 +154,12 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable)
 		diags = diags.Append(forEachDiags)
 	}
 
-	schema := providerSchema.SchemaForActionType(n.Config.Type)
-	if schema.ConfigSchema == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid action type",
-			Detail:   fmt.Sprintf("The provider %s does not support action type %q.", n.Provider().ForDisplay(), n.Config.Type),
-			Subject:  &n.Config.TypeRange,
-		})
-		return diags
-	}
-
 	config := n.Config.Config
 	if n.Config.Config == nil {
 		config = hcl.EmptyBody()
 	}
 
-	configVal, _, valDiags := ctx.EvaluateBlock(config, schema.ConfigSchema, caller, keyData)
+	configVal, _, valDiags := ctx.EvaluateBlock(config, n.Schema.ConfigSchema, caller, keyData)
 	if valDiags.HasErrors() {
 		// If there was no config block at all, we'll add a Context range to the returned diagnostic
 		if n.Config.Config == nil {
@@ -185,10 +174,10 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable)
 		}
 	}
 	var deprecationDiags tfdiags.Diagnostics
-	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.ConfigSchema, n.ModulePath())
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
 	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
-	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, schema.ConfigSchema)
+	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
 	diags = diags.Append(valDiags.InConfigBody(config, n.Addr.String()))
 
 	if diags.HasErrors() {
