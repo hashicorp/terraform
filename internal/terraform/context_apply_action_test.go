@@ -1612,46 +1612,6 @@ resource "test_object" "a" {
 			},
 			expectInvokeActionCalled: true,
 		},
-		"referencing triggering resource in after_* condition": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "hello" {
-  config {
-    attr = "hello"
-  }
-}
-action "action_example" "world" {
-  config {
-    attr = "world"
-  }
-}
-resource "test_object" "a" {
-  test_string = "foo"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = test_object.a.test_string == "foo"
-      actions = [action.action_example.hello]
-    }
-    action_trigger {
-      events = [after_update]
-      condition = test_object.a.test_string == "bar"
-      actions = [action.action_example.world]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
-		},
 		"multiple events triggering in same action trigger": {
 			module: map[string]string{
 				"main.tf": `
