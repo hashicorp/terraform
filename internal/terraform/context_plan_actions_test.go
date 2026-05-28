@@ -1019,7 +1019,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "The given key 2 does not identify an instance of action.test_action.hello",
+						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
@@ -2019,22 +2019,13 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
-					DeferralAllowed: true, // actions should ignore this setting
+					DeferralAllowed: true,
 				},
 				planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
 					return providers.PlanActionResponse{
 						Deferred: &providers.Deferred{
-							Reason: providers.DeferredReasonAbsentPrereq,
+							Reason: providers.DeferredReasonProviderConfigUnknown,
 						},
-					}
-				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
 					}
 				},
 			},
@@ -2073,21 +2064,23 @@ resource "test_object" "a" {
 					}
 					return providers.PlanActionResponse{
 						Deferred: &providers.Deferred{
-							Reason: providers.DeferredReasonAbsentPrereq,
+							Reason: providers.DeferredReasonProviderConfigUnknown,
 						},
 					}
 				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					// for now, it's just an error for any deferrals but when
-					// this gets implemented we should check that all the
-					// actions are deferred even though only one of them
-					// was actually marked as deferred.
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// both actions should be reported as deferred
+					if len(p.DeferredActionInvocations) != 2 {
+						t.Fatalf("expected 2 deferred action invocations, got %d", len(p.DeferredActionInvocations))
+					}
+					if len(p.Changes.ActionInvocations) > 0 {
+						t.Fatalf("expected no action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+					if len(p.DeferredResources) != 1 {
+						t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+					}
+					if len(p.Changes.Resources) > 0 {
+						t.Fatalf("expected no planned resources, got %d\n", len(p.Changes.Resources))
 					}
 				},
 			},
@@ -2132,19 +2125,6 @@ resource "test_object" "a" {
 						Deferred: &providers.Deferred{
 							Reason: providers.DeferredReasonAbsentPrereq,
 						},
-					}
-				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					// for now, it's just an error for any deferrals but when
-					// this gets implemented we should check that all the
-					// actions are deferred even though only one of them
-					// was actually marked as deferred.
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
 					}
 				},
 			},
@@ -2236,6 +2216,7 @@ resource "test_object" "a" {
 					}
 				},
 			},
+
 			"action expansion with unknown instances": {
 				module: map[string]string{
 					"main.tf": `
@@ -2266,17 +2247,9 @@ resource "test_object" "a" {
 						},
 					},
 				},
-				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
-					if len(diagnostics) != 1 {
-						t.Fatal("wrong number of diagnostics")
-					}
-
-					if diagnostics[0].Severity() != tfdiags.Error {
-						t.Error("expected error severity")
-					}
-
-					if diagnostics[0].Description().Summary != "Invalid for_each argument" {
-						t.Errorf("expected for_each argument to be source of error but was %s", diagnostics[0].Description().Summary)
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.DeferredResources) != 1 {
+						t.Fatal("expected resource to be deferred, because action was deferred")
 					}
 				},
 			},
@@ -2311,8 +2284,6 @@ resource "other_object" "a" {
 }
 `,
 				},
-				// FIXME: how can we defer it due to expansion and call it at the same time?
-				// expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
 					DeferralAllowed: true,
@@ -2369,8 +2340,7 @@ resource "other_object" "a" {
 }
 `,
 				},
-				// FIXME: how can we defer it due to expansion and call it at the same time?
-				// expectPlanActionCalled: true,
+				expectPlanActionCalled: false,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
 					DeferralAllowed: true,
@@ -2389,25 +2359,6 @@ resource "other_object" "a" {
 					if len(p.Changes.ActionInvocations) != 0 {
 						t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
 					}
-
-					// FIXME: This might be fixable by registering deferred
-					// actions from the partially expanded resource. We just
-					// need to allow multiple registrations of action deferrals.
-					//
-					// if len(p.DeferredActionInvocations) != 1 {
-					//  t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredActionInvocations))
-					// }
-
-					// ac, err := p.DeferredActionInvocations[0].Decode(&testActionSchema)
-					// if err != nil {
-					// 	t.Fatalf("error decoding action invocation: %s", err)
-					// }
-					// if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
-					// 	t.Fatalf("expected deferred reason to be DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
-					// }
-					// if !ac.ActionInvocationInstance.ConfigValue.IsNull() {
-					// 	t.Fatalf("expected config value to be null")
-					// }
 				},
 			},
 

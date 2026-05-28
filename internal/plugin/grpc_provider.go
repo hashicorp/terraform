@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -1507,15 +1508,27 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-		return resp
-	}
-	if resp.Diagnostics.HasErrors() {
-		return resp
+	// We only allow deferral from the provider as a whole. The provider must be
+	// able to accept unknown configuration.
+	if protoResp.Deferred != nil {
+		if !r.ClientCapabilities.DeferralAllowed {
+			tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferral",
+				fmt.Sprintf("The provider %s signaled a deferred action, but deferrals are not enabled for this client.", p.Addr.ForDisplay()),
+			)
+		}
+
+		if protoResp.Deferred.Reason != proto.Deferred_PROVIDER_CONFIG_UNKNOWN {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferred reason",
+				fmt.Sprintf("An action can only be deferred due to an unknown provider configuration. Provider %s returned %s.", p.Addr.ForDisplay(), protoResp.Deferred.Reason),
+			))
+		}
 	}
 
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
@@ -1555,6 +1568,7 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	resp.Events = func(yield func(providers.InvokeActionEvent) bool) {
 		logger.Trace("GRPCProvider: InvokeAction: streaming events")
 
+	RECV:
 		for {
 			event, err := protoClient.Recv()
 			if err == io.EOF {
@@ -1572,16 +1586,20 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 
 			switch ev := event.Type.(type) {
 			case *proto.InvokeAction_Event_Progress_:
-				yield(providers.InvokeActionEvent_Progress{
+				if !yield(providers.InvokeActionEvent_Progress{
 					Message: ev.Progress.Message,
-				})
+				}) {
+					break RECV
+				}
 
 			case *proto.InvokeAction_Event_Completed_:
 				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
 
-				yield(providers.InvokeActionEvent_Completed{
+				if !yield(providers.InvokeActionEvent_Completed{
 					Diagnostics: diags,
-				})
+				}) {
+					break RECV
+				}
 
 			default:
 				panic(fmt.Sprintf("unexpected event type %T in InvokeAction response", event.Type))
