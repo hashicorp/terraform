@@ -376,13 +376,19 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	ctx, span := tracer.Start(ctx, "install providers from config")
 	defer span.End()
 
-	// Dev overrides cause the result of "terraform init" to be irrelevant for
-	// any overridden providers, so we'll warn about it to avoid later
-	// confusion when Terraform ends up using a different provider than the
-	// lock file called for.
+	// Dev overrides and unmanaged providers change the installation process in "terraform init";
+	// overridden and unmanaged providers are skipped during installation.
+	// This means that impacted providers won't be downloaded from external sources nor added
+	// to the dependency lock file if they aren't already recorded there. Similarly, any attempt
+	// to upgrade providers will not affect providers impacted by overrides or unmanaged providers.
 	//
-	// This warning is only added here to avoid duplication; not raised in getProvidersFromState.
+	// So, we'll warn users about it to avoid later confusion when Terraform ends up using
+	// a different provider than the lock file called for, or doesn't make expected changes
+	// to the lock file.
+	//
+	// This warning is only shown once, here, to avoid duplication; not raised in getProvidersFromState.
 	diags = diags.Append(c.providerDevOverrideInitWarnings())
+	diags = diags.Append(c.providerUnmanagedInitWarnings())
 
 	// Collect the provider dependencies from the configuration.
 	reqs, hclDiags := config.ProviderRequirements()

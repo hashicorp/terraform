@@ -17,6 +17,48 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 )
 
+func TestProviderUnmanagedWarnings(t *testing.T) {
+	t.Run("no warnings with no unmanaged providers", func(t *testing.T) {
+		meta := Meta{}
+
+		diags := meta.providerUnmanagedInitWarnings()
+		if diags != nil {
+			t.Fatalf("expected no diagnostics, got %#v", diags)
+		}
+	})
+
+	t.Run("warnings with unmanaged providers present", func(t *testing.T) {
+		providerA := addrs.NewDefaultProvider("provider-a")
+		providerB := addrs.NewDefaultProvider("provider-b")
+		meta := Meta{
+			UnmanagedProviders: map[addrs.Provider]*plugin.ReattachConfig{
+				providerB: {},
+				providerA: {},
+			},
+		}
+
+		diags := meta.providerUnmanagedInitWarnings()
+		if diags == nil {
+			t.Fatal("expected diagnostics, got nil")
+		}
+		if diags.HasErrors() {
+			t.Fatalf("expected only warning diagnostics, got errors: %s", diags.ErrWithWarnings())
+		}
+
+		got := diags.ErrWithWarnings().Error()
+		// Output is deterministic so assert exact contents
+		want := `Unmanaged providers are in effect: The following unmanaged providers are set via the TF_REATTACH_PROVIDERS environment variable:
+ - hashicorp/provider-a
+ - hashicorp/provider-b
+
+These providers will not be installed as part of init, nor init -upgrade. Their entries in the dependency lock file will be left unchanged, if present. If this is unintentional please re-run without TF_REATTACH_PROVIDERS set.`
+
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("unexpected difference in warning message: %s", diff)
+		}
+	})
+}
+
 // Test the impacts of dev_overrides and reattached/unmanaged providers on the provider installation process.
 // The locks returned from EnsureProviderVersions are what's saved to the dependency lock file, so we are interested
 // in how the pre-existing locks and how providers are overidden impacts the locks returned from that installation process.
