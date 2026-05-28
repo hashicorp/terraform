@@ -662,13 +662,8 @@ type resourceActionTrigger struct {
 // expression itself, so that we can refine it to the individual action instance
 // during evaluation.
 type actionRef struct {
-	configRef  configs.ActionRef
-	actionNode *NodeActionConfig
-
-	// FIXME: are two indexes really needed when we know the overall order? This
-	// mirrors the plan structure for now.
-	// Block and action indexes to record in the plan where the calls
-	// originated.
+	configRef   configs.ActionRef
+	actionNode  *NodeActionConfig
 	blockIndex  int
 	actionIndex int
 }
