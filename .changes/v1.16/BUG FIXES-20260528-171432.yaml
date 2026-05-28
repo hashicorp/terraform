@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'init: Add warnings when unmanaged providers are in use and will impact provider installation processes.'
+time: 2026-05-28T17:14:32.881514+01:00
+custom:
+    Issue: "38656"

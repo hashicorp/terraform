@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -191,6 +192,37 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 		tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Provider development overrides are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
+// providerUnmanagedInitWarnings returns diagnostics containing at least one
+// warning if and only if there is at least one unmanaged provider in effect
+// via TF_REATTACH_PROVIDERS.
+func (m *Meta) providerUnmanagedInitWarnings() tfdiags.Diagnostics {
+	if len(m.UnmanagedProviders) == 0 {
+		return nil
+	}
+
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following unmanaged providers are set via the TF_REATTACH_PROVIDERS environment variable:\n")
+
+	providerAddresses := make([]string, 0, len(m.UnmanagedProviders))
+	for providerAddr := range m.UnmanagedProviders {
+		providerAddresses = append(providerAddresses, providerAddr.ForDisplay())
+	}
+	sort.Strings(providerAddresses) // Enable deterministic ordering.
+
+	for _, providerAddr := range providerAddresses {
+		detailMsg.WriteString(fmt.Sprintf(" - %s\n", providerAddr))
+	}
+	detailMsg.WriteString("\nThese providers will not be installed as part of init, nor init -upgrade. Their entries in the dependency lock file will be left unchanged, if present. If this is unintentional please re-run without TF_REATTACH_PROVIDERS set.")
+
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Unmanaged providers are in effect",
 			detailMsg.String(),
 		),
 	}
