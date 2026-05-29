@@ -206,13 +206,8 @@ resource "test_object" "a" {
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Error when invoking action",
-					Detail:   "test case for failing: this simulates a provider failing",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
-						End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
-					},
+					Summary:  "test case for failing",
+					Detail:   "this simulates a provider failing",
 				})
 			},
 		},
@@ -261,13 +256,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   `test case for failing: this simulates a provider failing`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 4, Column: 1, Byte: 71},
-							End:      hcl.Pos{Line: 4, Column: 34, Byte: 104},
-						},
+						Summary:  "test case for failing",
+						Detail:   `this simulates a provider failing`,
 					},
 				)
 
@@ -302,13 +292,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
-							End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing before the action is invoked",
 					},
 				)
 			},
@@ -353,13 +338,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
-							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},
@@ -415,13 +395,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
-							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},
@@ -485,13 +460,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 3, Column: 1, Byte: 36},
-							End:      hcl.Pos{Line: 3, Column: 34, Byte: 69},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},

@@ -93,11 +93,17 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 
-	respDiags := n.AddSubjectToDiagnostics(resp.Diagnostics)
-	diags = diags.Append(respDiags)
-	if respDiags.HasErrors() {
+	if resp.Diagnostics != nil {
+		if n.actionNode.Config.Config != nil {
+			diags = diags.Append(resp.Diagnostics.InConfigBody(n.actionNode.Config.Config, caller.String()))
+		} else {
+			diags = diags.Append(resp.Diagnostics.InConfigBody(n.actionNode.Config.Body, caller.String()))
+		}
+	}
+
+	if resp.Diagnostics.HasErrors() {
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.CompleteAction(hookIdentity, respDiags.Err())
+			return h.CompleteAction(hookIdentity, resp.Diagnostics.Err())
 		}))
 		return diags
 	}
@@ -114,13 +120,17 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
-				diags = diags.Append(n.AddSubjectToDiagnostics(ev.Diagnostics))
+				if ev.Diagnostics != nil {
+					if n.actionNode.Config.Config != nil {
+						diags = diags.Append(ev.Diagnostics.InConfigBody(n.actionNode.Config.Config, caller.String()))
+					} else {
+						diags = diags.Append(ev.Diagnostics.InConfigBody(n.actionNode.Config.Body, caller.String()))
+					}
+				}
+
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
 				}))
-				if ev.Diagnostics.HasErrors() {
-					return diags
-				}
 				if diags.HasErrors() {
 					return diags
 				}
@@ -172,28 +182,4 @@ func (n *actionTriggerApplyInstance) ModulePath() addrs.Module {
 // GraphNodeExecutable
 func (n *actionTriggerApplyInstance) Path() addrs.ModuleInstance {
 	return n.ActionInvocation.Addr.Module
-}
-
-func (n *actionTriggerApplyInstance) AddSubjectToDiagnostics(input tfdiags.Diagnostics) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	if len(input) > 0 {
-		severity := hcl.DiagWarning
-		message := "Warning when invoking action"
-		err := input.Warnings().ErrWithWarnings()
-		if input.HasErrors() {
-			severity = hcl.DiagError
-			message = "Error when invoking action"
-			err = input.ErrWithWarnings()
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: severity,
-			Summary:  message,
-			Detail:   err.Error(),
-
-			// FIXME: this is the action config block, make sure user can associate this with the trigger
-			Subject: n.actionNode.Config.DeclRange.Ptr(),
-		})
-	}
-	return diags
 }

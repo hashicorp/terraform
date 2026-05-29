@@ -37,6 +37,7 @@ type Action struct {
 
 	DeclRange hcl.Range
 	TypeRange hcl.Range
+	Body      hcl.Body
 }
 
 // ActionTrigger represents a configured "action_trigger" inside the lifecycle
@@ -197,6 +198,7 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
+		Body:      block.Body,
 	}
 
 	if !hclsyntax.ValidIdentifier(a.Type) {

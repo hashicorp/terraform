@@ -193,7 +193,9 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable)
 	}
 
 	resp := provider.ValidateActionConfig(req)
-	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	if resp.Diagnostics != nil {
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, caller.String()))
+	}
 
 	return diags
 }
