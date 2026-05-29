@@ -120,6 +120,20 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 			}
 
 			diags = diags.Append(ref.actionNode.validateInstanceKey(actionInst.Absolute(ctx.Path()), ref.configRef.Range.Ptr()))
+
+			// actions initially allowed to use caller data via arbitrary
+			// expressions, but using caller is preferred now to avoid hidden
+			// cycles in the graph
+			for _, actionBlockRef := range ref.actionNode.References() {
+				if resource, ok := actionBlockRef.Subject.(addrs.ResourceInstance); ok && resource.Resource.Equal(n.Addr.Resource) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject:  actionBlockRef.SourceRange.ToHCL().Ptr(),
+					})
+				}
+			}
 		}
 	}
 

@@ -634,34 +634,6 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
-		"after_create with config cycle": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "hello" {
-  config {
-    attr = test_object.a.test_string
-  }
-}
-resource "test_object" "a" {
-  test_string = "test_object_a"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "action_example",
-				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.StringVal("test_object_a"),
-				}),
-			}},
-		},
-
 		"triggered within module": {
 			module: map[string]string{
 				"main.tf": `
@@ -1144,7 +1116,7 @@ resource "test_object" "a" {
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = test_object.a.test_string
+    attr = caller.test_string
   }
 }
 resource "test_object" "a" {
