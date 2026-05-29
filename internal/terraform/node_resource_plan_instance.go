@@ -721,32 +721,16 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		ProposedActionData: unmarkedConfig,
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
-	// FIXME: config body is not the entire action config block
-	// Our diagnostics expect to be associated with a config body, but we may not have one due to the structure of actions.
-	// How wo we get the action block, and not the action's config block?
+
+	// Associate any provider produced diagnostics with the action config block.
 	if actionRef.actionNode.Config.Config != nil {
-		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Config, actionRef.actionNode.Addr.String())
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Config, n.Addr.String())
+	} else {
+		// if there was no action config block, use the entire action block for reference
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Body, n.Addr.String())
 	}
 
-	// FIXME: this diagnostic handling is incorrect, but it matches
-	// the existing implementation for now
-	if len(resp.Diagnostics) > 0 {
-		severity := hcl.DiagWarning
-		message := "Warnings when planning action"
-		err := resp.Diagnostics.Warnings().ErrWithWarnings()
-		if resp.Diagnostics.HasErrors() {
-			severity = hcl.DiagError
-			message = "Failed to plan action"
-			err = resp.Diagnostics.ErrWithWarnings()
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: severity,
-			Summary:  message,
-			Detail:   err.Error(),
-			Subject:  actionRef.configRef.Range.Ptr(),
-		})
-	}
+	diags = diags.Append(resp.Diagnostics)
 
 	if resp.Deferred != nil {
 		if !ctx.Deferrals().DeferralAllowed() {

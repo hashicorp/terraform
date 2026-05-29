@@ -656,13 +656,8 @@ resource "test_object" "a" {
 					return tfdiags.Diagnostics{}.Append(
 						&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Failed to plan action",
-							Detail:   "Planning failed: Test case simulates an error while planning",
-							Subject: &hcl.Range{
-								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
-							},
+							Summary:  "Planning failed",
+							Detail:   "Test case simulates an error while planning",
 						},
 					)
 				},
@@ -701,32 +696,32 @@ resource "test_object" "a" {
 					return tfdiags.Diagnostics{}.Append(
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 48, Byte: 175},
-								End:      hcl.Pos{Line: 7, Column: 76, Byte: 201},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 11, Column: 8, Byte: 278},
-								End:      hcl.Pos{Line: 11, Column: 46, Byte: 304},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 					)
