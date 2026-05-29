@@ -30,6 +30,7 @@ func TestDecodeActionBlock(t *testing.T) {
 				Type:      "an_action",
 				Name:      "foo",
 				DeclRange: blockRange,
+				Body:      hcl.EmptyBody(),
 			},
 			nil,
 		},
@@ -52,6 +53,12 @@ func TestDecodeActionBlock(t *testing.T) {
 				DeclRange: blockRange,
 				Count:     hcltest.MockExprLiteral(cty.NumberIntVal(2)),
 				ForEach:   hcltest.MockExprLiteral(cty.StringVal("something")),
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"count":    hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+						"for_each": hcltest.MockExprLiteral(cty.StringVal("something")),
+					}),
+				}),
 			},
 			[]string{"MockAttrs:0,0-0: Invalid combination of \"count\" and \"for_each\"; The \"count\" and \"for_each\" meta-arguments are mutually-exclusive, only one should be used."},
 		},
@@ -141,7 +148,6 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-33: No actions specified; At least one action must be specified for an action_trigger.",
 				"MockExprTraversal:0,0-33: Invalid reference to action outside this module; Actions can only be referenced in the module they are declared in.",
 			},
 		},
@@ -167,8 +173,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-16: No actions specified; At least one action must be specified for an action_trigger.",
-				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module.",
+				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module, count.index, or each.key.",
 			},
 		},
 		"error - invalid event": {
