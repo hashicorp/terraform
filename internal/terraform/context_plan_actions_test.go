@@ -207,6 +207,18 @@ list "test_resource" "test1" {
 					Mode:  plans.NormalMode,
 					Query: true,
 				},
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 11, Byte: 53},
+							End:      hcl.Pos{Line: 4, Column: 33, Byte: 75},
+						},
+					})
+				},
 			},
 			"invalid config": {
 				module: map[string]string{
@@ -1368,6 +1380,18 @@ resource "test_object" "a" {
 `,
 				},
 				expectPlanActionCalled: true,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 54},
+							End:      hcl.Pos{Line: 4, Column: 25, Byte: 67},
+						},
+					})
+				},
 				assertPlan: func(t *testing.T, p *plans.Plan) {
 					if len(p.Changes.ActionInvocations) != 1 {
 						t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
@@ -1412,6 +1436,18 @@ resource "test_object" "a" {
 `,
 				},
 				expectPlanActionCalled: true,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 54},
+							End:      hcl.Pos{Line: 4, Column: 25, Byte: 67},
+						},
+					})
+				},
 			},
 
 			"caller can be used for triggering resource": {
