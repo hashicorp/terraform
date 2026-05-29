@@ -538,6 +538,7 @@ func TestModuleOverride_action_and_trigger(t *testing.T) {
 			Start:    hcl.Pos{Line: 1, Column: 8, Byte: 7},
 			End:      hcl.Pos{Line: 1, Column: 21, Byte: 20},
 		},
+		Body: mod.Actions["action.test_action.test"].Body,
 	}
 
 	// We're going to extract and nil out our hcl.Body here because DeepEqual
