@@ -683,11 +683,23 @@ func (c *RemoteClient) chunkedMode() (bool, string, []string, *consulapi.KVPair,
 			// If we find the "current-hash" key we were in chunked mode
 			hash, ok := d["current-hash"]
 			if ok {
-				chunks := make([]string, 0)
-				for _, c := range d["chunks"].([]interface{}) {
-					chunks = append(chunks, c.(string))
+				hashStr, ok := hash.(string)
+				if !ok {
+					return false, "", nil, pair, fmt.Errorf("corrupt chunked state: \"current-hash\" is not a string")
 				}
-				return true, hash.(string), chunks, pair, nil
+				chunks := make([]string, 0)
+				chunksRaw, ok := d["chunks"].([]interface{})
+				if !ok {
+					return false, "", nil, pair, fmt.Errorf("corrupt chunked state: \"chunks\" is missing or not an array")
+				}
+				for _, c := range chunksRaw {
+					cStr, ok := c.(string)
+					if !ok {
+						return false, "", nil, pair, fmt.Errorf("corrupt chunked state: chunk element is not a string")
+					}
+					chunks = append(chunks, cStr)
+				}
+				return true, hashStr, chunks, pair, nil
 			}
 		}
 	}

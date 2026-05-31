@@ -594,9 +594,17 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			if err != nil {
 				return nil, err
 			}
-			for _, v := range config["profiles"].([]interface{}) {
-				if current == v.(map[string]interface{})["name"] {
-					providerConfig = v.(map[string]interface{})
+			profiles, ok := config["profiles"].([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("failed to read aliyun config: \"profiles\" key is missing or not an array")
+			}
+			for _, v := range profiles {
+				vMap, ok := v.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if current == vMap["name"] {
+					providerConfig = vMap
 				}
 			}
 		}
@@ -681,7 +689,8 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 		err = fmt.Errorf("refresh Ecs sts token err, fail to get Code: %s", err.Error())
 		return
 	}
-	if code.(string) != "Success" {
+	codeStr, ok := code.(string)
+	if !ok || codeStr != "Success" {
 		err = fmt.Errorf("refresh Ecs sts token err, Code is not Success")
 		return
 	}
@@ -706,7 +715,23 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 		return
 	}
 
-	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
+	accessKeyIdStr, ok := accessKeyId.(string)
+	if !ok {
+		err = fmt.Errorf("refresh Ecs sts token err, AccessKeyId is not a string")
+		return
+	}
+	accessKeySecretStr, ok := accessKeySecret.(string)
+	if !ok {
+		err = fmt.Errorf("refresh Ecs sts token err, AccessKeySecret is not a string")
+		return
+	}
+	securityTokenStr, ok := securityToken.(string)
+	if !ok {
+		err = fmt.Errorf("refresh Ecs sts token err, SecurityToken is not a string")
+		return
+	}
+
+	return accessKeyIdStr, accessKeySecretStr, securityTokenStr, nil
 }
 
 func getHttpProxyUrl(rawUrl string) (*url.URL, error) {
