@@ -117,6 +117,7 @@ var (
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
 	_ GraphNodeActionProviderConsumer      = (*NodeAbstractResource)(nil)
+	_ GraphNodeActionCaller                = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -383,6 +384,17 @@ func (n *NodeAbstractResource) ActionProviders() []ProviderRef {
 		}
 	}
 	return res
+}
+
+func (n *NodeAbstractResource) ActionCalls() []addrs.ConfigAction {
+	var calls []addrs.ConfigAction
+
+	for _, trigger := range n.actionTriggers {
+		for _, actionRef := range trigger.actionRefs {
+			calls = append(calls, actionRef.actionNode.Addr)
+		}
+	}
+	return calls
 }
 
 // GraphNodeProvisionerConsumer

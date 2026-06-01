@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -35,6 +36,10 @@ type nodeActionInvokeExpand struct {
 	// addrs for consistency.
 	Addr         addrs.AbsActionInstance
 	ActionConfig *NodeActionConfig
+
+	// Callers is a list of resources which reference an action which uses the
+	// caller symbol.
+	Callers []addrs.ConfigResource
 }
 
 func (n *nodeActionInvokeExpand) ActionProviders() []ProviderRef {
@@ -57,35 +62,66 @@ func (n *nodeActionInvokeExpand) Name() string {
 }
 
 func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
-	return []*addrs.Reference{
+	return append([]*addrs.Reference{
 		{
 			Subject: n.Addr.Action,
 		},
 		{
 			Subject: n.Addr.Action.Action,
 		},
-	}
+	}, n.ActionConfig.References()...)
 }
 
 func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 
-	// the nodeActionInvokeExpand is only here to expand within any targeted
-	// modules, becuase the action expansion and evaluation must happen within
-	// that module instance's scope
 	expander := ctx.InstanceExpander()
+
+	// invoke only operates via the current state, so any callers must be looked
+	// up via the state. The instances expander won't know about them, and there
+	// will be no changes to find.
+	syncState := ctx.State()
+	state := syncState.Lock()
+	defer syncState.Unlock()
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
 		if !mod.TargetContains(n.Target) {
 			continue
 		}
 
-		g.Add(&nodeActionPlanInvoke{
-			Module:       mod,
-			Addr:         n.Addr,
-			ActionConfig: n.ActionConfig,
-			ProviderAddr: n.ActionConfig.ResolvedProvider,
-		})
+		if len(n.Callers) == 0 {
+			log.Println("[FIXME] message")
+			g.Add(&nodeActionPlanInvoke{
+				Module:       mod,
+				Addr:         n.Addr,
+				ActionConfig: n.ActionConfig,
+				ProviderAddr: n.ActionConfig.ResolvedProvider,
+			})
+		} else {
+			for _, caller := range n.Callers {
+				for _, res := range state.Resources(caller) {
+					if !mod.TargetContains(res.Addr) {
+						// resource from the wrong module instance
+						continue
+					}
+
+					for instKey, resInst := range res.Instances {
+						if resInst.Current == nil {
+							continue
+						}
+
+						log.Println("[FIXME] message")
+						g.Add(&nodeActionPlanInvoke{
+							Module:       mod,
+							Addr:         n.Addr,
+							ActionConfig: n.ActionConfig,
+							ProviderAddr: n.ActionConfig.ResolvedProvider,
+							Caller:       res.Addr.Resource.Instance(instKey),
+						})
+					}
+				}
+			}
+		}
 	}
 	addRootNodeToGraph(&g)
 
@@ -102,6 +138,11 @@ type nodeActionPlanInvoke struct {
 	Addr         addrs.AbsActionInstance
 	ActionConfig *NodeActionConfig
 	ProviderAddr addrs.AbsProviderConfig
+	Caller       addrs.Referenceable
+}
+
+func (n *nodeActionPlanInvoke) Name() string {
+	return n.Addr.String()
 }
 
 func (n *nodeActionPlanInvoke) Path() addrs.ModuleInstance {
@@ -116,7 +157,7 @@ func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags
 func (n *nodeActionPlanInvoke) invokeActions(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil, nil)
+	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil, n.Caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags

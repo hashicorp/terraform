@@ -666,42 +666,24 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over there already.
 	if d.Operation == walkPlan || d.Operation == walkApply {
-		if !d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
-			// Then we've asked for a resource that hasn't been evaluated yet.
-			// This means that either something has gone wrong in the graph or
-			// the console or test command has an errored plan and is attempting
-			// to load an invalid resource from it.
+		if d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
+			if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
+				// There really isn't anything interesting we can do in this situation,
+				// because it means we have an unknown for_each/count, in which case
+				// we can't even predict what the result type will be because it
+				// would be either an object or tuple type decided based on the instance
+				// keys.
+				// (We can't get in here for a single-instance resource because in that
+				// case we would know that there's only one key and it's addrs.NoKey,
+				// so we'll fall through to the other logic below.)
+				unknownVal := cty.DynamicVal
 
-			unknownVal := cty.DynamicVal
-
-			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
-			if addr.Mode == addrs.EphemeralResourceMode {
-				unknownVal = unknownVal.Mark(marks.Ephemeral)
+				// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+				if addr.Mode == addrs.EphemeralResourceMode {
+					unknownVal = unknownVal.Mark(marks.Ephemeral)
+				}
+				return unknownVal, diags
 			}
-			return unknownVal, diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reference to uninitialized resource",
-				Detail:   fmt.Sprintf("The resource %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-		}
-
-		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
-			// There really isn't anything interesting we can do in this situation,
-			// because it means we have an unknown for_each/count, in which case
-			// we can't even predict what the result type will be because it
-			// would be either an object or tuple type decided based on the instance
-			// keys.
-			// (We can't get in here for a single-instance resource because in that
-			// case we would know that there's only one key and it's addrs.NoKey,
-			// so we'll fall through to the other logic below.)
-			unknownVal := cty.DynamicVal
-
-			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
-			if addr.Mode == addrs.EphemeralResourceMode {
-				unknownVal = unknownVal.Mark(marks.Ephemeral)
-			}
-			return unknownVal, diags
 		}
 	}
 

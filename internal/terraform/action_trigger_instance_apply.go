@@ -32,7 +32,7 @@ var (
 func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	provider, _, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
+	provider, actionProviderSchema, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -53,22 +53,48 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		return diags
 	}
 
-	// FIXME: missing action trigger reference for diags
-	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller)
-	diags = diags.Append(actionDiags)
-	if diags.HasErrors() {
+	actionSchema, ok := actionProviderSchema.Actions[n.ActionInvocation.Addr.Action.Action.Type]
+	if !ok {
+		// This should have been caught earlier, but we don't want to panic
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Action %s not found in provider schema", n.ActionInvocation.Addr),
+			Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", n.ActionInvocation.Addr, n.ActionInvocation.ProviderAddr),
+			Subject:  n.actionNode.Config.DeclRange.Ptr(),
+		})
 		return diags
 	}
 
+	inv, err := n.ActionInvocation.Decode(&actionSchema)
+	if err != nil {
+		return diags.Append(err)
+	}
+	configValue := inv.ConfigValue
+
+	// During invoke or destroy we may not be able to evaluate the config again,
+	// but we don't have to if the value was already entirely known. This is
+	// fine for invoke, since it's a one-shot call where everything must be in
+	// state. For destroy however, we may want to extend evaluation so we can
+	// capture ephemeral values, which will require building a different eval
+	// context.
 	if !configValue.IsWhollyKnown() {
-		return diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Action configuration unknown during apply",
-			Detail: fmt.Sprintf("The action %s was not fully known during apply. "+
-				"This may be caused by using the caller object in conjunction with a before event.", n.ActionInvocation.Addr),
-			// FIXME: maybe turn this into an attribute path diagnostic?
-			Subject: n.actionNode.Config.DeclRange.Ptr(),
-		})
+		val, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller)
+		diags = diags.Append(actionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		if !val.IsWhollyKnown() {
+			return diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action configuration unknown during apply",
+				Detail: fmt.Sprintf("The action %s was not fully known during apply. "+
+					"This may be caused by using the caller object in conjunction with a before event.", n.ActionInvocation.Addr),
+				Subject: n.actionNode.Config.DeclRange.Ptr(),
+			})
+		}
+
+		configValue = val
 	}
 
 	hookIdentity := HookActionIdentity{
