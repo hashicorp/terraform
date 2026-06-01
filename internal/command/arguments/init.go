@@ -85,7 +85,7 @@ type Init struct {
 	EnablePssExperiment bool
 
 	// PolicyPath contains an optional path to any defined policies that should
-	// be applied for this plan operation.
+	// be applied for this init operation.
 	PolicyPaths []string
 }
 

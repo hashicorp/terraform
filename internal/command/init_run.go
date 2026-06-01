@@ -298,17 +298,19 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		)
 	}
 
-	reqsByModule, reqDiags := config.ProviderRequirementsByModule()
-	if reqDiags.HasErrors() {
-		view.Diagnostics(diags.Append(reqDiags))
-		return 1
-	}
 	policyResults := plans.NewPolicyResults()
 	providerHook := &providerPolicyHook{
 		Client:        client,
-		Reqs:          reqsByModule,
 		policyResults: policyResults,
 		config:        config,
+	}
+	if config != nil {
+		reqsByModule, reqDiags := config.ProviderRequirementsByModule()
+		if reqDiags.HasErrors() {
+			view.Diagnostics(diags.Append(reqDiags))
+			return 1
+		}
+		providerHook.Reqs = reqsByModule
 	}
 
 	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)

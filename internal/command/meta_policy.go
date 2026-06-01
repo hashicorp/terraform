@@ -233,5 +233,9 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 
 	p.policyResults.AddProvider(addr, result, providerConfig)
 
-	return fmt.Errorf("Provider download failed due to policy violations. Please review other diagnostics for details.")
+	if result.Overall != policy.AllowResult {
+		return fmt.Errorf("Provider download failed due to policy violations. Please review other diagnostics for details.")
+	}
+
+	return nil
 }
