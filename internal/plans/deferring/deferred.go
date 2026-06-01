@@ -730,7 +730,7 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsAction, reason providers.D
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	configAddr := addr.Config()
+	configAddr := addr.ConfigAction()
 	if !d.actionExpansionDeferred.Has(configAddr) {
 		d.actionExpansionDeferred.Put(configAddr, addrs.MakeMap[addrs.AbsAction, providers.DeferredReason]())
 	}
