@@ -25,6 +25,16 @@ type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
 }
 
+// GraphNodeActionCaller is na interface satisfied by resource nodes that have
+// action triggers which can be directly invoked.
+type GraphNodeActionCaller interface {
+	GraphNodeConfigResource
+
+	// Action calls returns all action references so they can be connected to
+	// any of the actions which use the caller symbol
+	ActionCalls() []addrs.ConfigAction
+}
+
 // NodeActionConfig represents an action in the configuration. This node is
 // primarily concerned with resolving provider references and receiving the
 // correct schema. All expansion and execution is done from an action trigger.
@@ -53,7 +63,7 @@ var (
 )
 
 func (n NodeActionConfig) Name() string {
-	return n.Addr.String()
+	return n.Addr.String() + " (config)"
 }
 
 func (n *NodeActionConfig) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {

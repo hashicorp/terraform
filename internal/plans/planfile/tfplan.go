@@ -1344,6 +1344,14 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 	ret.Addr = actionAddr
 
+	if rawAction.Caller != "" {
+		callerAddr, diags := addrs.ParseRefStr(rawAction.Caller)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("invalid action caller address %q: %w", rawAction.Caller, diags.Err())
+		}
+		ret.Caller = callerAddr.Subject
+	}
+
 	switch at := rawAction.ActionTrigger.(type) {
 	case *planproto.ActionInvocationInstance_ResourceActionTrigger:
 		triggeringResourceAddrs, diags := addrs.ParseAbsResourceInstanceStr(at.ResourceActionTrigger.TriggeringResourceAddr)
@@ -1413,6 +1421,10 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 	ret := &planproto.ActionInvocationInstance{
 		Addr:     action.Addr.String(),
 		Provider: action.ProviderAddr.String(),
+	}
+
+	if action.Caller != nil {
+		ret.Caller = action.Caller.String()
 	}
 
 	switch at := action.ActionTrigger.(type) {

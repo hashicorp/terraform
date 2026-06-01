@@ -171,13 +171,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 
-		&ActionInvokePlanTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			queryPlanMode: b.queryPlan,
-		},
-
 		// Add dynamic values
 		&RootVariableTransformer{
 			Config:         b.Config,
@@ -257,6 +250,16 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
+
+		// In order to analyze any use of caller, this must happen after
+		// AttachSchemaTransformer so we can get all references from the action
+		// configs.
+		&ActionInvokePlanTransformer{
+			Config:        b.Config,
+			Operation:     b.Operation,
+			ActionTargets: b.ActionTargets,
+			queryPlanMode: b.queryPlan,
+		},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing

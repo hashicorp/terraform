@@ -570,7 +570,6 @@ func (c *ChangesSrc) AppendActionInvocationInstanceChange(action *ActionInvocati
 }
 
 type ActionInvocationInstanceSrc struct {
-	// FIXME: deposed instances are lost
 	Addr          addrs.AbsActionInstance
 	ActionTrigger ActionTrigger
 
@@ -578,6 +577,8 @@ type ActionInvocationInstanceSrc struct {
 	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
+
+	Caller addrs.Referenceable
 }
 
 // Decode unmarshals the raw representation of actions.
