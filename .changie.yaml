@@ -10,8 +10,8 @@ versionFormat: '## {{.Version}} ({{.Time.Format "January 2, 2006"}})'
 kindFormat: "{{.Kind}}:"
 changeFormat: "* {{.Body}} {{- if .Custom.Issue }} ([#{{.Custom.Issue}}](https://github.com/hashicorp/terraform/issues/{{.Custom.Issue}})){{- end}}"
 custom:
-    - key: Issue
-      label: Issue/PR Number
+    - key: Issue # Misleading name, but the key cannot be changed without breaking existing change files. Do not supply an issue number for this field.
+      label: PR Number
       type: int
       minInt: 1
 kinds:

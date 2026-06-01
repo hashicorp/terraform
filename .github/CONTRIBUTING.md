@@ -157,8 +157,7 @@ This is different if you are backporting your changes to an earlier release vers
 If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to:
 1. Select which kind of change you're introducing.
 2. Provide a short description.
-3. Enter the number of the GitHub issue your PR closes.
-    * If there is no issue, use the PR number.
+3. Enter the number of your GitHub PR.
 
 Your description should be written from an end-user's perspective and not describe implementation details. For example, out of these two potential changelog entries, users will find the second one more useful:
 
