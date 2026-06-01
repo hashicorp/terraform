@@ -42,18 +42,18 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	switch op {
 	case walkValidate:
 		log.Printf("[TRACE] NodeApplyableProvider: validating configuration for %s", n.Addr)
-		return diags.Append(n.ValidateProvider(ctx, op, provider))
+		return diags.Append(n.ValidateProvider(ctx, provider))
 	case walkPlan, walkPlanDestroy, walkApply, walkDestroy:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s", n.Addr)
-		return diags.Append(n.ConfigureProvider(ctx, op, provider, false))
+		return diags.Append(n.ConfigureProvider(ctx, provider, false))
 	case walkImport:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s (requiring that configuration is wholly known)", n.Addr)
-		return diags.Append(n.ConfigureProvider(ctx, op, provider, true))
+		return diags.Append(n.ConfigureProvider(ctx, provider, true))
 	}
 	return diags
 }
 
-func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, op walkOperation, provider providers.Interface) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) (diags tfdiags.Diagnostics) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())
 
@@ -109,7 +109,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, op walkOperati
 // ConfigureProvider configures a provider that is already initialized and retrieved.
 // If verifyConfigIsKnown is true, ConfigureProvider will return an error if the
 // provider configVal is not wholly known and is meant only for use during import.
-func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperation, provider providers.Interface, verifyConfigIsKnown bool) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, verifyConfigIsKnown bool) (diags tfdiags.Diagnostics) {
 	config := n.ProviderConfig()
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
@@ -157,12 +157,12 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 
 	// If our config value contains any marked values, ensure those are
 	// stripped out before sending this to the provider
-	n.cachedUnmarkedConfigValue, _ = configVal.UnmarkDeep()
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 
 	// Allow the provider to validate and insert any defaults into the full
 	// configuration.
 	req := providers.ValidateProviderConfigRequest{
-		Config: n.cachedUnmarkedConfigValue,
+		Config: unmarkedConfigVal,
 	}
 
 	// ValidateProviderConfig is only used for validation. We are intentionally
@@ -187,11 +187,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 	// If the provider returns something different, log a warning to help
 	// indicate to provider developers that the value is not used.
 	preparedCfg := validateResp.PreparedConfig
-	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(n.cachedUnmarkedConfigValue) {
+	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
 		log.Printf("[WARN] ValidateProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, n.cachedUnmarkedConfigValue)
+	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
 	diags = diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() && config == nil {
 		// If there isn't an explicit "provider" block in the configuration,
@@ -205,7 +205,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, op, n.cachedUnmarkedConfigValue)
+	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -219,7 +219,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, op walkOperat
 // allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
 // Provider policies have no support for callback functions, so we do not need to worry about
 // them retrieving objects that are not yet available in the state.
-func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, op walkOperation, attrs cty.Value) tfdiags.Diagnostics {
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil

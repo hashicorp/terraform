@@ -290,7 +290,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, walkPlan, provider)
+		diags := node.ValidateProvider(ctx, provider)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -311,7 +311,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, walkPlan, provider)
+		diags := node.ValidateProvider(ctx, provider)
 		if !diags.HasErrors() {
 			t.Error("missing expected error with invalid config")
 		}
@@ -324,7 +324,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			},
 		}
 
-		diags := node.ValidateProvider(ctx, walkPlan, provider)
+		diags := node.ValidateProvider(ctx, provider)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with empty config: %s", diags.Err())
 		}
@@ -385,7 +385,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -398,7 +398,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -419,7 +419,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -435,7 +435,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, requiredProvider, false)
+		diags := node.ConfigureProvider(ctx, requiredProvider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -456,7 +456,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, requiredProvider, false)
+		diags := node.ConfigureProvider(ctx, requiredProvider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -511,7 +511,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if diags.HasErrors() {
 			t.Errorf("unexpected error with valid config: %s", diags.Err())
 		}
@@ -524,7 +524,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with nil config")
 		}
@@ -545,7 +545,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			},
 		}
 
-		diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+		diags := node.ConfigureProvider(ctx, provider, false)
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
@@ -571,7 +571,7 @@ func TestGetSchemaError(t *testing.T) {
 		},
 	}
 
-	diags := node.ConfigureProvider(ctx, walkPlan, provider, false)
+	diags := node.ConfigureProvider(ctx, provider, false)
 	for _, d := range diags {
 		desc := d.Description()
 		if desc.Address != providerAddr.String() {
@@ -669,7 +669,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, cty.EmptyObjectVal)
 
 		if !mockPolicy.EvaluateProviderCalled {
 			t.Fatal("EvaluateProvider was not called")
@@ -696,7 +696,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, cty.EmptyObjectVal)
 
 		if !mockPolicy.EvaluateProviderCalled {
 			t.Fatal("EvaluateProvider was not called")
@@ -718,7 +718,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		diags := node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		diags := node.EvalPolicy(ctx, cty.EmptyObjectVal)
 		if diags != nil {
 			t.Fatalf("unexpected diagnostics: %s", diags.Err())
 		}
@@ -747,7 +747,7 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 			},
 		}
 
-		node.EvalPolicy(ctx, walkPlan, cty.EmptyObjectVal)
+		node.EvalPolicy(ctx, cty.EmptyObjectVal)
 
 		meta := mockPolicy.EvaluateProviderRequest.Meta
 
