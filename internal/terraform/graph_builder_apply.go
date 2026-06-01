@@ -278,7 +278,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Request policy evaluation for resources, modules, and providers.
+		// Request policy evaluation for resources.
 		&policyEvalTransformer{PolicyClient: b.PolicyClient},
 
 		// close the root module
