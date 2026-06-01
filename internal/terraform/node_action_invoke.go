@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -35,6 +36,10 @@ type nodeActionInvokeExpand struct {
 	// addrs for consistency.
 	Addr         addrs.AbsActionInstance
 	ActionConfig *NodeActionConfig
+
+	// Callers is a list of resources which reference an action which uses the
+	// caller symbol.
+	Callers []addrs.ConfigResource
 }
 
 func (n *nodeActionInvokeExpand) ActionProviders() []ProviderRef {
@@ -57,35 +62,76 @@ func (n *nodeActionInvokeExpand) Name() string {
 }
 
 func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
-	return []*addrs.Reference{
+	// Callers are added to references so we can keep the caller nodes in the
+	// graph. The instances must be evaluated from state, but evaluation
+	// currently requires that resources at least be processed before
+	// evaluation.
+	var callers []*addrs.Reference
+	for _, caller := range n.Callers {
+		callers = append(callers, &addrs.Reference{
+			Subject: caller.Resource,
+		})
+	}
+
+	return append([]*addrs.Reference{
 		{
 			Subject: n.Addr.Action,
 		},
 		{
 			Subject: n.Addr.Action.Action,
 		},
-	}
+	}, callers...)
 }
 
 func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 
-	// the nodeActionInvokeExpand is only here to expand within any targeted
-	// modules, becuase the action expansion and evaluation must happen within
-	// that module instance's scope
 	expander := ctx.InstanceExpander()
+
+	// invoke only operates via the current state, so any callers must be looked
+	// up via the state. The instances expander won't know about them, and there
+	// will be no changes to find.
+	syncState := ctx.State()
+	state := syncState.Lock()
+	defer syncState.Unlock()
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
 		if !mod.TargetContains(n.Target) {
 			continue
 		}
 
-		g.Add(&nodeActionPlanInvoke{
-			Module:       mod,
-			Addr:         n.Addr,
-			ActionConfig: n.ActionConfig,
-			ProviderAddr: n.ActionConfig.ResolvedProvider,
-		})
+		if len(n.Callers) == 0 {
+			g.Add(&nodeActionPlanInvoke{
+				Module:       mod,
+				Addr:         n.Addr,
+				ActionConfig: n.ActionConfig,
+				ProviderAddr: n.ActionConfig.ResolvedProvider,
+			})
+		} else {
+			for _, caller := range n.Callers {
+				for _, res := range state.Resources(caller) {
+					if !mod.TargetContains(res.Addr) {
+						// resource from the wrong module instance
+						continue
+					}
+
+					for instKey, resInst := range res.Instances {
+						if resInst.Current == nil {
+							continue
+						}
+
+						log.Printf("[TRACE] expanding %s invoke node for caller %s", n.Addr, res.Addr.Resource)
+						g.Add(&nodeActionPlanInvoke{
+							Module:       mod,
+							Addr:         n.Addr,
+							ActionConfig: n.ActionConfig,
+							ProviderAddr: n.ActionConfig.ResolvedProvider,
+							Caller:       res.Addr.Resource.Instance(instKey),
+						})
+					}
+				}
+			}
+		}
 	}
 	addRootNodeToGraph(&g)
 
@@ -102,6 +148,11 @@ type nodeActionPlanInvoke struct {
 	Addr         addrs.AbsActionInstance
 	ActionConfig *NodeActionConfig
 	ProviderAddr addrs.AbsProviderConfig
+	Caller       addrs.Referenceable
+}
+
+func (n *nodeActionPlanInvoke) Name() string {
+	return n.Addr.String()
 }
 
 func (n *nodeActionPlanInvoke) Path() addrs.ModuleInstance {
@@ -110,13 +161,16 @@ func (n *nodeActionPlanInvoke) Path() addrs.ModuleInstance {
 
 func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	// for now each action instance will be invoked serially
-	return n.invokeActions(ctx)
+	return n.planActions(ctx)
 }
 
-func (n *nodeActionPlanInvoke) invokeActions(ctx EvalContext) tfdiags.Diagnostics {
+func (n *nodeActionPlanInvoke) planActions(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil, nil)
+	// We're relying on the given addr derived from the action target to
+	// determine which action instance to evaluate. If the address has no key
+	// and the action is expanded, we will plan all instances.
+	actionVals, actionDiags := n.ActionConfig.EvalInstances(ctx, n.Addr.Action, nil, n.Caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
@@ -137,6 +191,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		ActionTrigger: new(plans.InvokeActionTrigger),
 		ProviderAddr:  n.ProviderAddr,
 		ConfigValue:   ephemeral.RemoveEphemeralValues(configVal),
+		Caller:        n.Caller,
 	}
 
 	provider, _, err := getProvider(ctx, n.ProviderAddr)
@@ -202,5 +257,17 @@ func (n *nodeActionInvokeApplyInstance) Name() string {
 }
 
 func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.invoke(ctx, nil)
+	return n.invoke(ctx, n.ActionInvocation.Caller)
+}
+
+func (n *nodeActionInvokeApplyInstance) References() []*addrs.Reference {
+	refs := n.actionTriggerApplyInstance.References()
+
+	// add any caller to ensure the resource expansion nodes remain in the graph
+	if n.actionTriggerApplyInstance.ActionInvocation.Caller != nil {
+		refs = append(refs, &addrs.Reference{
+			Subject: n.actionTriggerApplyInstance.ActionInvocation.Caller,
+		})
+	}
+	return refs
 }

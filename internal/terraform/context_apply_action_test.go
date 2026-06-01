@@ -2524,6 +2524,58 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			}),
 		},
 
+		"invoke action with caller": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  count = 2
+  test_string = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+	  actions = [action.action_example.one]
+	}
+  }
+}
+
+action "action_example" "one" {
+  config {
+    attr = caller.test_string
+  }
+}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
 		"invoke action with reference (drift)": {
 			module: map[string]string{
 				"main.tf": `

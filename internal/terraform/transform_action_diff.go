@@ -76,10 +76,6 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
 		case *plans.InvokeActionTrigger:
-			// FIXME: this may be invoking a resource action even though it was
-			// added from an invoke command, and we need to differentiate those
-			// calls for the new impl
-
 			actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
 			if !ok {
 				panic(fmt.Sprintf("FIXME: missing action for invoke: %s", ai.Addr))

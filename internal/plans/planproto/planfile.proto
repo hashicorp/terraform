@@ -481,6 +481,10 @@ message ActionInvocationInstance {
         ResourceActionTrigger resource_action_trigger = 6;
         InvokeActionTrigger invoke_action_trigger = 7;
     }
+
+    // If the action uses the caller symbol, we record the resource calling the
+    // action for evaluation.
+    string caller = 8;
 }
 
 // ResourceActionTrigger contains details on the conditions that led to the
