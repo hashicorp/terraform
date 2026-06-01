@@ -230,6 +230,8 @@ func (f *snippetFormatter) write() {
 	diag := f.diag
 	buf := f.buf
 
+	// if the diagnostic has a policy range, then it contains policy-specific information
+	// and we will write that first.
 	snippetPrefix := "  on"
 	if diag.PolicyRange != nil {
 

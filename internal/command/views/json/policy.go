@@ -20,6 +20,7 @@ type PolicyInfo struct {
 	Snippet *DiagnosticSnippet `json:"snippet,omitempty"`
 }
 
+// PolicyMetadata contains policy-specific metadata about a diagnostic.
 type PolicyMetadata struct {
 	PolicySetName    string `json:"policy_set_name,omitempty"`
 	PolicySetPath    string `json:"policy_set_path,omitempty"`
@@ -29,6 +30,7 @@ type PolicyMetadata struct {
 	EnforceIndex     *int32 `json:"enforce_index,omitempty"`
 }
 
+// EnforceMetadata contains metadata about the enforcement block which the diagnostic is associated with.
 type EnforceMetadata struct {
 	BlockIndex *int32 `json:"block_index,omitempty"`
 }

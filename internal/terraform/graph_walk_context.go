@@ -66,7 +66,7 @@ type ContextGraphWalker struct {
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	Locks map[addrs.Provider]*depsfile.ProviderLock
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient  policy.Client
 	PolicyResults *plans.PolicyResults // Used to store policy evaluation results
@@ -156,7 +156,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
 		ActionsValue:            w.Actions,
-		LocksValue:              w.Locks,
+		ProviderLocksValue:      w.ProviderLocks,
 		PolicyClientValue:       w.PolicyClient,
 		PolicyResultsValue:      w.PolicyResults,
 		DeprecationsValue:       w.Deprecations,

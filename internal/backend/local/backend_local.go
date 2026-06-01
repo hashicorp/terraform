@@ -188,7 +188,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		GenerateConfigPath: op.GenerateConfigOut,
 		DeferralAllowed:    op.DeferralAllowed,
 		Query:              op.Query,
-		Locks:              providerLocksSnapshot(op.DependencyLocks),
+		ProviderLocks:      providerLocksSnapshot(op.DependencyLocks),
 		PolicyClient:       run.PolicyClient,
 	}
 	run.PlanOpts = planOpts
@@ -213,14 +213,14 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	)
 	diags = diags.Append(buildDiags)
 	if buildDiags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 	run.Config = config
 
 	snapDiags := op.ConfigLoader.AddRootModuleToSnapshot(configSnap, op.ConfigDir)
 	diags = diags.Append(snapDiags)
 	if snapDiags.HasErrors() {
-		return nil, nil, diags
+		return run, nil, diags
 	}
 
 	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {

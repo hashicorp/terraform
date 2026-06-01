@@ -158,31 +158,34 @@ func (v *View) PolicyResults(results *plans.PolicyResults) {
 				foundInfo = true
 				buf.WriteString("Policy Info:\n")
 				if info.PolicyRange != nil && info.PolicySnippet != nil {
-					buf.WriteString(fmt.Sprintf(
+					fmt.Fprintf(
+						&buf,
 						"on %s line %d, in %s\n",
 						info.PolicyRange.Filename,
 						info.PolicyRange.Start.Line,
 						info.PolicySnippet.Code,
-					))
+					)
 				} else if enforcement.Policy != nil {
-					buf.WriteString(fmt.Sprintf(
+					fmt.Fprintf(
+						&buf,
 						"in policy %s\n",
 						enforcement.Policy.Address,
-					))
+					)
 				}
-				buf.WriteString(fmt.Sprintf("%q\n", info.Message))
+				fmt.Fprintf(&buf, "%q\n", info.Message)
 
 				if !result.ConfigDeclRange.Empty() {
 					cfgRange := result.ConfigDeclRange
 					resourceContext := string(cfgRange.SliceBytes(configSources[cfgRange.Filename]))
 
 					// Here we want the resource source context
-					buf.WriteString(fmt.Sprintf(
+					fmt.Fprintf(
+						&buf,
 						"\non %s line %d, in %s\n",
 						cfgRange.Filename,
 						cfgRange.Start.Line,
 						resourceContext,
-					))
+					)
 				}
 				buf.WriteString("\n")
 			}

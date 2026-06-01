@@ -97,6 +97,7 @@ func (b *Local) opApply(
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
 		// set the policy client to nil for the plan preceding apply
+		// so that policy evaluation is skipped during the plan.
 		lr.PlanOpts.PolicyClient = nil
 		combinedPlanApply = true
 		// Perform the plan
@@ -114,8 +115,6 @@ func (b *Local) opApply(
 			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
 				op.View.Plan(plan, schemas)
 			}
-			// Report all policy results that may have accumulated during the plan
-			op.View.PolicyResults(plan.PolicyResults)
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -427,9 +426,6 @@ func (b *Local) opApply(
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 
-	// We use a new store for the apply policy results, as objects that failed during the plan policy
-	// evaluation may have updated data which yields a different policy evaluation result.
-	policyResults := plans.NewPolicyResults()
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -438,9 +434,9 @@ func (b *Local) opApply(
 		log.Printf("[INFO] backend/local: apply calling Apply")
 		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
 			SetVariables:  applyTimeValues,
-			Locks:         providerLocksSnapshot(op.DependencyLocks),
+			ProviderLocks: providerLocksSnapshot(op.DependencyLocks),
 			PolicyClient:  lr.PolicyClient,
-			PolicyResults: policyResults,
+			PolicyResults: plan.PolicyResults,
 		})
 	}()
 
@@ -450,7 +446,7 @@ func (b *Local) opApply(
 	diags = diags.Append(applyDiags)
 
 	// Print the policy results we found during apply
-	op.View.PolicyResults(policyResults)
+	op.View.PolicyResults(plan.PolicyResults)
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.

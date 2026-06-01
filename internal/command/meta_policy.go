@@ -35,7 +35,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 
 	var diags policy.Diagnostics
 	client, err := policy.Connect(ctx)
-	if client == nil {
+	if err != nil {
 		diags = append(diags, policy.NewErrorDiagnostic(
 			"Failed to connect to policy engine",
 			fmt.Sprintf("Failed to connect to policy engine: %s.", err),
@@ -50,6 +50,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	if srv, ok := client.(policy.CallbackService); ok {
 		callbackServer, cbDiags := srv.RegisterCallbackService(ctx)
 		if cbDiags != nil {
+			client.Stop()
 			return nil, cbDiags
 		}
 		callbackServiceID = callbackServer.ID
@@ -65,6 +66,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	for _, config := range resp.ServerConfigurations() {
 		version, err := constraints.ParseRubyStyleMulti(config.RequiredVersion)
 		if err != nil {
+			client.Stop()
 			diags = append(diags, policy.NewErrorDiagnostic(
 				"Failed to validate required Terraform version",
 				fmt.Sprintf("The policy file %s had a Terraform version constraint that could not be parsed: %s.", config.File, err),

@@ -109,7 +109,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	if len(c.policyPaths) > 0 {
 		var policyDiags policy.Diagnostics
 		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
-		// if there has been any errors when setting up the policy client, we'll want to log them
+		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
 		}
