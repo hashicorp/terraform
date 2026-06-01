@@ -2566,18 +2566,12 @@ terraform {
 		}
 
 		// Assert that no providers were upgraded.
-		//
-		// However, "test" v9.9.9 would be installed in the cache, because the error occurs after the upgrade
-		// process identifies that provider as a candidate for upgrade.
+		// Also, no packages were downloaded.
 		cacheDir := m.providerLocalCacheDir()
 		gotPackages := cacheDir.AllAvailablePackages()
 		wantPackages := map[addrs.Provider][]providercache.CachedProvider{
 			addrs.NewDefaultProvider("test"): {
-				{
-					Provider:   addrs.NewDefaultProvider("test"),
-					Version:    getproviders.MustParseVersion("9.9.9"),
-					PackageDir: expectedPackageInstallPath("test", "9.9.9", false),
-				},
+				// no 9.9.9 entry
 				{
 					Provider:   addrs.NewDefaultProvider("test"),
 					Version:    getproviders.MustParseVersion("1.2.3"),

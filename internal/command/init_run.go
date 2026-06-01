@@ -18,8 +18,10 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -242,6 +244,8 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
+	installerHooks := []providercache.InstallerHook{}
+
 	reqsByModule, reqDiags := config.ProviderRequirementsByModule()
 	if reqDiags.HasErrors() {
 		view.Diagnostics(diags.Append(reqDiags))
@@ -254,8 +258,25 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		policyResults: policyResults,
 		config:        config,
 	}
+	installerHooks = append(installerHooks, providerHook)
 
-	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
+	if config != nil && config.Module != nil && config.Module.StateStore != nil {
+		lock := previousLocks.Provider(config.Module.StateStore.ProviderAddr)
+		var priorVersion *providerreqs.Version
+		if lock != nil {
+			v := lock.Version()
+			priorVersion = &v
+		}
+		stateStorageHook := &stateStorageProviderInstallHook{
+			provider:     config.Module.StateStore.ProviderAddr,
+			priorVersion: priorVersion,
+			supplyMode:   config.Module.StateStore.ProviderSupplyMode,
+			reconfigure:  initArgs.Reconfigure,
+		}
+		installerHooks = append(installerHooks, stateStorageHook)
+	}
+
+	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, installerHooks...)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
 		view.PolicyResults(policyResults)
@@ -284,35 +305,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	default:
 		// Handle SafeInitActionInvalid or unexpected action types
 		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
-	}
-
-	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
-	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
-	if initArgs.Upgrade && !initArgs.Reconfigure && config.Module.StateStore != nil {
-		pAddr := config.Module.StateStore.ProviderAddr
-		old := previousLocks.Provider(pAddr)
-		new := configLocks.Provider(pAddr)
-		if old == nil || new == nil {
-			panic(fmt.Sprintf(`Unexpected missing provider lock for %s during init -upgrade: 
-prior lock: %#v
-new lock: %#v`, pAddr.ForDisplay(), old, new))
-		}
-		if !new.Version().Same((old.Version())) {
-			// The upgrade has impacted the provider
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot upgrade the provider used for state storage during \"terraform init -upgrade\"",
-				fmt.Sprintf(`While upgrading providers Terraform attempted to upgrade the %s (%q) provider, which is used by the state_store block in your configuration.
-Please use \"terraform state migrate -upgrade\" to upgrade the state store provider and navigate migrating your state between the two versions. You can then re-attempt \"terraform init -upgrade\" to upgrade the rest of your providers.
-
-If you do not intend to upgrade the state store provider, please update your configuration to pin to the current version (%s), and re-run \"terraform init -upgrade\" to upgrade the rest of your providers.
-`,
-					pAddr.Type, pAddr.ForDisplay(), old.Version()),
-			),
-			)
-			view.Diagnostics(diags)
-			return 1
-		}
 	}
 
 	// If we outputted information, then we need to output a newline

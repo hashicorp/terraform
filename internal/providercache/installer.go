@@ -350,7 +350,6 @@ NeedProvider:
 			// We do this before checking the lock file, so that we also
 			// evaluate policy for providers that are already installed.
 			err := hook.ProviderVersionSelected(ctx, provider, version.String())
-
 			// return a generic error here that the init command returns to the CLI.
 			// The detailed policy diagnostics are included in the policy results
 			// and will be formatted in the CLI output.

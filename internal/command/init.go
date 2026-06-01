@@ -392,7 +392,7 @@ const (
 // The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook ...providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	if config == nil {
 		return false, nil, SafeInitActionNotRelevant, nil, diags
 	}
@@ -530,7 +530,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, installErr := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode, installerHook)
+	configLocks, installErr := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode, installerHook...)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags) // TODO: Why is the output viewed here?
@@ -589,7 +589,7 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 // The calling code is assumed to have already called getProvidersFromConfig, which is used to
 // supply the configLocks argument.
 // The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHooks ...providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers from state")
 	defer span.End()
 
@@ -703,7 +703,7 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	//      would remove the effects of version constraints from the config.
 	// > Any validation of CLI flag usage is already done in getProvidersFromConfig
 
-	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode, installerHook)
+	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode, installerHooks...)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
