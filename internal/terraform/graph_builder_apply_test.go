@@ -12,7 +12,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -71,6 +73,62 @@ func TestApplyGraphBuilder(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("wrong result\n%s", diff)
 	}
+}
+
+func TestApplyGraphBuilder_PolicyClient(t *testing.T) {
+	changes := &plans.ChangesSrc{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.create"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.other"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
+				},
+			},
+		},
+	}
+
+	t.Run("with policy client", func(t *testing.T) {
+		b := &ApplyGraphBuilder{
+			Config:       testModule(t, "graph-builder-apply-basic"),
+			Changes:      changes,
+			Plugins:      simpleMockPluginLibrary(),
+			PolicyClient: policy.NewTestMockClient(t),
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 1 {
+			t.Fatalf("expected 1 policy evaluation node in apply graph with policy client, got %d", nodes)
+		}
+	})
+
+	t.Run("without policy client", func(t *testing.T) {
+		b := &ApplyGraphBuilder{
+			Config:  testModule(t, "graph-builder-apply-basic"),
+			Changes: changes,
+			Plugins: simpleMockPluginLibrary(),
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 0 {
+			t.Fatalf("expected 0 policy evaluation nodes in apply graph without policy client, got %d", nodes)
+		}
+	})
 }
 
 // This tests the ordering of two resources where a non-CBD depends

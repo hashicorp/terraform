@@ -402,7 +402,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return plan, deferred, diags.Append(err)
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -583,6 +583,13 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	changes.AppendResourceInstanceChange(change)
 	if deposedKey == states.NotDeposed {
+		// add the change to the policy graph if it's not a pre-destroy refresh.
+		// Pre-destroy refreshes do not need to be sent for policy evaluation because
+		// they are just used internally by Terraform to refresh resources before
+		// they are destroyed (See comments in https://github.com/hashicorp/terraform/blob/d4ca814cbea037dcf2a59d083f8a540bf5d38d3a/internal/terraform/context_plan.go#L46-L53).
+		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
+			policyGraph.Add(policyNodeFromChange(change))
+		}
 		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {
 		log.Printf("[TRACE] writeChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
@@ -619,7 +626,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return state, deferred, diags
@@ -862,7 +869,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, deferred, keyData, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1629,7 +1636,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		return newVal, deferred, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return newVal, deferred, diags
@@ -1758,37 +1765,6 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	}))
 
 	return newVal, deferred, diags
-}
-
-func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return metaConfigVal, diags.Append(err)
-	}
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
-			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta.Body == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
-					Subject:  &m.ProviderRange,
-				})
-			} else {
-				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
-				diags = diags.Append(configDiags)
-				var deprecationDiags tfdiags.Diagnostics
-				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
-				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, n.Addr.String()))
-			}
-		}
-	}
-	return metaConfigVal, diags
 }
 
 // planDataSource deals with the main part of the data resource lifecycle:
@@ -2619,7 +2595,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		return state, diags
 	}
 
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
 		return state, diags

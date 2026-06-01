@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -180,6 +182,12 @@ type EvalContext interface {
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
 
+	// PolicyGraph returns the policy subgraph for this context.
+	// It is used to store resource policy nodes that are collected during the resource
+	// graph evaluation. Each resource that produces a plan or state change
+	// will have a corresponding policy node in this graph.
+	PolicyGraph() *policySubgraph
+
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
 	// arguments.
@@ -224,6 +232,19 @@ type EvalContext interface {
 	// EvalContext.
 	Actions() *actions.Actions
 
+	// ProviderLocks returns a read-only snapshot of provider locks (exact
+	// version per provider selected during init).
+	ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock
+
+	// PolicyClient returns the policy client object which allows evaluation of
+	// policy for resources, modules, and providers via the policy plugin.
+	// Absent if policy evaluation is not enabled.
+	PolicyClient() policy.Client
+
+	// PolicyResults returns the object that tracks policy evaluation results.
+	PolicyResults() *plans.PolicyResults
+
+	Config() *configs.Config
 	// Deprecations returns the deprecations object that tracks meta-information
 	// about deprecation, e.g. which module calls suppress deprecation warnings.
 	Deprecations() *deprecation.Deprecations
