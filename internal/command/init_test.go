@@ -4059,7 +4059,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 - Installing hashicorp/test v1.2.3...
 - Installed hashicorp/test v1.2.3 (verified checksum)
 
-Initializing the state store...
+Initializing the state store "test_store"...
 
 Initializing provider plugins...
 - Reusing previous version of hashicorp/test from the dependency lock file
@@ -4355,7 +4355,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -4422,7 +4422,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"The state store provider was approved",
 			"Terraform has been successfully initialized!",
 		}
@@ -4504,7 +4504,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"The state store provider was approved",
 			"Terraform has been successfully initialized!",
 		}
@@ -4705,7 +4705,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 		output = testOutput.All()
 		expectedOutputs = []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"The state store provider was approved",
 			"Terraform has been successfully initialized!",
 		}
@@ -4764,7 +4764,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -4844,7 +4844,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"The state store provider was approved automatically",
 			"Terraform has been successfully initialized!",
 		}
@@ -4930,7 +4930,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		// Check output via view
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"The state store provider was approved automatically",
 			"Terraform has been successfully initialized!",
 		}
@@ -5176,7 +5176,7 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 	// Check output
 	output := testOutput.All()
 	expectedOutputs := []string{
-		"Initializing the state store...",
+		`Initializing the state store "test_store"...`,
 		"Terraform has been successfully initialized!",
 	}
 	for _, expected := range expectedOutputs {
@@ -5277,7 +5277,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -5348,7 +5348,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
+			`Initializing the state store "test_store"...`,
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -5442,7 +5442,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		// When -backend=false the backend/state store isn't initialized, so we don't expect this
 		// output if the flag has the expected effect on Terraform.
-		unexpectedOutput := "Initializing the state store..."
+		unexpectedOutput := `Initializing the state store "test_store"...`
 		if strings.Contains(output, unexpectedOutput) {
 			t.Fatalf("output included %q, which is unexpected if -backend=false is behaving correctly':\n %s", unexpectedOutput, output)
 		}

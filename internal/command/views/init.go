@@ -200,8 +200,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "Initializing provider plugin for state store %q...",
 	},
 	"initializing_state_store_message": {
-		HumanValue: "\n[reset][bold]Initializing the state store...",
-		JSONValue:  "Initializing the state store...",
+		HumanValue: "\n[reset][bold]Initializing the state store %q...",
+		JSONValue:  "Initializing the state store %q...",
 	},
 	"state_store_provider_interactive_approved_message": {
 		HumanValue: "\n[reset][bold]The state store provider was approved by the user.",
