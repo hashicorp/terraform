@@ -1054,6 +1054,48 @@ eventually make it onto multiple lines. THE END
 	}
 }
 
+func TestDiagnosticPlainFromJSON_policySnippet(t *testing.T) {
+	diag := &viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityError,
+		Summary:  "policy denied",
+		PolicyRange: &viewsjson.DiagnosticRange{
+			Filename: "policy_file.tfpolicy.hcl",
+			Start:    viewsjson.Pos{Line: 1},
+		},
+		PolicySnippet: &viewsjson.DiagnosticSnippet{
+			Code:                 `resource_policy "resource_type" "policy_name" {`,
+			StartLine:            1,
+			HighlightStartOffset: 0,
+			HighlightEndOffset:   48,
+		},
+		Range: &viewsjson.DiagnosticRange{
+			Filename: "main.tf",
+			Start:    viewsjson.Pos{Line: 1},
+		},
+		Snippet: &viewsjson.DiagnosticSnippet{
+			Code:                 `resource "test_instance" "foo" {`,
+			StartLine:            1,
+			HighlightStartOffset: 0,
+			HighlightEndOffset:   30,
+		},
+	}
+
+	got := strings.TrimSpace(DiagnosticPlainFromJSON(diag, 0))
+	want := strings.TrimSpace(`
+Error: policy denied
+
+  on policy_file.tfpolicy.hcl line 1:
+   1: resource_policy "resource_type" "policy_name" {
+
+  while evaluating policy for main.tf line 1:
+   1: resource "test_instance" "foo" {
+`)
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("unexpected output diff:\n%s", diff)
+	}
+}
+
 // Test cases covering invalid JSON diagnostics which should still render
 // correctly. These JSON diagnostic values cannot be generated from the
 // json.NewDiagnostic code path, but we may read and display JSON diagnostics
