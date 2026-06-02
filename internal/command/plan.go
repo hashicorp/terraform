@@ -36,6 +36,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
 	c.Meta.policyPaths = args.PolicyPaths
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -119,6 +120,10 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	return op.Result.ExitStatus()
+}
+
+func (c *PlanCommand) Validate(args *arguments.Plan) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
 func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {

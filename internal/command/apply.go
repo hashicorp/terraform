@@ -49,6 +49,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		args, diags = arguments.ParseApply(rawArgs)
 	}
 	c.Meta.policyPaths = args.PolicyPaths
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -159,6 +160,10 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	return 0
+}
+
+func (c *ApplyCommand) Validate(args *arguments.Apply) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
 func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
@@ -282,15 +287,6 @@ func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view vi
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
 	opReq.ActionTargets = args.ActionTargets
 	opReq.PolicyPaths = policyPaths
-
-	if !c.AllowExperimentalFeatures && len(policyPaths) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -policies flag is only valid in experimental builds of Terraform.",
-		))
-		return nil, diags
-	}
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
