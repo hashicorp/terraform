@@ -187,14 +187,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_provider_plugin_from_config_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins found in the configuration...",
-		JSONValue:  "Initializing provider plugins found in the configuration...",
-	},
-	"initializing_provider_plugin_from_state_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins found in the state...",
-		JSONValue:  "Initializing provider plugins found in the state...",
-	},
 	"initializing_state_store_provider_plugin_message": {
 		HumanValue: "\n[reset][bold]Initializing provider plugin for state store %q...",
 		JSONValue:  "Initializing provider plugin for state store %q...",
@@ -359,8 +351,6 @@ const (
 	StateStoreProviderInteractiveApprovedMessage InitMessageCode = "state_store_provider_interactive_approved_message"
 	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
 	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
-	InitializingProviderPluginFromConfigMessage  InitMessageCode = "initializing_provider_plugin_from_config_message"
-	InitializingProviderPluginFromStateMessage   InitMessageCode = "initializing_provider_plugin_from_state_message"
 	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
 	ReusingVersionIdentifiedFromConfig           InitMessageCode = "reusing_version_during_state_provider_init"
 	LockInfo                                     InitMessageCode = "lock_info"
