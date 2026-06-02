@@ -235,10 +235,10 @@ func TestInit_two_source_provider_download(t *testing.T) {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
-			actual := cleanString(done(t).All())
+			actual := done(t).All()
 			for _, downloadMsg := range tc.expectedDownloadMsgs {
 				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
-					t.Fatalf("expected output to contain %q\n, got %q", cleanString(downloadMsg), cleanString(actual))
+					t.Fatalf("expected output to contain %q\n, got:\n%s", cleanString(downloadMsg), actual)
 				}
 			}
 		})
@@ -4067,7 +4067,7 @@ Initializing provider plugins...
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
-				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+				t.Fatalf("expected output to include %q, but got:\n%s", expected, output)
 			}
 		}
 
