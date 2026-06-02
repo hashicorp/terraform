@@ -1449,6 +1449,222 @@ resource "test_object" "a" {
 					})
 				},
 			},
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				planActionFn: func(t *testing.T, req providers.PlanActionRequest) providers.PlanActionResponse {
+					attr := req.ProposedActionData.GetAttr("attr").AsString()
+					if attr != "current" {
+						t.Fatalf("expected action plan to be 'current', got %s\n", attr)
+					}
+					return providers.PlanActionResponse{}
+				},
+				expectPlanActionCalled: true,
+			},
+
+			"no ephemeral in destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action_wo" "test" {
+  config {
+    attr = terraform.applying
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action_wo.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action config contains ephemeral values",
+						Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+							End:      hcl.Pos{Line: 2, Column: 31, Byte: 31},
+						},
+					})
+				},
+			},
+
+			"destroy action must be known": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "new" {
+}
+
+action "test_action" "test" {
+  config {
+    attr = test_object.new.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					if req.PriorState.IsNull() {
+						resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+							"name": cty.UnknownVal(cty.String),
+						})
+						return resp
+					}
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unknown action config",
+						Detail:   "Action configuration must be known to plan a destroy action.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 5, Column: 1, Byte: 35},
+							End:      hcl.Pos{Line: 5, Column: 28, Byte: 62},
+						},
+					})
+				},
+			},
+
+			"destroy condition must be known": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "new" {
+}
+
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      condition = test_object.new.name == "ready"
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					if req.PriorState.IsNull() {
+						// this is the new instance being created
+						resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+							"name": cty.UnknownVal(cty.String),
+						})
+						return resp
+					}
+
+					// this is directing the existing "a" instance to be replaced
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unknown action trigger condition",
+						Detail:   "Condition expression must be known to plan a destroy action.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 14, Column: 19, Byte: 202},
+							End:      hcl.Pos{Line: 14, Column: 50, Byte: 233},
+						},
+					})
+				},
+			},
 
 			"caller can be used for triggering resource": {
 				module: map[string]string{
@@ -3338,28 +3554,6 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 			},
 
-			"after_destroy": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "test" {
-  config {
-    attr = caller.name
-  }
-}
-resource "test_object" "a" {
-  name = "new"
-  lifecycle {
-    action_trigger {
-      events = [after_destroy]
-      actions = [action.test_action.test]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: true,
-			},
-
 			"non-boolean condition": {
 				module: map[string]string{
 					"main.tf": `
@@ -4074,6 +4268,7 @@ resource "test_object" "b" {
 											"name": {
 												Type:     cty.String,
 												Optional: true,
+												Computed: true,
 											},
 										},
 									},

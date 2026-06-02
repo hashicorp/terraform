@@ -422,6 +422,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 	for _, instAddr := range instances {
 		if instAddr.Equal(inst) {
 			found = true
+			break
 		}
 	}
 	if !found {

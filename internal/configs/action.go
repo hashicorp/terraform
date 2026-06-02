@@ -67,9 +67,22 @@ const (
 	Invoke
 )
 
+func (e ActionTriggerEvent) IsBefore() bool {
+	return slices.Contains(BeforeEvents, e)
+}
+
+func (e ActionTriggerEvent) IsAfter() bool {
+	return slices.Contains(AfterEvents, e)
+}
+
+func (e ActionTriggerEvent) IsDestroy() bool {
+	return slices.Contains(DestroyEvents, e)
+}
+
 var (
-	BeforeEvents = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
-	AfterEvents  = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	BeforeEvents  = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
+	AfterEvents   = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	DestroyEvents = []ActionTriggerEvent{BeforeDestroy, AfterDestroy}
 )
 
 // ActionRef represents a reference to a configured Action

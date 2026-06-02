@@ -30,10 +30,10 @@ var (
 	_ GraphNodeProviderConsumer = (*actionTriggerApplyInstance)(nil)
 )
 
-func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
+func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value, fromPlan bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	provider, _, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
+	provider, actionProviderSchema, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -54,32 +54,37 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 		return diags
 	}
 
-	// TODO: we will need to decode the saved config value for our initial attempt at destroy actions
-	//
-	// actionSchema, ok := actionProviderSchema.Actions[n.ActionInvocation.Addr.Action.Action.Type]
-	// if !ok {
-	// 	// This should have been caught earlier, but we don't want to panic
-	// 	diags = diags.Append(&hcl.Diagnostic{
-	// 		Severity: hcl.DiagError,
-	// 		Summary:  fmt.Sprintf("Action %s not found in provider schema", n.ActionInvocation.Addr),
-	// 		Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", n.ActionInvocation.Addr, n.ActionInvocation.ProviderAddr),
-	// 		Subject:  n.actionNode.Config.DeclRange.Ptr(),
-	// 	})
-	// 	return diags
-	// }
-	// inv, err := n.ActionInvocation.Decode(&actionSchema)
-	// if err != nil {
-	// 	return diags.Append(err)
-	// }
-	// configValue := inv.ConfigValue
+	configVal := cty.DynamicVal
 
-	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller, callerVal)
-	diags = diags.Append(actionDiags)
-	if diags.HasErrors() {
-		return diags
+	// fromPlan indicates we can use the entire planned value for the action,
+	// and should not attempt to reevaluate the config.
+	if fromPlan {
+		actionSchema, ok := actionProviderSchema.Actions[n.ActionInvocation.Addr.Action.Action.Type]
+		if !ok {
+			// This should have been caught earlier, but we don't want to panic
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Action %s not found in provider schema", n.ActionInvocation.Addr),
+				Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", n.ActionInvocation.Addr, n.ActionInvocation.ProviderAddr),
+				Subject:  n.actionNode.Config.DeclRange.Ptr(),
+			})
+			return diags
+		}
+		inv, err := n.ActionInvocation.Decode(&actionSchema)
+		if err != nil {
+			return diags.Append(err)
+		}
+		configVal = inv.ConfigValue
+	} else {
+		val, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller, callerVal)
+		diags = diags.Append(actionDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		configVal = val
 	}
 
-	if !configValue.IsWhollyKnown() {
+	if !configVal.IsWhollyKnown() {
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Action configuration unknown during apply",
@@ -104,7 +109,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 	// We don't want to send the marks, but all marks are okay in the context
 	// of an action invocation. We can't reuse our ephemeral free value from
 	// above because we want the ephemeral values to be included.
-	unmarkedConfigValue, _ := configValue.UnmarkDeep()
+	unmarkedConfigValue, _ := configVal.UnmarkDeep()
 	resp := provider.InvokeAction(providers.InvokeActionRequest{
 		ActionType:         n.ActionInvocation.Addr.Action.Action.Type,
 		PlannedActionData:  unmarkedConfigValue,

@@ -258,7 +258,7 @@ func (n *nodeActionInvokeApplyInstance) Name() string {
 
 func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	// FIXME: caller!
-	return n.invoke(ctx, n.ActionInvocation.Caller, cty.NilVal)
+	return n.Invoke(ctx, n.ActionInvocation.Caller, cty.NilVal, true)
 }
 
 func (n *nodeActionInvokeApplyInstance) References() []*addrs.Reference {
