@@ -873,6 +873,50 @@ resource "test_object" "a" {
 					}
 				},
 			},
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				planActionFn: func(t *testing.T, req providers.PlanActionRequest) providers.PlanActionResponse {
+					attr := req.ProposedActionData.GetAttr("attr").AsString()
+					if attr != "current" {
+						t.Fatalf("expected action plan to be 'current', got %s\n", attr)
+					}
+					return providers.PlanActionResponse{}
+				},
+				expectPlanActionCalled: true,
+			},
 		},
 
 		// ======== EXPANSION ========
@@ -3329,28 +3373,6 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_create]
-      actions = [action.test_action.test]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: true,
-			},
-
-			"after_destroy": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "test" {
-  config {
-    attr = caller.name
-  }
-}
-resource "test_object" "a" {
-  name = "new"
-  lifecycle {
-    action_trigger {
-      events = [after_destroy]
       actions = [action.test_action.test]
     }
   }

@@ -696,7 +696,15 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		return
 	}
 
-	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource, n.change.After)
+	callerVal := n.change.After
+	// If the resource is being destroyed, we want the before val. This works
+	// for replacement (this node doesn't handle full destroys), because the
+	// caller is associated with the existing resource instance rather than the
+	if event == configs.BeforeDestroy || event == configs.AfterDestroy {
+		callerVal = n.change.Before
+	}
+
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource, callerVal)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return
