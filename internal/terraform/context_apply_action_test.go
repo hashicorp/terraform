@@ -178,8 +178,6 @@ resource "test_object" "a" {
 		"after_destroy triggered": {
 			module: map[string]string{
 				"main.tf": `
-resource "test_object" "init" {}
-
 action "action_example" "hello" {
   config {
     attr = caller.test_string
@@ -193,7 +191,6 @@ resource "test_object" "a" {
       events = [after_destroy]
       actions = [action.action_example.hello]
     }
-	replace_triggered_by = [test_object.init]
   }
 }
 `,
@@ -201,7 +198,7 @@ resource "test_object" "a" {
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
 					&states.ResourceInstanceObjectSrc{
-						Status:    states.ObjectReady,
+						Status:    states.ObjectTainted,
 						AttrsJSON: []byte(`{"test_string":"old name"}`),
 					},
 					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),

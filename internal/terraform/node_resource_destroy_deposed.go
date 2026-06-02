@@ -8,12 +8,14 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConcreteResourceInstanceDeposedNodeFunc is a callback type used to convert
@@ -312,6 +314,23 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	if n.hasBeforeActions() {
+		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+		diags = diags.Append(n.invokeActions(ctx, repData, configs.BeforeEvents, change.Before))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	// we pass a nil configuration to apply because we are destroying
 	state, applyDiags := n.apply(ctx, state, change, nil, instances.RepetitionData{}, false)
 	diags = diags.Append(applyDiags)
@@ -325,6 +344,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	if diags.HasErrors() {
 		return diags
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents, change.Before))
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 

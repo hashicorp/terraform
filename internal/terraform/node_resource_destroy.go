@@ -182,6 +182,15 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 			return diags
 		}
 	}
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil)
+
+	if n.hasBeforeActions() {
+		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+		diags = diags.Append(n.invokeActions(ctx, repData, configs.BeforeEvents, changeApply.Before))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
 
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
@@ -211,6 +220,9 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 			Action:       changeApply.Action,
 		})
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents, changeApply.Before))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
