@@ -269,50 +269,59 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			lock.PreferredHashes(),
 		)
 	}
-	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-	diags = diags.Append(configProviderDiags)
-	if configProviderDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	if configProvidersOutput {
-		header = true
-	}
 
-	// Course of action depends on the safeInitAction returned from getProvidersFromConfig
-	switch safeInitAction {
-	case SafeInitActionNotRelevant:
-		// do nothing; security features aren't relevant.
-	case SafeInitActionProceed:
-		// do nothing; provider is already trusted and there's no need to notify the user.
-	case SafeInitActionRequireApproval:
-		if c.input {
-			// Prompt the user about trusting the provider used for state storage.
-			diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
-			if diags.HasErrors() {
-				view.Output(views.StateStoreProviderInteractiveRejectedMessage)
-				view.Diagnostics(diags)
-				return 1
-			}
-			view.Output(views.StateStoreProviderInteractiveApprovedMessage)
-		} else {
-			// Confirm that a lock was used to control download.
-			// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
-			if alteredPreviousLocks.Provider(config.Module.StateStore.ProviderAddr) == nil {
-				// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Missing lock for state store provider",
-					"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
-				))
-				view.Diagnostics(diags)
-				return 1
-			}
-			view.Output(views.StateStoreProviderAutomationApprovedMessage)
+	var configLocks *depsfile.Locks
+	if config != nil && config.Module != nil && config.Module.StateStore != nil {
+		var configProvidersOutput bool
+		var safeInitAction SafeInitAction
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
+		var configProviderDiags tfdiags.Diagnostics
+
+		configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		diags = diags.Append(configProviderDiags)
+		if configProviderDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
 		}
-	default:
-		// Handle SafeInitActionInvalid or unexpected action types
-		panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
+		if configProvidersOutput {
+			header = true
+		}
+
+		// Course of action depends on the safeInitAction returned from getProvidersFromPSSConfig
+		switch safeInitAction {
+		case SafeInitActionNotRelevant:
+			// do nothing; security features aren't relevant.
+		case SafeInitActionProceed:
+			// do nothing; provider is already trusted and there's no need to notify the user.
+		case SafeInitActionRequireApproval:
+			if c.input {
+				// Prompt the user about trusting the provider used for state storage.
+				diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
+				if diags.HasErrors() {
+					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
+					view.Diagnostics(diags)
+					return 1
+				}
+				view.Output(views.StateStoreProviderInteractiveApprovedMessage)
+			} else {
+				// Confirm that a lock was used to control download.
+				// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
+				if alteredPreviousLocks.Provider(config.Module.StateStore.ProviderAddr) == nil {
+					// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Missing lock for state store provider",
+						"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
+					))
+					view.Diagnostics(diags)
+					return 1
+				}
+				view.Output(views.StateStoreProviderAutomationApprovedMessage)
+			}
+		default:
+			// Handle SafeInitActionInvalid or unexpected action types
+			panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
+		}
 	}
 
 	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
@@ -425,15 +434,7 @@ If you do not intend to upgrade the state store provider, please update your con
 		state = sMgr.State()
 	}
 
-	// Now the resource state is loaded, we can download the providers specified in the state but not the configuration.
-	// This is step two of a two-step provider download process
-	configReqs, cReqDiags := config.ProviderRequirements()
-	diags = diags.Append(cReqDiags)
-	if cReqDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.PluginPath, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, configLocks, initArgs.PluginPath, view)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)

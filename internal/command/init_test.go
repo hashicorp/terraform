@@ -124,20 +124,19 @@ func TestInit_only_test_files(t *testing.T) {
 	}
 }
 
-func TestInit_two_step_provider_download(t *testing.T) {
+func TestInit_two_source_provider_download(t *testing.T) {
 	cases := map[string]struct {
 		workDirPath          string
 		flags                []string
 		expectedDownloadMsgs []string
 	}{
 		"providers required by only the state file": {
-			// TODO - should the output indicate that no providers were found in config?
 			workDirPath: "init-provider-download/state-file-only",
 			expectedDownloadMsgs: []string{
 				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
-				`Initializing provider plugins found in the configuration...
-				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
-				`Initializing provider plugins found in the state...
+				`Initializing the backend...
+				Successfully configured the backend "local"!`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins...
 				- Finding latest version of hashicorp/random...
 				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
 			},
@@ -146,89 +145,63 @@ func TestInit_two_step_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download/config-and-state-different-providers",
 			expectedDownloadMsgs: []string{
 				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
-
-				// Config - this provider is affected by a version constraint
-				`Initializing provider plugins found in the configuration...
-				- Finding hashicorp/null versions matching "< 9.0.0"...
-				- Installing hashicorp/null v1.0.0...
+				"Initializing provider plugins...",
+				// Config - null provider is affected by a version constraint
+				`- Finding hashicorp/null versions matching "< 9.0.0"...`,
+				`- Installing hashicorp/null v1.0.0...
 				- Installed hashicorp/null v1.0.0`,
-
-				// State - the latest version of this provider is expected, as state has no version constraints
-				`Initializing provider plugins found in the state...
-				- Finding latest version of hashicorp/random...
-				- Installing hashicorp/random v9.9.9...`,
+				// State - the latest version of random provider is expected, as state has no version constraints
+				`- Finding latest version of hashicorp/random...`,
+				`- Installing hashicorp/random v9.9.9...
+				- Installed hashicorp/random v9.9.9`,
 			},
 		},
 		"does not re-download providers that are present in both config and state": {
 			workDirPath: "init-provider-download/config-and-state-same-providers",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "< 9.0.0"...
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		"reuses providers already represented in a dependency lock file": {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		"using the -upgrade flag causes provider download to ignore the lock file": {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			flags:       []string{"-upgrade"},
 			expectedDownloadMsgs: []string{
-				// Config - lock file is not mentioned due to the -upgrade flag
-				`Initializing provider plugins found in the configuration...
+				// lock file is not mentioned due to the -upgrade flag
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "< 9.0.0"...
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State - reuses the provider download from the config
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		// Same as some tests above, but now the version constraint in config specifies a pre-release
 		"pre-release not re-downloaded if present in both config and state": {
 			workDirPath: "init-provider-download-prerelease/config-and-state-same-providers",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "1.2.3-beta"...
 				- Installing hashicorp/random v1.2.3-beta...
-				- Installed hashicorp/random v1.2.3-beta`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.2.3-beta`,
+				- Installed hashicorp/random v1.2.3-beta (verified checksum)`,
 			},
 		},
 		"reuses pre-release provider already represented in a dependency lock file": {
 			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.2.3-beta...
 				- Installed hashicorp/random v1.2.3-beta`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.2.3-beta`,
 			},
 		},
 	}
@@ -2935,7 +2908,7 @@ terraform {
 			getproviders.MustParseVersion("1.2.3"),
 			getproviders.MustParseVersionConstraints("> 1.0.0"),
 			[]getproviders.Hash{
-				getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+				getproviders.HashScheme1.New("z1PjPOAuP6c16GKfaCTIJwj95cZ9PrOiREixVFeLZYA="),
 			},
 		)
 		if err := depsfile.SaveLocksToFile(locks, ".terraform.lock.hcl"); err != nil {
@@ -4081,8 +4054,16 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 		// Check output
 		output := testOutput.All()
 		expectedOutputs := []string{
-			"Initializing the state store...",
-			"Terraform has been successfully initialized!",
+			`Initializing provider plugin for state store "test_store"...
+- Finding latest version of hashicorp/test...
+- Installing hashicorp/test v1.2.3...
+- Installed hashicorp/test v1.2.3 (verified checksum)
+
+Initializing the state store...
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/test from the dependency lock file
+- Using previously-installed hashicorp/test v1.2.3`,
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
