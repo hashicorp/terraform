@@ -211,6 +211,14 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 		))
 	}
 
+	if init.Lockfile != "" && init.Lockfile != "readonly" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid -lockfile flag value",
+			fmt.Sprintf("The -lockfile flag only accepts \"readonly\". Got: %q.", init.Lockfile),
+		))
+	}
+
 	if init.Upgrade && init.Lockfile == "readonly" {
 		// This is appended as a Go error because this validation already existed this way
 		// and it's been moved earlier in the process, to the arguments package.
