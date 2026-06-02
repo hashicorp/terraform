@@ -128,18 +128,18 @@ func (r ProviderRef) getProviderMeta(ctx EvalContext, resource addrs.ResourceIns
 	var diags tfdiags.Diagnostics
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 
-	_, providerSchema, err := getProvider(ctx, r.addr)
+	_, providerSchema, err := getProvider(ctx, r.Addr)
 	if err != nil {
 		return metaConfigVal, diags.Append(err)
 	}
 
 	if metas != nil {
-		if m, ok := metas[r.addr.Provider]; ok && m != nil {
+		if m, ok := metas[r.Addr.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
 			if providerSchema.ProviderMeta.Body == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", r.addr.Provider.String()),
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", r.Addr.Provider.String()),
 					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", resource.String()),
 					Subject:  &m.ProviderRange,
 				})
@@ -149,7 +149,7 @@ func (r ProviderRef) getProviderMeta(ctx EvalContext, resource addrs.ResourceIns
 				diags = diags.Append(configDiags)
 				var deprecationDiags tfdiags.Diagnostics
 				metaConfigVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(metaConfigVal, providerSchema.ProviderMeta.Body, ctx.Path().Module())
-				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, r.addr.String()))
+				diags = diags.Append(deprecationDiags.InConfigBody(m.Config, r.Addr.String()))
 			}
 		}
 	}

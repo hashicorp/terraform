@@ -78,8 +78,8 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	providerRef := ProviderRef{
-		addr:     providerAddr,
-		resolved: true,
+		Addr:     providerAddr,
+		Resolved: true,
 	}
 
 	metaVal, metaDiags := providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
