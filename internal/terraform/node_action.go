@@ -169,7 +169,9 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable)
 		config = hcl.EmptyBody()
 	}
 
-	configVal, _, valDiags := ctx.EvaluateBlock(config, n.Schema.ConfigSchema, caller, keyData)
+	scope := ctx.EvaluationScope(caller, nil, keyData)
+	configVal, valDiags := scope.EvalActionBlock(config, n.Schema.ConfigSchema, cty.DynamicVal)
+	// configVal, _, valDiags := ctx.EvaluateBlock(config, n.Schema.ConfigSchema, caller, keyData)
 	if valDiags.HasErrors() {
 		// If there was no config block at all, we'll add a Context range to the returned diagnostic
 		if n.Config.Config == nil {
@@ -291,7 +293,7 @@ func (n *NodeActionConfig) AttachDependencies(deps []addrs.ConfigResource) {
 // addrs.NoKey This function uses addrs.ActionInstance even though it only needs
 // the key because we need to use use a full instance addr for the resulting map
 // keys anyway.
-func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
 
@@ -310,7 +312,7 @@ func (n *NodeActionConfig) EvalInstances(ctx EvalContext, addr addrs.ActionInsta
 
 	for _, instAddr := range instances {
 		repData := expander.GetActionInstanceRepetitionData(instAddr)
-		val, evalDiags := n.evalInstance(ctx, repData, callRange, caller)
+		val, evalDiags := n.evalInstance(ctx, repData, callRange, caller, cty.NilVal)
 		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			return all, diags
@@ -403,7 +405,7 @@ func (n *NodeActionConfig) validateInstanceKey(addr addrs.AbsActionInstance, cal
 }
 
 // EvalInstance returns the value from the expanded action block
-func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	diags = diags.Append(n.validateInstanceKey(inst, callRange))
@@ -434,13 +436,13 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 
 	repData := expander.GetActionInstanceRepetitionData(instAddr)
 
-	return n.evalInstance(ctx, repData, callRange, caller)
+	return n.evalInstance(ctx, repData, callRange, caller, callerVal)
 }
 
 // Eval one or more instances of the action. This function expects that the key
 // is already validated for the the calling context, and will not produce
 // diagnostics for incorrect key types.
-func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// This should have been caught already
@@ -449,20 +451,34 @@ func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.Repet
 	}
 
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
-	if n.Config.Config != nil {
-		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema.DeepCopy(), caller, repData)
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
+	if n.Config.Config == nil {
+		return configVal, nil
+	}
+
+	// For invoke we have no callerVal, but can use the normal self evaluation
+	// mechanisms because the instance must be in state already.
+	var evalDiags tfdiags.Diagnostics
+	if callerVal == cty.NilVal {
+		configVal, _, evalDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, caller, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
 			return configVal, diags
 		}
-
-		valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
-		diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
-
-		var deprecationDiags tfdiags.Diagnostics
-		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
-		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+	} else {
+		scope := ctx.EvaluationScope(caller, nil, repData)
+		configVal, evalDiags = scope.EvalActionBlock(n.Config.Config, n.Schema.ConfigSchema, callerVal)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			return configVal, diags
+		}
 	}
+
+	valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+	diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
 	return configVal, diags
 }

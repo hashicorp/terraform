@@ -1438,7 +1438,7 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
-		"before_create references caller": {
+		"before_update references caller": {
 			module: map[string]string{
 				"main.tf": `
 action "action_example" "test" {
@@ -1451,7 +1451,6 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      condition = self.test_string == "new"
       actions = [action.action_example.test]
     }
   }
