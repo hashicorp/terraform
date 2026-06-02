@@ -53,8 +53,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			for _, atn := range atns {
 				if destroy {
 					if n, ok := atn.(*NodeDestroyResourceInstance); ok {
-						// FIXME: this doesn't deal with deposed or forget instances
-						n.actionTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
+						n.actionApplyTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
 							ActionInvocation: ai,
 							actionNode:       actionConfig,
 						})
@@ -65,7 +64,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 				}
 
 				if n, ok := atn.(*NodeApplyableResourceInstance); ok {
-					n.actionTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
+					n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
 						ActionInvocation: ai,
 						actionNode:       actionConfig,
 					})

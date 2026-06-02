@@ -6,7 +6,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -36,8 +35,6 @@ type NodeApplyableResourceInstance struct {
 	// forceReplace indicates that this resource is being replaced for external
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
-
-	actionTriggers []*actionTriggerApplyInstance
 }
 
 var (
@@ -376,93 +373,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents, state.Value))
 
 	return diags
-}
-
-// pre-check for before actions since being able to evaluate actions requires a
-// slightly different behavior for diff handling, we guard that change by seeing if
-// it's needed at all.
-func (n *NodeApplyableResourceInstance) hasBeforeActions() bool {
-	for _, trigger := range n.actionTriggers {
-		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
-		if slices.Contains(configs.BeforeEvents, event) {
-			return true
-		}
-	}
-	return false
-}
-
-// invokeActions invokes any actions triggered for the listed events. Condition
-// expressions are reevaluated here when they exist, and failing conditions are
-// skipped.
-func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	for _, trigger := range n.actionTriggers {
-		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
-		if !slices.Contains(forEvents, event) {
-			continue
-		}
-
-		condOK, condDiags := n.evalActionCondition(ctx, trigger, repData)
-		diags = diags.Append(condDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-
-		if !condOK {
-			log.Printf("[DEBUG] NodeApplyableResourceInstance: action condition false, skipping %s", trigger.ActionInvocation.Addr)
-			continue
-		}
-
-		diags = diags.Append(trigger.invoke(ctx, n.Addr.Resource, callerVal))
-		if diags.HasErrors() {
-			break
-		}
-	}
-
-	return diags
-}
-
-// We need to lookup any condition expression from the action block before
-// execution, because the condition is part of the resource config, while the
-// action is planned as an ActionInvocation.
-func (n *NodeApplyableResourceInstance) evalActionCondition(ctx EvalContext, trigger *actionTriggerApplyInstance, repData instances.RepetitionData) (bool, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// this can't be an invoked trigger
-	rat := trigger.ActionInvocation.ActionTrigger.(*plans.ResourceActionTrigger)
-	triggerBlock := n.Config.Managed.ActionTriggers[rat.ActionTriggerBlockIndex]
-
-	if triggerBlock.Condition == nil {
-		return true, diags
-	}
-
-	scope := ctx.EvaluationScope(n.Addr.Resource, nil, repData)
-	cond, conditionEvalDiags := scope.EvalExpr(triggerBlock.Condition, cty.Bool)
-	diags = diags.Append(conditionEvalDiags)
-	if diags.HasErrors() {
-		return false, diags
-	}
-
-	if !cond.IsKnown() {
-		// this should not happen, but give the user a good diagnostic to help
-		// reproduce the problem in case it does.
-		return false, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unknown condition when invoking action before apply",
-			Detail:   "The action trigger condition must be known before it can be invoked.",
-			Subject:  triggerBlock.Condition.Range().Ptr(),
-		})
-	}
-
-	return cond.True(), diags
-}
-
-func (n *NodeApplyableResourceInstance) ActionProviders() []ProviderRef {
-	var refs []ProviderRef
-	for _, trigger := range n.actionTriggers {
-		refs = append(refs, ProviderRef{Addr: trigger.actionNode.ResolvedProvider, Resolved: true})
-	}
-	return refs
 }
 
 func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
