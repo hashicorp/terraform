@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -50,9 +51,6 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
-	if modCfg == nil {
-		return nil
-	}
 
 	attrs, _ := n.After.UnmarkDeep()
 	priorAttrs, _ := n.Before.UnmarkDeep()
@@ -69,6 +67,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		plans.CreateThenForget:
 		policyOperation = proto.Operation_UPDATE
 	default:
+		log.Printf("[DEBUG] Unsupported plan action %q, skipping policy evaluation", action)
 		return nil
 	}
 
@@ -82,10 +81,20 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		resolved: true,
 	}
 
-	metaVal, metaDiags := providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
-	diags = diags.Append(metaDiags)
-	if diags.HasErrors() {
-		return diags
+	// the module config may be nil if the module call has been removed from the configuration
+	// in this case, we are fine with a nil resource config, as that would only mean
+	// that we do not have the terraform config's source information in the diagnostics
+	// and neither do we have provider meta information to include in the policy request.
+	var resourceConfig *configs.Resource
+	var metaVal cty.Value
+	if modCfg != nil {
+		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
+		var metaDiags tfdiags.Diagnostics
+		metaVal, metaDiags = providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
+		diags = diags.Append(metaDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	callbacks := callback.Functions{
@@ -93,9 +102,8 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
 	}
 
-	rscConfig := modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-	result := evaluatePolicies(ctx, operation, n.ResourceAddr, rscConfig, client, attrs, priorAttrs, meta, callbacks)
-	ctx.PolicyResults().AddResource(n.ResourceAddr, result, rscConfig)
+	result := evaluatePolicies(ctx, operation, n.ResourceAddr, resourceConfig, client, attrs, priorAttrs, meta, callbacks)
+	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
 	return diags
 }
 
