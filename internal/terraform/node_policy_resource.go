@@ -77,8 +77,8 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	providerRef := ProviderRef{
-		addr:     providerAddr,
-		resolved: true,
+		Addr:     providerAddr,
+		Resolved: true,
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration
