@@ -1055,33 +1055,36 @@ eventually make it onto multiple lines. THE END
 }
 
 func TestDiagnosticPlainFromJSON_policySnippet(t *testing.T) {
-	diag := &viewsjson.Diagnostic{
-		Severity: viewsjson.DiagnosticSeverityError,
-		Summary:  "policy denied",
-		PolicyRange: &viewsjson.DiagnosticRange{
-			Filename: "policy_file.tfpolicy.hcl",
-			Start:    viewsjson.Pos{Line: 1},
-		},
-		PolicySnippet: &viewsjson.DiagnosticSnippet{
-			Code:                 `resource_policy "resource_type" "policy_name" {`,
-			StartLine:            1,
-			HighlightStartOffset: 0,
-			HighlightEndOffset:   48,
-		},
-		Range: &viewsjson.DiagnosticRange{
-			Filename: "main.tf",
-			Start:    viewsjson.Pos{Line: 1},
-		},
-		Snippet: &viewsjson.DiagnosticSnippet{
-			Code:                 `resource "test_instance" "foo" {`,
-			StartLine:            1,
-			HighlightStartOffset: 0,
-			HighlightEndOffset:   30,
-		},
-	}
-
-	got := strings.TrimSpace(DiagnosticPlainFromJSON(diag, 0))
-	want := strings.TrimSpace(`
+	tests := map[string]struct {
+		diag *viewsjson.Diagnostic
+		want string
+	}{
+		"with policy range, policy snippet, and range": {
+			diag: &viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "policy denied",
+				PolicyRange: &viewsjson.DiagnosticRange{
+					Filename: "policy_file.tfpolicy.hcl",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				PolicySnippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource_policy "resource_type" "policy_name" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   48,
+				},
+				Range: &viewsjson.DiagnosticRange{
+					Filename: "main.tf",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				Snippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource "test_instance" "foo" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   30,
+				},
+			},
+			want: `
 Error: policy denied
 
   on policy_file.tfpolicy.hcl line 1:
@@ -1089,10 +1092,41 @@ Error: policy denied
 
   while evaluating policy for main.tf line 1:
    1: resource "test_instance" "foo" {
-`)
+`,
+		},
+		"with policy range and policy snippet but no range": {
+			diag: &viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "policy denied",
+				PolicyRange: &viewsjson.DiagnosticRange{
+					Filename: "policy_file.tfpolicy.hcl",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				PolicySnippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource_policy "resource_type" "policy_name" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   48,
+				},
+			},
+			want: `
+Error: policy denied
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("unexpected output diff:\n%s", diff)
+  on policy_file.tfpolicy.hcl line 1:
+   1: resource_policy "resource_type" "policy_name" {
+`,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := strings.TrimSpace(DiagnosticPlainFromJSON(tc.diag, 0))
+			want := strings.TrimSpace(tc.want)
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("unexpected output diff:\n%s", diff)
+			}
+		})
 	}
 }
 
