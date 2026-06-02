@@ -3338,6 +3338,28 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 			},
 
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+			},
+
 			"non-boolean condition": {
 				module: map[string]string{
 					"main.tf": `
