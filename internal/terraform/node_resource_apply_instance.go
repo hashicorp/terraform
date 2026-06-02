@@ -232,7 +232,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, instancePlannedState, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
+	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -275,27 +275,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags.Append(n.managedResourcePostconditions(ctx, repData))
 	}
 
-	// In order to ensure the action can be evaluated, we need to update the
-	// stored change and state in case it provides some newly known values. We
-	// hedge against any unexpected changes in diff handling for existing
-	// configurations by only updating these when we have actions to evaluate.
 	if n.hasBeforeActions() {
-		changes := ctx.Changes()
-		changes.RemoveResourceInstanceChange(n.Addr, deposedKey)
-		changes.AppendResourceInstanceChange(diffApply)
-
-		// we also have to update the state to reflect the pending changes
-		// again, or else evaluation will return the old state. Since before
-		// actions are the first time we've encountered this eval-before-applied
-		// situation, all instances in the state were previously just left as
-		// ObjectReady.
-		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlannedState, workingState))
-		if diags.HasErrors() {
-			return diags
-		}
-
 		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-		diags = diags.Append(n.invokeActions(ctx, repData, configs.BeforeEvents))
+		diags = diags.Append(n.invokeActions(ctx, repData, configs.BeforeEvents, diffApply.After))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -391,7 +373,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// until the user makes the condition succeed.
 	diags = diags.Append(n.managedResourcePostconditions(ctx, repData))
 
-	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents))
+	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents, state.Value))
 
 	return diags
 }
@@ -412,9 +394,8 @@ func (n *NodeApplyableResourceInstance) hasBeforeActions() bool {
 // invokeActions invokes any actions triggered for the listed events. Condition
 // expressions are reevaluated here when they exist, and failing conditions are
 // skipped.
-func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent) tfdiags.Diagnostics {
+func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-
 	for _, trigger := range n.actionTriggers {
 		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
 		if !slices.Contains(forEvents, event) {
@@ -432,7 +413,7 @@ func (n *NodeApplyableResourceInstance) invokeActions(ctx EvalContext, repData i
 			continue
 		}
 
-		diags = diags.Append(trigger.invoke(ctx, n.Addr.Resource))
+		diags = diags.Append(trigger.invoke(ctx, n.Addr.Resource, callerVal))
 		if diags.HasErrors() {
 			break
 		}

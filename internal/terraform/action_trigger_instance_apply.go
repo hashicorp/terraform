@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -29,7 +30,7 @@ var (
 	_ GraphNodeProviderConsumer = (*actionTriggerApplyInstance)(nil)
 )
 
-func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
+func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provider, _, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
@@ -72,7 +73,7 @@ func (n *actionTriggerApplyInstance) invoke(ctx EvalContext, caller addrs.Refere
 	// }
 	// configValue := inv.ConfigValue
 
-	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller)
+	configValue, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller, callerVal)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
