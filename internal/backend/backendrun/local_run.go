@@ -33,10 +33,6 @@ type Local interface {
 	// does, because this operation has no well-defined contract aside from
 	// "whatever it already does".
 	LocalRun(context.Context, *Operation) (*LocalRun, statemgr.Full, tfdiags.Diagnostics)
-
-	// Finish should be called when the local run has completed executing and
-	// the resources should be cleaned up.
-	Finish()
 }
 
 // LocalRun represents the assortment of objects that we can collect or
@@ -90,6 +86,8 @@ type LocalRun struct {
 	PolicyClient policy.Client
 }
 
+// Finish should be called when the local run has completed executing and
+// the resources should be cleaned up.
 func (lr *LocalRun) Finish() {
 	if lr == nil {
 		return

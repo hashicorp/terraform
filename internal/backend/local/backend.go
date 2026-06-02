@@ -114,10 +114,6 @@ func NewWithBackend(backend backend.Backend) *Local {
 	}
 }
 
-func (b *Local) Finish() {
-	// nothing to do
-}
-
 func (b *Local) ConfigSchema() *configschema.Block {
 	if b.Backend != nil {
 		return b.Backend.ConfigSchema()

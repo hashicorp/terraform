@@ -72,6 +72,10 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		return nil, nil, nil, diags
 	}
 
+	ret := &backendrun.LocalRun{
+		PolicyClient: op.PolicyClient,
+	}
+
 	// Initialize our context options
 	var coreOpts terraform.ContextOpts
 	if v := b.ContextOpts; v != nil {
@@ -79,11 +83,6 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 	}
 	coreOpts.UIInput = op.UIIn
 	coreOpts.Hooks = op.Hooks
-
-	// the run must be closed now
-	ret := &backendrun.LocalRun{
-		PolicyClient: op.PolicyClient,
-	}
 
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot

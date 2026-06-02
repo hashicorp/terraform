@@ -149,10 +149,6 @@ func (b *Cloud) LocalRun(ctx context.Context, op *backendrun.Operation) (*backen
 	return ret, stateMgr, diags
 }
 
-func (b *Cloud) Finish() {
-	// nothing to do here
-}
-
 func (b *Cloud) getRemoteWorkspaceName(localWorkspaceName string) string {
 	switch {
 	case localWorkspaceName == backend.DefaultStateName:

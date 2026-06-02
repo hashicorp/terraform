@@ -180,10 +180,6 @@ func (b *TestVariableBackend) LocalRun(ctx context.Context, op *backendrun.Opera
 	return b.Local.LocalRun(ctx, op)
 }
 
-func (b *TestVariableBackend) Finish() {
-
-}
-
 type testUnparsedVariableValueString struct {
 	str  string
 	name string
