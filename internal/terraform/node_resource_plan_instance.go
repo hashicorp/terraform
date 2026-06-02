@@ -696,7 +696,7 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		return
 	}
 
-	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource)
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource, n.change.After)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return

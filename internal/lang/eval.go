@@ -79,6 +79,29 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	return val, diags
 }
 
+func (s *Scope) EvalActionBlock(body hcl.Body, schema *configschema.Block, caller cty.Value) (val cty.Value, diags tfdiags.Diagnostics) {
+
+	spec := schema.DecoderSpec()
+
+	refs, diags := langrefs.ReferencesInBlock(s.ParseRef, body, schema)
+
+	ctx, ctxDiags := s.EvalContext(refs)
+	diags = diags.Append(ctxDiags)
+
+	if diags.HasErrors() {
+		// We'll stop early if we found problems in the references, because
+		// it's likely evaluation will produce redundant copies of the same errors.
+		return cty.UnknownVal(schema.ImpliedType()), diags
+	}
+
+	ctx.Variables["caller"] = caller
+
+	val, evalDiags := hcldec.Decode(body, spec, ctx)
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
+
+	return val, diags
+}
+
 // EvalSelfBlock evaluates the given body only within the scope of the provided
 // object and instance key data. References to the object must use self, and the
 // key data will only contain count.index or each.key. The static values for
@@ -479,6 +502,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+		// "caller" is used directly when an action in invoked from the CLI,
+		// because we need to automatically retrieve the resource from state
 		vals["caller"] = self
 	}
 
