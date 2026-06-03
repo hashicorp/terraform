@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeValidatableAction represents an action that is used for validation only.
@@ -29,5 +30,5 @@ func (n *NodeValidatableAction) Path() addrs.ModuleInstance {
 }
 
 func (n *NodeValidatableAction) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	return n.Validate(ctx, nil)
+	return n.Validate(ctx, nil, cty.DynamicVal)
 }

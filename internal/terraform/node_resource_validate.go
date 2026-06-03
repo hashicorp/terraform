@@ -140,7 +140,7 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 	_, self := n.stubRepetitionData()
 
 	for _, ref := range actions.Iter() {
-		diags = diags.Append(ref.actionNode.Validate(ctx, self))
+		diags = diags.Append(ref.actionNode.Validate(ctx, self, cty.UnknownVal(n.Schema.Body.ImpliedType())))
 	}
 
 	return diags
