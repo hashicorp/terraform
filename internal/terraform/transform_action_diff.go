@@ -53,7 +53,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			for _, atn := range atns {
 				if destroy {
 					if n, ok := atn.(*NodeDestroyResourceInstance); ok {
-						n.actionApplyTriggers = append(n.actionTriggers, &actionTriggerApplyInstance{
+						n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
 							ActionInvocation: ai,
 							actionNode:       actionConfig,
 						})

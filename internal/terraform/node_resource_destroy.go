@@ -21,8 +21,6 @@ import (
 // destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
-
-	actionTriggers []*actionTriggerApplyInstance
 }
 
 var (

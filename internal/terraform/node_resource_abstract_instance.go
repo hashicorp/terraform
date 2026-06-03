@@ -3219,7 +3219,7 @@ func (n *NodeAbstractResourceInstance) evalActionCondition(ctx EvalContext, trig
 func (n *NodeAbstractResourceInstance) ActionProviders() []ProviderRef {
 	var refs []ProviderRef
 	for _, trigger := range n.actionApplyTriggers {
-		refs = append(refs, ProviderRef{Addr: trigger.actionNode.ResolvedProvider, Resolved: true})
+		refs = append(refs, ProviderRef{Addr: trigger.ActionInvocation.ProviderAddr, Resolved: true})
 	}
 	return refs
 }
