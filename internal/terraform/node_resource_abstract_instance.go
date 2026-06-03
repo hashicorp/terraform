@@ -588,7 +588,9 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		// they are just used internally by Terraform to refresh resources before
 		// they are destroyed (See comments in https://github.com/hashicorp/terraform/blob/d4ca814cbea037dcf2a59d083f8a540bf5d38d3a/internal/terraform/context_plan.go#L46-L53).
 		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
-			policyGraph.Add(policyNodeFromChange(change))
+			if n.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+				policyGraph.Add(policyNodeFromChange(change))
+			}
 		}
 		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {

@@ -995,6 +995,101 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				tfdiags.AssertNoDiagnostics(t, d.diags)
 			},
 		},
+		{
+			name:        "normal plan: removed child module config still evaluates policy with nil resource config",
+			expectCalls: 1,
+			mainConfig: `
+						terraform {
+							required_providers {
+								test = {
+									source = "hashicorp/test"
+									version = "1.0.0"
+								}
+							}
+						}
+						`,
+			childConfig: "",
+			policyConfig: `
+						resource_policy "test_resource" "allow_destroy" {
+							enforce {
+								condition = true
+							}
+						}
+						`,
+			planMode: plans.NormalMode,
+			state: states.BuildState(func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("module.child.test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"bar","type":"test_resource","sensitive_value":"secret"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					if req.Target != "test_resource" {
+						t.Fatalf("Expected target test_resource, got %q", req.Target)
+					}
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+						ProviderType: "test",
+						Operation:    proto.Operation_DELETE,
+					}, protocmp.Transform()); diff != "" {
+						t.Errorf("Invalid resource metadata: %s", diff)
+					}
+					if !req.Attrs.IsNull() {
+						t.Errorf("Expected null attrs for destroy evaluation")
+					}
+					if req.PriorAttrs.IsNull() {
+						t.Errorf("Expected non-null PriorAttrs for destroy evaluation")
+						return policy.EvaluationResponse{}
+					}
+
+					return policy.EvaluationResponse{
+						Overall: policy.AllowResult,
+						Enforcements: []policy.EnforcementResult{{
+							Result:  policy.AllowResult,
+							Message: "allowed",
+						}},
+					}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateCalled {
+					t.Error("Expected policyClient.Evaluate to be called for destroy plan")
+				}
+				tfdiags.AssertNoDiagnostics(t, d.diags)
+
+				var gotResults int
+				for addr, result := range d.plan.PolicyResults.Iter() {
+					gotResults++
+					if addr != "module.child.test_resource.test" {
+						t.Fatalf("Expected policy result for module.child.test_resource.test, got %q", addr)
+					}
+					if result.ConfigDeclRange.Filename != "" {
+						t.Fatalf("Expected empty config declaration range for removed config, got %#v", result.ConfigDeclRange)
+					}
+					if len(result.EvaluationResponse.Enforcements) != 1 {
+						t.Fatalf("Expected 1 enforcement result, got %d", len(result.EvaluationResponse.Enforcements))
+					}
+				}
+				if gotResults != 1 {
+					t.Fatalf("Expected 1 stored policy result, got %d", gotResults)
+				}
+
+				for _, rc := range d.plan.Changes.Resources {
+					if rc.Addr.String() == "module.child.test_resource.test" {
+						if rc.Action != plans.Delete {
+							t.Errorf("Expected delete action for module.child.test_resource.test, got %s", rc.Action)
+						}
+						return
+					}
+				}
+				t.Error("Expected module.child.test_resource.test in plan changes")
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1161,6 +1256,89 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
+}
+
+func TestContext2Plan_PolicyEvaluation_ManagedResourcesOnly(t *testing.T) {
+	// This tests that only managed resources are sent for policy evaluation.
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		data "test_data_source" "lookup" {
+			foo = "from-data"
+		}
+
+		resource "test_resource" "test" {
+			sensitive_value = data.test_data_source.lookup.foo
+		}
+	`
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": "",
+	})
+
+	var policyEvalCalls int
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		policyEvalCalls++
+		if req.Target != "test_resource" {
+			t.Fatalf("expected policy evaluation only for managed resource test_resource, got %q", req.Target)
+		}
+
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_CREATE,
+		}, protocmp.Transform()); diff != "" {
+			t.Errorf("Invalid resource metadata: %s", diff)
+		}
+
+		if req.Attrs.IsNull() {
+			t.Fatal("expected non-null attrs for managed resource policy evaluation")
+		}
+		if got := req.Attrs.GetAttr("sensitive_value").AsString(); got != "from-data" {
+			t.Fatalf("expected managed resource attrs to include sensitive_value=from-data, got %q", got)
+		}
+
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result:  policy.AllowResult,
+				Message: "allowed",
+			}},
+		}
+	}
+
+	provider := testProvider("test")
+	provider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if policyEvalCalls != 1 {
+		t.Fatalf("expected exactly 1 policy evaluation call for managed resources, got %d", policyEvalCalls)
+	}
 }
 
 func TestContext2Plan_PolicyEvaluation_ImportBlock(t *testing.T) {

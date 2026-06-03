@@ -144,10 +144,10 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 
 func (s *SyncState) ResourceInstancesByConfig(addr addrs.ConfigResource) []*ResourceInstance {
 	s.lock.RLock()
+	defer s.lock.RUnlock()
 	addrs := s.state.allResourceInstanceObjectAddrs(func(objAddr addrs.AbsResourceInstanceObject) bool {
 		return objAddr.ResourceInstance.ConfigResource().Equal(addr)
 	})
-	s.lock.RUnlock()
 	ret := make([]*ResourceInstance, 0, len(addrs))
 	for _, addr := range addrs {
 		ret = append(ret, s.state.ResourceInstance(addr.ResourceInstance).DeepCopy())
