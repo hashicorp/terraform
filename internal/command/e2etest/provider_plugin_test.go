@@ -201,7 +201,7 @@ func TestProviderInstall_dev_override(t *testing.T) {
 	}
 
 	t.Run("dev_override not installed during init when provider not present in dependency lock file", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// There is no lock file present at start
@@ -256,7 +256,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 	})
 
 	t.Run("dev_override providers are still represented in the dependency lock file after init", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -312,7 +312,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 
 	t.Run("dev_override providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -472,7 +472,7 @@ func TestProviderInstall_unmanaged(t *testing.T) {
 	reattachConfig, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 
 	t.Run("unmanaged provider not installed when provider not present in dependency lock file", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// There is no lock file present at start
@@ -526,7 +526,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 	})
 
 	t.Run("unmanaged providers are still represented in the dependency lock file after init", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -581,7 +581,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 
 	t.Run("unmanaged providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already at older version 1.0.0
