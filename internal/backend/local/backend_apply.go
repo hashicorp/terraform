@@ -446,7 +446,7 @@ func (b *Local) opApply(
 	diags = diags.Append(applyDiags)
 
 	// Print the policy results we found during apply
-	op.View.PolicyResults(plan.PolicyResults)
+	op.View.PolicyResults(plan.PolicyResults, nil)
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.

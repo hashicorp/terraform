@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -160,15 +159,6 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.ActionTargets = args.ActionTargets
 	opReq.PolicyPaths = policyPaths
 
-	if !c.AllowExperimentalFeatures && len(policyPaths) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -policies flag is only valid in experimental builds of Terraform.",
-		))
-		return nil, diags
-	}
-
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
@@ -195,7 +185,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
 		// if there has been any errors when setting up the policy client, we'll want to log them
 		if opReq.View != nil && policyDiags != nil {
-			opReq.View.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+			opReq.View.PolicyResults(nil, policyDiags)
 		}
 	}
 

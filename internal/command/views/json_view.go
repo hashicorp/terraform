@@ -146,13 +146,13 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
-func (v *JSONView) PolicyResults(results *plans.PolicyResults) {
+func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
 	if results == nil {
 		return
 	}
 
 	// Log all non-policy-specific diagnostics if any.
-	for _, diag := range results.Diagnostics {
+	for _, diag := range setupDiags {
 		v.logPolicyDiagnostic(diag)
 	}
 
@@ -198,10 +198,10 @@ func (v *JSONView) PolicyResults(results *plans.PolicyResults) {
 	}
 }
 
+// logPolicyDiagnostic logs the policy diagnostics. These are emitted as `policy_diagnostic` messages,
+// not standard Terraform `diagnostic` messages. We use the severity level only to
+// set the log level for that policy-specific output.
 func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any) {
-	// Log the policy diagnostics. The severity level here is from the policy engine, and terraform
-	// does not use it at all. Therefore, the log level of these diagnostics is only relevant
-	// for policies.
 	sources := v.view.configSources()
 	diagnostic := json.NewDiagnostic(diag, sources)
 

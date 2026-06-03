@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -112,7 +111,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
-			opReq.View.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+			opReq.View.PolicyResults(nil, policyDiags)
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -129,7 +130,7 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 // PolicyResults renders the policy results in human-readable format.
 // This is done separately from the plan rendering because it may require additional
 // source information that is not available in the plan renderer.
-func (v *View) PolicyResults(results *plans.PolicyResults) {
+func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
 	if results == nil {
 		return
 	}
@@ -138,7 +139,7 @@ func (v *View) PolicyResults(results *plans.PolicyResults) {
 	var foundInfo bool
 
 	// Print setup diagnostics
-	for _, diag := range results.Diagnostics {
+	for _, diag := range setupDiags {
 		msg := v.formatDiagnostic(diag)
 		if diag.Severity() == tfdiags.Error {
 			v.streams.Eprint(msg)

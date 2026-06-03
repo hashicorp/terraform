@@ -15,11 +15,10 @@ import (
 
 // PolicyResults represents the results of policy evaluation of resources, modules, and providers for a single plan.
 type PolicyResults struct {
-	mu          *sync.Mutex
-	set         addrs.Map[addrs.AbsResourceInstance, PolicyEvaluation]
-	pset        addrs.Map[addrs.AbsProviderConfig, PolicyEvaluation]
-	mset        addrs.Map[addrs.Module, PolicyEvaluation]
-	Diagnostics policy.Diagnostics
+	mu   *sync.Mutex
+	set  addrs.Map[addrs.AbsResourceInstance, PolicyEvaluation]
+	pset addrs.Map[addrs.AbsProviderConfig, PolicyEvaluation]
+	mset addrs.Map[addrs.Module, PolicyEvaluation]
 }
 
 // PolicyEvaluation holds the result of a policy evaluation for a single resource, module, or provider.

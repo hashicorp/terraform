@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -35,7 +36,7 @@ type Operation interface {
 
 	Diagnostics(diags tfdiags.Diagnostics)
 
-	PolicyResults(results *plans.PolicyResults)
+	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -133,8 +134,8 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 }
 
-func (v *OperationHuman) PolicyResults(results *plans.PolicyResults) {
-	v.view.PolicyResults(results)
+func (v *OperationHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
+	v.view.PolicyResults(results, setupDiags)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -296,8 +297,8 @@ func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *OperationJSON) PolicyResults(results *plans.PolicyResults) {
-	v.view.PolicyResults(results)
+func (v *OperationJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
+	v.view.PolicyResults(results, setupDiags)
 }
 
 const fatalInterrupt = `
