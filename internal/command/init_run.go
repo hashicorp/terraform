@@ -270,14 +270,14 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		)
 	}
 
-	var configLocks *depsfile.Locks
+	var pssLocks *depsfile.Locks
 	if config != nil && config.Module != nil && config.Module.StateStore != nil {
 		var configProvidersOutput bool
 		var safeInitAction SafeInitAction
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var configProviderDiags tfdiags.Diagnostics
 
-		configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -294,7 +294,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		case SafeInitActionRequireApproval:
 			if c.input {
 				// Prompt the user about trusting the provider used for state storage.
-				diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, configLocks, stateStoreProviderAuthResult))
+				diags = diags.Append(c.promptStateStorageProviderApproval(config.Module.StateStore.ProviderAddr, pssLocks, stateStoreProviderAuthResult))
 				if diags.HasErrors() {
 					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
 					view.Diagnostics(diags)
@@ -333,7 +333,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		config.Module.StateStore.ProviderSupplyMode == getproviders.ManagedByTerraform {
 		pAddr := config.Module.StateStore.ProviderAddr
 		old := alteredPreviousLocks.Provider(pAddr)
-		new := configLocks.Provider(pAddr)
+		new := pssLocks.Provider(pAddr)
 		if old == nil || new == nil {
 			panic(fmt.Sprintf(`Unexpected missing provider lock for %s during init -upgrade: 
 prior lock: %#v
@@ -371,7 +371,7 @@ If you do not intend to upgrade the state store provider, please update your con
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, configLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, pssLocks, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -432,7 +432,7 @@ If you do not intend to upgrade the state store provider, please update your con
 		state = sMgr.State()
 	}
 
-	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, configLocks, initArgs.PluginPath, view)
+	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, pssLocks, initArgs.PluginPath, view)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -448,7 +448,7 @@ If you do not intend to upgrade the state store provider, please update your con
 	}
 
 	// Now the two steps of provider download have happened, update the dependency lock file if it has changed.
-	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, configLocks, stateLocks, initArgs.Lockfile, view)
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, pssLocks, stateLocks, initArgs.Lockfile, view)
 	diags = diags.Append(lockFileDiags)
 	if lockFileDiags.HasErrors() {
 		view.Diagnostics(diags)
