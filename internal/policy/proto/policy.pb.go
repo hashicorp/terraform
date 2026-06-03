@@ -1079,13 +1079,13 @@ const file_policy_proto_rawDesc = "" +
 	"\x0econfigurations\x18\x01 \x03(\v2A.proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntryR\x0econfigurations\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xf5\x02\n" +
+	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xab\x03\n" +
 	"\x1dPolicyEvaluateResourceRequest\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\rR\fevaluationId\x12\x1a\n" +
-	"\bresource\x18\x02 \x01(\tR\bresource\x12\x14\n" +
-	"\x05attrs\x18\x03 \x01(\fR\x05attrs\x12Q\n" +
-	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12\x1f\n" +
-	"\vprior_attrs\x18\x05 \x01(\fR\n" +
+	"\bresource\x18\x02 \x01(\tR\bresource\x12/\n" +
+	"\x05attrs\x18\x03 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12Q\n" +
+	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12:\n" +
+	"\vprior_attrs\x18\x05 \x01(\v2\x19.proto.ResourceAttributesR\n" +
 	"priorAttrs\x1a\x88\x01\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
@@ -1112,10 +1112,10 @@ const file_policy_proto_rawDesc = "" +
 	"blockIndex\"\x95\x01\n" +
 	"\x1ePolicyEvaluateResourceResponse\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12D\n" +
-	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xbc\x02\n" +
+	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xd7\x02\n" +
 	"\x1dPolicyEvaluateProviderRequest\x12#\n" +
-	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12\x14\n" +
-	"\x05attrs\x18\x02 \x01(\fR\x05attrs\x12Q\n" +
+	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12/\n" +
+	"\x05attrs\x18\x02 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12Q\n" +
 	"\bmetadata\x18\x03 \x01(\v25.proto.PolicyEvaluateProviderRequest.ProviderMetadataR\bmetadata\x1a\x8c\x01\n" +
 	"\x10ProviderMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +

@@ -6,6 +6,7 @@ package terraform
 import (
 	"context"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/format"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -1174,6 +1177,121 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_PolicyEvaluation_RedactedPaths(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			variable "current_secret" {
+				type      = string
+				sensitive = true
+			}
+
+			resource "test_resource" "test" {
+				schema_sensitive = "from-config"
+				current_only     = var.current_secret
+			}
+		`,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"schema_sensitive": {
+						Type:      cty.String,
+						Optional:  true,
+						Sensitive: true,
+					},
+					"current_only": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"prior_only": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_resource.test"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"existing","schema_sensitive":"from-state","prior_only":"prior-secret"}`),
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("prior_only"),
+				},
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	policyClient := policy.NewTestMockClient(t)
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"current_secret": &InputValue{
+				Value:      cty.StringVal("current-secret").Mark(marks.Sensitive),
+				SourceType: ValueFromCaller,
+			},
+		},
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if plan == nil {
+		t.Fatal("expected non-nil plan")
+	}
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected resource policy evaluation to be called")
+	}
+
+	if policyClient.EvaluateRequest.Target != "test_resource" {
+		t.Fatalf("unexpected policy target %q", policyClient.EvaluateRequest.Target)
+	}
+	if diff := cmp.Diff(policyClient.EvaluateRequest.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+		ProviderType: "test",
+		Operation:    proto.Operation_UPDATE,
+	}, protocmp.Transform()); diff != "" {
+		t.Fatalf("invalid resource metadata: %s", diff)
+	}
+
+	wantAttrs := []cty.Path{
+		cty.GetAttrPath("schema_sensitive"),
+		cty.GetAttrPath("current_only"),
+	}
+	wantPriorAttrs := []cty.Path{
+		cty.GetAttrPath("schema_sensitive"),
+		cty.GetAttrPath("prior_only"),
+	}
+
+	assertPathsEqual(t, policyClient.EvaluateRequest.Attrs.RedactedPaths, wantAttrs)
+	assertPathsEqual(t, policyClient.EvaluateRequest.PriorAttrs.RedactedPaths, wantPriorAttrs)
+}
+
 func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 	// This verifies that no resource instance node is run after policy evaluation
 	mainConfig := `
@@ -1688,4 +1806,21 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 			t.Errorf("evaluation[%s]: expected filtered count %d, got %d", ami, filteredCount, len(cr.filteredResults))
 		}
 	}
+}
+
+func assertPathsEqual(t *testing.T, got, want []cty.Path) {
+	t.Helper()
+
+	if diff := cmp.Diff(pathStrings(want), pathStrings(got)); diff != "" {
+		t.Fatalf("unexpected redacted paths (-want +got):\n%s", diff)
+	}
+}
+
+func pathStrings(paths []cty.Path) []string {
+	ret := make([]string, 0, len(paths))
+	for _, path := range paths {
+		ret = append(ret, format.CtyPath(path))
+	}
+	sort.Strings(ret)
+	return ret
 }
