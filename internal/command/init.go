@@ -359,7 +359,6 @@ const (
 	SafeInitActionInvalid         SafeInitAction = 0
 	SafeInitActionProceed         SafeInitAction = 'P'
 	SafeInitActionRequireApproval SafeInitAction = 'I'
-	SafeInitActionNotRelevant     SafeInitAction = 'N' // For when a state store isn't in use at all!
 )
 
 // getProvidersFromPSSConfig determines what provider is required given state store configuration
@@ -368,10 +367,6 @@ const (
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
 func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
-	if config == nil {
-		return false, nil, SafeInitActionNotRelevant, nil, diags
-	}
-
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -528,35 +523,30 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, config *con
 	}
 
 	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
-	if config.Module.StateStore == nil {
-		// If PSS isn't in use then return a value that isn't the zero value but isn't misleading.
-		safeInitAction = SafeInitActionNotRelevant
+	location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
+	if !ok {
+		// The provider was not processed in the FetchPackageBegin callback.
+		// A provider that wasn't downloaded during this init could be because:
+		// * It was already present from a previous installation.
+		// * If upgrading, no newer version was available that matched version constraints.
+		// * Or, the provider is unmanaged/reattached and so download was skipped.
+		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+		safeInitAction = SafeInitActionProceed
 	} else {
-		location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
-		if !ok {
-			// The provider was not processed in the FetchPackageBegin callback.
-			// A provider that wasn't downloaded during this init could be because:
-			// * It was already present from a previous installation.
-			// * If upgrading, no newer version was available that matched version constraints.
-			// * Or, the provider is unmanaged/reattached and so download was skipped.
-			log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionProceed
-		} else {
-			// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
+		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
 
-			switch location.(type) {
-			case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
-				// If the provider is downloaded from a local source we assume it's safe.
-				// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-				log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionProceed
-			case getproviders.PackageHTTPURL:
-				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionRequireApproval
-			default:
-				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
-			}
+		switch location.(type) {
+		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
+			// If the provider is downloaded from a local source we assume it's safe.
+			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionProceed
+		case getproviders.PackageHTTPURL:
+			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionRequireApproval
+		default:
+			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
 		}
 	}
 

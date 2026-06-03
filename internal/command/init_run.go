@@ -289,8 +289,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 		// Course of action depends on the safeInitAction returned from getProvidersFromPSSConfig
 		switch safeInitAction {
-		case SafeInitActionNotRelevant:
-			// do nothing; security features aren't relevant.
 		case SafeInitActionProceed:
 			// do nothing; provider is already trusted and there's no need to notify the user.
 		case SafeInitActionRequireApproval:
