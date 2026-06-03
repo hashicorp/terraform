@@ -128,7 +128,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 
 // Validate validates the action config, with an optional caller address if the
 // action is invoked from a resource action trigger.
-func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable) tfdiags.Diagnostics {
+func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provider, _, err := getProvider(ctx, n.ResolvedProvider)
@@ -170,8 +170,7 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable)
 	}
 
 	scope := ctx.EvaluationScope(caller, nil, keyData)
-	configVal, valDiags := scope.EvalActionBlock(config, n.Schema.ConfigSchema, cty.DynamicVal)
-	// configVal, _, valDiags := ctx.EvaluateBlock(config, n.Schema.ConfigSchema, caller, keyData)
+	configVal, valDiags := scope.EvalActionBlock(config, n.Schema.ConfigSchema, callerVal)
 	if valDiags.HasErrors() {
 		// If there was no config block at all, we'll add a Context range to the returned diagnostic
 		if n.Config.Config == nil {
