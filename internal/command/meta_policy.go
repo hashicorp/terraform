@@ -126,7 +126,7 @@ type policyModuleInstallHook struct {
 func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	moduleAddr := req.Path.String()
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
-		Attrs:  cty.NilVal,
+		Attrs:  policy.PolicyValue{Raw: cty.NilVal},
 		Target: source,
 		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: moduleAddr,
@@ -187,7 +187,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 
 		// Configuration attributes may not be available during init, so we will not
 		// send any attributes to the policy client.
-		Attrs: cty.NilVal,
+		Attrs: policy.PolicyValue{Raw: cty.NilVal},
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:      provider.Type,
 			Namespace: provider.Namespace,

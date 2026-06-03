@@ -205,7 +205,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
+	policyDiags := n.EvalPolicy(ctx, configSchema, unmarkedConfigVal)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -219,14 +219,23 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 // allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
 // Provider policies have no support for callback functions, so we do not need to worry about
 // them retrieving objects that are not yet available in the state.
-func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, schema *configschema.Block, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil
 	}
+
+	var sensitivePaths []cty.Path
+	if schema != nil {
+		sensitivePaths = schema.SensitivePaths(attrs, nil)
+	}
+
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
-		Attrs:  attrs,
+		Attrs: policy.PolicyValue{
+			Raw:           attrs,
+			RedactedPaths: sensitivePaths,
+		},
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:      n.Addr.Provider.Type,
 			Alias:     n.Addr.Alias,

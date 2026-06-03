@@ -13,23 +13,37 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := client.EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-		Target:     target.Resource.Resource.Type,
-		Attrs:      attrs,
-		PriorAttrs: priorAttrs,
-		Meta:       meta,
-		Callbacks:  callbacks,
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, schema *configschema.Block, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+	var attrRedactedPaths []cty.Path
+	var priorAttrRedactedPaths []cty.Path
+	if schema != nil {
+		attrRedactedPaths = schema.SensitivePaths(attrs, nil)
+		priorAttrRedactedPaths = schema.SensitivePaths(priorAttrs, nil)
+	}
+
+	result := ctx.PolicyClient().EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+		Target: target.Resource.Resource.Type,
+		Attrs: policy.PolicyValue{
+			Raw:           attrs,
+			RedactedPaths: attrRedactedPaths,
+		},
+		PriorAttrs: policy.PolicyValue{
+			Raw:           priorAttrs,
+			RedactedPaths: priorAttrRedactedPaths,
+		},
+		Meta:      meta,
+		Callbacks: callbacks,
 	})
 
-	// orphaned resources do not have a config, so we can't provide source information
-	// for these errors.
+	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
+	// for such errors.
 	if config != nil {
 		ptr := config.DeclRange.Ptr()
 		for idx, diag := range result.Diagnostics {
