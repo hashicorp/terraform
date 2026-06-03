@@ -352,7 +352,7 @@ const (
 	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
 	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
 	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
-	ReusingVersionIdentifiedFromConfig           InitMessageCode = "reusing_version_during_state_provider_init"
+	ReusingVersionDuringStateProviderInit        InitMessageCode = "reusing_version_during_state_provider_init"
 	LockInfo                                     InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
 

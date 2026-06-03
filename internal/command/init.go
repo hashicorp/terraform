@@ -455,7 +455,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, config *con
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingVersionIdentifiedFromConfig, provider.ForDisplay()) // Message is specific to provide download from config
+				view.LogInitMessage(views.ReusingVersionDuringStateProviderInit, provider.ForDisplay()) // Message is specific to provide download from config
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
