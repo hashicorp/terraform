@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/s3
 
-go 1.25.10
+go 1.26.4
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.5
