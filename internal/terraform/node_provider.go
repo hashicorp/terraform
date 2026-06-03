@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -225,10 +226,8 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, schema *configschema
 		return nil
 	}
 
-	var sensitivePaths []cty.Path
-	if schema != nil {
-		sensitivePaths = schema.SensitivePaths(attrs, nil)
-	}
+	_, pvms := attrs.UnmarkDeepWithPaths()
+	sensitivePaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
 
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,

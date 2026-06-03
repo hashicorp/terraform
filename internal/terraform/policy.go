@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -21,12 +22,10 @@ import (
 )
 
 func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, schema *configschema.Block, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	var attrRedactedPaths []cty.Path
-	var priorAttrRedactedPaths []cty.Path
-	if schema != nil {
-		attrRedactedPaths = schema.SensitivePaths(attrs, nil)
-		priorAttrRedactedPaths = schema.SensitivePaths(priorAttrs, nil)
-	}
+	attrs, pvms := attrs.UnmarkDeepWithPaths()
+	attrRedactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+	priorAttrs, pvms = priorAttrs.UnmarkDeepWithPaths()
+	priorAttrRedactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
 
 	result := ctx.PolicyClient().EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target: target.Resource.Resource.Type,
