@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'console: Fixed a panic caused by evaluating an expression involving deprecated values'
+time: 2026-06-03T17:25:07.111161+01:00
+custom:
+    Issue: "38676"
