@@ -82,7 +82,6 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	}
 
 	if len(diags) > 0 {
-		client.Stop()
 		return nil, diags, closer
 	}
 
@@ -103,6 +102,6 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 		return nil, diags, closer
 	}
 
-	log.Printf("[INFO] backend/operation/policy: Policy engine initialized")
+	log.Printf("[DEBUG] backend/operation/policy: Policy engine initialized")
 	return client, diags, closer
 }
