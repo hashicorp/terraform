@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: 'console: Fixed a panic when formatting resource objects containing marked nested values.'
+body: '`terraform console`: Fixed a panic that could occur when displaying resource objects containing marked nested values.'
 time: 2026-06-03T08:24:13-04:00
 custom:
     Issue: "38674"
