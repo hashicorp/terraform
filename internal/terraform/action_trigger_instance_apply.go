@@ -54,7 +54,7 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 		return diags
 	}
 
-	configVal := cty.DynamicVal
+	var configVal cty.Value
 
 	// fromPlan indicates we can use the entire planned value for the action,
 	// and should not attempt to reevaluate the config.
