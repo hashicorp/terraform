@@ -156,7 +156,7 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		nil,
 	)
 
-	newInit.PolicyResults(results)
+	newInit.PolicyResults(results, nil)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -228,7 +228,7 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 		nil,
 	)
 
-	newInit.PolicyResults(results)
+	newInit.PolicyResults(results, nil)
 
 	actual := done(t).All()
 	expected := "\nError: module policy denied\n\nmodule policy blocked installation\n"
@@ -261,7 +261,7 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 		nil,
 	)
 
-	newInit.PolicyResults(results)
+	newInit.PolicyResults(results, nil)
 
 	actual := done(t).Stdout()
 	if !strings.Contains(actual, "Policy Info:") {

@@ -190,9 +190,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 
 		var policyDiags policy.Diagnostics
-		client, policyDiags = c.PolicyClient(ctx, initArgs.PolicyPaths)
-		view.PolicyResults(&plans.PolicyResults{Diagnostics: policyDiags})
+		var stopClient func()
+		client, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		view.PolicyResults(nil, policyDiags)
 		if policyDiags.AsTerraformDiags().HasErrors() {
+			defer stopClient()
 			diags = diags.Append(fmt.Errorf("Error setting up policy client: See the other diagnostics for more information"))
 			view.Diagnostics(diags)
 			return 1
@@ -203,7 +205,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, client)
 		diags = diags.Append(modsDiags)
 		if policyResults != nil {
-			view.PolicyResults(policyResults)
+			view.PolicyResults(policyResults, nil)
 		}
 		if modsAbort || modsDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -316,7 +318,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	configProvidersOutput, configLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags := c.getProvidersFromConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
 	diags = diags.Append(configProviderDiags)
 	if configProviderDiags.HasErrors() {
-		view.PolicyResults(policyResults)
+		view.PolicyResults(policyResults, nil)
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -522,7 +524,7 @@ If you do not intend to upgrade the state store provider, please update your con
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
-	view.PolicyResults(policyResults)
+	view.PolicyResults(policyResults, nil)
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage
