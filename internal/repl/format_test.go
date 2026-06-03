@@ -181,6 +181,16 @@ EOT_`,
 			cty.StringVal("an ephemeral value").Mark(marks.Ephemeral),
 			"(ephemeral value)",
 		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"ordinary":  cty.False.Mark("provider-detail"),
+				"sensitive": cty.StringVal("secret").Mark(marks.Sensitive),
+			}),
+			`{
+  "ordinary" = false
+  "sensitive" = (sensitive value)
+}`,
+		},
 	}
 
 	for _, test := range tests {

@@ -26,6 +26,9 @@ func FormatValue(v cty.Value, indent int) string {
 	if marks.Has(v, marks.Ephemeral) {
 		return "(ephemeral value)"
 	}
+	// cty integration methods panic on marked values. Terraform redaction marks
+	// are handled above; remaining marks do not change this textual rendering.
+	v, _ = v.Unmark()
 	if v.IsNull() {
 		ty := v.Type()
 		switch {
