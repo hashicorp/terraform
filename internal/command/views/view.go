@@ -131,9 +131,6 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 // This is done separately from the plan rendering because it may require additional
 // source information that is not available in the plan renderer.
 func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	if results == nil {
-		return
-	}
 	configSources := v.configSources()
 	var buf strings.Builder
 	var foundInfo bool
@@ -147,6 +144,11 @@ func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Dia
 			v.streams.Print(msg)
 		}
 	}
+
+	if results == nil {
+		return
+	}
+
 	for _, result := range results.Iter() {
 		for _, enforcement := range result.EvaluationResponse.Enforcements {
 			var src []byte

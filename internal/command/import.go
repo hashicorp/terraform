@@ -208,7 +208,6 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Get the context
 	lr, state, ctxDiags := local.LocalRun(context.Background(), opReq)
-	defer lr.Finish()
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {

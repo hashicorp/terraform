@@ -85,14 +85,3 @@ type LocalRun struct {
 	// during the run.
 	PolicyClient policy.Client
 }
-
-// Finish should be called when the local run has completed executing and
-// the resources should be cleaned up.
-func (lr *LocalRun) Finish() {
-	if lr == nil {
-		return
-	}
-	if lr.PolicyClient != nil {
-		lr.PolicyClient.Stop()
-	}
-}

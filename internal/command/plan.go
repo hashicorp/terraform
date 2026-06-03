@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -181,12 +180,13 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	}
 
 	if len(c.Meta.policyPaths) > 0 {
-		var policyDiags policy.Diagnostics
-		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
-		// if there has been any errors when setting up the policy client, we'll want to log them
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.policyPaths)
+		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)
 		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	return opReq, diags

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -106,13 +105,14 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if len(c.policyPaths) > 0 {
-		var policyDiags policy.Diagnostics
-		opReq.PolicyClient, policyDiags = c.PolicyClient(context.Background(), c.policyPaths)
+	if len(c.Meta.policyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.policyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)
 		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	// Collect variable value and add them to the operation request

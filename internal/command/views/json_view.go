@@ -147,13 +147,13 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 }
 
 func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	if results == nil {
-		return
-	}
-
 	// Log all non-policy-specific diagnostics if any.
 	for _, diag := range setupDiags {
 		v.logPolicyDiagnostic(diag)
+	}
+
+	if results == nil {
+		return
 	}
 
 	for addr, result := range results.Iter() {

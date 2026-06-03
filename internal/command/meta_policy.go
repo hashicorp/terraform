@@ -15,21 +15,26 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics) {
+func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics, func()) {
 	var client policy.Client
+	closer := func() {
+		if client != nil {
+			client.Stop()
+		}
+	}
 	if !c.AllowExperimentalFeatures {
 		log.Printf("[DEBUG] Policies are not supported without experiments enabled, skipping policy client setup")
-		return client, nil
+		return client, nil, closer
 	}
 	if len(policyPaths) == 0 {
 		log.Printf("[DEBUG] No policy paths configured, skipping policy client setup")
-		return client, nil
+		return client, nil, closer
 	}
 
 	// Use a pre-initialized client for tests if one is available
 	if c.testingOverrides != nil {
 		if client := c.testingOverrides.PolicyClient; client != nil {
-			return client, nil
+			return client, nil, closer
 		}
 	}
 
@@ -41,7 +46,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 			fmt.Sprintf("Failed to connect to policy engine: %s.", err),
 			policy.SetupErrorResult,
 		))
-		return nil, diags
+		return nil, diags, closer
 	}
 
 	var callbackServiceID uint32
@@ -50,8 +55,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	if srv, ok := client.(policy.CallbackService); ok {
 		callbackServer, cbDiags := srv.RegisterCallbackService(ctx)
 		if cbDiags != nil {
-			client.Stop()
-			return nil, cbDiags
+			return nil, cbDiags, closer
 		}
 		callbackServiceID = callbackServer.ID
 	}
@@ -66,7 +70,6 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	for _, config := range resp.ServerConfigurations() {
 		version, err := constraints.ParseRubyStyleMulti(config.RequiredVersion)
 		if err != nil {
-			client.Stop()
 			diags = append(diags, policy.NewErrorDiagnostic(
 				"Failed to validate required Terraform version",
 				fmt.Sprintf("The policy file %s had a Terraform version constraint that could not be parsed: %s.", config.File, err),
@@ -80,7 +83,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 
 	if len(diags) > 0 {
 		client.Stop()
-		return nil, diags
+		return nil, diags, closer
 	}
 
 	terraformVersion, err := versions.ParseVersion(version.Version)
@@ -97,10 +100,9 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 			fmt.Sprintf("The current version of Terraform is %s, and it is not compatible with the versions of Terraform required by the selected policies.", version.String()),
 			policy.SetupErrorResult,
 		))
-		client.Stop()
-		return nil, diags
+		return nil, diags, closer
 	}
 
 	log.Printf("[INFO] backend/operation/policy: Policy engine initialized")
-	return client, diags
+	return client, diags, closer
 }

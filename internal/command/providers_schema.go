@@ -92,7 +92,6 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 
 	// Get the context
 	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
-	defer lr.Finish()
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {

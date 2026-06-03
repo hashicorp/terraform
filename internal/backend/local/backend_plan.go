@@ -90,7 +90,6 @@ func (b *Local) opPlan(
 
 	// Set up backend and get our context
 	lr, configSnap, opState, ctxDiags := b.localRun(op)
-	defer lr.Finish()
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
