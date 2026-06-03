@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -53,11 +52,9 @@ func TestUnmanagedQuery(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			os.Setenv(e2e.TestExperimentFlag, "true")
-			terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 
 			fixturePath := filepath.Join("testdata", "query-provider")
-			tf := e2e.NewBinary(t, terraformBin, fixturePath)
+			tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 			reattachCh := make(chan *plugin.ReattachConfig)
 			closeCh := make(chan struct{})
