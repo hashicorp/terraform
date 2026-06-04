@@ -227,10 +227,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Reusing previous version of %s from the dependency lock file",
 		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
-	"reusing_version_during_state_provider_init": {
-		HumanValue: "- Reusing previous version of %s",
-		JSONValue:  "Reusing previous version of %s",
-	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
 		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
@@ -352,7 +348,6 @@ const (
 	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
 	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
 	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
-	ReusingVersionDuringStateProviderInit        InitMessageCode = "reusing_version_during_state_provider_init"
 	LockInfo                                     InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
 
