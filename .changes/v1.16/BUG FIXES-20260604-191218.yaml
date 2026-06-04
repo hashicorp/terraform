@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'test: Terraform will now report backend configuration failures from run block backends during terraform test'
+time: 2026-06-04T19:12:18+02:00
+custom:
+    Issue: "38682"
