@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'plugin: Terraform will now return an error instead of crashing if a provider returns a resource identity for a resource type without an identity schema'
+time: 2026-06-04T19:17:07+02:00
+custom:
+    Issue: "38683"
