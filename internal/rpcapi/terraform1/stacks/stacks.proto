@@ -150,6 +150,10 @@ message OpenStackConfiguration {
   message Request {
     int64 source_bundle_handle = 1;
     terraform1.SourceAddress source_address = 2;
+    repeated string policy_paths = 3;
+    // TODO: do we (TF core) need to communicate any other metadata to policy? If so, might need to add more fields here
+    // - stack metadata = name, ID, stack level tags
+    // - deployment metadata = name, ID, deployment level tags
   }
   message Response {
     int64 stack_config_handle = 1;
@@ -264,6 +268,7 @@ message PlanStackChanges {
       PlannedChange planned_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 10;
+      PolicyEvaluationResponse policy_evaluation_response = 11;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -332,6 +337,8 @@ message ApplyStackChanges {
       AppliedChange applied_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 3;
+      // TODO: are we doing apply policy for stacks? Should we include this anyways?
+      PolicyEvaluationResponse policy_evaluation_response = 4;
     }
   }
 }
@@ -1075,4 +1082,52 @@ message ListResourceIdentities {
     string resource_instance_addr = 3;
     DynamicValue resource_identity = 4;
   }
+}
+
+// TODO: this message will likely need to be updated to contain information about the component for example
+message PolicyEvaluationResponse {
+  // Policies are evaluated for component instances
+  ComponentInstanceInStackAddr addr = 1;
+  
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message PolicyMetaData {
+  string policy_name = 1;
+  string policy_set_name = 2;
+  string enforcement_level = 3;
+  string file_name = 4;
+  int32 enforce_index = 5;
+}
+
+message PolicyResult {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string result = 3;
+}
+
+message PolicyInfo {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string message = 3;
+  terraform1.SourceRange policy_range = 4;
+  PolicySnippet policy_snippet = 5;
+  string result = 6;
+}
+
+message PolicyDiagnostic {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string result = 3;
+  terraform1.Diagnostic diagnostic = 4;
+}
+
+message PolicySnippet {
+  string context = 1;
+  string code = 2;
+  int64 start_line = 3;
+  int64 highlight_start_offset = 4;
+  int64 highlight_end_offset = 5;
 }

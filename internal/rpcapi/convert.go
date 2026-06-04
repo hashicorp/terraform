@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	msgpack "github.com/zclconf/go-cty/cty/msgpack"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
@@ -74,6 +75,22 @@ func sourceRangeFromProto(protoRng *terraform1.SourceRange) tfdiags.SourceRange 
 		Filename: protoRng.SourceAddr,
 		Start:    sourcePosFromProto(protoRng.Start),
 		End:      sourcePosFromProto(protoRng.End),
+	}
+}
+
+func sourceRangeFromHCL(rng hcl.Range) tfdiags.SourceRange {
+	return tfdiags.SourceRange{
+		Filename: rng.Filename,
+		Start: tfdiags.SourcePos{
+			Line:   rng.Start.Line,
+			Column: rng.Start.Column,
+			Byte:   rng.Start.Byte,
+		},
+		End: tfdiags.SourcePos{
+			Line:   rng.End.Line,
+			Column: rng.End.Column,
+			Byte:   rng.End.Byte,
+		},
 	}
 }
 

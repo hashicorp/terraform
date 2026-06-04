@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
@@ -648,4 +649,16 @@ func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
 		return nil
 
 	}
+}
+
+func (m *Main) PolicyClient() policy.Client {
+	if m.applying != nil {
+		// TODO: apply policy stuff
+		// return m.applying.opts.PolicyClient
+		return nil
+	}
+	if m.planning != nil {
+		return m.planning.opts.PolicyClient
+	}
+	return nil
 }

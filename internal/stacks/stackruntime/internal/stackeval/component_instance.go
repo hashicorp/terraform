@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -165,6 +166,14 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
 	plantimestamp := c.main.PlanTimestamp()
+
+	// If we have a dependency lock file, add the provider locks to the plan opts so we can evaluate provider policies
+	lockFile := c.main.DependencyLocks(PlanPhase)
+	var providerLocks map[addrs.Provider]*depsfile.ProviderLock
+	if lockFile != nil {
+		providerLocks = lockFile.AllProviders()
+	}
+
 	return &terraform.PlanOpts{
 		Mode:                       mode,
 		SkipRefresh:                skipRefresh,
@@ -173,6 +182,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		Locks:                      providerLocks,
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
@@ -309,6 +319,10 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			if opts == nil {
 				return nil, diags
 			}
+
+			// If a policy client is initialized, we only want to evaluate during
+			// normal plans (i.e. no evaluating policies for refresh or destroy plans)
+			opts.PolicyClient = c.main.PolicyClient()
 
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as

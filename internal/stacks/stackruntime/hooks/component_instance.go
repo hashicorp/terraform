@@ -92,3 +92,8 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 		cic.Forget++
 	}
 }
+
+type ComponentInstancePlanPolicyResults struct {
+	Addr          stackaddrs.AbsComponentInstance
+	PolicyResults *plans.PolicyResults
+}

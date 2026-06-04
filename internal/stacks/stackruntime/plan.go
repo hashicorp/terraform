@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -51,6 +52,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 		DependencyLocks:     req.DependencyLocks,
+		PolicyClient:        req.PolicyClient,
 
 		PlanTimestamp: planTimestamp,
 	})
@@ -106,6 +108,9 @@ type PlanRequest struct {
 	ForcePlanTimestamp *time.Time
 
 	ExperimentsAllowed bool
+
+	// TODO: verify all the different places we need to plumb this field through
+	PolicyClient policy.Client
 }
 
 // PlanResponse is used by [Plan] to describe the results of planning.

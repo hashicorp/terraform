@@ -40,6 +40,11 @@ func NewSourceBundleParser(sources *sourcebundle.Bundle) *SourceBundleParser {
 	}
 }
 
+// Sources returns the raw source code for all modules in the bundle.
+func (p *SourceBundleParser) Sources() map[string][]byte {
+	return p.p.Sources()
+}
+
 // LoadConfigDir is the primary public entry point for [SourceBundleParser],
 // and is similar to [Parser.LoadConfigDir]. It reads the .tf and .tf.json
 // files at the given source address as config files, and combines these into a

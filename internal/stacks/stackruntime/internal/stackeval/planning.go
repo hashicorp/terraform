@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -31,6 +32,8 @@ type PlanOpts struct {
 	PlanTimestamp time.Time
 
 	DependencyLocks depsfile.Locks
+
+	PolicyClient policy.Client
 }
 
 // Plannable is implemented by objects that can participate in planning.
@@ -118,6 +121,12 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 	}
 
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
+
+	// TODO: is this the only place we need to add this hook?
+	hookSingle(ctx, h.ReportComponentInstancePlanPolicyResults, &hooks.ComponentInstancePlanPolicyResults{
+		Addr:          addr,
+		PolicyResults: plan.PolicyResults,
+	})
 }
 
 func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {

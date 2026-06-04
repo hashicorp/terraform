@@ -8,10 +8,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
@@ -20,8 +22,11 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -58,6 +63,11 @@ type stacksServer struct {
 	// for testing. This just ensures our tests aren't flaky as we can use a
 	// constant timestamp for the plan.
 	planTimestampOverride *time.Time
+
+	// policyClients are tracked per stack config handle, so we use that for a look-up rather than a separate entry in handlesTable
+	policyClients          map[handle[*stackconfig.Config]]policy.Client
+	policyClientsLock      sync.Mutex
+	initializePolicyClient func(ctx context.Context, policyPaths []string) (policy.Client, error)
 }
 
 var (
@@ -68,10 +78,12 @@ var (
 
 func newStacksServer(stopper *stopper, handles *handleTable, services *disco.Disco, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
-		stopper:            stopper,
-		services:           services,
-		handles:            handles,
-		experimentsAllowed: opts.experimentsAllowed,
+		stopper:                stopper,
+		services:               services,
+		handles:                handles,
+		experimentsAllowed:     opts.experimentsAllowed,
+		policyClients:          make(map[handle[*stackconfig.Config]]policy.Client),
+		initializePolicyClient: initializePolicyClient,
 	}
 }
 
@@ -108,6 +120,23 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 		return nil, status.Errorf(codes.Unknown, "allocating config handle: %s", err)
 	}
 
+	// Setup the policy client if the caller provided policy paths
+	if req.PolicyPaths != nil {
+
+		// TODO: We need to ensure the context we use to setup the policy client is not tied to the RPC request,
+		// as it will be stored on the stacks server and used in later RPC calls.
+		//
+		// Ensure that's what this code actually does :P
+		setupCtx := context.Background()
+
+		policyClient, err := s.initializePolicyClient(setupCtx, req.PolicyPaths)
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
+		}
+
+		s.setPolicyClient(configHnd, policyClient)
+	}
+
 	// If we get here then we're guaranteed that the source bundle handle
 	// cannot be closed until the config handle is closed -- enforced by
 	// [handleTable]'s dependency tracking -- and so we can return the config
@@ -122,6 +151,13 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 
 func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *stacks.CloseStackConfiguration_Request) (*stacks.CloseStackConfiguration_Response, error) {
 	hnd := handle[*stackconfig.Config](req.StackConfigHandle)
+
+	// Stop policy client if one exists for this stack configuration
+	if policyClient := s.getPolicyClient(hnd); policyClient != nil {
+		policyClient.Stop()
+		s.removePolicyClient(hnd)
+	}
+
 	err := s.handles.CloseStackConfig(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -373,7 +409,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
+	hooks := stackPlanHooks(syncEvts, cfg)
 	ctx = stackruntime.ContextWithHooks(ctx, hooks)
 
 	var planMode plans.Mode
@@ -419,6 +455,9 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		// us to just set this all the time. In practice, this will only have
 		// a value in tests.
 		ForcePlanTimestamp: s.planTimestampOverride,
+
+		// TODO: enable
+		PolicyClient: s.getPolicyClient(cfgHnd),
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
@@ -652,6 +691,9 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+
+		// TODO: enable
+		// PolicyClient:       s.getPolicyClient(cfgHnd),
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -1018,8 +1060,9 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 	return nil
 }
 
-func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+func stackPlanHooks(evts *syncPlanStackChangesServer, cfg *stackconfig.Config) *stackruntime.Hooks {
+	mainStackSource := cfg.Root.Stack.SourceAddr
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_Progress{
@@ -1029,8 +1072,21 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		},
 		mainStackSource,
 	)
+
+	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
+		// TODO: this is currently using the entire stacks configuration, can we just give it the
+		// specific component configuration? or is that not worth the headache?
+		parser := configs.NewSourceBundleParser(cfg.Sources)
+		evts.Send(&stacks.PlanStackChanges_Event{
+			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, parser.Sources(), h.PolicyResults),
+			},
+		})
+	}
+	return changeHooks
 }
 
+// TODO: update to add policy response hooks
 func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
@@ -1492,6 +1548,141 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 				Status: status.ForProtobuf(),
 			},
 		},
+	}
+}
+
+// TODO: I need to revist all of this mapping logic once the policy JSON diagnostic logic is finished + merged
+// there is a lot of stuff here that needs to be mapped still (or extra data in proto but we don't have available)
+func policyEvaluationResponseProto(addr stackaddrs.AbsComponentInstance, cfgSources map[string][]byte, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
+	results := make([]*stacks.PolicyResult, 0)
+	infos := make([]*stacks.PolicyInfo, 0)
+	diagnostics := make([]*stacks.PolicyDiagnostic, 0)
+	for addr, result := range policyResults.Iter() {
+		// Log all the info messages
+		for _, enforcement := range result.EvaluationResponse.Enforcements {
+			if enforcement.Message == "" {
+				continue
+			}
+			var stackPolicyMetadata *stacks.PolicyMetaData
+			if enforcement.Policy != nil {
+				policy := enforcement.Policy
+				stackPolicyMetadata = &stacks.PolicyMetaData{
+					PolicySetName:    policy.PolicySetName,
+					PolicyName:       policy.Address,
+					FileName:         policy.Filename,
+					EnforcementLevel: policy.EnforcementLevel,
+					EnforceIndex:     enforcement.BlockIndex,
+				}
+			}
+			var stackSnippet *stacks.PolicySnippet
+			if snippet := enforcement.Snippet; snippet != nil {
+				stackSnippet = &stacks.PolicySnippet{
+					Code:                 snippet.Code,
+					StartLine:            snippet.StartLine,
+					HighlightStartOffset: snippet.HighlightStartOffset,
+					HighlightEndOffset:   snippet.HighlightEndOffset,
+				}
+				if snippet.Context != nil {
+					stackSnippet.Context = *snippet.Context
+				}
+			}
+
+			info := &stacks.PolicyInfo{
+				TargetAddress:  addr,
+				Result:         enforcement.Result.String(),
+				Message:        enforcement.Message,
+				PolicySnippet:  stackSnippet,
+				PolicyMetadata: stackPolicyMetadata,
+			}
+			if enforcement.Range != nil {
+				rng := sourceRangeFromHCL(*enforcement.Range)
+				info.PolicyRange = &terraform1.SourceRange{
+					SourceAddr: enforcement.Range.Filename,
+					Start:      sourcePosToProto(rng.Start),
+					End:        sourcePosToProto(rng.End),
+				}
+			}
+			infos = append(infos, info)
+		}
+
+		for _, diag := range result.EvaluationResponse.Diagnostics {
+			// TODO: I need to revist this portion of the diagnostic logic because we need to add component information
+			// although I'm not really sure where we need to add this. For example, are we just sending that component information
+			// in the proto response? Do we need to encode it into the json.NewDiagnostic logic?
+			//
+			// TODO: Look into how stacks handles component instance diagnostics today, I'm assuming that tfc-agent does most of the heavy lifting.
+			//
+			// Log the policy diagnostics. The severity level here is from the policy engine, and terraform
+			// does not use it at all. Therefore, the log level of these diagnostics is only relevant
+			// for policies.
+			jsonDiagnostic := json.NewDiagnostic(diag, cfgSources)
+
+			extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+			var severity terraform1.Diagnostic_Severity
+			if extra != nil {
+				switch extra.Severity {
+				case hcl.DiagWarning:
+					severity = terraform1.Diagnostic_WARNING
+				default:
+					severity = terraform1.Diagnostic_ERROR
+				}
+			} else {
+				severity = terraform1.Diagnostic_ERROR
+			}
+
+			diagnostic := stacks.PolicyDiagnostic{
+				TargetAddress: addr,
+				Diagnostic: &terraform1.Diagnostic{
+					Severity: severity,
+					Summary:  jsonDiagnostic.Summary,
+					Detail:   jsonDiagnostic.Detail,
+				},
+			}
+			if extra != nil {
+				policy := extra.Policy
+				diagnostic.Result = extra.Result.String()
+				diagnostic.PolicyMetadata = &stacks.PolicyMetaData{
+					PolicySetName:    policy.PolicySetName,
+					PolicyName:       policy.Address,
+					FileName:         policy.Filename,
+					EnforcementLevel: policy.EnforcementLevel,
+				}
+				if extra.EnforceIndex != nil {
+					diagnostic.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
+				}
+			}
+			if src := diag.Source(); src.Subject != nil {
+				diagnostic.Diagnostic.Subject = sourceRangeToProto(*src.Subject)
+			}
+			if src := diag.Source(); src.Context != nil {
+				diagnostic.Diagnostic.Context = sourceRangeToProto(*src.Context)
+			}
+			diagnostics = append(diagnostics, &diagnostic)
+		}
+
+		for _, policy := range result.EvaluationResponse.Policies {
+			result := stacks.PolicyResult{
+				TargetAddress: addr,
+				PolicyMetadata: &stacks.PolicyMetaData{
+					PolicySetName:    policy.PolicySetName,
+					PolicyName:       policy.Address,
+					FileName:         policy.Filename,
+					EnforcementLevel: policy.EnforcementLevel,
+				},
+				Result: policy.Result.String(),
+			}
+			results = append(results, &result)
+		}
+	}
+	return &stacks.PolicyEvaluationResponse{
+		// TODO: is this enough? Feels like it is?
+		Addr: &stacks.ComponentInstanceInStackAddr{
+			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(addr).String(),
+			ComponentInstanceAddr: addr.String(),
+		},
+		Results:     results,
+		Infos:       infos,
+		Diagnostics: diagnostics,
 	}
 }
 
