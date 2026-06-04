@@ -219,7 +219,6 @@ func TestInit_two_source_provider_download(t *testing.T) {
 				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
 			})
-
 			ui := new(cli.MockUi)
 			view, done := testView(t)
 			c := &InitCommand{
@@ -228,6 +227,71 @@ func TestInit_two_source_provider_download(t *testing.T) {
 					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
+				},
+			}
+
+			if code := c.Run(tc.flags); code != 0 {
+				t.Fatalf("bad: \n%s", done(t).All())
+			}
+
+			actual := done(t).All()
+			for _, downloadMsg := range tc.expectedDownloadMsgs {
+				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
+					t.Fatalf("expected output to contain %q\n, got:\n%s", cleanString(downloadMsg), actual)
+				}
+			}
+		})
+	}
+}
+
+func TestInit_stateStoreProviderDownload(t *testing.T) {
+	cases := map[string]struct {
+		workDirPath          string
+		flags                []string
+		expectedDownloadMsgs []string
+	}{
+		"does not re-download the provider used for PSS in the second provider download step": {
+			workDirPath: "init-provider-download/state-store-config-only",
+			flags:       []string{"-enable-pluggable-state-storage-experiment"},
+			expectedDownloadMsgs: []string{
+				`Initializing provider plugin for state store "test_store"...
+				- Finding latest version of hashicorp/test...
+				- Installing hashicorp/test v1.2.3...
+				- Installed hashicorp/test v1.2.3`,
+				`Initializing the state store "test_store"...`,
+				`Initializing provider plugins...
+				- Reusing previous version of hashicorp/test from the dependency lock file
+				- Using previously-installed hashicorp/test v1.2.3`,
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// Create a temporary working directory no tf configuration but has state
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.workDirPath), td)
+			os.MkdirAll(td, 0755)
+			t.Chdir(td)
+
+			// A provider source containing the random and null providers
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/test":   {"1.2.3"},
+			})
+
+			mockProvider := mockPluggableStateStorageProvider()
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides:          metaOverridesForProvider(mockProvider),
+					Ui:                        ui,
+					View:                      view,
+					ProviderSource:            providerSource,
+					AllowExperimentalFeatures: true,
 				},
 			}
 
