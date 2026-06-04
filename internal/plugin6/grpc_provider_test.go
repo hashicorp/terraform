@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -754,6 +755,59 @@ func TestGRPCProvider_ReadResource(t *testing.T) {
 		"attr": cty.StringVal("bar"),
 	})
 
+	if !cmp.Equal(expected, resp.NewState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expected, resp.NewState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_ReadResource_missingIdentitySchema(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+	client.EXPECT().GetProviderSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{
+		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+	}, nil)
+	client.EXPECT().ReadResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ReadResource_Response{
+		NewState: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		NewIdentity: &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{
+				Msgpack: []byte("\x81\xa7id_attr\xa3foo"),
+			},
+		},
+	}, nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.ReadResource(providers.ReadResourceRequest{
+		TypeName: "resource",
+		PriorState: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+	if got := resp.Diagnostics.Err().Error(); !strings.Contains(got, `unknown identity type "resource"`) {
+		t.Fatalf("expected unknown identity type diagnostic, got %q", got)
+	}
+
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
 	if !cmp.Equal(expected, resp.NewState, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, resp.NewState, typeComparer, valueComparer, equateEmpty))
 	}
