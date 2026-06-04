@@ -56,19 +56,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
-	loader, err := c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	var varDiags tfdiags.Diagnostics
-	c.VariableValues, varDiags = initArgs.Vars.CollectValues(func(filename string, src []byte) {
-		loader.Parser().ForceFileSource(filename, src)
-	})
-	diags = diags.Append(varDiags)
-
+	diags = diags.Append(c.Validate(initArgs))
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -294,6 +282,23 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	return back, true, diags
 }
 
+func (c *InitCommand) Validate(args *arguments.Init) (diags tfdiags.Diagnostics) {
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+
+	diags = diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags
+}
+
 func (c *InitCommand) earlyValidateBackend(root *configs.Module, initArgs *arguments.Init) (diags tfdiags.Diagnostics) {
 	switch {
 	case root.StateStore != nil && root.Backend != nil:
@@ -517,18 +522,18 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, installErr := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode, installerHook)
+	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode, installerHook)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		view.Diagnostics(diags) // TODO: Why is the output viewed here?
+		view.Diagnostics(diags)
 		return true, nil, SafeInitActionInvalid, nil, diags
 	}
-	if installErr != nil {
-		// The errors captured in "installErr" should be redundant with what we
+	if err != nil {
+		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
 		// just return those as long as we have some.
 		if !diags.HasErrors() {
-			diags = diags.Append(installErr)
+			diags = diags.Append(err)
 		}
 
 		return true, nil, SafeInitActionInvalid, nil, diags

@@ -64,10 +64,6 @@ type Installer struct {
 	// from the users machine via CLI configuration, so Terraform does
 	// not need to worry about installing them.
 	devOverrideTypes map[addrs.Provider]struct{}
-
-	// hook is an optional hook whose methods may be called for each provider
-	// version that is being installed or upgraded.
-	hook InstallerHook
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -178,10 +174,6 @@ func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{})
 // available.
 func (i *Installer) SetDevOverrideTypes(types map[addrs.Provider]struct{}) {
 	i.devOverrideTypes = types
-}
-
-func (i *Installer) SetHook(hook InstallerHook) {
-	i.hook = hook
 }
 
 // EnsureProviderVersions compares the given provider requirements with what
@@ -371,16 +363,13 @@ NeedProvider:
 		}
 
 		for _, hook := range hooks {
-			// For each needed provider, we will send the version
-			// and provider to the hook for policy evaluation.
-			// If the hook returns an error, we'll abort the installation.
-			// We do this before checking the lock file, so that we also
-			// evaluate policy for providers that are already installed.
+			// For each needed provider, we will report the selected version
+			// to the hooks. If a hook returns an error, we'll abort the installation.
+			// We do this for all providers, including already installed ones.
+			// Their installation cannot be prevented, but the hook can still
+			// return an error to indicate that the provider version is not
+			// acceptable.
 			err := hook.ProviderVersionSelected(ctx, provider, version.String())
-
-			// return a generic error here that the init command returns to the CLI.
-			// The detailed policy diagnostics are included in the policy results
-			// and will be formatted in the CLI output.
 			if err != nil {
 				return nil, err
 			}
