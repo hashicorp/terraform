@@ -180,7 +180,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	}
 
 	if len(c.Meta.policyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.policyPaths)
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.Meta.policyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)

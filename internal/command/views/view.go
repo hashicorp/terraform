@@ -136,14 +136,7 @@ func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Dia
 	var foundInfo bool
 
 	// Print setup diagnostics
-	for _, diag := range setupDiags {
-		msg := v.formatDiagnostic(diag)
-		if diag.Severity() == tfdiags.Error {
-			v.streams.Eprint(msg)
-		} else {
-			v.streams.Print(msg)
-		}
-	}
+	v.Diagnostics(setupDiags.AsTerraformDiags())
 
 	if results == nil {
 		return
@@ -195,14 +188,7 @@ func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Dia
 		}
 
 		// Print policy diagnostics
-		for _, diag := range result.EvaluationResponse.Diagnostics {
-			msg := v.formatDiagnostic(diag)
-			if diag.Severity() == tfdiags.Error {
-				v.streams.Eprint(msg)
-			} else {
-				v.streams.Print(msg)
-			}
-		}
+		v.Diagnostics(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	if foundInfo {
 		v.streams.Println()

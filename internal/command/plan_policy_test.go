@@ -660,7 +660,7 @@ guarantee to take exactly these actions if you run "terraform apply" now.
 
 func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan-policy"), td)
 	t.Chdir(td)
 
 	p := planFixtureProvider()
