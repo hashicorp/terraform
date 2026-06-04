@@ -550,7 +550,7 @@ func getBackendInstance(stateKey string, config *configs.Backend, f backend.Init
 
 	configureDiags := b.Configure(newVal)
 	configureDiags = configureDiags.InConfigBody(config.Config, "")
-	if validateDiags.HasErrors() {
+	if configureDiags.HasErrors() {
 		return nil, configureDiags.Err()
 	}
 
