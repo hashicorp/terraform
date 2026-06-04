@@ -4,6 +4,8 @@
 package checks_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -210,4 +212,63 @@ func TestChecksHappyPath(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestStateObjectFailureMessagesConcurrent is a regression test, meaningful
+// only under `go test -race`, for a data race where ObjectFailureMessages
+// read the shared maps without c.mu while the Report* methods wrote them.
+func TestStateObjectFailureMessagesConcurrent(t *testing.T) {
+	const fixtureDir = "testdata/happypath"
+
+	cfg, _, configCleanup := tftesting.MustLoadConfigForTests(t, fixtureDir, "tests")
+	t.Cleanup(configCleanup)
+
+	// null_resource.c declares a postcondition, and State doesn't validate
+	// instance keys against the count, so we can register extra instances to
+	// keep the writers and readers contending.
+	resourceC := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "null_resource",
+		Name: "c",
+	}.InModule(addrs.RootModule.Child("child"))
+	moduleChildInst := addrs.RootModuleInstance.Child("child", addrs.NoKey)
+
+	state := checks.NewState(cfg)
+
+	const instanceCount = 64
+	objects := make([]addrs.Checkable, instanceCount)
+	objectSet := addrs.MakeSet[addrs.Checkable]()
+	for i := range objects {
+		inst := resourceC.Resource.Absolute(moduleChildInst).Instance(addrs.IntKey(i))
+		objects[i] = inst
+		objectSet.Add(inst)
+	}
+	state.ReportCheckableObjects(resourceC, objectSet)
+
+	var wg sync.WaitGroup
+
+	// Writers: one failure per object, so no check address is reported twice.
+	for i, obj := range objects {
+		wg.Add(1)
+		go func(i int, obj addrs.Checkable) {
+			defer wg.Done()
+			state.ReportCheckFailure(obj, addrs.ResourcePostcondition, 0, fmt.Sprintf("failure %d", i))
+		}(i, obj)
+	}
+
+	// Readers: read every object's failure messages while the writers run.
+	const readers = 8
+	for r := 0; r < readers; r++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for n := 0; n < 100; n++ {
+				for _, obj := range objects {
+					_ = state.ObjectFailureMessages(obj)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
 }
