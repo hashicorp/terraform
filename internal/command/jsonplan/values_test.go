@@ -237,6 +237,19 @@ func TestMarshalPlanResources(t *testing.T) {
 			Want: nil,
 			Err:  false,
 		},
+		"forget": {
+			Action: plans.Forget,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("foo"),
+				"foozles": cty.StringVal("bar"),
+			}),
+			After: cty.NullVal(cty.Object(map[string]cty.Type{
+				"woozles": cty.String,
+				"foozles": cty.String,
+			})),
+			Want: nil,
+			Err:  false,
+		},
 		"update without unknowns": {
 			Action: plans.Update,
 			Before: cty.ObjectVal(map[string]cty.Value{
