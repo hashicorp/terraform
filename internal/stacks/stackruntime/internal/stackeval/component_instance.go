@@ -182,7 +182,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
-		Locks:                      providerLocks,
+		ProviderLocks:              providerLocks,
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
