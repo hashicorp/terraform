@@ -54,7 +54,7 @@ func TestUnmanagedQuery(t *testing.T) {
 			t.Parallel()
 
 			fixturePath := filepath.Join("testdata", "query-provider")
-			tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+			tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 			reattachCh := make(chan *plugin.ReattachConfig)
 			closeCh := make(chan struct{})
