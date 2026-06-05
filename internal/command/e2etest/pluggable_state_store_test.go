@@ -110,6 +110,7 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 
 // Tests using `terraform workspace` commands in combination with pluggable state storage.
 func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -212,6 +213,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 // > `terraform state show`
 // > `terraform state list`
 func TestPrimary_stateStore_stateCmds(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -285,6 +287,7 @@ resource "terraform_data" "my-data" {
 // > `terraform output`
 // > `terraform output <name>`
 func TestPrimary_stateStore_outputCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -351,6 +354,7 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 // > `terraform show <path-to-state-file>`
 // > `terraform show <path-to-plan-file>`
 func TestPrimary_stateStore_showCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -473,6 +477,7 @@ state, without changing any real infrastructure.
 // in the command's outputs. _This_ test is intended to assert that the command is able to read and use
 // state via a state store ok, and is able to detect providers required only by the state.
 func TestPrimary_stateStore_providerCmds(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
