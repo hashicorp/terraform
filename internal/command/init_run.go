@@ -482,6 +482,7 @@ If you do not intend to upgrade the state store provider, please update your con
 	stateProvidersOutput, stateLocks, stateProvidersDiags := c.getProvidersFromState(ctx, state, configReqs, configLocks, initArgs.PluginPath, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
+		view.PolicyResults(policyResults, nil)
 		view.Diagnostics(diags)
 		return 1
 	}

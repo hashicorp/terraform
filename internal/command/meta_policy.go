@@ -150,7 +150,7 @@ func (h *policyModuleInstallHook) EvaluatePolicy(ctx context.Context, req *confi
 	// return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
 	// and will be formatted in the CLI output.
-	if len(result.Diagnostics) > 0 && result.Diagnostics.AsTerraformDiags().HasErrors() {
+	if len(result.Diagnostics) > 0 && result.Diagnostics.AsTerraformDiags().HasErrors() && result.Overall != policy.AllowResult {
 		return tfdiags.Diagnostics{
 			policy.NewErrorDiagnostic(
 				"Policy evaluation failed",

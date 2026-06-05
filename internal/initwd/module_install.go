@@ -282,6 +282,23 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 						diags = diags.Extend(mDiags)
 					}
 
+					if !diags.HasErrors() {
+						tfDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+							// Evaluate pre-plan policy for the matched version.
+							// if the policy fails, we should not proceed with installation.
+							var versionStr string
+							if record.Version != nil {
+								versionStr = record.Version.String()
+							}
+							policyDiags := hook.EvaluatePolicy(ctx, req, req.SourceAddr.String(), versionStr)
+							if policyDiags.HasErrors() {
+								return policyDiags
+							}
+							return nil
+						})
+						diags = diags.Extend(tfDiags.ToHCL())
+					}
+
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
 					return mod, record.Version, diags
 				}

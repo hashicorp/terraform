@@ -5,6 +5,8 @@ package command
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -62,6 +64,89 @@ func TestInit_WithModulePolicy(t *testing.T) {
 
 	if got, want := policyClient.EvaluateModuleRequest.Meta.Version, ""; got != want {
 		t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+func TestInit_WithModulePolicy_AlreadyInstalled(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("dynamic-module-sources/add-version-constraint"), td)
+	t.Chdir(td)
+
+	if err := os.WriteFile(filepath.Join(td, ".terraform/modules/modules.json"), []byte(`{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": ""
+        },
+        {
+            "Key": "child",
+            "Source": "registry.terraform.io/hashicorp/module-installer-acctest/aws",
+            "Version": "0.0.1",
+            "Dir": ".terraform/modules/child"
+        }
+    ]
+}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+
+	overrides := metaOverridesForProvider(testProvider())
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		if got, want := req.Meta.Version, "0.0.1"; got != want {
+			t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"module policy denied",
+					"module policy blocked installation",
+					policy.DenyResult,
+				),
+			},
+		}
+	}
+	overs := overrides
+	overs.PolicyClient = policyClient
+
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          overs,
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+	}
+
+	if !policyClient.EvaluateModuleCalled {
+		t.Fatal("expected EvaluateModule to be called for already-installed module")
+	}
+
+	expected := `
+Error: module policy denied
+
+  on add-version-constraint.tf line 7:
+   7: module "child" {
+
+module policy blocked installation
+
+Error: Policy evaluation failed
+
+Module download blocked due to policy violations. Please review other
+diagnostics for details.
+`
+	if diff := cmp.Diff(expected, output.Stderr()); diff != "" {
+		t.Fatalf("unexpected stderr:\n%s", diff)
 	}
 }
 
