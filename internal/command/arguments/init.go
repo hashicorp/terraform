@@ -75,8 +75,6 @@ type Init struct {
 
 	PluginPath FlagStringSlice
 
-	Args []string
-
 	StateStoreProviderLockFile string
 
 	// The -enable-pluggable-state-storage-experiment flag is used in control flow logic in the init command.

@@ -50,7 +50,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 
 	// Validate the arg count and get the working directory
-	path, err := ModulePath(initArgs.Args)
+	path, err := ModulePath(nil)
 	if err != nil {
 		diags = diags.Append(err)
 		view.Diagnostics(diags)
