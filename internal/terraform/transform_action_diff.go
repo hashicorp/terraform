@@ -51,7 +51,9 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 			// Add the action triggers to their instance nodes.
 			for _, atn := range atns {
 				if actionTrigger.ActionTriggerEvent.IsDestroy() {
+					// FIXME: hard-coded types!
 					if n, ok := atn.(*NodeDestroyResourceInstance); ok {
+						fmt.Printf("FOUND DEST INST")
 						n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
 							ActionInvocation: ai,
 							actionNode:       actionConfig,

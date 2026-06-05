@@ -89,10 +89,12 @@ func (s *Scope) EvalActionBlock(body hcl.Body, schema *configschema.Block, calle
 	spec := schema.DecoderSpec()
 
 	refs, diags := langrefs.ReferencesInBlock(s.ParseRef, body, schema)
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
 
-	ctx, ctxDiags := s.EvalContext(refs)
+	ctx, ctxDiags := s.EvalContextForExplicitSelf(refs)
 	diags = diags.Append(ctxDiags)
-
 	if diags.HasErrors() {
 		// We'll stop early if we found problems in the references, because
 		// it's likely evaluation will produce redundant copies of the same errors.
@@ -100,6 +102,7 @@ func (s *Scope) EvalActionBlock(body hcl.Body, schema *configschema.Block, calle
 	}
 
 	ctx.Variables["caller"] = caller
+	ctx.Variables["self"] = caller
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
 	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
@@ -243,7 +246,7 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 	// We cheat a bit here and just build an EvalContext for our requested
 	// reference with the "self" address overridden, and then pull the "self"
 	// result out of it to return.
-	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject)
+	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject, false)
 	diags = diags.Append(ctxDiags)
 	val := ctx.Variables["self"]
 	if val == cty.NilVal {
@@ -272,10 +275,14 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 // this type offers, but this is here for less common situations where the
 // caller will handle the evaluation calls itself.
 func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	return s.evalContext(refs, s.SelfAddr)
+	return s.evalContext(refs, s.SelfAddr, false)
 }
 
-func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func (s *Scope) EvalContextForExplicitSelf(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return s.evalContext(refs, s.SelfAddr, true)
+}
+
+func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable, explicitSelf bool) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	if s == nil {
 		panic("attempt to construct EvalContext for nil Scope")
 	}
@@ -331,6 +338,14 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 		rawSubj := ref.Subject
 		if _, ok := rawSubj.(addrs.SelfType); ok {
+			if explicitSelf {
+				// A self value will be passed in explicitly as an evaluation
+				// variable, so we should not try to construct one here.
+				// Planning an orphaned instance or removed resource might fail
+				// here even though self/caller is still valid.
+				continue
+			}
+
 			if selfAddr == nil {
 				diags = diags.Append(SelfContextDiagnostics(ref))
 				continue
@@ -345,7 +360,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			subj := selfAddr.(addrs.ResourceInstance)
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
-
 			diags = diags.Append(valDiags)
 
 			// Self is an exception in that it must always resolve to a

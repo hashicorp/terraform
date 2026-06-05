@@ -162,6 +162,14 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 		var diags tfdiags.Diagnostics
 
+		// FIXME: we need to attach the config to planned instances (destroy
+		// nodes, and orphan nodes). try and do this in
+		// AttachResourceConfigTransformer.
+		//
+		// Make sure orphaned instances get their configs during expansion
+		// somehow too.
+		//
+		//
 		if r.Managed != nil && r.Managed.ActionTriggers != nil {
 			for blockIdx, at := range r.Managed.ActionTriggers {
 				resActTrig := &resourceActionTrigger{
@@ -190,6 +198,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 					}
 
 					// Verify that any actions referenced in the resource's ActionTriggers exist in this module
+					// FIXME: can this be checked during config loading?
 					actionNode, ok := allConfigActions.GetOk(configAction)
 					if !ok {
 						var keys []string
@@ -270,7 +279,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		g.Add(node)
 	}
 
-	// convert unused action config nodes into validation nodes
+	// Convert unused action config nodes into validation nodes. Any triggered
+	// actions will be validated from the caller so we can actually validate the
+	// use of "caller".
 	if t.Operation == walkValidate {
 		for addr, node := range allConfigActions.Iter() {
 			if !referencedActionConfigs.Has(addr) {
