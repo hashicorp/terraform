@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -108,6 +109,58 @@ func TestProvidersSchema_output(t *testing.T) {
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 		})
+	}
+}
+
+// Test that provider schema data can be obtained based on directory data set in the Meta,
+// not by relying on code upstream from the command having changed the working directory.
+// This test mimics a user running `terraform -chdir=<dir> providers schema`
+func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
+	fixtureDir := "providers-schema/basic"
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(fixtureDir), td)
+
+	// We don't call t.Chdir, intentionally.
+
+	p := providersSchemaFixtureProvider()
+	ui := new(cli.MockUi)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			Ui:               ui,
+			testingOverrides: metaOverridesForProvider(p),
+
+			// Setting WorkingDir mimics what calling code would do
+			// when running a command with -chdir.
+			WorkingDir: workdir.NewDir(td),
+		},
+	}
+
+	args := []string{
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Assert we got the expected output, despite no changing into that directory.
+	var got, want providerSchemas
+
+	gotString := ui.OutputWriter.String()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open(filepath.Join(td, "output.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 	}
 }
 
