@@ -41,7 +41,6 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
 
-			destroy := actionTrigger.ActionTriggerEvent == configs.BeforeDestroy || actionTrigger.ActionTriggerEvent == configs.AfterDestroy
 			foundNode := false
 
 			actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
@@ -51,7 +50,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 			// Add the action triggers to their instance nodes.
 			for _, atn := range atns {
-				if destroy {
+				if actionTrigger.ActionTriggerEvent.IsDestroy() {
 					if n, ok := atn.(*NodeDestroyResourceInstance); ok {
 						n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
 							ActionInvocation: ai,

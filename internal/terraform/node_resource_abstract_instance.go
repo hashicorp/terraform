@@ -54,8 +54,6 @@ type NodeAbstractResourceInstance struct {
 
 	// override is set by the graph itself, just before this node executes.
 	override *configs.Override
-
-	actionApplyTriggers []*actionTriggerApplyInstance
 }
 
 var (
@@ -119,25 +117,17 @@ func (n *NodeAbstractResourceInstance) ReferenceableAddrs() []addrs.Referenceabl
 	}
 }
 
-// GraphNodeReferencer
-func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
-	// If we have a configuration attached then we'll delegate to our
-	// embedded abstract resource, which knows how to extract dependencies
-	// from configuration. If there is no config, then the dependencies will
-	// be connected during destroy from those stored in the state.
-	if n.Config != nil {
-		if n.Schema == nil {
-			// We'll produce a log message about this out here so that
-			// we can include the full instance address, since the equivalent
-			// message in NodeAbstractResource.References cannot see it.
-			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
-			return nil
-		}
-		return n.NodeAbstractResource.References()
+func (n *NodeAbstractResourceInstance) ActionCalls() []addrs.ConfigAction {
+	// if we're still planning, just delegate to the lower level resource
+	if n.actionApplyTriggers == nil {
+		return n.NodeAbstractResource.ActionCalls()
 	}
 
-	// If we have neither config nor state then we have no references.
-	return nil
+	var calls []addrs.ConfigAction
+	for _, trigger := range n.actionApplyTriggers {
+		calls = append(calls, trigger.ActionInvocation.Addr.ConfigAction())
+	}
+	return calls
 }
 
 // StateDependencies returns the dependencies which will be saved in the state
@@ -3112,6 +3102,216 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	return reqRep, diags
 }
 
+func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalContext, reason providers.DeferredReason) {
+	deferrals := ctx.Deferrals()
+
+	for blockIdx, trigger := range n.actionTriggers {
+		for listIdx, action := range trigger.actionRefs {
+			deferrals.ReportActionInvocationDeferred(plans.ActionInvocationInstance{
+				Addr: action.actionNode.Addr.Absolute(n.Addr.Module).Instance(addrs.NoKey),
+				ActionTrigger: &plans.ResourceActionTrigger{
+					TriggeringResourceAddr:  n.Addr,
+					ActionTriggerBlockIndex: blockIdx,
+					ActionsListIndex:        listIdx,
+				},
+			}, reason)
+		}
+	}
+}
+
+func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRepData instances.RepetitionData, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// check if our containing resource was deferred
+	_, deferred := ctx.Deferrals().GetDeferredResourceInstanceValue(n.Addr)
+	if deferred {
+		return nil
+	}
+
+	// any of the actions might be deferred, so collect action actionInvocations
+	// and record them at the end
+	var actionInvocations []*plans.ActionInvocationInstance
+
+	for _, trigger := range n.actionTriggers {
+		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
+		cond := cty.True
+		if trigger.config.Condition != nil {
+			var conditionEvalDiags tfdiags.Diagnostics
+			cond, conditionEvalDiags = scope.EvalExpr(trigger.config.Condition, cty.Bool)
+			diags = diags.Append(conditionEvalDiags)
+			if diags.HasErrors() {
+				continue
+			}
+
+			if cond.IsKnown() && cond.False() {
+				// if we know the condition is going to be false, there's no need to
+				// even plan the action.
+				continue
+			}
+		}
+
+		// FIXME: this looks strange, because actions can have multiple events,
+		// but we're just repeating the same plan. Refactoring is annoying
+		// though because the event is set within a nested interface inside a
+		// pointer to the ActionInvocationInstance.
+		for _, event := range eventsForPlannedAction(trigger.config.Events, change.Action) {
+			if event.IsDestroy() && !cond.IsKnown() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown action trigger condition",
+					Detail:   "Condition expression must be known to plan a destroy action.",
+					Subject:  trigger.config.Condition.Range().Ptr(),
+				})
+				return diags
+			}
+
+			for _, action := range trigger.actionRefs {
+				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event, change)
+				diags = diags.Append(planDiags)
+				if diags.HasErrors() {
+					return diags
+				}
+
+				if deferred {
+					log.Printf("[DEBUG] NodePlannableResourceInstance %s is being deferred due to action %s", n.Addr, action.actionNode.Addr)
+					ctx.Changes().RemoveResourceInstanceChange(n.Addr, addrs.NotDeposed)
+					ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonAbsentPrereq, change)
+					// this defers all action triggers at once
+					n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+					return diags
+				}
+
+				actionInvocations = append(actionInvocations, ai)
+			}
+		}
+	}
+
+	// Now that we planned all action invocations with no deferrals, we can
+	// record them all in the changes.
+	for _, ai := range actionInvocations {
+		ctx.Changes().AppendActionInvocation(ai)
+	}
+
+	return diags
+}
+
+// Plan the individual action invocation.
+// This function uses named result parameters.
+func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRepData instances.RepetitionData, actionRef actionRef, event configs.ActionTriggerEvent, change *plans.ResourceInstanceChange) (ai *plans.ActionInvocationInstance, deferred bool, diags tfdiags.Diagnostics) {
+
+	actionInst, evalActionDiags := evaluateActionExpression(actionRef.configRef.Expr, resRepData)
+	diags = append(diags, evalActionDiags...)
+	if diags.HasErrors() {
+		return
+	}
+
+	ai = &plans.ActionInvocationInstance{
+		Addr: actionInst.Absolute(n.Addr.Module),
+		ActionTrigger: &plans.ResourceActionTrigger{
+			TriggeringResourceAddr:  n.Addr,
+			ActionTriggerBlockIndex: actionRef.blockIndex,
+			ActionsListIndex:        actionRef.actionIndex,
+			ActionTriggerEvent:      event,
+		},
+		ProviderAddr: actionRef.actionNode.ResolvedProvider,
+	}
+
+	// check if this action was previously deferred
+	shouldDefer, deferDiags := ctx.Deferrals().ShouldDeferActionInvocation(ai)
+	diags = diags.Append(deferDiags)
+	if diags.HasErrors() {
+		return
+	}
+	if shouldDefer {
+		deferred = true
+		log.Printf("[DEBUG] action instance %s deferred due to config block deferral", actionInst)
+		return
+	}
+
+	callerVal := change.After
+	// If the resource is being destroyed, we want the before val. This works
+	// for replacement (this node doesn't handle full destroys), because the
+	// caller is associated with the existing resource instance rather than the
+	if event == configs.BeforeDestroy || event == configs.AfterDestroy {
+		callerVal = change.Before
+	}
+
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource, callerVal)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		return
+	}
+
+	if event.IsDestroy() {
+		if !actionVal.IsWhollyKnown() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unknown action config",
+				Detail:   "Action configuration must be known to plan a destroy action.",
+				Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
+			})
+			return
+		}
+
+		if len(ephemeral.EphemeralValuePaths(actionVal)) > 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action config contains ephemeral values",
+				Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
+				Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
+			})
+			return
+		}
+	}
+
+	provider, _, err := getProvider(ctx, actionRef.actionNode.ResolvedProvider)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to get provider",
+			Detail:   fmt.Sprintf("Failed to get provider: %s", err),
+			Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
+		})
+
+		return
+	}
+
+	unmarkedConfig, _ := actionVal.UnmarkDeepWithPaths()
+
+	resp := provider.PlanAction(providers.PlanActionRequest{
+		ActionType:         actionRef.actionNode.Addr.Action.Type,
+		ProposedActionData: unmarkedConfig,
+		ClientCapabilities: ctx.ClientCapabilities(),
+	})
+
+	// Associate any provider produced diagnostics with the action config block.
+	if actionRef.actionNode.Config.Config != nil {
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Config, n.Addr.String())
+	} else {
+		// if there was no action config block, use the entire action block for reference
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Body, n.Addr.String())
+	}
+
+	diags = diags.Append(resp.Diagnostics)
+
+	if resp.Deferred != nil {
+		if !ctx.Deferrals().DeferralAllowed() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(actionInst))
+			return
+		}
+		log.Printf("[DEBUG] action instance %s deferred by provider", actionInst)
+		deferred = true
+		return
+	}
+
+	if resp.Diagnostics.HasErrors() {
+		return
+	}
+
+	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionVal)
+	return
+}
+
 // pre-check for before actions since being able to evaluate actions requires a
 // slightly different behavior for diff handling, we guard that change by seeing if
 // it's needed at all.
@@ -3138,7 +3338,7 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 			continue
 		}
 
-		log.Printf("[DEBUG] NodeAbstractesourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
+		log.Printf("[DEBUG] NodeAbstractResourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
 		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true))
 		if diags.HasErrors() {
 			break
@@ -3166,7 +3366,7 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 		}
 
 		if !condOK {
-			log.Printf("[DEBUG] NodeAbstractesourceInstance: action condition false, skipping %s", trigger.ActionInvocation.Addr)
+			log.Printf("[DEBUG] NodeAbstractResourceInstance: action condition false, skipping %s", trigger.ActionInvocation.Addr)
 			continue
 		}
 
@@ -3212,12 +3412,4 @@ func (n *NodeAbstractResourceInstance) evalActionCondition(ctx EvalContext, trig
 	}
 
 	return cond.True(), diags
-}
-
-func (n *NodeAbstractResourceInstance) ActionProviders() []ProviderRef {
-	var refs []ProviderRef
-	for _, trigger := range n.actionApplyTriggers {
-		refs = append(refs, ProviderRef{Addr: trigger.ActionInvocation.ProviderAddr, Resolved: true})
-	}
-	return refs
 }

@@ -249,13 +249,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.
 	return nil
 }
 
-// GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
-func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Reference {
-	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
-	return nil
-}
-
 // GraphNodeDestroyer
 func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
