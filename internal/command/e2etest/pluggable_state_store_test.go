@@ -38,9 +38,7 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	reattachStr, provider := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
@@ -121,11 +119,8 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
@@ -226,11 +221,8 @@ func TestPrimary_stateStore_stateCmds(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -302,11 +294,8 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -371,11 +360,8 @@ func TestPrimary_stateStore_showCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -496,10 +482,8 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// Add a state file describing a resource from the simple (v5) provider, so
