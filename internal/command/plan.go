@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -32,6 +33,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -79,7 +81,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -120,6 +122,10 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
+func (c *PlanCommand) Validate(args *arguments.Plan) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+}
+
 func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
@@ -136,14 +142,7 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	return be, diags
 }
 
-func (c *PlanCommand) OperationRequest(
-	be backendrun.OperationsBackend,
-	view views.Plan,
-	viewType arguments.ViewType,
-	args *arguments.Operation,
-	planOutPath string,
-	generateConfigOut string,
-) (*backendrun.Operation, tfdiags.Diagnostics) {
+func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view views.Plan, viewType arguments.ViewType, args *arguments.Operation, planOutPath string, generateConfigOut string, policyPaths []string) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
@@ -179,6 +178,16 @@ func (c *PlanCommand) OperationRequest(
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
 		return nil, diags
+	}
+
+	if len(policyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), policyPaths)
+		// if there has been any errors when setting up the policy client, we'll log them
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyResults(nil, policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	return opReq, diags

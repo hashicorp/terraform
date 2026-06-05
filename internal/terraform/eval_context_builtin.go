@@ -97,14 +97,14 @@ type BuiltinEvalContext struct {
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ActionsValue            *actions.Actions
-	LocksValue              map[addrs.Provider]*depsfile.ProviderLock
+	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
 	PolicyClientValue       policy.Client
 	PolicyResultsValue      *plans.PolicyResults
 	DeprecationsValue       *deprecation.Deprecations
 }
 
 func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
-	return ctx.LocksValue
+	return ctx.ProviderLocksValue
 }
 
 func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {

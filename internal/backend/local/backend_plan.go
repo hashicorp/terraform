@@ -90,6 +90,7 @@ func (b *Local) opPlan(
 
 	// Set up backend and get our context
 	lr, configSnap, opState, ctxDiags := b.localRun(op)
+
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -220,6 +221,9 @@ func (b *Local) opPlan(
 	}
 
 	op.View.Plan(plan, schemas)
+
+	// Report all policy results that may have accumulated during the plan
+	op.View.PolicyResults(plan.PolicyResults, nil)
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially
