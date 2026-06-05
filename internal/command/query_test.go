@@ -258,9 +258,10 @@ func TestQuery_varFileDuplicateAttr(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("query", "duplicate-var-file")), td)
 	t.Chdir(td)
 
-	providerSource := newMockProviderSource(t, map[string][]string{
+	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
+	defer close()
 
 	p := queryFixtureProvider()
 	view, done := testView(t)
