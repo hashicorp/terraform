@@ -16,6 +16,7 @@ import (
 )
 
 func TestFmt_MockDataFiles(t *testing.T) {
+	t.Parallel()
 	const inSuffix = "_in.tfmock.hcl"
 	const outSuffix = "_out.tfmock.hcl"
 	const gotSuffix = "_got.tfmock.hcl"
@@ -39,6 +40,7 @@ func TestFmt_MockDataFiles(t *testing.T) {
 		}
 		testName := filename[:len(filename)-len(inSuffix)]
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			inFile := filepath.Join("testdata", "tfmock-fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "tfmock-fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
@@ -80,6 +82,7 @@ func TestFmt_MockDataFiles(t *testing.T) {
 }
 
 func TestFmt_TestFiles(t *testing.T) {
+	t.Parallel()
 	const inSuffix = "_in.tftest.hcl"
 	const outSuffix = "_out.tftest.hcl"
 	const gotSuffix = "_got.tftest.hcl"
@@ -103,6 +106,7 @@ func TestFmt_TestFiles(t *testing.T) {
 		}
 		testName := filename[:len(filename)-len(inSuffix)]
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			inFile := filepath.Join("testdata", "tftest-fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "tftest-fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
@@ -144,6 +148,7 @@ func TestFmt_TestFiles(t *testing.T) {
 }
 
 func TestFmt_QueryFiles(t *testing.T) {
+	t.Parallel()
 	const inSuffix = "_in.tfquery.hcl"
 	const outSuffix = "_out.tfquery.hcl"
 	const gotSuffix = "_got.tfquery.hcl"
@@ -167,6 +172,7 @@ func TestFmt_QueryFiles(t *testing.T) {
 		}
 		testName := filename[:len(filename)-len(inSuffix)]
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			inFile := filepath.Join("testdata", "tfquery-fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "tfquery-fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
@@ -208,6 +214,7 @@ func TestFmt_QueryFiles(t *testing.T) {
 }
 
 func TestFmt(t *testing.T) {
+	t.Parallel()
 	const inSuffix = "_in.tf"
 	const outSuffix = "_out.tf"
 	const gotSuffix = "_got.tf"
@@ -231,6 +238,7 @@ func TestFmt(t *testing.T) {
 		}
 		testName := filename[:len(filename)-len(inSuffix)]
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			inFile := filepath.Join("testdata", "fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
@@ -272,6 +280,8 @@ func TestFmt(t *testing.T) {
 }
 
 func TestFmt_nonexist(t *testing.T) {
+	t.Parallel()
+
 	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
@@ -295,6 +305,8 @@ func TestFmt_nonexist(t *testing.T) {
 }
 
 func TestFmt_syntaxError(t *testing.T) {
+	t.Parallel()
+
 	tempDir := testTempDir(t)
 
 	invalidSrc := `
@@ -326,6 +338,8 @@ a = 1 +
 }
 
 func TestFmt_snippetInError(t *testing.T) {
+	t.Parallel()
+
 	tempDir := testTempDir(t)
 
 	backendSrc := `terraform {backend "s3" {}}`
@@ -361,6 +375,8 @@ func TestFmt_snippetInError(t *testing.T) {
 }
 
 func TestFmt_manyArgs(t *testing.T) {
+	t.Parallel()
+
 	tempDir := fmtFixtureWriteDir(t)
 	// Add a second file
 	secondSrc := `locals { x = 1 }`
@@ -430,6 +446,7 @@ func TestFmt_workingDirectory(t *testing.T) {
 }
 
 func TestFmt_directoryArg(t *testing.T) {
+	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
@@ -457,6 +474,7 @@ func TestFmt_directoryArg(t *testing.T) {
 }
 
 func TestFmt_fileArg(t *testing.T) {
+	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
@@ -484,6 +502,7 @@ func TestFmt_fileArg(t *testing.T) {
 }
 
 func TestFmt_stdinArg(t *testing.T) {
+	t.Parallel()
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
@@ -508,6 +527,7 @@ func TestFmt_stdinArg(t *testing.T) {
 }
 
 func TestFmt_nonDefaultOptions(t *testing.T) {
+	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
@@ -535,6 +555,7 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 }
 
 func TestFmt_check(t *testing.T) {
+	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
 	ui := new(cli.MockUi)
@@ -563,6 +584,7 @@ func TestFmt_check(t *testing.T) {
 }
 
 func TestFmt_checkStdin(t *testing.T) {
+	t.Parallel()
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
