@@ -249,6 +249,50 @@ this variable.
 	}
 }
 
+// TestQuery_varFileDuplicateAttr is a regression test for a bug where a
+// -var-file containing a duplicated attribute would print an error diagnostic
+// but still exit 0, silently discarding the file and falling back to other
+// variable sources. A malformed var file must cause the query to fail.
+func TestQuery_varFileDuplicateAttr(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("query", "duplicate-var-file")), td)
+	t.Chdir(td)
+
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	p := queryFixtureProvider()
+	view, done := testView(t)
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(p),
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		ProviderSource:            providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	initCode := init.Run(nil)
+	initOutput := done(t)
+	if initCode != 0 {
+		t.Fatalf("init failed: %d\n\n%s", initCode, initOutput.All())
+	}
+
+	view, done = testView(t)
+	meta.View = view
+
+	c := &QueryCommand{Meta: meta}
+	code := c.Run([]string{"-no-color", "-var-file=duplicate.tfvars"})
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+}
+
 func queryFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	instanceListSchema := &configschema.Block{
