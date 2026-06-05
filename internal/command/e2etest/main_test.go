@@ -12,7 +12,13 @@ import (
 	"github.com/hashicorp/terraform/internal/e2e"
 )
 
-var terraformBin string
+var (
+	// Path to a build of Terraform reused in multiple E2E tests. Experiments are disabled.
+	terraformBin string
+
+	// Path to a build of Terraform reused in multiple E2E tests. Experiments are enabled.
+	experimentalTerraformBin string
+)
 
 // canRunGoBuild is a short-term compromise to account for the fact that we
 // have a small number of tests that work by building helper programs using
@@ -48,10 +54,15 @@ func setup() func() {
 		return func() {}
 	}
 
+	// Make a non-experimental TF executable available for use in tests
 	tmpFilename := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
-	// Make the executable available for use in tests
 	terraformBin = tmpFilename
+
+	// Make an experimental TF executable available for use in tests
+	os.Setenv(e2e.TestExperimentFlag, "true")
+	defer os.Unsetenv(e2e.TestExperimentFlag)
+	tmpExperimentalFilename := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+	experimentalTerraformBin = tmpExperimentalFilename
 
 	// Tests running in the ad-hoc testing mode are allowed to use "go build"
 	// and similar to produce other test executables.
@@ -60,6 +71,7 @@ func setup() func() {
 
 	return func() {
 		os.Remove(tmpFilename)
+		os.Remove(tmpExperimentalFilename)
 	}
 }
 

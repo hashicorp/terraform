@@ -471,10 +471,8 @@ func TestInitStateStoreUsingUnmanagedProvider(t *testing.T) {
 		}
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-unmanaged")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	// Assert the existing lockfile describes the older version of the provider.
 	lockFile := tf.Path(".terraform.lock.hcl")
