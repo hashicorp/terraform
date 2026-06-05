@@ -274,6 +274,8 @@ terraform {
 `
 
 func TestSymlinkProviderTargetDirectory(t *testing.T) {
+	t.Parallel()
+
 	// This test reaches out to releases.hashicorp.com to download the
 	// null provider, so it can only run if network access is allowed.
 	skipIfCannotAccessNetwork(t)
