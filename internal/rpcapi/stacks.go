@@ -1567,12 +1567,10 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 	}
 }
 
-// TODO: I need to revist all of this mapping logic once the policy JSON diagnostic logic is finished + merged
-// there is a lot of stuff here that needs to be mapped still (or extra data in proto but we don't have available)
-func policyEvaluationResponseProto(addr stackaddrs.AbsComponentInstance, cfgSources map[string][]byte, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
+func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance, cfgSources map[string][]byte, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
-	diagnostics := make([]*stacks.PolicyDiagnostic, 0)
+	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
 	for addr, result := range policyResults.Iter() {
 		// Log all the info messages
 		for _, enforcement := range result.EvaluationResponse.Enforcements {
@@ -1583,10 +1581,10 @@ func policyEvaluationResponseProto(addr stackaddrs.AbsComponentInstance, cfgSour
 			if enforcement.Policy != nil {
 				policy := enforcement.Policy
 				stackPolicyMetadata = &stacks.PolicyMetaData{
-					PolicySetName:    policy.PolicySetName,
 					PolicyName:       policy.Address,
-					FileName:         policy.Filename,
+					PolicySetName:    policy.PolicySetName,
 					EnforcementLevel: policy.EnforcementLevel,
+					FileName:         policy.Filename,
 					EnforceIndex:     enforcement.BlockIndex,
 				}
 			}
@@ -1634,54 +1632,47 @@ func policyEvaluationResponseProto(addr stackaddrs.AbsComponentInstance, cfgSour
 			jsonDiagnostic := json.NewDiagnostic(diag, cfgSources)
 
 			extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
-			var severity terraform1.Diagnostic_Severity
-			if extra != nil {
-				switch extra.Severity {
-				case hcl.DiagWarning:
-					severity = terraform1.Diagnostic_WARNING
-				default:
-					severity = terraform1.Diagnostic_ERROR
-				}
-			} else {
-				severity = terraform1.Diagnostic_ERROR
-			}
 
-			diagnostic := stacks.PolicyDiagnostic{
+			policyDiag := stacks.PolicyDiagnostic{
 				TargetAddress: addr,
 				Diagnostic: &terraform1.Diagnostic{
-					Severity: severity,
+					Severity: terraform1.Diagnostic_ERROR,
 					Summary:  jsonDiagnostic.Summary,
 					Detail:   jsonDiagnostic.Detail,
 				},
 			}
+
 			if extra != nil {
-				policy := extra.Policy
-				diagnostic.Result = extra.Result.String()
-				diagnostic.PolicyMetadata = &stacks.PolicyMetaData{
-					PolicySetName:    policy.PolicySetName,
-					PolicyName:       policy.Address,
-					FileName:         policy.Filename,
-					EnforcementLevel: policy.EnforcementLevel,
+				if extra.Severity == hcl.DiagWarning {
+					policyDiag.Diagnostic.Severity = terraform1.Diagnostic_WARNING
+				}
+
+				policyDiag.Result = extra.Result.String()
+				policyDiag.PolicyMetadata = &stacks.PolicyMetaData{
+					PolicySetName:    extra.Policy.PolicySetName,
+					PolicyName:       extra.Policy.Address,
+					FileName:         extra.Policy.Filename,
+					EnforcementLevel: extra.Policy.EnforcementLevel,
 				}
 				if extra.EnforceIndex != nil {
-					diagnostic.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
+					policyDiag.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
 				}
 			}
 			if src := diag.Source(); src.Subject != nil {
-				diagnostic.Diagnostic.Subject = sourceRangeToProto(*src.Subject)
+				policyDiag.Diagnostic.Subject = sourceRangeToProto(*src.Subject)
 			}
 			if src := diag.Source(); src.Context != nil {
-				diagnostic.Diagnostic.Context = sourceRangeToProto(*src.Context)
+				policyDiag.Diagnostic.Context = sourceRangeToProto(*src.Context)
 			}
-			diagnostics = append(diagnostics, &diagnostic)
+			policyDiags = append(policyDiags, &policyDiag)
 		}
 
 		for _, policy := range result.EvaluationResponse.Policies {
 			result := stacks.PolicyResult{
 				TargetAddress: addr,
 				PolicyMetadata: &stacks.PolicyMetaData{
-					PolicySetName:    policy.PolicySetName,
 					PolicyName:       policy.Address,
+					PolicySetName:    policy.PolicySetName,
 					FileName:         policy.Filename,
 					EnforcementLevel: policy.EnforcementLevel,
 				},
@@ -1691,14 +1682,13 @@ func policyEvaluationResponseProto(addr stackaddrs.AbsComponentInstance, cfgSour
 		}
 	}
 	return &stacks.PolicyEvaluationResponse{
-		// TODO: is this enough? Feels like it is?
 		Addr: &stacks.ComponentInstanceInStackAddr{
-			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(addr).String(),
-			ComponentInstanceAddr: addr.String(),
+			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(componentAddr).String(),
+			ComponentInstanceAddr: componentAddr.String(),
 		},
 		Results:     results,
 		Infos:       infos,
-		Diagnostics: diagnostics,
+		Diagnostics: policyDiags,
 	}
 }
 
