@@ -136,6 +136,9 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	// we've accumulated here, since the backend will start fresh with its own
 	// diagnostics.
 	view.Diagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
 	diags = nil
 
 	// Perform the operation
