@@ -606,8 +606,10 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 
 	for _, trigger := range n.actionTriggers {
 		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
+		cond := cty.True
 		if trigger.config.Condition != nil {
-			cond, conditionEvalDiags := scope.EvalExpr(trigger.config.Condition, cty.Bool)
+			var conditionEvalDiags tfdiags.Diagnostics
+			cond, conditionEvalDiags = scope.EvalExpr(trigger.config.Condition, cty.Bool)
 			diags = diags.Append(conditionEvalDiags)
 			if diags.HasErrors() {
 				continue
@@ -625,6 +627,16 @@ func (n *NodePlannableResourceInstance) planActionTriggers(ctx EvalContext, resR
 		// though because the event is set within a nested interface inside a
 		// pointer to the ActionInvocationInstance.
 		for _, event := range eventsForPlannedAction(trigger.config.Events, n.change.Action) {
+			if event.IsDestroy() && !cond.IsKnown() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown action trigger condition",
+					Detail:   "Condition expression must be known to plan a destroy action.",
+					Subject:  trigger.config.Condition.Range().Ptr(),
+				})
+				return diags
+			}
+
 			for _, action := range trigger.actionRefs {
 				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event)
 				diags = diags.Append(planDiags)
@@ -696,10 +708,40 @@ func (n *NodePlannableResourceInstance) planActionTrigger(ctx EvalContext, resRe
 		return
 	}
 
-	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource)
+	callerVal := n.change.After
+	// If the resource is being destroyed, we want the before val. This works
+	// for replacement (this node doesn't handle full destroys), because the
+	// caller is associated with the existing resource instance rather than the
+	if event == configs.BeforeDestroy || event == configs.AfterDestroy {
+		callerVal = n.change.Before
+	}
+
+	actionVal, actionDiags := actionRef.actionNode.EvalInstance(ctx, actionInst.Absolute(ctx.Path()), actionRef.configRef.Expr.Range().Ptr(), n.Addr.Resource, callerVal)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return
+	}
+
+	if event.IsDestroy() {
+		if !actionVal.IsWhollyKnown() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unknown action config",
+				Detail:   "Action configuration must be known to plan a destroy action.",
+				Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
+			})
+			return
+		}
+
+		if len(ephemeral.EphemeralValuePaths(actionVal)) > 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Action config contains ephemeral values",
+				Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
+				Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
+			})
+			return
+		}
 	}
 
 	provider, _, err := getProvider(ctx, actionRef.actionNode.ResolvedProvider)

@@ -67,9 +67,22 @@ const (
 	Invoke
 )
 
+func (e ActionTriggerEvent) IsBefore() bool {
+	return slices.Contains(BeforeEvents, e)
+}
+
+func (e ActionTriggerEvent) IsAfter() bool {
+	return slices.Contains(AfterEvents, e)
+}
+
+func (e ActionTriggerEvent) IsDestroy() bool {
+	return slices.Contains(DestroyEvents, e)
+}
+
 var (
-	BeforeEvents = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
-	AfterEvents  = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	BeforeEvents  = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
+	AfterEvents   = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	DestroyEvents = []ActionTriggerEvent{BeforeDestroy, AfterDestroy}
 )
 
 // ActionRef represents a reference to a configured Action
@@ -115,11 +128,15 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				containsBefore = true
 			case "after_update":
 				event = AfterUpdate
+			case "before_destroy":
+				event = BeforeDestroy
+			case "after_destroy":
+				event = AfterDestroy
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Invalid \"event\" value %s", hcl.ExprAsKeyword(expr)),
-					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
 				continue

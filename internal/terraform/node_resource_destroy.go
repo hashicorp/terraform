@@ -21,8 +21,6 @@ import (
 // destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
-
-	actionTriggers []*actionTriggerApplyInstance
 }
 
 var (
@@ -183,6 +181,14 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		}
 	}
 
+	if n.hasBeforeActions() {
+		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+		diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	// we pass a nil configuration to apply because we are destroying
@@ -211,6 +217,9 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 			Action:       changeApply.Action,
 		})
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))

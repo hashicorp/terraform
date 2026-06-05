@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -53,6 +54,8 @@ type NodeAbstractResourceInstance struct {
 
 	// override is set by the graph itself, just before this node executes.
 	override *configs.Override
+
+	actionApplyTriggers []*actionTriggerApplyInstance
 }
 
 var (
@@ -3107,4 +3110,114 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	}
 
 	return reqRep, diags
+}
+
+// pre-check for before actions since being able to evaluate actions requires a
+// slightly different behavior for diff handling, we guard that change by seeing if
+// it's needed at all.
+func (n *NodeAbstractResourceInstance) hasBeforeActions() bool {
+	for _, trigger := range n.actionApplyTriggers {
+		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
+		if event.IsBefore() {
+			return true
+		}
+	}
+	return false
+}
+
+// invokeDestroyAction currently cannot reevaluate the action config due to not
+// being able to order dependencies without causing cycles. The entire config
+// and condition must be known at plan time, so if we have a planned action we
+// simply decode and call invoke.
+func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, forEvent configs.ActionTriggerEvent) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, trigger := range n.actionApplyTriggers {
+		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
+		if event != forEvent {
+			continue
+		}
+
+		log.Printf("[DEBUG] NodeAbstractesourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
+		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true))
+		if diags.HasErrors() {
+			break
+		}
+	}
+
+	return diags
+}
+
+// invokeActions invokes any actions triggered for the listed events. Condition
+// expressions are reevaluated here when they exist, and failing conditions are
+// skipped.
+func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, trigger := range n.actionApplyTriggers {
+		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
+		if !slices.Contains(forEvents, event) {
+			continue
+		}
+
+		condOK, condDiags := n.evalActionCondition(ctx, trigger, repData)
+		diags = diags.Append(condDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		if !condOK {
+			log.Printf("[DEBUG] NodeAbstractesourceInstance: action condition false, skipping %s", trigger.ActionInvocation.Addr)
+			continue
+		}
+
+		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, callerVal, false))
+		if diags.HasErrors() {
+			break
+		}
+	}
+
+	return diags
+}
+
+// We need to lookup any condition expression from the action block before
+// execution, because the condition is part of the resource config, while the
+// action is planned as an ActionInvocation.
+func (n *NodeAbstractResourceInstance) evalActionCondition(ctx EvalContext, trigger *actionTriggerApplyInstance, repData instances.RepetitionData) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// this can't be an invoked trigger
+	rat := trigger.ActionInvocation.ActionTrigger.(*plans.ResourceActionTrigger)
+	triggerBlock := n.Config.Managed.ActionTriggers[rat.ActionTriggerBlockIndex]
+
+	if triggerBlock.Condition == nil {
+		return true, diags
+	}
+
+	scope := ctx.EvaluationScope(n.Addr.Resource, nil, repData)
+	cond, conditionEvalDiags := scope.EvalExpr(triggerBlock.Condition, cty.Bool)
+	diags = diags.Append(conditionEvalDiags)
+	if diags.HasErrors() {
+		return false, diags
+	}
+
+	if !cond.IsKnown() {
+		// this should not happen, but give the user a good diagnostic to help
+		// reproduce the problem in case it does.
+		return false, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown condition when invoking action before apply",
+			Detail:   "The action trigger condition must be known before it can be invoked.",
+			Subject:  triggerBlock.Condition.Range().Ptr(),
+		})
+	}
+
+	return cond.True(), diags
+}
+
+func (n *NodeAbstractResourceInstance) ActionProviders() []ProviderRef {
+	var refs []ProviderRef
+	for _, trigger := range n.actionApplyTriggers {
+		refs = append(refs, ProviderRef{Addr: trigger.ActionInvocation.ProviderAddr, Resolved: true})
+	}
+	return refs
 }

@@ -175,6 +175,57 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
+		"after_destroy triggered": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = caller.test_string
+  }
+}
+
+resource "test_object" "a" {
+  test_string = "new name"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"test_string":"old name"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				attr := req.PlannedActionData.GetAttr("attr").AsString()
+				if attr != "old name" {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(
+									tfdiags.Error,
+									"destroy used wrong state value",
+									"action invoked with "+attr,
+								),
+							},
+						},
+					}
+				}
+				return []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Completed{},
+				}
+			},
+			expectInvokeActionCalled: true,
+		},
+
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
@@ -1438,7 +1489,7 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
-		"before_create references caller": {
+		"before_update references caller": {
 			module: map[string]string{
 				"main.tf": `
 action "action_example" "test" {
@@ -1451,7 +1502,6 @@ resource "test_object" "a" {
   lifecycle {
     action_trigger {
       events = [before_update]
-      condition = self.test_string == "new"
       actions = [action.action_example.test]
     }
   }
