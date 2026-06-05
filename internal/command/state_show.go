@@ -6,7 +6,6 @@ package command
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -75,11 +74,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// We expect the config dir to always be the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		diags = diags.Append(fmt.Sprintf("Error getting cwd: %s\n", err))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
-	}
+	cwd := c.WorkingDir.RootModuleDir()
 
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b, c.viewType)
