@@ -37,11 +37,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
+	configPath := c.Meta.WorkingDir.RootModuleDir()
 
 	loader, err := c.initConfigLoader()
 	if err != nil {

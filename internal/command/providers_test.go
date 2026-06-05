@@ -5,13 +5,13 @@ package command
 
 import (
 	"bytes"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
@@ -19,19 +19,15 @@ import (
 )
 
 func TestProviders(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("providers/basic")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("providers/basic"), td)
+	t.Chdir(td)
 
 	ui := testUiWrapped(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -55,19 +51,15 @@ func TestProviders(t *testing.T) {
 }
 
 func TestProviders_noConfigs(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(""), td)
+	t.Chdir(td)
 
 	ui := testUiWrapped(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -102,6 +94,7 @@ func TestProviders_modules(t *testing.T) {
 		Ui:               initUi,
 		View:             view,
 		ProviderSource:   providerSource,
+		WorkingDir:       workdir.NewDir(td),
 	}
 	ic := &InitCommand{
 		Meta: m,
@@ -114,7 +107,8 @@ func TestProviders_modules(t *testing.T) {
 	ui := testUiWrapped(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -139,19 +133,15 @@ func TestProviders_modules(t *testing.T) {
 }
 
 func TestProviders_state(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("providers/state")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("providers/state"), td)
+	t.Chdir(td)
 
 	ui := testUiWrapped(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -176,19 +166,15 @@ func TestProviders_state(t *testing.T) {
 }
 
 func TestProviders_tests(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("providers/tests")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("providers/tests"), td)
+	t.Chdir(td)
 
 	ui := testUiWrapped(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -260,6 +246,7 @@ func TestProviders_state_withStateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
