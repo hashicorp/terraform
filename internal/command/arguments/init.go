@@ -88,7 +88,7 @@ type Init struct {
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
+func ParseInit(rawArgs []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	init := &Init{
 		Vars: &Vars{},
@@ -121,7 +121,7 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := cmdFlags.Parse(rawArgs); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
@@ -217,7 +217,15 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 		diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 	}
 
-	init.Args = cmdFlags.Args()
+	args := cmdFlags.Args()
+	if len(args) != 0 {
+		// No positional arguments are expected.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Too many command line arguments",
+			"The init command does not expect any positional arguments. Did you mean to use -chdir?",
+		))
+	}
 
 	backendFlagSet := FlagIsSet(cmdFlags, "backend")
 	cloudFlagSet := FlagIsSet(cmdFlags, "cloud")
