@@ -97,3 +97,8 @@ type ComponentInstancePlanPolicyResults struct {
 	Addr          stackaddrs.AbsComponentInstance
 	PolicyResults *plans.PolicyResults
 }
+
+type ComponentInstanceApplyPolicyResults struct {
+	Addr          stackaddrs.AbsComponentInstance
+	PolicyResults *plans.PolicyResults // TODO: it's kind of weird that the struct for policy results in apply come from the plan package
+}

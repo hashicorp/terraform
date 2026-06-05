@@ -450,14 +450,12 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		PolicyClient:       s.getPolicyClient(cfgHnd),
 
 		// planTimestampOverride will be null if not set, so it's fine for
 		// us to just set this all the time. In practice, this will only have
 		// a value in tests.
 		ForcePlanTimestamp: s.planTimestampOverride,
-
-		// TODO: enable
-		PolicyClient: s.getPolicyClient(cfgHnd),
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
@@ -679,7 +677,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
+	hooks := stackApplyHooks(syncEvts, cfg)
 	ctx = stackruntime.ContextWithHooks(ctx, hooks)
 
 	changesCh := make(chan stackstate.AppliedChange, 8)
@@ -691,9 +689,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
-
-		// TODO: enable
-		// PolicyClient:       s.getPolicyClient(cfgHnd),
+		PolicyClient:       s.getPolicyClient(cfgHnd),
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -1073,22 +1069,26 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, cfg *stackconfig.Config) *
 		mainStackSource,
 	)
 
+	// TODO: this is currently using the entire stacks configuration, can we just give it the
+	// specific component configuration? or is that not worth the headache?
+	//
+	// TODO: could we pass this in the hook itself?
+	parser := configs.NewSourceBundleParser(cfg.Sources)
+
 	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
-		// TODO: this is currently using the entire stacks configuration, can we just give it the
-		// specific component configuration? or is that not worth the headache?
-		parser := configs.NewSourceBundleParser(cfg.Sources)
 		evts.Send(&stacks.PlanStackChanges_Event{
 			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
 				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, parser.Sources(), h.PolicyResults),
 			},
 		})
 	}
+
 	return changeHooks
 }
 
-// TODO: update to add policy response hooks
-func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+func stackApplyHooks(evts *syncApplyStackChangesServer, cfg *stackconfig.Config) *stackruntime.Hooks {
+	mainStackSource := cfg.Root.Stack.SourceAddr
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_Progress{
@@ -1098,6 +1098,22 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		},
 		mainStackSource,
 	)
+
+	// TODO: this is currently using the entire stacks configuration, can we just give it the
+	// specific component configuration? or is that not worth the headache?
+	//
+	// TODO: could we pass this in the hook itself?
+	parser := configs.NewSourceBundleParser(cfg.Sources)
+
+	changeHooks.ReportComponentInstanceApplyPolicyResults = func(ctx context.Context, h *hooks.ComponentInstanceApplyPolicyResults) {
+		evts.Send(&stacks.ApplyStackChanges_Event{
+			Event: &stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, parser.Sources(), h.PolicyResults),
+			},
+		})
+	}
+
+	return changeHooks
 }
 
 // stackChangeHooks is the shared hook-handling logic for both [stackPlanHooks]

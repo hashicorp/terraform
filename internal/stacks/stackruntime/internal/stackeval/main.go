@@ -653,9 +653,7 @@ func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
 
 func (m *Main) PolicyClient() policy.Client {
 	if m.applying != nil {
-		// TODO: apply policy stuff
-		// return m.applying.opts.PolicyClient
-		return nil
+		return m.applying.opts.PolicyClient
 	}
 	if m.planning != nil {
 		return m.planning.opts.PolicyClient

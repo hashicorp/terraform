@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
@@ -48,6 +49,8 @@ type ApplyOpts struct {
 	InputVariableValues map[stackaddrs.InputVariable]ExternalInputValue
 
 	ExperimentsAllowed bool
+
+	PolicyClient policy.Client
 }
 
 // Applyable is an interface implemented by types which represent objects
@@ -250,12 +253,21 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			}
 		}()
 
+		// If we have a dependency lock file, add the provider locks to the plan opts so we can evaluate provider policies
+		lockFile := main.DependencyLocks(PlanPhase)
+		var providerLocks map[addrs.Provider]*depsfile.ProviderLock
+		if lockFile != nil {
+			providerLocks = lockFile.AllProviders()
+		}
+
 		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
 		// works, and so code after this point should not make any further use
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
+			Locks:                     providerLocks,
 			ExternalProviders:         providerClients,
+			PolicyClient:              main.PolicyClient(),
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -333,6 +345,12 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		}
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
+
+		// TODO: is this the only place we need to add this hook?
+		hookSingle(ctx, h.ReportComponentInstanceApplyPolicyResults, &hooks.ComponentInstanceApplyPolicyResults{
+			Addr:          inst.Addr(),
+			PolicyResults: plan.PolicyResults,
+		})
 	}
 
 	if diags.HasErrors() {

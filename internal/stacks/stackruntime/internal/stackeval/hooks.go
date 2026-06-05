@@ -154,6 +154,9 @@ type Hooks struct {
 
 	// TODO: this should be "hooks.single" because there is no begin to relate this to (is that okay? double check)
 	ReportComponentInstancePlanPolicyResults hooks.SingleFunc[*hooks.ComponentInstancePlanPolicyResults]
+
+	// TODO: this should be "hooks.single" because there is no begin to relate this to (is that okay? double check)
+	ReportComponentInstanceApplyPolicyResults hooks.SingleFunc[*hooks.ComponentInstanceApplyPolicyResults]
 }
 
 // A do-nothing default Hooks that we use when the caller doesn't provide one.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -64,6 +65,7 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 			ProviderFactories:   req.ProviderFactories,
 			ExperimentsAllowed:  req.ExperimentsAllowed,
 			DependencyLocks:     req.DependencyLocks,
+			PolicyClient:        req.PolicyClient,
 		},
 		outp,
 	)
@@ -104,6 +106,9 @@ type ApplyRequest struct {
 
 	ExperimentsAllowed bool
 	DependencyLocks    depsfile.Locks
+
+	// TODO: verify all the different places we need to plumb this field through
+	PolicyClient policy.Client
 }
 
 // ApplyResponse is used by [Apply] to describe the results of applying.
