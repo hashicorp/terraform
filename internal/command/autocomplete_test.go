@@ -15,14 +15,16 @@ import (
 )
 
 func TestMetaCompletePredictWorkspaceName(t *testing.T) {
-
 	t.Run("test autocompletion using the local backend", func(t *testing.T) {
 		// Create a temporary working directory that is empty
 		td := t.TempDir()
 		t.Chdir(td)
 
 		ui := new(cli.MockUi)
-		meta := &Meta{Ui: ui}
+		meta := &Meta{
+			Ui:         ui,
+			WorkingDir: workdir.NewDir(td),
+		}
 
 		predictor := meta.completePredictWorkspaceName()
 
@@ -55,10 +57,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		wd := workdir.NewDir(".")
-		wd.OverrideOriginalWorkingDir(td)
 		meta := Meta{
-			WorkingDir:                wd, // Use the test's temp dir
+			WorkingDir:                workdir.NewDir(td), // Use the test's temp dir
 			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
@@ -98,10 +98,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		wd := workdir.NewDir(".")
-		wd.OverrideOriginalWorkingDir(td)
 		meta := Meta{
-			WorkingDir:                wd, // Use the test's temp dir
+			WorkingDir:                workdir.NewDir(td), // Use the test's temp dir
 			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
