@@ -46,7 +46,6 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	default:
 		args, diags = arguments.ParseApply(rawArgs)
 	}
-	c.Meta.policyPaths = args.PolicyPaths
 	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
@@ -105,8 +104,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if len(c.Meta.policyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.Meta.policyPaths)
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), args.PolicyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)

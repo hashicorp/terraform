@@ -206,9 +206,6 @@ type Meta struct {
 	// This is to enable commands used to recover from invalid workspaces to run without the error blocking them.
 	bypassWorkspaceNameValidityCheck bool
 
-	// policyPaths is a list of paths to policy files to load for policy evaluation.
-	policyPaths []string
-
 	//----------------------------------------------------------
 	// Private: do not set these
 	//----------------------------------------------------------

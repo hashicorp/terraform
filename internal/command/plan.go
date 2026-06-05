@@ -33,7 +33,6 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
-	c.Meta.policyPaths = args.PolicyPaths
 	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
@@ -156,7 +155,6 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.ActionTargets = args.ActionTargets
-	opReq.PolicyPaths = policyPaths
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
@@ -179,8 +177,8 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 		return nil, diags
 	}
 
-	if len(c.Meta.policyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), c.Meta.policyPaths)
+	if len(policyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(context.Background(), policyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)
