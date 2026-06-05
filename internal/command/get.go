@@ -45,12 +45,7 @@ func (c *GetCommand) Run(args []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	path, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
+	path := c.Meta.WorkingDir.RootModuleDir()
 	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
