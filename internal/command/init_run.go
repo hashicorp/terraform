@@ -49,13 +49,8 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		c.pluginPath = initArgs.PluginPath
 	}
 
-	// Validate the arg count and get the working directory
-	path, err := ModulePath(nil)
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
-	}
+	// Get the working directory
+	path := c.Meta.WorkingDir.RootModuleDir()
 
 	if err := c.storePluginPath(c.pluginPath); err != nil {
 		diags = diags.Append(fmt.Errorf("Error saving -plugin-dir to workspace directory: %s", err))
