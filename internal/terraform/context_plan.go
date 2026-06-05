@@ -163,9 +163,9 @@ type PlanOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
-	// Locks is a read-only snapshot of provider locks (from the dependency lock
+	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file).
-	Locks map[addrs.Provider]*depsfile.ProviderLock
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
@@ -817,7 +817,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
-		Locks:                      opts.Locks,
+		ProviderLocks:              opts.ProviderLocks,
 		PolicyClient:               opts.PolicyClient,
 		PolicyResults:              policyResults,
 	})

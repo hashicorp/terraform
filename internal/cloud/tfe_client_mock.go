@@ -1309,6 +1309,7 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		Status:                tfe.RunPending,
 		TargetAddrs:           options.TargetAddrs,
 		AllowConfigGeneration: options.AllowConfigGeneration,
+		PolicyPaths:           options.PolicyPaths,
 	}
 
 	if options.Message != nil {

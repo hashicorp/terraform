@@ -84,7 +84,7 @@ type graphWalkOpts struct {
 	// only allowd in the context of a destroy plan.
 	Forget bool
 
-	Locks map[addrs.Provider]*depsfile.ProviderLock
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient  policy.Client
 	PolicyResults *plans.PolicyResults
@@ -210,7 +210,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
 		Actions:                 actions.NewActions(),
-		Locks:                   opts.Locks,
+		ProviderLocks:           opts.ProviderLocks,
 		PolicyClient:            opts.PolicyClient,
 		PolicyResults:           opts.PolicyResults,
 		Deprecations:            deprecation.NewDeprecations(),

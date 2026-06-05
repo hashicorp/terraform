@@ -229,6 +229,21 @@ type snippetFormatter struct {
 func (f *snippetFormatter) write() {
 	diag := f.diag
 	buf := f.buf
+
+	// The beginning of a Terraform snippet points to the source code location
+	// where the snippet was defined, (e.g. "on main.tf line 7")
+	// However, if the diagnostic is associated with a policy evaluation,
+	// the policy diagnostic will first indicate which policy was violated,
+	// and then include the terraform source code location as well.
+	mainSnippetPrefix := "  on"
+	if diag.PolicyRange != nil {
+		mainSnippetPrefix = "  while evaluating policy for"
+
+		// if the diagnostic has a policy range, then it contains policy-specific information
+		// and we will write that first.
+		f.writePolicySnippet(diag)
+	}
+
 	if diag.Address != "" {
 		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
 	}
@@ -242,17 +257,10 @@ func (f *snippetFormatter) write() {
 		// loaded through the main loader. We may load things in other
 		// ways in weird cases, so we'll tolerate it at the expense of
 		// a not-so-helpful error message.
-		fmt.Fprintf(buf, "  on %s line %d:\n  (source code not available)\n", diag.Range.Filename, diag.Range.Start.Line)
+		fmt.Fprintf(buf, "%s %s line %d:\n  (source code not available)\n",
+			mainSnippetPrefix, diag.Range.Filename, diag.Range.Start.Line)
 	} else {
-		snippet := diag.Snippet
-		code := snippet.Code
-
-		var contextStr string
-		if snippet.Context != nil {
-			contextStr = fmt.Sprintf(", in %s", *snippet.Context)
-		}
-		fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.Range.Filename, diag.Range.Start.Line, contextStr)
-		f.writeSnippet(snippet, code)
+		f.writeSnippet(mainSnippetPrefix, diag.Range, diag.Snippet)
 
 		if diag.DeprecationOriginDescription != "" {
 			fmt.Fprintf(buf, "\n  The deprecation originates from %s\n", diag.DeprecationOriginDescription)
@@ -262,10 +270,33 @@ func (f *snippetFormatter) write() {
 	buf.WriteByte('\n')
 }
 
-func (f *snippetFormatter) writeSnippet(snippet *viewsjson.DiagnosticSnippet, code string) {
+func (f *snippetFormatter) writePolicySnippet(diag *viewsjson.Diagnostic) {
+	if diag.PolicySnippet == nil {
+		fmt.Fprintf(f.buf, "  on %s line %d:\n  (source code not available)\n",
+			diag.PolicyRange.Filename, diag.PolicyRange.Start.Line)
+	} else {
+		f.writeSnippet("  on", diag.PolicyRange, diag.PolicySnippet)
+	}
+
+	f.buf.WriteByte('\n')
+}
+
+// writeSnippet renders a diagnostic output from the given snippet and range.
+// The snippetPrefix is used as the prefix for the context line.
+func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.DiagnosticRange, snippet *viewsjson.DiagnosticSnippet) {
 	buf := f.buf
 	color := f.color
+	var contextStr string
 
+	// Build the context string from the snippet's context, if available
+	if snippet.Context != nil {
+		contextStr = fmt.Sprintf(", in %s", *snippet.Context)
+	}
+	context := fmt.Sprintf("%s %s line %d%s:\n",
+		snippetPrefix, rng.Filename, rng.Start.Line, contextStr)
+	buf.WriteString(context)
+
+	code := snippet.Code
 	// Split the snippet and render the highlighted section with underlines
 	start := snippet.HighlightStartOffset
 	end := snippet.HighlightEndOffset
@@ -274,9 +305,7 @@ func (f *snippetFormatter) writeSnippet(snippet *viewsjson.DiagnosticSnippet, co
 	// we need to ensure we don't crash here if that happens.
 	if end < start {
 		end = start + 1
-		if end > len(code) {
-			end = len(code)
-		}
+		end = min(end, len(code))
 	}
 
 	// If either start or end is out of range for the code buffer then
@@ -365,7 +394,6 @@ func (f *snippetFormatter) writeSnippet(snippet *viewsjson.DiagnosticSnippet, co
 			}
 		}
 	}
-
 }
 
 func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {
