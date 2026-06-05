@@ -643,6 +643,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 	a.Schema = n.Schema
 	a.ProvisionerSchemas = n.ProvisionerSchemas
 	a.ProviderMetas = n.ProviderMetas
+	a.actionTriggers = n.actionTriggers
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,
