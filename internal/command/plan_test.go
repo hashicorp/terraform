@@ -1325,6 +1325,50 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 	}
 }
 
+// TestPlan_varFileDuplicateAttr is a regression test for a bug where a
+// -var-file containing a duplicated attribute would print an error diagnostic
+// but still exit 0, silently discarding the file and falling back to other
+// variable sources (here, the variable's default value). A malformed var file
+// must cause the plan to fail.
+func TestPlan_varFileDuplicateAttr(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-duplicate-var-file"), td)
+	t.Chdir(td)
+
+	p := planVarsFixtureProvider()
+	planned := false
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		planned = true
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-var-file", "duplicate.tfvars",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+
+	if planned {
+		t.Fatal("plan proceeded using the variable's default value; the malformed var file should have aborted the operation")
+	}
+}
+
 func TestPlan_detailedExitcode(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)

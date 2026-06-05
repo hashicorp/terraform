@@ -460,6 +460,48 @@ func TestRefresh_varFile(t *testing.T) {
 	}
 }
 
+// TestRefresh_varFileDuplicateAttr is a regression test for a bug where a
+// -var-file containing a duplicated attribute would print an error diagnostic
+// but still exit 0, silently discarding the file and falling back to other
+// variable sources (here, the variable's default value). A malformed var file
+// must cause the refresh to fail.
+func TestRefresh_varFileDuplicateAttr(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("refresh-duplicate-var-file"), td)
+	t.Chdir(td)
+
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
+	view, done := testView(t)
+	c := &RefreshCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-var-file", "duplicate.tfvars",
+		"-state", statePath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+
+	if p.ConfigureProviderCalled {
+		t.Fatal("refresh proceeded using the variable's default value; the malformed var file should have aborted the operation")
+	}
+}
+
 func TestRefresh_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
