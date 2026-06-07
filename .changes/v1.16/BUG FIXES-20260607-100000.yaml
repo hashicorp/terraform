@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "`terraform init` now validates the `-lockfile` flag value and returns a clear error for unrecognized values"
+time: 2026-06-07T10:00:00.000000Z
+custom:
+    Issue: "38563"
