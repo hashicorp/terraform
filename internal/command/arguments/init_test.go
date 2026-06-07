@@ -374,6 +374,11 @@ func TestParseInit_invalid(t *testing.T) {
 			wantErr:      "The -upgrade flag conflicts with -lockfile=readonly.",
 			wantViewType: ViewHuman,
 		},
+		"with invalid -lockfile value": {
+			args:         []string{"-lockfile=foobar"},
+			wantErr:      `The -lockfile flag only accepts "readonly". Got: "foobar".`,
+			wantViewType: ViewHuman,
+		},
 	}
 
 	for name, tc := range testCases {
