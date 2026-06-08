@@ -46,7 +46,6 @@ type ModuleInstaller struct {
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
 
 	initializer Initializer
-	hooks       []ModuleInstallHook
 }
 
 type moduleVersion struct {
@@ -54,18 +53,13 @@ type moduleVersion struct {
 	version string
 }
 
-func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client, initializer Initializer, hooks ...ModuleInstallHook) *ModuleInstaller {
-	if len(hooks) == 0 {
-		// Use our no-op implementation as a placeholder
-		hooks = []ModuleInstallHook{ModuleInstallHookImpl{}}
-	}
+func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client, initializer Initializer) *ModuleInstaller {
 	return &ModuleInstaller{
 		modsDir:                 modsDir,
 		loader:                  loader,
 		reg:                     reg,
 		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
-		hooks:                   hooks,
 		initializer:             initializer,
 	}
 }
@@ -104,7 +98,7 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ...ModuleInstallHook) (*configs.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
@@ -135,13 +129,18 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 
 	fetcher := getmodules.NewPackageFetcher()
 
+	if len(hooks) == 0 {
+		// Use our no-op implementation as a placeholder
+		hooks = []ModuleInstallHook{ModuleInstallHookImpl{}}
+	}
+
 	// Create a manifest record for the root module. This will be used if
 	// there are any relative-pathed modules in the root.
 	manifest[""] = modsdir.Record{
 		Key: "",
 		Dir: rootDir,
 	}
-	walker := i.moduleInstallWalker(ctx, manifest, upgrade, fetcher)
+	walker := i.moduleInstallWalker(ctx, manifest, upgrade, fetcher, hooks...)
 
 	var cfg *configs.Config
 	var instDiags tfdiags.Diagnostics
@@ -172,7 +171,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	return cfg, diags
 }
 
-func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
+func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, fetcher *getmodules.PackageFetcher, hooks ...ModuleInstallHook) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
 		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			var diags hcl.Diagnostics
@@ -284,7 +283,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 					if !diags.HasErrors() {
 						// inform the hooks that the module source has been resolved
-						hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+						hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 							var versionStr string
 							if record.Version != nil {
 								versionStr = record.Version.String()
@@ -308,20 +307,20 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 			case addrs.ModuleSourceLocal:
 				log.Printf("[TRACE] ModuleInstaller: %s has local path %q", key, addr.String())
-				mod, mDiags := i.installLocalModule(ctx, req, key, manifest)
+				mod, mDiags := i.installLocalModule(ctx, req, key, manifest, hooks...)
 				mDiags = maybeImproveLocalInstallError(req, mDiags)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
 
 			case addrs.ModuleSourceRegistry:
 				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr.String())
-				mod, v, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, fetcher)
+				mod, v, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, fetcher, hooks...)
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
 			case addrs.ModuleSourceRemote:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
-				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, fetcher)
+				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, fetcher, hooks...)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
 
@@ -377,7 +376,7 @@ func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, inst
 	return cfg, diags
 }
 
-func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.ModuleRequest, key string, manifest modsdir.Manifest) (*configs.Module, hcl.Diagnostics) {
+func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ...ModuleInstallHook) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	parentKey := manifest.ModuleKey(req.Parent.Path)
@@ -398,7 +397,7 @@ func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.M
 
 	// inform the hooks that the module source has been resolved. If the version is deemed
 	// invalid or not allowed, we should not proceed with installation.
-	hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// local modules do not have a version constraint, so we just send an empty string
 		return hook.ModuleSourceResolved(context.TODO(), req, req.SourceAddr.String(), "")
 	})
@@ -449,7 +448,7 @@ func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.M
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, newDir)
-	i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		hook.Install(key, nil, newDir)
 		return nil
 	})
@@ -457,7 +456,7 @@ func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.M
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, fetcher *getmodules.PackageFetcher, hooks ...ModuleInstallHook) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	hostname := addr.Package.Host
@@ -617,7 +616,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 
-	tfDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	tfDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// inform the hooks that the module source has been resolved. If the version is deemed
 		// invalid or not allowed, we should not proceed with installation.
 		hookDiags := hook.ModuleSourceResolved(ctx, req, packageAddr.String(), latestMatch.String())
@@ -774,7 +773,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		hook.Install(key, latestMatch, modDir)
 		return nil
 	})
@@ -783,9 +782,9 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 }
 
 // CallHooks iterates over all the hook implementations and calls the given function on each one.
-func (i *ModuleInstaller) CallHooks(fn func(ModuleInstallHook) tfdiags.Diagnostics) tfdiags.Diagnostics {
+func (i *ModuleInstaller) CallHooks(hooks []ModuleInstallHook, fn func(ModuleInstallHook) tfdiags.Diagnostics) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	for _, hook := range i.hooks {
+	for _, hook := range hooks {
 		hookDiags := fn(hook)
 		if hookDiags.HasErrors() {
 			diags = diags.Append(hookDiags)
@@ -794,12 +793,12 @@ func (i *ModuleInstaller) CallHooks(fn func(ModuleInstallHook) tfdiags.Diagnosti
 	return diags
 }
 
-func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
+func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, fetcher *getmodules.PackageFetcher, hooks ...ModuleInstallHook) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// inform the hooks that the module source has been resolved. If the version is deemed
 	// invalid or not allowed, we should not proceed with installation.
-	hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// go-getter modules do not have a version constraint, so we just send an empty string
 		return hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), "")
 	})
@@ -810,7 +809,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	// Report up to the caller that we're about to start downloading.
 	addr := req.SourceAddr.(addrs.ModuleSourceRemote)
 	packageAddr := addr.Package
-	i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		hook.Download(key, packageAddr.String(), nil)
 		return nil
 	})
@@ -902,7 +901,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+	i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		hook.Install(key, nil, modDir)
 		return nil
 	})

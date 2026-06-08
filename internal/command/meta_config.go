@@ -313,9 +313,9 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 			SetVariables: variables,
 		})
 	}
-	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer, hooks...)
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks...)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {

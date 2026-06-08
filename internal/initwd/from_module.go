@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg, nil, hooks...)
+	inst := NewModuleInstaller(instDir, loader, reg, nil)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -148,10 +148,8 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	// wrapHooks filters hook notifications to only include Download calls
 	// and to trim off the initFromModuleRootCallName prefix. We'll produce
 	// our own Install notifications directly below.
-	inst.hooks = []ModuleInstallHook{
-		&installHooksInitDir{
-			Wrapped: hooks,
-		},
+	wrapHooks := installHooksInitDir{
+		Wrapped: hooks,
 	}
 	// Create a manifest record for the root module. This will be used if
 	// there are any relative-pathed modules in the root.
@@ -161,7 +159,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
-	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher)
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher, wrapHooks)
 	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)

@@ -173,17 +173,17 @@ func TestDirFromModule_submodules(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root",
 			PackageAddr: "",
 		},
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root.child_a",
 			PackageAddr: "",
 		},
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root.child_a.child_b",
 			PackageAddr: "",
 		},
@@ -321,17 +321,17 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root",
 			PackageAddr: "",
 		},
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root.child_a",
 			PackageAddr: "",
 		},
 		{
-			Name:        "EvaluatePolicy",
+			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "root.child_a.child_b",
 			PackageAddr: "",
 		},
