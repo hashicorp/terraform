@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'cli: Respect ZDOTDIR when installing zsh shell autocomplete'
+time: 2026-06-08T07:03:00+00:00
+custom:
+    Issue: "38342"
