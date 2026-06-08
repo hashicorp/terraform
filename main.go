@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/didyoumean"
@@ -301,6 +302,39 @@ func realMain() int {
 		Autocomplete:          true,
 		AutocompleteInstall:   "install-autocomplete",
 		AutocompleteUninstall: "uninstall-autocomplete",
+	}
+
+	// Check if the user is requesting autocomplete installation or uninstallation.
+	// We handle this before cliRunner.Run() so we can support ZDOTDIR for zsh.
+	isAutocompleteInstall := false
+	isAutocompleteUninstall := false
+	for _, arg := range args {
+		if arg == "-install-autocomplete" || arg == "--install-autocomplete" {
+			isAutocompleteInstall = true
+			break
+		}
+		if arg == "-uninstall-autocomplete" || arg == "--uninstall-autocomplete" {
+			isAutocompleteUninstall = true
+			break
+		}
+	}
+
+	if isAutocompleteInstall {
+		if err := command.AutocompleteInstall(binName); err != nil {
+			Ui.Error(fmt.Sprintf("Error installing autocomplete: %s", err))
+			return 1
+		}
+		Ui.Output(fmt.Sprintf("Autocomplete installed for %s", binName))
+		return 0
+	}
+
+	if isAutocompleteUninstall {
+		if err := command.AutocompleteUninstall(binName); err != nil {
+			Ui.Error(fmt.Sprintf("Error uninstalling autocomplete: %s", err))
+			return 1
+		}
+		Ui.Output(fmt.Sprintf("Autocomplete uninstalled for %s", binName))
+		return 0
 	}
 
 	// Before we continue we'll check whether the requested command is
