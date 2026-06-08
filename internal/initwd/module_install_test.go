@@ -1050,7 +1050,7 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 	})
 }
 
-func (h *testInstallHooks) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, vsn string) tfdiags.Diagnostics {
+func (h *testInstallHooks) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, vsn string) tfdiags.Diagnostics {
 	// we ignore errors here because local paths do not have a version
 	v, _ := version.NewVersion(vsn)
 	h.Calls = append(h.Calls, testInstallHookCall{

@@ -428,10 +428,10 @@ type installHooksInitDir struct {
 	ModuleInstallHookImpl
 }
 
-// EvaluatePolicy calls EvaluatePolicy on each wrapped hook and returns the first error it encounters.
-func (h installHooksInitDir) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+// ModuleSourceResolved calls ModuleSourceResolved on each wrapped hook and returns the first error it encounters.
+func (h installHooksInitDir) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	for _, hook := range h.Wrapped {
-		diags := hook.EvaluatePolicy(ctx, req, source, version)
+		diags := hook.ModuleSourceResolved(ctx, req, source, version)
 		if diags.HasErrors() {
 			return diags
 		}

@@ -124,7 +124,7 @@ type policyModuleInstallHook struct {
 	policyResults *plans.PolicyResults
 }
 
-func (h *policyModuleInstallHook) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	moduleAddr := req.Path.String()
 	moduleCall := h.rootModule.ModuleCalls[req.Name]
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{

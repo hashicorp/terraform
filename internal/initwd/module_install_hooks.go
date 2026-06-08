@@ -18,7 +18,12 @@ import (
 // embed InstallHooksImpl to get no-op implementations of any unimplemented
 // methods.
 type ModuleInstallHook interface {
-	EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics
+
+	// ModuleSourceResolved is called after the installer has resolved the
+	// source and, if applicable, version for a module, before installation
+	// proceeds.
+	ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics
+
 	// Download is called for modules that are retrieved from a remote source
 	// before that download begins, to allow a caller to give feedback
 	// on progress through a possibly-long sequence of downloads.
@@ -41,7 +46,7 @@ func (h ModuleInstallHookImpl) Download(moduleAddr, packageAddr string, version 
 func (h ModuleInstallHookImpl) Install(moduleAddr string, version *version.Version, localPath string) {
 }
 
-func (h ModuleInstallHookImpl) EvaluatePolicy(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+func (h ModuleInstallHookImpl) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	return nil
 }
 

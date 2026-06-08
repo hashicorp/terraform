@@ -283,20 +283,19 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					}
 
 					if !diags.HasErrors() {
-						tfDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
-							// Evaluate pre-plan policy for the matched version.
-							// if the policy fails, we should not proceed with installation.
+						// inform the hooks that the module source has been resolved
+						hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
 							var versionStr string
 							if record.Version != nil {
 								versionStr = record.Version.String()
 							}
-							policyDiags := hook.EvaluatePolicy(ctx, req, req.SourceAddr.String(), versionStr)
-							if policyDiags.HasErrors() {
-								return policyDiags
+							inDiags := hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), versionStr)
+							if inDiags.HasErrors() {
+								return inDiags
 							}
 							return nil
 						})
-						diags = diags.Extend(tfDiags.ToHCL())
+						diags = diags.Extend(hookDiags.ToHCL())
 					}
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
@@ -312,7 +311,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 			case addrs.ModuleSourceLocal:
 				log.Printf("[TRACE] ModuleInstaller: %s has local path %q", key, addr.String())
-				mod, mDiags := i.installLocalModule(req, key, manifest)
+				mod, mDiags := i.installLocalModule(ctx, req, key, manifest)
 				mDiags = maybeImproveLocalInstallError(req, mDiags)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
@@ -381,7 +380,7 @@ func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, inst
 	return cfg, diags
 }
 
-func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key string, manifest modsdir.Manifest) (*configs.Module, hcl.Diagnostics) {
+func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.ModuleRequest, key string, manifest modsdir.Manifest) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	parentKey := manifest.ModuleKey(req.Parent.Path)
@@ -400,13 +399,14 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 		})
 	}
 
-	// Evaluate pre-plan policy for the matched version.
-	// if the policy fails, we should not proceed with installation.
-	policyDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
-		return hook.EvaluatePolicy(context.TODO(), req, req.SourceAddr.String(), "")
+	// inform the hooks that the module source has been resolved. If the version is deemed
+	// invalid or not allowed, we should not proceed with installation.
+	hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+		// local modules do not have a version constraint, so we just send an empty string
+		return hook.ModuleSourceResolved(context.TODO(), req, req.SourceAddr.String(), "")
 	})
-	if policyDiags.HasErrors() {
-		return nil, diags.Extend(policyDiags.ToHCL())
+	if hookDiags.HasErrors() {
+		return nil, diags.Extend(hookDiags.ToHCL())
 	}
 
 	// For local sources we don't actually need to modify the
@@ -621,11 +621,11 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	}
 
 	tfDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
-		// Evaluate pre-plan policy for the matched version.
-		// if the policy fails, we should not proceed with installation.
-		policyDiags := hook.EvaluatePolicy(ctx, req, packageAddr.String(), latestMatch.String())
-		if policyDiags.HasErrors() {
-			return policyDiags
+		// inform the hooks that the module source has been resolved. If the version is deemed
+		// invalid or not allowed, we should not proceed with installation.
+		hookDiags := hook.ModuleSourceResolved(ctx, req, packageAddr.String(), latestMatch.String())
+		if hookDiags.HasErrors() {
+			return hookDiags
 		}
 
 		// Report up to the caller that we're about to start downloading.
@@ -799,13 +799,14 @@ func (i *ModuleInstaller) CallHooks(fn func(ModuleInstallHook) tfdiags.Diagnosti
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	// Evaluate pre-plan policy for the matched version.
-	// if the policy fails, we should not proceed with installation.
-	policyDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
-		return hook.EvaluatePolicy(context.TODO(), req, req.SourceAddr.String(), "")
+	// inform the hooks that the module source has been resolved. If the version is deemed
+	// invalid or not allowed, we should not proceed with installation.
+	hookDiags := i.CallHooks(func(hook ModuleInstallHook) tfdiags.Diagnostics {
+		// go-getter modules do not have a version constraint, so we just send an empty string
+		return hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), "")
 	})
-	if policyDiags.HasErrors() {
-		return nil, diags.Extend(policyDiags.ToHCL())
+	if hookDiags.HasErrors() {
+		return nil, diags.Extend(hookDiags.ToHCL())
 	}
 
 	// Report up to the caller that we're about to start downloading.
