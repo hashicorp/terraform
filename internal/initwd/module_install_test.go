@@ -863,7 +863,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 	wantCalls := []testInstallHookCall{
 		{
-			Name:       "EvaluatePolicy",
+			Name:       "ModuleSourceResolved",
 			ModuleAddr: "test.tests.main.setup",
 		},
 		{
@@ -871,6 +871,10 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 			ModuleAddr:  "test.tests.main.setup",
 			PackageAddr: "",
 			LocalPath:   "setup",
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.tests.main.setup",
 		},
 	}
 
@@ -1054,7 +1058,7 @@ func (h *testInstallHooks) ModuleSourceResolved(ctx context.Context, req *config
 	// we ignore errors here because local paths do not have a version
 	v, _ := version.NewVersion(vsn)
 	h.Calls = append(h.Calls, testInstallHookCall{
-		Name:       "EvaluatePolicy",
+		Name:       "ModuleSourceResolved",
 		ModuleAddr: strings.Join(req.Path, "."),
 		Version:    v,
 	})

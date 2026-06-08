@@ -290,10 +290,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 								versionStr = record.Version.String()
 							}
 							inDiags := hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), versionStr)
-							if inDiags.HasErrors() {
-								return inDiags
-							}
-							return nil
+							return inDiags
 						})
 						diags = diags.Extend(hookDiags.ToHCL())
 					}
@@ -785,6 +782,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	return mod, latestMatch, diags
 }
 
+// CallHooks iterates over all the hook implementations and calls the given function on each one.
 func (i *ModuleInstaller) CallHooks(fn func(ModuleInstallHook) tfdiags.Diagnostics) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, hook := range i.hooks {

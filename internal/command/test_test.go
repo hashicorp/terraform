@@ -427,6 +427,11 @@ func TestTest_Runs(t *testing.T) {
 		"no-tests": {
 			code: 0,
 		},
+		"simple_pass_function": {
+			expectedOut:           []string{"2 passed, 0 failed."},
+			code:                  0,
+			expectedResourceCount: 0,
+		},
 		"mocking-invalid-outputs": {
 			expectedErr: []string{
 				"Invalid outputs attribute",
