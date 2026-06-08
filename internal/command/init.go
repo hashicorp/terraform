@@ -166,7 +166,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	defer span.End()
 
 	if root.StateStore != nil {
-		view.Output(views.InitializingStateStoreMessage)
+		view.Output(views.InitializingStateStoreMessage, root.StateStore.Type)
 	} else {
 		view.Output(views.InitializingBackendMessage)
 	}
@@ -378,21 +378,15 @@ const (
 	SafeInitActionInvalid         SafeInitAction = 0
 	SafeInitActionProceed         SafeInitAction = 'P'
 	SafeInitActionRequireApproval SafeInitAction = 'I'
-	SafeInitActionNotRelevant     SafeInitAction = 'N' // For when a state store isn't in use at all!
 )
 
-// getProvidersFromConfig determines what providers are required by the given configuration data.
-// The method downloads any missing providers that aren't already downloaded and then returns
-// dependency lock data based on the configuration.
-// The dependency lock file itself isn't updated here.
+// getProvidersFromPSSConfig determines what provider is required given state store configuration
+// and downloads the provider that isn't already downloaded and then returns
+// updated dependency lock data. The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
-	if config == nil {
-		return false, nil, SafeInitActionNotRelevant, nil, diags
-	}
-
-	ctx, span := tracer.Start(ctx, "install providers from config")
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, config *configs.Config, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
 	// Dev overrides and unmanaged providers change the installation process in "terraform init";
@@ -410,10 +404,18 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	diags = diags.Append(c.providerUnmanagedInitWarnings())
 
 	// Collect the provider dependencies from the configuration.
-	reqs, hclDiags := config.ProviderRequirements()
+	allReqs, hclDiags := config.ProviderRequirements()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		return false, nil, SafeInitActionInvalid, nil, diags
+	}
+
+	// filter out only PSS providers from allReqs
+	reqs := make(providerreqs.Requirements, 1)
+	for providerReq, cons := range allReqs {
+		if providerReq.Equals(config.Module.StateStore.ProviderAddr) {
+			reqs[providerReq] = cons
+		}
 	}
 
 	for providerAddr := range reqs {
@@ -465,14 +467,14 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginFromConfigMessage) // Message is specific to provider download from config
+			view.Output(views.InitializingStateStoreProviderPluginMessage, config.Module.StateStore.Type)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay()) // Message is specific to provide download from config
+				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
@@ -540,69 +542,62 @@ func (c *InitCommand) getProvidersFromConfig(ctx context.Context, config *config
 	}
 
 	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
-	if config.Module.StateStore == nil {
-		// If PSS isn't in use then return a value that isn't the zero value but isn't misleading.
-		safeInitAction = SafeInitActionNotRelevant
+	location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
+	if !ok {
+		// The provider was not processed in the FetchPackageBegin callback.
+		// A provider that wasn't downloaded during this init could be because:
+		// * It was already present from a previous installation.
+		// * If upgrading, no newer version was available that matched version constraints.
+		// * Or, the provider is unmanaged/reattached and so download was skipped.
+		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+		safeInitAction = SafeInitActionProceed
 	} else {
-		location, ok := providerLocations[config.Module.StateStore.ProviderAddr]
-		if !ok {
-			// The provider was not processed in the FetchPackageBegin callback.
-			// A provider that wasn't downloaded during this init could be because:
-			// * It was already present from a previous installation.
-			// * If upgrading, no newer version was available that matched version constraints.
-			// * Or, the provider is unmanaged/reattached and so download was skipped.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionProceed
-		} else {
-			// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
+		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
 
-			switch location.(type) {
-			case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
-				// If the provider is downloaded from a local source we assume it's safe.
-				// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-				log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionProceed
-			case getproviders.PackageHTTPURL:
-				log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
-				safeInitAction = SafeInitActionRequireApproval
-			default:
-				panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
-			}
+		switch location.(type) {
+		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
+			// If the provider is downloaded from a local source we assume it's safe.
+			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
+			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionProceed
+		case getproviders.PackageHTTPURL:
+			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", config.Module.StateStore.ProviderAddr.Type, config.Module.StateStore.ProviderAddr)
+			safeInitAction = SafeInitActionRequireApproval
+		default:
+			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", config.Module.StateStore.ProviderAddr, location))
 		}
 	}
 
 	return true, configLocks, safeInitAction, stateStoreProviderAuthResult, diags
 }
 
-// getProvidersFromState determines what providers are required by the given state data.
-// The method downloads any missing providers that aren't already downloaded and then returns
-// dependency lock data based on the state.
-// The calling code is assumed to have already called getProvidersFromConfig, which is used to
-// supply the configLocks argument.
-// The dependency lock file itself isn't updated here.
-func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.State, configReqs providerreqs.Requirements, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "install providers from state")
+// getProviders determines what providers are required by the config and state
+// and downloads any missing providers that aren't already downloaded and then returns
+// updated dependency lock data. The dependency lock *file* itself isn't updated here.
+//
+// See getProvidersFromPSSConfig which is equivalent for state store providers.
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
-	if state == nil {
-		// if there is no state there are no providers to get
-		return false, depsfile.NewLocks(), diags
+	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// any overridden providers, so we'll warn about it to avoid later
+	// confusion when Terraform ends up using a different provider than the
+	// lock file called for.
+	diags = diags.Append(c.providerDevOverrideInitWarnings())
+	diags = diags.Append(c.providerUnmanagedInitWarnings())
+
+	// First we'll collect all the provider dependencies we can see in the
+	// configuration and the state.
+	reqs, hclDiags := config.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return false, nil, diags
 	}
-
-	// Get the state's provider requirements
-	reqs := state.ProviderRequirements()
-
-	// Those requirements lack version constraint data. That matters if the configuration is using a
-	// pre-release of a provider, because installer logic will only be able to use a pre-release of a
-	// provider if a version constraint pins to that pre-release.
-	//
-	// So, we use configuration reqs to replace all entries in the state's requirements with entries
-	// from the config requirements, which may contain additional version constraint information.
-	for providerAddr := range reqs {
-		if r, ok := configReqs[providerAddr]; ok {
-			reqs[providerAddr] = r
-		}
+	if state != nil {
+		stateReqs := state.ProviderRequirements()
+		reqs = reqs.Merge(stateReqs)
 	}
 
 	for providerAddr := range reqs {
@@ -659,14 +654,14 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	// are shimming our vt100 output to the legacy console API on Windows.
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginFromStateMessage) // Message is specific to provider download from state
+			view.Output(views.InitializingProviderPluginMessage)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingVersionIdentifiedFromConfig, provider.ForDisplay()) // Message is specific to provider download from state
+				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
@@ -688,6 +683,9 @@ func (c *InitCommand) getProvidersFromState(ctx context.Context, state *states.S
 	ctx = evts.OnContext(ctx)
 
 	mode := providercache.InstallNewProvidersOnly
+	if upgrade {
+		mode = providercache.InstallUpgrades
+	}
 
 	// We don't handle upgrade flags here, i.e. what happens at this point in getProvidersFromConfig:
 	// > We cannot upgrade a provider used only by the state, as there are no version constraints in state.
