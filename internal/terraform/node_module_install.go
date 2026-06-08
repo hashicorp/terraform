@@ -204,6 +204,16 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 		return nil, "", diags
 	}
 
+	if value.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsuitable module source",
+			Detail:   `Unsuitable value: null value is not allowed.`,
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return nil, "", diags
+	}
+
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
