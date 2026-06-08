@@ -97,10 +97,9 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		View:           view,
 	}
 	hooks := []initwd.ModuleInstallHook{uiHook}
-	var policyHook *policyModuleInstallHook
 	if policyClient != nil {
 		policyResults = plans.NewPolicyResults()
-		policyHook = &policyModuleInstallHook{
+		policyHook := &policyModuleInstallHook{
 			client:        policyClient,
 			rootModule:    earlyRoot,
 			policyResults: policyResults,

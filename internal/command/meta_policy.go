@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"maps"
-	"slices"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/apparentlymart/go-versions/versions/constraints"
@@ -115,8 +113,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	return client, diags, closer
 }
 
-// policyModuleInstallHook implements initwd.ModuleInstallHook and
-// enables policy evaluation during module installation.
+// policyModuleInstallHook enables policy evaluation during module installation.
 type policyModuleInstallHook struct {
 	initwd.ModuleInstallHookImpl
 	client        policy.Client
@@ -124,6 +121,8 @@ type policyModuleInstallHook struct {
 	policyResults *plans.PolicyResults
 }
 
+// ModuleSourceResolved implements [initwd.ModuleInstallHook] and is called after a module source is resolved, and enables policy evaluation for the module before
+// it is installed.
 func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	moduleAddr := req.Path.String()
 	moduleCall := h.rootModule.ModuleCalls[req.Name]
@@ -150,7 +149,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	// return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
 	// and will be formatted in the CLI output.
-	if len(result.Diagnostics) > 0 && result.Diagnostics.AsTerraformDiags().HasErrors() && result.Overall != policy.AllowResult {
+	if result.Overall != policy.AllowResult {
 		return tfdiags.Diagnostics{
 			policy.NewErrorDiagnostic(
 				"Policy evaluation failed",
@@ -162,44 +161,11 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	return nil
 }
 
+// providerPolicyHook enables policy evaluation during provider installation.
 type providerPolicyHook struct {
-	Reqs          *configs.ModuleRequirements
 	Client        policy.Client
-	moduleMap     map[addrs.Provider]string
 	policyResults *plans.PolicyResults
 	config        *configs.Config
-}
-
-func (p *providerPolicyHook) moduleSources() map[addrs.Provider]string {
-	if p.moduleMap != nil {
-		return p.moduleMap
-	}
-	// We iterate through the module requirements to build a map of providers
-	// to their module source addresses. The first module requirement we encounter
-	// for each provider will be recorded as the provider's module.
-	// This matches how Terraform adds providers to the graph.
-	p.moduleMap = map[addrs.Provider]string{}
-	moduleReqs := []*configs.ModuleRequirements{p.Reqs}
-	for len(moduleReqs) != 0 {
-		moduleReq := moduleReqs[0]
-		for reqProvider := range moduleReq.Requirements {
-			if _, ok := p.moduleMap[reqProvider]; ok {
-				// if we already have a module for this provider, skip
-				continue
-			}
-
-			// The source is nil in the root module, so we use the root module address.
-			if moduleReq.SourceAddr == nil {
-				p.moduleMap[reqProvider] = addrs.RootModule.String()
-			} else {
-				p.moduleMap[reqProvider] = moduleReq.SourceAddr.String()
-			}
-		}
-
-		newReqs := slices.Collect(maps.Values(moduleReq.Children))
-		moduleReqs = append(moduleReqs[1:], newReqs...)
-	}
-	return p.moduleMap
 }
 
 // ProviderVersionSelected satisfies the [providers.InstallerHook] interface.
@@ -210,7 +176,6 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	if p.Client == nil {
 		return nil
 	}
-	moduleSources := p.moduleSources()
 	log.Println("[DEBUG] init: evaluating policy for provider", provider.String(), version)
 	result := p.Client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: provider.Type,
@@ -219,11 +184,10 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 		// send any attributes to the policy client.
 		Attrs: cty.NilVal,
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-			Name:       provider.Type,
-			Namespace:  provider.Namespace,
-			Source:     provider.String(),
-			ModulePath: moduleSources[provider],
-			Version:    version,
+			Name:      provider.Type,
+			Namespace: provider.Namespace,
+			Source:    provider.String(),
+			Version:   version,
 		},
 	})
 	// We use the root module as the module for provider configs since the version resolution

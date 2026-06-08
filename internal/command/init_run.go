@@ -176,24 +176,14 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 	}
 
-	var client policy.Client
+	var policyClient policy.Client
 	if len(initArgs.PolicyPaths) > 0 {
-		if !c.Meta.AllowExperimentalFeatures {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to parse command-line flags",
-				"The -policies flag is only valid in experimental builds of Terraform.",
-			))
-			view.Diagnostics(diags)
-			return 1
-		}
-
 		var policyDiags policy.Diagnostics
 		var stopClient func()
-		client, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
 		view.PolicyResults(nil, policyDiags)
 		if policyDiags.AsTerraformDiags().HasErrors() {
-			defer stopClient()
+			stopClient()
 			diags = diags.Append(fmt.Errorf("Error setting up policy client: See the other diagnostics for more information"))
 			view.Diagnostics(diags)
 			return 1
@@ -201,7 +191,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 
 	if initArgs.Get {
-		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, client)
+		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, policyClient)
 		diags = diags.Append(modsDiags)
 		if policyResults != nil {
 			view.PolicyResults(policyResults, nil)
@@ -301,17 +291,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	policyResults := plans.NewPolicyResults()
 	providerHook := &providerPolicyHook{
-		Client:        client,
+		Client:        policyClient,
 		policyResults: policyResults,
 		config:        config,
-	}
-	if config != nil {
-		reqsByModule, reqDiags := config.ProviderRequirementsByModule()
-		if reqDiags.HasErrors() {
-			view.Diagnostics(diags.Append(reqDiags))
-			return 1
-		}
-		providerHook.Reqs = reqsByModule
 	}
 
 	var pssLocks *depsfile.Locks
