@@ -16,6 +16,7 @@ import (
 )
 
 func TestLogout(t *testing.T) {
+	t.Parallel()
 	workDir := t.TempDir()
 
 	ui := cli.NewMockUi()

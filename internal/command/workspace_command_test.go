@@ -1100,17 +1100,16 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 
 // Test how all workspace subcommands handle unexpected arguments.
 func TestWorkspace_extraArgError(t *testing.T) {
+	t.Parallel()
+
+	// No temp directory needed as the tests check argument parsing.
+
 	newMeta := func() (Meta, *cli.MockUi) {
 		ui := new(cli.MockUi)
 		return Meta{
-			Ui:         ui,
-			WorkingDir: workdir.NewDir("."),
+			Ui: ui,
 		}, ui
 	}
-
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	t.Chdir(td)
 
 	// New
 	meta, ui := newMeta()
