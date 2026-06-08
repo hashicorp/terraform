@@ -2473,74 +2473,6 @@ func (x *PolicyInfo) GetResult() string {
 	return ""
 }
 
-type PolicyDiagnostic struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	TargetAddress  string                 `protobuf:"bytes,1,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
-	PolicyMetadata *PolicyMetaData        `protobuf:"bytes,2,opt,name=policy_metadata,json=policyMetadata,proto3" json:"policy_metadata,omitempty"`
-	Result         string                 `protobuf:"bytes,3,opt,name=result,proto3" json:"result,omitempty"`
-	Diagnostic     *terraform1.Diagnostic `protobuf:"bytes,4,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *PolicyDiagnostic) Reset() {
-	*x = PolicyDiagnostic{}
-	mi := &file_stacks_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PolicyDiagnostic) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PolicyDiagnostic) ProtoMessage() {}
-
-func (x *PolicyDiagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PolicyDiagnostic.ProtoReflect.Descriptor instead.
-func (*PolicyDiagnostic) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *PolicyDiagnostic) GetTargetAddress() string {
-	if x != nil {
-		return x.TargetAddress
-	}
-	return ""
-}
-
-func (x *PolicyDiagnostic) GetPolicyMetadata() *PolicyMetaData {
-	if x != nil {
-		return x.PolicyMetadata
-	}
-	return nil
-}
-
-func (x *PolicyDiagnostic) GetResult() string {
-	if x != nil {
-		return x.Result
-	}
-	return ""
-}
-
-func (x *PolicyDiagnostic) GetDiagnostic() *terraform1.Diagnostic {
-	if x != nil {
-		return x.Diagnostic
-	}
-	return nil
-}
-
 type PolicySnippet struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	Context              string                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -2554,7 +2486,7 @@ type PolicySnippet struct {
 
 func (x *PolicySnippet) Reset() {
 	*x = PolicySnippet{}
-	mi := &file_stacks_proto_msgTypes[33]
+	mi := &file_stacks_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2566,7 +2498,7 @@ func (x *PolicySnippet) String() string {
 func (*PolicySnippet) ProtoMessage() {}
 
 func (x *PolicySnippet) ProtoReflect() protoreflect.Message {
-	mi := &file_stacks_proto_msgTypes[33]
+	mi := &file_stacks_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2579,7 +2511,7 @@ func (x *PolicySnippet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PolicySnippet.ProtoReflect.Descriptor instead.
 func (*PolicySnippet) Descriptor() ([]byte, []int) {
-	return file_stacks_proto_rawDescGZIP(), []int{33}
+	return file_stacks_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *PolicySnippet) GetContext() string {
@@ -2615,6 +2547,74 @@ func (x *PolicySnippet) GetHighlightEndOffset() int64 {
 		return x.HighlightEndOffset
 	}
 	return 0
+}
+
+type PolicyDiagnostic struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TargetAddress  string                 `protobuf:"bytes,1,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
+	PolicyMetadata *PolicyMetaData        `protobuf:"bytes,2,opt,name=policy_metadata,json=policyMetadata,proto3" json:"policy_metadata,omitempty"`
+	Result         string                 `protobuf:"bytes,3,opt,name=result,proto3" json:"result,omitempty"`
+	Diagnostic     *terraform1.Diagnostic `protobuf:"bytes,4,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PolicyDiagnostic) Reset() {
+	*x = PolicyDiagnostic{}
+	mi := &file_stacks_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyDiagnostic) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyDiagnostic) ProtoMessage() {}
+
+func (x *PolicyDiagnostic) ProtoReflect() protoreflect.Message {
+	mi := &file_stacks_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyDiagnostic.ProtoReflect.Descriptor instead.
+func (*PolicyDiagnostic) Descriptor() ([]byte, []int) {
+	return file_stacks_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *PolicyDiagnostic) GetTargetAddress() string {
+	if x != nil {
+		return x.TargetAddress
+	}
+	return ""
+}
+
+func (x *PolicyDiagnostic) GetPolicyMetadata() *PolicyMetaData {
+	if x != nil {
+		return x.PolicyMetadata
+	}
+	return nil
+}
+
+func (x *PolicyDiagnostic) GetResult() string {
+	if x != nil {
+		return x.Result
+	}
+	return ""
+}
+
+func (x *PolicyDiagnostic) GetDiagnostic() *terraform1.Diagnostic {
+	if x != nil {
+		return x.Diagnostic
+	}
+	return nil
 }
 
 type OpenTerraformState_Request struct {
@@ -8451,21 +8451,21 @@ const file_stacks_proto_rawDesc = "" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12:\n" +
 	"\fpolicy_range\x18\x04 \x01(\v2\x17.terraform1.SourceRangeR\vpolicyRange\x12G\n" +
 	"\x0epolicy_snippet\x18\x05 \x01(\v2 .terraform1.stacks.PolicySnippetR\rpolicySnippet\x12\x16\n" +
-	"\x06result\x18\x06 \x01(\tR\x06result\"\xd5\x01\n" +
-	"\x10PolicyDiagnostic\x12%\n" +
-	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12J\n" +
-	"\x0fpolicy_metadata\x18\x02 \x01(\v2!.terraform1.stacks.PolicyMetaDataR\x0epolicyMetadata\x12\x16\n" +
-	"\x06result\x18\x03 \x01(\tR\x06result\x126\n" +
-	"\n" +
-	"diagnostic\x18\x04 \x01(\v2\x16.terraform1.DiagnosticR\n" +
-	"diagnostic\"\xc4\x01\n" +
+	"\x06result\x18\x06 \x01(\tR\x06result\"\xc4\x01\n" +
 	"\rPolicySnippet\x12\x18\n" +
 	"\acontext\x18\x01 \x01(\tR\acontext\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1d\n" +
 	"\n" +
 	"start_line\x18\x03 \x01(\x03R\tstartLine\x124\n" +
 	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
-	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset*2\n" +
+	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset\"\xd5\x01\n" +
+	"\x10PolicyDiagnostic\x12%\n" +
+	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12J\n" +
+	"\x0fpolicy_metadata\x18\x02 \x01(\v2!.terraform1.stacks.PolicyMetaDataR\x0epolicyMetadata\x12\x16\n" +
+	"\x06result\x18\x03 \x01(\tR\x06result\x126\n" +
+	"\n" +
+	"diagnostic\x18\x04 \x01(\v2\x16.terraform1.DiagnosticR\n" +
+	"diagnostic*2\n" +
 	"\fResourceMode\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\v\n" +
 	"\aMANAGED\x10\x01\x12\b\n" +
@@ -8564,8 +8564,8 @@ var file_stacks_proto_goTypes = []any{
 	(*PolicyMetaData)(nil),                                  // 40: terraform1.stacks.PolicyMetaData
 	(*PolicyResult)(nil),                                    // 41: terraform1.stacks.PolicyResult
 	(*PolicyInfo)(nil),                                      // 42: terraform1.stacks.PolicyInfo
-	(*PolicyDiagnostic)(nil),                                // 43: terraform1.stacks.PolicyDiagnostic
-	(*PolicySnippet)(nil),                                   // 44: terraform1.stacks.PolicySnippet
+	(*PolicySnippet)(nil),                                   // 43: terraform1.stacks.PolicySnippet
+	(*PolicyDiagnostic)(nil),                                // 44: terraform1.stacks.PolicyDiagnostic
 	(*OpenTerraformState_Request)(nil),                      // 45: terraform1.stacks.OpenTerraformState.Request
 	(*OpenTerraformState_Response)(nil),                     // 46: terraform1.stacks.OpenTerraformState.Response
 	(*CloseTerraformState_Request)(nil),                     // 47: terraform1.stacks.CloseTerraformState.Request
@@ -8688,11 +8688,11 @@ var file_stacks_proto_depIdxs = []int32{
 	30,  // 22: terraform1.stacks.PolicyEvaluationResponse.addr:type_name -> terraform1.stacks.ComponentInstanceInStackAddr
 	41,  // 23: terraform1.stacks.PolicyEvaluationResponse.results:type_name -> terraform1.stacks.PolicyResult
 	42,  // 24: terraform1.stacks.PolicyEvaluationResponse.infos:type_name -> terraform1.stacks.PolicyInfo
-	43,  // 25: terraform1.stacks.PolicyEvaluationResponse.diagnostics:type_name -> terraform1.stacks.PolicyDiagnostic
+	44,  // 25: terraform1.stacks.PolicyEvaluationResponse.diagnostics:type_name -> terraform1.stacks.PolicyDiagnostic
 	40,  // 26: terraform1.stacks.PolicyResult.policy_metadata:type_name -> terraform1.stacks.PolicyMetaData
 	40,  // 27: terraform1.stacks.PolicyInfo.policy_metadata:type_name -> terraform1.stacks.PolicyMetaData
 	136, // 28: terraform1.stacks.PolicyInfo.policy_range:type_name -> terraform1.SourceRange
-	44,  // 29: terraform1.stacks.PolicyInfo.policy_snippet:type_name -> terraform1.stacks.PolicySnippet
+	43,  // 29: terraform1.stacks.PolicyInfo.policy_snippet:type_name -> terraform1.stacks.PolicySnippet
 	40,  // 30: terraform1.stacks.PolicyDiagnostic.policy_metadata:type_name -> terraform1.stacks.PolicyMetaData
 	138, // 31: terraform1.stacks.PolicyDiagnostic.diagnostic:type_name -> terraform1.Diagnostic
 	138, // 32: terraform1.stacks.OpenTerraformState.Response.diagnostics:type_name -> terraform1.Diagnostic

@@ -22,7 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1572,7 +1571,6 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
 	for addr, result := range policyResults.Iter() {
-		// Log all the info messages
 		for _, enforcement := range result.EvaluationResponse.Enforcements {
 			if enforcement.Message == "" {
 				continue
@@ -1611,6 +1609,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 			if enforcement.Range != nil {
 				rng := sourceRangeFromHCL(*enforcement.Range)
 				info.PolicyRange = &terraform1.SourceRange{
+					// TODO: I need to ensure this is the entire source address, similar to how stack diagnostics work (see FinalSourceAddress)
 					SourceAddr: enforcement.Range.Filename,
 					Start:      sourcePosToProto(rng.Start),
 					End:        sourcePosToProto(rng.End),
@@ -1620,16 +1619,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 		}
 
 		for _, diag := range result.EvaluationResponse.Diagnostics {
-			// TODO: I need to revist this portion of the diagnostic logic because we need to add component information
-			// although I'm not really sure where we need to add this. For example, are we just sending that component information
-			// in the proto response? Do we need to encode it into the json.NewDiagnostic logic?
-			//
-			// TODO: Look into how stacks handles component instance diagnostics today, I'm assuming that tfc-agent does most of the heavy lifting.
-			//
-			// Log the policy diagnostics. The severity level here is from the policy engine, and terraform
-			// does not use it at all. Therefore, the log level of these diagnostics is only relevant
-			// for policies.
-			jsonDiagnostic := json.NewDiagnostic(diag, cfgSources)
+			desc := diag.Description()
 
 			extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
 
@@ -1637,8 +1627,8 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 				TargetAddress: addr,
 				Diagnostic: &terraform1.Diagnostic{
 					Severity: terraform1.Diagnostic_ERROR,
-					Summary:  jsonDiagnostic.Summary,
-					Detail:   jsonDiagnostic.Detail,
+					Summary:  desc.Summary,
+					Detail:   desc.Detail,
 				},
 			}
 
@@ -1658,6 +1648,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 					policyDiag.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
 				}
 			}
+			// TODO: I need to ensure this subject contains the entire source address, similar to how stack diagnostics do (see FinalSourceAddress)
 			if src := diag.Source(); src.Subject != nil {
 				policyDiag.Diagnostic.Subject = sourceRangeToProto(*src.Subject)
 			}

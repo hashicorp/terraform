@@ -1117,17 +1117,17 @@ message PolicyInfo {
   string result = 6;
 }
 
-message PolicyDiagnostic {
-  string target_address = 1;
-  PolicyMetaData policy_metadata = 2;
-  string result = 3;
-  terraform1.Diagnostic diagnostic = 4;
-}
-
 message PolicySnippet {
   string context = 1;
   string code = 2;
   int64 start_line = 3;
   int64 highlight_start_offset = 4;
   int64 highlight_end_offset = 5;
+}
+
+message PolicyDiagnostic {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string result = 3;
+  terraform1.Diagnostic diagnostic = 4;
 }
