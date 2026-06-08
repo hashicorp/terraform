@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Change the "will not be destroyed" message color from red to yellow for removed blocks with destroy=false, making it visually distinct from the "will be destroyed" message'
+time: 2026-06-08T11:42:20+00:00
+custom:
+    Issue: "37973"
