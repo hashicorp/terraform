@@ -351,35 +351,31 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 		switch req.Target {
 		case "test":
 			expected = &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-				Name:       "test",
-				Namespace:  "hashicorp",
-				Source:     "registry.terraform.io/hashicorp/test",
-				Version:    "1.2.3",
-				ModulePath: "",
+				Name:      "test",
+				Namespace: "hashicorp",
+				Source:    "registry.terraform.io/hashicorp/test",
+				Version:   "1.2.3",
 			}
 		case "happycloud":
 			expected = &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-				Name:       "happycloud",
-				Namespace:  "awesomecorp",
-				Source:     "tf.example.com/awesomecorp/happycloud",
-				Version:    "1.0.0",
-				ModulePath: "./modules/child",
+				Name:      "happycloud",
+				Namespace: "awesomecorp",
+				Source:    "tf.example.com/awesomecorp/happycloud",
+				Version:   "1.0.0",
 			}
 		case "null":
 			expected = &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-				Name:       "null",
-				Namespace:  "hashicorp",
-				Source:     "registry.terraform.io/hashicorp/null",
-				Version:    "2.0.1",
-				ModulePath: "./modules/child",
+				Name:      "null",
+				Namespace: "hashicorp",
+				Source:    "registry.terraform.io/hashicorp/null",
+				Version:   "2.0.1",
 			}
 		case "grandchild":
 			expected = &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-				Name:       "grandchild",
-				Namespace:  "hashicorp",
-				Source:     "registry.terraform.io/hashicorp/grandchild",
-				Version:    "1.0.0",
-				ModulePath: "./grandchild",
+				Name:      "grandchild",
+				Namespace: "hashicorp",
+				Source:    "registry.terraform.io/hashicorp/grandchild",
+				Version:   "1.0.0",
 			}
 		}
 		if diff := cmp.Diff(expected, req.Meta, protocmp.Transform()); diff != "" {

@@ -139,10 +139,15 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Unexpected diff (-got +want):\n%s", diff)
 					}
 
-					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+					expectedMeta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
-					}, protocmp.Transform()); diff != "" {
+					}
+					if req.Target == "test_instance" {
+						expectedMeta.ModulePath = "module.child"
+					}
+
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -394,10 +399,15 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			prepareExpectations: func(t *testing.T, data *data) {
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
-					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+					expectedMeta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
-					}, protocmp.Transform()); diff != "" {
+					}
+					if req.Target == "test_instance" {
+						expectedMeta.ModulePath = "module.child"
+					}
+
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -1036,6 +1046,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
+						ModulePath:   "module.child",
 					}, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
