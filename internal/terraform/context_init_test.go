@@ -821,6 +821,32 @@ module "local" {
 				SourceAddr: mustModuleSource(t, "./modules/local"),
 			}},
 		},
+
+		"source from const variable set to null": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const   = true
+  default = null
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsuitable module source",
+					Detail:   `Unsuitable value: null value is not allowed.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 85},
+						End:      hcl.Pos{Line: 7, Column: 22, Byte: 94},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testRootModuleInline(t, tc.module)
