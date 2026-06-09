@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -23,7 +24,12 @@ var (
 	_ GraphNodeExecutable     = (*nodeResolveProviderRequirements)(nil)
 	_ GraphNodeReferencer     = (*nodeResolveProviderRequirements)(nil)
 	_ GraphNodeModuleInstance = (*nodeResolveProviderRequirements)(nil)
+	_ dag.NamedVertex         = (*nodeResolveProviderRequirements)(nil)
 )
+
+func (n *nodeResolveProviderRequirements) Name() string {
+	return n.Addr.String()
+}
 
 func (n *nodeResolveProviderRequirements) Execute(
 	ctx EvalContext,
