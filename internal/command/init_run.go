@@ -67,10 +67,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	// This will track whether we outputted anything so that we know whether
-	// to output a newline before the success message
-	var header bool
-
 	if initArgs.FromModule != "" {
 		src := initArgs.FromModule
 
@@ -87,7 +83,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 
 		view.Output(views.CopyingConfigurationMessage, src)
-		header = true
 
 		hooks := uiModuleInstallHooks{
 			Ui:             c.Ui,
@@ -255,9 +250,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			return 1
 		}
 		if configProvidersOutput {
-			header = true
-		}
-		if header {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
 			view.Output(views.EmptyMessage)
@@ -318,9 +310,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		back, backDiags = c.Meta.backendFromState(ctx)
 	}
 	if backendOutput {
-		header = true
-	}
-	if header {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
@@ -363,7 +352,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			return 1
 		}
 		if modsOutput {
-			header = true
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
 			view.Output(views.EmptyMessage)
@@ -431,9 +419,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		return 1
 	}
 	if stateProvidersOutput {
-		header = true
-	}
-	if header {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
@@ -447,9 +432,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		return 1
 	}
 	if lockFileOutput {
-		header = true
-	}
-	if header {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
