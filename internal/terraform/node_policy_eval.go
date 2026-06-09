@@ -29,7 +29,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 		return nil, nil
 	}
 	// ensure the graph has a single root
-	addRootNodeToGraph(&policyGraph.graph)
+	policyGraph.graph.AddRoot(graphNodeRoot{"policy"})
 	return &policyGraph.graph, nil
 }
 
