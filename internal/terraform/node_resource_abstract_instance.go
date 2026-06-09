@@ -130,6 +130,10 @@ func (n *NodeAbstractResourceInstance) ActionCalls() []addrs.ConfigAction {
 	return calls
 }
 
+func (n *NodeAbstractResourceInstance) AttachActionApplyTrigger(trigger *actionTriggerApplyInstance) {
+	n.actionApplyTriggers = append(n.actionApplyTriggers, trigger)
+}
+
 // StateDependencies returns the dependencies which will be saved in the state
 // for managed resources, or the most current dependencies for data resources.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {

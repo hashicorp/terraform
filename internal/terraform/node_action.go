@@ -36,12 +36,11 @@ type GraphNodeActionCaller interface {
 }
 
 // GraphNodeActionInvoker attaches planned action invocations to a node which
-// needs to call the action. This is required for nodes not created by the
-// config transformer.
+// needs to call the action.
 type GraphNodeActionInvoker interface {
 	GraphNodeActionCaller
 
-	AttachActionApplyTrigger([]*actionTriggerApplyInstance)
+	AttachActionApplyTrigger(*actionTriggerApplyInstance)
 }
 
 // NodeActionConfig represents an action in the configuration. This node is
