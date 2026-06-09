@@ -277,7 +277,29 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var configProviderDiags tfdiags.Diagnostics
 
-		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		// The init command is not allowed to upgrade the provider used for state storage
+		// We warn that upgrades will not impact the provider, and upgrades will only work via `terraform state migrate -upgrade`.
+		var allowUpgrade bool
+		if initArgs.Upgrade {
+			if initArgs.Reconfigure {
+				allowUpgrade = true // user is opting out of migrating state; whatever happens, happens
+			} else {
+				allowUpgrade = false // the installer will only be able to reuse the old version.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Cannot upgrade the provider used for state storage during \"terraform init -upgrade\"",
+					fmt.Sprintf(`Terraform will not upgrade the %s (%q) provider as part of this operation because it is used for state storage.
+
+Please use \"terraform state migrate -upgrade\" to upgrade the state store provider and navigate migrating your state between the two versions.`,
+						config.Module.StateStore.ProviderAddr.Type,
+						config.Module.StateStore.ProviderAddr.ForDisplay(),
+					),
+				),
+				)
+			}
+		}
+
+		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -319,41 +341,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		default:
 			// Handle SafeInitActionInvalid or unexpected action types
 			panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
-		}
-	}
-
-	// The init command is not allowed to upgrade the provider used for state storage (unless we're reconfiguring the state store).
-	// Unless users choose to reconfigure, they must upgrade the state store provider separately using `terraform state migrate -upgrade`.
-	// We only check to see if the state store provider was upgraded if the provider supply mode is ManagedByTerraform; providers overridden
-	// using dev_override or unmanaged providers blocks any upgrade process impacting that provider.
-	// For more context, see: https://github.com/hashicorp/terraform/pull/38633
-	if initArgs.Upgrade &&
-		!initArgs.Reconfigure &&
-		config.Module.StateStore != nil &&
-		config.Module.StateStore.ProviderSupplyMode == getproviders.ManagedByTerraform {
-		pAddr := config.Module.StateStore.ProviderAddr
-		old := alteredPreviousLocks.Provider(pAddr)
-		new := pssLocks.Provider(pAddr)
-		if old == nil || new == nil {
-			panic(fmt.Sprintf(`Unexpected missing provider lock for %s during init -upgrade: 
-prior lock: %#v
-new lock: %#v`, pAddr.ForDisplay(), old, new))
-		}
-		if !new.Version().Same((old.Version())) {
-			// The upgrade has impacted the provider
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot upgrade the provider used for state storage during \"terraform init -upgrade\"",
-				fmt.Sprintf(`While upgrading providers Terraform attempted to upgrade the %s (%q) provider, which is used by the state_store block in your configuration.
-Please use \"terraform state migrate -upgrade\" to upgrade the state store provider and navigate migrating your state between the two versions. You can then re-attempt \"terraform init -upgrade\" to upgrade the rest of your providers.
-
-If you do not intend to upgrade the state store provider, please update your configuration to pin to the current version (%s), and re-run \"terraform init -upgrade\" to upgrade the rest of your providers.
-`,
-					pAddr.Type, pAddr.ForDisplay(), old.Version()),
-			),
-			)
-			view.Diagnostics(diags)
-			return 1
 		}
 	}
 
