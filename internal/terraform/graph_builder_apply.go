@@ -215,7 +215,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Connect references so ordering is correct
-		&ReferenceTransformer{},
+		&ReferenceTransformer{walkOp: b.Operation},
 		&AttachDependenciesTransformer{},
 
 		// Nested data blocks should be loaded after every other resource has

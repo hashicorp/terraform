@@ -104,7 +104,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
-		&ReferenceTransformer{},
+		&ReferenceTransformer{walkOp: walkEval},
 
 		// Although we don't configure providers, we do still start them up
 		// to get their schemas, and so we must shut them down again here.

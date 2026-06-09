@@ -76,6 +76,16 @@ func (n *NodePlannableResourceInstanceOrphan) Provider() ProviderRef {
 	return n.NodeAbstractResourceInstance.Provider()
 }
 
+func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Referenceable {
+	// destroy nodes are not referenceable, so we must override the method from
+	// the abstract layers
+	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
+	n.actionTriggers = triggers
+}
+
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
 	// A data source that is no longer in the config is removed from the state
 	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)

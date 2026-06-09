@@ -58,7 +58,7 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 			Config: b.Config,
 		},
 
-		&ReferenceTransformer{},
+		&ReferenceTransformer{walkOp: walkInit},
 
 		// Filters out any vertices that aren't relevant to the init graph
 		&TransformFilter{

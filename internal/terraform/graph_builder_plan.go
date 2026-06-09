@@ -271,7 +271,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ExternalReferences: b.ExternalReferences,
 		},
 
-		&ReferenceTransformer{},
+		&ReferenceTransformer{walkOp: b.Operation},
 
 		&AttachDependenciesTransformer{},
 

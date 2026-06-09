@@ -107,7 +107,9 @@ type GraphNodeReferenceOutside interface {
 
 // ReferenceTransformer is a GraphTransformer that connects all the
 // nodes that reference each other in order to form the proper ordering.
-type ReferenceTransformer struct{}
+type ReferenceTransformer struct {
+	walkOp walkOperation
+}
 
 func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Build a reference map so we can efficiently look up the references
@@ -117,9 +119,14 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Find the things that reference things and connect them
 	for _, v := range vs {
 		if _, ok := v.(GraphNodeDestroyer); ok {
-			// destroy nodes references are not connected, since they can only
-			// use their own state.
-			continue
+			// destroy node references are not connected during apply, since
+			// they can only use their own state during apply. During plan there
+			// may be dependencies that must be fulfilled for actions, provided
+			// there is a configuration for the destroy node (like a removed
+			// block, ir during a full destroy.)
+			if t.walkOp == walkApply || t.walkOp == walkDestroy {
+				continue
+			}
 		}
 
 		// Because actions were allowed to reference the calling resource in
