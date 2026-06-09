@@ -44,13 +44,14 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
+	return func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		var found []cty.Value
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
 		}
+		var unknown bool
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -104,8 +105,11 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 
 						equals := attr.Equals(resource.GetAttr(name))
 						if !equals.IsKnown() {
-							// We'll treat unknown values as matches, and they
-							// can be handled on the Terraform Policy side.
+							// The filtered attribute for matching is unknown for this resource instance,
+							// so we can't determine whether it matches. We'll mark the callback result as incomplete.
+							// We still continue to the next resource instance, so that we return all known objects as well.
+							unknown = true
+							matched = false
 							continue
 						}
 
@@ -123,7 +127,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				}
 			}
 		})
-		return found, nil
+		return found, unknown, nil
 	}
 }
 

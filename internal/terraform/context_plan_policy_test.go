@@ -1671,6 +1671,12 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 			ami = "booper"
 			depends_on = [test_instance.baz]
 		}
+
+		resource "test_instance" "unknowner" {
+			ami = "unknown"
+			compute = uuid()
+			depends_on = [test_instance.baz]
+		}
 	`
 
 	policyConfig := `
@@ -1700,7 +1706,8 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		matchAllResults  []cty.Value
 		filteredResults  []cty.Value
 		noMatchCount     int
-		unknownTypeCount int
+		nonExistentCount int
+		foundUnknown     bool
 	}
 
 	var mu sync.Mutex
@@ -1715,7 +1722,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 1. Match all test_instance resources with null attrs (no filter).
-		all, err := req.Callbacks.GetResources("test_instance", cty.NullVal(cty.DynamicPseudoType))
+		all, _, err := req.Callbacks.GetResources("test_instance", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("GetResources(test_instance, null): %v", err)
 		} else {
@@ -1723,7 +1730,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 2. Match resources with ami="bar" filter.
-		filtered, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+		filtered, _, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}))
 		if err != nil {
@@ -1733,7 +1740,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 3. Match with an attribute filter that will never match any planned resource.
-		noMatch, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+		noMatch, _, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("nonexistent"),
 		}))
 		if err != nil {
@@ -1743,11 +1750,21 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 4. Query for a resource type that doesn't exist in the config.
-		unknown, err := req.Callbacks.GetResources("nonexistent_resource", cty.NullVal(cty.DynamicPseudoType))
+		nonExistentMatch, _, err := req.Callbacks.GetResources("nonexistent_resource", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("GetResources(nonexistent_resource): %v", err)
 		} else {
-			cr.unknownTypeCount = len(unknown)
+			cr.nonExistentCount = len(nonExistentMatch)
+		}
+
+		// 5. Query for a resource type where the filtered attribute is unknown.
+		_, unknown, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+			"compute": cty.StringVal("foo"),
+		}))
+		if err != nil {
+			t.Errorf("Error when filtering by unknown attribute: %v", err)
+		} else {
+			cr.foundUnknown = unknown
 		}
 
 		// Key by the ami attribute of the resource being evaluated.
@@ -1779,13 +1796,13 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 
-	// We expect exactly 3 evaluations (one per test_instance resource).
-	if len(results) != 3 {
-		t.Fatalf("expected 3 policy evaluations, got %d", len(results))
+	// We expect exactly 4 evaluations (one per test_instance resource).
+	if len(results) != 4 {
+		t.Fatalf("expected 4 policy evaluations, got %d", len(results))
 	}
 
 	for ami, cr := range results {
-		expectedTotal := 3
+		expectedTotal := 4
 		filteredCount := 1
 		if len(cr.matchAllResults) != expectedTotal {
 			t.Errorf("evaluation[%s]: expected %d result for matchAll, got %d", ami, expectedTotal, len(cr.matchAllResults))
@@ -1797,8 +1814,13 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// Querying for a non-existent resource type should always return 0.
-		if cr.unknownTypeCount != 0 {
-			t.Errorf("evaluation[%s]: expected 0 results for nonexistent_resource, got %d", ami, cr.unknownTypeCount)
+		if cr.nonExistentCount != 0 {
+			t.Errorf("evaluation[%s]: expected 0 results for nonexistent_resource, got %d", ami, cr.nonExistentCount)
+		}
+
+		// Querying for a resource type where the filtered attribute is unknown should always return 0.
+		if !cr.foundUnknown {
+			t.Errorf("evaluation[%s]: expected unknown type filter to return at least one result", ami)
 		}
 
 		// The filtered result should only match one resource "bar", except when evaluating "bar" itself.
