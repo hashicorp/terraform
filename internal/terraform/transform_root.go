@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -30,22 +32,12 @@ func addRootNodeToGraph(g *Graph) {
 	// Note that rootNode is intentionally added by value and not by pointer
 	// so that all root nodes will be equal to one another and therefore
 	// coalesce when two valid graphs get merged together into a single graph.
-	g.Add(rootNode)
-
-	// Everything that doesn't already depend on at least one other node will
-	// depend on the root node, except the root node itself.
-	for _, v := range g.Vertices() {
-		if v == dag.Vertex(rootNode) {
-			continue
-		}
-
-		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(rootNode, v))
-		}
-	}
+	g.AddRoot(rootNode)
 }
 
-type graphNodeRoot struct{}
+type graphNodeRoot struct {
+	Prefix string
+}
 
 // rootNode is the singleton value representing all root graph nodes.
 //
@@ -56,7 +48,10 @@ type graphNodeRoot struct{}
 var rootNode graphNodeRoot
 
 func (n graphNodeRoot) Name() string {
-	return rootNodeName
+	if n.Prefix == "" {
+		return rootNodeName
+	}
+	return fmt.Sprintf("%s.%s", rootNodeName, n.Prefix)
 }
 
 // CloseRootModuleTransformer is a GraphTransformer that adds a root to the graph.
