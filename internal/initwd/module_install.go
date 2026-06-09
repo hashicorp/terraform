@@ -399,7 +399,7 @@ func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.M
 	// invalid or not allowed, we should not proceed with installation.
 	hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// local modules do not have a version constraint, so we just send an empty string
-		return hook.ModuleSourceResolved(context.TODO(), req, req.SourceAddr.String(), "")
+		return hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), "")
 	})
 	if hookDiags.HasErrors() {
 		return nil, diags.Extend(hookDiags.ToHCL())

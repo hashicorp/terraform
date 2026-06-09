@@ -306,6 +306,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, config, alteredPreviousLocks, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
+			if policyResults != nil {
+				view.PolicyResults(policyResults, nil)
+			}
 			view.Diagnostics(diags)
 			return 1
 		}

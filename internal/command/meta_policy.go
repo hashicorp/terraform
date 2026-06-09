@@ -88,8 +88,8 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 		requiredVersions = append(requiredVersions, version...)
 	}
 
-	if len(diags) > 0 {
-		return nil, diags, closer
+	if diags.HasErrors() {
+		return client, diags, closer
 	}
 
 	terraformVersion, err := versions.ParseVersion(version.Version)
@@ -125,7 +125,6 @@ type policyModuleInstallHook struct {
 // it is installed.
 func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
 	moduleAddr := req.Path.String()
-	moduleCall := h.rootModule.ModuleCalls[req.Name]
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 		Attrs:  cty.NilVal,
 		Target: source,
@@ -134,8 +133,14 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 			Version: version,
 		},
 	})
+	var moduleCall *configs.ModuleCall
+	if req.Parent == nil || req.Parent.Module == nil {
+		log.Printf("[DEBUG] backend/operation/policy: No parent config for module %q, skipping policy evaluation", moduleAddr)
+	} else {
+		moduleCall = req.Parent.Module.ModuleCalls[req.Name]
+	}
 
-	if moduleCall != nil && moduleCall.Config != nil {
+	if moduleCall != nil {
 		ptr := moduleCall.DeclRange.Ptr()
 		for idx, diag := range result.Diagnostics {
 			result.Diagnostics[idx] = diag.WithLocalRange(ptr)

@@ -545,6 +545,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "acctest_child_a",
 			PackageAddr: "",
+			Version:     v,
 		},
 		{
 			Name:        "Download",
@@ -588,6 +589,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "acctest_child_b",
 			PackageAddr: "",
+			Version:     v,
 		},
 		{
 			Name:        "Download",
@@ -607,6 +609,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:        "ModuleSourceResolved",
 			ModuleAddr:  "acctest_root",
 			PackageAddr: "",
+			Version:     v,
 		},
 		{
 			Name:        "Download",
@@ -741,6 +744,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 		// acctest_child_a accesses //modules/child_a directly
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_a",
+		},
+		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
 			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole repo here
@@ -754,12 +761,20 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		// acctest_child_a.child_b
 		// (no download because it's a relative path inside acctest_child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_a.child_b",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_b",
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
@@ -772,6 +787,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		},
 
 		// acctest_root
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root",
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
@@ -786,6 +805,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		// acctest_root.child_a
 		// (no download because it's a relative path inside acctest_root)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root.child_a",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
@@ -793,6 +816,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 		// acctest_root.child_a.child_b
 		// (no download because it's a relative path inside acctest_root, via acctest_root.child_a)
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root.child_a.child_b",
+		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
@@ -941,6 +968,11 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 		// setup access acctest directly.
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup",
+			Version:    v,
+		},
+		{
 			Name:        "Download",
 			ModuleAddr:  "test.main.setup",
 			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
@@ -967,6 +999,10 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		// main.tftest.hcl.setup.child_a
 		// (no download because it's a relative path inside acctest_child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_a"),
@@ -975,9 +1011,26 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		// main.tftest.hcl.setup.child_a.child_b
 		// (no download because it's a relative path inside main.tftest.hcl.setup.child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a.child_b",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a.child_b",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_b"),
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup",
+			Version:    v,
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a",
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a.child_b",
 		},
 	}
 

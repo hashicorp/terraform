@@ -100,6 +100,15 @@ type Diagnostic struct {
 
 type Diagnostics []Diagnostic
 
+func (d Diagnostics) HasErrors() bool {
+	for _, diag := range d {
+		if diag.Severity() == tfdiags.Error {
+			return true
+		}
+	}
+	return false
+}
+
 func (o Diagnostic) Severity() tfdiags.Severity {
 	return o.original.Severity()
 }

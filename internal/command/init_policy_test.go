@@ -262,6 +262,70 @@ diagnostics for details.
 	}
 }
 
+func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-nested-provider-requirements"), td)
+	t.Chdir(td)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+
+	overrides := metaOverridesForProvider(testProvider())
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		if req.Target != "./grandchild" {
+			return policy.EvaluationResponse{Overall: policy.AllowResult}
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.DiagsFromProto([]*proto.Diagnostic{
+					{
+						Severity: proto.Severity_ERROR,
+						Summary:  "nested module policy denied",
+						Result: &proto.DiagnosticResult{
+							Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+						},
+					},
+				}, &policy.Policy{
+					Address:          "module_policy.nested",
+					Filename:         "policy_file.tfpolicy.hcl",
+					EnforcementLevel: "mandatory",
+					Result:           policy.DenyResult,
+				})[0],
+			},
+		}
+	}
+	overrides.PolicyClient = policyClient
+
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+	}
+
+	if !policyClient.EvaluateModuleCalled {
+		t.Fatal("expected EvaluateModule to be called")
+	}
+
+	stderr := output.Stderr()
+	if !strings.Contains(stderr, "on modules/child/main.tf line 12:") {
+		t.Fatalf("expected nested module diagnostic to point at modules/child/main.tf:12, got:\n%s", stderr)
+	}
+	if !strings.Contains(stderr, `12: module "nested" {`) {
+		t.Fatalf("expected nested module snippet in diagnostics, got:\n%s", stderr)
+	}
+}
+
 func TestInit_WithModulePolicyJSON(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
