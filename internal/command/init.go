@@ -169,6 +169,12 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		view.Output(views.InitializingBackendMessage)
 	}
 
+	earlyBdiags := c.earlyValidateBackend(root, initArgs)
+	diags = diags.Append(earlyBdiags)
+	if diags.HasErrors() {
+		return nil, true, diags
+	}
+
 	var opts *BackendOpts
 	switch {
 	case root.StateStore != nil:
