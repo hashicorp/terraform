@@ -63,9 +63,14 @@ var (
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodePlanDestroyer                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
+	return &n.Addr
+}
+
+func (n *NodePlanDeposedResourceInstanceObject) PlanDestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 

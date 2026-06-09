@@ -29,6 +29,7 @@ var (
 	_ GraphNodeReferenceable        = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodePlanDestroyer        = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeConfigResource       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeResourceInstance     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
@@ -36,6 +37,7 @@ var (
 	_ GraphNodeExecutable           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeActionCaller         = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeAttachActionTriggers = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 func (n *NodePlanDestroyableResourceInstance) Name() string {
@@ -46,6 +48,21 @@ func (n *NodePlanDestroyableResourceInstance) Name() string {
 func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
 	return &addr
+}
+
+func (n *NodePlanDestroyableResourceInstance) PlanDestroyAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
+}
+
+func (n *NodePlanDestroyableResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
+	// destroy nodes are not referenceable, so we must override the method from
+	// the abstract layers
+	return nil
+}
+
+func (n *NodePlanDestroyableResourceInstance) AttachActionTriggers(triggers []*resourceActionTrigger) {
+	n.actionTriggers = triggers
 }
 
 // GraphNodeEvalable

@@ -93,7 +93,7 @@ type NodeAbstractResource struct {
 	// in the configuration.
 	overridePreventDestroy bool
 
-	// actionTriggers records all triggers and their referenced actions. The
+	// actionTriggers records all triggers and their referenced actions.
 	// We hold a pointer to the action nodes from the referencing trigger, so
 	// that the action nodes can be resolved to the correct provider in the
 	// graph, while allowing the triggering node to also connect to the same
@@ -687,7 +687,14 @@ type resourceActionTrigger struct {
 // during evaluation.
 type actionRef struct {
 	configRef   configs.ActionRef
-	actionNode  *NodeActionConfig
 	blockIndex  int
 	actionIndex int
+
+	// Here we store a reference to the actual NodeActionConfig. While it's
+	// evaluated as if it were embedded within the caller, the action node is
+	// also its own entity in the graph for two reasons: - Provider resolution
+	// can happen via the standard methods - The action has its own expansion,
+	// which must be evaluated before the callers, and multiple callers may
+	// reference the same action node.
+	actionNode *NodeActionConfig
 }
