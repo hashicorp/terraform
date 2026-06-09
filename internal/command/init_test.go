@@ -2593,13 +2593,13 @@ terraform {
 			"-enable-pluggable-state-storage-experiment",
 		}
 		code := c.Run(args)
-		if code == 0 {
-			t.Fatalf("command was not expected to complete successfully, but it did:\n%s", done(t).All())
+		if code != 0 {
+			t.Fatalf("command was expected to complete successfully, but it did not:\n%s", done(t).All())
 		}
-		output := done(t).Stderr()
-		expectedError := "Error: Cannot upgrade the provider used for state storage during \"terraform init -upgrade\""
-		if !strings.Contains(output, expectedError) {
-			t.Fatalf("expected error message not found:\n%s", output)
+		output := done(t).Stdout()
+		expectedMsg := "Warning: Cannot upgrade the provider used for state storage during \"terraform init -upgrade\""
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected warning message not found:\n%s", output)
 		}
 
 		// Assert that no providers were upgraded.
