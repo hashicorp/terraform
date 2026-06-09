@@ -56,9 +56,10 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
+	return func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		var found []cty.Value
+		var unknown bool
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -69,11 +70,11 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
-				var resourceFunc iter.Seq[cty.Value]
+				var instanceSeq iter.Seq[cty.Value]
 				if walkOperation == walkApply {
-					resources := state.ResourceInstancesByConfig(addr)
-					resourceFunc = func(yield func(cty.Value) bool) {
-						for _, inst := range resources {
+					instances := state.ResourceInstancesByConfig(addr)
+					instanceSeq = func(yield func(cty.Value) bool) {
+						for _, inst := range instances {
 							if inst.Current == nil {
 								continue
 							}
@@ -89,9 +90,9 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 						}
 					}
 				} else {
-					resources := ctx.Changes().GetChangesForConfigResource(addr)
-					resourceFunc = func(yield func(cty.Value) bool) {
-						for _, change := range resources {
+					changes := ctx.Changes().GetChangesForConfigResource(addr)
+					instanceSeq = func(yield func(cty.Value) bool) {
+						for _, change := range changes {
 							if !yield(change.After) {
 								return
 							}
@@ -99,45 +100,49 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					}
 				}
 
-				log.Printf("[DEBUG] getresources: found %d resources for policy target %q", len(slices.Collect(resourceFunc)), target)
-				for resource := range resourceFunc {
+				log.Printf("[DEBUG] getresources: found %d resources for policy target %q", len(slices.Collect(instanceSeq)), target)
+				for resourceInstance := range instanceSeq {
 					if attrs.IsNull() {
 						// then match everything
-						found = append(found, resource)
+						found = append(found, resourceInstance)
 						continue
 					}
 
-					value, matched := resource, true
+					matched := true
 					for name, attr := range attrs.AsValueMap() {
-						if !value.Type().HasAttribute(name) {
+						if !resourceInstance.Type().HasAttribute(name) {
 							log.Printf("[DEBUG] attribute %q not found in resource %q", name, addr.String())
 							matched = false
 							break
 						}
 
-						equals := attr.Equals(value.GetAttr(name))
+						instanceAttr := resourceInstance.GetAttr(name)
+						equals := attr.Equals(instanceAttr)
 						if !equals.IsKnown() {
-							// We'll treat unknown values as matches, and they
-							// can be handled on the Terraform Policy side.
+							// The filtered attribute for matching is unknown for this resource instance,
+							// so we can't determine whether it matches. We'll mark the callback result as incomplete.
+							// We still continue to the next resource instance, so that we return all known objects as well.
+							unknown = true
+							matched = false
 							continue
 						}
 
 						if equals.False() {
 							matched = false
 							log.Printf("[DEBUG] attribute %q does not match in resource %q", name, addr.String())
-							break
+							continue
 						}
 					}
 
 					if matched {
-						value, _ = value.UnmarkDeep()
-						found = append(found, value)
+						resourceInstance, _ = resourceInstance.UnmarkDeep()
+						found = append(found, resourceInstance)
 					}
 
 				}
 			}
 		})
-		return found, nil
+		return found, unknown, nil
 	}
 }
 

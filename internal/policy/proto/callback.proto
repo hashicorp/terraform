@@ -18,10 +18,15 @@ message GetResourcesRequest {
   // evaluation_request_id is the ID of the policy evaluation request that is
   // making this callback request.
   uint32 evaluation_request_id = 3;
+
+ 
 }
 
 message GetResourcesResponse {
   repeated bytes results = 1;
+  // unknown means that the request encountered unknown objects during evaluation,
+  // and the results may be incomplete.
+  bool unknown = 2;
 }
 
 message GetDataSourceRequest {
@@ -34,4 +39,7 @@ message GetDataSourceRequest {
 
 message GetDataSourceResponse {
   bytes result = 1;
+  // unknown means that the request encountered unknown objects during evaluation,
+  // and the results may be incomplete.
+  bool unknown = 2;
 }
