@@ -490,7 +490,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			cb := fetchPackageBeginCallback(view)
 			cb(provider, version, location)
 		},
-		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, rootModEarly.StateStore),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
@@ -645,6 +645,10 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
+	var stateStore *configs.StateStore
+	if config != nil && config.Module != nil {
+		stateStore = config.Module.StateStore // may be nil, and that's fine
+	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
 			view.Output(views.InitializingProviderPluginMessage)
@@ -665,7 +669,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		},
 		LinkFromCacheBegin:   linkFromCacheBeginCallback(view),
 		FetchPackageBegin:    fetchPackageBeginCallback(view),
-		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, stateStore),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
@@ -1057,7 +1061,7 @@ func fetchPackageBeginCallback(view views.Init) func(provider addrs.Provider, ve
 }
 
 // Returns a reused callback function for the QueryPackagesFailure event in a providercache.InstallerEvents struct.
-func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements) func(provider addrs.Provider, err error) {
+func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements, stateStore *configs.StateStore) func(provider addrs.Provider, err error) {
 	return func(provider addrs.Provider, err error) {
 		switch errorTy := err.(type) {
 		case getproviders.ErrProviderNotFound:
@@ -1135,6 +1139,35 @@ func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Contex
 			// but rather just emit a single general message about it at
 			// the end, by checking ctx.Err().
 
+		case getproviders.ErrLockConflictsWithConstraints:
+			if stateStore != nil && stateStore.ProviderAddr.Equals(provider) {
+				// Handles an edge case where the lock obtained by getProvidersFromPSSConfig using the root module
+				// is not compatible with version constraints from child modules. This is a result of needing to download
+				// the provider for the state store separately to other providers defined in the config.
+				//
+				// The root module takes precedence as it defines and controls the state store.
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				*diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unable to download the provider used for state storage",
+					fmt.Sprintf("Provider %q (%s) is used to store state, so the root module's version constraints take precedence when downloading the provider. Terraform encountered an error that suggests that version constraint may be conflicting with a version constraint from a child module. If you want to upgrade the provider used for state storage you must use the following command:\n    terraform state migrate -upgrade\n\nError from the installer: %s%s",
+						provider.Type,
+						provider.ForDisplay(),
+						err,
+						suggestion,
+					),
+				))
+			} else {
+				// duplicate of default logic below
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				*diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			}
 		default:
 			suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
 			*diags = diags.Append(tfdiags.Sourceless(

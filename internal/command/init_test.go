@@ -4852,12 +4852,19 @@ Initializing provider plugins...
 	// Check stderr
 	stderr := testOutput.Stderr()
 	expectedError := `
-Error: Failed to query available provider packages
+Error: Unable to download the provider used for state storage
 
-Could not retrieve the list of available versions for provider
-hashicorp/test: locked provider registry.terraform.io/hashicorp/test 1.0.0
-does not match configured version constraint >= 2.0.0, < 2.0.0; must use
-terraform init -upgrade to allow selection of new versions
+Provider "test" (hashicorp/test) is used to store state, so the root module's
+version constraints take precedence when downloading the provider. Terraform
+encountered an error that suggests that version constraint may be conflicting
+with a version constraint from a child module. If you want to upgrade the
+provider used for state storage you must use the following command:
+    terraform state migrate -upgrade
+
+Error from the installer: locked provider
+registry.terraform.io/hashicorp/test 1.0.0 does not match configured version
+constraint >= 2.0.0, < 2.0.0; must use terraform init -upgrade to allow
+selection of new versions
 
 To see which modules are currently depending on hashicorp/test and what
 versions are specified, run the following command:
