@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -51,7 +52,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
 		}
-		var unknown bool
+		var accUnknown bool
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -90,44 +91,21 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				}
 
 				for resource := range resourcesSeq {
-					if attrs.IsNull() {
-						// then match everything
-						found = append(found, resource)
-						continue
-					}
-
-					matched := true
-					for name, attr := range filterMap {
-						if schema.Body == nil || schema.Body.Attributes[name] == nil {
-							matched = false
-							break
-						}
-
-						equals := attr.Equals(resource.GetAttr(name))
-						if !equals.IsKnown() {
-							// The filtered attribute for matching is unknown for this resource instance,
-							// so we can't determine whether it matches. We'll mark the callback result as incomplete.
-							// We still continue to the next resource instance, so that we return all known objects as well.
-							unknown = true
-							matched = false
-							continue
-						}
-
-						if equals.False() {
-							matched = false
-							break
-						}
-					}
-
+					matched, unknown := resourceMatchesFilter(addr, schema.Body, filterMap, resource)
 					if matched {
 						resource, _ = resource.UnmarkDeep()
 						found = append(found, resource)
 					}
 
+					// The filtered attribute for matching is unknown for this resource instance,
+					// so we can't determine whether it matches. We'll mark the whole callback result as incomplete.
+					// We still continue to the next resource instance, so that we return all known objects as well.
+					accUnknown = accUnknown || unknown
+
 				}
 			}
 		})
-		return found, unknown, nil
+		return found, accUnknown, nil
 	}
 }
 
@@ -160,4 +138,51 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 		}
 		return cty.NilVal, fmt.Errorf("no data source found for %s", target)
 	}
+}
+
+// resourceMatchesFilter returns whether the given resource matches the given filter attributes and/or if the filter attributes are unknown for the resource.
+func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block, filterAttrs map[string]cty.Value, resource cty.Value) (matches, unknown bool) {
+	if resource.IsNull() {
+		// if the resource is null, then it doesn't match anything
+		return false, false
+	}
+	if len(filterAttrs) == 0 {
+		// if the filter is null, then match everything
+		return true, false
+	}
+
+	sawUnknown := false
+
+	for name, attr := range filterAttrs {
+		if !resource.Type().HasAttribute(name) {
+			log.Printf("[DEBUG] attribute %q not found in resource %q", name, addr.String())
+			return false, false
+		}
+
+		if schema == nil || schema.Attributes[name] == nil {
+			return false, false
+		}
+
+		equals := attr.Equals(resource.GetAttr(name))
+		if !equals.IsKnown() {
+			// A filtered attribute for matching is unknown for this resource instance.
+			// We can't determine whether it matches. We track that we saw an unknown attribute, but continue to check other attributes.
+			// This lets false matches take precedence over the unknown result, since we can still determine that the resource does not match.
+			sawUnknown = true
+			continue
+		}
+
+		if equals.False() {
+			log.Printf("[DEBUG] attribute %q does not match in resource %q", name, addr.String())
+			// an attribute mismatch means we can't match this resource
+			return false, false
+		}
+	}
+
+	// We saw an unknown attribute, and no other attributes mismatched, so we can't determine whether the resource matches.
+	if sawUnknown {
+		return false, true
+	}
+
+	return true, false
 }

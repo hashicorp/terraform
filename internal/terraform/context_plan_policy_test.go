@@ -1667,14 +1667,10 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 			depends_on = [test_instance.foo]
 		}
 
-		resource "test_instance" "boop" {
-			ami = "booper"
-			depends_on = [test_instance.baz]
-		}
-
-		resource "test_instance" "unknowner" {
-			ami = "unknown"
-			compute = uuid()
+		resource "test_instance" "mixed" {
+			count = 2
+			ami = count.index == 0 ? "unknown" : "booper"
+			compute = count.index == 0 ? uuid() : "known"
 			depends_on = [test_instance.baz]
 		}
 	`
@@ -1818,9 +1814,10 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 			t.Errorf("evaluation[%s]: expected 0 results for nonexistent_resource, got %d", ami, cr.nonExistentCount)
 		}
 
-		// Querying for a resource type where the filtered attribute is unknown should always return 0.
+		// Querying for a resource type where one candidate has an unknown filtered attribute
+		// should report the callback result as incomplete, even if later candidates are definite non-matches.
 		if !cr.foundUnknown {
-			t.Errorf("evaluation[%s]: expected unknown type filter to return at least one result", ami)
+			t.Errorf("evaluation[%s]: expected compute filter to report unknown=true when any candidate has an unknown value", ami)
 		}
 
 		// The filtered result should only match one resource "bar", except when evaluating "bar" itself.
