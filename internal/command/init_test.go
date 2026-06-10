@@ -354,17 +354,10 @@ func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
 // Test that an error is returned if users provide the removed directory argument, which was replaced with -chdir
 // See: https://github.com/hashicorp/terraform/commit/ca23a096d8c48544b9bfc6dbf13c66488f9b6964
 func TestInit_multipleArgs(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	os.MkdirAll(td, 0755)
-	t.Chdir(td)
-
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -377,11 +370,17 @@ func TestInit_multipleArgs(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	expectedMsg := "Did you mean to use -chdir?"
-	if !strings.Contains(done(t).All(), expectedMsg) {
-		t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
-			expectedMsg,
-		)
+	expectedMsgs := []string{
+		"Error: No positional arguments are expected",
+		"-chdir?",
+	}
+	output := done(t).All()
+	for _, expectedMsg := range expectedMsgs {
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
+				expectedMsg,
+			)
+		}
 	}
 }
 
@@ -982,7 +981,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
-	if got, want := output.Stderr(), `Too many command line arguments`; !strings.Contains(got, want) {
+	if got, want := output.Stderr(), `No positional arguments are expected`; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
