@@ -354,8 +354,6 @@ func buildActionTriggers(resource *configs.Resource, path addrs.Module, allConfi
 				continue
 			}
 
-			// referencedActionConfigs.Add(configAction)
-
 			resActTrig.actionRefs = append(resActTrig.actionRefs, actionRef{
 				configRef:   action,
 				actionNode:  actionNode,

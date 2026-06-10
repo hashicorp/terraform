@@ -156,10 +156,6 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	actionCycleError := func(ref, action dag.Vertex) error {
-		return fmt.Errorf("action reference cycle involving %s and %s", dag.VertexName(action), dag.VertexName(ref))
-	}
-
 	// now we can go back and connect the action configs to their dependencies
 	for _, v := range vs {
 		actionConfig, ok := v.(*NodeActionConfig)
@@ -178,7 +174,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				caller, ok := ref.(GraphNodeActionCaller)
 				if !ok {
 					// this node cannot call any actions
-					return actionCycleError(ref, actionConfig)
+					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
 				}
 
 				// The reference can call actions, and we'll allow it if it
@@ -188,7 +184,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 						continue ACTIONREFS
 					}
 				}
-				return actionCycleError(ref, actionConfig)
+				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
 			}
 
 			g.Connect(dag.BasicEdge(actionConfig, ref))

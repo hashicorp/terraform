@@ -1192,7 +1192,7 @@ resource "test_object" "a" {
 			}),
 			planOpts: &PlanOpts{
 				Mode: plans.DestroyMode,
-				// skip refresh just makes this easier to troubleshoot be removing ane extra walk
+				// skip refresh just makes this easier to troubleshoot be removing an extra walk
 				SkipRefresh: true,
 			},
 		},

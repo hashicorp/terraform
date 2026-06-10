@@ -63,8 +63,8 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 							ActionInvocation: ai,
 							actionNode:       actionConfig,
 						})
+						foundNode = true
 					}
-					foundNode = true
 					continue
 				}
 
