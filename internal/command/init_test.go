@@ -371,7 +371,7 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 
 	expectedMsgs := []string{
-		"Error: Too many command line arguments",
+		"Error: No positional arguments are expected",
 		"-chdir?",
 	}
 	output := done(t).All()

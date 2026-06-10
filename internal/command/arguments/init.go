@@ -220,7 +220,7 @@ func ParseInit(rawArgs []string, experimentsEnabled bool) (*Init, tfdiags.Diagno
 		// No positional arguments are expected.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Too many command line arguments",
+			"No positional arguments are expected",
 			"The init command does not expect any positional arguments. Did you mean to use -chdir?",
 		))
 	}
