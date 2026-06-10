@@ -15,6 +15,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -26,8 +29,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestContext2Plan_PolicyEvaluation(t *testing.T) {
@@ -1718,7 +1719,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 1. Match all test_instance resources with null attrs (no filter).
-		all, _, err := req.Callbacks.GetResources("test_instance", cty.NullVal(cty.DynamicPseudoType))
+		all, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("GetResources(test_instance, null): %v", err)
 		} else {
@@ -1726,7 +1727,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 2. Match resources with ami="bar" filter.
-		filtered, _, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+		filtered, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}))
 		if err != nil {
@@ -1736,7 +1737,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 3. Match with an attribute filter that will never match any planned resource.
-		noMatch, _, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+		noMatch, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("nonexistent"),
 		}))
 		if err != nil {
@@ -1746,7 +1747,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 4. Query for a resource type that doesn't exist in the config.
-		nonExistentMatch, _, err := req.Callbacks.GetResources("nonexistent_resource", cty.NullVal(cty.DynamicPseudoType))
+		nonExistentMatch, _, err := req.Callbacks.GetResources(t.Context(), "nonexistent_resource", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("GetResources(nonexistent_resource): %v", err)
 		} else {
@@ -1754,7 +1755,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 
 		// 5. Query for a resource type where the filtered attribute is unknown.
-		_, unknown, err := req.Callbacks.GetResources("test_instance", cty.ObjectVal(map[string]cty.Value{
+		_, unknown, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.ObjectVal(map[string]cty.Value{
 			"compute": cty.StringVal("foo"),
 		}))
 		if err != nil {

@@ -4,11 +4,13 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"iter"
 	"log"
 
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -22,7 +24,14 @@ import (
 )
 
 func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := ctx.PolicyClient().EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+	// We want a per-resource parent span so we can reason about the evaluation of individual
+	// resources in the trace
+	evalCtx := ctx.StopCtx()
+	if phaseSpan := ctx.PolicyGraph().span; phaseSpan != nil {
+		evalCtx = trace.ContextWithSpan(evalCtx, phaseSpan)
+	}
+
+	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
 		Attrs:      policy.CtyToPolicyValue(attrs),
 		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
@@ -45,8 +54,8 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+	return func(_ context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		var found []cty.Value
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
@@ -110,8 +119,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(target string, attrs cty.Value) (cty.Value, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
+	return func(_ context.Context, target string, attrs cty.Value) (cty.Value, error) {
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {

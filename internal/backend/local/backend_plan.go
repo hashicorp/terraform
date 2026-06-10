@@ -9,6 +9,9 @@ import (
 	"io"
 	"log"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -118,6 +121,7 @@ func (b *Local) opPlan(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
+		lr.Core.SetTracingContext(stopCtx)
 		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 	}()
 
@@ -223,7 +227,22 @@ func (b *Local) opPlan(
 	op.View.Plan(plan, schemas)
 
 	// Report all policy results that may have accumulated during the plan
+	policyResultCount := 0
+	if plan.PolicyResults != nil {
+		policyResultCount = plan.PolicyResults.Len()
+	}
+	var polRenderSpan trace.Span
+	polRenderSpanEnd := func() {}
+	if policyResultCount > 0 {
+		_, polRenderSpan = tracer().Start(stopCtx, "terraform.local.plan.render_policy_results",
+			trace.WithAttributes(
+				attribute.Int("plan.policy_results", policyResultCount),
+			),
+		)
+		polRenderSpanEnd = func() { polRenderSpan.End() }
+	}
 	op.View.PolicyResults(plan.PolicyResults, nil)
+	polRenderSpanEnd()
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially
