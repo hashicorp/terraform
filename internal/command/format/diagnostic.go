@@ -4,7 +4,6 @@
 package format
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"iter"
@@ -99,14 +98,25 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 
 	// Before we return, we'll finally add the left rule prefixes to each
 	// line so that the overall message is visually delimited from what's
-	// around it. We'll do that by scanning over what we already generated
+	// around it. We'll do that by iterating over what we already generated
 	// and adding the prefix for each line.
+	//
+	// We intentionally don't use bufio.Scanner here because its default
+	// token size limit silently discards lines longer than 64KiB, which
+	// caused diagnostics with very long summaries (e.g. cycle errors in
+	// large configurations, whose summaries are never word-wrapped) to be
+	// rendered as an empty box with no text at all.
 	var ruleBuf strings.Builder
-	sc := bufio.NewScanner(&buf)
+	lines := strings.Split(buf.String(), "\n")
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		// Every write into buf above ends with a newline, so we drop the
+		// trailing empty element to avoid emitting a spurious final line.
+		lines = lines[:len(lines)-1]
+	}
 	ruleBuf.WriteString(leftRuleStart)
 	ruleBuf.WriteByte('\n')
-	for sc.Scan() {
-		line := sc.Text()
+	for _, line := range lines {
+		line = strings.TrimSuffix(line, "\r")
 		prefix := leftRuleLine
 		if line == "" {
 			// Don't print the space after the line if there would be nothing
