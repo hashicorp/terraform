@@ -4,15 +4,21 @@
 package callback
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
 	"github.com/zclconf/go-cty/cty"
 )
 
+// Functions is the set of callbacks that Terraform exposes to the policy
+// plugin. Each callback receives a context.Context derived from the inbound
+// callback gRPC request: it carries the propagated trace context (so the
+// callback's own work can be attributed to the originating policy evaluation)
+// and is cancellable if the plugin disconnects mid-call.
 type Functions struct {
-	GetResources  func(resource string, attrs cty.Value) ([]cty.Value, error)
-	GetDataSource func(datasource string, attrs cty.Value) (cty.Value, error)
+	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, error)
+	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, error)
 }
 
 // Registry is an interface for managing callback functions for resources and

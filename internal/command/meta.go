@@ -20,8 +20,10 @@ import (
 
 	"github.com/hashicorp/cli"
 	plugin "github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/colorstring"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -477,6 +479,27 @@ func (m *Meta) CommandContext() context.Context {
 	return m.CallerContext
 }
 
+// StartCommandSpan starts an OpenTelemetry span representing one invocation
+// of a top-level command (e.g. "terraform plan"), installs the resulting
+// context as m.CallerContext so that downstream calls to CommandContext()
+// see the span, and returns the span and a "finish" closure that should be
+// deferred by the caller.
+//
+// The returned context inherits from the caller-supplied context (typically
+// the root "terraform <args>" span started in package main), so the new
+// span becomes a child of that root.
+//
+// This is the canonical way to ensure that every span produced during the
+// lifetime of a command -- including spans emitted from the local backend
+// goroutine, from Terraform Core's graph walk, and from policy plugins --
+// rolls up under a single per-command parent span.
+func (m *Meta) StartCommandSpan(name string) (trace.Span, func()) {
+	parent := m.CommandContext()
+	ctx, span := tracer.Start(parent, name)
+	m.CallerContext = ctx
+	return span, func() { span.End() }
+}
+
 // RunOperation executes the given operation on the given backend, blocking
 // until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or
@@ -494,7 +517,7 @@ func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Op
 		opReq.ConfigDir = m.normalizePath(opReq.ConfigDir)
 	}
 
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := b.Operation(m.CommandContext(), opReq)
 	if err != nil {
 		return nil, fmt.Errorf("error starting operation: %s", err)
 	}

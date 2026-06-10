@@ -93,6 +93,12 @@ func (b *Local) opApply(
 
 	var plan *plans.Plan
 	combinedPlanApply := false
+	// Propagate the operation's stop context into Terraform Core so any
+	// caller-started spans (e.g. "terraform apply") become parents of the
+	// per-resource spans emitted from inside the graph walk. This applies
+	// both to the optional plan-before-apply below and to the apply itself
+	// further down. See Context.SetCallerContext.
+	lr.Core.SetCallerContext(stopCtx)
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
 		// set the policy client to nil for the plan preceding apply

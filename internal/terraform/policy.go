@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"iter"
 	"log"
@@ -43,8 +44,8 @@ func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, error) {
+	return func(_ context.Context, target string, attrs cty.Value) ([]cty.Value, error) {
 		var found []cty.Value
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
@@ -128,8 +129,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(target string, attrs cty.Value) (cty.Value, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
+	return func(_ context.Context, target string, attrs cty.Value) (cty.Value, error) {
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {

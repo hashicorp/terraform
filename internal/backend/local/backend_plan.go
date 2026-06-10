@@ -118,6 +118,11 @@ func (b *Local) opPlan(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
+		// Propagate the operation's stop context into Terraform Core so
+		// that any spans started by the caller (e.g. a "terraform plan"
+		// trace span) become parents of the per-resource policy spans
+		// emitted from inside the graph walk. See Context.SetCallerContext.
+		lr.Core.SetCallerContext(stopCtx)
 		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 	}()
 
