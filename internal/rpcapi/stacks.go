@@ -21,7 +21,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -1061,16 +1060,10 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, cfg *stackconfig.Config) *
 		mainStackSource,
 	)
 
-	// TODO: this is currently using the entire stacks configuration, can we just give it the
-	// specific component configuration? or is that not worth the headache?
-	//
-	// TODO: could we pass this in the hook itself?
-	parser := configs.NewSourceBundleParser(cfg.Sources)
-
 	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
 		evts.Send(&stacks.PlanStackChanges_Event{
 			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
-				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, parser.Sources(), h.PolicyResults),
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}
@@ -1091,16 +1084,10 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, cfg *stackconfig.Config)
 		mainStackSource,
 	)
 
-	// TODO: this is currently using the entire stacks configuration, can we just give it the
-	// specific component configuration? or is that not worth the headache?
-	//
-	// TODO: could we pass this in the hook itself?
-	parser := configs.NewSourceBundleParser(cfg.Sources)
-
 	changeHooks.ReportComponentInstanceApplyPolicyResults = func(ctx context.Context, h *hooks.ComponentInstanceApplyPolicyResults) {
 		evts.Send(&stacks.ApplyStackChanges_Event{
 			Event: &stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
-				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, parser.Sources(), h.PolicyResults),
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}
@@ -1559,7 +1546,7 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 	}
 }
 
-func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance, cfgSources map[string][]byte, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
+func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
