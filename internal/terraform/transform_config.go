@@ -162,68 +162,22 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 		var diags tfdiags.Diagnostics
 
-		if r.Managed != nil && r.Managed.ActionTriggers != nil {
-			for blockIdx, at := range r.Managed.ActionTriggers {
-				resActTrig := &resourceActionTrigger{
-					config: at,
-				}
-				for actionIdx, action := range at.Actions {
-					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
-					if parseRefDiags != nil {
-						return parseRefDiags.Err()
-					}
-
-					var configAction addrs.ConfigAction
-
-					for _, ref := range refs {
-						switch a := ref.Subject.(type) {
-						case addrs.Action:
-							configAction = a.InModule(config.Path)
-						case addrs.ActionInstance:
-							configAction = a.Action.InModule(config.Path)
-						case addrs.CountAttr, addrs.ForEachAttr:
-							// nothing to do, these will get evaluated later
-						default:
-							// This should have been caught during config loading
-							panic(fmt.Sprintf("unexpected action address %T", a))
-						}
-					}
-
-					// Verify that any actions referenced in the resource's ActionTriggers exist in this module
-					actionNode, ok := allConfigActions.GetOk(configAction)
-					if !ok {
-						var keys []string
-						for k := range allConfigActions.Iter() {
-							keys = append(keys, k.String())
-						}
-						suggestion := didyoumean.NameSuggestion(configAction.String(), keys)
-						if suggestion != "" {
-							suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-						}
-
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "action_trigger actions references non-existent action",
-							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
-							Subject:  action.Expr.Range().Ptr(),
-							Context:  r.DeclRange.Ptr(),
-						})
-						continue
-					}
-					referencedActionConfigs.Add(configAction)
-					resActTrig.actionRefs = append(resActTrig.actionRefs, actionRef{
-						configRef:   action,
-						actionNode:  actionNode,
-						blockIndex:  blockIdx,
-						actionIndex: actionIdx,
-					})
-				}
-				abstract.actionTriggers = append(abstract.actionTriggers, resActTrig)
-			}
-		}
-
+		// Build the action triggers for the configured resource nodes,
+		// connecting them to the respective ConfigAction nodes.
+		triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
+		diags = diags.Append(triggerDiags)
 		if diags.HasErrors() {
 			return diags.Err()
+		}
+
+		abstract.actionTriggers = triggers
+
+		// now record all the action nodes which were used by resources, so that
+		// they are not validated on their own since they may container "caller"
+		for _, trigger := range triggers {
+			for _, actionRef := range trigger.actionRefs {
+				referencedActionConfigs.Add(actionRef.actionNode.Addr)
+			}
 		}
 
 		// If any of the import targets can apply to this node's instances,
@@ -270,7 +224,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		g.Add(node)
 	}
 
-	// convert unused action config nodes into validation nodes
+	// Convert unused action config nodes into validation nodes. Any triggered
+	// actions will be validated from the caller so we can actually validate the
+	// use of "caller".
 	if t.Operation == walkValidate {
 		for addr, node := range allConfigActions.Iter() {
 			if !referencedActionConfigs.Has(addr) {
@@ -336,4 +292,76 @@ func (t *ConfigTransformer) validateImportTargets() error {
 	}
 
 	return diags.Err()
+}
+
+// buildActionTriggers constructs the list of action refs along with their
+// associated action nodes for a managed resource.
+func buildActionTriggers(resource *configs.Resource, path addrs.Module, allConfigActions addrs.Map[addrs.ConfigAction, *NodeActionConfig]) ([]*resourceActionTrigger, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var actionTriggers []*resourceActionTrigger
+
+	if resource.Managed == nil {
+		return nil, nil
+	}
+
+	for blockIdx, at := range resource.Managed.ActionTriggers {
+		resActTrig := &resourceActionTrigger{
+			config: at,
+		}
+		for actionIdx, action := range at.Actions {
+			refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+			diags = diags.Append(parseRefDiags)
+			if diags.HasErrors() {
+				return nil, diags
+			}
+
+			var configAction addrs.ConfigAction
+
+			for _, ref := range refs {
+				switch a := ref.Subject.(type) {
+				case addrs.Action:
+					configAction = a.InModule(path)
+				case addrs.ActionInstance:
+					configAction = a.Action.InModule(path)
+				case addrs.CountAttr, addrs.ForEachAttr:
+					// nothing to do, these will get evaluated later
+				default:
+					// This should have been caught during config loading
+					panic(fmt.Sprintf("unexpected action address %T", a))
+				}
+			}
+
+			// Verify that any actions referenced in the resource's ActionTriggers exist in this module
+			// FIXME: can this be checked during config loading?
+			actionNode, ok := allConfigActions.GetOk(configAction)
+			if !ok {
+				var keys []string
+				for k := range allConfigActions.Iter() {
+					keys = append(keys, k.String())
+				}
+				suggestion := didyoumean.NameSuggestion(configAction.String(), keys)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "action_trigger actions references non-existent action",
+					Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
+					Subject:  action.Expr.Range().Ptr(),
+					Context:  resource.DeclRange.Ptr(),
+				})
+				continue
+			}
+
+			resActTrig.actionRefs = append(resActTrig.actionRefs, actionRef{
+				configRef:   action,
+				actionNode:  actionNode,
+				blockIndex:  blockIdx,
+				actionIndex: actionIdx,
+			})
+		}
+		actionTriggers = append(actionTriggers, resActTrig)
+	}
+	return actionTriggers, diags
 }

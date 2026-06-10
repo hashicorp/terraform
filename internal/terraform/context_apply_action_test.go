@@ -1162,6 +1162,41 @@ resource "test_object" "a" {
 			}),
 		},
 
+		"after destroy": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "bye" {
+  config {
+    attr = caller.test_string
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.action_example.bye]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"test_string":"bye"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+				// skip refresh just makes this easier to troubleshoot be removing an extra walk
+				SkipRefresh: true,
+			},
+		},
+
 		"action config with after_create dependency to triggering resource": {
 			module: map[string]string{
 				"main.tf": `

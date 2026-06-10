@@ -36,40 +36,43 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	for _, ai := range t.Changes.ActionInvocations {
 		switch actionTrigger := ai.ActionTrigger.(type) {
 		case *plans.ResourceActionTrigger:
-			atns, ok := resourceInstanceNodes.GetOk(actionTrigger.TriggeringResourceAddr)
+			resourceInstances, ok := resourceInstanceNodes.GetOk(actionTrigger.TriggeringResourceAddr)
 			if !ok {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
-
-			destroy := actionTrigger.ActionTriggerEvent == configs.BeforeDestroy || actionTrigger.ActionTriggerEvent == configs.AfterDestroy
-			foundNode := false
 
 			actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
 			if !ok {
 				return fmt.Errorf("no action config node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
 
+			foundNode := false
+
 			// Add the action triggers to their instance nodes.
-			for _, atn := range atns {
-				if destroy {
-					if n, ok := atn.(*NodeDestroyResourceInstance); ok {
-						n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
+			for _, resourceInstance := range resourceInstances {
+				invoker, ok := resourceInstance.(GraphNodeActionInvoker)
+				if !ok {
+					return fmt.Errorf("node %s type %T is not a GraphNodeActionInvoker", resourceInstance.ResourceInstanceAddr(), resourceInstance)
+				}
+
+				if actionTrigger.ActionTriggerEvent.IsDestroy() {
+					// we may have both create and destroy nodes under ths same
+					// address, so match up their types
+					if _, ok := resourceInstance.(GraphNodeDestroyer); ok {
+						invoker.AttachActionApplyTrigger(&actionTriggerApplyInstance{
 							ActionInvocation: ai,
 							actionNode:       actionConfig,
 						})
 						foundNode = true
-
 					}
 					continue
 				}
 
-				if n, ok := atn.(*NodeApplyableResourceInstance); ok {
-					n.actionApplyTriggers = append(n.actionApplyTriggers, &actionTriggerApplyInstance{
-						ActionInvocation: ai,
-						actionNode:       actionConfig,
-					})
-					foundNode = true
-				}
+				invoker.AttachActionApplyTrigger(&actionTriggerApplyInstance{
+					ActionInvocation: ai,
+					actionNode:       actionConfig,
+				})
+				foundNode = true
 			}
 			if !foundNode {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)

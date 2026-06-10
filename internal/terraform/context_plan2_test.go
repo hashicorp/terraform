@@ -6559,8 +6559,7 @@ resource "test_object" "a" {
 		Mode: plans.DestroyMode,
 		SetVariables: InputValues{
 			"input": {
-				Value:       cty.StringVal("foo"),
-				SourceType:  ValueFromCLIArg,
+				Value:       cty.UnknownVal(cty.String),
 				SourceRange: tfdiags.SourceRange{},
 			},
 		},

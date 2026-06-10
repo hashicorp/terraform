@@ -63,9 +63,14 @@ var (
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodePlanDestroyer                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
+	return &n.Addr
+}
+
+func (n *NodePlanDeposedResourceInstanceObject) PlanDestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 
@@ -246,13 +251,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) DeposedInstanceObjectKey() st
 // GraphNodeReferenceable implementation, overriding the one from NodeAbstractResourceInstance
 func (n *NodeDestroyDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.Referenceable {
 	// Deposed objects don't participate in references.
-	return nil
-}
-
-// GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
-func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Reference {
-	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
 	return nil
 }
 

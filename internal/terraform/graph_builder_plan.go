@@ -77,7 +77,7 @@ type PlanGraphBuilder struct {
 
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
-	ConcreteResourceInstance        ConcreteResourceInstanceNodeFunc
+	ConcreteDestroyResourceInstance ConcreteResourceInstanceNodeFunc
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
@@ -223,7 +223,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// ConfigTransformer created nodes that will do that during
 		// DynamicExpand.)
 		&StateTransformer{
-			ConcreteCurrent: b.ConcreteResourceInstance,
+			ConcreteCurrent: b.ConcreteDestroyResourceInstance,
 			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
 			State:           b.State,
 		},
@@ -373,7 +373,7 @@ func (b *PlanGraphBuilder) initPlan() {
 func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
 
-	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+	b.ConcreteDestroyResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,

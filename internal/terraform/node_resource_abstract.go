@@ -93,12 +93,16 @@ type NodeAbstractResource struct {
 	// in the configuration.
 	overridePreventDestroy bool
 
-	// actionTriggers records all triggers and their referenced actions. The
+	// actionTriggers records all triggers and their referenced actions.
 	// We hold a pointer to the action nodes from the referencing trigger, so
 	// that the action nodes can be resolved to the correct provider in the
 	// graph, while allowing the triggering node to also connect to the same
 	// provider.
 	actionTriggers []*resourceActionTrigger
+
+	// If we have already planned the changes, then we have actionApplyTriggers
+	// instead of actionTriggers
+	actionApplyTriggers []*actionTriggerApplyInstance
 }
 
 var (
@@ -164,9 +168,7 @@ func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	var result []*addrs.Reference
 
-	c := n.Config
-
-	if c == nil {
+	if n.Config == nil {
 		// you can't have references without configuration
 		return nil
 	}
@@ -179,29 +181,29 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 	}
 
-	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.Count)
 	result = append(result, refs...)
-	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
+	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.ForEach)
 	result = append(result, refs...)
 
-	for _, expr := range c.TriggersReplacement {
+	for _, expr := range n.Config.TriggersReplacement {
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 		result = append(result, refs...)
 	}
 
 	// ReferencesInBlock() requires a schema
 	if n.Schema != nil {
-		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.Body)
+		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, n.Config.Config, n.Schema.Body)
 		result = append(result, refs...)
 	}
 
-	if c.Managed != nil {
-		if c.Managed.Connection != nil {
-			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Managed.Connection.Config, connectionBlockSupersetSchema)
+	if n.Config.Managed != nil {
+		if n.Config.Managed.Connection != nil {
+			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, n.Config.Managed.Connection.Config, connectionBlockSupersetSchema)
 			result = append(result, refs...)
 		}
 
-		for _, p := range c.Managed.Provisioners {
+		for _, p := range n.Config.Managed.Provisioners {
 			if p.When != configs.ProvisionerWhenCreate {
 				continue
 			}
@@ -219,24 +221,24 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		}
 	}
 
-	if c.List != nil {
-		if c.List.IncludeResource != nil {
-			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.IncludeResource)
+	if n.Config.List != nil {
+		if n.Config.List.IncludeResource != nil {
+			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.List.IncludeResource)
 			result = append(result, refs...)
 		}
-		if c.List.Limit != nil {
-			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.List.Limit)
+		if n.Config.List.Limit != nil {
+			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.List.Limit)
 			result = append(result, refs...)
 		}
 	}
 
-	for _, check := range c.Preconditions {
+	for _, check := range n.Config.Preconditions {
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		result = append(result, refs...)
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		result = append(result, refs...)
 	}
-	for _, check := range c.Postconditions {
+	for _, check := range n.Config.Postconditions {
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		result = append(result, refs...)
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
@@ -262,6 +264,10 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
 		result = append(result, refs...)
+	}
+
+	for _, trigger := range n.actionApplyTriggers {
+		refs = append(refs, trigger.References()...)
 	}
 
 	return result
@@ -377,7 +383,13 @@ func (n *NodeAbstractResource) ActionProviders() []ProviderRef {
 	// don't need all the dance around config vs state like in the main
 	// resource, and can just return the connected provider.
 
+	// we check both possible sources of actions depending on whether we are
+	// planning or applying
 	var res []ProviderRef
+	for _, trigger := range n.actionApplyTriggers {
+		res = append(res, ProviderRef{Addr: trigger.ActionInvocation.ProviderAddr, Resolved: true})
+	}
+
 	for _, trigger := range n.actionTriggers {
 		for _, actionRef := range trigger.actionRefs {
 			res = append(res, actionRef.actionNode.Provider())
@@ -675,7 +687,14 @@ type resourceActionTrigger struct {
 // during evaluation.
 type actionRef struct {
 	configRef   configs.ActionRef
-	actionNode  *NodeActionConfig
 	blockIndex  int
 	actionIndex int
+
+	// Here we store a reference to the actual NodeActionConfig. While it's
+	// evaluated as if it were embedded within the caller, the action node is
+	// also its own entity in the graph for two reasons: - Provider resolution
+	// can happen via the standard methods - The action has its own expansion,
+	// which must be evaluated before the callers, and multiple callers may
+	// reference the same action node.
+	actionNode *NodeActionConfig
 }

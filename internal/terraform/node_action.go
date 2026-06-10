@@ -35,6 +35,14 @@ type GraphNodeActionCaller interface {
 	ActionCalls() []addrs.ConfigAction
 }
 
+// GraphNodeActionInvoker attaches planned action invocations to a node which
+// needs to call the action.
+type GraphNodeActionInvoker interface {
+	GraphNodeActionCaller
+
+	AttachActionApplyTrigger(*actionTriggerApplyInstance)
+}
+
 // NodeActionConfig represents an action in the configuration. This node is
 // primarily concerned with resolving provider references and receiving the
 // correct schema. All expansion and execution is done from an action trigger.
@@ -50,7 +58,6 @@ type NodeActionConfig struct {
 	// The address of the provider this action will use
 	ResolvedProvider addrs.AbsProviderConfig
 	Schema           *providers.ActionSchema
-	Dependencies     []addrs.ConfigResource
 }
 
 var (
@@ -59,7 +66,6 @@ var (
 	_ GraphNodeConfigAction       = (*NodeActionConfig)(nil)
 	_ GraphNodeAttachActionSchema = (*NodeActionConfig)(nil)
 	_ GraphNodeProviderConsumer   = (*NodeActionConfig)(nil)
-	_ GraphNodeAttachDependencies = (*NodeActionConfig)(nil)
 )
 
 func (n NodeActionConfig) Name() string {
@@ -281,10 +287,6 @@ func (n *NodeActionConfig) Provider() ProviderRef {
 
 func (n *NodeActionConfig) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
-}
-
-func (n *NodeActionConfig) AttachDependencies(deps []addrs.ConfigResource) {
-	n.Dependencies = deps
 }
 
 // The invoke command can reference an action block to invoke all instances, so

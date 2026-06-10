@@ -144,7 +144,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		}
 	}
 
-	diags = diags.Append(n.writeChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, states.NotDeposed))
 
 	diags = diags.Append(updateStateHook(ctx))
 
@@ -298,7 +298,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	err = n.writeChange(ctx, nil, "")
+	err = n.writeChange(ctx, nil, states.NotDeposed)
 	if err != nil {
 		return diags.Append(err)
 	}
