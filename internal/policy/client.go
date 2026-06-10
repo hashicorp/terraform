@@ -63,8 +63,7 @@ func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths [
 		CallbackService: callbackServiceID,
 	})
 	diags = append(diags, resp.Diagnostics...)
-	// TODO: change this to diags.HasErrors() once it's available
-	if diags.AsTerraformDiags().HasErrors() {
+	if diags.HasErrors() {
 		client.Stop()
 		return nil, diags
 	}

@@ -36,8 +36,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 
 	var diags policy.Diagnostics
 	client, diags = policy.NewPolicyClient(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar), policyPaths)
-	// TODO: change this to diags.HasErrors() once it's available
-	if diags.AsTerraformDiags().HasErrors() {
+	if diags.HasErrors() {
 		return nil, diags, closer
 	}
 
