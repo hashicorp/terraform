@@ -131,7 +131,7 @@ resource "test_resource" "b" {
 				gotErr     error
 			)
 
-			got, gotUnknown, gotErr = callback("test_resource", tt.filter)
+			got, gotUnknown, gotErr = callback(t.Context(), "test_resource", tt.filter)
 			if gotErr != nil {
 				t.Fatalf("unexpected error: %v", gotErr)
 			}

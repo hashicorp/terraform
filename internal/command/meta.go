@@ -20,8 +20,9 @@ import (
 
 	"github.com/hashicorp/cli"
 	plugin "github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -497,7 +498,7 @@ func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Op
 		opReq.ConfigDir = m.normalizePath(opReq.ConfigDir)
 	}
 
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := b.Operation(m.CommandContext(), opReq)
 	if err != nil {
 		return nil, fmt.Errorf("error starting operation: %s", err)
 	}
