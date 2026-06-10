@@ -30,8 +30,8 @@ const (
 var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
 
-// Connect creates a connection to tfpolicy-plugin. If policyPluginPath is empty, the default
-// command lookup will use the $PATH for the executable "tfpolicy-plugin".
+// Connect creates a connection to tfpolicy-plugin. If policyPluginPath is empty, the command lookup
+// will default to the executable "tfpolicy-plugin" in the $PATH.
 func Connect(ctx context.Context, policyPluginPath string) (Client, error) {
 	pgm := "tfpolicy-plugin" // by default, just use this if it's in the path
 

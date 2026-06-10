@@ -124,7 +124,6 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 
 func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *stacks.CloseStackConfiguration_Request) (*stacks.CloseStackConfiguration_Response, error) {
 	hnd := handle[*stackconfig.Config](req.StackConfigHandle)
-
 	err := s.handles.CloseStackConfig(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -388,7 +387,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackPlanHooks(syncEvts, cfg)
+	hooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, hooks)
 
 	var planMode plans.Mode
@@ -668,7 +667,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackApplyHooks(syncEvts, cfg)
+	hooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, hooks)
 
 	changesCh := make(chan stackstate.AppliedChange, 8)
@@ -1047,8 +1046,7 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 	return nil
 }
 
-func stackPlanHooks(evts *syncPlanStackChangesServer, cfg *stackconfig.Config) *stackruntime.Hooks {
-	mainStackSource := cfg.Root.Stack.SourceAddr
+func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.PlanStackChanges_Event{
@@ -1071,8 +1069,7 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, cfg *stackconfig.Config) *
 	return changeHooks
 }
 
-func stackApplyHooks(evts *syncApplyStackChangesServer, cfg *stackconfig.Config) *stackruntime.Hooks {
-	mainStackSource := cfg.Root.Stack.SourceAddr
+func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.ApplyStackChanges_Event{
