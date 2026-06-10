@@ -152,10 +152,12 @@ type Hooks struct {
 	// See the docs for [hooks.ContextAttachFunc] for more information.
 	ContextAttach hooks.ContextAttachFunc
 
-	// TODO: this should be "hooks.single" because there is no begin to relate this to (is that okay? double check)
+	// ReportComponentInstancePlanPolicyResults is called after a component instance is planned. If no policy results are provided
+	// it will not emit an event.
 	ReportComponentInstancePlanPolicyResults hooks.SingleFunc[*hooks.ComponentInstancePlanPolicyResults]
 
-	// TODO: this should be "hooks.single" because there is no begin to relate this to (is that okay? double check)
+	// ReportComponentInstanceApplyPolicyResults is called after a component instance is applied. If no policy results are provided
+	// it will not emit an event.
 	ReportComponentInstanceApplyPolicyResults hooks.SingleFunc[*hooks.ComponentInstanceApplyPolicyResults]
 }
 

@@ -268,6 +268,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			ProviderLocks:             providerLocks,
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
+			PolicyResults:             plan.PolicyResults,
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -346,11 +347,13 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
 
-		// TODO: is this the only place we need to add this hook?
-		hookSingle(ctx, h.ReportComponentInstanceApplyPolicyResults, &hooks.ComponentInstanceApplyPolicyResults{
-			Addr:          inst.Addr(),
-			PolicyResults: plan.PolicyResults,
-		})
+		// Report policy results if we attempted to apply, got a new state, and have policy results
+		if plan.Applyable {
+			hookSingle(ctx, h.ReportComponentInstanceApplyPolicyResults, &hooks.ComponentInstanceApplyPolicyResults{
+				Addr:          inst.Addr(),
+				PolicyResults: plan.PolicyResults,
+			})
+		}
 	}
 
 	if diags.HasErrors() {

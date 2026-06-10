@@ -1062,6 +1062,10 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 	)
 
 	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
 		evts.Send(&stacks.PlanStackChanges_Event{
 			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
 				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
@@ -1085,6 +1089,10 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 	)
 
 	changeHooks.ReportComponentInstanceApplyPolicyResults = func(ctx context.Context, h *hooks.ComponentInstanceApplyPolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
 		evts.Send(&stacks.ApplyStackChanges_Event{
 			Event: &stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
 				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
@@ -1589,7 +1597,8 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 			if enforcement.Range != nil {
 				rng := sourceRangeFromHCL(*enforcement.Range)
 				info.PolicyRange = &terraform1.SourceRange{
-					// TODO: I need to ensure this is the entire source address, similar to how stack diagnostics work (see FinalSourceAddress)
+					// TODO: Once I have some e2e testing in place, I should double-check this field because stacks
+					// has a FinalSourceAddr that is typically used to build this source range.
 					SourceAddr: enforcement.Range.Filename,
 					Start:      sourcePosToProto(rng.Start),
 					End:        sourcePosToProto(rng.End),
@@ -1628,7 +1637,8 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 					policyDiag.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
 				}
 			}
-			// TODO: I need to ensure this subject contains the entire source address, similar to how stack diagnostics do (see FinalSourceAddress)
+			// TODO: Once I have some e2e testing in place, I should double-check these fields because stacks
+			// has a FinalSourceAddr that is typically used to build this source range.
 			if src := diag.Source(); src.Subject != nil {
 				policyDiag.Diagnostic.Subject = sourceRangeToProto(*src.Subject)
 			}

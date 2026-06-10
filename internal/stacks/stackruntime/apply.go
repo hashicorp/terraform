@@ -107,7 +107,6 @@ type ApplyRequest struct {
 	ExperimentsAllowed bool
 	DependencyLocks    depsfile.Locks
 
-	// TODO: verify all the different places we need to plumb this field through
 	PolicyClient policy.Client
 }
 

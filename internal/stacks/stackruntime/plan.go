@@ -106,10 +106,8 @@ type PlanRequest struct {
 	// to return the given value instead of whatever real time the plan
 	// operation started. This is for testing purposes only.
 	ForcePlanTimestamp *time.Time
-
 	ExperimentsAllowed bool
 
-	// TODO: verify all the different places we need to plumb this field through
 	PolicyClient policy.Client
 }
 

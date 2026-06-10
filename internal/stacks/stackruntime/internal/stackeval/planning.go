@@ -121,12 +121,6 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 	}
 
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
-
-	// TODO: is this the only place we need to add this hook?
-	hookSingle(ctx, h.ReportComponentInstancePlanPolicyResults, &hooks.ComponentInstancePlanPolicyResults{
-		Addr:          addr,
-		PolicyResults: plan.PolicyResults,
-	})
 }
 
 func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
