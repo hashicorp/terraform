@@ -58,6 +58,9 @@ func TestInit(t *testing.T) {
 		// mc -> module calls
 		expectDiags           func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics
 		expectLoadModuleCalls []*configs.ModuleRequest
+		// Set to true to emulate module installation continuing even in the presence
+		// of parsing errors
+		ignoreParsingErrors bool
 	}{
 		"empty config": {
 			module: map[string]string{"main.tf": ``},
@@ -847,20 +850,174 @@ module "local" {
 				})
 			},
 		},
+
+		"source from const sensitive variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const     = true
+  sensitive = true
+  default   = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module source",
+					Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 13, Byte: 121},
+						End:      hcl.Pos{Line: 8, Column: 22, Byte: 130},
+					},
+				})
+			},
+		},
+
+		"source from const ephemeral variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const     = true
+  ephemeral = true
+  default   = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module source",
+					Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 13, Byte: 121},
+						End:      hcl.Pos{Line: 8, Column: 22, Byte: 130},
+					},
+				})
+			},
+		},
+
+		"source from const deprecated variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  deprecated = true
+  const      = true
+  default    = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
+
+		"version from const sensitive variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  const     = true
+  sensitive = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module version",
+					Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 13, Byte: 139},
+						End:      hcl.Pos{Line: 9, Column: 20, Byte: 146},
+					},
+				})
+			},
+		},
+
+		"version from const ephemeral variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  const     = true
+  ephemeral = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module version",
+					Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 13, Byte: 139},
+						End:      hcl.Pos{Line: 9, Column: 20, Byte: 146},
+					},
+				})
+			},
+		},
+
+		"version from const deprecated variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  deprecated = true
+  const      = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "1.0.0"),
+			}},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			m := testRootModuleInline(t, tc.module)
+			m := testRootModuleInline(t, tc.module, tc.ignoreParsingErrors)
 
 			ctx := testContext2(t, &ContextOpts{
 				Parallelism: 1,
 			})
 			moduleWalker := MockModuleWalker{
-				DefaultModule: testRootModuleInline(t, map[string]string{"main.tf": `// empty`}),
+				DefaultModule: testRootModuleInline(t, map[string]string{"main.tf": `// empty`}, false),
 			}
 			mockedModules := make(map[string]*configs.Module)
 			if tc.mockedLoadModuleCalls != nil {
 				for k, v := range tc.mockedLoadModuleCalls {
-					mockedModules[k] = testRootModuleInline(t, v)
+					mockedModules[k] = testRootModuleInline(t, v, false)
 				}
 				moduleWalker.MockModuleCalls(t, mockedModules)
 			}
