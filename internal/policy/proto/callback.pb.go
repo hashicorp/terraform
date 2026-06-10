@@ -89,9 +89,9 @@ func (x *GetResourcesRequest) GetEvaluationRequestId() uint32 {
 type GetResourcesResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Results [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
-	// unknown means that the request encountered unknown objects during evaluation,
+	// partial means that the request encountered unknown objects during evaluation,
 	// and the results may be incomplete.
-	Unknown       bool `protobuf:"varint,2,opt,name=unknown,proto3" json:"unknown,omitempty"`
+	Partial       bool `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -133,9 +133,9 @@ func (x *GetResourcesResponse) GetResults() [][]byte {
 	return nil
 }
 
-func (x *GetResourcesResponse) GetUnknown() bool {
+func (x *GetResourcesResponse) GetPartial() bool {
 	if x != nil {
-		return x.Unknown
+		return x.Partial
 	}
 	return false
 }
@@ -205,9 +205,9 @@ func (x *GetDataSourceRequest) GetEvaluationRequestId() uint32 {
 type GetDataSourceResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Result []byte                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	// unknown means that the request encountered unknown objects during evaluation,
+	// partial means that the request encountered unknown objects during evaluation,
 	// and the results may be incomplete.
-	Unknown       bool `protobuf:"varint,2,opt,name=unknown,proto3" json:"unknown,omitempty"`
+	Partial       bool `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,9 +249,9 @@ func (x *GetDataSourceResponse) GetResult() []byte {
 	return nil
 }
 
-func (x *GetDataSourceResponse) GetUnknown() bool {
+func (x *GetDataSourceResponse) GetPartial() bool {
 	if x != nil {
-		return x.Unknown
+		return x.Partial
 	}
 	return false
 }
@@ -269,14 +269,14 @@ const file_callback_proto_rawDesc = "" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"J\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
 	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
-	"\aunknown\x18\x02 \x01(\bR\aunknown\"v\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\"v\n" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06config\x18\x02 \x01(\fR\x06config\x122\n" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"I\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
 	"\x06result\x18\x01 \x01(\fR\x06result\x12\x18\n" +
-	"\aunknown\x18\x02 \x01(\bR\aunknown2\xa6\x01\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial2\xa6\x01\n" +
 	"\x0fCallbackService\x12G\n" +
 	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12J\n" +
 	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
