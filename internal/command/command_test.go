@@ -138,6 +138,26 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
+func testPolicyFixtureDir(t *testing.T) string {
+	t.Helper()
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile(filepath.Join(td, "policy.hcl"), []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	return td
+}
+
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -225,6 +245,56 @@ func testPlan(t *testing.T) *plans.Plan {
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
 	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
+}
+
+func TestPlan_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
+}
+
+func TestApply_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color", "-auto-approve"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
 }
 
 func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
@@ -1161,6 +1231,79 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 		t.Fatalf("failed to read output file: %s", err)
 	}
 	want := string(wantBytes)
+
+	got := output.Stdout()
+
+	// Split the output and the reference into lines so that we can compare
+	// messages
+	got = strings.TrimSuffix(got, "\n")
+	gotLines := strings.Split(got, "\n")
+
+	want = strings.TrimSuffix(want, "\n")
+	wantLines := strings.Split(want, "\n")
+
+	if len(gotLines) != len(wantLines) {
+		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on HCP Terraform.\n"+
+			"Please communicate with HCP Terraform team before resolving", len(gotLines), len(wantLines))
+	}
+
+	// Verify that the log starts with a version message
+	type versionMessage struct {
+		Level     string `json:"@level"`
+		Message   string `json:"@message"`
+		Type      string `json:"type"`
+		Terraform string `json:"terraform"`
+		UI        string `json:"ui"`
+	}
+	var gotVersion versionMessage
+	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
+		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
+	}
+	wantVersion := versionMessage{
+		"info",
+		fmt.Sprintf("Terraform %s", version.String()),
+		"version",
+		version.String(),
+		views.JSON_UI_VERSION,
+	}
+	if !cmp.Equal(wantVersion, gotVersion) {
+		t.Errorf("unexpected first message:\n%s", cmp.Diff(wantVersion, gotVersion))
+	}
+
+	// Compare the rest of the lines against the golden reference
+	var gotLineMaps []map[string]interface{}
+	for i, line := range gotLines[1:] {
+		index := i + 1
+		var gotMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &gotMap); err != nil {
+			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[index])
+		}
+		if _, ok := gotMap["@timestamp"]; !ok {
+			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
+		}
+		delete(gotMap, "@timestamp")
+		gotLineMaps = append(gotLineMaps, gotMap)
+	}
+	var wantLineMaps []map[string]interface{}
+	for i, line := range wantLines[1:] {
+		index := i + 1
+		var wantMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
+		}
+		wantLineMaps = append(wantLineMaps, wantMap)
+	}
+	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
+		t.Errorf("wrong output lines\n%s\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
+			"Please communicate with HCP Terraform team before resolving", diff)
+	}
+}
+
+func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, out string) {
+	t.Helper()
+	want := out
 
 	got := output.Stdout()
 

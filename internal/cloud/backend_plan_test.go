@@ -262,6 +262,43 @@ func TestCloud_planJSONFull(t *testing.T) {
 	}
 }
 
+func TestCloud_planWithPolicyPaths(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	t.Cleanup(bCleanup)
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-full")
+	t.Cleanup(configCleanup)
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+	op.PolicyPaths = []string{"./foo/bar", "./bar/foo"}
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backendrun.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "Terraform policies evaluated successfully.") {
+		t.Fatalf("expected tfpolicy status in output: %s", gotOut)
+	}
+}
+
 func TestCloud_planWithoutPermissions(t *testing.T) {
 	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()

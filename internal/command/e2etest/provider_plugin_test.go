@@ -201,7 +201,7 @@ func TestProviderInstall_dev_override(t *testing.T) {
 	}
 
 	t.Run("dev_override not installed during init when provider not present in dependency lock file", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// There is no lock file present at start
@@ -218,9 +218,16 @@ func TestProviderInstall_dev_override(t *testing.T) {
 		tf.AddEnv("TF_CLI_CONFIG_FILE=" + cliConfigFilePath)
 
 		// The init process should succeed.
-		stdout, stderr, err := tf.Run("init", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-no-color",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache),
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Provider development overrides are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about overridden providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lockfile is created
@@ -249,7 +256,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 	})
 
 	t.Run("dev_override providers are still represented in the dependency lock file after init", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -281,9 +288,16 @@ provider "registry.terraform.io/hashicorp/simple6" {
 		tf.AddEnv("TF_CLI_CONFIG_FILE=" + cliConfigFilePath)
 
 		// The init process should succeed.
-		stdout, stderr, err := tf.Run("init", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-no-color",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache),
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Provider development overrides are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about overridden providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lockfile is unchanged despite use of a dev_override simple6 provider
@@ -298,7 +312,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 
 	t.Run("dev_override providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -330,9 +344,17 @@ provider "registry.terraform.io/hashicorp/simple6" {
 		tf.AddEnv("TF_CLI_CONFIG_FILE=" + cliConfigFilePath)
 
 		// The init -upgrade process should succeed.
-		stdout, stderr, err := tf.Run("init", "-upgrade", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-no-color",
+			"-upgrade",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache),
+		)
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Provider development overrides are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about overridden providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lockfile shows evidence of upgrade process
@@ -450,7 +472,7 @@ func TestProviderInstall_unmanaged(t *testing.T) {
 	reattachConfig, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 
 	t.Run("unmanaged provider not installed when provider not present in dependency lock file", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// There is no lock file present at start
@@ -467,9 +489,15 @@ func TestProviderInstall_unmanaged(t *testing.T) {
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init process should succeed.
-		stdout, stderr, err := tf.Run("init", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-no-color",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Unmanaged providers are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about unmanaged providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lock file should have been created
@@ -498,7 +526,7 @@ provider "registry.terraform.io/hashicorp/simple" {
 	})
 
 	t.Run("unmanaged providers are still represented in the dependency lock file after init", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already
@@ -530,9 +558,15 @@ provider "registry.terraform.io/hashicorp/simple6" {
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init process should succeed.
-		stdout, stderr, err := tf.Run("init", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-no-color",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Unmanaged providers are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about unmanaged providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lockfile is unchanged despite use of an unmanaged simple6 provider
@@ -547,7 +581,7 @@ provider "registry.terraform.io/hashicorp/simple6" {
 	})
 
 	t.Run("unmanaged providers are unchanged in the dependency lock file during init -upgrade", func(t *testing.T) {
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+		t.Parallel()
 		tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 		// Lockfile contains both simple and simple6 providers already at older version 1.0.0
@@ -579,9 +613,16 @@ provider "registry.terraform.io/hashicorp/simple6" {
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
 
 		// The init -upgrade process should succeed.
-		stdout, stderr, err := tf.Run("init", "-upgrade", fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
+		stdout, stderr, err := tf.Run(
+			"init",
+			"-upgrade",
+			"-no-color",
+			fmt.Sprintf("-plugin-dir=%s", absolutePathToCache))
 		if err != nil {
 			t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+		}
+		if got, want := stdout, "Warning: Unmanaged providers are in effect"; !strings.Contains(got, want) {
+			t.Fatalf("stdout doesn't include the warning about unmanaged providers\nwant: %s\n%s", want, got)
 		}
 
 		// Lockfile shows evidence of upgrade process

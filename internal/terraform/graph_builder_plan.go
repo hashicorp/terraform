@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -116,6 +117,8 @@ type PlanGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	PolicyClient policy.Client
 
 	// If true, the graph builder will generate a query plan instead of a
 	// normal plan. This is used for the "terraform query" command.
@@ -315,6 +318,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Request policy evaluation for resources.
+		&policyEvalTransformer{
+			PolicyClient: func() policy.Client {
+				// Skip policy evaluation during predestroy refresh.
+				if b.preDestroyRefresh {
+					return nil
+				}
+				return b.PolicyClient
+			}(),
+		},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},

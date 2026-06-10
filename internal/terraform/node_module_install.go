@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -204,6 +205,16 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 		return nil, "", diags
 	}
 
+	if value.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsuitable module source",
+			Detail:   `Unsuitable value: null value is not allowed.`,
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return nil, "", diags
+	}
+
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -213,6 +224,20 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 		})
 		return nil, "", diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown module source",
+			Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return nil, "", diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	rawSource := value.AsString()
 	if hasVersion {
@@ -320,6 +345,20 @@ func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs
 		})
 		return ret, diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown module version",
+			Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+			Subject:  versionExpr.Range().Ptr(),
+		})
+		return ret, diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	constraintStr := value.AsString()
 	constraints, err := version.NewConstraint(constraintStr)

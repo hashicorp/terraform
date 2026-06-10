@@ -20,11 +20,20 @@ func FormatValue(v cty.Value, indent int) string {
 	if !v.IsKnown() {
 		return "(known after apply)"
 	}
+
+	// Any marks on the value must either be used to return
+	// early or be removed. In future marks may used to cause
+	// values to be annotated, but the mark will still need to be
+	// removed before we can get a string representation of the value.
 	if marks.Has(v, marks.Sensitive) {
 		return "(sensitive value)"
 	}
 	if marks.Has(v, marks.Ephemeral) {
 		return "(ephemeral value)"
+	}
+	if marks.Has(v, marks.Deprecation) {
+		// Mark doesn't impact formatting, so remove to unblock normal formatting below
+		v, _ = v.Unmark()
 	}
 	if v.IsNull() {
 		ty := v.Type()

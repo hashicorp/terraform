@@ -10,10 +10,12 @@ import (
 )
 
 func TestFlagStringKV_impl(t *testing.T) {
+	t.Parallel()
 	var _ flag.Value = new(FlagStringKV)
 }
 
 func TestFlagStringKV(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		Input  string
 		Output map[string]string

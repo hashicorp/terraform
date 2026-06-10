@@ -11,6 +11,7 @@ import (
 )
 
 func TestStacksPluginConfig_ToMetadata(t *testing.T) {
+	t.Parallel()
 	expected := metadata.Pairs(
 		"tfc-address", "https://app.staging.terraform.io",
 		"tfc-base-path", "/api/v2/",

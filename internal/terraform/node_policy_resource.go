@@ -1,0 +1,119 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package terraform
+
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy/callback"
+	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+)
+
+// nodeResourcePolicy is a node that evaluates a resource instance's policy.
+type nodeResourcePolicy struct {
+	ResourceAddr addrs.AbsResourceInstance
+	ProviderAddr addrs.AbsProviderConfig
+	Before       cty.Value
+	After        cty.Value
+	Action       plans.Action
+}
+
+var _ GraphNodeExecutable = (*nodeResourcePolicy)(nil)
+
+func (n *nodeResourcePolicy) Name() string {
+	return n.ResourceAddr.String() + " (policy evaluation)"
+}
+
+func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	client := ctx.PolicyClient()
+	config := ctx.Config()
+
+	if client == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation")
+		return nil
+	}
+	if config == nil {
+		log.Printf("[DEBUG] No configuration available, skipping policy evaluation")
+		return nil
+	}
+
+	providerAddr := n.ProviderAddr
+	provider, schema, err := getProvider(ctx, providerAddr)
+	if err != nil {
+		return diags.Append(err)
+	}
+
+	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
+
+	attrs, _ := n.After.UnmarkDeep()
+	priorAttrs, _ := n.Before.UnmarkDeep()
+
+	var policyOperation proto.Operation
+	switch action := n.Action; action {
+	case plans.Create:
+		policyOperation = proto.Operation_CREATE
+	case plans.Delete:
+		policyOperation = proto.Operation_DELETE
+	case plans.Update,
+		plans.DeleteThenCreate,
+		plans.CreateThenDelete,
+		plans.CreateThenForget:
+		policyOperation = proto.Operation_UPDATE
+	default:
+		log.Printf("[DEBUG] Unsupported plan action %q, skipping policy evaluation", action)
+		return nil
+	}
+
+	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+		ProviderType: providerAddr.Provider.Type,
+		Operation:    policyOperation,
+	}
+
+	providerRef := ProviderRef{
+		addr:     providerAddr,
+		resolved: true,
+	}
+
+	// the module config may be nil if the module call has been removed from the configuration
+	// in this case, we are fine with a nil resource config, as that would only mean
+	// that we do not have the terraform config's source information in the diagnostics
+	// and neither do we have provider meta information to include in the policy request.
+	var resourceConfig *configs.Resource
+	var metaVal cty.Value
+	if modCfg != nil {
+		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
+		var metaDiags tfdiags.Diagnostics
+		metaVal, metaDiags = providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
+		diags = diags.Append(metaDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	callbacks := callback.Functions{
+		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
+	}
+
+	result := evaluatePolicies(ctx, operation, n.ResourceAddr, resourceConfig, client, attrs, priorAttrs, meta, callbacks)
+	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
+	return diags
+}
+
+// policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.
+func policyNodeFromChange(change *plans.ResourceInstanceChange) *nodeResourcePolicy {
+	return &nodeResourcePolicy{
+		ResourceAddr: change.Addr,
+		ProviderAddr: change.ProviderAddr,
+		Action:       change.Action,
+		Before:       change.Before,
+		After:        change.After,
+	}
+}

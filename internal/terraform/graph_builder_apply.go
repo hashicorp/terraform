@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -90,6 +91,9 @@ type ApplyGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// PolicyClient is the client for evaluating policies.
+	PolicyClient policy.Client
 }
 
 // See GraphBuilder
@@ -273,6 +277,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Request policy evaluation for resources.
+		&policyEvalTransformer{PolicyClient: b.PolicyClient},
 
 		// close the root module
 		&CloseRootModuleTransformer{},

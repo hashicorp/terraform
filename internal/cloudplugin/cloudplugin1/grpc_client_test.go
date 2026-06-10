@@ -93,7 +93,7 @@ func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 	exitCode := gRPCClient.Execute([]string{"example"}, io.Discard, io.Discard)
 
 	if exitCode != 255 {
-		t.Fatalf("expected exit %q, got %q", 255, exitCode)
+		t.Fatalf("expected exit %d, got %d", 255, exitCode)
 	}
 }
 
@@ -131,7 +131,7 @@ func Test_GRPCCloudClient_Execute(t *testing.T) {
 	exitCode := gRPCClient.Execute([]string{"example"}, &stdoutBuffer, io.Discard)
 
 	if exitCode != 99 {
-		t.Fatalf("expected exit %q, got %q", 99, exitCode)
+		t.Fatalf("expected exit %d, got %d", 99, exitCode)
 	}
 
 	if stdoutBuffer.String() != "firstcall\nsecondcall\n" {

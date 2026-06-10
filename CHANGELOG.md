@@ -9,6 +9,8 @@ NEW FEATURES:
 
 * Providers can now use nested blocks as computed values ([#38305](https://github.com/hashicorp/terraform/issues/38305))
 
+* import: add support for import blocks inside modules ([#38352](https://github.com/hashicorp/terraform/issues/38352))
+
 * We now produce builds for Linux s390x (zLinux) ([#38384](https://github.com/hashicorp/terraform/issues/38384))
 
 * workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag ([#38397](https://github.com/hashicorp/terraform/issues/38397))
@@ -24,6 +26,21 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * import blocks no longer ignore provider local names ([#38338](https://github.com/hashicorp/terraform/issues/38338))
+
+* Fix a `terraform apply` panic when the plan contained a no-op change for a deposed object on a resource whose configuration declared a `lifecycle.precondition` or `lifecycle.postcondition` ([#38586](https://github.com/hashicorp/terraform/issues/38586))
+
+* workspace: Terraform will now error if an invalid workspace name becomes selected due to actions performed out-of-band ([#38594](https://github.com/hashicorp/terraform/issues/38594))
+
+* test: Terraform will now raise a warning when a file referenced via `-filter` flag does not exist. ([#38603](https://github.com/hashicorp/terraform/issues/38603))
+
+* init: Stop removing locks from the dependency lock file corresponding to providers configured as a dev_override ([#38634](https://github.com/hashicorp/terraform/issues/38634))
+
+* init: Add warnings when unmanaged providers are in use and will impact provider installation processes. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
+
+
+NOTES:
+
+* init: Errors due to incompatible `-upgrade` and `-lockfile=readonly` flags are now raised earlier in the init process. ([#38561](https://github.com/hashicorp/terraform/issues/38561))
 
 
 UPGRADE NOTES:

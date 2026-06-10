@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -196,24 +197,32 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	}
 }
 
-// providerDevOverrideProviderLockWarnings is just like providerDevOverrideInitWarnings
-// except the diagnostic is written with a message specific to the `providers lock` command.
-// Similarly, diags will only be returned if there is 1+ dev_overrides in effect, and no error
-// diags will be returned.
-func (m *Meta) providerDevOverrideProvidersLockWarnings() tfdiags.Diagnostics {
-	if len(m.ProviderDevOverrides) == 0 {
+// providerUnmanagedInitWarnings returns diagnostics containing at least one
+// warning if and only if there is at least one unmanaged provider in effect
+// via TF_REATTACH_PROVIDERS.
+func (m *Meta) providerUnmanagedInitWarnings() tfdiags.Diagnostics {
+	if len(m.UnmanagedProviders) == 0 {
 		return nil
 	}
+
 	var detailMsg strings.Builder
-	detailMsg.WriteString("The following provider development overrides are set in the CLI configuration:\n")
-	for addr, path := range m.ProviderDevOverrides {
-		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
+	detailMsg.WriteString("The following unmanaged providers are set via the TF_REATTACH_PROVIDERS environment variable:\n")
+
+	providerAddresses := make([]string, 0, len(m.UnmanagedProviders))
+	for providerAddr := range m.UnmanagedProviders {
+		providerAddresses = append(providerAddresses, providerAddr.ForDisplay())
 	}
-	detailMsg.WriteString("\nThese provider locks will not be recorded because the provider is overwritten. If this is unintentional please re-run without the development overrides set.")
+	sort.Strings(providerAddresses) // Enable deterministic ordering.
+
+	for _, providerAddr := range providerAddresses {
+		detailMsg.WriteString(fmt.Sprintf(" - %s\n", providerAddr))
+	}
+	detailMsg.WriteString("\nThese providers will not be installed as part of init, nor init -upgrade. Their entries in the dependency lock file will be left unchanged, if present. If this is unintentional please re-run without TF_REATTACH_PROVIDERS set.")
+
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
 			tfdiags.Warning,
-			"Provider development overrides are in effect",
+			"Unmanaged providers are in effect",
 			detailMsg.String(),
 		),
 	}

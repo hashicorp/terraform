@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -191,6 +192,22 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	err := n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
+	}
+
+	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		after := cty.NilVal
+		if state != nil {
+			after = state.Value
+		}
+		// The resource has been destroyed, so we add a policy node to send its data
+		// for policy evaluation.
+		policyGraph.Add(&nodeResourcePolicy{
+			ResourceAddr: changeApply.Addr,
+			ProviderAddr: changeApply.ProviderAddr,
+			Before:       changeApply.Before,
+			After:        after,
+			Action:       changeApply.Action,
+		})
 	}
 
 	// create the err value for postApplyHook

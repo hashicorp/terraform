@@ -11,6 +11,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -201,7 +203,70 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
 		))
 	}
+
+	// Post-provider config policy evaluation
+	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
+	diags = diags.Append(policyDiags)
+	if policyDiags.HasErrors() {
+		return diags
+	}
+
 	return diags
+}
+
+// EvalPolicy evaluates the provider policy.
+// Contrary to resource policy evaluation, provider policy evaluation is done inline,
+// allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
+// Provider policies have no support for callback functions, so we do not need to worry about
+// them retrieving objects that are not yet available in the state.
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
+		return nil
+	}
+	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
+		Target: n.Addr.Provider.Type,
+		Attrs:  attrs,
+		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:       n.Addr.Provider.Type,
+			Alias:      n.Addr.Alias,
+			Namespace:  n.Addr.Provider.Namespace,
+			Source:     n.Addr.Provider.String(),
+			ModulePath: n.Addr.Module.String(),
+			Version:    n.providerVersion(ctx),
+		},
+	})
+
+	// if this was an "implicit provider", and we have no configuration
+	// for it, There's going to be no source information for these errors.
+	if n.Config != nil {
+		ptr := n.Config.DeclRange.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
+	// always add the result to the policy results
+	if ctx.PolicyResults() != nil {
+		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
+	}
+
+	return nil
+}
+
+// providerVersion returns the exact locked version for this provider from the
+// dependency lock file (e.g. "5.31.0"). Returns an empty string if no lock
+// file entry is available for this provider.
+func (n *NodeApplyableProvider) providerVersion(ctx EvalContext) string {
+	if providerLocks := ctx.ProviderLocks(); providerLocks != nil {
+		if lock := providerLocks[n.Addr.Provider]; lock != nil {
+			return lock.Version().String()
+		}
+	}
+	return ""
 }
 
 // nodeExternalProvider is used instead of [NodeApplyableProvider] when an

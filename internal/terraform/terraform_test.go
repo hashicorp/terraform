@@ -211,7 +211,7 @@ func testModuleInlineWithVarsReturnDiags(
 	return config, nil
 }
 
-func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {
+func testRootModuleInline(t testing.TB, sources map[string]string, ignoreParsingErrors bool) *configs.Module {
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -247,7 +247,7 @@ func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Modu
 	loader.AllowLanguageExperiments(true)
 
 	mod, diags := loader.Parser().LoadConfigDir(cfgPath)
-	if diags.HasErrors() {
+	if diags.HasErrors() && !ignoreParsingErrors {
 		t.Fatal(diags.Error())
 	}
 

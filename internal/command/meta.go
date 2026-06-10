@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -288,6 +289,7 @@ type Meta struct {
 type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
+	PolicyClient policy.Client
 }
 
 // initStatePaths is used to initialize the default values for
@@ -845,6 +847,8 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	// Cannot use m.WorkingDir.RootModuleDir() here because
+	// of path normalization that happens in loadConfig.
 	pwd, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
@@ -879,6 +883,8 @@ func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 func (c *Meta) MaybeGetSchemas(state *states.State, config *configs.Config) (*terraform.Schemas, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// Cannot use m.WorkingDir.RootModuleDir() here because
+	// of path normalization that happens in loadConfig.
 	path, err := os.Getwd()
 	if err != nil {
 		diags = diags.Append(tfdiags.SimpleWarning(failedToLoadSchemasMessage))

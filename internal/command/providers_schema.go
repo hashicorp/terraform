@@ -4,8 +4,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"os"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -61,12 +61,8 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	// This is a read-only command
 	c.ignoreRemoteVersionConflict(b)
 
-	// we expect that the config dir is the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
-		return 1
-	}
+	// Get the config directory
+	cwd := c.WorkingDir.RootModuleDir()
 
 	// Build the operation
 	opReq := c.Operation(b, arguments.ViewJSON)
@@ -90,7 +86,8 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	lr, _, ctxDiags := local.LocalRun(opReq)
+	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
+
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)

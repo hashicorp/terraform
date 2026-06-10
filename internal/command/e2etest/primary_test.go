@@ -238,6 +238,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 }
 
 func TestPrimary_stateStore(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -247,11 +248,8 @@ func TestPrimary_stateStore(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
@@ -312,6 +310,7 @@ func TestPrimary_stateStore(t *testing.T) {
 }
 
 func TestPrimary_stateStore_planFile(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -321,11 +320,8 @@ func TestPrimary_stateStore_planFile(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
 	// Here will build the simple6 (built with protocol v6) provider, which implements PSS.
@@ -399,6 +395,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 	// In contrast, swapping between a managed provider and any of unmanaged/dev_override/builtin WILL trigger a hash mismatch
 	// because the version data will change.
 	t.Run("users are NOT prompted to migrate state if an unmanaged provider used for PSS provider swaps supply mode (e.g. swap from unmanaged to dev_override) between init and plan+apply", func(t *testing.T) {
+		t.Parallel()
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -410,9 +407,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
@@ -482,6 +477,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 	})
 
 	t.Run("users are prompted to migrate state when they use an unmanaged provider (dev_override) for plan and apply, after initializing a project with a managed provider", func(t *testing.T) {
+		t.Parallel()
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -493,9 +489,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		// Build provider binaries that will be used via a filesystem mirror/-plugin-dir flag.
 		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
@@ -578,6 +572,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 	})
 
 	t.Run("users are prompted to migrate state when using a managed provider for plan and apply, after initializing a project with an unmanaged provider (dev_override) for PSS", func(t *testing.T) {
+		t.Parallel()
 		if !canRunGoBuild {
 			// We're running in a separate-build-then-run context, so we can't
 			// currently execute this test which depends on being able to build
@@ -589,9 +584,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenInitAndPlanApply(t *te
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		// Build a new provider binary and direct Terraform to use it via CLI configuration file.
 		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
@@ -697,9 +690,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
@@ -774,9 +765,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		// Build provider binaries that will be used via a filesystem mirror/-plugin-dir flag.
 		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
@@ -864,9 +853,7 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 
 		fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-		t.Setenv(e2e.TestExperimentFlag, "true")
-		terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-		tf := e2e.NewBinary(t, terraformBin, fixturePath)
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 		// Build a new provider binary and direct Terraform to use it via CLI configuration file.
 		simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")

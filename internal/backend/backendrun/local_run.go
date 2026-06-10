@@ -4,8 +4,11 @@
 package backendrun
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -29,7 +32,7 @@ type Local interface {
 	// backend's implementations of this to understand what this actually
 	// does, because this operation has no well-defined contract aside from
 	// "whatever it already does".
-	LocalRun(*Operation) (*LocalRun, statemgr.Full, tfdiags.Diagnostics)
+	LocalRun(context.Context, *Operation) (*LocalRun, statemgr.Full, tfdiags.Diagnostics)
 }
 
 // LocalRun represents the assortment of objects that we can collect or
@@ -77,4 +80,8 @@ type LocalRun struct {
 	//
 	// This is nil when we're not applying a saved plan.
 	Plan *plans.Plan
+
+	// PolicyClient is an optional argument that enables policy evaluations
+	// during the run.
+	PolicyClient policy.Client
 }

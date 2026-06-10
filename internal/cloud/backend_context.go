@@ -23,7 +23,7 @@ import (
 )
 
 // LocalRun implements backendrun.Local
-func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Cloud) LocalRun(ctx context.Context, op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := &backendrun.LocalRun{
 		PlanOpts: &terraform.PlanOpts{
@@ -32,7 +32,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 		},
 	}
 
-	op.StateLocker = op.StateLocker.WithContext(context.Background())
+	op.StateLocker = op.StateLocker.WithContext(ctx)
 
 	// Get the remote workspace name.
 	remoteWorkspaceName := b.getRemoteWorkspaceName(op.Workspace)

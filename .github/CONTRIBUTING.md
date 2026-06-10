@@ -154,7 +154,20 @@ This is different if you are backporting your changes to an earlier release vers
 
 #### Create a change file using `changie`
 
-If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to: select which kind of change you're introducing, provide a short description, and enter either the number of the GitHub issue your PR closes or your PR's number.
+If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to:
+1. Select which kind of change you're introducing.
+2. Provide a short description.
+3. Enter the number of your GitHub PR.
+
+Your description should be written from an end-user's perspective and not describe implementation details. For example, out of these two potential changelog entries, users will find the second one more useful:
+
+> Ensured that SourceBundleParser always receives a relative path for the Source Directory
+
+> Fixed an issue where terraform stacks validate was failing to resolve relative paths for modules
+
+If there isn't an impact on the end user then there shouldn't be a changelog entry.
+
+Dependency bumps or other changes, like Go version upgrades, should only be in the changelog if the change impacts the user or fixes a user-facing issue. For example, if a dependency bump resolves a CVE that impacts Terraform and users are exposed to risk there should be a changelog entry. If the dependency bump is moving the code away from a version of a dependency that's linked to a CVE that isn't impacting Terraform then no changelog entry is needed.
 
 Make sure to select the correct kind of change:
 

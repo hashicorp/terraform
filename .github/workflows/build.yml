@@ -45,7 +45,7 @@ jobs:
           echo "pkg-name=${pkg_name}" | tee -a "${GITHUB_OUTPUT}"
       - name: Decide version number
         id: get-product-version
-        uses: hashicorp/actions-set-product-version@2ec1b51402b3070bccf7ca95306afbd039e574ff # v2.0.1
+        uses: hashicorp/actions-set-product-version@d9be602dfa87e201c79a3937c038f19391c9a430 # v2.0.2
         with:
           checkout: false
       - name: Determine experiments
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Generate package metadata
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@f1d852525201cb7bbbf031dd2e985fb4c22307fc # v1.1.3
+        uses: hashicorp/actions-generate-metadata@a43468dfb100445f2c2aa52cdc3d57b2c982a0f3 # v1.1.4
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
@@ -145,7 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Build Docker images
-        uses: hashicorp/actions-docker-build@200254326a30d7b747745592f8f4d226bbe4abe4 # v2.2.0
+        uses: hashicorp/actions-docker-build@e12557abf02a40557313ab2839d6cd2c6705261e # v2.2.1
         with:
           pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
@@ -270,7 +270,7 @@ jobs:
           unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
         if: ${{ contains(matrix.goarch, 'arm') }}
         with:
           platforms: all
