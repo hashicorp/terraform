@@ -34,7 +34,7 @@ func (s *Server) GetResources(_ context.Context, request *proto.GetResourcesRequ
 	if !ok {
 		return nil, fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 	}
-	resources, unknown, err := functions.GetResources(request.Type, attrs)
+	resources, isPartialResult, err := functions.GetResources(request.Type, attrs)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (s *Server) GetResources(_ context.Context, request *proto.GetResourcesRequ
 
 	return &proto.GetResourcesResponse{
 		Results: results,
-		Unknown: unknown,
+		Partial: isPartialResult,
 	}, nil
 }
 

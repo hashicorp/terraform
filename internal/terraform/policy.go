@@ -52,7 +52,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
 		}
-		var accUnknown bool
+		var isPartialResult bool
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -100,12 +100,12 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					// The filtered attribute for matching is unknown for this resource instance,
 					// so we can't determine whether it matches. We'll mark the whole callback result as incomplete.
 					// We still continue to the next resource instance, so that we return all known objects as well.
-					accUnknown = accUnknown || unknown
+					isPartialResult = isPartialResult || unknown
 
 				}
 			}
 		})
-		return found, accUnknown, nil
+		return found, isPartialResult, nil
 	}
 }
 
