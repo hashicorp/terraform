@@ -353,6 +353,7 @@ variable "provider_ver" {
 				DefaultModule: testRootModuleInline(
 					t,
 					map[string]string{"main.tf": `// empty`},
+					false,
 				),
 			}
 
