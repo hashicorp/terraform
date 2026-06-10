@@ -535,7 +535,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	}
 
 	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
-	location, ok := providerLocations[rootModEarly.StateStore.ProviderAddr]
+	_, ok := providerLocations[rootModEarly.StateStore.ProviderAddr]
 	if !ok {
 		// The provider was not processed in the FetchPackageBegin callback.
 		// A provider that wasn't downloaded during this init could be because:
@@ -548,18 +548,8 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
 		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
 
-		switch location.(type) {
-		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
-			// If the provider is downloaded from a local source we assume it's safe.
-			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionProceed
-		case getproviders.PackageHTTPURL:
-			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionRequireApproval
-		default:
-			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", rootModEarly.StateStore.ProviderAddr, location))
-		}
+		log.Printf("[DEBUG] init (getProvidersFromConfig): this build of Terraform will always prompt for approval to use a provider for PSS. Approval needed for provider %s (%q).", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
+		safeInitAction = SafeInitActionRequireApproval
 	}
 
 	return true, configLocks, safeInitAction, stateStoreProviderAuthResult, diags
