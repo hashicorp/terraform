@@ -2183,10 +2183,9 @@ func (*ListResourceIdentities) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{27}
 }
 
-// TODO: this message will likely need to be updated to contain information about the component for example
 type PolicyEvaluationResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Policies are evaluated for component instances
+	// Policies are only evaluated for component instances
 	Addr          *ComponentInstanceInStackAddr `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
 	Results       []*PolicyResult               `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
 	Infos         []*PolicyInfo                 `protobuf:"bytes,3,rep,name=infos,proto3" json:"infos,omitempty"`
@@ -3091,7 +3090,6 @@ type OpenStackConfiguration_Request struct {
 	state              protoimpl.MessageState    `protogen:"open.v1"`
 	SourceBundleHandle int64                     `protobuf:"varint,1,opt,name=source_bundle_handle,json=sourceBundleHandle,proto3" json:"source_bundle_handle,omitempty"`
 	SourceAddress      *terraform1.SourceAddress `protobuf:"bytes,2,opt,name=source_address,json=sourceAddress,proto3" json:"source_address,omitempty"`
-	PolicyPaths        []string                  `protobuf:"bytes,3,rep,name=policy_paths,json=policyPaths,proto3" json:"policy_paths,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -3136,13 +3134,6 @@ func (x *OpenStackConfiguration_Request) GetSourceBundleHandle() int64 {
 func (x *OpenStackConfiguration_Request) GetSourceAddress() *terraform1.SourceAddress {
 	if x != nil {
 		return x.SourceAddress
-	}
-	return nil
-}
-
-func (x *OpenStackConfiguration_Request) GetPolicyPaths() []string {
-	if x != nil {
-		return x.PolicyPaths
 	}
 	return nil
 }
@@ -4108,9 +4099,13 @@ type PlanStackChanges_Request struct {
 	PreviousState         map[string]*anypb.Any              `protobuf:"bytes,3,rep,name=previous_state,json=previousState,proto3" json:"previous_state,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	DependencyLocksHandle int64                              `protobuf:"varint,4,opt,name=dependency_locks_handle,json=dependencyLocksHandle,proto3" json:"dependency_locks_handle,omitempty"`
 	ProviderCacheHandle   int64                              `protobuf:"varint,5,opt,name=provider_cache_handle,json=providerCacheHandle,proto3" json:"provider_cache_handle,omitempty"`
-	InputValues           map[string]*DynamicValueWithSource `protobuf:"bytes,6,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // TODO: Various other planning options
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	InputValues           map[string]*DynamicValueWithSource `protobuf:"bytes,6,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+	TfpolicyPluginPath *string `protobuf:"bytes,8,opt,name=tfpolicy_plugin_path,json=tfpolicyPluginPath,proto3,oneof" json:"tfpolicy_plugin_path,omitempty"`
+	// Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+	PolicyPaths   []string `protobuf:"bytes,9,rep,name=policy_paths,json=policyPaths,proto3" json:"policy_paths,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PlanStackChanges_Request) Reset() {
@@ -4189,6 +4184,20 @@ func (x *PlanStackChanges_Request) GetProviderCacheHandle() int64 {
 func (x *PlanStackChanges_Request) GetInputValues() map[string]*DynamicValueWithSource {
 	if x != nil {
 		return x.InputValues
+	}
+	return nil
+}
+
+func (x *PlanStackChanges_Request) GetTfpolicyPluginPath() string {
+	if x != nil && x.TfpolicyPluginPath != nil {
+		return *x.TfpolicyPluginPath
+	}
+	return ""
+}
+
+func (x *PlanStackChanges_Request) GetPolicyPaths() []string {
+	if x != nil {
+		return x.PolicyPaths
 	}
 	return nil
 }
@@ -4513,7 +4522,11 @@ type ApplyStackChanges_Request struct {
 	// Callers may also optionally include values for other declared input
 	// variables, but if so their values must exactly match those used when
 	// creating the plan.
-	InputValues   map[string]*DynamicValueWithSource `protobuf:"bytes,7,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	InputValues map[string]*DynamicValueWithSource `protobuf:"bytes,7,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+	TfpolicyPluginPath *string `protobuf:"bytes,9,opt,name=tfpolicy_plugin_path,json=tfpolicyPluginPath,proto3,oneof" json:"tfpolicy_plugin_path,omitempty"`
+	// Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+	PolicyPaths   []string `protobuf:"bytes,10,rep,name=policy_paths,json=policyPaths,proto3" json:"policy_paths,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4594,6 +4607,20 @@ func (x *ApplyStackChanges_Request) GetProviderCacheHandle() int64 {
 func (x *ApplyStackChanges_Request) GetInputValues() map[string]*DynamicValueWithSource {
 	if x != nil {
 		return x.InputValues
+	}
+	return nil
+}
+
+func (x *ApplyStackChanges_Request) GetTfpolicyPluginPath() string {
+	if x != nil && x.TfpolicyPluginPath != nil {
+		return *x.TfpolicyPluginPath
+	}
+	return ""
+}
+
+func (x *ApplyStackChanges_Request) GetPolicyPaths() []string {
+	if x != nil {
+		return x.PolicyPaths
 	}
 	return nil
 }
@@ -4701,7 +4728,6 @@ type ApplyStackChanges_Event_Progress struct {
 }
 
 type ApplyStackChanges_Event_PolicyEvaluationResponse struct {
-	// TODO: are we doing apply policy for stacks? Should we include this anyways?
 	PolicyEvaluationResponse *PolicyEvaluationResponse `protobuf:"bytes,4,opt,name=policy_evaluation_response,json=policyEvaluationResponse,proto3,oneof"`
 }
 
@@ -7949,12 +7975,11 @@ const file_stacks_proto_rawDesc = "" +
 	"diagnostic\x18\x01 \x01(\v2\x16.terraform1.DiagnosticH\x00R\n" +
 	"diagnostic\x12I\n" +
 	"\x0eapplied_change\x18\x02 \x01(\v2 .terraform1.stacks.AppliedChangeH\x00R\rappliedChangeB\b\n" +
-	"\x06result\"\xb1\x02\n" +
-	"\x16OpenStackConfiguration\x1a\xa0\x01\n" +
+	"\x06result\"\x8d\x02\n" +
+	"\x16OpenStackConfiguration\x1a}\n" +
 	"\aRequest\x120\n" +
 	"\x14source_bundle_handle\x18\x01 \x01(\x03R\x12sourceBundleHandle\x12@\n" +
-	"\x0esource_address\x18\x02 \x01(\v2\x19.terraform1.SourceAddressR\rsourceAddress\x12!\n" +
-	"\fpolicy_paths\x18\x03 \x03(\tR\vpolicyPaths\x1at\n" +
+	"\x0esource_address\x18\x02 \x01(\v2\x19.terraform1.SourceAddressR\rsourceAddress\x1at\n" +
 	"\bResponse\x12.\n" +
 	"\x13stack_config_handle\x18\x01 \x01(\x03R\x11stackConfigHandle\x128\n" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x16.terraform1.DiagnosticR\vdiagnostics\"`\n" +
@@ -8042,8 +8067,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\aRequest\x12!\n" +
 	"\fstate_handle\x18\x01 \x01(\x03R\vstateHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\x88\b\n" +
-	"\x10PlanStackChanges\x1a\xa2\x05\n" +
+	"\bResponse\"\xfb\b\n" +
+	"\x10PlanStackChanges\x1a\x95\x06\n" +
 	"\aRequest\x128\n" +
 	"\tplan_mode\x18\x01 \x01(\x0e2\x1b.terraform1.stacks.PlanModeR\bplanMode\x12.\n" +
 	"\x13stack_config_handle\x18\x02 \x01(\x03R\x11stackConfigHandle\x122\n" +
@@ -8051,13 +8076,16 @@ const file_stacks_proto_rawDesc = "" +
 	"\x0eprevious_state\x18\x03 \x03(\v2>.terraform1.stacks.PlanStackChanges.Request.PreviousStateEntryB\x02\x18\x01R\rpreviousState\x126\n" +
 	"\x17dependency_locks_handle\x18\x04 \x01(\x03R\x15dependencyLocksHandle\x122\n" +
 	"\x15provider_cache_handle\x18\x05 \x01(\x03R\x13providerCacheHandle\x12_\n" +
-	"\finput_values\x18\x06 \x03(\v2<.terraform1.stacks.PlanStackChanges.Request.InputValuesEntryR\vinputValues\x1aV\n" +
+	"\finput_values\x18\x06 \x03(\v2<.terraform1.stacks.PlanStackChanges.Request.InputValuesEntryR\vinputValues\x125\n" +
+	"\x14tfpolicy_plugin_path\x18\b \x01(\tH\x00R\x12tfpolicyPluginPath\x88\x01\x01\x12!\n" +
+	"\fpolicy_paths\x18\t \x03(\tR\vpolicyPaths\x1aV\n" +
 	"\x12PreviousStateEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
 	"\x05value\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x05value:\x028\x01\x1ai\n" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
-	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01\x1a\xce\x02\n" +
+	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
+	"\x15_tfpolicy_plugin_path\x1a\xce\x02\n" +
 	"\x05Event\x12I\n" +
 	"\x0eplanned_change\x18\x01 \x01(\v2 .terraform1.stacks.PlannedChangeH\x00R\rplannedChange\x128\n" +
 	"\n" +
@@ -8079,8 +8107,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\vplan_handle\x18\x01 \x01(\x03R\n" +
 	"planHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\xf3\x06\n" +
-	"\x11ApplyStackChanges\x1a\x92\x04\n" +
+	"\bResponse\"\xe6\a\n" +
+	"\x11ApplyStackChanges\x1a\x85\x05\n" +
 	"\aRequest\x12.\n" +
 	"\x13stack_config_handle\x18\x01 \x01(\x03R\x11stackConfigHandle\x124\n" +
 	"\x16known_description_keys\x18\x03 \x03(\tR\x14knownDescriptionKeys\x12\x1f\n" +
@@ -8089,10 +8117,14 @@ const file_stacks_proto_rawDesc = "" +
 	"\x0fplanned_changes\x18\x04 \x03(\v2\x14.google.protobuf.AnyB\x02\x18\x01R\x0eplannedChanges\x126\n" +
 	"\x17dependency_locks_handle\x18\x05 \x01(\x03R\x15dependencyLocksHandle\x122\n" +
 	"\x15provider_cache_handle\x18\x06 \x01(\x03R\x13providerCacheHandle\x12`\n" +
-	"\finput_values\x18\a \x03(\v2=.terraform1.stacks.ApplyStackChanges.Request.InputValuesEntryR\vinputValues\x1ai\n" +
+	"\finput_values\x18\a \x03(\v2=.terraform1.stacks.ApplyStackChanges.Request.InputValuesEntryR\vinputValues\x125\n" +
+	"\x14tfpolicy_plugin_path\x18\t \x01(\tH\x00R\x12tfpolicyPluginPath\x88\x01\x01\x12!\n" +
+	"\fpolicy_paths\x18\n" +
+	" \x03(\tR\vpolicyPaths\x1ai\n" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
-	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01J\x04\b\x02\x10\x03\x1a\xc8\x02\n" +
+	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
+	"\x15_tfpolicy_plugin_pathJ\x04\b\x02\x10\x03\x1a\xc8\x02\n" +
 	"\x05Event\x12I\n" +
 	"\x0eapplied_change\x18\x01 \x01(\v2 .terraform1.stacks.AppliedChangeH\x00R\rappliedChange\x128\n" +
 	"\n" +
@@ -8893,12 +8925,14 @@ func file_stacks_proto_init() {
 		(*MigrateTerraformState_Event_Diagnostic)(nil),
 		(*MigrateTerraformState_Event_AppliedChange)(nil),
 	}
+	file_stacks_proto_msgTypes[67].OneofWrappers = []any{}
 	file_stacks_proto_msgTypes[68].OneofWrappers = []any{
 		(*PlanStackChanges_Event_PlannedChange)(nil),
 		(*PlanStackChanges_Event_Diagnostic)(nil),
 		(*PlanStackChanges_Event_Progress)(nil),
 		(*PlanStackChanges_Event_PolicyEvaluationResponse)(nil),
 	}
+	file_stacks_proto_msgTypes[75].OneofWrappers = []any{}
 	file_stacks_proto_msgTypes[76].OneofWrappers = []any{
 		(*ApplyStackChanges_Event_AppliedChange)(nil),
 		(*ApplyStackChanges_Event_Diagnostic)(nil),

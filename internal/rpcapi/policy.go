@@ -11,46 +11,21 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/version"
 )
-
-func (s *stacksServer) setPolicyClient(hnd handle[*stackconfig.Config], client policy.Client) {
-	s.policyClientsLock.Lock()
-	defer s.policyClientsLock.Unlock()
-
-	s.policyClients[hnd] = client
-}
-
-func (s *stacksServer) getPolicyClient(hnd handle[*stackconfig.Config]) policy.Client {
-	s.policyClientsLock.Lock()
-	defer s.policyClientsLock.Unlock()
-
-	if client, ok := s.policyClients[hnd]; ok {
-		return client
-	}
-	return nil
-}
-
-func (s *stacksServer) removePolicyClient(hnd handle[*stackconfig.Config]) {
-	s.policyClientsLock.Lock()
-	defer s.policyClientsLock.Unlock()
-
-	delete(s.policyClients, hnd)
-}
 
 // This is shares a lot of the same logic that will eventually be merged at
 // - internal/command/meta_policy.go, from: https://github.com/hashicorp/terraform/pull/38518
 //
 // TODO: Potentially refactor/share that logic?
-func initializePolicyClient(ctx context.Context, paths []string) (policy.Client, error) {
-	log.Printf("[DEBUG] rpcapi: policy client setup with paths: %v", paths)
-	client, err := policy.Connect(ctx)
+func initializePolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string) (policy.Client, error) {
+	log.Printf("[DEBUG] rpcapi: policy client setup with paths: %v", policyPaths)
+	client, err := policy.Connect(ctx, policyPluginPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to policy engine: %w", err)
 	}
 
-	req := policy.SetupRequest{SourceLocations: paths}
+	req := policy.SetupRequest{SourceLocations: policyPaths}
 	if srv, ok := client.(policy.CallbackService); ok {
 		callbackServer, cbDiags := srv.RegisterCallbackService(ctx)
 		if cbDiags != nil {

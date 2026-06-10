@@ -150,10 +150,6 @@ message OpenStackConfiguration {
   message Request {
     int64 source_bundle_handle = 1;
     terraform1.SourceAddress source_address = 2;
-    repeated string policy_paths = 3;
-    // TODO: do we (TF core) need to communicate any other metadata to policy? If so, might need to add more fields here
-    // - stack metadata = name, ID, stack level tags
-    // - deployment metadata = name, ID, deployment level tags
   }
   message Response {
     int64 stack_config_handle = 1;
@@ -261,7 +257,12 @@ message PlanStackChanges {
     int64 dependency_locks_handle = 4;
     int64 provider_cache_handle = 5;
     map<string, DynamicValueWithSource> input_values = 6;
-    // TODO: Various other planning options
+
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 8;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 9; 
   }
   message Event {
     oneof event {
@@ -330,6 +331,12 @@ message ApplyStackChanges {
     // creating the plan.
     map<string, DynamicValueWithSource> input_values = 7;
 
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 9;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 10;
+
     reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
   }
   message Event {
@@ -337,7 +344,6 @@ message ApplyStackChanges {
       AppliedChange applied_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 3;
-      // TODO: are we doing apply policy for stacks? Should we include this anyways?
       PolicyEvaluationResponse policy_evaluation_response = 4;
     }
   }
@@ -1084,9 +1090,8 @@ message ListResourceIdentities {
   }
 }
 
-// TODO: this message will likely need to be updated to contain information about the component for example
 message PolicyEvaluationResponse {
-  // Policies are evaluated for component instances
+  // Policies are only evaluated for component instances
   ComponentInstanceInStackAddr addr = 1;
   
   repeated PolicyResult results = 2;

@@ -30,11 +30,13 @@ const (
 var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
 
-func Connect(ctx context.Context) (Client, error) {
-
+// Connect creates a connection to tfpolicy-plugin. If policyPluginPath is empty, the default
+// command lookup will use the $PATH for the executable "tfpolicy-plugin".
+func Connect(ctx context.Context, policyPluginPath string) (Client, error) {
 	pgm := "tfpolicy-plugin" // by default, just use this if it's in the path
-	if envvar := os.Getenv(TerraformPolicyPluginEnvVar); len(envvar) > 0 {
-		pgm = envvar
+
+	if policyPluginPath != "" {
+		pgm = policyPluginPath
 	}
 
 	cmd := exec.CommandContext(ctx, pgm, "rpcapi")

@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -62,11 +61,6 @@ type stacksServer struct {
 	// for testing. This just ensures our tests aren't flaky as we can use a
 	// constant timestamp for the plan.
 	planTimestampOverride *time.Time
-
-	// policyClients are tracked per stack config handle, so we use that for a look-up rather than a separate entry in handlesTable
-	policyClients          map[handle[*stackconfig.Config]]policy.Client
-	policyClientsLock      sync.Mutex
-	initializePolicyClient func(ctx context.Context, policyPaths []string) (policy.Client, error)
 }
 
 var (
@@ -77,12 +71,10 @@ var (
 
 func newStacksServer(stopper *stopper, handles *handleTable, services *disco.Disco, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
-		stopper:                stopper,
-		services:               services,
-		handles:                handles,
-		experimentsAllowed:     opts.experimentsAllowed,
-		policyClients:          make(map[handle[*stackconfig.Config]]policy.Client),
-		initializePolicyClient: initializePolicyClient,
+		stopper:            stopper,
+		services:           services,
+		handles:            handles,
+		experimentsAllowed: opts.experimentsAllowed,
 	}
 }
 
@@ -119,23 +111,6 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 		return nil, status.Errorf(codes.Unknown, "allocating config handle: %s", err)
 	}
 
-	// Setup the policy client if the caller provided policy paths
-	if req.PolicyPaths != nil {
-
-		// TODO: We need to ensure the context we use to setup the policy client is not tied to the RPC request,
-		// as it will be stored on the stacks server and used in later RPC calls.
-		//
-		// Ensure that's what this code actually does :P
-		setupCtx := context.Background()
-
-		policyClient, err := s.initializePolicyClient(setupCtx, req.PolicyPaths)
-		if err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
-		}
-
-		s.setPolicyClient(configHnd, policyClient)
-	}
-
 	// If we get here then we're guaranteed that the source bundle handle
 	// cannot be closed until the config handle is closed -- enforced by
 	// [handleTable]'s dependency tracking -- and so we can return the config
@@ -150,12 +125,6 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 
 func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *stacks.CloseStackConfiguration_Request) (*stacks.CloseStackConfiguration_Response, error) {
 	hnd := handle[*stackconfig.Config](req.StackConfigHandle)
-
-	// Stop policy client if one exists for this stack configuration
-	if policyClient := s.getPolicyClient(hnd); policyClient != nil {
-		policyClient.Stop()
-		s.removePolicyClient(hnd)
-	}
 
 	err := s.handles.CloseStackConfig(hnd)
 	if err != nil {
@@ -353,6 +322,18 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
+	// Setup the policy client if the caller provides a plugin path + policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		var err error
+		policyClient, err = initializePolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
+		}
+
+		defer policyClient.Stop()
+	}
+
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -449,7 +430,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
-		PolicyClient:       s.getPolicyClient(cfgHnd),
+		PolicyClient:       policyClient,
 
 		// planTimestampOverride will be null if not set, so it's fine for
 		// us to just set this all the time. In practice, this will only have
@@ -597,6 +578,18 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
+	// Setup the policy client if the caller provides a plugin path + policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		var err error
+		policyClient, err = initializePolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+		if err != nil {
+			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
+		}
+
+		defer policyClient.Stop()
+	}
+
 	if req.PlanHandle != 0 && len(req.PlannedChanges) != 0 {
 		return status.Error(codes.InvalidArgument, "must not set both plan_handle and planned_changes")
 	}
@@ -688,7 +681,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
-		PolicyClient:       s.getPolicyClient(cfgHnd),
+		PolicyClient:       policyClient,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/apparentlymart/go-versions/versions/constraints"
@@ -39,7 +40,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	}
 
 	var diags policy.Diagnostics
-	client, err := policy.Connect(ctx)
+	client, err := policy.Connect(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar))
 	if err != nil {
 		diags = append(diags, policy.NewErrorDiagnostic(
 			"Failed to connect to policy engine",
