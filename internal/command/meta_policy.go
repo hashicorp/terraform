@@ -170,7 +170,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 type providerPolicyHook struct {
 	Client        policy.Client
 	policyResults *plans.PolicyResults
-	config        *configs.Config
+	rootModule    *configs.Module
 }
 
 // ProviderVersionSelected satisfies the [providers.InstallerHook] interface.
@@ -198,7 +198,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	// We use the root module as the module for provider configs since the version resolution
 	// is ambiguous, and we do not know which module the provider config belongs to.
 	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
-	providerConfig := p.config.Module.ProviderConfigs[provider.Type]
+	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
 	p.policyResults.AddProvider(addr, result, providerConfig)
 

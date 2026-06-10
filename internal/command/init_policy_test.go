@@ -382,6 +382,7 @@ func TestInit_WithModulePolicyJSON(t *testing.T) {
 	}
 
 	expected := `{"@level":"info","@message":"Terraform 1.15.0-dev","@module":"terraform.ui","terraform":"1.15.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"Initializing the backend...","@module":"terraform.ui","message_code":"initializing_backend_message","type":"init_output"}
 {"@level":"info","@message":"Initializing modules...","@module":"terraform.ui","message_code":"initializing_modules_message","type":"init_output"}
 {"@level":"error","@message":"Error: module policy denied","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"error","summary":"module policy denied","detail":"","range":{"filename":"main.tf","start":{"line":6,"column":1,"byte":60},"end":{"line":6,"column":17,"byte":76}},"snippet":{"context":null,"code":"module \"example\" {","start_line":6,"highlight_start_offset":0,"highlight_end_offset":16,"values":[]}},"policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"module_policy.example","file_name":"policy_set.policy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","target_address":"module.example","type":"policy_diagnostic"}
 {"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","target_address":"module.example","policy_address":"module_policy.example","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"module_policy.example","file_name":"policy_set.policy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","type":"policy_result"}
