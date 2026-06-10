@@ -981,7 +981,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
-	if got, want := output.Stderr(), `Too many command line arguments`; !strings.Contains(got, want) {
+	if got, want := output.Stderr(), `No positional arguments are expected`; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
