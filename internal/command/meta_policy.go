@@ -5,15 +5,10 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/apparentlymart/go-versions/versions"
-	"github.com/apparentlymart/go-versions/versions/constraints"
-
 	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/version"
 )
 
 func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics, func()) {
@@ -40,66 +35,9 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	}
 
 	var diags policy.Diagnostics
-	client, err := policy.Connect(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar))
-	if err != nil {
-		diags = append(diags, policy.NewErrorDiagnostic(
-			"Failed to connect to policy engine",
-			fmt.Sprintf("Failed to connect to policy engine: %s.", err),
-			policy.SetupErrorResult,
-		))
-		return nil, diags, closer
-	}
-
-	var callbackServiceID uint32
-
-	// initialize the callback service if the client supports it
-	if srv, ok := client.(policy.CallbackService); ok {
-		callbackServer, cbDiags := srv.RegisterCallbackService(ctx)
-		if cbDiags != nil {
-			return nil, cbDiags, closer
-		}
-		callbackServiceID = callbackServer.ID
-	}
-
-	resp := client.Setup(ctx, policy.SetupRequest{
-		SourceLocations: policyPaths,
-		CallbackService: callbackServiceID,
-	})
-	diags = append(diags, resp.Diagnostics...)
-
-	var requiredVersions constraints.IntersectionSpec
-	for _, config := range resp.ServerConfigurations() {
-		version, err := constraints.ParseRubyStyleMulti(config.RequiredVersion)
-		if err != nil {
-			diags = append(diags, policy.NewErrorDiagnostic(
-				"Failed to validate required Terraform version",
-				fmt.Sprintf("The policy file %s had a Terraform version constraint that could not be parsed: %s.", config.File, err),
-				policy.SetupErrorResult,
-			))
-			continue
-		}
-
-		requiredVersions = append(requiredVersions, version...)
-	}
-
-	if len(diags) > 0 {
-		return nil, diags, closer
-	}
-
-	terraformVersion, err := versions.ParseVersion(version.Version)
-	if err != nil {
-		client.Stop()
-		// This is crazy, it means the internal version number is invalid.
-		panic(err)
-	}
-
-	constraint := versions.MeetingConstraints(requiredVersions)
-	if !constraint.Has(terraformVersion) {
-		diags = append(diags, policy.NewErrorDiagnostic(
-			"Invalid Terraform version for policies",
-			fmt.Sprintf("The current version of Terraform is %s, and it is not compatible with the versions of Terraform required by the selected policies.", version.String()),
-			policy.SetupErrorResult,
-		))
+	client, diags = policy.NewPolicyClient(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar), policyPaths)
+	// TODO: change this to diags.HasErrors() once it's available
+	if diags.AsTerraformDiags().HasErrors() {
 		return nil, diags, closer
 	}
 

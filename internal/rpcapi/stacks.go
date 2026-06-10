@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -323,12 +324,14 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// Setup the policy client if the caller provides a plugin path + policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
-		var err error
-		policyClient, err = initializePolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
+		var diags policy.Diagnostics
+		policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+		// TODO: change this to diags.HasErrors() once it's available
+		if diags.AsTerraformDiags().HasErrors() {
+			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 		}
 
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
 		defer policyClient.Stop()
 	}
 
@@ -579,12 +582,14 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// Setup the policy client if the caller provides a plugin path + policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
-		var err error
-		policyClient, err = initializePolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
-		if err != nil {
-			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", err)
+		var diags policy.Diagnostics
+		policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+		// TODO: change this to diags.HasErrors() once it's available
+		if diags.AsTerraformDiags().HasErrors() {
+			return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 		}
 
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
 		defer policyClient.Stop()
 	}
 
