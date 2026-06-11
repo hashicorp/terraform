@@ -58,8 +58,16 @@ type ActionOnFailure int
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
 
 const (
+	// Halt stops all further processing of actions and dependencies
 	ActionOnFailureHalt ActionOnFailure = iota
+
+	// Taint stops all further process of actions and dependencies. If the
+	// resource was just created, the state will be marked as tainted for
+	// replacement.
 	ActionOnFailureTaint
+
+	// Continue saves all action diagnostics as warnings, allowing processing to
+	// continue.
 	ActionOnFailureContinue
 )
 
