@@ -81,7 +81,12 @@ func realMain() int {
 	{
 		// At minimum we emit a span covering the entire command execution.
 		_, displayArgs := shquot.POSIXShellSplit(os.Args)
-		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		// If a parent process (e.g. tfc-agent) propagated a trace context to
+		// us via the standard W3C environment variables, adopt it as the
+		// parent so our root span -- and every policy span beneath it --
+		// joins the caller's trace.
+		parentCtx := extractParentTraceContext(context.Background())
+		ctx, otelSpan = tracer.Start(parentCtx, fmt.Sprintf("terraform %s", displayArgs))
 		defer otelSpan.End()
 	}
 
