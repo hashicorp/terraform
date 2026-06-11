@@ -3223,12 +3223,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 	}
 
 	// check if this action was previously deferred
-	shouldDefer, deferDiags := ctx.Deferrals().ShouldDeferActionInvocation(ai)
-	diags = diags.Append(deferDiags)
-	if diags.HasErrors() {
-		return
-	}
-	if shouldDefer {
+	if ctx.Deferrals().ShouldDeferActionInvocation(ai) {
 		deferred = true
 		log.Printf("[DEBUG] action instance %s deferred due to config block deferral", actionInst)
 		return
