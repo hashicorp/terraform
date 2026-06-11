@@ -685,8 +685,11 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	providerType, typeDiags := resolveStateStoreProviderType(c.Root.Module.ProviderRequirements.RequiredProviders,
-		*c.Root.Module.StateStore)
+	providerType, typeDiags := resolveStateStoreProviderType(
+		c.Root.Module.ProviderRequirements.RequiredProviders,
+		c.Root.Module.ProviderRequirementExprs,
+		*c.Root.Module.StateStore,
+	)
 
 	if typeDiags.HasErrors() {
 		diags = append(diags, typeDiags...)

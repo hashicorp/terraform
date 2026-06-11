@@ -2070,6 +2070,40 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		return nil, diags
 	}
 
+	if len(root.ProviderRequirementExprs) > 0 {
+		constVars, cvDiags := backendrun.ParseConstVariableValues(m.VariableValues, root.Variables)
+		diags = diags.Append(cvDiags)
+		if cvDiags.HasErrors() {
+			return nil, diags
+		}
+
+		varVals := make(map[string]cty.Value, len(constVars))
+		for name, val := range constVars {
+			varVals[name] = val.Value
+		}
+		hclCtx := &hcl.EvalContext{Variables: map[string]cty.Value{"var": cty.ObjectVal(varVals)}}
+
+		for name, expr := range root.ProviderRequirementExprs {
+			rp, rpDiags := terraform.ResolveProviderWithHCLContext(name, expr, hclCtx)
+			diags = diags.Append(rpDiags)
+			if rpDiags.HasErrors() {
+				continue
+			}
+
+			root.ProviderRequirements.RequiredProviders[name] = rp
+			delete(root.ProviderRequirementExprs, name)
+		}
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		root.GatherProviderLocalNames()
+		if root.StateStore != nil {
+			if rp, ok := root.ProviderRequirements.RequiredProviders[root.StateStore.Provider.Name]; ok {
+				root.StateStore.ProviderAddr = rp.Type
+			}
+		}
+	}
+
 	locks, lDiags := m.lockedDependencies()
 	diags = diags.Append(lDiags)
 	if lDiags.HasErrors() {
