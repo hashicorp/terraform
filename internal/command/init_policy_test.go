@@ -495,32 +495,37 @@ func TestInit_WithProviderPolicyDiagnostics(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	policyClient := policy.NewTestMockClient(t)
-	resp := policy.EvaluationFromProtoResponse(
-		proto.EvaluateResult_DENY_EVALUATE_RESULT,
-		[]*proto.PolicyEvaluationDetail{
-			{
-				Address:              "provider_policy.example",
-				Result:               proto.EvaluateResult_DENY_EVALUATE_RESULT,
-				File:                 "policy_file.tfpolicy.hcl",
-				PolicySetEnforcement: "mandatory",
-				Diagnostics: []*proto.Diagnostic{
-					{
-						Severity: proto.Severity_ERROR,
-						Summary:  "provider policy denied",
-						Result: &proto.DiagnosticResult{
-							Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+	expectedTargets := []string{"test", "happycloud", "null", "grandchild"}
+	actualTargets := []string{}
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		actualTargets = append(actualTargets, req.Target)
+		return policy.EvaluationFromProtoResponse(
+			proto.EvaluateResult_DENY_EVALUATE_RESULT,
+			[]*proto.PolicyEvaluationDetail{
+				{
+					Address:              "provider_policy." + req.Target,
+					Result:               proto.EvaluateResult_DENY_EVALUATE_RESULT,
+					File:                 "policy_file.tfpolicy.hcl",
+					PolicySetEnforcement: "mandatory",
+					Diagnostics: []*proto.Diagnostic{
+						{
+							Severity: proto.Severity_ERROR,
+							Summary:  req.Target + " provider policy denied",
+							Result: &proto.DiagnosticResult{
+								Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+							},
 						},
 					},
 				},
 			},
-		},
-	)
-	policyClient.EvaluateProviderResponse = &resp
-	overrides.PolicyClient = policyClient
+		)
+	}
+	overs := overrides
+	overs.PolicyClient = policyClient
 
 	c := &InitCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
+			testingOverrides:          overs,
 			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
@@ -538,16 +543,23 @@ func TestInit_WithProviderPolicyDiagnostics(t *testing.T) {
 		t.Fatal("expected EvaluateProvider to be called")
 	}
 
+	if got, want := len(actualTargets), len(expectedTargets); got != want {
+		t.Fatalf("wrong number of evaluated providers\ngot:  %d (%v)\nwant: %d", got, actualTargets, want)
+	}
+	for _, target := range expectedTargets {
+		if !slices.Contains(actualTargets, target) {
+			t.Fatalf("missing provider evaluation for %q in %v", target, actualTargets)
+		}
+	}
+
 	stderr := output.Stderr()
-	expected := `
-Error: provider policy denied
-
-
-Error: Provider download failed due to policy violations. Please review other diagnostics for details.
-
-`
-	if diff := cmp.Diff(expected, stderr); diff != "" {
-		t.Fatalf("unexpected stderr:\n%s", diff)
+	for _, target := range expectedTargets {
+		if !strings.Contains(stderr, "Error: "+target+" provider policy denied") {
+			t.Fatalf("missing policy diagnostic for %q in stderr:\n%s", target, stderr)
+		}
+	}
+	if !strings.Contains(stderr, "Provider download failed due to policy violations. Please review other diagnostics for details.") {
+		t.Fatalf("missing provider policy error in stderr:\n%s", stderr)
 	}
 }
 
