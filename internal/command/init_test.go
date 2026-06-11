@@ -354,17 +354,10 @@ func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
 // Test that an error is returned if users provide the removed directory argument, which was replaced with -chdir
 // See: https://github.com/hashicorp/terraform/commit/ca23a096d8c48544b9bfc6dbf13c66488f9b6964
 func TestInit_multipleArgs(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	os.MkdirAll(td, 0755)
-	t.Chdir(td)
-
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -377,11 +370,17 @@ func TestInit_multipleArgs(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	expectedMsg := "Did you mean to use -chdir?"
-	if !strings.Contains(done(t).All(), expectedMsg) {
-		t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
-			expectedMsg,
-		)
+	expectedMsgs := []string{
+		"Error: No positional arguments are expected",
+		"-chdir?",
+	}
+	output := done(t).All()
+	for _, expectedMsg := range expectedMsgs {
+		if !strings.Contains(output, expectedMsg) {
+			t.Fatalf("expected the error message to include %q as part of protecting against deprecated additional arguments.",
+				expectedMsg,
+			)
+		}
 	}
 }
 
@@ -982,7 +981,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
-	if got, want := output.Stderr(), `Too many command line arguments`; !strings.Contains(got, want) {
+	if got, want := output.Stderr(), `No positional arguments are expected`; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
@@ -4779,6 +4778,97 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			}
 		}
 	})
+}
+
+// Test what happens when a child module also uses the provider for state storage and has a version constraint
+// that doesn't match the version constraint in the root module. We need the state store provider to be installed before
+// child modules are downloaded, so in this scenario we expect an error to happen.
+func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-state-store-in-child-module"), td)
+	t.Chdir(td)
+
+	source := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {
+			"1.0.0", // Satisfies constraint in root module only
+			"2.0.0", // Satisfies constraint in child module only
+		},
+	})
+
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	meta := Meta{
+		Ui:                        ui,
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		testingOverrides: &testingOverrides{
+			Providers: map[addrs.Provider]providers.Factory{
+				mockProviderAddress: providers.FactoryFixed(mockProvider),
+			},
+		},
+		ProviderSource: source,
+	}
+	c := &InitCommand{
+		Meta: meta,
+	}
+
+	args := []string{
+		"-enable-pluggable-state-storage-experiment",
+	}
+	code := c.Run(args)
+	testOutput := done(t)
+	if code != 1 {
+		t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+	}
+
+	// Check output- this must be done separately for stdout and stderr due to
+	// the interleaving of output caused in tests by (TestOutput).All()
+
+	// Check stdout
+	stdout := testOutput.Stdout()
+	expectedOutput := `Initializing provider plugin for state store "test_store"...
+- Finding hashicorp/test versions matching "< 2.0.0"...
+- Installing hashicorp/test v1.0.0...
+- Installed hashicorp/test v1.0.0 (verified checksum)
+
+Initializing the state store "test_store"...
+
+Initializing modules...
+- child in child
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/test from the dependency lock file
+`
+
+	if stdout != expectedOutput {
+		t.Errorf("didn't get expected output")
+		diff := cmp.Diff(expectedOutput, stdout)
+		t.Fatalf("unexpected diff in output:\n%s", diff)
+	}
+
+	// Check stderr
+	stderr := testOutput.Stderr()
+	expectedError := `
+Error: Failed to query available provider packages
+
+Could not retrieve the list of available versions for provider
+hashicorp/test: locked provider registry.terraform.io/hashicorp/test 1.0.0
+does not match configured version constraint >= 2.0.0, < 2.0.0; must use
+terraform init -upgrade to allow selection of new versions
+
+To see which modules are currently depending on hashicorp/test and what
+versions are specified, run the following command:
+    terraform providers
+`
+
+	if stderr != expectedError {
+		t.Errorf("didn't get expected error output")
+		diff := cmp.Diff(expectedError, stderr)
+		t.Fatalf("unexpected diff in error output:\n%s", diff)
+	}
 }
 
 // Testing init's behaviors when, in automation, we're approving a new state store provider when a workspace is initialized for the first time.
