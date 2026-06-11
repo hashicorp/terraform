@@ -195,7 +195,7 @@ func (i *Installer) SetDevOverrideTypes(types map[addrs.Provider]struct{}) {
 // failures then those notifications will be redundant with the ones included
 // in the final returned error value so callers should show either one or the
 // other, and not both.
-func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode) (*depsfile.Locks, error) {
+func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode, hooks ...InstallerHook) (*depsfile.Locks, error) {
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
 
@@ -354,12 +354,30 @@ NeedProvider:
 	// install its package into our target cache (possibly via the global cache).
 	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
 	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
+	hookErrs := map[addrs.Provider]error{}
 	for provider, version := range need {
 		if err := ctx.Err(); err != nil {
 			// If our context has been cancelled or reached a timeout then
 			// we'll abort early, because subsequent operations against
 			// that context will fail immediately anyway.
 			return nil, err
+		}
+
+		hookErr := i.CallHooks(hooks, func(hook InstallerHook) error {
+			// For each needed provider, we report the selected version to the hooks.
+			// If a hook returns an error then we will skip installing that provider,
+			// but continue evaluating the remaining providers so callers can gather
+			// all of the resulting diagnostics before returning.
+			//
+			// We do this for all providers, including already installed ones.
+			// Their installation cannot be prevented, but the hook can still
+			// return an error to indicate that the provider version is not
+			// acceptable.
+			return hook.ProviderVersionSelected(ctx, provider, version.String())
+		})
+		if hookErr != nil {
+			hookErrs[provider] = hookErr
+			continue
 		}
 
 		lock := locks.Provider(provider)
@@ -737,9 +755,10 @@ NeedProvider:
 	}
 
 	if len(errs) > 0 {
-		return locks, InstallerError{
-			ProviderErrors: errs,
-		}
+		return locks, InstallerError{ProviderErrors: errs}
+	}
+	if len(hookErrs) > 0 {
+		return locks, InstallerError{ProviderErrors: hookErrs}
 	}
 	return locks, nil
 }
@@ -799,4 +818,30 @@ func (err InstallerError) Error() string {
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
 	return strings.TrimSpace(b.String())
+}
+
+type InstallerHook interface {
+	// ProviderVersionSelected is called after the installer has selected a provider
+	// version and before it decides whether install the selected package, either from
+	// the local cache or from a remote registry.
+	//
+	// Returning an error aborts installation of that provider.
+	ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error
+}
+
+// CallHooks iterates over all the hook implementations and calls the given function on each one.
+func (i *Installer) CallHooks(hooks []InstallerHook, fn func(InstallerHook) error) error {
+	var errs []error
+	for _, hook := range hooks {
+		if err := fn(hook); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return fmt.Errorf("some hooks failed: %v", errs)
 }

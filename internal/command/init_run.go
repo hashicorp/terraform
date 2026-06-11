@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -157,6 +159,19 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
+	var policyClient policy.Client
+	if len(initArgs.PolicyPaths) > 0 {
+		var policyDiags policy.Diagnostics
+		var stopClient func()
+		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		defer stopClient()
+		view.PolicyResults(nil, policyDiags)
+		if policyDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+
 	// If -state-provider-lock-file is set, we'll use that to obtain a new lock used for the state store provider
 	// This will be 'upserted': it may be that the previous locks don't contain the provider being added. potentially due to being empty, or contain a different version.
 	// The lock added will be used in the first step of provider download.
@@ -208,6 +223,13 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		)
 	}
 
+	policyResults := plans.NewPolicyResults()
+	providerHook := &providerPolicyHook{
+		client:        policyClient,
+		policyResults: policyResults,
+		rootModule:    rootModEarly,
+	}
+
 	var pssLocks *depsfile.Locks // May end up containing 0 or 1 lock.
 	if rootModEarly.StateStore != nil {
 		var configProvidersOutput bool
@@ -238,9 +260,10 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 
 		// Use alteredPreviousLocks, which may contain an additional lock supplied from the -state-provider-lock-file flag
-		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
+			view.PolicyResults(policyResults, nil)
 			view.Diagnostics(diags)
 			return 1
 		}
@@ -340,8 +363,9 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, policyClient)
 		diags = diags.Append(modsDiags)
+		view.PolicyResults(policyResults, nil)
 		if modsAbort || modsDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
@@ -407,9 +431,10 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	// Proceed with downloading providers
-	stateProvidersOutput, providerLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, pssLocks, initArgs.PluginPath, view)
+	stateProvidersOutput, providerLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, pssLocks, initArgs.PluginPath, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
+		view.PolicyResults(policyResults, nil)
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -435,6 +460,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
+	view.PolicyResults(policyResults, nil)
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage

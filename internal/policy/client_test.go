@@ -222,6 +222,19 @@ func TestClientEvaluateProvider(t *testing.T) {
 			},
 		},
 		{
+			name:  "unknown attrs",
+			attrs: cty.UnknownVal(cty.EmptyObject),
+			assertResponse: func(t *testing.T, resp EvaluationResponse) {
+				t.Helper()
+				if resp.Overall != AllowResult {
+					t.Fatalf("unexpected result: got %s, want %s", resp.Overall, AllowResult)
+				}
+				if len(resp.Diagnostics) != 0 {
+					t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
+				}
+			},
+		},
+		{
 			name:  "non-nil attrs",
 			attrs: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
