@@ -21,7 +21,17 @@ import (
 )
 
 func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := client.EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+	// Parent the per-resource evaluation under the policy-execution phase span
+	// (terraform.policy.evaluate) when one is available, so the whole policy
+	// phase groups together in the trace and is distinct from the main
+	// resource graph work. Fall back to the run context when there is no phase
+	// span (e.g. unit tests that drive the node directly).
+	evalCtx := ctx.StopCtx()
+	if phaseCtx := ctx.PolicyGraph().phaseSpanContext(); phaseCtx != nil {
+		evalCtx = phaseCtx
+	}
+
+	result := client.EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
 		Attrs:      attrs,
 		PriorAttrs: priorAttrs,
