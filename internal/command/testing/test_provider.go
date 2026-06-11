@@ -5,6 +5,7 @@ package testing
 
 import (
 	"fmt"
+	"maps"
 	"path"
 	"strings"
 	"sync"
@@ -20,6 +21,76 @@ import (
 )
 
 var (
+	// withBlockTypeAttributes contains additional block type attributes that are used across
+	// different resources and types, so this function serves as a place to store the shared attributes.
+	withBlockTypeAttributes = func(original map[string]*configschema.Attribute) map[string]*configschema.Attribute {
+		attrs := map[string]*configschema.Attribute{
+			"list_value": {
+				Type: cty.List(cty.Object(map[string]cty.Type{
+					"name":  cty.String,
+					"value": cty.String,
+				})),
+				Computed: true,
+				Optional: true,
+			},
+			"set_value": {
+				Type: cty.Set(cty.Object(map[string]cty.Type{
+					"name":  cty.String,
+					"value": cty.String,
+				})),
+				Computed: true,
+				Optional: true,
+			},
+			"map_value": {
+				Type: cty.Map(cty.Object(map[string]cty.Type{
+					"name":  cty.String,
+					"value": cty.String,
+				})),
+				Computed: true,
+				Optional: true,
+			},
+
+			// The below nested_* attributes represent config supporting
+			// attributes as nested blocks, where terraform interprets the nested blocks
+			// as attributes within the schema
+			"nested_list_value": {
+				Computed: true,
+				Optional: true,
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingList,
+					Attributes: map[string]*configschema.Attribute{
+						"name":  {Type: cty.String, Optional: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			"nested_set_value": {
+				Computed: true,
+				Optional: true,
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingSet,
+					Attributes: map[string]*configschema.Attribute{
+						"name":  {Type: cty.String, Optional: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			"nested_map_value": {
+				Computed: true,
+				Optional: true,
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingMap,
+					Attributes: map[string]*configschema.Attribute{
+						"name":  {Type: cty.String, Optional: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		}
+		maps.Copy(original, attrs)
+		return original
+	}
+
 	ProviderSchema = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Body: &configschema.Block{
@@ -44,26 +115,61 @@ var (
 					},
 				},
 			},
+			"test_complex_resource": {
+				Body: &configschema.Block{
+					Attributes: withBlockTypeAttributes(map[string]*configschema.Attribute{
+						"id":                   {Type: cty.String, Optional: true, Computed: true},
+						"value":                {Type: cty.String, Optional: true},
+						"interrupt_count":      {Type: cty.Number, Optional: true},
+						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Optional: true},
+						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
+						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
+					}),
+				},
+			},
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
 				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id":         {Type: cty.String, Required: true},
-						"value":      {Type: cty.String, Computed: true},
-						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
+					Attributes: withBlockTypeAttributes(map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Optional: true, Computed: true},
+						"value": {Type: cty.String, Optional: true},
 
 						// We never actually reference these values from a data
 						// source, but we have tests that use the same cty.Value
 						// to represent a test_resource and a test_data_source
 						// so the schemas have to match.
+						//
+						"interrupt_count":      {Type: cty.Number, Optional: true},
+						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Optional: true},
+						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
+						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
+					}),
+				},
+			},
 
-						"interrupt_count":      {Type: cty.Number, Computed: true},
-						"destroy_fail":         {Type: cty.Bool, Computed: true},
-						"create_wait_seconds":  {Type: cty.Number, Computed: true},
-						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
-						"defer":                {Type: cty.Bool, Computed: true},
-					},
+			"test_complex_data_source": {
+				Body: &configschema.Block{
+					Attributes: withBlockTypeAttributes(map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Optional: true, Computed: true},
+						"value": {Type: cty.String, Optional: true},
+
+						// We never actually reference these values from a data
+						// source, but we have tests that use the same cty.Value
+						// to represent a test_resource and a test_data_source
+						// so the schemas have to match.
+						//
+						"interrupt_count":      {Type: cty.Number, Optional: true},
+						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Optional: true},
+						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
+						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
+					}),
 				},
 			},
 		},
@@ -365,13 +471,40 @@ func (provider *TestProvider) ReadDataSource(request providers.ReadDataSourceReq
 	resource := provider.Store.Get(provider.GetDataKey(id))
 	if resource == cty.NilVal {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%s does not exist", id)))
+		resource = cty.EmptyObjectVal
 	}
 
-	if writeOnly := resource.GetAttr("write_only"); !writeOnly.IsNull() {
-		vals := resource.AsValueMap()
+	vals := resource.AsValueMap()
+
+	if writeOnly := request.Config.GetAttr("write_only"); !writeOnly.IsNull() {
 		vals["write_only"] = cty.NullVal(cty.String)
-		resource = cty.ObjectVal(vals)
 	}
+
+	sharedObjectType := cty.Object(map[string]cty.Type{
+		"name":  cty.String,
+		"value": cty.String,
+	})
+
+	if _, exists := vals["list_value"]; !exists {
+		vals["list_value"] = cty.ListValEmpty(sharedObjectType)
+	}
+	if _, exists := vals["set_value"]; !exists {
+		vals["set_value"] = cty.SetValEmpty(sharedObjectType)
+	}
+	if _, exists := vals["map_value"]; !exists {
+		vals["map_value"] = cty.MapValEmpty(sharedObjectType)
+	}
+	if _, exists := vals["nested_list_value"]; !exists {
+		vals["nested_list_value"] = cty.ListValEmpty(sharedObjectType)
+	}
+	if _, exists := vals["nested_set_value"]; !exists {
+		vals["nested_set_value"] = cty.SetValEmpty(sharedObjectType)
+	}
+	if _, exists := vals["nested_map_value"]; !exists {
+		vals["nested_map_value"] = cty.MapValEmpty(sharedObjectType)
+	}
+
+	resource = cty.ObjectVal(vals)
 
 	return providers.ReadDataSourceResponse{
 		State:       resource,

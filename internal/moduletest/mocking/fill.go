@@ -17,58 +17,88 @@ import (
 // attributes and/or performing conversions to make the input value correct.
 //
 // It is similar to FillType, except it accepts attributes instead of types.
-func FillAttribute(in cty.Value, attribute *configschema.Attribute) (cty.Value, error) {
-	return fillAttribute(in, attribute, cty.Path{})
+func FillAttribute(providedMock cty.Value, attribute *configschema.Attribute) (cty.Value, error) {
+	return fillAttribute(providedMock, attribute, cty.Path{})
 }
 
-func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+func fillAttribute(providedMock cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+	ty := attribute.Type
 	if attribute.NestedType != nil {
-
-		// Then the in value must be an object.
-		if !in.Type().IsObjectType() {
-			return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
-		}
+		// For nested types, the providedMock value is interpreted in two ways:
+		// - If it's an object, it's treated as a single instance of the nested type,
+		//   and because we can't know how many instances are needed, we return an empty collection.
+		// - If it's already a collection, it's treated as the whole nested type
+		//   collection, and then we update each element of the collection with
+		//   generated values where possible.
+		// Note: The collection type must match the attribute's nested type.
 
 		switch attribute.NestedType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
-			var names []string
-			for name := range attribute.NestedType.Attributes {
-				names = append(names, name)
-			}
-			if len(names) == 0 {
-				return cty.EmptyObjectVal, nil
-			}
-
-			// Make the order we iterate through the attributes deterministic. We
-			// are generating random strings in here so it's worth making the
-			// operation repeatable.
-			sort.Strings(names)
-
-			children := make(map[string]cty.Value)
-			for _, name := range names {
-				if in.Type().HasAttribute(name) {
-					child, err := fillAttribute(in.GetAttr(name), attribute.NestedType.Attributes[name], path.GetAttr(name))
-					if err != nil {
-						return cty.NilVal, err
-					}
-					children[name] = child
-					continue
-				}
-				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
-			}
-			return cty.ObjectVal(children), nil
+			return fillObject(providedMock, attribute, path)
 		case configschema.NestingSet:
-			return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
+			if providedMock.Type().IsObjectType() {
+				return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
+			}
+			return fillIterable(providedMock, attribute, path)
 		case configschema.NestingList:
-			return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
+			if providedMock.Type().IsObjectType() {
+				return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
+			}
+			return fillIterable(providedMock, attribute, path)
 		case configschema.NestingMap:
-			return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+			if providedMock.Type().IsObjectType() {
+				return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+			}
+			return fillIterable(providedMock, attribute, path)
 		default:
 			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
 		}
 	}
 
-	return fillType(in, attribute.Type, path)
+	return fillType(providedMock, ty, path)
+}
+
+func fillObject(providedMock cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+	// Then the providedMock value must be an object.
+	if !providedMock.Type().IsObjectType() {
+		return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", providedMock.Type().FriendlyName())
+	}
+
+	var names []string
+	for name := range attribute.NestedType.Attributes {
+		names = append(names, name)
+	}
+	if len(names) == 0 {
+		return cty.EmptyObjectVal, nil
+	}
+
+	// Make the order we iterate through the attributes deterministic. We
+	// are generating random strings in here so it's worth making the
+	// operation repeatable.
+	sort.Strings(names)
+
+	children := make(map[string]cty.Value)
+	for _, name := range names {
+		if providedMock.Type().HasAttribute(name) {
+			child, err := fillAttribute(providedMock.GetAttr(name), attribute.NestedType.Attributes[name], path.GetAttr(name))
+			if err != nil {
+				return cty.NilVal, err
+			}
+			children[name] = child
+			continue
+		}
+		children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
+	}
+	return cty.ObjectVal(children), nil
+}
+
+func fillIterable(providedMock cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
+	ty := attribute.NestedType.ConfigType()
+	out, err := fillType(providedMock, ty, path)
+	if err != nil {
+		return cty.NilVal, err
+	}
+	return out, err
 }
 
 // FillType makes the input value match the target type by adding attributes
