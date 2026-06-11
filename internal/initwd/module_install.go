@@ -288,7 +288,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							if record.Version != nil {
 								versionStr = record.Version.String()
 							}
-							inDiags := hook.ModuleSourceResolved(ctx, req, record.SourceAddr, versionStr)
+							inDiags := hook.ModuleSourceResolved(ctx, req, versionStr)
 							return inDiags
 						})
 						diags = diags.Extend(hookDiags.ToHCL())
@@ -399,7 +399,7 @@ func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.M
 	// invalid or not allowed, we should not proceed with installation.
 	hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// local modules do not have a version constraint, so we just send an empty string
-		return hook.ModuleSourceResolved(ctx, req, req.SourceAddr.String(), "")
+		return hook.ModuleSourceResolved(ctx, req, "")
 	})
 	if hookDiags.HasErrors() {
 		return nil, diags.Extend(hookDiags.ToHCL())
@@ -619,8 +619,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	tfDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// inform the hooks that the module source has been resolved. If the version is deemed
 		// invalid or not allowed, we should not proceed with installation.
-		src := req.SourceAddr.String()
-		hookDiags := hook.ModuleSourceResolved(ctx, req, src, latestMatch.String())
+		hookDiags := hook.ModuleSourceResolved(ctx, req, latestMatch.String())
 		if hookDiags.HasErrors() {
 			return hookDiags
 		}
@@ -801,8 +800,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	// invalid or not allowed, we should not proceed with installation.
 	hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
 		// go-getter modules do not have a version constraint, so we just send an empty string
-		src := req.SourceAddr.String()
-		return hook.ModuleSourceResolved(ctx, req, src, "")
+		return hook.ModuleSourceResolved(ctx, req, "")
 	})
 	if hookDiags.HasErrors() {
 		return nil, diags.Extend(hookDiags.ToHCL())

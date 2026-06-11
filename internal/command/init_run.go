@@ -164,10 +164,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		var policyDiags policy.Diagnostics
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		defer stopClient()
 		view.PolicyResults(nil, policyDiags)
-		if policyDiags.AsTerraformDiags().HasErrors() {
-			stopClient()
-			diags = diags.Append(fmt.Errorf("Error setting up policy client: See the other diagnostics for more information"))
+		if policyDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
@@ -226,7 +225,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 
 	policyResults := plans.NewPolicyResults()
 	providerHook := &providerPolicyHook{
-		Client:        policyClient,
+		client:        policyClient,
 		policyResults: policyResults,
 		rootModule:    rootModEarly,
 	}

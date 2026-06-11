@@ -181,8 +181,7 @@ func TestInit_WithPolicySetupFailureJSON(t *testing.T) {
 	}
 
 	expected := `{"@level":"info","@message":"Terraform 1.15.0-dev","@module":"terraform.ui","terraform":"1.15.0-dev","type":"version","ui":"1.3"}
-{"@level":"error","@message":"Error: Failed to connect to policy engine","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"error","summary":"Failed to connect to policy engine","detail":"Failed to connect to policy engine: failed to connect to plugin: exec: \"tfpolicy-plugin\": executable file not found in $PATH."},"policy_metadata":{},"result":"SetupErrorResult","type":"policy_diagnostic"}
-{"@level":"error","@message":"Error: Error setting up policy client: See the other diagnostics for more information","@module":"terraform.ui","diagnostic":{"severity":"error","summary":"Error setting up policy client: See the other diagnostics for more information","detail":""},"type":"diagnostic"}`
+{"@level":"error","@message":"Error: Failed to connect to policy engine","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"error","summary":"Failed to connect to policy engine","detail":"Failed to connect to policy engine: failed to connect to plugin: exec: \"tfpolicy-plugin\": executable file not found in $PATH."},"policy_metadata":{},"result":"SetupErrorResult","type":"policy_diagnostic"}`
 	checkGoldenReferenceStr(t, output, expected)
 }
 

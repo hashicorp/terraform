@@ -427,9 +427,9 @@ type installHooksInitDir struct {
 }
 
 // ModuleSourceResolved calls ModuleSourceResolved on each wrapped hook and returns the first error it encounters.
-func (h installHooksInitDir) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+func (h installHooksInitDir) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, version string) tfdiags.Diagnostics {
 	for _, hook := range h.Wrapped {
-		diags := hook.ModuleSourceResolved(ctx, req, source, version)
+		diags := hook.ModuleSourceResolved(ctx, req, version)
 		if diags.HasErrors() {
 			return diags
 		}

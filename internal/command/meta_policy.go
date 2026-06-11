@@ -123,11 +123,19 @@ type policyModuleInstallHook struct {
 
 // ModuleSourceResolved implements [initwd.ModuleInstallHook] and is called after a module source is resolved, and enables policy evaluation for the module before
 // it is installed.
-func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, source, version string) tfdiags.Diagnostics {
+func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, version string) tfdiags.Diagnostics {
+	// If the client is nil, then policy evaluation is disabled, so we can skip.
+	if h.client == nil {
+		return nil
+	}
+
+	log.Println("[DEBUG] init: evaluating policy for module", req.Path.String(), version)
 	moduleAddr := req.Path.String()
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
-		Attrs:  cty.NilVal,
-		Target: source,
+		// Configuration attributes may not be available during init, so we will not
+		// send any attributes to the policy client.
+		Attrs:  cty.DynamicVal,
+		Target: req.SourceAddr.String(),
 		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: moduleAddr,
 			Version: version,
@@ -135,7 +143,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	})
 	var moduleCall *configs.ModuleCall
 	if req.Parent == nil || req.Parent.Module == nil {
-		log.Printf("[DEBUG] backend/operation/policy: No parent config for module %q, skipping policy evaluation", moduleAddr)
+		log.Printf("[DEBUG] backend/operation/policy: No parent config for module %q. Diagnostics may not contain enough source context", moduleAddr)
 	} else {
 		moduleCall = req.Parent.Module.ModuleCalls[req.Name]
 	}
@@ -168,7 +176,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 
 // providerPolicyHook enables policy evaluation during provider installation.
 type providerPolicyHook struct {
-	Client        policy.Client
+	client        policy.Client
 	policyResults *plans.PolicyResults
 	rootModule    *configs.Module
 }
@@ -178,16 +186,16 @@ type providerPolicyHook struct {
 // and aborts the installation if the policy evaluation fails.
 func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error {
 	// If the client is nil, then policy evaluation is disabled, so we can skip.
-	if p.Client == nil {
+	if p.client == nil {
 		return nil
 	}
 	log.Println("[DEBUG] init: evaluating policy for provider", provider.String(), version)
-	result := p.Client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
+	result := p.client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: provider.Type,
 
 		// Configuration attributes may not be available during init, so we will not
 		// send any attributes to the policy client.
-		Attrs: cty.NilVal,
+		Attrs: cty.DynamicVal,
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:      provider.Type,
 			Namespace: provider.Namespace,
@@ -203,7 +211,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	p.policyResults.AddProvider(addr, result, providerConfig)
 
 	if result.Overall != policy.AllowResult {
-		return fmt.Errorf("Provider download failed due to policy violations. Please review other diagnostics for details.")
+		return fmt.Errorf("Provider download blocked due to policy violations. Please review other diagnostics for details.")
 	}
 
 	return nil
