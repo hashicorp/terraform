@@ -45,7 +45,8 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []ActionRef // References to actions
+	Actions   []ActionRef
+	OnFailure ActionOnFailure
 
 	DeclRange hcl.Range
 }
@@ -65,6 +66,18 @@ const (
 	BeforeDestroy
 	AfterDestroy
 	Invoke
+)
+
+// ActionFailureResult describes the result of an action invocation failure on a
+// a resource and its dependencies.
+type ActionOnFailure int
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
+
+const (
+	ActionOnFailureHalt ActionOnFailure = iota
+	ActionOnFailureTaint
+	ActionOnFailureContinue
 )
 
 func (e ActionTriggerEvent) IsBefore() bool {
@@ -186,6 +199,25 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		actionRefs, ediags := decodeActionTriggerRef(attr.Expr)
 		diags = append(diags, ediags...)
 		a.Actions = actionRefs
+	}
+
+	if attr, exists := content.Attributes["on_failure"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "halt":
+			a.OnFailure = ActionOnFailureHalt
+		case "taint":
+			a.OnFailure = ActionOnFailureTaint
+		case "continue":
+			a.OnFailure = ActionOnFailureContinue
+
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"on_failure\" keyword",
+				Detail:   "The \"on_failure\" argument requires one of the following keywords: halt, taint or continue.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
 	}
 
 	if len(a.Actions) == 0 {
@@ -317,6 +349,10 @@ var actionTriggerSchema = &hcl.BodySchema{
 		{
 			Name:     "actions",
 			Required: true,
+		},
+		{
+			Name:     "on_failure",
+			Required: false,
 		},
 	},
 }
