@@ -116,7 +116,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
 	diags = append(diags, bodyDiags...)
 
-	var refs []*addrs.Reference
 	if attr, exists := content.Attributes["condition"]; exists {
 		a.Condition = attr.Expr
 	}
@@ -126,19 +125,16 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, ediags...)
 
 		events := []ActionTriggerEvent{}
-		containsBefore := false
 
 		for _, expr := range exprs {
 			var event ActionTriggerEvent
 			switch hcl.ExprAsKeyword(expr) {
 			case "before_create":
 				event = BeforeCreate
-				containsBefore = true
 			case "after_create":
 				event = AfterCreate
 			case "before_update":
 				event = BeforeUpdate
-				containsBefore = true
 			case "after_update":
 				event = AfterUpdate
 			case "before_destroy":
@@ -164,29 +160,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 					Subject:  expr.Range().Ptr(),
 				})
 				continue
-			}
-
-			// Check that there aren't any before_ events using self, count or for_each in the condition
-			if containsBefore && refs != nil { // if refs isn't empty, there was a condition
-				for _, ref := range refs {
-					if _, ok := ref.Subject.(addrs.CountAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Count reference not allowed",
-							Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-
-					if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Each reference not allowed",
-							Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-				}
 			}
 
 			events = append(events, event)
