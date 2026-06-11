@@ -112,6 +112,71 @@ func TestProvidersSchema_output(t *testing.T) {
 	}
 }
 
+// TestProvidersSchema_unfilteredBaseline locks in the current unfiltered
+// behavior before any filtering selectors are added. Unfiltered output must
+// never include a top-level "filters" field, and an empty configuration must
+// omit "provider_schemas" entirely.
+func TestProvidersSchema_unfilteredBaseline(t *testing.T) {
+	fixtureDir := "testdata/providers-schema"
+	testDirs, err := os.ReadDir(fixtureDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entry := range testDirs {
+		if !entry.IsDir() {
+			continue
+		}
+		t.Run(entry.Name(), func(t *testing.T) {
+			td := t.TempDir()
+			inputDir := filepath.Join(fixtureDir, entry.Name())
+			testCopyDir(t, inputDir, td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"test": {"1.2.3"},
+			})
+
+			p := providersSchemaFixtureProvider()
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+				ProviderSource:   providerSource,
+			}
+
+			// `terraform init`
+			ic := &InitCommand{Meta: m}
+			if code := ic.Run([]string{}); code != 0 {
+				t.Fatalf("init failed\n%s", done(t).Stderr())
+			}
+
+			// `terraform providers schema -json`
+			pc := &ProvidersSchemaCommand{Meta: m}
+			if code := pc.Run([]string{"-json"}); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+			}
+
+			var top map[string]json.RawMessage
+			if err := json.Unmarshal(ui.OutputWriter.Bytes(), &top); err != nil {
+				t.Fatalf("failed to parse output as JSON: %s", err)
+			}
+
+			if _, ok := top["filters"]; ok {
+				t.Errorf("unfiltered output unexpectedly includes a top-level \"filters\" field:\n%s", ui.OutputWriter.String())
+			}
+
+			if entry.Name() == "empty" {
+				if _, ok := top["provider_schemas"]; ok {
+					t.Errorf("empty fixture unexpectedly includes \"provider_schemas\":\n%s", ui.OutputWriter.String())
+				}
+			}
+		})
+	}
+}
+
 // Test that provider schema data can be obtained based on directory data set in the Meta,
 // not by relying on code upstream from the command having changed the working directory.
 // This test mimics a user running `terraform -chdir=<dir> providers schema`

@@ -106,6 +106,75 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 	}
 }
 
+func TestParseProvidersSchemaKind(t *testing.T) {
+	valid := []string{
+		"provider",
+		"resource",
+		"data-source",
+		"ephemeral-resource",
+		"list-resource",
+		"function",
+		"resource-identity",
+		"action",
+		"state-store",
+	}
+	for _, label := range valid {
+		t.Run("valid/"+label, func(t *testing.T) {
+			k, ok := ParseProviderSchemaKind(label)
+			if !ok {
+				t.Fatalf("expected %q to be a valid kind", label)
+			}
+			if string(k) != label {
+				t.Fatalf("expected kind %q, got %q", label, k)
+			}
+		})
+	}
+
+	// Plurals, shorthand, alternate spellings, and casing are all rejected.
+	invalid := []string{
+		"",
+		"resources",
+		"Resource",
+		"data_source",
+		"datasource",
+		"ephemeral",
+		"func",
+		"identity",
+		"actions",
+		"state_store",
+		"statestore",
+		"bogus",
+	}
+	for _, label := range invalid {
+		t.Run("invalid/"+label, func(t *testing.T) {
+			if _, ok := ParseProviderSchemaKind(label); ok {
+				t.Fatalf("expected %q to be rejected", label)
+			}
+		})
+	}
+}
+
+func TestProvidersSchemaKindIsMapBacked(t *testing.T) {
+	if KindProvider.IsMapBacked() {
+		t.Errorf("provider kind should not be map-backed")
+	}
+	mapBacked := []Kind{
+		KindResource,
+		KindDataSource,
+		KindEphemeralResource,
+		KindListResource,
+		KindFunction,
+		KindResourceIdentity,
+		KindAction,
+		KindStateStore,
+	}
+	for _, k := range mapBacked {
+		if !k.IsMapBacked() {
+			t.Errorf("kind %q should be map-backed", k)
+		}
+	}
+}
+
 func TestParseProvidersSchema_vars(t *testing.T) {
 	testCases := map[string]struct {
 		args []string

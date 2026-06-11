@@ -258,7 +258,7 @@ func TestMarshalProvider(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			got := marshalProvider(test.Input)
+			got := marshalProvider(test.Input, EmitAll)
 			if diff := cmp.Diff(test.Want, got, cmpOpts); diff != "" {
 				t.Fatalf("wrong result:\n %s\n", diff)
 			}
