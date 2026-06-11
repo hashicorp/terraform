@@ -26,7 +26,9 @@ func TestMarshalProvider(t *testing.T) {
 		{
 			providers.ProviderSchema{},
 			&Provider{
-				Provider:                 &Schema{},
+				// An empty provider schema has no provider configuration block,
+				// so the provider field is omitted rather than rendered as an
+				// empty stub.
 				ResourceSchemas:          map[string]*Schema{},
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},

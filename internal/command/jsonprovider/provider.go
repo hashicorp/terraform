@@ -118,12 +118,21 @@ func MarshalWithFilters(s *terraform.Schemas, emit ResourceEmit, filters *Filter
 
 func marshalProvider(tps providers.ProviderSchema, emit ResourceEmit) *Provider {
 	p := &Provider{
-		Provider:                 marshalSchema(tps.Provider),
 		DataSourceSchemas:        marshalSchemas(tps.DataSources),
 		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
 		ActionSchemas:            marshalActionSchemas(tps.Actions),
 		StateStoreSchemas:        marshalSchemas(tps.StateStores),
+	}
+
+	// The provider configuration block is emitted only when the provider
+	// actually exposes one. A pruned schema (for example when filtering to a
+	// non-provider kind) zeroes this field; omitting it here keeps the
+	// provider category out of the output instead of rendering an empty stub.
+	// Real providers always return a (possibly empty) provider configuration
+	// block, so the unfiltered output is unchanged.
+	if tps.Provider.Body != nil {
+		p.Provider = marshalSchema(tps.Provider)
 	}
 
 	// resource_schemas and resource_identity_schemas are both derived from the

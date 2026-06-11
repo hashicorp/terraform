@@ -6,11 +6,14 @@ package command
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -185,11 +188,16 @@ func (s selectors) filtersEcho() *jsonprovider.Filters {
 }
 
 // providersSchemaSelectors translates parsed CLI arguments into the
-// command-internal selectors value consumed by filterProviderSchemas. The
-// individual selector dimensions are populated by their respective selector
-// implementations.
+// command-internal selectors value consumed by filterProviderSchemas.
 func providersSchemaSelectors(args *arguments.ProvidersSchema) selectors {
-	return selectors{}
+	return selectors{
+		provider:    args.Provider,
+		providerSet: args.ProviderSet,
+		kind:        args.Kind,
+		kindSet:     args.KindSet,
+		typ:         args.Type,
+		typeSet:     args.TypeSet,
+	}
 }
 
 // filterProviderSchemas prunes the loaded provider schemas according to the
@@ -214,11 +222,180 @@ func filterProviderSchemas(schemas *terraform.Schemas, sel selectors) (*terrafor
 		return schemas, emit, nil, diags
 	}
 
-	// Selector-specific pruning (-provider, -kind, -type) is layered in by the
-	// individual selector implementations. Until then the schemas pass through
-	// unchanged while the directive and filters echo are threaded to the
-	// marshaler.
-	return schemas, emit, filters, diags
+	// Narrow to the selected provider (if any), checking existence among the
+	// loaded providers. A -provider that parsed but isn't loaded is an error
+	// that lists the loaded providers; -kind/-type no-match is empty success
+	// (see proposals/provider-subcommand-filtering/design_decisions.md #4, #12).
+	candidates := schemas.Providers
+	if sel.providerSet {
+		ps, ok := schemas.Providers[sel.provider]
+		if !ok {
+			diags = diags.Append(providerNotLoadedDiag(sel.provider, schemas))
+			return schemas, emit, filters, diags
+		}
+		candidates = map[addrs.Provider]providers.ProviderSchema{sel.provider: ps}
+	}
+
+	// Prune each candidate provider by -kind/-type, dropping providers that
+	// have no selected output.
+	out := make(map[addrs.Provider]providers.ProviderSchema, len(candidates))
+	for addr, ps := range candidates {
+		if pruned, keep := pruneProviderSchema(ps, sel); keep {
+			out[addr] = pruned
+		}
+	}
+
+	return &terraform.Schemas{
+		Providers:    out,
+		Provisioners: schemas.Provisioners,
+	}, emit, filters, diags
+}
+
+// pruneProviderSchema returns a filtered copy of a single provider's schema
+// according to the -kind/-type selectors, and reports whether the result has
+// any selected output (providers with none are dropped by the caller).
+//
+// New maps are allocated for every pruned category; leaf schema values are
+// shared by reference and never mutated.
+func pruneProviderSchema(ps providers.ProviderSchema, sel selectors) (providers.ProviderSchema, bool) {
+	// With neither -kind nor -type, keep the entire provider schema. This is
+	// the -provider-only path.
+	if !sel.kindSet && !sel.typeSet {
+		return ps, true
+	}
+
+	// wants reports whether the given kind should contribute output. With -kind
+	// omitted (wildcard) every map-backed category participates; the
+	// non-map-backed provider config is never searched by -type, so it only
+	// contributes when -kind=provider is explicitly set.
+	wants := func(k arguments.Kind) bool {
+		if sel.kindSet {
+			return sel.kind == k
+		}
+		return k.IsMapBacked()
+	}
+
+	var out providers.ProviderSchema
+
+	if wants(arguments.KindProvider) {
+		out.Provider = ps.Provider
+	}
+
+	// resource and resource-identity are both derived from ResourceTypes. With
+	// a wildcard kind we keep the type-matched entries and let EmitAll fan out
+	// to both resource_schemas and resource_identity_schemas. With an explicit
+	// resource-identity selection we keep only entries that have an identity
+	// schema (and ResourceIdentityOnly renders identity-only).
+	switch {
+	case sel.kindSet && sel.kind == arguments.KindResourceIdentity:
+		out.ResourceTypes = selectByType(identityResourceTypes(ps.ResourceTypes), sel.typ, sel.typeSet)
+	case sel.kindSet && sel.kind == arguments.KindResource:
+		out.ResourceTypes = selectByType(ps.ResourceTypes, sel.typ, sel.typeSet)
+	case !sel.kindSet:
+		out.ResourceTypes = selectByType(ps.ResourceTypes, sel.typ, sel.typeSet)
+	}
+
+	if wants(arguments.KindDataSource) {
+		out.DataSources = selectByType(ps.DataSources, sel.typ, sel.typeSet)
+	}
+	if wants(arguments.KindEphemeralResource) {
+		out.EphemeralResourceTypes = selectByType(ps.EphemeralResourceTypes, sel.typ, sel.typeSet)
+	}
+	if wants(arguments.KindListResource) {
+		out.ListResourceTypes = selectByType(ps.ListResourceTypes, sel.typ, sel.typeSet)
+	}
+	if wants(arguments.KindFunction) {
+		out.Functions = selectByType(ps.Functions, sel.typ, sel.typeSet)
+	}
+	if wants(arguments.KindAction) {
+		out.Actions = selectByType(ps.Actions, sel.typ, sel.typeSet)
+	}
+	if wants(arguments.KindStateStore) {
+		out.StateStores = selectByType(ps.StateStores, sel.typ, sel.typeSet)
+	}
+
+	return out, providerSchemaHasContent(out)
+}
+
+// selectByType returns a new map containing the entries of src selected by the
+// -type filter. With typeSet false, all entries are copied; with typeSet true,
+// only the exact, case-sensitive key match (if any) is kept. It returns nil
+// when nothing is selected so the category drops out via omitempty after
+// marshaling. The source map is never mutated; leaf values are shared.
+func selectByType[V any](src map[string]V, typ string, typeSet bool) map[string]V {
+	if len(src) == 0 {
+		return nil
+	}
+	if typeSet {
+		if v, ok := src[typ]; ok {
+			return map[string]V{typ: v}
+		}
+		return nil
+	}
+	out := make(map[string]V, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
+}
+
+// identityResourceTypes returns a new map containing only the ResourceTypes
+// entries that have an identity schema. It returns nil when none qualify.
+func identityResourceTypes(src map[string]providers.Schema) map[string]providers.Schema {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make(map[string]providers.Schema, len(src))
+	for k, v := range src {
+		if v.Identity != nil {
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// providerSchemaHasContent reports whether a pruned provider schema has any
+// content that would be marshaled, so empty providers can be dropped.
+func providerSchemaHasContent(ps providers.ProviderSchema) bool {
+	return ps.Provider.Body != nil ||
+		len(ps.ResourceTypes) > 0 ||
+		len(ps.DataSources) > 0 ||
+		len(ps.EphemeralResourceTypes) > 0 ||
+		len(ps.ListResourceTypes) > 0 ||
+		len(ps.Functions) > 0 ||
+		len(ps.Actions) > 0 ||
+		len(ps.StateStores) > 0
+}
+
+// providerNotLoadedDiag builds the actionable error returned when a -provider
+// selector parses but is not among the loaded provider schemas. The detail
+// lists the loaded providers, sorted, so a consumer can self-correct (see
+// proposals/provider-subcommand-filtering/design_decisions.md #12).
+func providerNotLoadedDiag(p addrs.Provider, schemas *terraform.Schemas) tfdiags.Diagnostic {
+	loaded := make([]string, 0, len(schemas.Providers))
+	for addr := range schemas.Providers {
+		loaded = append(loaded, addr.String())
+	}
+	sort.Strings(loaded)
+
+	var detail string
+	if len(loaded) == 0 {
+		detail = "The current configuration did not load any providers."
+	} else {
+		detail = fmt.Sprintf(
+			"The current configuration loaded these providers: %s.",
+			strings.Join(loaded, ", "),
+		)
+	}
+
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		fmt.Sprintf("Provider %s was not found in the loaded provider schemas", p.String()),
+		detail,
+	)
 }
 
 const providersSchemaCommandHelp = `
@@ -228,6 +405,29 @@ Usage: terraform [global options] providers schema -json
   in the current configuration.
 
 Options:
+
+  -provider=ADDR      Filter the output to a single provider, given as a
+                      provider source address such as "aws", "hashicorp/aws",
+                      or "registry.terraform.io/hashicorp/aws". The address is
+                      normalized to its fully-qualified form in the "filters"
+                      echo. It is an error if the named provider is not among
+                      the providers loaded for the current configuration.
+
+  -kind=CATEGORY      Filter the output to a single schema category. Valid
+                      values are: action, data-source, ephemeral-resource,
+                      function, list-resource, provider, resource,
+                      resource-identity, state-store. A valid category that
+                      selects nothing yields an empty success.
+
+  -type=TYPE          Filter the output to a single object type, matched
+                      exactly and case-sensitively (for example
+                      "aws_instance"). When -kind is omitted, the type is
+                      matched against every object-keyed category, so one type
+                      may appear as a resource, a resource identity, and a data
+                      source at once. The provider configuration category is
+                      never searched, so -type cannot be combined with
+                      -kind=provider. A valid type that selects nothing yields
+                      an empty success.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
