@@ -30,8 +30,10 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	}
 
 	var jsonOutput bool
+	var redactedOutput bool
 	cmdFlags := extendedFlagSet("show", nil, nil, show.Vars)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&redactedOutput, "redacted", false, "redacted")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -55,8 +57,12 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	}
 
 	switch {
-	case jsonOutput:
+	case jsonOutput && redactedOutput:
+		show.ViewType = ViewJSONRedacted
+	case jsonOutput && !redactedOutput:
 		show.ViewType = ViewJSON
+	case redactedOutput:
+		show.ViewType = ViewHumanRedacted
 	default:
 		show.ViewType = ViewHuman
 	}
