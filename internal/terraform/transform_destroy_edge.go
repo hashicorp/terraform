@@ -13,12 +13,20 @@ import (
 
 // GraphNodeDestroyer must be implemented by nodes that destroy resources.
 type GraphNodeDestroyer interface {
-	dag.Vertex
-
 	// DestroyAddr is the address of the resource that is being
 	// destroyed by this node. If this returns nil, then this node
 	// is not destroying anything.
 	DestroyAddr() *addrs.AbsResourceInstance
+}
+
+// GraphNodePlanDestroyer is implemented only by the planning counterpart for
+// the destroy nodes. These are typically created for objects which only exist
+// in state, like orphaned instances or planing a full destroy operation.
+type GraphNodePlanDestroyer interface {
+	// DestroyAddr is the address of the resource that is being
+	// destroyed by this node. If this returns nil, then this node
+	// is not destroying anything.
+	PlanDestroyAddr() *addrs.AbsResourceInstance
 }
 
 // GraphNodeCreator must be implemented by nodes that create OR update resources.

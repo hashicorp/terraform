@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -208,6 +207,18 @@ list "test_resource" "test1" {
 					Mode:  plans.NormalMode,
 					Query: true,
 				},
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 11, Byte: 53},
+							End:      hcl.Pos{Line: 4, Column: 33, Byte: 75},
+						},
+					})
+				},
 			},
 			"invalid config": {
 				module: map[string]string{
@@ -263,7 +274,18 @@ resource "test_object" "a" {
 								Start:    hcl.Pos{Line: 8, Column: 10, Byte: 110},
 								End:      hcl.Pos{Line: 8, Column: 40, Byte: 138},
 							},
-						})
+						},
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unexpected attribute in action reference",
+							Detail:   "Actions have no referenceable attributes.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 8, Column: 39, Byte: 138},
+								End:      hcl.Pos{Line: 8, Column: 43, Byte: 143},
+							},
+						},
+					)
 				},
 			},
 
@@ -313,6 +335,16 @@ output "my_output2" {
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 								Start:    hcl.Pos{Line: 17, Column: 13, Byte: 258},
 								End:      hcl.Pos{Line: 17, Column: 43, Byte: 286},
+							},
+						},
+						&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unexpected attribute in action reference",
+							Detail:   "Actions have no referenceable attributes.",
+							Subject: &hcl.Range{
+								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+								Start:    hcl.Pos{Line: 17, Column: 39, Byte: 286},
+								End:      hcl.Pos{Line: 17, Column: 44, Byte: 291},
 							},
 						},
 					)
@@ -636,13 +668,8 @@ resource "test_object" "a" {
 					return tfdiags.Diagnostics{}.Append(
 						&hcl.Diagnostic{
 							Severity: hcl.DiagError,
-							Summary:  "Failed to plan action",
-							Detail:   "Planning failed: Test case simulates an error while planning",
-							Subject: &hcl.Range{
-								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
-							},
+							Summary:  "Planning failed",
+							Detail:   "Test case simulates an error while planning",
 						},
 					)
 				},
@@ -670,7 +697,7 @@ resource "test_object" "a" {
 				planActionFn: func(t *testing.T, par providers.PlanActionRequest) providers.PlanActionResponse {
 					return providers.PlanActionResponse{
 						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
+							tfdiags.WholeContainingBody(tfdiags.Warning, "Warning during planning", "Test case simulates a warning while planning"),
 						},
 					}
 				},
@@ -681,32 +708,32 @@ resource "test_object" "a" {
 					return tfdiags.Diagnostics{}.Append(
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 8, Byte: 147},
-								End:      hcl.Pos{Line: 7, Column: 46, Byte: 173},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 7, Column: 48, Byte: 175},
-								End:      hcl.Pos{Line: 7, Column: 76, Byte: 201},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 						&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
-							Summary:  "Warnings when planning action",
-							Detail:   "Warning during planning: Test case simulates a warning while planning",
+							Summary:  "Warning during planning",
+							Detail:   "Test case simulates a warning while planning",
 							Subject: &hcl.Range{
 								Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-								Start:    hcl.Pos{Line: 11, Column: 8, Byte: 278},
-								End:      hcl.Pos{Line: 11, Column: 46, Byte: 304},
+								Start:    hcl.Pos{Line: 2, Column: 32, Byte: 32},
+								End:      hcl.Pos{Line: 2, Column: 32, Byte: 32},
 							},
 						},
 					)
@@ -729,11 +756,11 @@ resource "test_object" "a" {
 `,
 				},
 				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Invalid action expression",
-						Detail:   "Unexpected expression found in action_triggers.actions.",
+						Summary:  "Invalid instance reference",
+						Detail:   "Only object references with dynamic indexes are allowed in this context.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 159},
@@ -985,7 +1012,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "Action instance was not found in the current context.",
+						Detail:   `The given key ["c"] does not identify an instance of action.test_action.hello`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
@@ -1020,11 +1047,78 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "Action instance was not found in the current context.",
+						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
 							End:      hcl.Pos{Line: 13, Column: 47, Byte: 235},
+						},
+					})
+				},
+			},
+
+			"action count invalid index": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello[2]]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid index",
+						Detail:   "Unexpanded action referenced with instance key 2",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 18, Byte: 180},
+							End:      hcl.Pos{Line: 13, Column: 45, Byte: 207},
+						},
+					})
+				},
+			},
+
+			"action referenced without index": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  count = 1
+  config {
+    attr = "value"
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing index",
+						Detail:   "An action with count must be referenced via an integer key",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 18, Byte: 192},
+							End:      hcl.Pos{Line: 13, Column: 42, Byte: 216},
 						},
 					})
 				},
@@ -1286,6 +1380,18 @@ resource "test_object" "a" {
 `,
 				},
 				expectPlanActionCalled: true,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 54},
+							End:      hcl.Pos{Line: 4, Column: 25, Byte: 67},
+						},
+					})
+				},
 				assertPlan: func(t *testing.T, p *plans.Plan) {
 					if len(p.Changes.ActionInvocations) != 1 {
 						t.Fatalf("expected one action in plan, got %d", len(p.Changes.ActionInvocations))
@@ -1310,7 +1416,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"action config refers to before triggering resource leads to validation error": {
+			"action config refers to triggering resource": {
 				module: map[string]string{
 					"main.tf": `
 action "test_action" "hello" {
@@ -1329,25 +1435,283 @@ resource "test_object" "a" {
 }
 `,
 				},
-				expectPlanActionCalled: true, // The cycle only appears in the apply graph
-				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-					if !diags.HasErrors() {
-						t.Fatalf("expected diagnostics to have errors, but it does not")
+				expectPlanActionCalled: true,
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 54},
+							End:      hcl.Pos{Line: 4, Column: 25, Byte: 67},
+						},
+					})
+				},
+			},
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				planActionFn: func(t *testing.T, req providers.PlanActionRequest) providers.PlanActionResponse {
+					attr := req.ProposedActionData.GetAttr("attr").AsString()
+					if attr != "current" {
+						t.Fatalf("expected action plan to be 'current', got %s\n", attr)
 					}
+					return providers.PlanActionResponse{}
+				},
+				expectPlanActionCalled: true,
+			},
+
+			"no ephemeral in destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action_wo" "test" {
+  config {
+    attr = terraform.applying
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action_wo.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Action config contains ephemeral values",
+						Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+							End:      hcl.Pos{Line: 2, Column: 31, Byte: 31},
+						},
+					})
+				},
+			},
+
+			"destroy action must be known": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "new" {
+}
+
+action "test_action" "test" {
+  config {
+    attr = test_object.new.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					if req.PriorState.IsNull() {
+						resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+							"name": cty.UnknownVal(cty.String),
+						})
+						return resp
+					}
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unknown action config",
+						Detail:   "Action configuration must be known to plan a destroy action.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 5, Column: 1, Byte: 35},
+							End:      hcl.Pos{Line: 5, Column: 28, Byte: 62},
+						},
+					})
+				},
+			},
+
+			"destroy condition must be known": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "new" {
+}
+
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      condition = test_object.new.name == "ready"
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					if req.PriorState.IsNull() {
+						// this is the new instance being created
+						resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+							"name": cty.UnknownVal(cty.String),
+						})
+						return resp
+					}
+
+					// this is directing the existing "a" instance to be replaced
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unknown action trigger condition",
+						Detail:   "Condition expression must be known to plan a destroy action.",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 14, Column: 19, Byte: 202},
+							End:      hcl.Pos{Line: 14, Column: 50, Byte: 233},
+						},
+					})
+				},
+			},
+
+			"caller can be used for triggering resource": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: true,
+			},
+
+			"caller is invalid for standalone action": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "test_name"
+}
+`,
+				},
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
 					if len(diags) != 1 {
-						t.Fatalf("expected diagnostics to have 1 error, but it has %d", len(diags))
+						t.Fatalf("expected exactly 1 diagnostic but had %d", len(diags))
 					}
-					// We expect the diagnostic to be about a cycle
-					if !strings.Contains(diags[0].Description().Summary, "Cycle") {
-						t.Fatalf("expected diagnostic summary to contain 'Cycle', got '%s'", diags[0].Description().Summary)
+
+					if diags[0].Severity() != tfdiags.Error {
+						t.Error("expected error diagnostic")
 					}
-					// We expect the action node to be part of the cycle
-					if !strings.Contains(diags[0].Description().Summary, "action.test_action.hello") {
-						t.Fatalf("expected diagnostic summary to contain 'action.test_action.hello', got '%s'", diags[0].Description().Summary)
-					}
-					// We expect the resource node to be part of the cycle
-					if !strings.Contains(diags[0].Description().Summary, "test_object.a") {
-						t.Fatalf("expected diagnostic summary to contain 'test_object.a', got '%s'", diags[0].Description().Summary)
+
+					if diags[0].Description().Summary != `Invalid "caller" reference` {
+						t.Errorf("expected diagnostics about invalid caller, got %s", diags[0].Description().Summary)
 					}
 				},
 			},
@@ -1990,22 +2354,13 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
-					DeferralAllowed: true, // actions should ignore this setting
+					DeferralAllowed: true,
 				},
 				planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
 					return providers.PlanActionResponse{
 						Deferred: &providers.Deferred{
-							Reason: providers.DeferredReasonAbsentPrereq,
+							Reason: providers.DeferredReasonProviderConfigUnknown,
 						},
-					}
-				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
 					}
 				},
 			},
@@ -2044,21 +2399,23 @@ resource "test_object" "a" {
 					}
 					return providers.PlanActionResponse{
 						Deferred: &providers.Deferred{
-							Reason: providers.DeferredReasonAbsentPrereq,
+							Reason: providers.DeferredReasonProviderConfigUnknown,
 						},
 					}
 				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					// for now, it's just an error for any deferrals but when
-					// this gets implemented we should check that all the
-					// actions are deferred even though only one of them
-					// was actually marked as deferred.
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					// both actions should be reported as deferred
+					if len(p.DeferredActionInvocations) != 2 {
+						t.Fatalf("expected 2 deferred action invocations, got %d", len(p.DeferredActionInvocations))
+					}
+					if len(p.Changes.ActionInvocations) > 0 {
+						t.Fatalf("expected no action invocation, got %d", len(p.Changes.ActionInvocations))
+					}
+					if len(p.DeferredResources) != 1 {
+						t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+					}
+					if len(p.Changes.Resources) > 0 {
+						t.Fatalf("expected no planned resources, got %d\n", len(p.Changes.Resources))
 					}
 				},
 			},
@@ -2103,19 +2460,6 @@ resource "test_object" "a" {
 						Deferred: &providers.Deferred{
 							Reason: providers.DeferredReasonAbsentPrereq,
 						},
-					}
-				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					// for now, it's just an error for any deferrals but when
-					// this gets implemented we should check that all the
-					// actions are deferred even though only one of them
-					// was actually marked as deferred.
-					return tfdiags.Diagnostics{
-						tfdiags.Sourceless(
-							tfdiags.Error,
-							"Provider deferred changes when Terraform did not allow deferrals",
-							`The provider signaled a deferred action for "action.test_action.hello", but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.`,
-						),
 					}
 				},
 			},
@@ -2207,6 +2551,7 @@ resource "test_object" "a" {
 					}
 				},
 			},
+
 			"action expansion with unknown instances": {
 				module: map[string]string{
 					"main.tf": `
@@ -2237,17 +2582,9 @@ resource "test_object" "a" {
 						},
 					},
 				},
-				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
-					if len(diagnostics) != 1 {
-						t.Fatal("wrong number of diagnostics")
-					}
-
-					if diagnostics[0].Severity() != tfdiags.Error {
-						t.Error("expected error severity")
-					}
-
-					if diagnostics[0].Description().Summary != "Invalid for_each argument" {
-						t.Errorf("expected for_each argument to be source of error but was %s", diagnostics[0].Description().Summary)
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.DeferredResources) != 1 {
+						t.Fatal("expected resource to be deferred, because action was deferred")
 					}
 				},
 			},
@@ -2282,7 +2619,6 @@ resource "other_object" "a" {
 }
 `,
 				},
-				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
 					DeferralAllowed: true,
@@ -2298,21 +2634,6 @@ resource "other_object" "a" {
 					if got := len(p.Changes.ActionInvocations); got != 0 {
 						t.Fatalf("expected 0 planned action invocations, got %d", got)
 					}
-
-					if got := len(p.DeferredActionInvocations); got != 1 {
-						t.Fatalf("expected 1 deferred action invocations, got %d", got)
-					}
-					ac, err := p.DeferredActionInvocations[0].Decode(&testActionSchema)
-					if err != nil {
-						t.Fatalf("error decoding action invocation: %s", err)
-					}
-					if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
-						t.Fatalf("expected DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
-					}
-					if ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString() != "static" {
-						t.Fatalf("expected attr to be static, got %s", ac.ActionInvocationInstance.ConfigValue.GetAttr("attr").AsString())
-					}
-
 				},
 			},
 			"action with unknown module expansion and unknown instances": {
@@ -2354,7 +2675,7 @@ resource "other_object" "a" {
 }
 `,
 				},
-				expectPlanActionCalled: true,
+				expectPlanActionCalled: false,
 				planOpts: &PlanOpts{
 					Mode:            plans.NormalMode,
 					DeferralAllowed: true,
@@ -2372,21 +2693,6 @@ resource "other_object" "a" {
 				assertPlan: func(t *testing.T, p *plans.Plan) {
 					if len(p.Changes.ActionInvocations) != 0 {
 						t.Fatalf("expected 0 planned action invocations, got %d", len(p.Changes.ActionInvocations))
-					}
-
-					if len(p.DeferredActionInvocations) != 1 {
-						t.Fatalf("expected 1 deferred partial action invocations, got %d", len(p.DeferredActionInvocations))
-					}
-
-					ac, err := p.DeferredActionInvocations[0].Decode(&testActionSchema)
-					if err != nil {
-						t.Fatalf("error decoding action invocation: %s", err)
-					}
-					if ac.DeferredReason != providers.DeferredReasonInstanceCountUnknown {
-						t.Fatalf("expected deferred reason to be DeferredReasonInstanceCountUnknown, got %s", ac.DeferredReason)
-					}
-					if !ac.ActionInvocationInstance.ConfigValue.IsNull() {
-						t.Fatalf("expected config value to be null")
 					}
 				},
 			},
@@ -2430,20 +2736,6 @@ resource "test_object" "a" {
 						PlannedState:    req.ProposedNewState,
 						PlannedPrivate:  req.PriorPrivate,
 						PlannedIdentity: req.PriorIdentity,
-					}
-				},
-
-				assertPlanDiagnostics: func(t *testing.T, diagnostics tfdiags.Diagnostics) {
-					if len(diagnostics) != 1 {
-						t.Fatal("wrong number of diagnostics")
-					}
-
-					if diagnostics[0].Severity() != tfdiags.Error {
-						t.Error("expected error diagnostics")
-					}
-
-					if diagnostics[0].Description().Summary != "Invalid action deferral" {
-						t.Errorf("expected deferral to be source of error was %s", diagnostics[0].Description().Summary)
 					}
 				},
 			},
@@ -2846,6 +3138,77 @@ action "test_action" "one" {
 				},
 			},
 
+			"invoke action with caller": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  count = 2
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+	  actions = [action.test_action.one]
+	}
+  }
+}
+
+action "test_action" "one" {
+  config {
+    attr = caller.name
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsAction{
+							Action: addrs.Action{
+								Type: "test_action",
+								Name: "one",
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: true,
+				buildState: func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 2 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+					}
+
+					ais := plan.Changes.ActionInvocations[0]
+					ai, err := ais.Decode(&testActionSchema)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+						t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+					}
+
+					expected := cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					})
+					if diff := cmp.Diff(ai.ConfigValue, expected, ctydebug.CmpOptions); len(diff) > 0 {
+						t.Fatalf("wrong value in plan: %s", diff)
+					}
+
+					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
+						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
 			"invoke action with reference (drift)": {
 				module: map[string]string{
 					"main.tf": `
@@ -3012,8 +3375,8 @@ action "test_action" "one" {
 						t.Errorf("expected exactly one diagnostic but got %d", len(diagnostics))
 					}
 
-					if diagnostics[0].Description().Summary != "Partially applied configuration" {
-						t.Errorf("wrong diagnostic: %s", diagnostics[0].Description().Summary)
+					if len(diagnostics) < 1 || diagnostics[0].Description().Summary != "Partially applied configuration" {
+						t.Errorf("wrong diagnostic: %v", diagnostics.Err())
 					}
 				},
 			},
@@ -3157,7 +3520,7 @@ resource "test_object" "a" {
 }
 `,
 				},
-				expectPlanActionCalled: false,
+				expectPlanActionCalled: true,
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					SetVariables: InputValues{
@@ -3167,18 +3530,28 @@ resource "test_object" "a" {
 						},
 					},
 				},
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Condition must be known",
-						Detail:   "The condition expression resulted in an unknown value, but it must be a known boolean value.",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 10, Column: 19, Byte: 184},
-							End:      hcl.Pos{Line: 10, Column: 36, Byte: 201},
-						},
-					})
+			},
+
+			"before_create references caller": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
 				},
+				expectPlanActionCalled: true,
 			},
 
 			"non-boolean condition": {
@@ -3215,43 +3588,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"referencing triggering resource in before_* condition": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {}
-action "test_action" "world" {}
-resource "test_object" "a" {
-  name = "foo"
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      condition = test_object.a.name == "foo"
-      actions = [action.test_action.hello]
-    }
-    action_trigger {
-      events = [before_update]
-      condition = test_object.a.name == "bar"
-      actions = [action.test_action.world]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: true,
-
-				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
-					if !diags.HasErrors() {
-						t.Errorf("expected errors, got none")
-					}
-
-					err := diags.Err().Error()
-					if !strings.Contains(err, "Cycle:") || !strings.Contains(err, "action.test_action.hello") || !strings.Contains(err, "test_object.a") {
-						t.Fatalf("Expected '[Error] Cycle: action.test_action.hello (instance), test_object.a', got '%s'", err)
-					}
-				},
-			},
-
-			"referencing triggering resource in after_* condition": {
+			"referencing triggering resource address": {
 				module: map[string]string{
 					"main.tf": `
 action "test_action" "hello" {}
@@ -3264,20 +3601,16 @@ resource "test_object" "a" {
       condition = test_object.a.name == "foo"
       actions = [action.test_action.hello]
     }
-    action_trigger {
-      events = [after_update]
-      condition = test_object.a.name == "bar"
-      actions = [action.test_action.world]
-    }
   }
 }
 `,
 				},
-				expectPlanActionCalled: true,
-
-				assertPlan: func(t *testing.T, p *plans.Plan) {
-					if len(p.Changes.ActionInvocations) != 1 {
-						t.Errorf("expected 1 action invocation, got %d", len(p.Changes.ActionInvocations))
+				expectPlanActionCalled: false,
+				assertValidateDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					for _, d := range diags {
+						if d.Description().Summary != "Self-referential block" {
+							t.Errorf("expected Self-referential block diagnostic, got %s", d.Description().Summary)
+						}
 					}
 				},
 			},
@@ -3935,6 +4268,7 @@ resource "test_object" "b" {
 											"name": {
 												Type:     cty.String,
 												Optional: true,
+												Computed: true,
 											},
 										},
 									},

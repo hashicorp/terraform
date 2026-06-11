@@ -67,6 +67,80 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 				return diags
 			}
 		}
+		diags = diags.Append(n.validateActions(ctx))
+	}
+
+	return diags
+}
+
+func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// check that we have the correct reference type for any action expansion
+	repData, _ := n.stubRepetitionData()
+
+	// There may be many triggers and many actions within a trigger, but for the
+	// purposes of validation we don't need to repeat them. Just collect all
+	// known actions and validate them once each.
+	actions := addrs.MakeMap[addrs.ConfigAction, actionRef]()
+
+	for _, trigger := range n.actionTriggers {
+		// Self refs are allowed, but we'll at least prevent before_create from
+		// using them. Technically a resource can plan known computed
+		// attributes, but we'll guard against the common case for now.
+	EVENTS:
+		for _, event := range trigger.config.Events {
+			if event == configs.BeforeCreate {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
+				for _, ref := range refs {
+					if _, isSelf := ref.Subject.(addrs.SelfType); isSelf {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Reference to self in before_create condition",
+							Detail:   "Computed attributes from self may not be known before the resource is created.",
+							Subject:  trigger.config.Condition.Range().Ptr(),
+						})
+						break EVENTS
+					}
+				}
+			}
+		}
+
+		// check condition for full address self-refs
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, trigger.config.Condition))
+
+		for _, ref := range trigger.actionRefs {
+			actions.Put(ref.actionNode.Addr, ref)
+
+			actionInst, ds := evaluateActionExpression(ref.configRef.Expr, repData)
+			diags = diags.Append(ds)
+			if diags.HasErrors() {
+				// validateInstanceKey won't work if the value is invalid
+				continue
+			}
+
+			diags = diags.Append(ref.actionNode.validateInstanceKey(actionInst.Absolute(ctx.Path()), ref.configRef.Range.Ptr()))
+
+			// actions initially allowed to use caller data via arbitrary
+			// expressions, but using caller is preferred now to avoid hidden
+			// cycles in the graph
+			for _, actionBlockRef := range ref.actionNode.References() {
+				if resource, ok := actionBlockRef.Subject.(addrs.ResourceInstance); ok && resource.Resource.Equal(n.Addr.Resource) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject:  actionBlockRef.SourceRange.ToHCL().Ptr(),
+					})
+				}
+			}
+		}
+	}
+
+	_, self := n.stubRepetitionData()
+
+	for _, ref := range actions.Iter() {
+		diags = diags.Append(ref.actionNode.Validate(ctx, self, cty.UnknownVal(n.Schema.Body.ImpliedType())))
 	}
 
 	return diags
@@ -140,7 +214,7 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 }
 
 func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
 	val, hclBody, diags := ctx.EvaluateBlock(body, schema, selfAddr, keyData)
 
@@ -587,7 +661,7 @@ func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Express
 	return result, diags
 }
 
-func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) (instances.RepetitionData, addrs.Referenceable) {
+func (n *NodeValidatableResource) stubRepetitionData() (instances.RepetitionData, addrs.Referenceable) {
 	keyData := EvalDataForNoInstanceKey
 	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
 
@@ -624,7 +698,7 @@ func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) 
 func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
 	for _, cr := range config.Preconditions {
 		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, nil, keyData)

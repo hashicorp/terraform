@@ -34,6 +34,7 @@ var (
 	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeActionCaller        = (*NodeDestroyResourceInstance)(nil)
 )
 
 func (n *NodeDestroyResourceInstance) Name() string {
@@ -44,7 +45,7 @@ func (n *NodeDestroyResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()
@@ -84,31 +85,6 @@ func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
 func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
 	// a destroy node is not referenceable
 	return []addrs.Referenceable{}
-}
-
-// GraphNodeReferencer, overriding NodeAbstractResource
-func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
-	// If we have a config, then we need to include destroy-time dependencies
-	if c := n.Config; c != nil && c.Managed != nil {
-		var result []*addrs.Reference
-
-		// We include conn info and config for destroy time provisioners
-		// as dependencies that we have.
-		for _, p := range c.Managed.Provisioners {
-			schema := n.ProvisionerSchemas[p.Type]
-
-			if p.When == configs.ProvisionerWhenDestroy {
-				if p.Connection != nil {
-					result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
-				}
-				result = append(result, ReferencesFromConfig(p.Config, schema)...)
-			}
-		}
-
-		return result
-	}
-
-	return nil
 }
 
 // GraphNodeExecutable
@@ -181,6 +157,14 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		}
 	}
 
+	if n.hasBeforeActions() {
+		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+		diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	// we pass a nil configuration to apply because we are destroying
@@ -209,6 +193,9 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 			Action:       changeApply.Action,
 		})
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))

@@ -15,11 +15,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func evalReplaceTriggeredByExpr(expr hcl.Expression, keyData instances.RepetitionData) (*addrs.Reference, tfdiags.Diagnostics) {
+// evalSemiStaticExpr takes a reference expression which might contain instance
+// indexes derived from variable values, and returns an addrs.Reference for the
+// known parts.
+func evalSemiStaticExpr(expr hcl.Expression, keyData instances.RepetitionData) (*addrs.Reference, tfdiags.Diagnostics) {
 	var ref *addrs.Reference
 	var diags tfdiags.Diagnostics
 
-	traversal, diags := triggersExprToTraversal(expr, keyData)
+	traversal, diags := semiStaticExpToTraversal(expr, keyData)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -31,17 +34,17 @@ func evalReplaceTriggeredByExpr(expr hcl.Expression, keyData instances.Repetitio
 	return ref, diags
 }
 
-// trggersExprToTraversal takes an hcl expression limited to the syntax allowed
-// in replace_triggered_by, and converts it to a static traversal. The
-// RepetitionData contains the data necessary to evaluate the only allowed
-// variables in the expression, count.index and each.key.
-func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
+// semiStaticExpToTraversal takes an hcl expression limited to the syntax allowed
+// for static references with dynamic instance keys, and converts it to a static
+// traversal. The RepetitionData contains the data necessary to evaluate the
+// only allowed variables in the expression, count.index and each.key.
+func semiStaticExpToTraversal(expr hcl.Expression, keyData instances.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
 	var trav hcl.Traversal
 	var diags tfdiags.Diagnostics
 
 	switch e := expr.(type) {
 	case *hclsyntax.RelativeTraversalExpr:
-		t, d := triggersExprToTraversal(e.Source, keyData)
+		t, d := semiStaticExpToTraversal(e.Source, keyData)
 		diags = diags.Append(d)
 		trav = append(trav, t...)
 		trav = append(trav, e.Traversal...)
@@ -52,7 +55,7 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 	case *hclsyntax.IndexExpr:
 		// Get the collection from the index expression
-		t, d := triggersExprToTraversal(e.Collection, keyData)
+		t, d := semiStaticExpToTraversal(e.Collection, keyData)
 		diags = diags.Append(d)
 		if diags.HasErrors() {
 			return nil, diags
@@ -61,7 +64,7 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 		// The index key is the only place where we could have variables that
 		// reference count and each, so we need to parse those independently.
-		idx, hclDiags := parseReplaceTriggeredByKeyExpr(e.Key, keyData)
+		idx, hclDiags := parseKeyExprForStaticTraveral(e.Key, keyData)
 		diags = diags.Append(hclDiags)
 
 		trav = append(trav, idx)
@@ -72,8 +75,8 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 		// to fix.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid replace_triggered_by expression",
-			Detail:   "Unexpected expression found in replace_triggered_by.",
+			Summary:  "Invalid instance reference",
+			Detail:   "Only object references with dynamic indexes are allowed in this context.",
 			Subject:  e.Range().Ptr(),
 		})
 	}
@@ -81,9 +84,9 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 	return trav, diags
 }
 
-// parseReplaceTriggeredByKeyExpr takes an hcl.Expression and parses it as an index key, while
+// parseKeyExprForStaticTraveral takes an hcl.Expression and parses it as an index key, while
 // evaluating any references to count.index or each.key. This is also used in evaluateActionExpression.
-func parseReplaceTriggeredByKeyExpr(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
+func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
 	idx := hcl.TraverseIndex{
 		SrcRange: expr.Range(),
 	}
