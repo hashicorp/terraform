@@ -16,6 +16,8 @@ import (
 )
 
 // nodeResourcePolicy is a node that evaluates a resource instance's policy.
+// The node is not part of the main graph, but is executed as part of the
+// policy subgraph of nodePolicyEval.
 type nodeResourcePolicy struct {
 	ResourceAddr addrs.AbsResourceInstance
 	ProviderAddr addrs.AbsProviderConfig
@@ -74,11 +76,12 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    policyOperation,
+		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
 	providerRef := ProviderRef{
-		addr:     providerAddr,
-		resolved: true,
+		Addr:     providerAddr,
+		Resolved: true,
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration

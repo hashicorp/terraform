@@ -228,12 +228,11 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		Target: n.Addr.Provider.Type,
 		Attrs:  attrs,
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-			Name:       n.Addr.Provider.Type,
-			Alias:      n.Addr.Alias,
-			Namespace:  n.Addr.Provider.Namespace,
-			Source:     n.Addr.Provider.String(),
-			ModulePath: n.Addr.Module.String(),
-			Version:    n.providerVersion(ctx),
+			Name:      n.Addr.Provider.Type,
+			Alias:     n.Addr.Alias,
+			Namespace: n.Addr.Provider.Namespace,
+			Source:    n.Addr.Provider.String(),
+			Version:   n.providerVersion(ctx),
 		},
 	})
 

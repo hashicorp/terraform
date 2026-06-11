@@ -75,20 +75,22 @@ type Init struct {
 
 	PluginPath FlagStringSlice
 
-	Args []string
-
 	StateStoreProviderLockFile string
 
 	// The -enable-pluggable-state-storage-experiment flag is used in control flow logic in the init command.
 	// TODO(SarahFrench/radeksimko): Remove this once the feature is no longer
 	// experimental
 	EnablePssExperiment bool
+
+	// PolicyPath contains an optional path to any defined policies that should
+	// be applied for this init operation.
+	PolicyPaths []string
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
+func ParseInit(rawArgs []string, experimentsEnabled bool) (*Init, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	init := &Init{
 		Vars: &Vars{},
@@ -117,11 +119,12 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
 	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.StringVar(&init.StateStoreProviderLockFile, "state-provider-lock-file", "", "path to the dependency lock file used to establish trust in the provider used for state storage. This flag can only be supplied when input is disabled. Defaults to the working directory's .terraform.lock.hcl file.")
+	cmdFlags.Var((*FlagStringSlice)(&init.PolicyPaths), "policies", "policies")
 
 	// Used for enabling experimental code that's invoked before configuration is parsed.
 	cmdFlags.BoolVar(&init.EnablePssExperiment, "enable-pluggable-state-storage-experiment", false, "Enable the pluggable state storage experiment")
 
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := cmdFlags.Parse(rawArgs); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
@@ -217,7 +220,15 @@ func ParseInit(args []string, experimentsEnabled bool) (*Init, tfdiags.Diagnosti
 		diags = diags.Append(fmt.Errorf("The -upgrade flag conflicts with -lockfile=readonly."))
 	}
 
-	init.Args = cmdFlags.Args()
+	args := cmdFlags.Args()
+	if len(args) != 0 {
+		// No positional arguments are expected.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No positional arguments are expected",
+			"The init command does not expect any positional arguments. Did you mean to use -chdir?",
+		))
+	}
 
 	backendFlagSet := FlagIsSet(cmdFlags, "backend")
 	cloudFlagSet := FlagIsSet(cmdFlags, "cloud")

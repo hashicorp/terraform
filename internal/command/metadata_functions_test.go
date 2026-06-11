@@ -11,6 +11,7 @@ import (
 )
 
 func TestMetadataFunctions_error(t *testing.T) {
+	t.Parallel()
 	ui := new(cli.MockUi)
 	c := &MetadataFunctionsCommand{
 		Meta: Meta{
@@ -25,6 +26,7 @@ func TestMetadataFunctions_error(t *testing.T) {
 }
 
 func TestMetadataFunctions_output(t *testing.T) {
+	t.Parallel()
 	ui := new(cli.MockUi)
 	m := Meta{Ui: ui}
 	c := &MetadataFunctionsCommand{Meta: m}

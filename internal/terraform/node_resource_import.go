@@ -42,7 +42,7 @@ func (n *graphNodeImportState) Provider() ProviderRef {
 	// to populate this, possibly by calling DefaultProviderConfig() on the
 	// resource address to infer an implied provider from the resource type
 	// name.
-	return ProviderRef{addr: n.ProviderAddr}
+	return ProviderRef{Addr: n.ProviderAddr}
 }
 
 // GraphNodeProviderConsumer

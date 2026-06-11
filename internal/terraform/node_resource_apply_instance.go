@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -37,13 +38,14 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviderConsumer = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -142,7 +144,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		}
 	}
 
-	diags = diags.Append(n.writeChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, states.NotDeposed))
 
 	diags = diags.Append(updateStateHook(ctx))
 
@@ -216,9 +218,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Get the saved diff
 	diff := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -258,10 +269,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If there is no change, there was nothing to apply, and we don't need to
 	// re-write the state, but we do need to re-evaluate postconditions.
 	if diffApply.Action == plans.NoOp {
-		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+		return diags.Append(n.managedResourcePostconditions(ctx, repData))
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+	if n.hasBeforeActions() {
+		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+		diags = diags.Append(n.invokeActions(ctx, repData, configs.BeforeEvents, diffApply.After))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repData, n.CreateBeforeDestroy())
 
 	diags = diags.Append(applyDiags)
 
@@ -279,7 +298,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	err = n.writeChange(ctx, nil, "")
+	err = n.writeChange(ctx, nil, states.NotDeposed)
 	if err != nil {
 		return diags.Append(err)
 	}
@@ -349,7 +368,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
-	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	diags = diags.Append(n.managedResourcePostconditions(ctx, repData))
+
+	diags = diags.Append(n.invokeActions(ctx, repData, configs.AfterEvents, state.Value))
+
+	return diags
 }
 
 func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {

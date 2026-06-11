@@ -97,6 +97,7 @@ message PolicyEvaluateResourceRequest {
   message ResourceMetadata {
     string provider_type = 1;
     Operation operation = 2;
+    string module_path = 3;
   }
 }
 
@@ -179,8 +180,7 @@ message PolicyEvaluateProviderRequest {
     string alias = 2;
     string namespace = 3;
     string source = 4;
-    string module_path = 5;
-    string version = 6;
+    string version = 5;
   }
 }
 

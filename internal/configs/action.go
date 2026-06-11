@@ -19,7 +19,7 @@ func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  `Invalid action argument inside action_triggers`,
-		Detail:   `action_triggers.actions must only refer to actions in the current module.`,
+		Detail:   `action_triggers.actions must only refer to actions in the current module, count.index, or each.key.`,
 		Subject:  subj,
 	}
 }
@@ -37,6 +37,7 @@ type Action struct {
 
 	DeclRange hcl.Range
 	TypeRange hcl.Range
+	Body      hcl.Body
 }
 
 // ActionTrigger represents a configured "action_trigger" inside the lifecycle
@@ -56,7 +57,7 @@ type ActionTriggerEvent int
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
 
 const (
-	Unknown ActionTriggerEvent = iota
+	EventUnknown ActionTriggerEvent = iota
 	BeforeCreate
 	AfterCreate
 	BeforeUpdate
@@ -64,6 +65,24 @@ const (
 	BeforeDestroy
 	AfterDestroy
 	Invoke
+)
+
+func (e ActionTriggerEvent) IsBefore() bool {
+	return slices.Contains(BeforeEvents, e)
+}
+
+func (e ActionTriggerEvent) IsAfter() bool {
+	return slices.Contains(AfterEvents, e)
+}
+
+func (e ActionTriggerEvent) IsDestroy() bool {
+	return slices.Contains(DestroyEvents, e)
+}
+
+var (
+	BeforeEvents  = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
+	AfterEvents   = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	DestroyEvents = []ActionTriggerEvent{BeforeDestroy, AfterDestroy}
 )
 
 // ActionRef represents a reference to a configured Action
@@ -78,29 +97,15 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		Events:    []ActionTriggerEvent{},
 		Actions:   []ActionRef{},
 		Condition: nil,
+		DeclRange: block.DefRange,
 	}
 
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
 	diags = append(diags, bodyDiags...)
 
 	var refs []*addrs.Reference
-	var refDiags tfdiags.Diagnostics
 	if attr, exists := content.Attributes["condition"]; exists {
 		a.Condition = attr.Expr
-
-		refs, refDiags = langrefs.ReferencesInExpr(addrs.ParseRef, attr.Expr)
-		diags = append(diags, refDiags.ToHCL()...)
-
-		for _, ref := range refs {
-			if ref.Subject == addrs.Self {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Self reference not allowed",
-					Detail:   `The condition expression cannot reference "self".`,
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
-		}
 	}
 
 	if attr, exists := content.Attributes["events"]; exists {
@@ -123,11 +128,15 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				containsBefore = true
 			case "after_update":
 				event = AfterUpdate
+			case "before_destroy":
+				event = BeforeDestroy
+			case "after_destroy":
+				event = AfterDestroy
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Invalid \"event\" value %s", hcl.ExprAsKeyword(expr)),
-					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
 				continue
@@ -206,6 +215,7 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
+		Body:      block.Body,
 	}
 
 	if !hclsyntax.ValidIdentifier(a.Type) {
@@ -356,6 +366,7 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 	}
 	actionRefs := make([]ActionRef, len(exprs))
 
+EXPRS:
 	for i, expr := range exprs {
 		// Since we are manually parsing the action_trigger.Actions argument, we
 		// need to specially handle json configs, in which case the values will
@@ -397,6 +408,8 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 			switch ref.Subject.(type) {
 			case addrs.Action, addrs.ActionInstance:
 				actionCount++
+			case addrs.CountAttr, addrs.ForEachAttr:
+				// these are OK
 			case addrs.ModuleCall, addrs.ModuleCallInstance, addrs.ModuleCallInstanceOutput:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -404,13 +417,11 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 					Detail:   "Actions can only be referenced in the module they are declared in.",
 					Subject:  expr.Range().Ptr(),
 				})
-				continue
-			case addrs.Resource, addrs.ResourceInstance:
+				continue EXPRS
+			default:
 				// definitely not an action
 				diags = append(diags, invalidActionDiag(expr.Range().Ptr()))
-				continue
-			default:
-				// we've checked what we can
+				continue EXPRS
 			}
 		}
 

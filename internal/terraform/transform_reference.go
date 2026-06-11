@@ -116,9 +116,18 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	// Find the things that reference things and connect them
 	for _, v := range vs {
-		if _, ok := v.(GraphNodeDestroyer); ok {
-			// destroy nodes references are not connected, since they can only
-			// use their own state.
+		// Only plan-time destroy nodes can be connected via references.
+		_, destroyer := v.(GraphNodeDestroyer)
+		_, planning := v.(GraphNodePlanDestroyer)
+		if destroyer && !planning {
+			continue
+		}
+
+		// Because actions were allowed to reference the calling resource in
+		// configuration, we need to deal with the resulting cycles. Skip action
+		// nodes in the first round so that any triggers can be connected first
+		// so cycles can be detected.
+		if _, ok := v.(*NodeActionConfig); ok {
 			continue
 		}
 
@@ -141,14 +150,45 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			}
 
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
+				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(parent))
 				g.Connect(dag.BasicEdge(v, parent))
-			} else {
-				log.Printf("[TRACE] ReferenceTransformer: skipping %s => %s inter-module-instance dependency", dag.VertexName(v), dag.VertexName(parent))
 			}
 		}
+	}
 
-		if len(parents) > 0 {
+	// now we can go back and connect the action configs to their dependencies
+	for _, v := range vs {
+		actionConfig, ok := v.(*NodeActionConfig)
+		if !ok {
 			continue
+		}
+
+	ACTIONREFS:
+		for _, ref := range m.References(actionConfig) {
+			if g.Ancestors(ref).Include(actionConfig) {
+				// this reference creates a cycle, because the action is already
+				// an ancestor of the reference. We need to allow these for the
+				// back-references to calling resources, but only direct
+				// references are allowed.
+
+				caller, ok := ref.(GraphNodeActionCaller)
+				if !ok {
+					// this node cannot call any actions
+					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
+				}
+
+				// The reference can call actions, and we'll allow it if it
+				// directly references back to the same action node.
+				for _, actionCall := range caller.ActionCalls() {
+					if actionCall.Equal(actionConfig.Addr) {
+						continue ACTIONREFS
+					}
+				}
+				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
+			}
+
+			g.Connect(dag.BasicEdge(actionConfig, ref))
+			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(actionConfig), dag.VertexName(ref))
 		}
 	}
 

@@ -876,6 +876,7 @@ type PolicyEvaluateResourceRequest_ResourceMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProviderType  string                 `protobuf:"bytes,1,opt,name=provider_type,json=providerType,proto3" json:"provider_type,omitempty"`
 	Operation     Operation              `protobuf:"varint,2,opt,name=operation,proto3,enum=proto.Operation" json:"operation,omitempty"`
+	ModulePath    string                 `protobuf:"bytes,3,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -924,14 +925,20 @@ func (x *PolicyEvaluateResourceRequest_ResourceMetadata) GetOperation() Operatio
 	return Operation_CREATE
 }
 
+func (x *PolicyEvaluateResourceRequest_ResourceMetadata) GetModulePath() string {
+	if x != nil {
+		return x.ModulePath
+	}
+	return ""
+}
+
 type PolicyEvaluateProviderRequest_ProviderMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`
 	Namespace     string                 `protobuf:"bytes,3,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Source        string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
-	ModulePath    string                 `protobuf:"bytes,5,opt,name=module_path,json=modulePath,proto3" json:"module_path,omitempty"`
-	Version       string                 `protobuf:"bytes,6,opt,name=version,proto3" json:"version,omitempty"`
+	Version       string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -990,13 +997,6 @@ func (x *PolicyEvaluateProviderRequest_ProviderMetadata) GetNamespace() string {
 func (x *PolicyEvaluateProviderRequest_ProviderMetadata) GetSource() string {
 	if x != nil {
 		return x.Source
-	}
-	return ""
-}
-
-func (x *PolicyEvaluateProviderRequest_ProviderMetadata) GetModulePath() string {
-	if x != nil {
-		return x.ModulePath
 	}
 	return ""
 }
@@ -1079,17 +1079,19 @@ const file_policy_proto_rawDesc = "" +
 	"\x0econfigurations\x18\x01 \x03(\v2A.proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntryR\x0econfigurations\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xd3\x02\n" +
+	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xf5\x02\n" +
 	"\x1dPolicyEvaluateResourceRequest\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\rR\fevaluationId\x12\x1a\n" +
 	"\bresource\x18\x02 \x01(\tR\bresource\x12\x14\n" +
 	"\x05attrs\x18\x03 \x01(\fR\x05attrs\x12Q\n" +
 	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12\x1f\n" +
 	"\vprior_attrs\x18\x05 \x01(\fR\n" +
-	"priorAttrs\x1ag\n" +
+	"priorAttrs\x1a\x88\x01\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
-	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\"\xf7\x02\n" +
+	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\x12\x1f\n" +
+	"\vmodule_path\x18\x03 \x01(\tR\n" +
+	"modulePath\"\xf7\x02\n" +
 	"\x16PolicyEvaluationDetail\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12-\n" +
 	"\x06result\x18\x02 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12\x12\n" +
@@ -1110,19 +1112,17 @@ const file_policy_proto_rawDesc = "" +
 	"blockIndex\"\x95\x01\n" +
 	"\x1ePolicyEvaluateResourceResponse\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12D\n" +
-	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xdd\x02\n" +
+	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xbc\x02\n" +
 	"\x1dPolicyEvaluateProviderRequest\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12\x14\n" +
 	"\x05attrs\x18\x02 \x01(\fR\x05attrs\x12Q\n" +
-	"\bmetadata\x18\x03 \x01(\v25.proto.PolicyEvaluateProviderRequest.ProviderMetadataR\bmetadata\x1a\xad\x01\n" +
+	"\bmetadata\x18\x03 \x01(\v25.proto.PolicyEvaluateProviderRequest.ProviderMetadataR\bmetadata\x1a\x8c\x01\n" +
 	"\x10ProviderMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x1c\n" +
 	"\tnamespace\x18\x03 \x01(\tR\tnamespace\x12\x16\n" +
-	"\x06source\x18\x04 \x01(\tR\x06source\x12\x1f\n" +
-	"\vmodule_path\x18\x05 \x01(\tR\n" +
-	"modulePath\x12\x18\n" +
-	"\aversion\x18\x06 \x01(\tR\aversion\"\x95\x01\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\tR\aversion\"\x95\x01\n" +
 	"\x1ePolicyEvaluateProviderResponse\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12D\n" +
 	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xed\x01\n" +

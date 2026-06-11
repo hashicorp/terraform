@@ -69,7 +69,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -165,7 +165,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -194,7 +194,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 	return config
 }
 
-func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Module {
+func testRootModuleInline(t testing.TB, sources map[string]string, ignoreParsingErrors bool) *configs.Module {
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -230,7 +230,7 @@ func testRootModuleInline(t testing.TB, sources map[string]string) *configs.Modu
 	loader.AllowLanguageExperiments(true)
 
 	mod, diags := loader.Parser().LoadConfigDir(cfgPath)
-	if diags.HasErrors() {
+	if diags.HasErrors() && !ignoreParsingErrors {
 		t.Fatal(diags.Error())
 	}
 
