@@ -992,7 +992,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				}
 
 				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
-					if !req.Attrs.RawEquals(cty.NilVal) {
+					if !req.Attrs.RawEquals(cty.DynamicVal) {
 						t.Fatalf("expected module policy evaluation for %s to omit attrs, got %#v", req.Target, req.Attrs)
 					}
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
