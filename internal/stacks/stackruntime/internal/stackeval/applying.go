@@ -254,7 +254,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		}()
 
 		// If we have a dependency lock file, add the provider locks to the plan opts so we can evaluate provider policies
-		lockFile := main.DependencyLocks(PlanPhase)
+		lockFile := main.DependencyLocks(ApplyPhase)
 		var providerLocks map[addrs.Provider]*depsfile.ProviderLock
 		if lockFile != nil {
 			providerLocks = lockFile.AllProviders()

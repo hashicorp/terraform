@@ -303,6 +303,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 								},
 								Snippet: &proto.Snippet{
 									Code:                 `key = attr.value == "foo"`,
+									Context:              &snippetContext,
 									StartLine:            3,
 									HighlightStartOffset: 0,
 									HighlightEndOffset:   5,
@@ -346,6 +347,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 						},
 						PolicySnippet: &stacks.PolicySnippet{
 							Code:                 `key = attr.value == "foo"`,
+							Context:              snippetContext,
 							StartLine:            3,
 							HighlightStartOffset: 0,
 							HighlightEndOffset:   5,
