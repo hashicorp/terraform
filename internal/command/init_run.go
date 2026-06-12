@@ -164,9 +164,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		var policyDiags policy.Diagnostics
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
+		defer stopClient()
 		view.PolicyResults(nil, policyDiags)
+		// if there has been any errors when setting up the policy client, we log them
+		// and return early, as a failure to set up the policy client should terminate the init operation
 		if policyDiags.HasErrors() {
-			stopClient()
 			view.Diagnostics(diags)
 			return 1
 		}

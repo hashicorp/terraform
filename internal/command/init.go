@@ -56,6 +56,18 @@ func (c *InitCommand) Run(args []string) int {
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = initArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
 	diags = diags.Append(c.Validate(initArgs))
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -288,17 +300,6 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 }
 
 func (c *InitCommand) Validate(args *arguments.Init) (diags tfdiags.Diagnostics) {
-	loader, err := c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	var varDiags tfdiags.Diagnostics
-	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
-		loader.Parser().ForceFileSource(filename, src)
-	})
-	diags = diags.Append(varDiags)
 
 	diags = diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 	return diags

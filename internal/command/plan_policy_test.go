@@ -835,6 +835,9 @@ func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
 	if !policyEvaluated.Load() {
 		t.Fatal("expected policy evaluation to be called during plan")
 	}
+	if !stopCalled.Load() {
+		t.Fatal("expected policy client Stop to be called after plan")
+	}
 }
 
 func TestPlan_WithPolicySetupFailure(t *testing.T) {

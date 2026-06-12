@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -64,6 +65,52 @@ func TestInit_WithModulePolicy(t *testing.T) {
 
 	if got, want := policyClient.EvaluateModuleRequest.Meta.Version, ""; got != want {
 		t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+func TestInit_WithPolicyClientStopAfterInit(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
+	t.Chdir(td)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+
+	overrides := metaOverridesForProvider(testProvider())
+	policyClient := policy.NewTestMockClient(t)
+	var stopCalled atomic.Bool
+	var policyEvaluated atomic.Bool
+	policyClient.StopFn = func() {
+		stopCalled.Store(true)
+	}
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		policyEvaluated.Store(true)
+		if stopCalled.Load() {
+			t.Fatal("policy client Stop was called before init finished")
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	overrides.PolicyClient = policyClient
+
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-var", "module_name=example"})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+	}
+	if !policyEvaluated.Load() {
+		t.Fatal("expected module policy evaluation to be called during init")
+	}
+	if !stopCalled.Load() {
+		t.Fatal("expected policy client Stop to be called after init")
 	}
 }
 
