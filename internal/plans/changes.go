@@ -5,6 +5,7 @@ package plans
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -169,16 +170,17 @@ func (c *Changes) QueriesForAbsResource(addr addrs.AbsResource) []*QueryInstance
 // InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
-func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChange {
-	var changes []*ResourceInstanceChange
-	for _, rc := range c.Resources {
-		resAddr := rc.Addr.ContainingResource().Config()
-		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
-			changes = append(changes, rc)
+func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) iter.Seq[*ResourceInstanceChange] {
+	return func(yield func(*ResourceInstanceChange) bool) {
+		for _, rc := range c.Resources {
+			resAddr := rc.Addr.ContainingResource().Config()
+			if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+				if !yield(rc) {
+					return
+				}
+			}
 		}
 	}
-
-	return changes
 }
 
 // ResourceInstanceDeposed returns the plan change of a deposed object of
@@ -257,6 +259,8 @@ func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleC
 // SyncWrapper returns a wrapper object around the receiver that can be used
 // to make certain changes to the receiver in a concurrency-safe way, as long
 // as all callers share the same wrapper object.
+// Once the wrapper is closed, it is no longer writable and any further
+// modifications will panic.
 func (c *Changes) SyncWrapper() *ChangesSync {
 	return &ChangesSync{
 		changes: c,

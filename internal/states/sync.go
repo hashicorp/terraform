@@ -4,6 +4,7 @@
 package states
 
 import (
+	"iter"
 	"log"
 	"sync"
 
@@ -153,6 +154,35 @@ func (s *SyncState) ResourceInstancesByConfig(addr addrs.ConfigResource) []*Reso
 		ret = append(ret, s.state.ResourceInstance(addr.ResourceInstance).DeepCopy())
 	}
 	return ret
+}
+
+// ReadEachConfigResourceInstance returns an iterator over the resource instances
+// of the given config resource, applying the given selector function to each
+// instance and yielding the results.
+func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.ConfigResource, selector func(*ResourceInstance) (T, bool)) iter.Seq[T] {
+	if syncState == nil {
+		panic("ReadEachConfigResourceInstance on nil state")
+	}
+
+	addrs := syncState.state.allResourceInstanceObjectAddrs(func(objAddr addrs.AbsResourceInstanceObject) bool {
+		return objAddr.ResourceInstance.ConfigResource().Equal(addr)
+	})
+	syncState.lock.Unlock()
+
+	return func(yield func(T) bool) {
+		syncState.lock.Lock()
+		defer syncState.lock.Unlock()
+		for _, addr := range addrs {
+			val := syncState.state.ResourceInstance(addr.ResourceInstance).DeepCopy()
+			selected, ok := selector(val)
+			if !ok {
+				continue
+			}
+			if !yield(selected) {
+				return
+			}
+		}
+	}
 }
 
 // ResourceInstanceObject returns a snapshot of the resource instance object
