@@ -28,6 +28,9 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 		log.Printf("[DEBUG] policyGraph is nil")
 		return nil, nil
 	}
+	// Close the changes sync to prevent writes during policy evaluation
+	ctx.Changes().Close()
+
 	// ensure the graph has a single root
 	addRootNodeToGraph(&policyGraph.graph)
 	return &policyGraph.graph, nil
