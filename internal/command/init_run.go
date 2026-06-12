@@ -159,21 +159,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
-	var policyClient policy.Client
-	if len(initArgs.PolicyPaths) > 0 {
-		var policyDiags policy.Diagnostics
-		var stopClient func()
-		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
-		defer stopClient()
-		view.PolicyResults(nil, policyDiags)
-		// if there has been any errors when setting up the policy client, we log them
-		// and return early, as a failure to set up the policy client should terminate the init operation
-		if policyDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-	}
-
 	// If -state-provider-lock-file is set, we'll use that to obtain a new lock used for the state store provider
 	// This will be 'upserted': it may be that the previous locks don't contain the provider being added. potentially due to being empty, or contain a different version.
 	// The lock added will be used in the first step of provider download.
@@ -226,11 +211,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 
 	policyResults := plans.NewPolicyResults()
-	providerHook := &providerPolicyHook{
-		client:        policyClient,
-		policyResults: policyResults,
-		rootModule:    rootModEarly,
-	}
 
 	var pssLocks *depsfile.Locks // May end up containing 0 or 1 lock.
 	if rootModEarly.StateStore != nil {
@@ -333,6 +313,32 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
+	}
+
+	// Set up the policy client now that the backend is configured, so the
+	// entitlement can be read from it (as plan and apply do). getModules and
+	// getProviders below consume the client through the provider hook.
+	var policyClient policy.Client
+	if len(initArgs.PolicyPaths) > 0 {
+		var policyDiags policy.Diagnostics
+		var stopClient func()
+		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
+		defer stopClient()
+		view.PolicyResults(nil, policyDiags)
+		if policyDiags.HasErrors() {
+			// Surface any backend (and early config) diagnostics here too, so a
+			// backend failure isn't swallowed by this early return: backDiags is
+			// only appended after the core-version check below, which we skip.
+			diags = diags.Append(earlyConfDiags)
+			diags = diags.Append(backDiags)
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+	providerHook := &providerPolicyHook{
+		client:        policyClient,
+		policyResults: policyResults,
+		rootModule:    rootModEarly,
 	}
 
 	var state *states.State

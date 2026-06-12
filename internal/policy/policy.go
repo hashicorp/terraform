@@ -67,6 +67,25 @@ type (
 
 		// CallbackService is the callback service to use for policy evaluation.
 		CallbackService uint32
+
+		// Entitlement, when non-nil, carries the host/token/org the plugin uses
+		// to verify the calling org is entitled to policy enforcement. Nil means
+		// the plugin skips the check.
+		Entitlement *Entitlement
+	}
+
+	// Entitlement is the credential triple the plugin needs to call the
+	// TFC/TFE entitlement-set endpoint during Setup.
+	Entitlement struct {
+		Host  string
+		Token string
+		Org   string
+	}
+
+	// EntitlementProvider is implemented by backends that can supply a policy
+	// entitlement from their configured credentials.
+	EntitlementProvider interface {
+		PolicyEntitlement() *Entitlement
 	}
 
 	PolicyValue struct {
