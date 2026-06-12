@@ -68,6 +68,12 @@ type Remote struct {
 	// organization is the organization that contains the target workspaces.
 	organization string
 
+	// resolvedToken is the API token Configure used to authenticate against
+	// hostname, after applying the same precedence (block → env → cliconfig
+	// credentials) as the rest of the backend. Persisted so PolicyEntitlement
+	// can return it without re-resolving.
+	resolvedToken string
+
 	// workspace is used to map the default workspace to a remote workspace.
 	workspace string
 
@@ -322,6 +328,8 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		))
 		return diags
 	}
+
+	b.resolvedToken = token
 
 	cfg := &tfe.Config{
 		Address:      service.String(),
