@@ -120,7 +120,17 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 			}
 
 			g := fullG.ResourceGraph()
-			return c.resourceOnlyGraph(g)
+
+			switch args.Format {
+			case "mermaid":
+				return c.resourceOnlyGraphMermaid(g)
+			case "", "dot":
+				return c.resourceOnlyGraph(g)
+			default:
+				c.Ui.Error(fmt.Sprintf("Unsupported graph format: %s", args.Format))
+				return 1
+			}
+
 		} else {
 			args.GraphType = "apply"
 		}
@@ -174,11 +184,23 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	graphStr, err := terraform.GraphDot(g, &dag.DotOpts{
+	var graphStr string
+
+	opts := &dag.DotOpts{
 		DrawCycles: args.DrawCycles,
 		MaxDepth:   args.ModuleDepth,
 		Verbose:    args.Verbose,
-	})
+	}
+
+	switch args.Format {
+	case "mermaid":
+		graphStr, err = terraform.GraphMermaid(g, opts)
+	case "", "dot":
+		graphStr, err = terraform.GraphDot(g, opts)
+	default:
+		c.Ui.Error(fmt.Sprintf("Unsupported graph format: %s", args.Format))
+		return 1
+	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error converting graph: %s", err))
 		return 1
@@ -289,6 +311,81 @@ func (c *GraphCommand) resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigR
 	return 0
 }
 
+func (c *GraphCommand) resourceOnlyGraphMermaid(graph addrs.DirectedGraph[addrs.ConfigResource]) int {
+	out := c.Streams.Stdout.File
+
+	// use left-to-right layout by default
+	fmt.Fprintln(out, "flowchart LR")
+
+	// collect and sort addresses similar to resourceOnlyGraph for deterministic output
+	allAddrs := graph.AllNodes()
+	if len(allAddrs) == 0 {
+		fmt.Fprintln(out, "  %% This configuration does not contain any resources.")
+		fmt.Fprintln(out, "  %% For a more detailed graph, try: terraform graph -type=plan")
+		return 0
+	}
+
+	addrsOrder := make([]addrs.ConfigResource, 0, len(allAddrs))
+	for _, addr := range allAddrs {
+		addrsOrder = append(addrsOrder, addr)
+	}
+	sort.Slice(addrsOrder, func(i, j int) bool {
+		iAddr, jAddr := addrsOrder[i], addrsOrder[j]
+		iModStr, jModStr := iAddr.Module.String(), jAddr.Module.String()
+		switch {
+		case iModStr != jModStr:
+			return iModStr < jModStr
+		default:
+			iRes, jRes := iAddr.Resource, jAddr.Resource
+			switch {
+			case iRes.Mode != jRes.Mode:
+				return iRes.Mode == addrs.DataResourceMode
+			case iRes.Type != jRes.Type:
+				return iRes.Type < jRes.Type
+			default:
+				return iRes.Name < jRes.Name
+			}
+		}
+	})
+
+	currentMod := addrs.RootModule
+	for _, addr := range addrsOrder {
+		if !addr.Module.Equal(currentMod) {
+			if !currentMod.IsRoot() {
+				fmt.Fprintln(out, "  end")
+			}
+			currentMod = addr.Module
+
+			fmt.Fprintf(out, "  subgraph %s\n", currentMod.String())
+		}
+		id := addr.String()
+		label := addr.Resource.String()
+		if currentMod.IsRoot() {
+			fmt.Fprintf(out, "  %s[%s]\n", id, dag.MermaidEscapeLabel(label))
+		} else {
+			fmt.Fprintf(out, "    %s[%s]\n", id, dag.MermaidEscapeLabel(label))
+		}
+	}
+	if !currentMod.IsRoot() {
+		fmt.Fprintln(out, "  end")
+	}
+
+	// emit edges
+	for _, sourceAddr := range addrsOrder {
+		deps := graph.DirectDependenciesOf(sourceAddr)
+		srcID := sourceAddr.String()
+		for _, targetAddr := range addrsOrder {
+			if !deps.Has(targetAddr) {
+				continue
+			}
+			tgtID := targetAddr.String()
+			fmt.Fprintf(out, "  %s --> %s\n", srcID, tgtID)
+		}
+	}
+
+	return 0
+}
+
 func (c *GraphCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] graph [options]
@@ -334,6 +431,9 @@ Options:
                       to the default files terraform.tfvars and *.auto.tfvars.
                       Use this option more than once to include more than one
                       variables file.
+
+  -format=FORMAT      Output format for the graph. Supported values are
+                      dot (default) and mermaid.
 `
 	return strings.TrimSpace(helpText)
 }
