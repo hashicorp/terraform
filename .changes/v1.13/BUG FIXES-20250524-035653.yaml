@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: suppress false-positive plugin_cache_dir error when -chdir is used
+time: 2025-05-24T03:56:53.347808+09:00
+custom:
+    Issue: "36881"
