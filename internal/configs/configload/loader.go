@@ -49,6 +49,10 @@ type Config struct {
 	// IncludeQueryFiles is set to true if query files should be parsed
 	// when running query commands.
 	IncludeQueryFiles bool
+
+	// IncludeStateMigrateFiles is set to true if state migration files should
+	// be parsed when running state migrate commands.
+	IncludeStateMigrateFiles bool
 }
 
 // NewLoader creates and returns a loader that reads configuration from the
@@ -81,6 +85,10 @@ func NewLoader(config *Config) (*Loader, error) {
 
 	if config.IncludeQueryFiles {
 		ret.parserOpts = append(ret.parserOpts, configs.MatchQueryFiles())
+	}
+
+	if config.IncludeStateMigrateFiles {
+		ret.parserOpts = append(ret.parserOpts, configs.MatchStateMigrateFiles())
 	}
 
 	return ret, nil
