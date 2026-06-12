@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"iter"
 	"log"
-	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
@@ -46,6 +47,10 @@ func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs
 func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
 	return func(target string, attrs cty.Value) ([]cty.Value, error) {
 		var found []cty.Value
+		var filterMap map[string]cty.Value
+		if !attrs.IsNull() {
+			filterMap = attrs.AsValueMap()
+		}
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -56,38 +61,30 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
-				var resourceFunc iter.Seq[cty.Value]
+				var resourcesSeq iter.Seq[cty.Value]
+				var count int
 				if walkOperation == walkApply {
-					resources := state.ResourceInstancesByConfig(addr)
-					resourceFunc = func(yield func(cty.Value) bool) {
-						for _, inst := range resources {
-							if inst.Current == nil {
-								continue
-							}
-							schema := schema.SchemaForResourceAddr(addr.Resource)
-							rsc, err := inst.Current.Decode(schema)
-							if err != nil {
-								log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
-								continue
-							}
-							if !yield(rsc.Value) {
-								return
-							}
+					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+						if inst.Current == nil {
+							return cty.NilVal, false
 						}
-					}
+						schema := schema.SchemaForResourceAddr(addr.Resource)
+						rsc, err := inst.Current.Decode(schema)
+						if err != nil {
+							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
+							return cty.NilVal, false
+						}
+						count++
+						return rsc.Value, true
+					})
 				} else {
-					resources := ctx.Changes().GetChangesForConfigResource(addr)
-					resourceFunc = func(yield func(cty.Value) bool) {
-						for _, change := range resources {
-							if !yield(change.After) {
-								return
-							}
-						}
-					}
+					resourcesSeq = plans.ReadEachConfigResourceChange(ctx.Changes(), addr, func(change *plans.ResourceInstanceChange) (cty.Value, bool) {
+						count++
+						return change.After, true
+					})
 				}
 
-				log.Printf("[DEBUG] getresources: found %d resources for policy target %q", len(slices.Collect(resourceFunc)), target)
-				for resource := range resourceFunc {
+				for resource := range resourcesSeq {
 					if attrs.IsNull() {
 						// then match everything
 						found = append(found, resource)
@@ -95,9 +92,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					}
 
 					value, matched := resource, true
-					for name, attr := range attrs.AsValueMap() {
+					for name, attr := range filterMap {
 						if !value.Type().HasAttribute(name) {
-							log.Printf("[DEBUG] attribute %q not found in resource %q", name, addr.String())
 							matched = false
 							break
 						}
@@ -111,7 +107,6 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 
 						if equals.False() {
 							matched = false
-							log.Printf("[DEBUG] attribute %q does not match in resource %q", name, addr.String())
 							break
 						}
 					}
