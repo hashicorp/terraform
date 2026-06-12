@@ -96,3 +96,7 @@ jobs:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
           if-no-files-found: error
+
+
+permissions:
+  contents: read
