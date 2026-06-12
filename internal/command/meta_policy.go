@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
@@ -114,6 +115,8 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	return client, diags, closer
 }
 
+var _ initwd.ModuleInstallHook = &policyModuleInstallHook{}
+
 // policyModuleInstallHook enables policy evaluation during module installation.
 type policyModuleInstallHook struct {
 	initwd.ModuleInstallHookImpl
@@ -174,6 +177,8 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	}
 	return nil
 }
+
+var _ providercache.InstallerHook = &providerPolicyHook{}
 
 // providerPolicyHook enables policy evaluation during provider installation.
 type providerPolicyHook struct {

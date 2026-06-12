@@ -588,7 +588,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 // updated dependency lock data. The dependency lock *file* itself isn't updated here.
 //
 // See getProvidersFromPSSConfig which is equivalent for state store providers.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
