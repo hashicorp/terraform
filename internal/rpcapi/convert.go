@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -154,4 +155,24 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 		Value:    v,
 		DefRange: rng,
 	}, nil
+}
+
+func policyEvaluateResultToProto(result policy.EvaluateResult) stacks.EvaluateResult {
+	switch result {
+	case policy.InvalidResult:
+		return stacks.EvaluateResult_INVALID_EVALUATE_RESULT
+	case policy.UnknownResult:
+		return stacks.EvaluateResult_UNKNOWN_EVALUATE_RESULT
+	case policy.PolicyErrorResult:
+		return stacks.EvaluateResult_ERROR_EVALUATE_RESULT
+	case policy.AllowResult:
+		return stacks.EvaluateResult_ALLOW_EVALUATE_RESULT
+	case policy.DenyResult:
+		return stacks.EvaluateResult_DENY_EVALUATE_RESULT
+	case policy.SetupErrorResult:
+		return stacks.EvaluateResult_SETUP_ERROR_EVALUATE_RESULT
+	default:
+		// should be exhaustive
+		panic(fmt.Errorf("unhandled policy.EvaluateResult type: %T", result))
+	}
 }

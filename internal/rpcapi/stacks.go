@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -1554,6 +1555,7 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 	}
 }
 
+// TODO: this entire function needs to be refactored :P
 func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
@@ -1589,7 +1591,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 
 			info := &stacks.PolicyInfo{
 				TargetAddress:  addr,
-				Result:         enforcement.Result.String(),
+				Result:         policyEvaluateResultToProto(enforcement.Result),
 				Message:        enforcement.Message,
 				PolicySnippet:  stackSnippet,
 				PolicyMetadata: stackPolicyMetadata,
@@ -1626,7 +1628,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 					policyDiag.Diagnostic.Severity = terraform1.Diagnostic_WARNING
 				}
 
-				policyDiag.Result = extra.Result.String()
+				policyDiag.Result = policyEvaluateResultToProto(extra.Result)
 				policyDiag.PolicyMetadata = &stacks.PolicyMetaData{
 					PolicySetName:    extra.Policy.PolicySetName,
 					PolicyName:       extra.Policy.Address,
@@ -1635,6 +1637,63 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 				}
 				if extra.EnforceIndex != nil {
 					policyDiag.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
+				}
+
+				if snippet := extra.Snippet; snippet != nil {
+					policyDiag.PolicySnippet = &stacks.PolicySnippet{
+						Code:                 snippet.Code,
+						StartLine:            snippet.StartLine,
+						HighlightStartOffset: snippet.HighlightStartOffset,
+						HighlightEndOffset:   snippet.HighlightEndOffset,
+					}
+					if snippet.Context != nil {
+						policyDiag.PolicySnippet.Context = *snippet.Context
+					}
+				}
+
+				if rng := extra.Range; rng != nil && rng.Subject != nil {
+					policyDiag.PolicyRange = &terraform1.SourceRange{
+						SourceAddr: rng.Subject.Filename,
+					}
+					if start := rng.Subject.Start; start != nil {
+						policyDiag.PolicyRange.Start = &terraform1.SourcePos{
+							Line:   start.Line,
+							Column: start.Column,
+							Byte:   start.Byte,
+						}
+					}
+					if end := rng.Subject.End; end != nil {
+						policyDiag.PolicyRange.End = &terraform1.SourcePos{
+							Line:   end.Line,
+							Column: end.Column,
+							Byte:   end.Byte,
+						}
+					}
+				}
+
+				if values := extra.ExpressionValues; values != nil {
+					policyDiag.ExpressionValues = make([]*stacks.ExpressionValue, 0, len(values))
+					seen := make(map[string]struct{}, len(values))
+
+					for _, val := range values {
+						path, err := val.Traversal.ToCtyPath()
+						if err != nil {
+							continue // then we can't display this value
+						}
+
+						policyExprValue := &stacks.ExpressionValue{
+							Traversal: stacks.NewAttributePath(path),
+						}
+
+						strPath := pathStr(path)
+						if _, exists := seen[strPath]; exists {
+							continue
+						}
+						seen[strPath] = struct{}{}
+
+						policyExprValue.Value = val.Value
+						policyDiag.ExpressionValues = append(policyDiag.ExpressionValues, policyExprValue)
+					}
 				}
 			}
 			// TODO: Once I have some e2e testing in place, I should double-check these fields because stacks
@@ -1657,7 +1716,7 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 					FileName:         policy.Filename,
 					EnforcementLevel: policy.EnforcementLevel,
 				},
-				Result: policy.Result.String(),
+				Result: policyEvaluateResultToProto(policy.Result),
 			}
 			results = append(results, &result)
 		}
@@ -1671,6 +1730,37 @@ func policyEvaluationResponseProto(componentAddr stackaddrs.AbsComponentInstance
 		Infos:       infos,
 		Diagnostics: policyDiags,
 	}
+}
+
+// TODO: we just use this to make it easier to detect duplicates, is that okay? Find a better home to share this logic?
+func pathStr(path cty.Path) string {
+	// This is a specialized subset of traversal rendering tailored to
+	// producing helpful contextual messages in diagnostics. It is not
+	// comprehensive nor intended to be used for other purposes.
+
+	var buf bytes.Buffer
+	first := true
+	for _, step := range path {
+		switch tStep := step.(type) {
+		case cty.GetAttrStep:
+			if !first {
+				buf.WriteByte('.')
+			}
+			buf.WriteString(tStep.Name)
+		case cty.IndexStep:
+			buf.WriteByte('[')
+			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
+				buf.WriteString(tfdiags.CompactValueStr(tStep.Key))
+			} else {
+				// We'll just use a placeholder for more complex values,
+				// since otherwise our result could grow ridiculously long.
+				buf.WriteString("...")
+			}
+			buf.WriteByte(']')
+		}
+		first = false
+	}
+	return buf.String()
 }
 
 // syncPlanStackChangesServer is a wrapper around a

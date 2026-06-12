@@ -1110,7 +1110,7 @@ message PolicyMetaData {
 message PolicyResult {
   string target_address = 1;
   PolicyMetaData policy_metadata = 2;
-  string result = 3;
+  EvaluateResult result = 3;
 }
 
 message PolicyInfo {
@@ -1119,7 +1119,7 @@ message PolicyInfo {
   string message = 3;
   terraform1.SourceRange policy_range = 4;
   PolicySnippet policy_snippet = 5;
-  string result = 6;
+  EvaluateResult result = 6;
 }
 
 message PolicySnippet {
@@ -1133,6 +1133,25 @@ message PolicySnippet {
 message PolicyDiagnostic {
   string target_address = 1;
   PolicyMetaData policy_metadata = 2;
-  string result = 3;
+  EvaluateResult result = 3;
   terraform1.Diagnostic diagnostic = 4;
+  PolicySnippet policy_snippet = 5;
+  terraform1.SourceRange policy_range = 6;
+  repeated ExpressionValue expression_values = 7;
+}
+
+// Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
+enum EvaluateResult {
+  INVALID_EVALUATE_RESULT = 0;
+  UNKNOWN_EVALUATE_RESULT = 1;
+  ERROR_EVALUATE_RESULT = 2;
+  ALLOW_EVALUATE_RESULT = 3;
+  DENY_EVALUATE_RESULT = 4;
+  SETUP_ERROR_EVALUATE_RESULT = 5;
+}
+
+// Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
+message ExpressionValue {
+  AttributePath traversal = 1;
+  bytes value = 2;
 }
