@@ -188,6 +188,10 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 		// the object has having been deleted anyway.
 		return nil
 	}
+	if o.Status == ObjectTainted {
+		return o
+	}
+
 	ret := o.DeepCopy()
 	ret.Status = ObjectTainted
 	return ret
