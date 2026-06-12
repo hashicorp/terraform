@@ -746,44 +746,40 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsAction, reason providers.D
 
 // ShouldDeferActionInvocation returns true if there is a reason to defer the
 // action invocation instance.
-func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstance) (bool, tfdiags.Diagnostics) {
+func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstance) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-
-	var diags tfdiags.Diagnostics
 
 	// We only want to defer actions that are lifecycle triggered
 	at, ok := ai.ActionTrigger.(*plans.ResourceActionTrigger)
 	if !ok {
-		return false, diags
+		return false
 	}
 
 	// If the resource was deferred, we also need to defer any action potentially triggering from this
 	if configResourceMap, ok := d.resourceInstancesDeferred.GetOk(at.TriggeringResourceAddr.ConfigResource()); ok {
 		if configResourceMap.Has(at.TriggeringResourceAddr) {
-			return true, diags
+			return true
 		}
 	}
 
 	if c, ok := d.actionExpansionDeferred.GetOk(ai.Addr.ConfigAction()); ok {
 		if c.Has(ai.Addr.ContainingAction()) {
-			return true, diags
+			return true
 		}
 	}
 
 	// now check if the action config was deferred
 	configAddr := ai.Addr.ConfigAction()
 	if !d.partialExpandedActionsDeferred.Has(configAddr) {
-		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, providers.DeferredReason]())
+		return false
 	}
-
 	for partial := range d.partialExpandedActionsDeferred.Get(configAddr).Iter() {
 		if partial.MatchesAction(ai.Addr.ContainingAction()) {
-			return true, diags
+			return true
 		}
 	}
-
-	return false, diags
+	return false
 }
 
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a

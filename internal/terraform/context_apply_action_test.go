@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -42,7 +43,9 @@ func TestContextApply_actions(t *testing.T) {
 		expectDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		ignoreWarnings                      bool
 
-		assertHooks func(*testing.T, actionHookCapture)
+		assertHooks       func(*testing.T, actionHookCapture)
+		assertState       func(*testing.T, *states.State)
+		assertDiagnostics func(*testing.T, tfdiags.Diagnostics)
 	}{
 		"before_create triggered": {
 			module: map[string]string{
@@ -961,6 +964,133 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: false,
 		},
 
+		"on_failure modes": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.action_example.hello]
+	  on_failure = taint
+    }
+  }
+}
+
+resource "test_object" "after_a" {
+  depends_on = [test_object.a]
+}
+
+resource "test_object" "b" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.action_example.hello]
+	  on_failure = halt
+    }
+  }
+}
+
+resource "test_object" "after_b" {
+  depends_on = [test_object.b]
+}
+
+resource "test_object" "c" {
+  lifecycle {
+    action_trigger {
+      events = [after_create]
+      actions = [action.action_example.hello]
+	  on_failure = continue
+    }
+  }
+}
+
+resource "test_object" "after_c" {
+  depends_on = [test_object.c]
+}
+`,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.b"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.c"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"test_string":"previous_run"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) (diags tfdiags.Diagnostics) {
+				return diags.Append(errors.New("InvokeAction failed"))
+			},
+			expectInvokeActionCalled: true,
+			assertState: func(t *testing.T, state *states.State) {
+				a := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.a").CurrentObject())
+				// a should exist and be tainted
+				if a.Status != states.ObjectTainted {
+					t.Error("test_object.a is not tainted")
+				}
+
+				// be and c should have been created normally, since the failure was after creation
+				b := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.b").CurrentObject())
+				if b.Status != states.ObjectReady {
+					t.Error("test_object.b should be OK")
+				}
+				c := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.c").CurrentObject())
+				if c.Status != states.ObjectReady {
+					t.Error("test_object.c should be OK")
+				}
+
+				// both a and b shuould have halted execution
+				afterA := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.after_a").CurrentObject())
+				afterB := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.after_b").CurrentObject())
+				if afterA != nil {
+					t.Error("test_object.after_a should not have been created")
+				}
+				if afterB != nil {
+					t.Error("test_object.after_b should not have been created")
+				}
+
+				// c however should have continued
+				afterC := state.ResourceInstanceObjectSrc(mustResourceInstanceAddr("test_object.after_c").CurrentObject())
+				if afterC == nil {
+					t.Error("test_object.after_c should have been created")
+				}
+			},
+			assertDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+				errors := 0
+				warnings := 0
+				for _, diag := range diags {
+					switch diag.Severity() {
+					case tfdiags.Error:
+						errors++
+					case tfdiags.Warning:
+						warnings++
+					}
+				}
+				if errors != 2 {
+					t.Errorf("expected 2 errors:\n%v", diags.ErrWithWarnings())
+				} else if warnings != 1 {
+					t.Errorf("expected 1 warning:\n%v", diags.ErrWithWarnings())
+				}
+			},
+		},
+
 		"expanded resource - unexpanded action": {
 			module: map[string]string{
 				"main.tf": `
@@ -1803,15 +1933,21 @@ resource "test_object" "a" {
 				t.Fatalf("plan is not applyable but should be")
 			}
 
-			_, diags = ctx.Apply(plan, m, tc.applyOpts)
+			state, diags := ctx.Apply(plan, m, tc.applyOpts)
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics(m))
 			} else {
 				if tc.ignoreWarnings {
 					tfdiags.AssertNoErrors(t, diags)
+				} else if tc.assertDiagnostics != nil {
+					tc.assertDiagnostics(t, diags)
 				} else {
 					tfdiags.AssertNoDiagnostics(t, diags)
 				}
+			}
+
+			if tc.assertState != nil {
+				tc.assertState(t, state)
 			}
 
 			if tc.expectInvokeActionCalled && len(invokeActionCalls) == 0 {

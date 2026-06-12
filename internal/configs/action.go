@@ -45,10 +45,31 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []ActionRef // References to actions
+	Actions   []ActionRef
+	OnFailure ActionOnFailure
 
 	DeclRange hcl.Range
 }
+
+// ActionFailureResult describes the result of an action invocation failure on a
+// a resource and its dependencies.
+type ActionOnFailure int
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
+
+const (
+	// Halt stops all further processing of actions and dependencies
+	ActionOnFailureHalt ActionOnFailure = iota
+
+	// Taint stops all further process of actions and dependencies. If the
+	// resource was just created, the state will be marked as tainted for
+	// replacement.
+	ActionOnFailureTaint
+
+	// Continue saves all action diagnostics as warnings, allowing processing to
+	// continue.
+	ActionOnFailureContinue
+)
 
 // ActionTriggerEvent is an enum for valid values for events for action
 // triggers.
@@ -103,7 +124,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
 	diags = append(diags, bodyDiags...)
 
-	var refs []*addrs.Reference
 	if attr, exists := content.Attributes["condition"]; exists {
 		a.Condition = attr.Expr
 	}
@@ -113,19 +133,16 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, ediags...)
 
 		events := []ActionTriggerEvent{}
-		containsBefore := false
 
 		for _, expr := range exprs {
 			var event ActionTriggerEvent
 			switch hcl.ExprAsKeyword(expr) {
 			case "before_create":
 				event = BeforeCreate
-				containsBefore = true
 			case "after_create":
 				event = AfterCreate
 			case "before_update":
 				event = BeforeUpdate
-				containsBefore = true
 			case "after_update":
 				event = AfterUpdate
 			case "before_destroy":
@@ -153,29 +170,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				continue
 			}
 
-			// Check that there aren't any before_ events using self, count or for_each in the condition
-			if containsBefore && refs != nil { // if refs isn't empty, there was a condition
-				for _, ref := range refs {
-					if _, ok := ref.Subject.(addrs.CountAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Count reference not allowed",
-							Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-
-					if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Each reference not allowed",
-							Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-				}
-			}
-
 			events = append(events, event)
 		}
 
@@ -186,6 +180,25 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		actionRefs, ediags := decodeActionTriggerRef(attr.Expr)
 		diags = append(diags, ediags...)
 		a.Actions = actionRefs
+	}
+
+	if attr, exists := content.Attributes["on_failure"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "halt":
+			a.OnFailure = ActionOnFailureHalt
+		case "taint":
+			a.OnFailure = ActionOnFailureTaint
+		case "continue":
+			a.OnFailure = ActionOnFailureContinue
+
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"on_failure\" keyword",
+				Detail:   "The \"on_failure\" argument requires one of the following keywords: halt, taint or continue.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
 	}
 
 	if len(a.Actions) == 0 {
@@ -317,6 +330,10 @@ var actionTriggerSchema = &hcl.BodySchema{
 		{
 			Name:     "actions",
 			Required: true,
+		},
+		{
+			Name:     "on_failure",
+			Required: false,
 		},
 	},
 }
