@@ -322,8 +322,11 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		}
 	}
 
-	if len(r.PolicyPaths) > 0 && shouldRenderPlan(r) {
-		b.renderer.Streams.Println(b.Colorize().Color(tfpolicyEvalSuccessful))
+	// Show the Terraform policy results. Not gated on shouldRenderPlan: a failed
+	// mandatory policy errors the run, but the user still needs to see why.
+	if err := b.renderTFPolicyEvaluations(stopCtx, r, len(r.PolicyPaths) > 0,
+		tfe.TFPolicyEvaluationStageTypeInit, tfe.TFPolicyEvaluationStageTypePlan); err != nil {
+		return r, err
 	}
 
 	return r, nil
