@@ -106,6 +106,12 @@ type Context struct {
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
+
+	// callerCtx, if non-nil, is used as the parent for runContext when
+	// acquireRun creates a new run context. Callers can set it via
+	// SetCallerContext to plumb a trace span (or any other context value)
+	// down into the graph walk. Concurrent access is guarded by c.l.
+	callerCtx context.Context
 }
 
 // (additional methods on Context can be found in context_*.go files.)
@@ -243,13 +249,41 @@ func (c *Context) acquireRun(phase string) func() {
 	// Build our lock
 	c.runCond = sync.NewCond(&c.l)
 
-	// Create a new run context
-	c.runContext, c.runContextCancel = context.WithCancel(context.Background())
+	// Create a new run context, parented to any caller-supplied context
+	// (see SetCallerContext) so that telemetry spans, deadlines, and other
+	// context values flow into the graph walk. Cancelling callerCtx will
+	// cancel runContext, which is the desired behaviour for the terraform
+	// CLI (Ctrl-C at the command layer should stop the walk).
+	parent := c.callerCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	c.runContext, c.runContextCancel = context.WithCancel(parent)
 
 	// Reset the stop hook so we're not stopped
 	c.sh.Reset()
 
 	return c.releaseRun
+}
+
+// SetCallerContext records a context.Context that will be used as the parent
+// for the run context created by the next call to Plan, Apply, Refresh,
+// etc. on this Context.
+//
+// This is primarily a hook for telemetry: callers that have started an
+// OpenTelemetry span (or otherwise have a Context they want to propagate)
+// can use this to make every operation performed by the graph walker --
+// including policy evaluations -- become children of that span.
+//
+// SetCallerContext is safe to call concurrently with other Context methods,
+// but the value it sets only takes effect for subsequent run-acquisitions;
+// it does not retroactively replace the parent of an already-running graph
+// walk. Passing a nil ctx clears any previously set caller context, in
+// which case acquireRun falls back to context.Background().
+func (c *Context) SetCallerContext(ctx context.Context) {
+	c.l.Lock()
+	defer c.l.Unlock()
+	c.callerCtx = ctx
 }
 
 func (c *Context) releaseRun() {

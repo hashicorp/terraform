@@ -4,7 +4,6 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -21,6 +20,11 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(rawArgs []string) int {
+	// Start a span for this whole command invocation so every downstream
+	// span (backend, graph walk, policy plugin) hangs under one parent.
+	_, finish := c.Meta.StartCommandSpan("terraform plan")
+	defer finish()
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
@@ -181,7 +185,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	}
 
 	if len(policyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), policyPaths)
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), policyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)

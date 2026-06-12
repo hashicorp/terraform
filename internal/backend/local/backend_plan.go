@@ -9,6 +9,9 @@ import (
 	"io"
 	"log"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -118,6 +121,11 @@ func (b *Local) opPlan(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
+		// Propagate the operation's stop context into Terraform Core so
+		// that any spans started by the caller (e.g. a "terraform plan"
+		// trace span) become parents of the per-resource policy spans
+		// emitted from inside the graph walk. See Context.SetCallerContext.
+		lr.Core.SetCallerContext(stopCtx)
 		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 	}()
 
@@ -185,6 +193,19 @@ func (b *Local) opPlan(
 		}
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
+		// Trace the on-disk plan-file serialisation. For large plans (many
+		// resource changes / a large state snapshot / a big config) this is a
+		// non-trivial fraction of overall plan time and was previously a blind
+		// spot in the trace tree. The attributes capture the sizes that drive
+		// the cost so the span is self-explanatory in the UI.
+		writeCtx, writeSpan := tracer().Start(stopCtx, "terraform.local.plan.write_planfile",
+			trace.WithAttributes(
+				attribute.Int("plan.resource_changes", len(plan.Changes.Resources)),
+				attribute.Int("plan.queries", len(plan.Changes.Queries)),
+				attribute.String("plan.path", path),
+			),
+		)
+		_ = writeCtx // reserved for future use; planfile.Create does not yet take a context
 		err := planfile.Create(path, planfile.CreateArgs{
 			ConfigSnapshot:       configSnap,
 			PreviousRunStateFile: prevStateFile,
@@ -192,6 +213,7 @@ func (b *Local) opPlan(
 			Plan:                 plan,
 			DependencyLocks:      op.DependencyLocks,
 		})
+		writeSpan.End()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -205,7 +227,11 @@ func (b *Local) opPlan(
 
 	// Render the plan, if we produced one.
 	// (This might potentially be a partial plan with Errored set to true)
+	// Schemas() round-trips to every provider plugin to fetch its schema; for
+	// configurations with many providers this can dominate the post-Plan tail.
+	_, schemasSpan := tracer().Start(stopCtx, "terraform.local.plan.load_schemas")
 	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	schemasSpan.End()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -220,10 +246,32 @@ func (b *Local) opPlan(
 		return
 	}
 
+	// Rendering the plan produces the human-readable diff that is printed to
+	// the terminal. For mega-plans with hundreds of thousands of resource
+	// changes this can take many seconds; before this span was added that
+	// time was indistinguishable from "tail of the terraform plan span" in
+	// traces.
+	_, renderSpan := tracer().Start(stopCtx, "terraform.local.plan.render",
+		trace.WithAttributes(
+			attribute.Int("plan.resource_changes", len(plan.Changes.Resources)),
+			attribute.Int("plan.queries", len(plan.Changes.Queries)),
+		),
+	)
 	op.View.Plan(plan, schemas)
+	renderSpan.End()
 
 	// Report all policy results that may have accumulated during the plan
+	policyResultCount := 0
+	if plan.PolicyResults != nil {
+		policyResultCount = plan.PolicyResults.Len()
+	}
+	_, polRenderSpan := tracer().Start(stopCtx, "terraform.local.plan.render_policy_results",
+		trace.WithAttributes(
+			attribute.Int("plan.policy_results", policyResultCount),
+		),
+	)
 	op.View.PolicyResults(plan.PolicyResults, nil)
+	polRenderSpan.End()
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially

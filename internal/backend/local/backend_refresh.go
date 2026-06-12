@@ -91,6 +91,10 @@ func (b *Local) opRefresh(
 	go func() {
 		defer logging.PanicHandler()
 		defer close(doneCh)
+		// Propagate the operation's stop context into Terraform Core so any
+		// caller-started spans become parents of per-resource spans emitted
+		// from inside the graph walk. See Context.SetCallerContext.
+		lr.Core.SetCallerContext(stopCtx)
 		newState, refreshDiags = lr.Core.Refresh(lr.Config, lr.InputState, lr.PlanOpts)
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()

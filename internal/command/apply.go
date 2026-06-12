@@ -4,7 +4,6 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -26,6 +25,15 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(rawArgs []string) int {
+	// Start a span for this whole command invocation so every downstream
+	// span (backend, graph walk, policy plugin) hangs under one parent.
+	spanName := "terraform apply"
+	if c.Destroy {
+		spanName = "terraform destroy"
+	}
+	_, finish := c.Meta.StartCommandSpan(spanName)
+	defer finish()
+
 	var diags tfdiags.Diagnostics
 
 	// Parse and apply global view arguments
@@ -105,7 +113,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	if len(args.PolicyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), args.PolicyPaths)
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths)
 		// if there has been any errors when setting up the policy client, we'll log them
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)

@@ -15,6 +15,10 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -31,6 +35,8 @@ var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
 
 func Connect(ctx context.Context) (Client, error) {
+	ctx, span := tracer().Start(ctx, "policy.client.connect")
+	defer span.End()
 
 	pgm := "tfpolicy-plugin" // by default, just use this if it's in the path
 	if envvar := os.Getenv(TerraformPolicyPluginEnvVar); len(envvar) > 0 {
@@ -51,6 +57,14 @@ func Connect(ctx context.Context) (Client, error) {
 		AllowedProtocols: []plugin.Protocol{
 			plugin.ProtocolGRPC,
 		},
+		// Install the OpenTelemetry gRPC client stats handler on the dial to
+		// the policy plugin subprocess. This propagates the active trace
+		// context via gRPC metadata and produces an outbound client span for
+		// every RPC, so the plugin's handler spans become children of the
+		// terraform-side span that invoked them.
+		GRPCDialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Level: func() hclog.Level {
 				level := hclog.LevelFromString(os.Getenv(TerraformPolicyLogLevelEnvVar))
@@ -65,13 +79,19 @@ func Connect(ctx context.Context) (Client, error) {
 	rpc, err := plugin.Client()
 	if err != nil {
 		plugin.Kill()
-		return nil, fmt.Errorf("failed to connect to plugin: %v", err)
+		err = fmt.Errorf("failed to connect to plugin: %v", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	raw, err := rpc.Dispense("policy")
 	if err != nil {
 		plugin.Kill()
-		return nil, fmt.Errorf("failed to dispense plugin: %v", err)
+		err = fmt.Errorf("failed to dispense plugin: %v", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	sc := raw.(*client)
@@ -103,6 +123,11 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 
 	// Start the callback service server on the broker.
 	go c.broker.AcceptAndServe(cbServiceID, func(opts []grpc.ServerOption) *grpc.Server {
+		// Install the OpenTelemetry gRPC server stats handler so that the
+		// trace context the plugin client injects into outgoing callback RPC
+		// metadata is extracted and made the parent of the callback handler
+		// spans.
+		opts = append(opts, grpc.StatsHandler(otelgrpc.NewServerHandler()))
 		server := grpc.NewServer(opts...)
 		proto.RegisterCallbackServiceServer(server, c.cbServer)
 		serverCh <- server
@@ -136,6 +161,11 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 }
 
 func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
+	ctx, span := tracer().Start(ctx, "policy.client.setup",
+		trace.WithAttributes(attribute.Int("policy.source_locations.count", len(req.SourceLocations))),
+	)
+	defer span.End()
+
 	log.Printf("[DEBUG] Setting up Terraform Policy connection")
 	response, err := c.client.Setup(ctx, &proto.PolicySetupRequest{
 		ClientCapabilities: new(proto.PolicySetupRequest_ClientCapabilities),
@@ -158,6 +188,11 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 }
 
 func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {
+	ctx, span := tracer().Start(ctx, "policy.client.evaluate_resource",
+		trace.WithAttributes(attribute.String("policy.resource.type", req.Target)),
+	)
+	defer span.End()
+
 	log.Printf("[DEBUG] Evaluating policy for resource %s", req.Target)
 	var diags []*proto.Diagnostic
 
@@ -210,6 +245,11 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 }
 
 func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse {
+	ctx, span := tracer().Start(ctx, "policy.client.evaluate_provider",
+		trace.WithAttributes(attribute.String("policy.provider.type", req.Target)),
+	)
+	defer span.End()
+
 	log.Printf("[DEBUG] Evaluating policy for provider %s", req.Target)
 	var diags []*proto.Diagnostic
 	req = normalizeRequest(req)
@@ -242,6 +282,11 @@ func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*pr
 }
 
 func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse {
+	ctx, span := tracer().Start(ctx, "policy.client.evaluate_module",
+		trace.WithAttributes(attribute.String("policy.module.source", req.Target)),
+	)
+	defer span.End()
+
 	log.Printf("[DEBUG] Evaluating policy for module %s", req.Target)
 	var diags []*proto.Diagnostic
 

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"iter"
 	"log"
@@ -20,7 +21,17 @@ import (
 )
 
 func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := client.EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+	// Parent the per-resource evaluation under the policy-execution phase span
+	// (terraform.policy.evaluate) when one is available, so the whole policy
+	// phase groups together in the trace and is distinct from the main
+	// resource graph work. Fall back to the run context when there is no phase
+	// span (e.g. unit tests that drive the node directly).
+	evalCtx := ctx.StopCtx()
+	if phaseCtx := ctx.PolicyGraph().phaseSpanContext(); phaseCtx != nil {
+		evalCtx = phaseCtx
+	}
+
+	result := client.EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
 		Attrs:      attrs,
 		PriorAttrs: priorAttrs,
@@ -43,8 +54,8 @@ func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, error) {
+	return func(_ context.Context, target string, attrs cty.Value) ([]cty.Value, error) {
 		var found []cty.Value
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
@@ -128,8 +139,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(target string, attrs cty.Value) (cty.Value, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
+	return func(_ context.Context, target string, attrs cty.Value) (cty.Value, error) {
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {

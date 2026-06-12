@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -80,7 +82,12 @@ func (b *Local) opApply(
 	// operation.
 	runningOp.State = lr.InputState
 
+	// Schemas() round-trips to every provider plugin to fetch its schema;
+	// for configurations with many providers this can be a non-trivial part
+	// of the apply. Traced to match the plan path's load_schemas span.
+	_, schemasSpan := tracer().Start(stopCtx, "terraform.local.apply.load_schemas")
 	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	schemasSpan.End()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -93,6 +100,12 @@ func (b *Local) opApply(
 
 	var plan *plans.Plan
 	combinedPlanApply := false
+	// Propagate the operation's stop context into Terraform Core so any
+	// caller-started spans (e.g. "terraform apply") become parents of the
+	// per-resource spans emitted from inside the graph walk. This applies
+	// both to the optional plan-before-apply below and to the apply itself
+	// further down. See Context.SetCallerContext.
+	lr.Core.SetCallerContext(stopCtx)
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
 		// set the policy client to nil for the plan preceding apply
@@ -425,6 +438,19 @@ func (b *Local) opApply(
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 
+	// Open a span for the core apply walk and make it the parent of every
+	// span emitted from inside the walk (per-resource policy evaluations,
+	// callbacks, provider calls). We re-point the caller context at this
+	// span's context just before dispatching, so the walk's runContext is
+	// parented here rather than directly under the command span. This mirrors
+	// how the plan path groups its post-walk phases under named spans.
+	applyCtx, applySpan := tracer().Start(stopCtx, "terraform.local.apply.core_apply",
+		trace.WithAttributes(
+			attribute.Int("apply.resource_changes", len(plan.Changes.Resources)),
+		),
+	)
+	lr.Core.SetCallerContext(applyCtx)
+
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -440,12 +466,26 @@ func (b *Local) opApply(
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
+		applySpan.End()
 		return
 	}
+	applySpan.End()
 	diags = diags.Append(applyDiags)
 
-	// Print the policy results we found during apply
+	// Print the policy results we found during apply. For applies with many
+	// resource changes this rendering is non-trivial, so it gets its own span
+	// to match the plan path's render_policy_results.
+	policyResultCount := 0
+	if plan.PolicyResults != nil {
+		policyResultCount = plan.PolicyResults.Len()
+	}
+	_, polRenderSpan := tracer().Start(stopCtx, "terraform.local.apply.render_policy_results",
+		trace.WithAttributes(
+			attribute.Int("apply.policy_results", policyResultCount),
+		),
+	)
 	op.View.PolicyResults(plan.PolicyResults, nil)
+	polRenderSpan.End()
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.
@@ -457,7 +497,12 @@ func (b *Local) opApply(
 
 	// Store the final state
 	runningOp.State = applyState
+	// Persisting the post-apply state can be a meaningful fraction of a large
+	// apply's tail (serialising a big state and writing/uploading it), so it
+	// gets its own span.
+	_, writeStateSpan := tracer().Start(stopCtx, "terraform.local.apply.write_state")
 	err := statemgr.WriteAndPersist(opState, applyState, schemas)
+	writeStateSpan.End()
 	if err != nil {
 		// Export the state file from the state manager and assign the new
 		// state. This is needed to preserve the existing serial and lineage.
