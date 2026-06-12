@@ -21,9 +21,14 @@ import (
 type stubPolicyClient struct {
 	proto.PolicyClient
 
+	setupFn            func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error)
 	evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
 	evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 	evaluateModuleFn   func(*proto.PolicyEvaluateModuleRequest) (*proto.PolicyEvaluateModuleResponse, error)
+}
+
+func (s *stubPolicyClient) Setup(ctx context.Context, req *proto.PolicySetupRequest, _ ...grpc.CallOption) (*proto.PolicySetupResponse, error) {
+	return s.setupFn(req)
 }
 
 func (s *stubPolicyClient) EvaluateResource(ctx context.Context, req *proto.PolicyEvaluateResourceRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateResourceResponse, error) {
@@ -453,6 +458,74 @@ func TestClientEvaluateModule(t *testing.T) {
 			}
 			if gotReq.ModuleSource != "./child" {
 				t.Fatalf("unexpected module source: got %q, want %q", gotReq.ModuleSource, "./child")
+			}
+		})
+	}
+}
+
+func TestClientSetupEntitlement(t *testing.T) {
+	ctx := t.Context()
+
+	tests := []struct {
+		name        string
+		entitlement *Entitlement
+		want        *proto.PolicySetupRequest_Entitlement
+	}{
+		{
+			name:        "nil entitlement is not serialized",
+			entitlement: nil,
+			want:        nil,
+		},
+		{
+			name: "entitlement is mapped onto the proto request",
+			entitlement: &Entitlement{
+				Host:  "app.terraform.io",
+				Token: "secret",
+				Org:   "hashicorp",
+			},
+			want: &proto.PolicySetupRequest_Entitlement{
+				Host:  "app.terraform.io",
+				Token: "secret",
+				Org:   "hashicorp",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotReq *proto.PolicySetupRequest
+			c := &client{
+				client: &stubPolicyClient{
+					setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+						gotReq = req
+						return &proto.PolicySetupResponse{}, nil
+					},
+				},
+			}
+
+			resp := c.Setup(ctx, SetupRequest{
+				SourceLocations: []string{"./policies"},
+				Entitlement:     tt.entitlement,
+			})
+			if resp.Diagnostics.HasErrors() {
+				t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
+			}
+			if gotReq == nil {
+				t.Fatal("expected a setup request to be sent")
+			}
+
+			got := gotReq.Entitlement
+			if tt.want == nil {
+				if got != nil {
+					t.Fatalf("expected nil entitlement, got %+v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected entitlement, got nil")
+			}
+			if got.Host != tt.want.Host || got.Token != tt.want.Token || got.Org != tt.want.Org {
+				t.Fatalf("unexpected entitlement: got %+v, want %+v", got, tt.want)
 			}
 		})
 	}
