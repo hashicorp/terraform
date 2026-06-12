@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -64,6 +65,52 @@ func TestInit_WithModulePolicy(t *testing.T) {
 
 	if got, want := policyClient.EvaluateModuleRequest.Meta.Version, ""; got != want {
 		t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+func TestInit_WithPolicyClientStopAfterInit(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
+	t.Chdir(td)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+
+	overrides := metaOverridesForProvider(testProvider())
+	policyClient := policy.NewTestMockClient(t)
+	var stopCalled atomic.Bool
+	var policyEvaluated atomic.Bool
+	policyClient.StopFn = func() {
+		stopCalled.Store(true)
+	}
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		policyEvaluated.Store(true)
+		if stopCalled.Load() {
+			t.Fatal("policy client Stop was called before init finished")
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	overrides.PolicyClient = policyClient
+
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-var", "module_name=example"})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+	}
+	if !policyEvaluated.Load() {
+		t.Fatal("expected module policy evaluation to be called during init")
+	}
+	if !stopCalled.Load() {
+		t.Fatal("expected policy client Stop to be called after init")
 	}
 }
 
@@ -269,12 +316,21 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, done := testView(t)
 
+	// assert modules are evaluated correctly
+	expected := map[string]policy.EvaluateResult{
+		"./grandchild":    policy.DenyResult,
+		"./modules/child": policy.AllowResult,
+	}
+	actual := map[string]policy.EvaluateResult{}
+
 	overrides := metaOverridesForProvider(testProvider())
 	policyClient := policy.NewTestMockClient(t)
 	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
 		if req.Target != "./grandchild" {
+			actual[req.Target] = policy.AllowResult
 			return policy.EvaluationResponse{Overall: policy.AllowResult}
 		}
+		actual[req.Target] = policy.DenyResult
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Diagnostics: policy.Diagnostics{
@@ -315,13 +371,25 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	if !policyClient.EvaluateModuleCalled {
 		t.Fatal("expected EvaluateModule to be called")
 	}
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Fatalf("unexpected module policy evaluation results:\n%s", diff)
+	}
 
 	stderr := output.Stderr()
-	if !strings.Contains(stderr, "on modules/child/main.tf line 12:") {
-		t.Fatalf("expected nested module diagnostic to point at modules/child/main.tf:12, got:\n%s", stderr)
-	}
-	if !strings.Contains(stderr, `12: module "nested" {`) {
-		t.Fatalf("expected nested module snippet in diagnostics, got:\n%s", stderr)
+	expectedStderr := `
+Error: nested module policy denied
+
+  on modules/child/main.tf line 12:
+  12: module "nested" {
+
+
+Error: Policy evaluation failed
+
+Module download blocked due to policy violations. Please review other
+diagnostics for details.
+`
+	if diff := cmp.Diff(expectedStderr, stderr); diff != "" {
+		t.Fatalf("unexpected stderr:\n%s\nexpected:\n%s\n diff:\n%s", stderr, expectedStderr, diff)
 	}
 }
 
