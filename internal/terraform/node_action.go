@@ -4,8 +4,18 @@
 package terraform
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // GraphNodeConfigAction is implemented by any nodes that represent an action.
@@ -15,140 +25,462 @@ type GraphNodeConfigAction interface {
 	ActionAddr() addrs.ConfigAction
 }
 
-// nodeExpandAction represents an action config block in a module, which has not
-// yet been expanded.
-type nodeExpandAction struct {
-	*NodeAbstractAction
+// GraphNodeActionCaller is na interface satisfied by resource nodes that have
+// action triggers which can be directly invoked.
+type GraphNodeActionCaller interface {
+	GraphNodeConfigResource
+
+	// Action calls returns all action references so they can be connected to
+	// any of the actions which use the caller symbol
+	ActionCalls() []addrs.ConfigAction
+}
+
+// GraphNodeActionInvoker attaches planned action invocations to a node which
+// needs to call the action.
+type GraphNodeActionInvoker interface {
+	GraphNodeActionCaller
+
+	AttachActionApplyTrigger(*actionTriggerApplyInstance)
+}
+
+// NodeActionConfig represents an action in the configuration. This node is
+// primarily concerned with resolving provider references and receiving the
+// correct schema. All expansion and execution is done from an action trigger.
+type NodeActionConfig struct {
+	Addr addrs.ConfigAction
+
+	Config *configs.Action
+
+	// The fields below will be automatically set using the Attach interfaces if
+	// you're running those transforms, but also can be explicitly set if you
+	// already have that information.
+
+	// The address of the provider this action will use
+	ResolvedProvider addrs.AbsProviderConfig
+	Schema           *providers.ActionSchema
 }
 
 var (
-	_ GraphNodeDynamicExpandable = (*nodeExpandAction)(nil)
+	_ GraphNodeReferenceable      = (*NodeActionConfig)(nil)
+	_ GraphNodeReferencer         = (*NodeActionConfig)(nil)
+	_ GraphNodeConfigAction       = (*NodeActionConfig)(nil)
+	_ GraphNodeAttachActionSchema = (*NodeActionConfig)(nil)
+	_ GraphNodeProviderConsumer   = (*NodeActionConfig)(nil)
 )
 
-func (n *nodeExpandAction) Name() string {
-	return n.Addr.String() + " (expand)"
+func (n NodeActionConfig) Name() string {
+	return n.Addr.String() + " (config)"
 }
 
-func (n *nodeExpandAction) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
-	var g Graph
-	var diags tfdiags.Diagnostics
-	expander := ctx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
-
-	// The possibility of partial-expanded modules and resources is guarded by a
-	// top-level option for the whole plan, so that we can preserve mainline
-	// behavior for the modules runtime. So, we currently branch off into an
-	// entirely-separate codepath in those situations, at the expense of
-	// duplicating some of the logic for behavior this method would normally
-	// handle.
-	if ctx.Deferrals().DeferralAllowed() {
-		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
-
-		for _, moduleAddr := range pem {
-			actionAddr := moduleAddr.Action(n.Addr.Action)
-
-			// And add a node to the graph for this action.
-			g.Add(&NodeActionDeclarationPartialExpanded{
-				addr:             actionAddr,
-				config:           n.Config,
-				Schema:           n.Schema,
-				resolvedProvider: n.ResolvedProvider,
-			})
-		}
+func (n *NodeActionConfig) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Validation happens without expansion, and Validate will be called from
+	// either a validateable node or a triggering node.
+	if op == walkValidate {
+		return nil
 	}
 
-	for _, module := range moduleInstances {
-		absActAddr := n.Addr.Absolute(module)
+	// Action configuration is always evaluated from the context of the
+	// triggering node, so all this node needs to do for Execute is record the
+	// instance expansion. This also makes sure we determine whether we need
+	// to be deferred due to unknown expansion before we get to the resources
+	// triggering the action.
+	return n.recordActionExpansion(ctx)
+}
 
-		// Check if the actions language experiment is enabled for this module.
+func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module, false) {
 		moduleCtx := evalContextForModuleInstance(ctx, module)
 
-		// recordActionData is responsible for informing the expander of what
-		// repetition mode this resource has, which allows expander.ExpandAction
-		// to work below.
-		moreDiags := n.recordActionData(moduleCtx, absActAddr)
+		switch {
+		case n.Config.Count != nil:
+			count, countDiags := evaluateCountExpression(n.Config.Count, moduleCtx, deferralAllowed)
+			diags = diags.Append(countDiags)
+			if diags.HasErrors() {
+				return diags
+			}
+			if count >= 0 {
+				expander.SetActionCount(module, n.Addr.Action, count)
 
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return nil, diags
-		}
-
-		_, knownInstKeys, haveUnknownKeys := expander.ActionInstanceKeys(absActAddr)
-		if haveUnknownKeys {
-			// this should never happen, n.recordActionData explicitly sets
-			// allowUnknown to be false, so we should pick up diagnostics
-			// during that call instance reaching this branch.
-			panic("found unknown keys in action instance")
-		}
-
-		// Expand the action instances for this module.
-		for _, knownInstKey := range knownInstKeys {
-			node := NodeAbstractActionInstance{
-				Addr:             absActAddr.Instance(knownInstKey),
-				Config:           &n.Config,
-				Schema:           n.Schema,
-				ResolvedProvider: n.ResolvedProvider,
-				Dependencies:     n.Dependencies,
+			} else {
+				expander.SetActionCountUnknown(module, n.Addr.Action)
+				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
 			}
 
-			g.Add(&node)
+		case n.Config.ForEach != nil:
+			forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, moduleCtx, deferralAllowed)
+			diags = diags.Append(forEachDiags)
+			if forEachDiags.HasErrors() {
+				return diags
+			}
+			if known {
+				expander.SetActionForEach(module, n.Addr.Action, forEach)
+			} else {
+				expander.SetActionForEachUnknown(module, n.Addr.Action)
+				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
+			}
+
+		default:
+			expander.SetActionSingle(module, n.Addr.Action)
 		}
-	}
-	addRootNodeToGraph(&g)
-
-	return &g, diags
-}
-
-func (n *nodeExpandAction) recordActionData(ctx EvalContext, addr addrs.AbsAction) (diags tfdiags.Diagnostics) {
-
-	// We'll record our expansion decision in the shared "expander" object
-	// so that later operations (i.e. DynamicExpand and expression evaluation)
-	// can refer to it. Since this node represents the abstract module, we need
-	// to expand the module here to create all resources.
-	expander := ctx.InstanceExpander()
-
-	// For now, action instances cannot evaluate to unknown. When an action
-	// would have an unknown instance key, we'd want to defer executing that
-	// action, and in turn defer executing the triggering resource. Delayed
-	// deferrals are not currently possible (we need to reconfigure exactly how
-	// deferrals are checked) so for now deferred actions are simply blocked.
-
-	switch {
-	case n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, false)
-		diags = diags.Append(countDiags)
-		if countDiags.HasErrors() {
-			return diags
-		}
-
-		if count >= 0 {
-			expander.SetActionCount(addr.Module, n.Addr.Action, count)
-		} else {
-			// this should not be possible as allowUnknown was set to false
-			// in the evaluateCountExpression function call.
-			panic("evaluateCountExpression returned unknown")
-		}
-
-	case n.Config.ForEach != nil:
-		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-		diags = diags.Append(forEachDiags)
-		if forEachDiags.HasErrors() {
-			return diags
-		}
-
-		// This method takes care of all of the business logic of updating this
-		// while ensuring that any existing instances are preserved, etc.
-		if known {
-			expander.SetActionForEach(addr.Module, n.Addr.Action, forEach)
-		} else {
-			// this should not be possible as allowUnknown was set to false
-			// in the evaluateForEachExpression function call.
-			panic("evaluateForEachExpression returned unknown")
-		}
-
-	default:
-		expander.SetActionSingle(addr.Module, n.Addr.Action)
 	}
 
 	return diags
+}
+
+// Validate validates the action config, with an optional caller address if the
+// action is invoked from a resource action trigger.
+func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	keyData := EvalDataForNoInstanceKey
+
+	switch {
+	case n.Config.Count != nil:
+		// If the config block has count, we'll evaluate with an unknown
+		// number as count.index so we can still type check even though
+		// we won't expand count until the plan phase.
+		keyData = InstanceKeyEvalData{
+			CountIndex: cty.UnknownVal(cty.Number),
+		}
+
+		// Basic type-checking of the count argument. More complete validation
+		// of this will happen when we DynamicExpand during the plan walk.
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+
+	case n.Config.ForEach != nil:
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+		}
+
+		// Evaluate the for_each expression here so we can expose the diagnostics
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateActionValue()
+		diags = diags.Append(forEachDiags)
+	}
+
+	config := n.Config.Config
+	if n.Config.Config == nil {
+		config = hcl.EmptyBody()
+	}
+
+	scope := ctx.EvaluationScope(caller, nil, keyData)
+	configVal, valDiags := scope.EvalActionBlock(config, n.Schema.ConfigSchema, callerVal)
+	if valDiags.HasErrors() {
+		// If there was no config block at all, we'll add a Context range to the returned diagnostic
+		if n.Config.Config == nil {
+			for _, diag := range valDiags.ToHCL() {
+				diag.Context = &n.Config.DeclRange
+				diags = diags.Append(diag)
+			}
+			return diags
+		} else {
+			diags = diags.Append(valDiags)
+			return diags
+		}
+	}
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+	diags = diags.Append(valDiags.InConfigBody(config, n.Addr.String()))
+
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Use unmarked value for validate request
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	log.Printf("[TRACE] Validating config for %q", n.Addr)
+	req := providers.ValidateActionConfigRequest{
+		TypeName: n.Config.Type,
+		Config:   unmarkedConfigVal,
+	}
+
+	resp := provider.ValidateActionConfig(req)
+	if resp.Diagnostics != nil {
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, caller.String()))
+	}
+
+	return diags
+}
+
+// ConcreteActionNodeFunc is a callback type used to convert an
+// abstract action to a concrete one of some type.
+type ConcreteActionNodeFunc func(*NodeActionConfig) dag.Vertex
+
+// GraphNodeConfigAction
+func (n NodeActionConfig) ActionAddr() addrs.ConfigAction {
+	return n.Addr
+}
+
+func (n NodeActionConfig) ModulePath() addrs.Module {
+	return n.Addr.Module
+}
+
+func (n *NodeActionConfig) Path() addrs.ModuleInstance {
+	// this node is only directly evaluated during validation, so there is never
+	// module expansion.
+	return n.Addr.Module.UnkeyedInstanceShim()
+}
+
+func (n *NodeActionConfig) ReferenceableAddrs() []addrs.Referenceable {
+	return []addrs.Referenceable{n.Addr.Action}
+}
+
+func (n *NodeActionConfig) References() []*addrs.Reference {
+	var result []*addrs.Reference
+	c := n.Config
+
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
+	result = append(result, refs...)
+	refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
+	result = append(result, refs...)
+
+	if n.Schema != nil {
+		refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.ConfigSchema)
+		result = append(result, refs...)
+	}
+
+	return result
+}
+
+func (n *NodeActionConfig) AttachActionSchema(schema *providers.ActionSchema) {
+	n.Schema = schema
+}
+
+func (n *NodeActionConfig) Provider() ProviderRef {
+	// If the resolvedProvider is set, use that
+	if n.ResolvedProvider.Provider.Type != "" {
+		ref := ProviderRef{
+			Addr:     n.ResolvedProvider,
+			Resolved: true,
+		}
+		return ref
+	}
+
+	var addr addrs.AbsProviderConfig
+	if n.Config.Provider.Type != "" {
+		addr.Provider = n.Config.Provider
+	} else {
+		addr.Provider = addrs.ImpliedProviderForUnqualifiedType(n.Addr.Action.ImpliedProvider())
+	}
+
+	addr.Alias = n.Config.ProviderConfigAddr().Alias
+	addr.Module = n.ModulePath()
+	return ProviderRef{
+		Addr: addr,
+	}
+}
+
+func (n *NodeActionConfig) SetProvider(p addrs.AbsProviderConfig) {
+	n.ResolvedProvider = p
+}
+
+// The invoke command can reference an action block to invoke all instances, so
+// here we return a value representing the entire block if we have an
+// addrs.NoKey This function uses addrs.ActionInstance even though it only needs
+// the key because we need to use use a full instance addr for the resulting map
+// keys anyway.
+func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
+
+	var instances []addrs.AbsActionInstance
+
+	expander := ctx.InstanceExpander()
+	if addr.Key == addrs.NoKey {
+		// this might be a single instance with no key, or all instances, so we
+		// must expand for both cases
+		instances = expander.ExpandAction(n.Addr.Absolute(ctx.Path()))
+	} else {
+		// definitely looking for a single instance because we have an index of
+		// some sort
+		instances = []addrs.AbsActionInstance{addr.Absolute(ctx.Path())}
+	}
+
+	for _, instAddr := range instances {
+		repData := expander.GetActionInstanceRepetitionData(instAddr)
+		val, evalDiags := n.evalInstance(ctx, repData, callRange, caller, cty.NilVal)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			return all, diags
+		}
+		all.Put(instAddr.Action, val)
+	}
+
+	return all, diags
+}
+
+// validate the correct type of key is being used for the action block
+func (n *NodeActionConfig) validateInstanceKey(addr addrs.AbsActionInstance, callRange *hcl.Range) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	key := addr.Action.Key
+
+	switch {
+	case n.Config.Count != nil:
+		switch key := key.(type) {
+		case addrs.IntKey:
+			// OK
+
+		case addrs.StringKey:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid index",
+				Detail:   fmt.Sprintf("Invalid string key %s for action with count", key),
+				Subject:  callRange,
+			})
+		default:
+			if key == addrs.WildcardKey {
+				return diags
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing index",
+				Detail:   "An action with count must be referenced via an integer key",
+				Subject:  callRange,
+			})
+		}
+
+	case n.Config.ForEach != nil:
+		switch key := key.(type) {
+		case addrs.IntKey:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid index",
+				Detail:   fmt.Sprintf("Invalid key %d for action with for_each", key),
+				Subject:  callRange,
+			})
+
+		case addrs.StringKey:
+			// OK
+
+		default:
+			if key == addrs.WildcardKey {
+				return diags
+			}
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing index",
+				Detail:   "An action with for_each must be referenced via a string key",
+				Subject:  callRange,
+			})
+		}
+
+	default:
+		switch key := key.(type) {
+		case addrs.IntKey, addrs.StringKey:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid index",
+				Detail:   fmt.Sprintf("Unexpanded action referenced with instance key %d", key),
+				Subject:  callRange,
+			})
+
+		default:
+			if key == addrs.WildcardKey {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid index",
+					Detail:   fmt.Sprintf("Unexpanded action referenced with instance key %s", key),
+					Subject:  callRange,
+				})
+			}
+		}
+	}
+	return diags
+}
+
+// EvalInstance returns the value from the expanded action block
+func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionInstance, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(n.validateInstanceKey(inst, callRange))
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	instAddr := n.Addr.Absolute(ctx.Path()).Instance(inst.Action.Key)
+
+	expander := ctx.InstanceExpander()
+	// first we have to make sure the instance is valid because the expander only panics
+	instances := expander.ExpandAction(inst.ContainingAction())
+	found := false
+	for _, instAddr := range instances {
+		if instAddr.Equal(inst) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to non-existent action instance",
+			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", inst.Action.Key),
+			Subject:  callRange,
+		})
+		return cty.DynamicVal, diags
+	}
+
+	repData := expander.GetActionInstanceRepetitionData(instAddr)
+
+	return n.evalInstance(ctx, repData, callRange, caller, callerVal)
+}
+
+// Eval one or more instances of the action. This function expects that the key
+// is already validated for the the calling context, and will not produce
+// diagnostics for incorrect key types.
+func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// This should have been caught already
+	if n.Schema == nil {
+		panic("action eval called without a schema")
+	}
+
+	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
+	if n.Config.Config == nil {
+		return configVal, nil
+	}
+
+	// For invoke we have no callerVal, but can use the normal self evaluation
+	// mechanisms because the instance must be in state already.
+	var evalDiags tfdiags.Diagnostics
+	if callerVal == cty.NilVal {
+		configVal, _, evalDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, caller, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			return configVal, diags
+		}
+	} else {
+		scope := ctx.EvaluationScope(caller, nil, repData)
+		configVal, evalDiags = scope.EvalActionBlock(n.Config.Config, n.Schema.ConfigSchema, callerVal)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			return configVal, diags
+		}
+	}
+
+	valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
+	diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
+	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+
+	return configVal, diags
 }

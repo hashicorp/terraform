@@ -175,6 +175,57 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
+		"after_destroy triggered": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "hello" {
+  config {
+    attr = caller.test_string
+  }
+}
+
+resource "test_object" "a" {
+  test_string = "new name"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectTainted,
+						AttrsJSON: []byte(`{"test_string":"old name"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			events: func(req providers.InvokeActionRequest) []providers.InvokeActionEvent {
+				attr := req.PlannedActionData.GetAttr("attr").AsString()
+				if attr != "old name" {
+					return []providers.InvokeActionEvent{
+						providers.InvokeActionEvent_Completed{
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(
+									tfdiags.Error,
+									"destroy used wrong state value",
+									"action invoked with "+attr,
+								),
+							},
+						},
+					}
+				}
+				return []providers.InvokeActionEvent{
+					providers.InvokeActionEvent_Completed{},
+				}
+			},
+			expectInvokeActionCalled: true,
+		},
+
 		"before_create failing": {
 			module: map[string]string{
 				"main.tf": `
@@ -206,13 +257,8 @@ resource "test_object" "a" {
 			expectDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Error when invoking action",
-					Detail:   "test case for failing: this simulates a provider failing",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-						End:      hcl.Pos{Line: 7, Column: 45, Byte: 175},
-					},
+					Summary:  "test case for failing",
+					Detail:   "this simulates a provider failing",
 				})
 			},
 		},
@@ -261,13 +307,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   `test case for failing: this simulates a provider failing`,
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 76, Byte: 315},
-							End:      hcl.Pos{Line: 13, Column: 105, Byte: 344},
-						},
+						Summary:  "test case for failing",
+						Detail:   `this simulates a provider failing`,
 					},
 				)
 
@@ -302,13 +343,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing before the action is invoked",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 7, Column: 18, Byte: 148},
-							End:      hcl.Pos{Line: 7, Column: 47, Byte: 175},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing before the action is invoked",
 					},
 				)
 			},
@@ -353,13 +389,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},
@@ -415,13 +446,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 13, Column: 47, Byte: 288},
-							End:      hcl.Pos{Line: 13, Column: 76, Byte: 317},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},
@@ -485,13 +511,8 @@ resource "test_object" "a" {
 				return tfdiags.Diagnostics{}.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Error when invoking action",
-						Detail:   "test case for failing: this simulates a provider failing",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 17, Column: 18, Byte: 363},
-							End:      hcl.Pos{Line: 17, Column: 47, Byte: 392},
-						},
+						Summary:  "test case for failing",
+						Detail:   "this simulates a provider failing",
 					},
 				)
 			},
@@ -571,11 +592,12 @@ resource "test_object" "b" {
 				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Action configuration unknown during apply",
-					Detail:   "The action action.action_example.hello was not fully known during apply.\n\nThis is a bug in Terraform, please report it.",
+					Detail: "The action action.action_example.hello was not fully known during apply. " +
+						"This may be caused by using the caller object in conjunction with a before event.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 14, Column: 18, Byte: 238},
-						End:      hcl.Pos{Line: 14, Column: 45, Byte: 265},
+						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 46},
+						End:      hcl.Pos{Line: 5, Column: 32, Byte: 77},
 					},
 				})
 			},
@@ -661,34 +683,6 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-		},
-
-		"after_create with config cycle": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "hello" {
-  config {
-    attr = test_object.a.test_string
-  }
-}
-resource "test_object" "a" {
-  test_string = "test_object_a"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      actions = [action.action_example.hello]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{{
-				ActionType: "action_example",
-				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.StringVal("test_object_a"),
-				}),
-			}},
 		},
 
 		"triggered within module": {
@@ -1168,12 +1162,47 @@ resource "test_object" "a" {
 			}),
 		},
 
+		"after destroy": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "bye" {
+  config {
+    attr = caller.test_string
+  }
+}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.action_example.bye]
+    }
+  }
+}
+`,
+			},
+			expectInvokeActionCalled: true,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"test_string":"bye"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			planOpts: &PlanOpts{
+				Mode: plans.DestroyMode,
+				// skip refresh just makes this easier to troubleshoot be removing an extra walk
+				SkipRefresh: true,
+			},
+		},
+
 		"action config with after_create dependency to triggering resource": {
 			module: map[string]string{
 				"main.tf": `
 action "action_example" "hello" {
   config {
-    attr = test_object.a.test_string
+    attr = caller.test_string
   }
 }
 resource "test_object" "a" {
@@ -1495,6 +1524,43 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 		},
 
+		"before_update references caller": {
+			module: map[string]string{
+				"main.tf": `
+action "action_example" "test" {
+  config {
+    attr = caller.test_string
+  }
+}
+resource "test_object" "a" {
+  test_string = "new"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+      actions = [action.action_example.test]
+    }
+  }
+}
+`,
+			},
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"test_string": "old"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{{
+				ActionType: "action_example",
+				PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("new"),
+				}),
+			}},
+		},
+
 		"simple condition evaluation - false": {
 			module: map[string]string{
 				"main.tf": `
@@ -1572,46 +1638,6 @@ resource "test_object" "a" {
 `,
 			},
 			expectInvokeActionCalled: true,
-		},
-		"referencing triggering resource in after_* condition": {
-			module: map[string]string{
-				"main.tf": `
-action "action_example" "hello" {
-  config {
-    attr = "hello"
-  }
-}
-action "action_example" "world" {
-  config {
-    attr = "world"
-  }
-}
-resource "test_object" "a" {
-  test_string = "foo"
-  lifecycle {
-    action_trigger {
-      events = [after_create]
-      condition = test_object.a.test_string == "foo"
-      actions = [action.action_example.hello]
-    }
-    action_trigger {
-      events = [after_update]
-      condition = test_object.a.test_string == "bar"
-      actions = [action.action_example.world]
-    }
-  }
-}
-`,
-			},
-			expectInvokeActionCalled: true,
-			expectInvokeActionCalls: []providers.InvokeActionRequest{
-				{
-					ActionType: "action_example",
-					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("hello"),
-					}),
-				},
-			},
 		},
 		"multiple events triggering in same action trigger": {
 			module: map[string]string{
@@ -2577,6 +2603,58 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			prevRunState: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			}),
+		},
+
+		"invoke action with caller": {
+			module: map[string]string{
+				"main.tf": `
+resource "test_object" "a" {
+  count = 2
+  test_string = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+	  actions = [action.action_example.one]
+	}
+  }
+}
+
+action "action_example" "one" {
+  config {
+    attr = caller.test_string
+  }
+}
+	`,
+			},
+			planOpts: &PlanOpts{
+				Mode:          plans.RefreshOnlyMode,
+				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+			},
+			expectInvokeActionCalled: true,
+			expectInvokeActionCalls: []providers.InvokeActionRequest{
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+				{
+					ActionType: "action_example",
+					PlannedActionData: cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("hello"),
+					}),
+				},
+			},
+			prevRunState: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"test_string":"hello"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
 					AttrsJSON: []byte(`{"test_string":"hello"}`),
 					Status:    states.ObjectReady,
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))

@@ -5,9 +5,9 @@ package deferring
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -88,8 +88,10 @@ type Deferred struct {
 	actionInvocationDeferred []*plans.DeferredActionInvocation
 
 	// actionExpansionDeferred tracks the action expansions that have been
-	// deferred. This can happen because the action expansion is not yet ready to be executed.
-	actionExpansionDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.AbsActionInstance, providers.DeferredReason]]
+	// deferred. This can happen because the action expansion is not yet ready
+	// to be executed, so we only track whole action objects as opposed to
+	// instances.
+	actionExpansionDeferred addrs.Map[addrs.ConfigAction, addrs.Map[addrs.AbsAction, providers.DeferredReason]]
 
 	// partialExpandedResourcesDeferred tracks placeholders that cover an
 	// unbounded set of potential resource instances in situations where we
@@ -163,7 +165,7 @@ func NewDeferred(enabled bool) *Deferred {
 		ephemeralResourceInstancesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
 		dataSourceInstancesDeferred:              addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
 		actionInvocationDeferred:                 []*plans.DeferredActionInvocation{},
-		actionExpansionDeferred:                  addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.AbsActionInstance, providers.DeferredReason]](),
+		actionExpansionDeferred:                  addrs.MakeMap[addrs.ConfigAction, addrs.Map[addrs.AbsAction, providers.DeferredReason]](),
 		partialExpandedResourcesDeferred:         addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedDataSourcesDeferred:       addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedEphemeralResourceDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
@@ -175,6 +177,9 @@ func NewDeferred(enabled bool) *Deferred {
 // GetDeferredChanges returns a slice of all the deferred changes that have
 // been reported to the receiver.
 func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	var changes []*plans.DeferredResourceInstanceChange
 
 	if !d.deferralAllowed {
@@ -206,7 +211,10 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 
 // GetDeferredActionInvocations returns a list of all deferred action invocations.
 func (d *Deferred) GetDeferredActionInvocations() []*plans.DeferredActionInvocation {
-	return d.actionInvocationDeferred
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return slices.Clone(d.actionInvocationDeferred)
 }
 
 // SetExternalDependencyDeferred modifies a freshly-constructed [Deferred]
@@ -240,6 +248,9 @@ func (d *Deferred) DeferralAllowed() bool {
 // as having their own changes deferred without having to duplicate the
 // modules runtime's rules for what counts as a deferral.
 func (d *Deferred) HaveAnyDeferrals() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	return d.deferralAllowed &&
 		(d.externalDependencyDeferred ||
 			d.resourceInstancesDeferred.Len() != 0 ||
@@ -692,6 +703,8 @@ func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModul
 	d.partialExpandedModulesDeferred.Add(addr)
 }
 
+// Providers cannot defer actions individually, however we record deferred
+// invocations for bookkeeping for now so we know which resources were affected.
 func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInstance, reason providers.DeferredReason) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -712,13 +725,14 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 	})
 }
 
-func (d *Deferred) ReportActionDeferred(addr addrs.AbsActionInstance, reason providers.DeferredReason) {
+// Report Action Deferred
+func (d *Deferred) ReportActionDeferred(addr addrs.AbsAction, reason providers.DeferredReason) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	configAddr := addr.ConfigAction()
 	if !d.actionExpansionDeferred.Has(configAddr) {
-		d.actionExpansionDeferred.Put(configAddr, addrs.MakeMap[addrs.AbsActionInstance, providers.DeferredReason]())
+		d.actionExpansionDeferred.Put(configAddr, addrs.MakeMap[addrs.AbsAction, providers.DeferredReason]())
 	}
 
 	configMap := d.actionExpansionDeferred.Get(configAddr)
@@ -731,18 +745,8 @@ func (d *Deferred) ReportActionDeferred(addr addrs.AbsActionInstance, reason pro
 }
 
 // ShouldDeferActionInvocation returns true if there is a reason to defer the
-// action invocation instance. We want to defer an action invocation only if
-// the triggering resource was deferred. In addition, we will check if the
-// underlying action was deferred via a reference, and consider it an error if
-// the triggering resource wasn't also deferred.
-//
-// The reason behind the slightly different behaviour here, is that if an
-// action invocation is deferred, then that implies the triggering action
-// should also be deferred.
-//
-// We don't yet have the capability to retroactively defer a resource, so for
-// now actions initiating deferrals themselves is considered an error.
-func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance, triggerRange *hcl.Range) (bool, tfdiags.Diagnostics) {
+// action invocation instance.
+func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstance) (bool, tfdiags.Diagnostics) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -762,25 +766,24 @@ func (d *Deferred) ShouldDeferActionInvocation(ai plans.ActionInvocationInstance
 	}
 
 	if c, ok := d.actionExpansionDeferred.GetOk(ai.Addr.ConfigAction()); ok {
-		if c.Has(ai.Addr) {
-			// Then in this case, the resource wasn't deferred but the action
-			// was and so we will consider this to be an error.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid action deferral",
-				Detail:   fmt.Sprintf("The action %s was marked as deferred, but was triggered by a non-deferred resource %s. To work around this, use the -target argument to first apply only the resources that the action block depends on.", ai.Addr, at.TriggeringResourceAddr),
-				Subject:  triggerRange,
-			})
+		if c.Has(ai.Addr.ContainingAction()) {
+			return true, diags
+		}
+	}
+
+	// now check if the action config was deferred
+	configAddr := ai.Addr.ConfigAction()
+	if !d.partialExpandedActionsDeferred.Has(configAddr) {
+		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, providers.DeferredReason]())
+	}
+
+	for partial := range d.partialExpandedActionsDeferred.Get(configAddr).Iter() {
+		if partial.MatchesAction(ai.Addr.ContainingAction()) {
+			return true, diags
 		}
 	}
 
 	return false, diags
-}
-
-// ShouldDeferAction returns true if the action should be deferred. This is the case if a
-// dependency of the action is deferred.
-func (d *Deferred) ShouldDeferAction(deps []addrs.ConfigResource) bool {
-	return d.DependenciesDeferred(deps)
 }
 
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
