@@ -269,12 +269,21 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	ui := new(cli.MockUi)
 	view, done := testView(t)
 
+	// assert modules are evaluated correctly
+	expected := map[string]policy.EvaluateResult{
+		"./grandchild":    policy.DenyResult,
+		"./modules/child": policy.AllowResult,
+	}
+	actual := map[string]policy.EvaluateResult{}
+
 	overrides := metaOverridesForProvider(testProvider())
 	policyClient := policy.NewTestMockClient(t)
 	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
 		if req.Target != "./grandchild" {
+			actual[req.Target] = policy.AllowResult
 			return policy.EvaluationResponse{Overall: policy.AllowResult}
 		}
+		actual[req.Target] = policy.DenyResult
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Diagnostics: policy.Diagnostics{
@@ -315,13 +324,25 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	if !policyClient.EvaluateModuleCalled {
 		t.Fatal("expected EvaluateModule to be called")
 	}
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Fatalf("unexpected module policy evaluation results:\n%s", diff)
+	}
 
 	stderr := output.Stderr()
-	if !strings.Contains(stderr, "on modules/child/main.tf line 12:") {
-		t.Fatalf("expected nested module diagnostic to point at modules/child/main.tf:12, got:\n%s", stderr)
-	}
-	if !strings.Contains(stderr, `12: module "nested" {`) {
-		t.Fatalf("expected nested module snippet in diagnostics, got:\n%s", stderr)
+	expectedStderr := `
+Error: nested module policy denied
+
+  on modules/child/main.tf line 12:
+  12: module "nested" {
+
+
+Error: Policy evaluation failed
+
+Module download blocked due to policy violations. Please review other
+diagnostics for details.
+`
+	if diff := cmp.Diff(expectedStderr, stderr); diff != "" {
+		t.Fatalf("unexpected stderr:\n%s\nexpected:\n%s\n diff:\n%s", stderr, expectedStderr, diff)
 	}
 }
 
