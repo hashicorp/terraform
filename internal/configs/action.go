@@ -51,6 +51,18 @@ type ActionTrigger struct {
 	DeclRange hcl.Range
 }
 
+// ActionFailureResult describes the result of an action invocation failure on a
+// a resource and its dependencies.
+type ActionOnFailure int
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
+
+const (
+	ActionOnFailureHalt ActionOnFailure = iota
+	ActionOnFailureTaint
+	ActionOnFailureContinue
+)
+
 // ActionTriggerEvent is an enum for valid values for events for action
 // triggers.
 type ActionTriggerEvent int
@@ -66,18 +78,6 @@ const (
 	BeforeDestroy
 	AfterDestroy
 	Invoke
-)
-
-// ActionFailureResult describes the result of an action invocation failure on a
-// a resource and its dependencies.
-type ActionOnFailure int
-
-//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
-
-const (
-	ActionOnFailureHalt ActionOnFailure = iota
-	ActionOnFailureTaint
-	ActionOnFailureContinue
 )
 
 func (e ActionTriggerEvent) IsBefore() bool {
