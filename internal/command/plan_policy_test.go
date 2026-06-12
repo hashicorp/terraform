@@ -824,12 +824,7 @@ func TestPlan_WithPolicySetupFailure(t *testing.T) {
 
 	// we still display the policy output
 	// and the plan still succeeds
-	expectedOut := `
-Error: Failed to connect to policy engine
-
-Failed to connect to policy engine: failed to connect to plugin: exec:
-"tfpolicy-plugin": executable file not found in $PATH.
-data.test_data_source.a: Reading...
+	expectedStdOut := `data.test_data_source.a: Reading...
 data.test_data_source.a: Read complete after 0s [id=zzzzz]
 
 Terraform used the selected providers to generate the following execution
@@ -856,8 +851,19 @@ Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
-	if diff := cmp.Diff(expectedOut, output.All()); diff != "" {
-		t.Fatalf("unexpected output:\n%s", diff)
+	if diff := cmp.Diff(expectedStdOut, output.Stdout()); diff != "" {
+		t.Fatalf("unexpected stdout output:\n%s", diff)
+	}
+
+	expectedStdErr := `
+Error: Failed to connect to policy engine
+
+Failed to connect to policy engine: failed to connect to plugin: exec:
+"tfpolicy-plugin": executable file not found in $PATH.
+`
+
+	if diff := cmp.Diff(expectedStdErr, output.Stderr()); diff != "" {
+		t.Fatalf("unexpected stderr output:\n%s", diff)
 	}
 }
 
