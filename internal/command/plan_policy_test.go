@@ -816,8 +816,7 @@ func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
 		}
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
-	overs := overrides
-	overs.PolicyClient = policyClient
+	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides:          overs,
