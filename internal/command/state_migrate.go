@@ -27,13 +27,15 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	args, diags := arguments.ParseStateMigrate(rawArgs)
 
-	stateMigrate := views.NewStateMigrate(args.ViewType, c.View)
+	view := views.NewStateMigrate(args.ViewType, c.View)
 
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
+	// FIXME: the -input flag value is needed but there is no clear path to pass
+	// this value down, so we continue to mutate the Meta object state for now.
 	c.Meta.input = args.InputEnabled
 
 	if args.SourceLockFilePath != "" {
@@ -62,7 +64,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// return validation errors early if there are any
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -71,7 +73,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	cfg, mDiags := c.Meta.loadConfig(dir)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -82,7 +84,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"No state migration instructions found",
 			"No instructions were found in the configuration files. Please ensure that a file with a .tfmigrate.hcl extension is present and contains valid state migration instructions.",
 		))
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -107,18 +109,18 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"Unknown migration destination",
 			"No configuration was provided for where to migrate the state to. Please ensure that a file with a .tf extension is present and contains valid state_store or backend configuration inside the terraform block.",
 		))
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	stateMigrate.Log("Migrating state from %s to %s...", source, destination)
+	view.Log("Migrating state from %s to %s...", source, destination)
 
 	// TODO: Load the source backend
 	// TODO: Load the destination backend
 	// TODO: Perform the migration from source to destination
 
 	diags = diags.Append(errors.New("Not implemented yet"))
-	stateMigrate.Diagnostics(diags)
+	view.Diagnostics(diags)
 	return 1
 }
 
