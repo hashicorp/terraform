@@ -117,6 +117,26 @@ func (g *Graph) Add(v Vertex) Vertex {
 	return v
 }
 
+// AddRoot adds a root vertex to the graph and connects all vertices that do not
+// already depend on at least one other node to the root node.
+func (g *Graph) AddRoot(root Vertex) Vertex {
+	g.init()
+	g.Add(root)
+
+	// Everything that doesn't already depend on at least one other node will
+	// depend on the root node, except the root node itself.
+	for v := range g.VerticesSeq() {
+		if v == Vertex(root) {
+			continue
+		}
+
+		if g.UpEdges(v).Len() == 0 {
+			g.Connect(BasicEdge(root, v))
+		}
+	}
+	return root
+}
+
 // Remove removes a vertex from the graph. This will also remove any
 // edges with this vertex as a source or target.
 func (g *Graph) Remove(v Vertex) Vertex {

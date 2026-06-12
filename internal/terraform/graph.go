@@ -168,9 +168,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					return
 				}
 				// If we passed validation then there is exactly one root node.
-				// That root node should always be "rootNode", the singleton
-				// root node value.
-				if n, err := g.Root(); err != nil || n != dag.Vertex(rootNode) {
+				// That root node should always be a type of "graphNodeRoot".
+				n, err := g.Root()
+				_, isRoot := n.(graphNodeRoot)
+				if err != nil || !isRoot {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Graph node has invalid dynamic subgraph",
