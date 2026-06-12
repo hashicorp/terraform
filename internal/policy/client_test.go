@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
+	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -42,8 +43,8 @@ func TestClientEvaluate(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		attrs      cty.Value
-		priorAttrs cty.Value
+		attrs      PolicyValue
+		priorAttrs PolicyValue
 
 		// an optional function to override the default evaluateResourceFn
 		evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
@@ -53,8 +54,8 @@ func TestClientEvaluate(t *testing.T) {
 	}{
 		{
 			name:       "nil attrs and prior attrs",
-			attrs:      cty.NilVal,
-			priorAttrs: cty.NilVal,
+			attrs:      PolicyValue{Raw: cty.NilVal},
+			priorAttrs: PolicyValue{Raw: cty.NilVal},
 			assertResponse: func(t *testing.T, registry *callback.MockRegistry, req *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -69,9 +70,14 @@ func TestClientEvaluate(t *testing.T) {
 			},
 		},
 		{
-			name:       "non-nil attrs and prior attrs",
-			attrs:      cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
-			priorAttrs: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("prior")}),
+			name: "non-nil attrs and prior attrs",
+			attrs: PolicyValue{
+				Raw:           cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
+				RedactedPaths: []cty.Path{cty.GetAttrPath("secret")},
+			},
+			priorAttrs: PolicyValue{
+				Raw: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("prior")}),
+			},
 			assertResponse: func(t *testing.T, registry *callback.MockRegistry, req *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -80,12 +86,19 @@ func TestClientEvaluate(t *testing.T) {
 				if len(resp.Diagnostics) != 0 {
 					t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
 				}
+
+				want := &proto.Path{Steps: []*proto.Path_Step{{
+					Selector: &proto.Path_Step_AttributeName{AttributeName: "secret"},
+				}}}
+				if len(req.Attrs.RedactedPaths) != 1 || !gproto.Equal(req.Attrs.RedactedPaths[0], want) {
+					t.Fatalf("unexpected redacted paths: %#v", req.Attrs.RedactedPaths)
+				}
 			},
 		},
 		{
 			name:       "transforms diagnostics from response",
-			attrs:      cty.NilVal,
-			priorAttrs: cty.NilVal,
+			attrs:      PolicyValue{Raw: cty.NilVal},
+			priorAttrs: PolicyValue{Raw: cty.NilVal},
 			evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
 				return &proto.PolicyEvaluateResourceResponse{
 					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
@@ -204,13 +217,13 @@ func TestClientEvaluateProvider(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		attrs              cty.Value
+		attrs              PolicyValue
 		evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 		assertResponse     func(*testing.T, EvaluationResponse)
 	}{
 		{
 			name:  "nil attrs",
-			attrs: cty.NilVal,
+			attrs: PolicyValue{Raw: cty.NilVal},
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -223,7 +236,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 		},
 		{
 			name:  "unknown attrs",
-			attrs: cty.UnknownVal(cty.EmptyObject),
+			attrs: PolicyValue{Raw: cty.UnknownVal(cty.EmptyObject)},
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -236,7 +249,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 		},
 		{
 			name:  "non-nil attrs",
-			attrs: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
+			attrs: PolicyValue{Raw: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")})},
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -249,7 +262,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 		},
 		{
 			name:  "transforms diagnostics from response",
-			attrs: cty.NilVal,
+			attrs: PolicyValue{Raw: cty.NilVal},
 			evaluateProviderFn: func(req *proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error) {
 				return &proto.PolicyEvaluateProviderResponse{
 					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
