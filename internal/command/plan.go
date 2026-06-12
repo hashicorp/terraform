@@ -187,7 +187,9 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 			opReq.View.PolicyResults(nil, policyDiags)
 		}
 		opReq.PolicyClient = client
-		defer stopClient()
+		if policyDiags.HasErrors() {
+			stopClient()
+		}
 	}
 
 	return opReq, diags

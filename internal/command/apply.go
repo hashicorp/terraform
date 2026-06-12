@@ -111,7 +111,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 			opReq.View.PolicyResults(nil, policyDiags)
 		}
 		opReq.PolicyClient = client
-		defer stopClient()
+		if policyDiags.HasErrors() {
+			stopClient()
+		}
 	}
 
 	// Collect variable value and add them to the operation request

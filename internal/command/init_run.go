@@ -164,9 +164,9 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		var policyDiags policy.Diagnostics
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths)
-		defer stopClient()
 		view.PolicyResults(nil, policyDiags)
 		if policyDiags.HasErrors() {
+			stopClient()
 			view.Diagnostics(diags)
 			return 1
 		}
@@ -260,7 +260,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 
 		// Use alteredPreviousLocks, which may contain an additional lock supplied from the -state-provider-lock-file flag
-		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view, providerHook)
+		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
 			view.PolicyResults(policyResults, nil)

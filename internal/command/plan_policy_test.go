@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -783,6 +784,57 @@ func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	}
 
 	checkGoldenReference(t, output, "plan-policy")
+}
+
+func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile("policy.hcl", []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	policyClient := policy.NewTestMockClient(t)
+	var stopCalled atomic.Bool
+	var policyEvaluated atomic.Bool
+	policyClient.StopFn = func() {
+		stopCalled.Store(true)
+	}
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		policyEvaluated.Store(true)
+		if stopCalled.Load() {
+			t.Fatal("policy client Stop was called before the plan finished")
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	overs := overrides
+	overs.PolicyClient = policyClient
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides:          overs,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	args := []string{"-policies", td}
+	code := c.Run(append(args, "-no-color"))
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+	if !policyEvaluated.Load() {
+		t.Fatal("expected policy evaluation to be called during plan")
+	}
 }
 
 func TestPlan_WithPolicySetupFailure(t *testing.T) {

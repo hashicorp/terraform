@@ -40,7 +40,8 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 
 	// Use a pre-initialized client for tests if one is available
 	if c.testingOverrides != nil {
-		if client := c.testingOverrides.PolicyClient; client != nil {
+		client = c.testingOverrides.PolicyClient
+		if client != nil {
 			return client, nil, closer
 		}
 	}
@@ -209,7 +210,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
 	p.policyResults.AddProvider(addr, result, providerConfig)
-
+	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	if result.Overall != policy.AllowResult {
 		return fmt.Errorf("Provider download blocked due to policy violations. Please review other diagnostics for details.")
 	}

@@ -390,7 +390,7 @@ const (
 // updated dependency lock data. The dependency lock file itself isn't updated here.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init, installerHook *providerPolicyHook) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -535,7 +535,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode, installerHook)
+	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
