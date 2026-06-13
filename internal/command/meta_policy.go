@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -22,7 +23,7 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics, func()) {
+func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string, ent *policy.Entitlement) (policy.Client, policy.Diagnostics, func()) {
 	var client policy.Client
 	closer := func() {
 		if client != nil {
@@ -70,6 +71,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	resp := client.Setup(ctx, policy.SetupRequest{
 		SourceLocations: policyPaths,
 		CallbackService: callbackServiceID,
+		Entitlement:     ent,
 	})
 	diags = append(diags, resp.Diagnostics...)
 
@@ -111,6 +113,20 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 
 	log.Printf("[DEBUG] backend/operation/policy: Policy engine initialized")
 	return client, diags, closer
+}
+
+// backendPolicyEntitlement returns the policy entitlement supplied by the
+// backend, if it implements policy.EntitlementProvider. The cloud and remote
+// backends resolve the host/token/org from their block, env vars, and the
+// credentials store while configuring, so plan, apply, and init read it from
+// there. Returns nil if the backend cannot supply one (e.g. a local backend);
+// the plugin then applies its own fallback.
+func backendPolicyEntitlement(be backend.Backend) *policy.Entitlement {
+	provider, ok := be.(policy.EntitlementProvider)
+	if !ok {
+		return nil
+	}
+	return provider.PolicyEntitlement()
 }
 
 // policyModuleInstallHook enables policy evaluation during module installation.
