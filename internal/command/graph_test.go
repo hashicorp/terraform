@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -27,9 +28,9 @@ import (
 )
 
 func TestGraph_planPhase(t *testing.T) {
+	t.Parallel() // possible because t.Chdir not needed
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
-	t.Chdir(td)
 
 	ui := new(cli.MockUi)
 	streams, closeStreams := terminal.StreamsForTesting(t)
@@ -38,6 +39,7 @@ func TestGraph_planPhase(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 			Streams:          streams,
+			WorkingDir:       workdir.NewDir(td),
 		},
 	}
 
@@ -53,9 +55,9 @@ func TestGraph_planPhase(t *testing.T) {
 }
 
 func TestGraph_cyclic(t *testing.T) {
+	t.Parallel() // possible because t.Chdir not needed
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph-cyclic"), td)
-	t.Chdir(td)
 
 	tests := []struct {
 		name     string
@@ -70,8 +72,10 @@ func TestGraph_cyclic(t *testing.T) {
 		{
 			name: "plan",
 			args: []string{"-type=plan"},
-			errors: []string{`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`},
+			errors: []string{
+				`Error: Cycle: test_instance.`,
+				`Error: Cycle: local.`,
+			},
 		},
 		{
 			name: "plan with -draw-cycles option",
@@ -102,8 +106,10 @@ func TestGraph_cyclic(t *testing.T) {
 			// The cyclic errors do not maintain a consistent order, so we can't
 			// predict the exact output. We'll just check that the error messages
 			// are present for the things we know are cyclic.
-			errors: []string{`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`},
+			errors: []string{
+				`Error: Cycle: test_instance.`,
+				`Error: Cycle: local.`,
+			},
 		},
 		{
 			name: "apply with -draw-cycles option",
@@ -139,6 +145,7 @@ func TestGraph_cyclic(t *testing.T) {
 					testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 					Ui:               ui,
 					Streams:          streams,
+					WorkingDir:       workdir.NewDir(td),
 				},
 			}
 
@@ -165,7 +172,6 @@ func TestGraph_cyclic(t *testing.T) {
 			if strings.TrimSpace(output.Stdout()) != strings.TrimSpace(tt.expected) {
 				t.Fatalf("expected dot graph to match:\n%s", cmp.Diff(output.Stdout(), tt.expected))
 			}
-
 		})
 	}
 }
@@ -189,9 +195,10 @@ func TestGraph_multipleArgs(t *testing.T) {
 }
 
 func TestGraph_noConfig(t *testing.T) {
+	t.Parallel() // possible because t.Chdir not needed
+
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	t.Chdir(td)
 
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	defer closeStreams(t)
@@ -201,6 +208,7 @@ func TestGraph_noConfig(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 			Streams:          streams,
+			WorkingDir:       workdir.NewDir(td),
 		},
 	}
 
@@ -214,7 +222,8 @@ func TestGraph_noConfig(t *testing.T) {
 
 func TestGraph_resourcesOnly(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "graph-interesting")
-	t.Chdir(wd.RootModuleDir())
+	td := wd.RootModuleDir()
+	t.Chdir(td)
 
 	// The graph-interesting fixture has a child module, so we'll need to
 	// run the module installer just to get the working directory set up
@@ -257,8 +266,9 @@ func TestGraph_resourcesOnly(t *testing.T) {
 					addrs.NewDefaultProvider("foo"): providers.FactoryFixed(p),
 				},
 			},
-			Ui:      ui,
-			Streams: streams,
+			Ui:         ui,
+			Streams:    streams,
+			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
@@ -346,6 +356,7 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 			Streams:          streams,
+			WorkingDir:       workdir.NewDir(tmp),
 		},
 	}
 
@@ -365,7 +376,7 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 func TestGraph_constVariable(t *testing.T) {
 	t.Run("missing value", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
-		t.Chdir(wd.RootModuleDir())
+		// t.Chdir not needed
 
 		ui := cli.NewMockUi()
 		streams, closeStreams := terminal.StreamsForTesting(t)
