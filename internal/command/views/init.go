@@ -17,10 +17,10 @@ import (
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
-	Output(messageCode InitMessageCode, params ...any)
-	LogInitMessage(messageCode InitMessageCode, params ...any)
+	Output(messageCode OutputMessageCode, params ...any)
+	LogInitMessage(initMessageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
-	PrepareMessage(messageCode InitMessageCode, params ...any) string
+	PrepareMessage(messageCode any, params ...any) string
 }
 
 // NewInit returns Init implementation for the given ViewType.
@@ -56,13 +56,15 @@ func (v *InitHuman) PolicyResults(results *plans.PolicyResults, setupDiags polic
 }
 
 // Creates output using a message code and parameters.
+// Accepts only 'OutputMessageCode' values.
 //
 // Matches the logic of LogInitMessage, but uses a different subset of message codes.
-func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
+func (v *InitHuman) Output(messageCode OutputMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
 // Creates output using a message code and parameters.
+// Accepts only 'InitMessageCode' values.
 //
 // Matches the logic of Output, but uses a different subset of message codes.
 func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
@@ -74,11 +76,28 @@ func (v *InitHuman) Log(message string, params ...any) {
 	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) string {
-	message, ok := MessageRegistry[messageCode]
+// PrepareMessage creates output using a message code and parameters.
+// Accepts 'InitMessageCode', 'OutputMessageCode', and 'PreparedMessageCode' values.
+//
+// If the message code doesn't match an entry in any of the used message registries then
+// the method will panic.
+func (v *InitHuman) PrepareMessage(messageCode any, params ...any) string {
+	var message InitMessage
+	var ok bool
+	switch val := messageCode.(type) {
+	case InitMessageCode:
+		message, ok = InitMessageRegistry[val]
+	case OutputMessageCode:
+		message, ok = OutputRegistry[val]
+	case PreparedMessageCode:
+		message, ok = PreparedMessageRegistry[val]
+	default:
+		panic(fmt.Sprintf("unknown message code type %T", messageCode))
+	}
 	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(messageCode)
+		// Doesn't match a known message code.
+		// This means there's an error in calling code; panic.
+		panic(fmt.Sprintf("unknown message code %q", messageCode))
 	}
 
 	if message.HumanValue == "" {
@@ -107,7 +126,7 @@ func (v *InitJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy
 
 // Creates output using a message code and parameters.
 // JSON output is logged with "type": "init_output"
-func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
+func (v *InitJSON) Output(messageCode OutputMessageCode, params ...any) {
 	// don't add empty messages to json output
 	preppedMessage := v.PrepareMessage(messageCode, params...)
 	if preppedMessage == "" {
@@ -147,11 +166,28 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) string {
-	message, ok := MessageRegistry[messageCode]
+// PrepareMessage creates output using a message code and parameters.
+// Accepts 'InitMessageCode', 'OutputMessageCode', and 'PreparedMessageCode' values.
+//
+// If the message code doesn't match an entry in any of the used message registries then
+// the method will panic.
+func (v *InitJSON) PrepareMessage(messageCode any, params ...any) string {
+	var message InitMessage
+	var ok bool
+	switch val := messageCode.(type) {
+	case InitMessageCode:
+		message, ok = InitMessageRegistry[val]
+	case OutputMessageCode:
+		message, ok = OutputRegistry[val]
+	case PreparedMessageCode:
+		message, ok = PreparedMessageRegistry[val]
+	default:
+		panic(fmt.Sprintf("unknown message code type %T", messageCode))
+	}
 	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(messageCode)
+		// Doesn't match a known message code.
+		// This means there's an error in calling code; panic.
+		panic(fmt.Sprintf("unknown message code %q", messageCode))
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
@@ -163,7 +199,46 @@ type InitMessage struct {
 	JSONValue  string
 }
 
-var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
+// InitMessageRegistry contains all messages that are logged via the LogInitMessage method.
+// When machine-readable output is used, the JSON log includes "type": "log".
+var InitMessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
+	"provider_already_installed_message": {
+		HumanValue: "- Using previously-installed %s v%s",
+		JSONValue:  "%s v%s: Using previously-installed provider version",
+	},
+	"built_in_provider_available_message": {
+		HumanValue: "- %s is built in to Terraform",
+		JSONValue:  "%s is built in to Terraform",
+	},
+	"reusing_previous_version_info": {
+		HumanValue: "- Reusing previous version of %s from the dependency lock file",
+		JSONValue:  "%s: Reusing previous version from the dependency lock file",
+	},
+	"finding_matching_version_message": {
+		HumanValue: "- Finding %s versions matching %q...",
+		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
+	},
+	"finding_latest_version_message": {
+		HumanValue: "- Finding latest version of %s...",
+		JSONValue:  "%s: Finding latest version...",
+	},
+	"using_provider_from_cache_dir_info": {
+		HumanValue: "- Using %s v%s from the shared cache directory",
+		JSONValue:  "%s v%s: Using from the shared cache directory",
+	},
+	"installing_provider_message": {
+		HumanValue: "- Installing %s v%s...",
+		JSONValue:  "Installing provider version: %s v%s...",
+	},
+	"installed_provider_version_info": {
+		HumanValue: "- Installed %s v%s (%s%s)",
+		JSONValue:  "Installed provider version: %s v%s (%s%s)",
+	},
+}
+
+// OutputRegistry contains all messages that are logged via the Output method.
+// When machine-readable output is used, the JSON log includes "type": "init_output".
+var OutputRegistry map[OutputMessageCode]InitMessage = map[OutputMessageCode]InitMessage{
 	"copying_configuration_message": {
 		HumanValue: "[reset][bold]Copying configuration[reset] from %q...",
 		JSONValue:  "Copying configuration from %q...",
@@ -236,49 +311,9 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: previousLockInfoHuman,
 		JSONValue:  previousLockInfoJSON,
 	},
-	"provider_already_installed_message": {
-		HumanValue: "- Using previously-installed %s v%s",
-		JSONValue:  "%s v%s: Using previously-installed provider version",
-	},
-	"built_in_provider_available_message": {
-		HumanValue: "- %s is built in to Terraform",
-		JSONValue:  "%s is built in to Terraform",
-	},
-	"reusing_previous_version_info": {
-		HumanValue: "- Reusing previous version of %s from the dependency lock file",
-		JSONValue:  "%s: Reusing previous version from the dependency lock file",
-	},
-	"finding_matching_version_message": {
-		HumanValue: "- Finding %s versions matching %q...",
-		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
-	},
-	"finding_latest_version_message": {
-		HumanValue: "- Finding latest version of %s...",
-		JSONValue:  "%s: Finding latest version...",
-	},
-	"using_provider_from_cache_dir_info": {
-		HumanValue: "- Using %s v%s from the shared cache directory",
-		JSONValue:  "%s v%s: Using from the shared cache directory",
-	},
-	"installing_provider_message": {
-		HumanValue: "- Installing %s v%s...",
-		JSONValue:  "Installing provider version: %s v%s...",
-	},
-	"key_id": {
-		HumanValue: ", key ID [reset][bold]%s[reset]",
-		JSONValue:  "key_id: %s",
-	},
-	"installed_provider_version_info": {
-		HumanValue: "- Installed %s v%s (%s%s)",
-		JSONValue:  "Installed provider version: %s v%s (%s%s)",
-	},
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,
 		JSONValue:  partnerAndCommunityProvidersInfo,
-	},
-	"init_config_error": {
-		HumanValue: errInitConfigError,
-		JSONValue:  errInitConfigErrorJSON,
 	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
@@ -346,6 +381,20 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	},
 }
 
+// PreparedMessageRegistry contains all messages that are prepared via PrepareMessage directly.
+// The resulting message strings are not immediately logged and instead are used to create diagnostics
+// or inputs to other messages.
+var PreparedMessageRegistry map[PreparedMessageCode]InitMessage = map[PreparedMessageCode]InitMessage{
+	"init_config_error": {
+		HumanValue: errInitConfigError,
+		JSONValue:  errInitConfigErrorJSON,
+	},
+	"key_id": {
+		HumanValue: ", key ID [reset][bold]%s[reset]",
+		JSONValue:  "key_id: %s",
+	},
+}
+
 type (
 	// Messages that are logged via the Output method.
 	// Log type: "init_output" in JSON output.
@@ -363,56 +412,56 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	EmptyMessage                                 InitMessageCode = "empty_message"
-	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage                  InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage             InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage                      InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage            InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage                   InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage                   InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage                InitMessageCode = "initializing_state_store_message"
-	InitializingStateStoreProviderPluginMessage  InitMessageCode = "initializing_state_store_provider_plugin_message"
-	StateStoreProviderInteractiveApprovedMessage InitMessageCode = "state_store_provider_interactive_approved_message"
-	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
-	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
-	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                                     InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage                  OutputMessageCode = "copying_configuration_message"
+	EmptyMessage                                 OutputMessageCode = "empty_message"
+	OutputInitEmptyMessage                       OutputMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage                     OutputMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage                OutputMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage                  OutputMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage             OutputMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage                      OutputMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage            OutputMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage                   OutputMessageCode = "initializing_modules_message"
+	InitializingBackendMessage                   OutputMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage                OutputMessageCode = "initializing_state_store_message"
+	InitializingStateStoreProviderPluginMessage  OutputMessageCode = "initializing_state_store_provider_plugin_message"
+	StateStoreProviderInteractiveApprovedMessage OutputMessageCode = "state_store_provider_interactive_approved_message"
+	StateStoreProviderInteractiveRejectedMessage OutputMessageCode = "state_store_provider_interactive_rejected_message"
+	StateStoreProviderAutomationApprovedMessage  OutputMessageCode = "state_store_provider_automation_approved_message"
+	InitializingProviderPluginMessage            OutputMessageCode = "initializing_provider_plugin_message"
+	LockInfo                                     OutputMessageCode = "lock_info"
+	DependenciesLockChangesInfo                  OutputMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
 	// InitConfigError indicates problems encountered during initialisation
-	InitConfigError InitMessageCode = "init_config_error"
+	InitConfigError PreparedMessageCode = "init_config_error"
 	// BackendConfiguredSuccessMessage indicates successful backend configuration
-	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
+	BackendConfiguredSuccessMessage OutputMessageCode = "backend_configured_success"
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
-	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
+	BackendConfiguredUnsetMessage OutputMessageCode = "backend_configured_unset"
 	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
-	BackendMigrateToCloudMessage InitMessageCode = "backend_migrate_to_cloud"
+	BackendMigrateToCloudMessage OutputMessageCode = "backend_migrate_to_cloud"
 	// BackendMigrateFromCloudMessage indicates migration from HCP Terraform
-	BackendMigrateFromCloudMessage InitMessageCode = "backend_migrate_from_cloud"
+	BackendMigrateFromCloudMessage OutputMessageCode = "backend_migrate_from_cloud"
 	// BackendCloudChangeInPlaceMessage indicates HCP Terraform configuration change
-	BackendCloudChangeInPlaceMessage InitMessageCode = "backend_cloud_change_in_place"
+	BackendCloudChangeInPlaceMessage OutputMessageCode = "backend_cloud_change_in_place"
 	// BackendMigrateTypeChangeMessage indicates backend type change
-	BackendMigrateTypeChangeMessage InitMessageCode = "backend_migrate_type_change"
+	BackendMigrateTypeChangeMessage OutputMessageCode = "backend_migrate_type_change"
 	// BackendReconfigureMessage indicates backend reconfiguration
-	BackendReconfigureMessage InitMessageCode = "backend_reconfigure"
+	BackendReconfigureMessage OutputMessageCode = "backend_reconfigure"
 	// BackendMigrateLocalMessage indicates migration to local backend
-	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
+	BackendMigrateLocalMessage OutputMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
-	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
+	BackendCloudMigrateLocalMessage OutputMessageCode = "backend_cloud_migrate_local"
 	// BackendCloudMigrateStateStoreMessage indicates migration from cloud to a state store
-	BackendCloudMigrateStateStoreMessage InitMessageCode = "backend_cloud_migrate_state_store"
+	BackendCloudMigrateStateStoreMessage OutputMessageCode = "backend_cloud_migrate_state_store"
 	// BackendMigrateStateStoreMessage indicates migration from a backend to a state store
-	BackendMigrateStateStoreMessage InitMessageCode = "backend_migrate_state_store"
+	BackendMigrateStateStoreMessage OutputMessageCode = "backend_migrate_state_store"
 	// StateMigrateLocalMessage indicates migration from state store to local
-	StateMigrateLocalMessage InitMessageCode = "state_store_migrate_local"
+	StateMigrateLocalMessage OutputMessageCode = "state_store_migrate_local"
 	// StateStoreMigrationMessage indicates migration from state store to state store
-	StateStoreMigrationMessage InitMessageCode = "state_store_migrate_state_store"
+	StateStoreMigrationMessage OutputMessageCode = "state_store_migrate_state_store"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
 	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
@@ -424,7 +473,7 @@ const (
 	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
 	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
 	// KeyID indicates the key ID used to sign of a successfully installed provider
-	KeyID InitMessageCode = "key_id"
+	KeyID PreparedMessageCode = "key_id"
 	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
 	InstallingProviderMessage InitMessageCode = "installing_provider_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)

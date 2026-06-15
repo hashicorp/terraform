@@ -275,6 +275,7 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 	}
 }
 
+// Test use of params with the Output method.
 func TestNewInit_jsonViewOutput(t *testing.T) {
 	t.Run("no param", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
@@ -317,8 +318,8 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
+		backend := "s3"
+		newInit.Output(BackendMigrateToCloudMessage, backend)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -332,9 +333,9 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     fmt.Sprintf("%s: Finding latest version...", packageName),
+				"@message":     fmt.Sprintf("Migrating from backend %q to HCP Terraform.", backend),
 				"@module":      "terraform.ui",
-				"message_code": "finding_latest_version_message",
+				"message_code": "backend_migrate_to_cloud",
 				"type":         "init_output",
 			},
 		}
@@ -351,8 +352,8 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
+		backend, stateStore := "s3", "test_store"
+		newInit.Output(BackendMigrateStateStoreMessage, backend, stateStore)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -366,9 +367,9 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     fmt.Sprintf("%s v%s: Using previously-installed provider version", packageName, packageVersion),
+				"@message":     fmt.Sprintf("Migrating from backend %q to state store %q.", backend, stateStore),
 				"@module":      "terraform.ui",
-				"message_code": "provider_already_installed_message",
+				"message_code": "backend_migrate_state_store",
 				"type":         "init_output",
 			},
 		}
@@ -378,6 +379,80 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 	})
 }
 
+// Test use of params with the LogInitMessage method.
+func TestNewInit_jsonViewLogInitMessage(t *testing.T) {
+	t.Run("no param", func(t *testing.T) {
+		t.Skip("no zero param messages are used with the LogInitMessage method")
+	})
+
+	t.Run("single param", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		packageName := "hashicorp/aws"
+		newInit.LogInitMessage(FindingLatestVersionMessage, packageName)
+
+		version := tfversion.String()
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version),
+				"@module":   "terraform.ui",
+				"terraform": version,
+				"type":      "version",
+				"ui":        JSON_UI_VERSION,
+			},
+			{
+				"@level":   "info",
+				"@message": fmt.Sprintf("%s: Finding latest version...", packageName),
+				"@module":  "terraform.ui",
+				"type":     "log",
+			},
+		}
+
+		actual := done(t).Stdout()
+		testJSONViewOutputEqualsFull(t, actual, want)
+	})
+
+	t.Run("variable length params", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
+		newInit.LogInitMessage(ProviderAlreadyInstalledMessage, packageName, packageVersion)
+
+		version := tfversion.String()
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version),
+				"@module":   "terraform.ui",
+				"terraform": version,
+				"type":      "version",
+				"ui":        JSON_UI_VERSION,
+			},
+			{
+				"@level":   "info",
+				"@message": fmt.Sprintf("%s v%s: Using previously-installed provider version", packageName, packageVersion),
+				"@module":  "terraform.ui",
+				"type":     "log",
+			},
+		}
+
+		actual := done(t).Stdout()
+		testJSONViewOutputEqualsFull(t, actual, want)
+	})
+}
+
+// Test use of the Log method
 func TestNewInit_jsonViewLog(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 
@@ -386,7 +461,9 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginMessage)
+	msg := `This is testing the generic Log method with a parameter: %s`
+	value := "value"
+	newInit.Log(msg, value)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -400,7 +477,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		},
 		{
 			"@level":   "info",
-			"@message": "Initializing provider plugins...",
+			"@message": fmt.Sprintf(msg, value),
 			"@module":  "terraform.ui",
 			"type":     "log",
 		},
@@ -411,7 +488,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 }
 
 func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
-	t.Run("existing message code", func(t *testing.T) {
+	t.Run("existing output message code", func(t *testing.T) {
 		streams, _ := terminal.StreamsForTesting(t)
 
 		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
@@ -419,9 +496,64 @@ func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
+		var code any = InitializingModulesMessage
+		switch code := code.(type) {
+		case OutputMessageCode:
+			// expected
+		default:
+			t.Fatalf("test should provide a code with type OutputMessageCode, got %T", code)
+		}
+
 		want := "Initializing modules..."
 
 		actual := newInit.PrepareMessage(InitializingModulesMessage)
+		if !cmp.Equal(want, actual) {
+			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
+		}
+	})
+
+	t.Run("existing init message code", func(t *testing.T) {
+		streams, _ := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		var code any = FindingLatestVersionMessage
+		switch code := code.(type) {
+		case InitMessageCode:
+			// expected
+		default:
+			t.Fatalf("test should provide a code with type InitMessageCode, got %T", code)
+		}
+
+		provider := "hashicorp/aws"
+		want := fmt.Sprintf("%s: Finding latest version...", provider)
+		actual := newInit.PrepareMessage(FindingLatestVersionMessage, provider)
+		if !cmp.Equal(want, actual) {
+			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
+		}
+	})
+
+	t.Run("existing prepared message code", func(t *testing.T) {
+		streams, _ := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		var code any = InitConfigError
+		switch code := code.(type) {
+		case PreparedMessageCode:
+			// expected
+		default:
+			t.Fatalf("test should provide a code with type PreparedMessageCode, got %T", code)
+		}
+
+		want := strings.TrimSpace(errInitConfigErrorJSON) // A trimmed version is returned
+		actual := newInit.PrepareMessage(InitConfigError)
 		if !cmp.Equal(want, actual) {
 			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
 		}
@@ -455,7 +587,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 
 		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
+		newInit.LogInitMessage(FindingLatestVersionMessage, packageName)
 
 		actual := done(t).All()
 		expected := "Finding latest version of hashicorp/aws"
@@ -472,8 +604,8 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
+		newInit.LogInitMessage(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		actual := done(t).All()
 		expected := "- Using previously-installed hashicorp/aws v3.0.0"
