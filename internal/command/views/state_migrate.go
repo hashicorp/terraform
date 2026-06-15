@@ -33,5 +33,5 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.view.streams.Print(fmt.Sprintf(message, params...))
+	s.view.streams.Println(fmt.Sprintf(message, params...))
 }

@@ -72,23 +72,26 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 		}
 
 	}
+	if srcLockFilePath == "" {
+		// setting default here instead of in the flag definition
+		// to make check above free of side effects
+		srcLockFilePath = lockFileName
+	}
 	if dstLockFilePath == "" {
 		// setting default here instead of in the flag definition
 		// to make check above free of side effects
 		dstLockFilePath = lockFileName
 	}
 
-	if srcLockFilePath != "" {
-		srcFilename := filepath.Base(srcLockFilePath)
-		if srcFilename != lockFileName {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid source-provider-lock-file",
-				fmt.Sprintf("Expected lock file name to be %s, got: %s", lockFileName, srcFilename),
-			))
-		} else {
-			migrate.SourceLockFilePath = srcLockFilePath
-		}
+	srcFilename := filepath.Base(srcLockFilePath)
+	if srcFilename != lockFileName {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid source-provider-lock-file",
+			fmt.Sprintf("Expected lock file name to be %s, got: %s", lockFileName, srcFilename),
+		))
+	} else {
+		migrate.SourceLockFilePath = srcLockFilePath
 	}
 
 	dstFilename := filepath.Base(dstLockFilePath)

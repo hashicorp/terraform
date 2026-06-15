@@ -6,7 +6,7 @@ terraform {
     }
   }
   state_store "test_store" {
-    path = "destination.tfstate"
+    value = "destination-pss.tfstate"
 
     provider "test" {}
   }
