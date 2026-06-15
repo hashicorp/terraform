@@ -467,9 +467,8 @@ func (s *SyncState) DiscardCheckResults() {
 // RecordCheckResults replaces any check results already recorded in the state
 // with a new set taken from the given check state object.
 func (s *SyncState) RecordCheckResults(checkState *checks.State) {
-	newResults := NewCheckResults(checkState)
 	defer s.beginWrite()()
-	s.state.CheckResults = newResults
+	s.state.RecordCheckResults(checkState)
 }
 
 // Lock acquires an explicit lock on the state, allowing direct read and write

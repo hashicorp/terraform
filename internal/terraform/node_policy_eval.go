@@ -28,7 +28,9 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 		log.Printf("[DEBUG] policyGraph is nil")
 		return nil, nil
 	}
-	// Close the changes sync to prevent writes during policy evaluation
+	// Close the changes/state objects to prevent writes during policy evaluation.
+	// This is safe to do because policy evaluation is the final step in the plan/apply process.
+	// If any future nodes attempt to write to these states, they will panic.
 	ctx.Changes().Close()
 	ctx.State().Close()
 
