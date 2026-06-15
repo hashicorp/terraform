@@ -43,6 +43,7 @@ type MockClient struct {
 
 	// Stop method tracking
 	StopCalled bool
+	StopFn     func()
 }
 
 func (p *MockClient) beginWrite() func() {
@@ -117,4 +118,7 @@ func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*pr
 func (p *MockClient) Stop() {
 	defer p.beginWrite()()
 	p.StopCalled = true
+	if p.StopFn != nil {
+		p.StopFn()
+	}
 }
