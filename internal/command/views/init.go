@@ -346,7 +346,18 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	},
 }
 
-type InitMessageCode string
+type (
+	// Messages that are logged via the Output method.
+	// Log type: "init_output" in JSON output.
+	OutputMessageCode string
+
+	// Messages that are logged via the LogInitMessage method.
+	// Log type: "log" in JSON output.
+	InitMessageCode string
+
+	// These are messages that are prepared and used as a string, not prepared as part of logging a message.
+	PreparedMessageCode string
+)
 
 const (
 	// Following message codes are used and documented EXTERNALLY
