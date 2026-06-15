@@ -175,6 +175,37 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 	}
 }
 
+func TestStateMigrate_emptyModuleFiles(t *testing.T) {
+	wd := tempWorkingDirFixture(t, "state-migrate-empty-mod-files")
+	t.Chdir(wd.RootModuleDir())
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &StateMigrateCommand{
+		Meta: Meta{
+			Ui:                        ui,
+			View:                      view,
+			WorkingDir:                wd,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	args := []string{
+		"-input=false",
+		"-no-color",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+	out := done(t)
+
+	expectedMsg := "Error: Unknown migration destination"
+	if !strings.Contains(out.Stderr(), expectedMsg) {
+		t.Fatalf("expected output %q, got %q", expectedMsg, out.All())
+	}
+}
+
 func TestStateMigrate_missingMigrationFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-migrate-files")
 	t.Chdir(wd.RootModuleDir())

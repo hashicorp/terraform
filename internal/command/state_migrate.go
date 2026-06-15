@@ -46,8 +46,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 	}
 
-	dir := c.Meta.WorkingDir.RootModuleDir()
-
 	// It is valid for the destination lockfile to be missing
 	// while state exists - e.g. through the use of builtin provider
 	// or outputs and use of a builtin backend
@@ -69,6 +67,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	}
 
 	c.Meta.includeStateMigrateFiles = true
+	dir := c.Meta.WorkingDir.RootModuleDir()
 	cfg, mDiags := c.Meta.loadConfig(dir)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
