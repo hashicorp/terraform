@@ -30,6 +30,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	}
 	// Close the changes sync to prevent writes during policy evaluation
 	ctx.Changes().Close()
+	ctx.State().Close()
 
 	// ensure the graph has a single root
 	addRootNodeToGraph(&policyGraph.graph)

@@ -19,7 +19,7 @@ import (
 // undefined if any other caller makes changes to the underlying Changes
 // object or its nested objects concurrently with any of the methods of a
 // particular ChangesSync.
-// Once the wrapper is closed, it is no longer writable and any further
+// Once the object is closed, it is no longer writable and any further
 // modifications will panic.
 type ChangesSync struct {
 	lock    sync.Mutex
@@ -99,29 +99,18 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 	return changes
 }
 
-// ReadEachConfigResourceChange returns an iterator over the changes for a given
+// ReadInstancesForConfigResource returns an iterator over the changes for a given
 // configuration resource, applying the given selector function to each change.
 // The changes must no longer be writable otherwise a panic will occur.
-func ReadEachConfigResourceChange[T any](changesSync *ChangesSync, addr addrs.ConfigResource, selector func(*ResourceInstanceChange) (T, bool)) iter.Seq[T] {
+func ReadInstancesForConfigResource(changesSync *ChangesSync, addr addrs.ConfigResource) iter.Seq[*ResourceInstanceChange] {
 	if changesSync == nil {
-		panic("ReadEachConfigResourceChange on nil ChangesSync")
+		panic("ReadInstancesForConfigResource on nil ChangesSync")
 	}
 	if !changesSync.closed.Load() {
 		panic("ReadEachConfigResourceChange requires closed ChangesSync")
 	}
 
-	instances := changesSync.changes.InstancesForConfigResource(addr)
-	return func(yield func(T) bool) {
-		for inst := range instances {
-			selected, ok := selector(inst)
-			if !ok {
-				continue
-			}
-			if !yield(selected) {
-				return
-			}
-		}
-	}
+	return changesSync.changes.InstancesForConfigResource(addr)
 }
 
 // GetChangesForAbsResource searches the set of resource instance

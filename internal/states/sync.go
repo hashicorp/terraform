@@ -143,19 +143,6 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 	return ret
 }
 
-func (s *SyncState) ResourceInstancesByConfig(addr addrs.ConfigResource) []*ResourceInstance {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	addrs := s.state.allResourceInstanceObjectAddrs(func(objAddr addrs.AbsResourceInstanceObject) bool {
-		return objAddr.ResourceInstance.ConfigResource().Equal(addr)
-	})
-	ret := make([]*ResourceInstance, 0, len(addrs))
-	for _, addr := range addrs {
-		ret = append(ret, s.state.ResourceInstance(addr.ResourceInstance).DeepCopy())
-	}
-	return ret
-}
-
 // ReadEachConfigResourceInstance returns an iterator over the resource instances
 // of the given config resource, applying the given selector function to each
 // instance and yielding the results.
@@ -164,16 +151,17 @@ func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.Conf
 		panic("ReadEachConfigResourceInstance on nil state")
 	}
 
+	if syncState.writable {
+		panic("ReadEachConfigResourceInstance on writable state")
+	}
+
 	addrs := syncState.state.allResourceInstanceObjectAddrs(func(objAddr addrs.AbsResourceInstanceObject) bool {
 		return objAddr.ResourceInstance.ConfigResource().Equal(addr)
 	})
-	syncState.lock.Unlock()
 
 	return func(yield func(T) bool) {
-		syncState.lock.Lock()
-		defer syncState.lock.Unlock()
 		for _, addr := range addrs {
-			val := syncState.state.ResourceInstance(addr.ResourceInstance).DeepCopy()
+			val := syncState.state.ResourceInstance(addr.ResourceInstance)
 			selected, ok := selector(val)
 			if !ok {
 				continue

@@ -58,17 +58,18 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					continue
 				}
 				addr := resource.Addr().InModule(c.Path)
+				schema := schema.SchemaForResourceAddr(addr.Resource)
 
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
 				var resourcesSeq iter.Seq[cty.Value]
 				var count int
 				if walkOperation == walkApply {
+					// Read each config resource instance from the state, decoding it into a cty.Value
 					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
 						if inst.Current == nil {
 							return cty.NilVal, false
 						}
-						schema := schema.SchemaForResourceAddr(addr.Resource)
 						rsc, err := inst.Current.Decode(schema)
 						if err != nil {
 							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
@@ -78,10 +79,13 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 						return rsc.Value, true
 					})
 				} else {
-					resourcesSeq = plans.ReadEachConfigResourceChange(ctx.Changes(), addr, func(change *plans.ResourceInstanceChange) (cty.Value, bool) {
-						count++
-						return change.After, true
-					})
+					// Read each config resource change from the plan, returning the corresponding cty.Value
+					resourcesSeq = func(yield func(cty.Value) bool) {
+						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
+							count++
+							yield(change.After)
+						}
+					}
 				}
 
 				for resource := range resourcesSeq {
@@ -91,14 +95,14 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 						continue
 					}
 
-					value, matched := resource, true
+					matched := true
 					for name, attr := range filterMap {
-						if !value.Type().HasAttribute(name) {
+						if schema.Body == nil || schema.Body.Attributes[name] == nil {
 							matched = false
 							break
 						}
 
-						equals := attr.Equals(value.GetAttr(name))
+						equals := attr.Equals(resource.GetAttr(name))
 						if !equals.IsKnown() {
 							// We'll treat unknown values as matches, and they
 							// can be handled on the Terraform Policy side.
@@ -112,8 +116,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					}
 
 					if matched {
-						value, _ = value.UnmarkDeep()
-						found = append(found, value)
+						resource, _ = resource.UnmarkDeep()
+						found = append(found, resource)
 					}
 
 				}

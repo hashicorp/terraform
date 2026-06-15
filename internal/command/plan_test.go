@@ -54,38 +54,6 @@ func TestPlan(t *testing.T) {
 	}
 }
 
-func TestPlan_WithCPUProfile(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("plan"), td)
-	t.Chdir(td)
-
-	profilePath := filepath.Join(td, "cpu.pprof")
-	t.Setenv(cpuProfilePathEnvVar, profilePath)
-
-	p := planFixtureProvider()
-	view, done := testView(t)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	code := c.Run(nil)
-	output := done(t)
-	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
-	}
-
-	info, err := os.Stat(profilePath)
-	if err != nil {
-		t.Fatalf("expected CPU profile to be written: %s", err)
-	}
-	if info.Size() == 0 {
-		t.Fatal("expected CPU profile to contain data")
-	}
-}
-
 func TestPlan_lockedState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)

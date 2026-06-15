@@ -259,7 +259,7 @@ func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleC
 // SyncWrapper returns a wrapper object around the receiver that can be used
 // to make certain changes to the receiver in a concurrency-safe way, as long
 // as all callers share the same wrapper object.
-// Once the wrapper is closed, it is no longer writable and any further
+// Once the object is closed, it is no longer writable and any further
 // modifications will panic.
 func (c *Changes) SyncWrapper() *ChangesSync {
 	return &ChangesSync{

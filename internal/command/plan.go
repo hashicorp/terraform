@@ -45,14 +45,6 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	stopCPUProfile, profileDiags := startCPUProfileFromEnv()
-	diags = diags.Append(profileDiags)
-	if profileDiags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-	defer stopCPUProfile()
-
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
