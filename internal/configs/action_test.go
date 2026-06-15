@@ -104,9 +104,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": trueConditionExpr,
-						"events":    eventsListExpr,
-						"actions":   fooAndBarExpr,
+						"condition":  trueConditionExpr,
+						"events":     eventsListExpr,
+						"actions":    fooAndBarExpr,
+						"on_failure": hcltest.MockExprVariable("halt"),
 					}),
 				}),
 			},
@@ -200,6 +201,36 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			[]string{
 				"MockExprTraversal:0,0-12: Invalid \"event\" value not_an_event; The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 				":0,0-0: No events specified; At least one event must be specified for an action_trigger.",
+			},
+		},
+		"error - invalid on_failure": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition":  trueConditionExpr,
+						"events":     eventsListExpr,
+						"actions":    fooAndBarExpr,
+						"on_failure": hcltest.MockExprVariable("die"),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: trueConditionExpr,
+				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+					{
+						barActionExpr,
+						barActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`MockExprVariable:0,0-0: Invalid "on_failure" keyword; The "on_failure" argument requires one of the following keywords: halt, taint or continue.`,
 			},
 		},
 		"error - duplicate event": {

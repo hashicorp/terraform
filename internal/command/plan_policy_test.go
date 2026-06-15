@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -785,6 +786,59 @@ func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	checkGoldenReference(t, output, "plan-policy")
 }
 
+func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile("policy.hcl", []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	policyClient := policy.NewTestMockClient(t)
+	var stopCalled atomic.Bool
+	var policyEvaluated atomic.Bool
+	policyClient.StopFn = func() {
+		stopCalled.Store(true)
+	}
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		policyEvaluated.Store(true)
+		if stopCalled.Load() {
+			t.Fatal("policy client Stop was called before the plan finished")
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	overrides.PolicyClient = policyClient
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	args := []string{"-policies", td}
+	code := c.Run(append(args, "-no-color"))
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+	if !policyEvaluated.Load() {
+		t.Fatal("expected policy evaluation to be called during plan")
+	}
+	if !stopCalled.Load() {
+		t.Fatal("expected policy client Stop to be called after plan")
+	}
+}
+
 func TestPlan_WithPolicySetupFailure(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
@@ -824,12 +878,7 @@ func TestPlan_WithPolicySetupFailure(t *testing.T) {
 
 	// we still display the policy output
 	// and the plan still succeeds
-	expectedOut := `
-Error: Failed to connect to policy engine
-
-Failed to connect to policy engine: failed to connect to plugin: exec:
-"tfpolicy-plugin": executable file not found in $PATH.
-data.test_data_source.a: Reading...
+	expectedStdOut := `data.test_data_source.a: Reading...
 data.test_data_source.a: Read complete after 0s [id=zzzzz]
 
 Terraform used the selected providers to generate the following execution
@@ -856,8 +905,19 @@ Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
-	if diff := cmp.Diff(expectedOut, output.All()); diff != "" {
-		t.Fatalf("unexpected output:\n%s", diff)
+	if diff := cmp.Diff(expectedStdOut, output.Stdout()); diff != "" {
+		t.Fatalf("unexpected stdout output:\n%s", diff)
+	}
+
+	expectedStdErr := `
+Error: Failed to connect to policy engine
+
+Failed to connect to policy engine: failed to connect to plugin: exec:
+"tfpolicy-plugin": executable file not found in $PATH.
+`
+
+	if diff := cmp.Diff(expectedStdErr, output.Stderr()); diff != "" {
+		t.Fatalf("unexpected stderr output:\n%s", diff)
 	}
 }
 

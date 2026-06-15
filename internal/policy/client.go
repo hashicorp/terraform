@@ -274,6 +274,7 @@ func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*prot
 }
 
 func (c *client) Stop() {
+	log.Println("[DEBUG] stopping policy client")
 	if c.cbServer != nil {
 		c.cbServer.Stop()
 	}

@@ -284,6 +284,9 @@ type Meta struct {
 
 	// set to true if query files should be parsed
 	includeQueryFiles bool
+
+	// set to true if state migration files should be parsed
+	includeStateMigrateFiles bool
 }
 
 type testingOverrides struct {

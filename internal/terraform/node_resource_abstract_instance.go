@@ -2265,12 +2265,6 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
 		return nil
 	}
-	if state.Status == states.ObjectTainted {
-		// No point in provisioning an object that is already tainted, since
-		// it's going to get recreated on the next apply anyway.
-		log.Printf("[TRACE] evalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return nil
-	}
 
 	var allProvs []*configs.Provisioner
 	switch {
@@ -3223,12 +3217,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 	}
 
 	// check if this action was previously deferred
-	shouldDefer, deferDiags := ctx.Deferrals().ShouldDeferActionInvocation(ai)
-	diags = diags.Append(deferDiags)
-	if diags.HasErrors() {
-		return
-	}
-	if shouldDefer {
+	if ctx.Deferrals().ShouldDeferActionInvocation(ai) {
 		deferred = true
 		log.Printf("[DEBUG] action instance %s deferred due to config block deferral", actionInst)
 		return
@@ -3356,19 +3345,24 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 
 // invokeActions invokes any actions triggered for the listed events. Condition
 // expressions are reevaluated here when they exist, and failing conditions are
-// skipped.
-func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+// skipped. If the taint return parameter is true, then the resource is also
+// tainted in state.
+//
+// FIXME: don't invoke actions on an already tainted resource?
+func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) (taint bool, diags tfdiags.Diagnostics) {
 	for _, trigger := range n.actionApplyTriggers {
 		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
 		if !slices.Contains(forEvents, event) {
 			continue
 		}
 
-		condOK, condDiags := n.evalActionCondition(ctx, trigger, repData)
+		onFailure := n.getApplyActionTriggerBlock(trigger).OnFailure
+
+		condOK, condDiags := n.evalApplyActionCondition(ctx, trigger, repData)
 		diags = diags.Append(condDiags)
 		if diags.HasErrors() {
-			return diags
+			// evaluation problems are a hard error, so we always fail here.
+			return onFailure == configs.ActionOnFailureTaint && event == configs.AfterCreate, diags
 		}
 
 		if !condOK {
@@ -3376,25 +3370,45 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 			continue
 		}
 
-		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, callerVal, false))
-		if diags.HasErrors() {
-			break
+		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, callerVal, false)
+		if invokeDiags.HasErrors() {
+			switch onFailure {
+			case configs.ActionOnFailureHalt:
+				return false, diags.Append(invokeDiags)
+			case configs.ActionOnFailureTaint:
+				// We can only taint a newly created resource, because that's
+				// the only action which an be re-done from scratch. Recording
+				// other action events which need to be reinvoked will require
+				// new data to be saved in the state.
+				return event == configs.AfterCreate, diags.Append(invokeDiags)
+			case configs.ActionOnFailureContinue:
+				// The resource still needs to use the usual failure mechanisms
+				// in the graph walk, so in order to continue all diagnostics
+				// must only be warnings.
+				diags = diags.Append(tfdiags.OverrideAll(invokeDiags, tfdiags.Warning, nil))
+			default:
+				panic(fmt.Sprintf("unknown on_failure value: %#v\n", onFailure))
+			}
 		}
 	}
 
-	return diags
+	return false, diags
+}
+
+func (n *NodeAbstractResourceInstance) getApplyActionTriggerBlock(trigger *actionTriggerApplyInstance) *configs.ActionTrigger {
+	// lookup the trigger from our configuration so we can find on_failure and
+	// condition values
+	rat := trigger.ActionInvocation.ActionTrigger.(*plans.ResourceActionTrigger)
+	return n.Config.Managed.ActionTriggers[rat.ActionTriggerBlockIndex]
 }
 
 // We need to lookup any condition expression from the action block before
 // execution, because the condition is part of the resource config, while the
 // action is planned as an ActionInvocation.
-func (n *NodeAbstractResourceInstance) evalActionCondition(ctx EvalContext, trigger *actionTriggerApplyInstance, repData instances.RepetitionData) (bool, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) evalApplyActionCondition(ctx EvalContext, trigger *actionTriggerApplyInstance, repData instances.RepetitionData) (bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// this can't be an invoked trigger
-	rat := trigger.ActionInvocation.ActionTrigger.(*plans.ResourceActionTrigger)
-	triggerBlock := n.Config.Managed.ActionTriggers[rat.ActionTriggerBlockIndex]
-
+	triggerBlock := n.getApplyActionTriggerBlock(trigger)
 	if triggerBlock.Condition == nil {
 		return true, diags
 	}

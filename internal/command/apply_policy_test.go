@@ -6,6 +6,7 @@ package command
 import (
 	"context"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -152,6 +153,59 @@ func TestApply_WithPolicyDiagnosticsJSON(t *testing.T) {
 {"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"apply"},"type":"change_summary"}
 {"@level":"info","@message":"Outputs: 0","@module":"terraform.ui","outputs":{},"type":"outputs"}`
 	checkGoldenReferenceStr(t, output, expected)
+}
+
+func TestApply_WithPolicyClientStopAfterApply(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile("policy.hcl", []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	policyClient := policy.NewTestMockClient(t)
+	var stopCalled atomic.Bool
+	var policyEvaluated atomic.Bool
+	policyClient.StopFn = func() {
+		stopCalled.Store(true)
+	}
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		policyEvaluated.Store(true)
+		if stopCalled.Load() {
+			t.Fatal("policy client Stop was called before apply finished")
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	overrides.PolicyClient = policyClient
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	args := []string{"-policies", td}
+	code := c.Run(append(args, "-no-color", "-auto-approve"))
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+	if !policyEvaluated.Load() {
+		t.Fatal("expected policy evaluation to be called during apply")
+	}
+	if !stopCalled.Load() {
+		t.Fatal("expected policy client Stop to be called after apply")
+	}
 }
 
 // This tests that the plan policy diagnostic is superceded by the apply policy evaluation.

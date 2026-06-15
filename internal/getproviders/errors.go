@@ -10,6 +10,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 // ErrHostNoProviders is an error type used to indicate that a hostname given
@@ -225,6 +226,23 @@ type ErrRequestCanceled struct {
 
 func (err ErrRequestCanceled) Error() string {
 	return "request canceled"
+}
+
+// ErrLockConflictsWithConstraints is an error type when the local lock file contains
+// a provider version that does not satisfy the constraints of the configuration and
+// the installer is not upgrading providers. The locked version of the provider cannot
+// be changed but also cannot be used.
+type ErrLockConflictsWithConstraints struct {
+	Provider                 addrs.Provider
+	LockVersion              providerreqs.Version
+	VersionConstraintsString string
+}
+
+func (err ErrLockConflictsWithConstraints) Error() string {
+	return fmt.Sprintf(
+		"locked provider %s %s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
+		err.Provider, err.LockVersion, err.VersionConstraintsString,
+	)
 }
 
 // ErrIsNotExist returns true if and only if the given error is one of the
