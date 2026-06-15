@@ -55,15 +55,21 @@ func (v *InitHuman) PolicyResults(results *plans.PolicyResults, setupDiags polic
 	v.view.PolicyResults(results, setupDiags)
 }
 
+// Creates output using a message code and parameters.
+//
+// Matches the logic of LogInitMessage, but uses a different subset of message codes.
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
+// Creates output using a message code and parameters.
+//
+// Matches the logic of Output, but uses a different subset of message codes.
 func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
-// this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
+// Log implements a log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
 func (v *InitHuman) Log(message string, params ...any) {
 	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
@@ -99,6 +105,8 @@ func (v *InitJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy
 	v.view.PolicyResults(results, setupDiags)
 }
 
+// Creates output using a message code and parameters.
+// JSON output is logged with "type": "init_output"
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	// don't add empty messages to json output
 	preppedMessage := v.PrepareMessage(messageCode, params...)
@@ -123,6 +131,8 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	)
 }
 
+// Creates output using a message code and parameters.
+// JSON output is logged with "type": "log"
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.PrepareMessage(messageCode, params...)
 	if preppedMessage == "" {
@@ -132,7 +142,7 @@ func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
-// this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
+// Log implements a log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
 func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
