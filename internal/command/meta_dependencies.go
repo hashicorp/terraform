@@ -90,7 +90,7 @@ func (m *Meta) mergeLockedDependencies(baseLocks, additionalLocks *depsfile.Lock
 	for _, lock := range additionalLocks.AllProviders() {
 		match := mergedLocks.Provider(lock.Provider())
 		if match != nil {
-			log.Printf("[TRACE] Ignoring provider %s version %s in appendLockedDependencies; lock file contains %s version %s already",
+			log.Printf("[TRACE] Ignoring provider %s version %s in mergeLockedDependencies; lock file contains %s version %s already",
 				lock.Provider(),
 				lock.Version(),
 				match.Provider(),
