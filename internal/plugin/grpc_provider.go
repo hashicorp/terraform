@@ -29,6 +29,10 @@ import (
 
 var logger = logging.HCLogger()
 
+// Some blocks contain a fixed config block to hold the object configuration,
+// and their diagnostics will always be returned relative to this path.
+var configBlockPath = cty.GetAttrPath("config")
+
 // GRPCProviderPlugin implements plugin.GRPCPlugin for the go-plugin package.
 type GRPCProviderPlugin struct {
 	plugin.Plugin
@@ -715,7 +719,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedState = state
 
 	for _, p := range protoResp.RequiresReplace {
-		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p))
+		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p, nil))
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
@@ -1383,7 +1387,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			break
 		}
 
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(event.Diagnostic, configBlockPath))
 		if resp.Diagnostics.HasErrors() {
 			// If we have errors, we stop processing and return early
 			break
@@ -1531,7 +1535,7 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 
@@ -1596,7 +1600,7 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 				}
 
 			case *proto.InvokeAction_Event_Completed_:
-				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
+				diags := convert.ProtoToDiagnosticsWithPrefix(ev.Completed.Diagnostics, configBlockPath)
 
 				if !yield(providers.InvokeActionEvent_Completed{
 					Diagnostics: diags,
@@ -1645,7 +1649,7 @@ func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 

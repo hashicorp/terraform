@@ -54,6 +54,16 @@ func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnost
 
 // ProtoToDiagnostics converts a list of proto.Diagnostics to a tf.Diagnostics.
 func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
+	return protoToDiagnostics(ds, nil)
+}
+
+// ProtoToDiagnosticsWithPrefix is used when a particular diagnostic will
+// universally be contained within an outer object in Terraform configuration.
+func ProtoToDiagnosticsWithPrefix(ds []*proto.Diagnostic, prefix cty.Path) tfdiags.Diagnostics {
+	return protoToDiagnostics(ds, prefix)
+}
+
+func protoToDiagnostics(ds []*proto.Diagnostic, prefix cty.Path) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, d := range ds {
 		var severity tfdiags.Severity
@@ -69,7 +79,7 @@ func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
 
 		// if there's an attribute path, we need to create a AttributeValue diagnostic
 		if d.Attribute != nil && len(d.Attribute.Steps) > 0 {
-			path := AttributePathToPath(d.Attribute)
+			path := AttributePathToPath(d.Attribute, prefix)
 			newDiag = tfdiags.AttributeValue(severity, d.Summary, d.Detail, path)
 		} else {
 			newDiag = tfdiags.WholeContainingBody(severity, d.Summary, d.Detail)
@@ -82,8 +92,7 @@ func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
 }
 
 // AttributePathToPath takes the proto encoded path and converts it to a cty.Path
-func AttributePathToPath(ap *proto.AttributePath) cty.Path {
-	var p cty.Path
+func AttributePathToPath(ap *proto.AttributePath, p cty.Path) cty.Path {
 	for _, step := range ap.Steps {
 		switch selector := step.Selector.(type) {
 		case *proto.AttributePath_Step_AttributeName:

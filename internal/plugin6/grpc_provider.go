@@ -54,6 +54,10 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 // See https://github.com/hashicorp/terraform-plugin-go/blob/a361c9bf/tfprotov6/tf6server/server.go#L88
 const grpcMaxMessageSize = 256 << 20
 
+// Some blocks contain a fixed config block to hold the object configuration,
+// and their diagnostics will always be returned relative to this path.
+var configBlockPath = cty.GetAttrPath("config")
+
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
 // terraform providers types and the grpc proto types, directly converting
@@ -721,7 +725,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedState = state
 
 	for _, p := range protoResp.RequiresReplace {
-		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p))
+		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p, nil))
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
@@ -1391,7 +1395,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			break
 		}
 
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(event.Diagnostic, configBlockPath))
 		if resp.Diagnostics.HasErrors() {
 			// If we have errors, we stop processing and return early
 			break
@@ -1954,7 +1958,7 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 
@@ -2019,7 +2023,7 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 				}
 
 			case *proto6.InvokeAction_Event_Completed_:
-				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
+				diags := convert.ProtoToDiagnosticsWithPrefix(ev.Completed.Diagnostics, configBlockPath)
 				if !yield(providers.InvokeActionEvent_Completed{
 					Diagnostics: diags,
 				}) {
@@ -2066,7 +2070,7 @@ func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 
