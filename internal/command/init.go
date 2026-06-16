@@ -728,8 +728,10 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-// The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
-// configuration and state data.
+// The calling code is expected to provide:
+// 1. the previous locks (if any)
+// 2. the lock for the state store provider (if any)
+// 3. the locks for the providers in the configuration
 func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
 	// Get the combination of locks from both potential provider download steps.
 	newLocks := c.mergeLockedDependencies(pssLock, providerLocks)
