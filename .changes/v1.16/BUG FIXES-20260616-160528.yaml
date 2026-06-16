@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'login: Fixed a race condition where the temporary callback HTTP server could be closed before the success page response was fully transmitted to the browser.'
+time: 2026-06-16T16:05:28+04:00
+custom:
+    Issue: "38712"
