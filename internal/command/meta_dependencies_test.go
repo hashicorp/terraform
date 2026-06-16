@@ -6,7 +6,6 @@ package command
 import (
 	"testing"
 
-	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -14,78 +13,92 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
-// This tests combining locks from config and state. Locks derived from state are always unconstrained, i.e. no version constraint data,
-// so this test
-func Test_mergeLockedDependencies_config_and_state(t *testing.T) {
-
+// This tests combining locks from multiple sources using the mergeLockedDependencies method.
+func Test_mergeLockedDependencies(t *testing.T) {
 	providerA := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerA")
 	providerB := tfaddr.NewProvider(tfaddr.DefaultProviderRegistryHost, "my-org", "providerB")
 	v1_0_0 := providerreqs.MustParseVersion("1.0.0")
+	v2_0_0 := providerreqs.MustParseVersion("2.0.0")
 	versionConstraintv1, _ := providerreqs.ParseVersionConstraints("1.0.0")
+	versionConstraintv2, _ := providerreqs.ParseVersionConstraints("2.0.0")
 	hashesProviderA := []providerreqs.Hash{providerreqs.MustParseHash("providerA:this-is-providerA")}
 	hashesProviderB := []providerreqs.Hash{providerreqs.MustParseHash("providerB:this-is-providerB")}
 
-	var versionUnconstrained providerreqs.VersionConstraints = nil
-	noVersion := versions.Version{}
-
 	cases := map[string]struct {
-		configLocks   *depsfile.Locks
-		stateLocks    *depsfile.Locks
-		expectedLocks *depsfile.Locks
+		baseLocks       *depsfile.Locks
+		additionalLocks *depsfile.Locks
+		expectedLocks   *depsfile.Locks
 	}{
 		"no locks when all inputs empty": {
-			configLocks:   depsfile.NewLocks(),
-			stateLocks:    depsfile.NewLocks(),
-			expectedLocks: depsfile.NewLocks(),
+			baseLocks:       depsfile.NewLocks(),
+			additionalLocks: depsfile.NewLocks(),
+			expectedLocks:   depsfile.NewLocks(),
 		},
-		"when provider only described in config, output locks have matching constraints": {
-			configLocks: func() *depsfile.Locks {
+		"when provider only described in base locks": {
+			baseLocks: func() *depsfile.Locks {
 				configLocks := depsfile.NewLocks()
 				configLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
 				return configLocks
 			}(),
-			stateLocks: depsfile.NewLocks(),
+			additionalLocks: depsfile.NewLocks(),
 			expectedLocks: func() *depsfile.Locks {
 				combinedLocks := depsfile.NewLocks()
 				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
 				return combinedLocks
 			}(),
 		},
-		"when provider only described in state, output locks are unconstrained": {
-			configLocks: depsfile.NewLocks(),
-			stateLocks: func() *depsfile.Locks {
+		"when provider only described in additional locks": {
+			baseLocks: depsfile.NewLocks(),
+			additionalLocks: func() *depsfile.Locks {
 				stateLocks := depsfile.NewLocks()
-				stateLocks.SetProvider(providerA, noVersion, versionUnconstrained, hashesProviderA)
+				stateLocks.SetProvider(providerA, v2_0_0, versionConstraintv2, hashesProviderA)
 				return stateLocks
 			}(),
 			expectedLocks: func() *depsfile.Locks {
 				combinedLocks := depsfile.NewLocks()
-				combinedLocks.SetProvider(providerA, noVersion, versionUnconstrained, hashesProviderA)
+				combinedLocks.SetProvider(providerA, v2_0_0, versionConstraintv2, hashesProviderA)
 				return combinedLocks
 			}(),
 		},
-		"different providers present in state and config are combined, with version constraints kept on config providers": {
-			configLocks: func() *depsfile.Locks {
-				configLocks := depsfile.NewLocks()
-				configLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
-				return configLocks
+		"different non-overlapping providers present in base and additional locks are combined, output locks have matching constraints": {
+			baseLocks: func() *depsfile.Locks {
+				locks := depsfile.NewLocks()
+				locks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return locks
 			}(),
-			stateLocks: func() *depsfile.Locks {
-				stateLocks := depsfile.NewLocks()
-
-				// Imagine that the state locks contain:
-				// 1) provider for resources in the config
-				stateLocks.SetProvider(providerA, noVersion, versionUnconstrained, hashesProviderA)
-
-				// 2) also, a provider that's deleted from the config and only present in state
-				stateLocks.SetProvider(providerB, noVersion, versionUnconstrained, hashesProviderB)
-
-				return stateLocks
+			additionalLocks: func() *depsfile.Locks {
+				locks := depsfile.NewLocks()
+				locks.SetProvider(providerB, v2_0_0, versionConstraintv2, hashesProviderB)
+				return locks
 			}(),
 			expectedLocks: func() *depsfile.Locks {
 				combinedLocks := depsfile.NewLocks()
-				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)     // version constraint preserved
-				combinedLocks.SetProvider(providerB, noVersion, versionUnconstrained, hashesProviderB) // sourced from state only
+				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				combinedLocks.SetProvider(providerB, v2_0_0, versionConstraintv2, hashesProviderB)
+				return combinedLocks
+			}(),
+		},
+		"when the same provider is present in both base and additional locks, output locks have the version constraints from the base locks": {
+			baseLocks: func() *depsfile.Locks {
+				locks := depsfile.NewLocks()
+				locks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA)
+				return locks
+			}(),
+			additionalLocks: func() *depsfile.Locks {
+				locks := depsfile.NewLocks()
+
+				// Overlap with base locks, but different version
+				locks.SetProvider(providerA, v2_0_0, versionConstraintv2, hashesProviderA)
+
+				// Unique to additional locks, should be preserved in output
+				locks.SetProvider(providerB, v2_0_0, versionConstraintv2, hashesProviderB)
+
+				return locks
+			}(),
+			expectedLocks: func() *depsfile.Locks {
+				combinedLocks := depsfile.NewLocks()
+				combinedLocks.SetProvider(providerA, v1_0_0, versionConstraintv1, hashesProviderA) // base locks not overridden by additional locks
+				combinedLocks.SetProvider(providerB, v2_0_0, versionConstraintv2, hashesProviderB)
 				return combinedLocks
 			}(),
 		},
@@ -105,9 +118,8 @@ func Test_mergeLockedDependencies_config_and_state(t *testing.T) {
 				View: view,
 			}
 
-			// Code under test - combine deps from state with prior deps from config
-			// mergedLocks := m.mergeLockedDependencies(tc.configLocks, tc.stateLocks)
-			mergedLocks := m.mergeLockedDependencies(tc.configLocks, tc.stateLocks)
+			// Code under test
+			mergedLocks := m.mergeLockedDependencies(tc.baseLocks, tc.additionalLocks)
 
 			// We cannot use (l *depsfile.Locks) Equal here as it doesn't compare version constraints
 			// Instead, inspect entries directly
