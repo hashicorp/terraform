@@ -703,12 +703,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		mode = providercache.InstallUpgrades
 	}
 
-	// We don't handle upgrade flags here, i.e. what happens at this point in getProvidersFromConfig:
-	// > We cannot upgrade a provider used only by the state, as there are no version constraints in state.
-	//    > Given the overlap between providers in the config and state, using the upgrade mode here
-	//      would remove the effects of version constraints from the config.
-	// > Any validation of CLI flag usage is already done in getProvidersFromConfig
-
 	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode, installerHook)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
