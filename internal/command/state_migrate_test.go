@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/workdir"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestStateMigrate_fromBackendToBackend(t *testing.T) {
@@ -49,6 +51,12 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-backend-to-state-store")
 	t.Chdir(wd.RootModuleDir())
 
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"}, // Version referenced in text fixtures
+	})
+
 	ui := cli.NewMockUi()
 	view, done := testView(t)
 	c := &StateMigrateCommand{
@@ -57,6 +65,12 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
+			ProviderSource:            providerSource,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
 		},
 	}
 
@@ -67,9 +81,24 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	}
 	out := done(t)
 
-	expectedMsg := `Migrating state from backend "local" to state store "test_store" (registry.terraform.io/hashicorp/test)...`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+	expectedMsgs := []string{
+		`Migrating state from backend "local" to state store "test_store" (registry.terraform.io/hashicorp/test)...`,
+		`Initializing provider plugin for state migration destination...- Reusing previous version of hashicorp/test from the dependency lock file- Installing hashicorp/test v1.2.3...- Installed hashicorp/test v1.2.3 (verified checksum)`,
+	}
+	for _, expectedMsg := range expectedMsgs {
+		if !strings.Contains(out.Stdout(), expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		}
+	}
+
+	unexpectedMsgs := []string{
+		// This scenario involves migrating from a backend, not from a state store.
+		`Initializing provider plugin for state migration source...`,
+	}
+	for _, unexpectedMsg := range unexpectedMsgs {
+		if strings.Contains(out.Stdout(), unexpectedMsg) {
+			t.Fatalf("unexpected output %q, got %q", unexpectedMsg, out.Stdout())
+		}
 	}
 
 	expectedErr := "Not implemented yet"
@@ -82,6 +111,12 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
 	t.Chdir(wd.RootModuleDir())
 
+	mockProvider := mockPluggableStateStorageProvider()
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"}, // Version referenced in text fixtures
+	})
+
 	ui := cli.NewMockUi()
 	view, done := testView(t)
 	c := &StateMigrateCommand{
@@ -90,6 +125,12 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
+			ProviderSource:            providerSource,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
 		},
 	}
 
@@ -100,9 +141,15 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 	}
 	out := done(t)
 
-	expectedMsg := `Migrating state from state store "test_store" (registry.terraform.io/hashicorp/test) to state store "test_store" (registry.terraform.io/hashicorp/test)...`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+	expectedMsgs := []string{
+		`Migrating state from state store "test_store" (registry.terraform.io/hashicorp/test) to state store "test_store" (registry.terraform.io/hashicorp/test)...`,
+		`Initializing provider plugin for state migration source...- Reusing previous version of hashicorp/test from the dependency lock file- Installing hashicorp/test v1.2.3...- Installed hashicorp/test v1.2.3 (verified checksum)`,
+		`Initializing provider plugin for state migration destination...- Reusing previous version of hashicorp/test from the dependency lock file- Installing hashicorp/test v1.2.3...- Installed hashicorp/test v1.2.3 (verified checksum)`,
+	}
+	for _, expectedMsg := range expectedMsgs {
+		if !strings.Contains(out.Stdout(), expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		}
 	}
 
 	expectedErr := "Not implemented yet"

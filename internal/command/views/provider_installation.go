@@ -23,6 +23,10 @@ var ProviderInstallationMessageRegistry map[ProviderInstallationMessageCode]Mess
 		HumanValue: "\n[reset][bold]Initializing provider plugin for state store %q...",
 		JSONValue:  "Initializing provider plugin for state store %q...",
 	},
+	"initializing_state_migration_provider_plugin_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugin for state migration %s...",
+		JSONValue:  "Initializing provider plugin for state migration %s...",
+	},
 	"state_store_provider_interactive_approved_message": {
 		HumanValue: "\n[reset][bold]The state store provider was approved by the user.",
 		JSONValue:  "The state store provider was approved by the user.",

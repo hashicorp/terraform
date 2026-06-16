@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -13,6 +14,9 @@ import (
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	MessagePreparer
+	ProviderInstaller
 }
 
 func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
@@ -34,4 +38,27 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
 	s.view.streams.Print(fmt.Sprintf(message, params...))
+}
+
+func (s *StateMigrateHuman) LogProviderInstallationMessage(messageCode ProviderInstallationMessageCode, params ...any) {
+	preppedMessage := s.PrepareMessage(messageCode, params...)
+	if preppedMessage == "" {
+		return
+	}
+	s.view.streams.Print(preppedMessage)
+}
+
+func (s *StateMigrateHuman) PrepareMessage(messageCode any, params ...any) string {
+	var message Message
+	var ok bool
+	switch messageCode := messageCode.(type) {
+	case ProviderInstallationMessageCode:
+		message, ok = ProviderInstallationMessageRegistry[messageCode]
+	default:
+		panic(fmt.Sprintf("unsupported message code type: %T", messageCode))
+	}
+	if !ok {
+		panic(fmt.Sprintf("unknown message code: %s", messageCode))
+	}
+	return strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...))
 }
