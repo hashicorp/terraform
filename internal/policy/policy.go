@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
@@ -205,5 +206,16 @@ func ErrorEvalFromDiags(diags []*proto.Diagnostic) EvaluationResponse {
 	return EvaluationResponse{
 		Overall:     PolicyErrorResult,
 		Diagnostics: DiagsFromProto(diags, nil),
+	}
+}
+
+// CtyToPolicyValue converts a cty.Value to a PolicyValue, unmarking the value and
+// extracting sensitive paths.
+func CtyToPolicyValue(raw cty.Value) PolicyValue {
+	raw, pvms := raw.UnmarkDeepWithPaths()
+	redactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+	return PolicyValue{
+		Raw:           raw,
+		RedactedPaths: redactedPaths,
 	}
 }

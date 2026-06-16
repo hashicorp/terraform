@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -21,23 +20,12 @@ import (
 )
 
 func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	attrs, pvms := attrs.UnmarkDeepWithPaths()
-	attrRedactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
-	priorAttrs, pvms = priorAttrs.UnmarkDeepWithPaths()
-	priorAttrRedactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
-
 	result := ctx.PolicyClient().EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-		Target: target.Resource.Resource.Type,
-		Attrs: policy.PolicyValue{
-			Raw:           attrs,
-			RedactedPaths: attrRedactedPaths,
-		},
-		PriorAttrs: policy.PolicyValue{
-			Raw:           priorAttrs,
-			RedactedPaths: priorAttrRedactedPaths,
-		},
-		Meta:      meta,
-		Callbacks: callbacks,
+		Target:     target.Resource.Resource.Type,
+		Attrs:      policy.CtyToPolicyValue(attrs),
+		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
+		Meta:       meta,
+		Callbacks:  callbacks,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
