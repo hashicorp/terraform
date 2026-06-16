@@ -25,6 +25,7 @@ type PlanOpts struct {
 	PlanningMode plans.Mode
 
 	InputVariableValues map[stackaddrs.InputVariable]ExternalInputValue
+	InvokeActionAddrs   []stackaddrs.AbsActionInvocationInstance
 
 	ProviderFactories ProviderFactories
 

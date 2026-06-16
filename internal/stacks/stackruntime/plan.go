@@ -49,6 +49,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
+		InvokeActionAddrs:   req.InvokeActionAddrs,
 		ProviderFactories:   req.ProviderFactories,
 		DependencyLocks:     req.DependencyLocks,
 
@@ -97,6 +98,7 @@ type PlanRequest struct {
 	PrevState *stackstate.State
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
+	InvokeActionAddrs []stackaddrs.AbsActionInvocationInstance
 	ProviderFactories map[addrs.Provider]providers.Factory
 	DependencyLocks   depsfile.Locks
 

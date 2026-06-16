@@ -3666,7 +3666,8 @@ type PlanStackChanges_Request struct {
 	PreviousState         map[string]*anypb.Any              `protobuf:"bytes,3,rep,name=previous_state,json=previousState,proto3" json:"previous_state,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	DependencyLocksHandle int64                              `protobuf:"varint,4,opt,name=dependency_locks_handle,json=dependencyLocksHandle,proto3" json:"dependency_locks_handle,omitempty"`
 	ProviderCacheHandle   int64                              `protobuf:"varint,5,opt,name=provider_cache_handle,json=providerCacheHandle,proto3" json:"provider_cache_handle,omitempty"`
-	InputValues           map[string]*DynamicValueWithSource `protobuf:"bytes,6,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // TODO: Various other planning options
+	InputValues           map[string]*DynamicValueWithSource `protobuf:"bytes,6,rep,name=input_values,json=inputValues,proto3" json:"input_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	InvokeActionAddrs     []string                           `protobuf:"bytes,8,rep,name=invoke_action_addrs,json=invokeActionAddrs,proto3" json:"invoke_action_addrs,omitempty"` // TODO: Various other planning options
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -3747,6 +3748,13 @@ func (x *PlanStackChanges_Request) GetProviderCacheHandle() int64 {
 func (x *PlanStackChanges_Request) GetInputValues() map[string]*DynamicValueWithSource {
 	if x != nil {
 		return x.InputValues
+	}
+	return nil
+}
+
+func (x *PlanStackChanges_Request) GetInvokeActionAddrs() []string {
+	if x != nil {
+		return x.InvokeActionAddrs
 	}
 	return nil
 }
@@ -7566,8 +7574,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\aRequest\x12!\n" +
 	"\fstate_handle\x18\x01 \x01(\x03R\vstateHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\x9b\a\n" +
-	"\x10PlanStackChanges\x1a\xa2\x05\n" +
+	"\bResponse\"\xcb\a\n" +
+	"\x10PlanStackChanges\x1a\xd2\x05\n" +
 	"\aRequest\x128\n" +
 	"\tplan_mode\x18\x01 \x01(\x0e2\x1b.terraform1.stacks.PlanModeR\bplanMode\x12.\n" +
 	"\x13stack_config_handle\x18\x02 \x01(\x03R\x11stackConfigHandle\x122\n" +
@@ -7575,7 +7583,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\x0eprevious_state\x18\x03 \x03(\v2>.terraform1.stacks.PlanStackChanges.Request.PreviousStateEntryB\x02\x18\x01R\rpreviousState\x126\n" +
 	"\x17dependency_locks_handle\x18\x04 \x01(\x03R\x15dependencyLocksHandle\x122\n" +
 	"\x15provider_cache_handle\x18\x05 \x01(\x03R\x13providerCacheHandle\x12_\n" +
-	"\finput_values\x18\x06 \x03(\v2<.terraform1.stacks.PlanStackChanges.Request.InputValuesEntryR\vinputValues\x1aV\n" +
+	"\finput_values\x18\x06 \x03(\v2<.terraform1.stacks.PlanStackChanges.Request.InputValuesEntryR\vinputValues\x12.\n" +
+	"\x13invoke_action_addrs\x18\b \x03(\tR\x11invokeActionAddrs\x1aV\n" +
 	"\x12PreviousStateEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
 	"\x05value\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\x05value:\x028\x01\x1ai\n" +

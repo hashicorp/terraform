@@ -488,6 +488,50 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 }
 
+func TestStacksPlanStackChangesWithInvokeActionAddr(t *testing.T) {
+	ctx := context.Background()
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	fakeSourceBundle := &sourcebundle.Bundle{}
+	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)
+	emptyConfig := &stackconfig.Config{
+		Root: &stackconfig.ConfigNode{
+			Stack: &stackconfig.Stack{
+				SourceAddr: sourceaddrs.MustParseSource("git::https://example.com/foo.git").(sourceaddrs.RemoteSource),
+			},
+		},
+	}
+	configHnd, err := handles.NewStackConfig(emptyConfig, bundleHnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := stacks.NewStacksClient(grpcClient)
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: configHnd.ForProtobuf(),
+		InvokeActionAddrs: []string{"component.web.action.http.notify"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	for {
+		_, err := events.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected stream error: %s", err)
+		}
+	}
+}
+
 func TestStackChangeProgressDuringPlanNormal(t *testing.T) {
 	tcs := map[string]struct {
 		source      string

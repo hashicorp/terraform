@@ -163,11 +163,19 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 	}
 
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
+	actionTargets := make([]addrs.Targetable, 0)
+	componentAddr := c.addr.String()
+	for _, target := range c.main.PlanningOpts().InvokeActionAddrs {
+		if target.Component.String() == componentAddr {
+			actionTargets = append(actionTargets, target.Item)
+		}
+	}
 
 	plantimestamp := c.main.PlanTimestamp()
 	return &terraform.PlanOpts{
 		Mode:                       mode,
 		SkipRefresh:                skipRefresh,
+		ActionTargets:              actionTargets,
 		SetVariables:               inputValues,
 		ExternalProviders:          providerClients,
 		ExternalDependencyDeferred: c.deferred,

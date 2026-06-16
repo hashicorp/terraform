@@ -257,6 +257,7 @@ message PlanStackChanges {
     int64 dependency_locks_handle = 4;
     int64 provider_cache_handle = 5;
     map<string, DynamicValueWithSource> input_values = 6;
+    repeated string invoke_action_addrs = 8;
     // TODO: Various other planning options
   }
   message Event {

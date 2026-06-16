@@ -357,6 +357,15 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
 	}
 
+	invokeActionAddrs := make([]stackaddrs.AbsActionInvocationInstance, 0, len(req.InvokeActionAddrs))
+	for _, rawAddr := range req.InvokeActionAddrs {
+		addr, diags := stackaddrs.ParseActionInvocationInstanceStr(rawAddr)
+		if diags.HasErrors() {
+			return status.Errorf(codes.InvalidArgument, "invalid invoke action address %q: %s", rawAddr, diags.ErrWithWarnings())
+		}
+		invokeActionAddrs = append(invokeActionAddrs, addr)
+	}
+
 	var providerFactories map[addrs.Provider]providers.Factory
 	if s.providerCacheOverride != nil {
 		// This is only used in tests to side load providers without needing a
@@ -412,6 +421,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		PrevState:          prevState,
 		ProviderFactories:  providerFactories,
 		InputValues:        inputValues,
+		InvokeActionAddrs:  invokeActionAddrs,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
 
