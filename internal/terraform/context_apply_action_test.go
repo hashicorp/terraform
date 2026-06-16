@@ -321,7 +321,11 @@ resource "test_object" "a" {
 		"before_create failing when calling invoke": {
 			module: map[string]string{
 				"main.tf": `
-action "action_example" "hello" {}
+action "action_example" "hello" {
+  config {
+    attr = "failure"
+  }
+}
 resource "test_object" "a" {
   lifecycle {
     action_trigger {
@@ -335,10 +339,10 @@ resource "test_object" "a" {
 			expectInvokeActionCalled: true,
 			callingInvokeReturnsDiagnostics: func(providers.InvokeActionRequest) tfdiags.Diagnostics {
 				return tfdiags.Diagnostics{
-					tfdiags.Sourceless(
-						tfdiags.Error,
+					tfdiags.AttributeValue(tfdiags.Error,
 						"test case for failing",
 						"this simulates a provider failing before the action is invoked",
+						cty.GetAttrPath("config").GetAttr("attr"),
 					),
 				}
 			},
@@ -348,6 +352,11 @@ resource "test_object" "a" {
 						Severity: hcl.DiagError,
 						Summary:  "test case for failing",
 						Detail:   "this simulates a provider failing before the action is invoked",
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 4, Column: 12, Byte: 57},
+							End:      hcl.Pos{Line: 4, Column: 21, Byte: 66},
+						},
 					},
 				)
 			},
