@@ -4108,7 +4108,7 @@ func TestContext2Validate_queryList(t *testing.T) {
 				`,
 			diagCount: 1,
 			expectedErrMsg: []string{
-				"Cycle: list.test_resource",
+				"Cycle:\n  list.test_resource",
 			},
 		},
 		{
