@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'stacks: add invoke_action_addrs to plan RPC and thread through runtime for direct action invocation'
+time: 2026-06-16T12:00:00.000000Z
+custom:
+    Issue: "38732"
