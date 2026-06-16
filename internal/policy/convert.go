@@ -29,31 +29,38 @@ func resourceAttributesToProto(value PolicyValue) (*proto.ResourceAttributes, er
 	}, nil
 }
 
-func pathToProto(path cty.Path) (*proto.Path, error) {
-	steps := make([]*proto.Path_Step, 0, len(path))
+func pathToProto(path cty.Path) (*proto.AttributePath, error) {
+	steps := make([]*proto.AttributePath_Step, 0, len(path))
 	for _, step := range path {
 		switch step := step.(type) {
 		case cty.GetAttrStep:
-			steps = append(steps, &proto.Path_Step{
-				Selector: &proto.Path_Step_AttributeName{AttributeName: step.Name},
+			steps = append(steps, &proto.AttributePath_Step{
+				Selector: &proto.AttributePath_Step_AttributeName{AttributeName: step.Name},
 			})
 		case cty.IndexStep:
-			key, err := msgpack.Marshal(step.Key, cty.DynamicPseudoType)
-			if err != nil {
-				return nil, fmt.Errorf("error serializing index step key: %w", err)
+			key := step.Key
+			switch key.Type() {
+			case cty.String:
+				steps = append(steps, &proto.AttributePath_Step{
+					Selector: &proto.AttributePath_Step_ElementKeyString{ElementKeyString: key.AsString()},
+				})
+			case cty.Number:
+				v, _ := key.AsBigFloat().Int64()
+				steps = append(steps, &proto.AttributePath_Step{
+					Selector: &proto.AttributePath_Step_ElementKeyInt{ElementKeyInt: int64(v)},
+				})
+			default:
+				return nil, fmt.Errorf("unsupported cty path step type %T", step)
 			}
-			steps = append(steps, &proto.Path_Step{
-				Selector: &proto.Path_Step_ElementKey{ElementKey: key},
-			})
 		default:
 			return nil, fmt.Errorf("unsupported cty path step type %T", step)
 		}
 	}
-	return &proto.Path{Steps: steps}, nil
+	return &proto.AttributePath{Steps: steps}, nil
 }
 
-func pathsToProto(paths []cty.Path) ([]*proto.Path, error) {
-	ret := make([]*proto.Path, 0, len(paths))
+func pathsToProto(paths []cty.Path) ([]*proto.AttributePath, error) {
+	ret := make([]*proto.AttributePath, 0, len(paths))
 	for _, path := range paths {
 		protoPath, err := pathToProto(path)
 		if err != nil {

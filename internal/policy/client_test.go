@@ -87,8 +87,8 @@ func TestClientEvaluate(t *testing.T) {
 					t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
 				}
 
-				want := &proto.Path{Steps: []*proto.Path_Step{{
-					Selector: &proto.Path_Step_AttributeName{AttributeName: "secret"},
+				want := &proto.AttributePath{Steps: []*proto.AttributePath_Step{{
+					Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "secret"},
 				}}}
 				if len(req.Attrs.RedactedPaths) != 1 || !gproto.Equal(req.Attrs.RedactedPaths[0], want) {
 					t.Fatalf("unexpected redacted paths: %#v", req.Attrs.RedactedPaths)

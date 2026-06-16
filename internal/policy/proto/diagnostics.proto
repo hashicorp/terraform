@@ -83,20 +83,6 @@ message Snippet {
   int64 highlight_end_offset = 5;
 }
 
-message AttributePath {
-  message Step {
-    oneof step {
-      // attribute is used to look up an attribute in the object value.
-      string attribute = 1;
-      
-      // index is used to look up an element in an indexable collection type.
-      // The index can be a string or a number, depending on the collection type.
-      bytes index = 2;
-    }
-  }
-  repeated Step steps = 1;
-}
-
 message ExpressionValue {
   // traversal is the path taken to reach this value in the object graph.
   AttributePath traversal = 1;
