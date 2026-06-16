@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -21,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, schema *configschema.Block, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
 	attrs, pvms := attrs.UnmarkDeepWithPaths()
 	attrRedactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
 	priorAttrs, pvms = priorAttrs.UnmarkDeepWithPaths()

@@ -206,7 +206,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, configSchema, unmarkedConfigVal)
+	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -220,7 +220,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 // allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
 // Provider policies have no support for callback functions, so we do not need to worry about
 // them retrieving objects that are not yet available in the state.
-func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, schema *configschema.Block, attrs cty.Value) tfdiags.Diagnostics {
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil
