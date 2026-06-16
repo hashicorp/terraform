@@ -32,6 +32,10 @@ on:
         type: string
         required: true
 
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   build:
     runs-on: ${{ inputs.runson }}
