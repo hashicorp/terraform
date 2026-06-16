@@ -284,7 +284,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.LogProviderInstallationMessage(InitializingProviderPluginMessage)
 
 		version := tfversion.String()
 		want := []map[string]any{
@@ -351,8 +351,8 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
+		newInit.LogProviderInstallationMessage(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -386,7 +386,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginMessage)
+	newInit.LogProviderInstallationMessage(InitializingProviderPluginMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -437,7 +437,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.LogProviderInstallationMessage(InitializingProviderPluginMessage)
 
 		actual := done(t).All()
 		expected := "Initializing provider plugins..."
@@ -472,7 +472,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
 		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		actual := done(t).All()

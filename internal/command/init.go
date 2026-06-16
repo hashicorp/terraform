@@ -45,6 +45,8 @@ import (
 type InitCommand struct {
 	Meta
 
+	// incompleteProviders is necessary here to coordinate separate
+	// provider installation and lock file update processes.
 	incompleteProviders []string
 }
 
@@ -479,19 +481,21 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingStateStoreProviderPluginMessage, rootModEarly.StateStore.Type)
+			// Changed from Output method; JSON used to have type "init_output"
+			view.LogProviderInstallationMessage(views.InitializingStateStoreProviderPluginMessage, rootModEarly.StateStore.Type)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
+			// All 3 call sites below changed from LogInitMessage method; JSON used to have type "log"
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogProviderInstallationMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogProviderInstallationMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogProviderInstallationMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}
 			}
 		},
@@ -670,19 +674,19 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginMessage)
+			view.LogProviderInstallationMessage(views.InitializingProviderPluginMessage)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogProviderInstallationMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogProviderInstallationMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogProviderInstallationMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}
 			}
 		},
@@ -780,10 +784,10 @@ func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLoc
 			// say a little about what the dependency lock file is, for new
 			// users or those who are upgrading from a previous Terraform
 			// version that didn't have dependency lock files.
-			view.Output(views.LockInfo)
+			view.LogProviderInstallationMessage(views.LockInfo)
 			output = true
 		} else {
-			view.Output(views.DependenciesLockChangesInfo)
+			view.LogProviderInstallationMessage(views.DependenciesLockChangesInfo)
 			output = true
 		}
 		lockFileDiags := c.replaceLockedDependencies(newLocks)
@@ -1035,16 +1039,16 @@ func (c *InitCommand) Synopsis() string {
 }
 
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
-func providerAlreadyInstalledCallback(view views.Init) func(provider addrs.Provider, selectedVersion getproviders.Version) {
+func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
-		view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+		view.LogProviderInstallationMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
 	}
 }
 
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
-func builtInProviderAvailableCallback(view views.Init) func(provider addrs.Provider) {
+func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
-		view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+		view.LogProviderInstallationMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
 	}
 }
 
@@ -1060,16 +1064,16 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 }
 
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
-func linkFromCacheBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-		view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+		view.LogProviderInstallationMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
-func fetchPackageBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+		view.LogProviderInstallationMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
 	}
 }
 
@@ -1308,7 +1312,7 @@ func fetchPackageFailureCallback(diags *tfdiags.Diagnostics, reqs getproviders.R
 }
 
 // Returns a reused callback function for the FetchPackageSuccess event in a providercache.InstallerEvents struct.
-func fetchPackageSuccessCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+func fetchPackageSuccessCallback(view views.ProviderInstallerWithPrepareMessage) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 	return func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 		var keyID string
 		if authResult != nil && authResult.ThirdPartySigned() {
@@ -1318,7 +1322,7 @@ func fetchPackageSuccessCallback(view views.Init) func(provider addrs.Provider, 
 			keyID = view.PrepareMessage(views.KeyID, keyID)
 		}
 
-		view.LogInitMessage(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
+		view.LogProviderInstallationMessage(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
 	}
 }
 
@@ -1362,7 +1366,7 @@ func providersLockUpdatedCallback(incompleteProviders *[]string) func(provider a
 }
 
 // Returns a reused callback function for the ProvidersFetched event in a providercache.InstallerEvents struct.
-func providersFetchedCallback(view views.Init) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+func providersFetchedCallback(view views.ProviderInstaller) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 	return func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 		thirdPartySigned := false
 		for _, authResult := range authResults {
@@ -1372,7 +1376,7 @@ func providersFetchedCallback(view views.Init) func(authResults map[addrs.Provid
 			}
 		}
 		if thirdPartySigned {
-			view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
+			view.LogProviderInstallationMessage(views.PartnerAndCommunityProvidersMessage)
 		}
 	}
 }
