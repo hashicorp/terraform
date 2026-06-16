@@ -589,7 +589,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 // updated dependency lock data. The dependency lock *file* itself isn't updated here.
 //
 // See getProvidersFromPSSConfig which is equivalent for state store providers.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, configLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pssConfigLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -628,17 +628,17 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		return false, nil, diags
 	}
 
-	// The locks below are used to avoid re-downloading any providers in the
-	// second download step.
-	// We combine any locks from the dependency lock file and locks identified
-	// from the configuration
+	// Create a combination of:
+	// * The 0 or 1 locks from downloading the state store provider earlier in the init command
+	// * Any previous locks from the dependency lock file.
+	// This helps the installer in getProviders re-download locked versions if necessary and avoid re-downloading the state storage provider.
 	var moreDiags tfdiags.Diagnostics
 	previousLocks, moreDiags := c.lockedDependencies()
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return false, nil, diags
 	}
-	inProgressLocks := c.mergeLockedDependencies(configLocks, previousLocks)
+	inProgressLocks := c.mergeLockedDependencies(pssConfigLocks, previousLocks)
 
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
