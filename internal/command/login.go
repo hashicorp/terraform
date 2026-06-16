@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -440,16 +441,17 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 
 			log.Printf("[TRACE] login: request contains an authorization code")
 
+			// Write the success response before signaling the main goroutine,
+			// so the browser receives the page before the server is shut down.
+			log.Printf("[TRACE] login: returning response from callback server")
+			resp.Header().Add("Content-Type", "text/html")
+			resp.WriteHeader(200)
+			resp.Write([]byte(callbackSuccessMessage))
+
 			// Send the code to our blocking wait below, so that the token
 			// fetching process can continue.
 			codeCh <- gotCode
 			close(codeCh)
-
-			log.Printf("[TRACE] login: returning response from callback server")
-
-			resp.Header().Add("Content-Type", "text/html")
-			resp.WriteHeader(200)
-			resp.Write([]byte(callbackSuccessMessage))
 		}),
 	}
 	go func() {
@@ -508,7 +510,12 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		return nil, diags
 	}
 
-	if err := server.Close(); err != nil {
+	// Use Shutdown instead of Close so any in-flight response (e.g. the
+	// success page already written by the handler) is fully transmitted before
+	// the server stops accepting new connections.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		// The server will close soon enough when our process exits anyway,
 		// so we won't fuss about it for right now.
 		log.Printf("[WARN] login: callback server can't shut down: %s", err)
