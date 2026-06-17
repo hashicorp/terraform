@@ -326,9 +326,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		defer stopClient()
 		view.PolicyResults(nil, policyDiags)
 		if policyDiags.HasErrors() {
-			// Surface any backend (and early config) diagnostics here too, so a
-			// backend failure isn't swallowed by this early return: backDiags is
-			// only appended after the core-version check below, which we skip.
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)
 			view.Diagnostics(diags)
