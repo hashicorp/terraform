@@ -4,6 +4,7 @@
 package format
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"iter"
@@ -143,6 +144,188 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	ruleBuf.WriteString(leftRuleEnd)
 	ruleBuf.WriteByte('\n')
 
+	return ruleBuf.String()
+}
+
+// Edited version from https://github.com/hashicorp/terraform/pull/38710
+func diagnosticFromJSONPR38710(diag *viewsjson.Diagnostic, color *colorstring.Colorize, width int) string {
+	if diag == nil {
+		// No good reason to pass a nil diagnostic in here...
+		return ""
+	}
+	var buf bytes.Buffer
+	// these leftRule* variables are markers for the beginning of the lines
+	// containing the diagnostic that are intended to help sighted users
+	// better understand the information hierarchy when diagnostics appear
+	// alongside other information or alongside other diagnostics.
+	//
+	// Without this, it seems (based on folks sharing incomplete messages when
+	// asking questions, or including extra content that's not part of the
+	// diagnostic) that some readers have trouble easily identifying which
+	// text belongs to the diagnostic and which does not.
+	var leftRuleLine, leftRuleStart, leftRuleEnd string
+	var leftRuleWidth int // in visual character cells
+	switch diag.Severity {
+	case viewsjson.DiagnosticSeverityError:
+		buf.WriteString(color.Color("[bold][red]Error: [reset]"))
+		leftRuleLine = color.Color("[red]│[reset] ")
+		leftRuleStart = color.Color("[red]╷[reset]")
+		leftRuleEnd = color.Color("[red]╵[reset]")
+		leftRuleWidth = 2
+	case viewsjson.DiagnosticSeverityWarning:
+		buf.WriteString(color.Color("[bold][yellow]Warning: [reset]"))
+		leftRuleLine = color.Color("[yellow]│[reset] ")
+		leftRuleStart = color.Color("[yellow]╷[reset]")
+		leftRuleEnd = color.Color("[yellow]╵[reset]")
+		leftRuleWidth = 2
+	default:
+		// Clear out any coloring that might be applied by Terraform's UI helper,
+		// so our result is not context-sensitive.
+		buf.WriteString(color.Color("\n[reset]"))
+	}
+	// We don't wrap the summary, since we expect it to be terse, and since
+	// this is where we put the text of a native Go error it may not always
+	// be pure text that lends itself well to word-wrapping.
+	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), diag.Summary)
+	f := &snippetFormatter{&buf, diag, color}
+	f.write()
+	if diag.Detail != "" {
+		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
+		if paraWidth > 0 {
+			lines := strings.Split(diag.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(color.Color(line), uint(paraWidth))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", diag.Detail)
+		}
+	}
+
+	// Before we return, we'll finally add the left rule prefixes to each
+	// line so that the overall message is visually delimited from what's
+	// around it. We'll do that by iterating over what we already generated
+	// and adding the prefix for each line.
+	//
+	// We intentionally don't use bufio.Scanner here because its default
+	// token size limit silently discards lines longer than 64KiB, which
+	// caused diagnostics with very long summaries (e.g. cycle errors in
+	// large configurations, whose summaries are never word-wrapped) to be
+	// rendered as an empty box with no text at all.
+	var ruleBuf strings.Builder
+	lines := strings.Split(buf.String(), "\n")
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		// Every write into buf above ends with a newline, so we drop the
+		// trailing empty element to avoid emitting a spurious final line.
+		lines = lines[:len(lines)-1]
+	}
+	ruleBuf.WriteString(leftRuleStart)
+	ruleBuf.WriteByte('\n')
+	for _, line := range lines {
+		line = strings.TrimSuffix(line, "\r")
+		prefix := leftRuleLine
+		if line == "" {
+			// Don't print the space after the line if there would be nothing
+			// after it anyway.
+			prefix = strings.TrimSpace(prefix)
+		}
+		ruleBuf.WriteString(prefix)
+		ruleBuf.WriteString(line)
+		ruleBuf.WriteByte('\n')
+	}
+	ruleBuf.WriteString(leftRuleEnd)
+	ruleBuf.WriteByte('\n')
+
+	return ruleBuf.String()
+}
+
+// Original function before changes
+func diagnosticFromJSONOriginal(diag *viewsjson.Diagnostic, color *colorstring.Colorize, width int) string {
+	if diag == nil {
+		// No good reason to pass a nil diagnostic in here...
+		return ""
+	}
+
+	var buf bytes.Buffer
+
+	// these leftRule* variables are markers for the beginning of the lines
+	// containing the diagnostic that are intended to help sighted users
+	// better understand the information hierarchy when diagnostics appear
+	// alongside other information or alongside other diagnostics.
+	//
+	// Without this, it seems (based on folks sharing incomplete messages when
+	// asking questions, or including extra content that's not part of the
+	// diagnostic) that some readers have trouble easily identifying which
+	// text belongs to the diagnostic and which does not.
+	var leftRuleLine, leftRuleStart, leftRuleEnd string
+	var leftRuleWidth int // in visual character cells
+
+	switch diag.Severity {
+	case viewsjson.DiagnosticSeverityError:
+		buf.WriteString(color.Color("[bold][red]Error: [reset]"))
+		leftRuleLine = color.Color("[red]│[reset] ")
+		leftRuleStart = color.Color("[red]╷[reset]")
+		leftRuleEnd = color.Color("[red]╵[reset]")
+		leftRuleWidth = 2
+	case viewsjson.DiagnosticSeverityWarning:
+		buf.WriteString(color.Color("[bold][yellow]Warning: [reset]"))
+		leftRuleLine = color.Color("[yellow]│[reset] ")
+		leftRuleStart = color.Color("[yellow]╷[reset]")
+		leftRuleEnd = color.Color("[yellow]╵[reset]")
+		leftRuleWidth = 2
+	default:
+		// Clear out any coloring that might be applied by Terraform's UI helper,
+		// so our result is not context-sensitive.
+		buf.WriteString(color.Color("\n[reset]"))
+	}
+
+	// We don't wrap the summary, since we expect it to be terse, and since
+	// this is where we put the text of a native Go error it may not always
+	// be pure text that lends itself well to word-wrapping.
+	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), diag.Summary)
+
+	f := &snippetFormatter{&buf, diag, color}
+	f.write()
+
+	if diag.Detail != "" {
+		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
+		if paraWidth > 0 {
+			lines := strings.Split(diag.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(color.Color(line), uint(paraWidth))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", diag.Detail)
+		}
+	}
+
+	// Before we return, we'll finally add the left rule prefixes to each
+	// line so that the overall message is visually delimited from what's
+	// around it. We'll do that by scanning over what we already generated
+	// and adding the prefix for each line.
+	var ruleBuf strings.Builder
+	sc := bufio.NewScanner(&buf)
+	ruleBuf.WriteString(leftRuleStart)
+	ruleBuf.WriteByte('\n')
+	for sc.Scan() {
+		line := sc.Text()
+		prefix := leftRuleLine
+		if line == "" {
+			// Don't print the space after the line if there would be nothing
+			// after it anyway.
+			prefix = strings.TrimSpace(prefix)
+		}
+		ruleBuf.WriteString(prefix)
+		ruleBuf.WriteString(line)
+		ruleBuf.WriteByte('\n')
+	}
+	ruleBuf.WriteString(leftRuleEnd)
+	ruleBuf.WriteByte('\n')
 	return ruleBuf.String()
 }
 
