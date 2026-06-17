@@ -4,6 +4,7 @@
 package format
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"regexp"
@@ -25,7 +26,6 @@ import (
 )
 
 func TestDiagnostic(t *testing.T) {
-
 	tests := map[string]struct {
 		Diag interface{}
 		Want string
@@ -460,7 +460,6 @@ func TestDiagnostic(t *testing.T) {
 }
 
 func TestDiagnosticPlain(t *testing.T) {
-
 	tests := map[string]struct {
 		Diag interface{}
 		Want string
@@ -1469,4 +1468,29 @@ func (e diagnosticCausedByTestFailure) DiagnosticCausedByTestFailure() bool {
 
 func (e diagnosticCausedByTestFailure) IsTestVerboseMode() bool {
 	return e.Verbose
+}
+
+func TestDiagnosticFromJSON_longSummary(t *testing.T) {
+	// Regression test: a diagnostic whose rendered body contains a line
+	// longer than bufio.MaxScanTokenSize (64KiB) must not be rendered as
+	// an empty box. Cycle errors produce single-line summaries that can
+	// easily exceed this in large configurations, since the summary is
+	// deliberately never word-wrapped.
+	summary := "Cycle: " + strings.Repeat("module.example.terraform_data.this, ", 2000)
+	if len(summary) <= bufio.MaxScanTokenSize {
+		t.Fatalf("test summary is only %d bytes; must exceed %d to exercise the regression", len(summary), bufio.MaxScanTokenSize)
+	}
+	diag := &viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityError,
+		Summary:  summary,
+	}
+
+	// A zero-value Colorize just passes through all the formatting codes,
+	// which is convenient for asserting on the contents.
+	colorize := &colorstring.Colorize{}
+	got := DiagnosticFromJSON(diag, colorize, 76)
+
+	if !strings.Contains(got, summary) {
+		t.Errorf("rendered diagnostic does not contain its own summary text\ngot (truncated to 200 chars): %.200s", got)
+	}
 }

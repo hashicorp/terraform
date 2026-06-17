@@ -4,7 +4,6 @@
 package format
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"iter"
@@ -99,23 +98,47 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 
 	// Before we return, we'll finally add the left rule prefixes to each
 	// line so that the overall message is visually delimited from what's
-	// around it. We'll do that by scanning over what we already generated
+	// around it. We'll do that by iterating over what we already generated
 	// and adding the prefix for each line.
+	//
+	// We intentionally don't use bufio.Scanner here because it has a default
+	// line length limit of 64KiB, and if scanner errors aren't checked then the
+	// scanner can silently discard any lines longer than that limit. In the past
+	// this impacted diagnostics with long summaries (e.g. cycle errors in large
+	// configurations, see https://github.com/hashicorp/terraform/issues/38709)
 	var ruleBuf strings.Builder
-	sc := bufio.NewScanner(&buf)
+	data := buf.Bytes()
+
 	ruleBuf.WriteString(leftRuleStart)
 	ruleBuf.WriteByte('\n')
-	for sc.Scan() {
-		line := sc.Text()
+
+	var start int
+	for {
+		i := bytes.IndexByte(data[start:], '\n')
+		var line []byte
+		if i == -1 {
+			// This should not be hit as code above always has a trailing newline character.
+			// However, let's handle it gracefully just in case.
+			line = data[start:]
+		} else {
+			line = data[start : start+i]
+		}
 		prefix := leftRuleLine
-		if line == "" {
+		if len(line) == 0 {
 			// Don't print the space after the line if there would be nothing
 			// after it anyway.
 			prefix = strings.TrimSpace(prefix)
 		}
 		ruleBuf.WriteString(prefix)
-		ruleBuf.WriteString(line)
+		ruleBuf.Write(line)
 		ruleBuf.WriteByte('\n')
+
+		// Record where the next iteration should start reading from
+		start = start + i + 1
+
+		if start >= len(data) || i == -1 {
+			break // We've reached the end of the data.
+		}
 	}
 	ruleBuf.WriteString(leftRuleEnd)
 	ruleBuf.WriteByte('\n')
@@ -423,7 +446,6 @@ func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBin
 // It visually distinguishes removed and added lines, helping users identify
 // discrepancies between an "actual" (lhsStr) and an "expected" (rhsStr) JSON output.
 func (f *snippetFormatter) printJSONDiff(lhsStr, rhsStr string) {
-
 	buf := f.buf
 	color := f.color
 	// No visible difference in the JSON, so we'll just return
