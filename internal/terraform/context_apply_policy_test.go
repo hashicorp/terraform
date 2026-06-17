@@ -187,7 +187,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 			}
 
 			for _, path := range attrs.RedactedPaths {
-				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "value"}}) {
+				if !path.Equals(cty.GetAttrPath("value")) {
 					t.Errorf("Unexpected redacted path: %s", path)
 				}
 			}
@@ -281,7 +281,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 			}
 
 			for _, path := range attrs.RedactedPaths {
-				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "value"}}) {
+				if !path.Equals(cty.GetAttrPath("value")) {
 					t.Errorf("Unexpected redacted path: %s", path)
 				}
 			}
