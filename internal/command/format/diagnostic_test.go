@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -26,7 +27,6 @@ import (
 )
 
 func TestDiagnostic(t *testing.T) {
-
 	tests := map[string]struct {
 		Diag interface{}
 		Want string
@@ -461,7 +461,6 @@ func TestDiagnostic(t *testing.T) {
 }
 
 func TestDiagnosticPlain(t *testing.T) {
-
 	tests := map[string]struct {
 		Diag interface{}
 		Want string
@@ -1494,5 +1493,64 @@ func TestDiagnosticFromJSON_longSummary(t *testing.T) {
 
 	if !strings.Contains(got, summary) {
 		t.Errorf("rendered diagnostic does not contain its own summary text\ngot (truncated to 200 chars): %.200s", got)
+	}
+}
+
+var benchmarkSink string
+
+func BenchmarkDiagnosticFromJSON(b *testing.B) {
+	cases := []struct {
+		name string
+		diag *viewsjson.Diagnostic
+	}{
+		{name: "small", diag: makeDiag(200, 5)},
+		{name: "medium", diag: makeDiag(4000, 200)},
+		{name: "above64k", diag: makeDiag(bufio.MaxScanTokenSize*2, 4000)}, // Summary size above bufio.MaxScanTokenSize
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.name+"/current", func(b *testing.B) {
+			b.ReportAllocs()
+			colorize := &colorstring.Colorize{}
+			b.ResetTimer()
+			for b.Loop() {
+				benchmarkSink = DiagnosticFromJSON(tc.diag, colorize, 76)
+			}
+		})
+
+		b.Run(tc.name+"/bytes_index", func(b *testing.B) {
+			b.ReportAllocs()
+			colorize := &colorstring.Colorize{}
+			b.ResetTimer()
+			for b.Loop() {
+				benchmarkSink = diagnosticFromJSONBytesIndex(tc.diag, colorize, 76)
+			}
+		})
+
+		// During this benchmark the original implementation will show the bug where
+		// long inputs are dropped because they're too long for the Scan method.
+		b.Run(tc.name+"/original", func(b *testing.B) {
+			b.ReportAllocs()
+			colorize := &colorstring.Colorize{}
+			b.ResetTimer()
+			for b.Loop() {
+				benchmarkSink = diagnosticFromJSONOriginal(tc.diag, colorize, 76)
+			}
+		})
+	}
+}
+
+func makeDiag(summarySize int, detailLines int) *viewsjson.Diagnostic {
+	summary := "Cycle: " + strings.Repeat("module.example.node, ", summarySize/24)
+	var sb strings.Builder
+	for i := 0; i < detailLines; i++ {
+		sb.WriteString("detail line ")
+		sb.WriteString(strconv.Itoa(i))
+		sb.WriteByte('\n')
+	}
+	return &viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityError,
+		Summary:  summary,
+		Detail:   sb.String(),
 	}
 }
