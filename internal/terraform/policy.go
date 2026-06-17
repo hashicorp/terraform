@@ -19,17 +19,17 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
-func evaluatePolicies(ctx EvalContext, walkOperation walkOperation, target addrs.AbsResourceInstance, config *configs.Resource, client policy.Client, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	result := client.EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+	result := ctx.PolicyClient().EvaluateResource(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
-		Attrs:      attrs,
-		PriorAttrs: priorAttrs,
+		Attrs:      policy.CtyToPolicyValue(attrs),
+		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
 		Meta:       meta,
 		Callbacks:  callbacks,
 	})
 
-	// orphaned resources do not have a config, so we can't provide source information
-	// for these errors.
+	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
+	// for such errors.
 	if config != nil {
 		ptr := config.DeclRange.Ptr()
 		for idx, diag := range result.Diagnostics {

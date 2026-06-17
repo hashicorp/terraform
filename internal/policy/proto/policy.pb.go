@@ -158,12 +158,12 @@ type PolicyEvaluateResourceRequest struct {
 	Resource string `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
 	// attrs contains the data that will eventually be made available within the
 	// resource_value data referenced within Terraform Policy files.
-	Attrs []byte `protobuf:"bytes,3,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	Attrs *ResourceAttributes `protobuf:"bytes,3,opt,name=attrs,proto3" json:"attrs,omitempty"`
 	// metadata contains the data that will eventually be made available within
 	// the meta object referenced within Terraform Policy files.
 	Metadata *PolicyEvaluateResourceRequest_ResourceMetadata `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// prior_attrs contains the state of the resource prior to the current operation.
-	PriorAttrs    []byte `protobuf:"bytes,5,opt,name=prior_attrs,json=priorAttrs,proto3" json:"prior_attrs,omitempty"`
+	PriorAttrs    *ResourceAttributes `protobuf:"bytes,5,opt,name=prior_attrs,json=priorAttrs,proto3" json:"prior_attrs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -212,7 +212,7 @@ func (x *PolicyEvaluateResourceRequest) GetResource() string {
 	return ""
 }
 
-func (x *PolicyEvaluateResourceRequest) GetAttrs() []byte {
+func (x *PolicyEvaluateResourceRequest) GetAttrs() *ResourceAttributes {
 	if x != nil {
 		return x.Attrs
 	}
@@ -226,7 +226,7 @@ func (x *PolicyEvaluateResourceRequest) GetMetadata() *PolicyEvaluateResourceReq
 	return nil
 }
 
-func (x *PolicyEvaluateResourceRequest) GetPriorAttrs() []byte {
+func (x *PolicyEvaluateResourceRequest) GetPriorAttrs() *ResourceAttributes {
 	if x != nil {
 		return x.PriorAttrs
 	}
@@ -505,7 +505,7 @@ type PolicyEvaluateProviderRequest struct {
 	ProviderType string `protobuf:"bytes,1,opt,name=provider_type,json=providerType,proto3" json:"provider_type,omitempty"`
 	// attrs contains the provider configuration data that will be made available within the
 	// provider_value data referenced within Terraform Policy files.
-	Attrs []byte `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	Attrs *ResourceAttributes `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
 	// metadata contains the provider metadata that will be made available within the
 	// provider_metadata data referenced within Terraform Policy files.
 	Metadata      *PolicyEvaluateProviderRequest_ProviderMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
@@ -550,7 +550,7 @@ func (x *PolicyEvaluateProviderRequest) GetProviderType() string {
 	return ""
 }
 
-func (x *PolicyEvaluateProviderRequest) GetAttrs() []byte {
+func (x *PolicyEvaluateProviderRequest) GetAttrs() *ResourceAttributes {
 	if x != nil {
 		return x.Attrs
 	}
@@ -627,7 +627,7 @@ type PolicyEvaluateModuleRequest struct {
 	ModuleSource string `protobuf:"bytes,1,opt,name=module_source,json=moduleSource,proto3" json:"module_source,omitempty"`
 	// attrs contains the module configuration data that will be made available within the
 	// module_value data referenced within Terraform Policy files.
-	Attrs []byte `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
+	Attrs *ResourceAttributes `protobuf:"bytes,2,opt,name=attrs,proto3" json:"attrs,omitempty"`
 	// metadata contains the module metadata that will be made available within the
 	// meta object referenced within module policy blocks.
 	Metadata      *PolicyEvaluateModuleRequest_ModuleMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
@@ -672,7 +672,7 @@ func (x *PolicyEvaluateModuleRequest) GetModuleSource() string {
 	return ""
 }
 
-func (x *PolicyEvaluateModuleRequest) GetAttrs() []byte {
+func (x *PolicyEvaluateModuleRequest) GetAttrs() *ResourceAttributes {
 	if x != nil {
 		return x.Attrs
 	}
@@ -1079,13 +1079,13 @@ const file_policy_proto_rawDesc = "" +
 	"\x0econfigurations\x18\x01 \x03(\v2A.proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntryR\x0econfigurations\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xf5\x02\n" +
+	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xab\x03\n" +
 	"\x1dPolicyEvaluateResourceRequest\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\rR\fevaluationId\x12\x1a\n" +
-	"\bresource\x18\x02 \x01(\tR\bresource\x12\x14\n" +
-	"\x05attrs\x18\x03 \x01(\fR\x05attrs\x12Q\n" +
-	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12\x1f\n" +
-	"\vprior_attrs\x18\x05 \x01(\fR\n" +
+	"\bresource\x18\x02 \x01(\tR\bresource\x12/\n" +
+	"\x05attrs\x18\x03 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12Q\n" +
+	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12:\n" +
+	"\vprior_attrs\x18\x05 \x01(\v2\x19.proto.ResourceAttributesR\n" +
 	"priorAttrs\x1a\x88\x01\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
@@ -1112,10 +1112,10 @@ const file_policy_proto_rawDesc = "" +
 	"blockIndex\"\x95\x01\n" +
 	"\x1ePolicyEvaluateResourceResponse\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12D\n" +
-	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xbc\x02\n" +
+	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xd7\x02\n" +
 	"\x1dPolicyEvaluateProviderRequest\x12#\n" +
-	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12\x14\n" +
-	"\x05attrs\x18\x02 \x01(\fR\x05attrs\x12Q\n" +
+	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12/\n" +
+	"\x05attrs\x18\x02 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12Q\n" +
 	"\bmetadata\x18\x03 \x01(\v25.proto.PolicyEvaluateProviderRequest.ProviderMetadataR\bmetadata\x1a\x8c\x01\n" +
 	"\x10ProviderMetadata\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
@@ -1125,10 +1125,10 @@ const file_policy_proto_rawDesc = "" +
 	"\aversion\x18\x05 \x01(\tR\aversion\"\x95\x01\n" +
 	"\x1ePolicyEvaluateProviderResponse\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12D\n" +
-	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\xed\x01\n" +
+	"\x0epolicy_details\x18\x02 \x03(\v2\x1d.proto.PolicyEvaluationDetailR\rpolicyDetails\"\x88\x02\n" +
 	"\x1bPolicyEvaluateModuleRequest\x12#\n" +
-	"\rmodule_source\x18\x01 \x01(\tR\fmoduleSource\x12\x14\n" +
-	"\x05attrs\x18\x02 \x01(\fR\x05attrs\x12M\n" +
+	"\rmodule_source\x18\x01 \x01(\tR\fmoduleSource\x12/\n" +
+	"\x05attrs\x18\x02 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12M\n" +
 	"\bmetadata\x18\x03 \x01(\v21.proto.PolicyEvaluateModuleRequest.ModuleMetadataR\bmetadata\x1aD\n" +
 	"\x0eModuleMetadata\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x18\n" +
@@ -1173,49 +1173,54 @@ var file_policy_proto_goTypes = []any{
 	(*PolicyEvaluateResourceRequest_ResourceMetadata)(nil), // 14: proto.PolicyEvaluateResourceRequest.ResourceMetadata
 	(*PolicyEvaluateProviderRequest_ProviderMetadata)(nil), // 15: proto.PolicyEvaluateProviderRequest.ProviderMetadata
 	(*PolicyEvaluateModuleRequest_ModuleMetadata)(nil),     // 16: proto.PolicyEvaluateModuleRequest.ModuleMetadata
-	(*Diagnostic)(nil),  // 17: proto.Diagnostic
-	(EvaluateResult)(0), // 18: proto.EvaluateResult
-	(*Range)(nil),       // 19: proto.Range
-	(*Snippet)(nil),     // 20: proto.Snippet
-	(Operation)(0),      // 21: proto.Operation
+	(*Diagnostic)(nil),         // 17: proto.Diagnostic
+	(*ResourceAttributes)(nil), // 18: proto.ResourceAttributes
+	(EvaluateResult)(0),        // 19: proto.EvaluateResult
+	(*Range)(nil),              // 20: proto.Range
+	(*Snippet)(nil),            // 21: proto.Snippet
+	(Operation)(0),             // 22: proto.Operation
 }
 var file_policy_proto_depIdxs = []int32{
 	10, // 0: proto.PolicySetupRequest.client_capabilities:type_name -> proto.PolicySetupRequest.ClientCapabilities
 	12, // 1: proto.PolicySetupResponse.server_capabilities:type_name -> proto.PolicySetupResponse.ServerCapabilities
 	17, // 2: proto.PolicySetupResponse.diagnostics:type_name -> proto.Diagnostic
-	14, // 3: proto.PolicyEvaluateResourceRequest.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
-	18, // 4: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
-	19, // 5: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
-	4,  // 6: proto.PolicyEvaluationDetail.enforce_results:type_name -> proto.EnforceBlockResult
-	17, // 7: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
-	18, // 8: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
-	19, // 9: proto.EnforceBlockResult.range:type_name -> proto.Range
-	17, // 10: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
-	20, // 11: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
-	18, // 12: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
-	3,  // 13: proto.PolicyEvaluateResourceResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	15, // 14: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
-	18, // 15: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
-	3,  // 16: proto.PolicyEvaluateProviderResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	16, // 17: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
-	18, // 18: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
-	3,  // 19: proto.PolicyEvaluateModuleResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	13, // 20: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
-	11, // 21: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
-	21, // 22: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
-	0,  // 23: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
-	2,  // 24: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
-	6,  // 25: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
-	8,  // 26: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
-	1,  // 27: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
-	5,  // 28: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
-	7,  // 29: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
-	9,  // 30: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
-	27, // [27:31] is the sub-list for method output_type
-	23, // [23:27] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	18, // 3: proto.PolicyEvaluateResourceRequest.attrs:type_name -> proto.ResourceAttributes
+	14, // 4: proto.PolicyEvaluateResourceRequest.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
+	18, // 5: proto.PolicyEvaluateResourceRequest.prior_attrs:type_name -> proto.ResourceAttributes
+	19, // 6: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
+	20, // 7: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
+	4,  // 8: proto.PolicyEvaluationDetail.enforce_results:type_name -> proto.EnforceBlockResult
+	17, // 9: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
+	19, // 10: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
+	20, // 11: proto.EnforceBlockResult.range:type_name -> proto.Range
+	17, // 12: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
+	21, // 13: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
+	19, // 14: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
+	3,  // 15: proto.PolicyEvaluateResourceResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	18, // 16: proto.PolicyEvaluateProviderRequest.attrs:type_name -> proto.ResourceAttributes
+	15, // 17: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
+	19, // 18: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
+	3,  // 19: proto.PolicyEvaluateProviderResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	18, // 20: proto.PolicyEvaluateModuleRequest.attrs:type_name -> proto.ResourceAttributes
+	16, // 21: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
+	19, // 22: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
+	3,  // 23: proto.PolicyEvaluateModuleResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	13, // 24: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
+	11, // 25: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
+	22, // 26: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
+	0,  // 27: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
+	2,  // 28: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
+	6,  // 29: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
+	8,  // 30: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
+	1,  // 31: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
+	5,  // 32: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
+	7,  // 33: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
+	9,  // 34: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
+	31, // [31:35] is the sub-list for method output_type
+	27, // [27:31] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_policy_proto_init() }

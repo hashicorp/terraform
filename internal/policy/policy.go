@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
@@ -68,15 +69,24 @@ type (
 		CallbackService uint32
 	}
 
+	PolicyValue struct {
+		// Raw contains the Terraform value being sent to the policy engine.
+		Raw cty.Value
+
+		// RedactedPaths contains attribute paths that should be redacted when
+		// displaying values from Raw.
+		RedactedPaths []cty.Path
+	}
+
 	EvaluationRequest[T any] struct {
 		// Target is the object being evaluated.
 		Target string
 
 		// Attrs contains the attributes of the object being evaluated.
-		Attrs cty.Value
+		Attrs PolicyValue
 
 		// PriorAttrs contains the state of the object prior to the current operation.
-		PriorAttrs cty.Value
+		PriorAttrs PolicyValue
 
 		// Meta is additional metadata required for evaluation.
 		Meta T
@@ -196,5 +206,16 @@ func ErrorEvalFromDiags(diags []*proto.Diagnostic) EvaluationResponse {
 	return EvaluationResponse{
 		Overall:     PolicyErrorResult,
 		Diagnostics: DiagsFromProto(diags, nil),
+	}
+}
+
+// CtyToPolicyValue converts a cty.Value to a PolicyValue, unmarking the value and
+// extracting sensitive paths.
+func CtyToPolicyValue(raw cty.Value) PolicyValue {
+	raw, pvms := raw.UnmarkDeepWithPaths()
+	redactedPaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+	return PolicyValue{
+		Raw:           raw,
+		RedactedPaths: redactedPaths,
 	}
 }

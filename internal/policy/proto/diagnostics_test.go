@@ -9,11 +9,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 func TestDiagnosticToHCL(t *testing.T) {
-	index, _ := msgpack.Marshal(cty.StringVal("name"), cty.DynamicPseudoType)
 	protoDiag := &Diagnostic{
 		Severity: Severity_WARNING,
 		Summary:  "policy warning",
@@ -33,8 +31,8 @@ func TestDiagnosticToHCL(t *testing.T) {
 		},
 		Attribute: &AttributePath{
 			Steps: []*AttributePath_Step{
-				{Step: &AttributePath_Step_Attribute{Attribute: "tags"}},
-				{Step: &AttributePath_Step_Index{Index: index}},
+				{Selector: &AttributePath_Step_AttributeName{AttributeName: "tags"}},
+				{Selector: &AttributePath_Step_ElementKeyString{ElementKeyString: "name"}},
 			},
 		},
 		Snippet: &Snippet{
@@ -45,7 +43,7 @@ func TestDiagnosticToHCL(t *testing.T) {
 			Code: "some policy code snippet"},
 		ExpressionValues: []*ExpressionValue{{
 			Traversal: &AttributePath{
-				Steps: []*AttributePath_Step{{Step: &AttributePath_Step_Attribute{Attribute: "example"}}},
+				Steps: []*AttributePath_Step{{Selector: &AttributePath_Step_AttributeName{AttributeName: "example"}}},
 			},
 			Value: []byte("value-bytes"),
 		}},

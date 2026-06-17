@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/policy"
@@ -510,7 +511,7 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 				Version:   "1.0.0",
 			}
 		}
-		if diff := cmp.Diff(expected, req.Meta, protocmp.Transform()); diff != "" {
+		if diff := cmp.Diff(expected, req.Meta, protocmp.Transform(), cmp.Comparer(cty.Value.RawEquals)); diff != "" {
 			t.Fatalf("wrong provider metadata\ngot:  %s\nwant: %v", diff, expected)
 		}
 

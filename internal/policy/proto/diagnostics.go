@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 func ToHCLDiagnostics(diagnostics []*Diagnostic) hcl.Diagnostics {
@@ -152,7 +151,7 @@ func (pos *Position) ToHclPos() hcl.Pos {
 	}
 }
 
-// ToCtyPath converts a Path to a cty.Path.
+// ToCtyPath converts an AttributePathPath to a cty.Path.
 func (path *AttributePath) ToCtyPath() (cty.Path, error) {
 	var steps []cty.PathStep
 	for _, step := range path.Steps {
@@ -167,22 +166,21 @@ func (path *AttributePath) ToCtyPath() (cty.Path, error) {
 
 // ToCtyPathStep converts a Step to a cty.PathStep.
 func (step *AttributePath_Step) ToCtyPathStep() (cty.PathStep, error) {
-	switch step := step.Step.(type) {
-	case *AttributePath_Step_Attribute:
+	switch selector := step.Selector.(type) {
+	case *AttributePath_Step_AttributeName:
 		return cty.GetAttrStep{
-			Name: step.Attribute,
+			Name: selector.AttributeName,
 		}, nil
-	case *AttributePath_Step_Index:
-		index, err := msgpack.Unmarshal(step.Index, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, err
-		}
-
+	case *AttributePath_Step_ElementKeyString:
 		return cty.IndexStep{
-			Key: index,
+			Key: cty.StringVal(selector.ElementKeyString),
+		}, nil
+	case *AttributePath_Step_ElementKeyInt:
+		return cty.IndexStep{
+			Key: cty.NumberIntVal(selector.ElementKeyInt),
 		}, nil
 	default:
 		// The switch case is exhaustive, so this should never happen
-		panic(fmt.Errorf("unsupported Step type: %T", step))
+		panic(fmt.Errorf("unsupported Step type: %T", selector))
 	}
 }

@@ -54,9 +54,6 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
-	attrs, _ := n.After.UnmarkDeep()
-	priorAttrs, _ := n.Before.UnmarkDeep()
-
 	var policyOperation proto.Operation
 	switch action := n.Action; action {
 	case plans.Create:
@@ -105,7 +102,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
 	}
 
-	result := evaluatePolicies(ctx, operation, n.ResourceAddr, resourceConfig, client, attrs, priorAttrs, meta, callbacks)
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
 	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
 	return diags
 }
