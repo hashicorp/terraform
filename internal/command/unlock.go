@@ -38,17 +38,11 @@ func (c *UnlockCommand) Run(args []string) int {
 		c.Ui.Error("Expected a single argument: LOCK_ID")
 		return cli.RunResultHelp
 	}
-
 	lockID := args[0]
-	args = args[1:]
 
 	// assume everything is initialized. The user can manually init if this is
 	// required.
-	configPath, err := ModulePath(args)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
+	configPath := c.Meta.WorkingDir.RootModuleDir()
 
 	var diags tfdiags.Diagnostics
 

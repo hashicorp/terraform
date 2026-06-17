@@ -4,8 +4,6 @@
 package command
 
 import (
-	"fmt"
-	"os"
 	"runtime"
 )
 
@@ -50,26 +48,3 @@ backend performs all operations locally on your machine. Your configuration
 is configured to use a non-local backend. This backend doesn't support this
 operation.
 `
-
-// ModulePath returns the path to the root module and validates CLI arguments.
-//
-// This centralizes the logic for any commands that previously accepted
-// a module path via CLI arguments. This will error if any extraneous arguments
-// are given and suggest using the -chdir flag instead.
-//
-// If your command accepts more than one arg, then change the slice bounds
-// to pass validation.
-func ModulePath(args []string) (string, error) {
-	// TODO: test
-
-	if len(args) > 0 {
-		return "", fmt.Errorf("Too many command line arguments. Did you mean to use -chdir?")
-	}
-
-	path, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("Error getting pwd: %s", err)
-	}
-
-	return path, nil
-}

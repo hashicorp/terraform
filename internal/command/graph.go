@@ -32,13 +32,11 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
+	// Get the root module directory
+	configPath := c.Meta.WorkingDir.RootModuleDir()
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
