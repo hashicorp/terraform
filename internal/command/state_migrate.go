@@ -140,24 +140,17 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(c.providerUnmanagedInitWarnings())
 	}
 
-	locks, locksDiags := c.lockedDependencies()
+	originalLocks, locksDiags := c.lockedDependencies()
 	diags = diags.Append(locksDiags)
 	if locksDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
 
-	// TODO:
-	// We want to end up with up to 2 locks:
-	// 1) lock for source provider
-	// 2) lock for destination provider
-	// We can obtain provider factories from either of these two locks.
-	// We don't need a single collection of locks and a single map of factories accessed by provider addr. In init this enforces a single version in use at once, one factory per addr.
-	// If we always have 2 potential locks kept separate we can just refer to them as source and destination and no need to use provider addr as a key.
-
+	// Load the source backend
 	switch {
 	case smi.Backend != nil:
-		// Initialize the source backend
+		// TODO: Initialize the source backend
 	case smi.StateStore != nil:
 		// Initialize the source state_store
 
@@ -165,21 +158,35 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		srcReq := make(providerreqs.Requirements, 1)
 		srcReq[smi.StateStoreProvider.Type] = smi.StateStoreProvider.VersionConstraints
 
-		// TODO - at this point, conditionally use CLI flag to supplement the existing dependency locks.
+		// Conditionally use CLI flag to supplement the existing dependency locks.
+		var extraLocks *depsfile.Locks
+		if args.SourceLockFilePath != "" {
+			// TODO - use file to set extraLocks, and also validate that the file contains the right provider version.
+		}
+		// Supplemented locks may include a new provider that isn't in the working directory's dependency lock file.
+		// As that new lock describes the source state store provider, it will not be added to the dependency lock file
+		// after a successful state migration.
+		supplementedLocks := c.mergeLockedDependencies(originalLocks, extraLocks)
 
 		upgrade := false // TODO - controlled by flag
-		location := "source"
-		_, srcLock, srcProviderDiags := c.getSingleProvider(ctx, srcReq, locks, upgrade, location, view)
+		_, _, srcProviderDiags := c.getSingleProvider(ctx, srcReq, supplementedLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
 
-		view.Log("Got %s lock: %#v", location, srcLock)
+		// TODO: Implement interactive prompt to use provider if it was just downloaded.
+		// TODO: Implement equivalent for TF in automation.
+
+		// TODO: Load the source state store
+		// Use the lock returned from getSingleProvider to get a provider factory, then initialize the source state store with that factory.
+
+		view.Log("Got %s locks ok.", MigrationSource)
 	}
 
-	var destinationLocks *depsfile.Locks
+	// Load the destination backend
+	var destinationLocks *depsfile.Locks // This may match the current dependency locks on disk, or may have a new lock for the destination provider added.
 	switch {
 	case rootMod.Backend != nil:
 		// Initialize the destination backend
@@ -194,26 +201,40 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 
-		// TODO - at this point, conditionally use CLI flag to supplement the existing dependency locks
+		// Conditionally use CLI flag to supplement the existing dependency locks.
+		var extraLocks *depsfile.Locks
+		if args.DestinationLockFilePath != "" {
+			// TODO - use file to set extraLocks, and also validate that the file contains the right provider version.
+		}
+		// Supplemented locks may include a new provider that isn't in the working directory's dependency lock file.
+		// As that new lock describes the destination state store provider, it will be added to the dependency lock file
+		// after a successful state migration; the provider will be needed in subsequent commands.
+		supplementedLocks := c.mergeLockedDependencies(originalLocks, extraLocks)
 
 		upgrade := false // TODO - controlled by flag
-		location := "destination"
 		var dstProviderDiags tfdiags.Diagnostics
-		_, destinationLocks, dstProviderDiags = c.getSingleProvider(ctx, dstReq, locks, upgrade, location, view)
+		// Returned value assigned to destinationLocks is used to update the dependency lock file after a successful state migration.
+		_, destinationLocks, dstProviderDiags = c.getSingleProvider(ctx, dstReq, supplementedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
 
-		view.Log("Got %s lock: %#v", location, destinationLocks)
+		// TODO: Implement interactive prompt to use provider if it was just downloaded.
+		// TODO: Implement equivalent for TF in automation.
+
+		// TODO: Load the destination state store
+		// Use the lock to get a provider factory, then initialize the destination state store with that factory.
+
+		view.Log("Got %s locks ok.", MigrationDestination)
 	}
 
-	// TODO: Load the source backend
-	// TODO: Load the destination backend
 	// TODO: Perform the migration from source to destination
 
-	_, depLockFileDiags := c.saveDependencyLockFile(locks, destinationLocks, view)
+	// After a successful migration, the dependency lock file will be updated to include the destination backend's provider,
+	// if it's new
+	_, depLockFileDiags := c.saveDependencyLockFile(originalLocks, destinationLocks, view)
 	diags = diags.Append(depLockFileDiags)
 	if depLockFileDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -254,6 +275,11 @@ Options:
 func (c *StateMigrateCommand) Synopsis() string {
 	return "Migrate the state from one location to another"
 }
+
+const (
+	MigrationSource      = "source"
+	MigrationDestination = "destination"
+)
 
 func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provider addrs.Provider, configReqs *configs.RequiredProviders) (providerreqs.Requirements, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
