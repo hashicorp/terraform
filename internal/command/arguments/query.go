@@ -22,8 +22,8 @@ type Query struct {
 	// be written to.
 	GenerateConfigPath string
 
-	// PolicyPath contains an optional path to any defined policies that should
-	// be applied for this plan operation.
+	// PolicyPaths contains optional paths to policy set directories that should
+	// be evaluated during this query operation.
 	PolicyPaths []string
 }
 

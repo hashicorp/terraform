@@ -131,7 +131,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		client, policyDiags, stopClient := c.PolicyClient(context.Background(), args.PolicyPaths)
 		// if there has been any errors when setting up the policy client, we log them but
 		// we still proceed with the operation, as a failure to set up the policy client
-		// should not prevent the plan operation from running
+		// should not prevent the query operation from running
 		if opReq.View != nil && policyDiags != nil {
 			opReq.View.PolicyResults(nil, policyDiags)
 		}
@@ -171,7 +171,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyContentPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
