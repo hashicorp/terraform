@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'cli: Diagnostics containing lines longer than 64KiB (such as cycle errors in large configurations) are no longer rendered as an empty box with no error text'
+time: 2026-06-10T16:45:00.000000+02:00
+custom:
+    Issue: "38710"
