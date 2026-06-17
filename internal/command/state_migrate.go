@@ -163,19 +163,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		// Get source provider requirements
 		srcReq := make(providerreqs.Requirements, 1)
-		con, err := providerreqs.ParseVersionConstraints(smi.StateStoreProvider.Requirement.Required.String())
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid version constraint syntax for state store provider",
-				// The errors returned by ParseVersionConstraint already include
-				// the section of input that was incorrect, so we don't need to
-				// include that here.
-				Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
-				Subject: smi.StateStoreProvider.Requirement.DeclRange.Ptr(),
-			})
-		}
-		srcReq[smi.StateStoreProvider.Type] = con
+		srcReq[smi.StateStoreProvider.Type] = smi.StateStoreProvider.VersionConstraints
 
 		// TODO - at this point, conditionally use CLI flag to supplement the existing dependency locks.
 
