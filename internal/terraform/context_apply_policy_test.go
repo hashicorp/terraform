@@ -34,6 +34,10 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 			}
 		}
 
+		provider "test" {
+			value = sensitive("foo")
+		}
+
 		variable "input" {
 			type = string
 			default = "foo"
@@ -86,6 +90,11 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 	providerAddr := addrs.NewDefaultProvider("test")
 	provider := testProvider("test")
 	provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -119,6 +128,9 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 
 	// The expected values to be sent for policy evaluation.
 	expectedPlan := map[string]cty.Value{
+		"test": cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foo"),
+		}),
 		"test_resource": cty.ObjectVal(map[string]cty.Value{
 			"value":           cty.NullVal(cty.String),
 			"sensitive_value": cty.StringVal("foo"),
@@ -156,6 +168,32 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		}
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
+
+	planPolicyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		var actualVal cty.Value
+		attrs := req.Attrs
+		target := req.Target
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
+			actualVal = cty.ObjectVal(map[string]cty.Value{
+				"value": mp["value"],
+			})
+		}
+		actualPlan[target] = actualVal
+
+		if actualVal.Type().HasAttribute("value") {
+			if !actualVal.GetAttr("value").IsNull() && len(attrs.RedactedPaths) == 0 {
+				t.Errorf("Expected redacted paths for sensitive attributes to be included in the request")
+			}
+
+			for _, path := range attrs.RedactedPaths {
+				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "value"}}) {
+					t.Errorf("Unexpected redacted path: %s", path)
+				}
+			}
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
 	t.Cleanup(func() {
 		if diff := cmp.Diff(actualPlan, expectedPlan, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
 			t.Errorf("Unexpected diff (-got +want):\n%s", diff)
@@ -182,6 +220,9 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 
 	// The expected values to be sent for policy evaluation.
 	expectedApply := map[string]cty.Value{
+		"test": cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foo"),
+		}),
 		"test_resource": cty.ObjectVal(map[string]cty.Value{
 			"value":           cty.NullVal(cty.String),
 			"sensitive_value": cty.StringVal("foo"),
@@ -219,6 +260,33 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 		}
 
 		// this return does not actually do anything
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	applyPolicyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		var actual cty.Value
+		attrs := req.Attrs
+		target := req.Target
+		if !attrs.Raw.IsNull() {
+			mp := attrs.Raw.AsValueMap()
+			actual = cty.ObjectVal(map[string]cty.Value{
+				"value": mp["value"],
+			})
+		}
+		actualApply[target] = actual
+
+		if actual.Type().HasAttribute("value") {
+			if !actual.GetAttr("value").IsNull() && len(attrs.RedactedPaths) == 0 {
+				t.Errorf("Expected redacted paths for sensitive attributes to be included in the request")
+			}
+
+			for _, path := range attrs.RedactedPaths {
+				if !path.Equals(cty.Path{cty.GetAttrStep{Name: "value"}}) {
+					t.Errorf("Unexpected redacted path: %s", path)
+				}
+			}
+		}
+
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 

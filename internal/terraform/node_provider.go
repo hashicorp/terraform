@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -206,7 +205,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
+	//
+	// We use the marked "configVal" so that we can send sensitive paths to the
+	// policy plugin. Provider schemas don't have a defined usage/behavior for
+	// the "Sensitive" field, so we don't add sensitive paths from the schema to this value.
+	policyDiags := n.EvalPolicy(ctx, configVal)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -226,15 +229,9 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		return nil
 	}
 
-	_, pvms := attrs.UnmarkDeepWithPaths()
-	sensitivePaths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
-
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
-		Attrs: policy.PolicyValue{
-			Raw:           attrs,
-			RedactedPaths: sensitivePaths,
-		},
+		Attrs:  policy.CtyToPolicyValue(attrs),
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:      n.Addr.Provider.Type,
 			Alias:     n.Addr.Alias,
