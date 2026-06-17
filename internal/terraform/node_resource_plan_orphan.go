@@ -46,7 +46,6 @@ var (
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeDestroyer            = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodePlanDestroyer        = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {
@@ -54,11 +53,6 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 }
 
 func (n *NodePlannableResourceInstanceOrphan) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
-}
-
-func (n *NodePlannableResourceInstanceOrphan) PlanDestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
 	return &addr
 }
@@ -92,6 +86,10 @@ func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Refer
 	// destroy nodes are not referenceable, so we must override the method from
 	// the abstract layers
 	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
+	return n.destroyActionReferences()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {

@@ -57,15 +57,11 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 
 				if actionTrigger.ActionTriggerEvent.IsDestroy() {
 					// we may have both create and destroy nodes under ths same
-					// address, so match up their types
-					if _, ok := resourceInstance.(GraphNodeDestroyer); ok {
-						invoker.AttachActionApplyTrigger(&actionTriggerApplyInstance{
-							ActionInvocation: ai,
-							actionNode:       actionConfig,
-						})
-						foundNode = true
+					// address, so match make sure the destroy action trigger is
+					// only attached to a destroyer node
+					if _, ok := resourceInstance.(GraphNodeDestroyer); !ok {
+						continue
 					}
-					continue
 				}
 
 				invoker.AttachActionApplyTrigger(&actionTriggerApplyInstance{
