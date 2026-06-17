@@ -137,6 +137,11 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	diagsWith := n.Addr.String()
+	if caller != nil {
+		diagsWith = fmt.Sprintf("%s, called from %s", diagsWith, caller)
+	}
+
 	provider, _, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
@@ -171,7 +176,9 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable,
 	}
 
 	config := n.Config.Config
-	if n.Config.Config == nil {
+	if config == nil {
+		// We continue here with an empty body, because we also need to validate
+		// for any missing required attributes.
 		config = hcl.EmptyBody()
 	}
 
@@ -181,21 +188,20 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable,
 		// If there was no config block at all, we'll add a Context range to the returned diagnostic
 		if n.Config.Config == nil {
 			for _, diag := range valDiags.ToHCL() {
-				diag.Context = &n.Config.DeclRange
+				diag.Context = n.Config.DeclRange.Ptr()
 				diags = diags.Append(diag)
 			}
-			return diags
 		} else {
 			diags = diags.Append(valDiags)
-			return diags
 		}
+		return diags
 	}
 	var deprecationDiags tfdiags.Diagnostics
 	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
-	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+	diags = diags.Append(deprecationDiags.InConfigBody(config, diagsWith))
 
 	valDiags = validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
-	diags = diags.Append(valDiags.InConfigBody(config, n.Addr.String()))
+	diags = diags.Append(valDiags.InConfigBody(config, diagsWith))
 
 	if diags.HasErrors() {
 		return diags
@@ -211,7 +217,7 @@ func (n *NodeActionConfig) Validate(ctx EvalContext, caller addrs.Referenceable,
 
 	resp := provider.ValidateActionConfig(req)
 	if resp.Diagnostics != nil {
-		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, caller.String()))
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Body, diagsWith))
 	}
 
 	return diags
@@ -447,13 +453,19 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	diagsWith := n.Addr.String()
+	if caller != nil {
+		diagsWith = fmt.Sprintf("%s, called from %s", diagsWith, caller)
+	}
+
 	// This should have been caught already
 	if n.Schema == nil {
 		panic("action eval called without a schema")
 	}
 
+	config := n.Config.Config
 	configVal := cty.NullVal(n.Schema.ConfigSchema.ImpliedType())
-	if n.Config.Config == nil {
+	if config == nil {
 		return configVal, nil
 	}
 
@@ -461,14 +473,14 @@ func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.Repet
 	// mechanisms because the instance must be in state already.
 	var evalDiags tfdiags.Diagnostics
 	if callerVal == cty.NilVal {
-		configVal, _, evalDiags = ctx.EvaluateBlock(n.Config.Config, n.Schema.ConfigSchema, caller, repData)
+		configVal, _, evalDiags = ctx.EvaluateBlock(config, n.Schema.ConfigSchema, caller, repData)
 		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			return configVal, diags
 		}
 	} else {
 		scope := ctx.EvaluationScope(caller, nil, repData)
-		configVal, evalDiags = scope.EvalActionBlock(n.Config.Config, n.Schema.ConfigSchema, callerVal)
+		configVal, evalDiags = scope.EvalActionBlock(config, n.Schema.ConfigSchema, callerVal)
 		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			return configVal, diags
@@ -476,11 +488,11 @@ func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.Repet
 	}
 
 	valDiags := validateResourceForbiddenEphemeralValues(ctx, configVal, n.Schema.ConfigSchema)
-	diags = diags.Append(valDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+	diags = diags.Append(valDiags.InConfigBody(config, diagsWith))
 
 	var deprecationDiags tfdiags.Diagnostics
 	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, n.Schema.ConfigSchema, n.ModulePath())
-	diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+	diags = diags.Append(deprecationDiags.InConfigBody(config, diagsWith))
 
 	return configVal, diags
 }

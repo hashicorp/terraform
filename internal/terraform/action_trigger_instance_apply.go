@@ -33,6 +33,11 @@ var (
 func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value, fromPlan bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	diagsWith := n.ActionInvocation.Addr.String()
+	if caller != nil {
+		diagsWith = fmt.Sprintf("%s, called from %s", diagsWith, caller)
+	}
+
 	provider, actionProviderSchema, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -116,15 +121,8 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 
-	if resp.Diagnostics != nil {
-		if n.actionNode.Config.Config != nil {
-			diags = diags.Append(resp.Diagnostics.InConfigBody(n.actionNode.Config.Config, caller.String()))
-		} else {
-			diags = diags.Append(resp.Diagnostics.InConfigBody(n.actionNode.Config.Body, caller.String()))
-		}
-	}
-
-	if resp.Diagnostics.HasErrors() {
+	diags = diags.Append(resp.Diagnostics.InConfigBody(n.actionNode.Config.Body, diagsWith))
+	if diags.HasErrors() {
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.CompleteAction(hookIdentity, resp.Diagnostics.Err())
 		}))
@@ -143,13 +141,7 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 				}
 			case providers.InvokeActionEvent_Completed:
 				// Enhance the diagnostics
-				if ev.Diagnostics != nil {
-					if n.actionNode.Config.Config != nil {
-						diags = diags.Append(ev.Diagnostics.InConfigBody(n.actionNode.Config.Config, caller.String()))
-					} else {
-						diags = diags.Append(ev.Diagnostics.InConfigBody(n.actionNode.Config.Body, caller.String()))
-					}
-				}
+				diags = diags.Append(ev.Diagnostics.InConfigBody(n.actionNode.Config.Body, diagsWith))
 
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 					return h.CompleteAction(hookIdentity, ev.Diagnostics.Err())
@@ -157,6 +149,7 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 				if diags.HasErrors() {
 					return diags
 				}
+
 			default:
 				panic(fmt.Sprintf("unexpected action event type %T", ev))
 			}

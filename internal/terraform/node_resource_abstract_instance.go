@@ -3198,6 +3198,7 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 // Plan the individual action invocation.
 // This function uses named result parameters.
 func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRepData instances.RepetitionData, actionRef actionRef, event configs.ActionTriggerEvent, change *plans.ResourceInstanceChange) (ai *plans.ActionInvocationInstance, deferred bool, diags tfdiags.Diagnostics) {
+	diagsWith := fmt.Sprintf("%s, called from %s", n.Addr, actionRef.actionNode.Addr)
 
 	actionInst, evalActionDiags := evaluateActionExpression(actionRef.configRef.Expr, resRepData)
 	diags = append(diags, evalActionDiags...)
@@ -3280,12 +3281,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 	})
 
 	// Associate any provider produced diagnostics with the action config block.
-	if actionRef.actionNode.Config.Config != nil {
-		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Config, n.Addr.String())
-	} else {
-		// if there was no action config block, use the entire action block for reference
-		resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Body, n.Addr.String())
-	}
+	resp.Diagnostics = resp.Diagnostics.InConfigBody(actionRef.actionNode.Config.Body, diagsWith)
 
 	diags = diags.Append(resp.Diagnostics)
 
@@ -3345,10 +3341,8 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 
 // invokeActions invokes any actions triggered for the listed events. Condition
 // expressions are reevaluated here when they exist, and failing conditions are
-// skipped. If the taint return parameter is true, then the resource is also
+// skipped. If the taint return parameter is true, then the resource will be
 // tainted in state.
-//
-// FIXME: don't invoke actions on an already tainted resource?
 func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) (taint bool, diags tfdiags.Diagnostics) {
 	for _, trigger := range n.actionApplyTriggers {
 		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
@@ -3377,7 +3371,7 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 				return false, diags.Append(invokeDiags)
 			case configs.ActionOnFailureTaint:
 				// We can only taint a newly created resource, because that's
-				// the only action which an be re-done from scratch. Recording
+				// the only action which can be re-done from scratch. Recording
 				// other action events which need to be reinvoked will require
 				// new data to be saved in the state.
 				return event == configs.AfterCreate, diags.Append(invokeDiags)
