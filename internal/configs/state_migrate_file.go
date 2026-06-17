@@ -9,9 +9,9 @@ import (
 	"slices"
 
 	"github.com/apparentlymart/go-versions/versions"
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -26,10 +26,24 @@ import (
 // When creating a StateMigrationInstructions struct, calling code must ensure that there
 // are no duplicated or mutually-exclusive pieces of information in the original file(s).
 type StateMigrationInstructions struct {
-	StateStoreProvider *RequiredProvider
+	StateStoreProvider *StateStoreProviderRequirement
 	StateStore         *StateStore
 
 	Backend *Backend
+}
+
+// StateStoreProviderRequirement is very similar to RequiredProvider
+// but contains data that's specific to state migration files, and how they're used in commands.
+type StateStoreProviderRequirement struct {
+	Type      addrs.Provider
+	Source    string
+	DeclRange hcl.Range
+
+	// Version is the specific version of the provider specified in the state_store_provider block.
+	Version versions.Version
+	// VersionConstraints is the version constraint derived from the version specified in the state_store_provider block.
+	// This is needed in addition to the Version field as it's an input to provider download logic, which expects constraints.
+	VersionConstraints providerreqs.VersionConstraints
 }
 
 // StateMigrationFile represents a single state migration file within a configuration directory.
@@ -53,7 +67,7 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "state_store_provider":
-			p, pDiags := decodeStateStoreProviderBlock(block)
+			req, pDiags := decodeStateStoreProviderBlock(block)
 			diags = diags.Extend(pDiags)
 
 			if file.StateStoreProvider != nil {
@@ -66,8 +80,8 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 				continue // Keep file.StateStoreProvider as first parsed block in this scenario
 			}
 
-			if p != nil {
-				file.StateStoreProvider = p
+			if req != nil {
+				file.StateStoreProvider = req
 				file.fromBlockSource = &block.DefRange
 			}
 		case "from":
@@ -188,10 +202,10 @@ func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnos
 	return &fromData, diags
 }
 
-func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Diagnostics) {
+func decodeStateStoreProviderBlock(block *hcl.Block) (*StateStoreProviderRequirement, hcl.Diagnostics) {
 	// state_store_provider blocks are similar to required_provider blocks but different, so we need logic
 	// similar to that in decodeProviderRequirementsBlock but distinct. E.g. version constraints must be
-	// exact versions, not a range. The similarity is sufficient that we can return a RequiredProvider pointer.
+	// exact versions, not a range.
 
 	var diags hcl.Diagnostics
 	attrs, hclDiags := block.Body.JustAttributes()
@@ -230,8 +244,7 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 	}
 
 	// Process the data inside the object describing the provider
-	ssProvider := RequiredProvider{
-		Name:      localName,
+	ssProvider := StateStoreProviderRequirement{
 		DeclRange: attr.Range,
 	}
 	for _, kv := range kvs {
@@ -253,10 +266,6 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 
 		switch key.AsString() {
 		case "version":
-			vc := VersionConstraint{
-				DeclRange: attr.Range,
-			}
-
 			versionString, valDiags := kv.Value.Value(nil)
 			if valDiags.HasErrors() || !versionString.Type().Equals(cty.String) {
 				diags = append(diags, &hcl.Diagnostic{
@@ -282,7 +291,7 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 			// We ensure user input can be parsed as a version, but we need to
 			// create a constraint to be part of the returned RequiredProvider struct.
 			// The constraint will pin to a specific version set by the config.
-			constraints, err := version.NewConstraint(v.String())
+			constraints, err := providerreqs.ParseVersionConstraints(v.String())
 			if err != nil {
 				// NewConstraint doesn't return user-friendly errors, so we'll just
 				// ignore the provided error and produce our own generic one.
@@ -295,8 +304,8 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 				return nil, diags
 			}
 
-			vc.Required = constraints
-			ssProvider.Requirement = vc
+			ssProvider.Version = v
+			ssProvider.VersionConstraints = constraints
 
 		case "source":
 			source, err := kv.Value.Value(nil)
@@ -337,7 +346,6 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 			})
 			return nil, diags
 		}
-
 	}
 
 	return &ssProvider, diags
