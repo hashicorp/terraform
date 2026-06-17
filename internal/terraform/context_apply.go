@@ -230,7 +230,11 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 	// After the walk is finished, we capture a simplified snapshot of the
 	// check result data as part of the new state.
-	walker.State.RecordCheckResults(walker.Checks)
+	// The concurrent-safe state has already been closed by the walk, so we
+	// need to access the underlying state object directly to update it.
+	state := walker.State.Lock()
+	state.RecordCheckResults(walker.Checks)
+	walker.State.Unlock()
 
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
