@@ -113,9 +113,6 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 	defer p.mu.Unlock()
 	// We'll make a synthetic hcl.File here just so we can reuse the
 	// existing cache.
-
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.p.AddFile(filename, &hcl.File{
 		Body:  hcl.EmptyBody(),
 		Bytes: src,
