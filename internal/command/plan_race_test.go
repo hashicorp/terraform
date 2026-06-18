@@ -44,23 +44,18 @@ func (d *delayingFS) Open(name string) (afero.File, error) {
 }
 
 // TestPlan_configLoaderRace is a regression test for a data race in the
-// configuration loader's shared parser:
-// https://github.com/hashicorp/terraform/issues/38725
+// configuration loader's shared parser: https://github.com/hashicorp/terraform/issues/38725
 //
-// It reproduces the race entirely through the production plan command path. A
-// plan loads descendant modules by walking the init graph, which parses each
+// A plan loads descendant modules by walking the init graph, which parses each
 // module into the loader's shared *configs.Parser (the write side). When the
 // run is interrupted (Ctrl-C), Meta.RunOperation stops waiting for the
 // operation and the command renders the resulting diagnostics, which reads the
-// same parser's source cache via Loader.Sources (the read side). Before the
-// fix those two accesses were unsynchronized.
+// same parser's source cache via Loader.Sources (the read side).
 //
 // To make the interrupt land while modules are still loading, the loader is
 // given a filesystem that delays reads of module files, and two interrupts are
 // delivered on the ShutdownCh to force the cancel path (which returns after a
-// timeout without waiting for the still-running config walk). The test is gated
-// on the race build tag, so it only runs under `go test -race`; this is a
-// best-effort, timing-based reproduction rather than a fully deterministic one.
+// timeout without waiting for the still-running config walk).
 func TestPlan_configLoaderRace(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-modules-race"), td)

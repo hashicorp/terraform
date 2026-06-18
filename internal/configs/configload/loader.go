@@ -54,11 +54,8 @@ type Config struct {
 	// be parsed when running state migrate commands.
 	IncludeStateMigrateFiles bool
 
-	// FS is the filesystem that the loader reads configuration and module
-	// files from. If nil, the real OS filesystem (afero.OsFs) is used.
-	//
-	// This is primarily a testing seam, allowing tests to substitute a
-	// filesystem that simulates slow or blocking reads.
+	// OverrideFS is used to override the filesystem that the loader
+	// reads configuration and module files from.
 	OverrideFS afero.Fs
 }
 
@@ -69,10 +66,12 @@ type Config struct {
 // installed, which is read from disk as part of this function. If that
 // manifest cannot be read then an error will be returned.
 func NewLoader(config *Config) (*Loader, error) {
-	fs := config.OverrideFS
-	if fs == nil {
-		fs = afero.NewOsFs()
+	fs := afero.NewOsFs()
+
+	if config.OverrideFS != nil {
+		fs = config.OverrideFS
 	}
+
 	parser := configs.NewParser(fs)
 	reg := registry.NewClient(config.Services, nil)
 
