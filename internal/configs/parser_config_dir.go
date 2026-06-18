@@ -225,7 +225,7 @@ func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.
 //
 // If the given directory does not exist or cannot be read, error diagnostics
 // are returned. If errors are returned, the resulting lists may be incomplete.
-func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []string, diags hcl.Diagnostics) {
+func (p *Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []string, diags hcl.Diagnostics) {
 	fSet, diags := p.dirFileSet(dir, opts...)
 	return fSet.Primary, fSet.Override, diags
 }
