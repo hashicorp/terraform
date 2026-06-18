@@ -5474,6 +5474,109 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
 		}
 	})
+	t.Run("using dev_override: tolerates lack of version data when provider not managed by Terraform", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that matches the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged/dev-override-provider/"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		// If the working directory was previously initialized successfully then at least
+		// one workspace is guaranteed to exist when a user is re-running init with no config
+		// changes since last init. So this test says `default` exists.
+		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
+			States: []string{"default"},
+		}
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+
+			// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PROVIDER IS A DEV OVERRIDE.
+			// The mock is still accessed via testingOverrides, but Terraform believes that it's a dev override due to
+			// its presence in the ProviderDevOverrides map.
+			ProviderDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				mockProviderAddress: ".",
+			},
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Before running init, confirm the contents of the backend state file before
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be present, but there isn't one")
+		}
+		expectedState := &workdir.StateStoreConfigState{
+			Type: "test_store",
+			Provider: &workdir.ProviderConfigState{
+				Version: nil,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n                \"region\": null\n            }"),
+			},
+			ConfigRaw:          []byte("{\n            \"value\": \"foobar\"\n        }"),
+			Hash:               uint64(3434781367),
+			ProviderSupplyMode: getproviders.DevOverride,
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+
+		// Run init command
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		output := testOutput.All()
+		expectedOutputs := []string{
+			`Initializing the state store "test_store"...`,
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+
+		// Confirm init was a no-op and backend state is unchanged afterwards
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s = sMgr.State()
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
 }
 
 // Testing init's behaviors with `state_store` when run in a working directory where the configuration
