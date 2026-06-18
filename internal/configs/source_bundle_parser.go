@@ -210,6 +210,9 @@ func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, over
 }
 
 func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, override bool) (*File, hcl.Diagnostics) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	var diags hcl.Diagnostics
 	path, err := p.sources.LocalPathForSource(source)
 	if err != nil {
@@ -241,14 +244,13 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 
 	var file *hcl.File
 	var fdiags hcl.Diagnostics
-	p.mu.Lock()
 	switch {
 	case strings.HasSuffix(path, ".json"):
 		file, fdiags = p.p.ParseJSON(src, syntheticFilename)
 	default:
 		file, fdiags = p.p.ParseHCL(src, syntheticFilename)
 	}
-	p.mu.Unlock()
+
 	diags = append(diags, fdiags...)
 
 	body := hcl.EmptyBody()
@@ -256,7 +258,8 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 		body = file.Body
 	}
 
-	return parseConfigFile(body, diags, override, p.AllowsLanguageExperiments())
+	// We are in a locked method, it's safe to call p.allowExperiments directly
+	return parseConfigFile(body, diags, override, p.allowExperiments)
 }
 
 // AllowLanguageExperiments specifies whether subsequent LoadConfigFile (and
