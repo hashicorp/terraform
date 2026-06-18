@@ -5374,7 +5374,7 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 // Testing init's behaviors with `state_store` when run in a working directory where
 // nothing has changed since the last init.
 func TestInit_stateStore_configUnchanged(t *testing.T) {
-	// This matches the backend state test fixture in "state-store-unchanged"
+	// This matches the backend state test fixture in "state-store-unchanged/provider-managed-by-terraform"
 	v1_2_3, _ := version.NewVersion("1.2.3")
 
 	t.Run("successful init - no changes detected", func(t *testing.T) {

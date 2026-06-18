@@ -217,7 +217,7 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 	// Create a temporary working directory with pluggable state storage in the config
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
@@ -1408,7 +1408,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 func TestWorkspace_list_jsonOutput(t *testing.T) {
 	// Create a temporary working directory with pluggable state storage in the config
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Using PSS in this test allows easy mocking of pre-existing workspaces

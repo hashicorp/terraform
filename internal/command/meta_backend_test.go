@@ -1661,7 +1661,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 func TestMetaBackend_planLocal_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	stateStoreConfigBlock := cty.ObjectVal(map[string]cty.Value{
@@ -3136,7 +3136,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 	t.Run("it returns a state_store from state_store config", func(t *testing.T) {
 		// Create a temporary working directory with backend configuration in
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		m := testMetaBackend(t, nil)

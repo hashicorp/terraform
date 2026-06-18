@@ -432,7 +432,7 @@ func TestStateIdentities_modules(t *testing.T) {
 func TestStateIdentities_stateStore(t *testing.T) {
 	// We need configuration present to force pluggable state storage to be used
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get a state file, that contains identity information,as bytes
