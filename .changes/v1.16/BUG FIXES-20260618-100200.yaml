@@ -1,0 +1,8 @@
+kind: BUG FIXES
+body: 'init: Fixed a regression where `terraform init` (and `cdktf get`) would incorrectly
+  report "Missing required argument" errors for module input variables that lack defaults,
+  even when those variables are only required during plan/apply. The init walk now
+  skips required-variable enforcement, consistent with the behaviour in v1.14.'
+time: 2026-06-18T10:02:00+04:00
+custom:
+    Issue: "38689"

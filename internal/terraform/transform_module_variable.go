@@ -39,6 +39,12 @@ type ModuleVariableTransformer struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
+
+	// SkipRequiredCheck, if true, suppresses enforcement of required module
+	// input variables when parsing the call body. This should be set during
+	// walkInit because that walk only installs modules — required-argument
+	// validation is the responsibility of walkValidate/walkPlan.
+	SkipRequiredCheck bool
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
@@ -95,7 +101,7 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 	for _, v := range c.Module.Variables {
 		schema.Attributes = append(schema.Attributes, hcl.AttributeSchema{
 			Name:     v.Name,
-			Required: v.Default == cty.NilVal,
+			Required: !t.SkipRequiredCheck && v.Default == cty.NilVal,
 		})
 	}
 
