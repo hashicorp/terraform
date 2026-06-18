@@ -160,7 +160,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyContentPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
