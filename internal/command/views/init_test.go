@@ -318,7 +318,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 		}
 
 		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
+		newInit.LogProviderInstallationMessage(FindingLatestVersionMessage, packageName)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -455,7 +455,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 
 		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
+		newInit.LogProviderInstallationMessage(FindingLatestVersionMessage, packageName)
 
 		actual := done(t).All()
 		expected := "Finding latest version of hashicorp/aws"
@@ -473,7 +473,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 
 		packageName, packageVersion := "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
+		newInit.LogProviderInstallationMessage(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		actual := done(t).All()
 		expected := "- Using previously-installed hashicorp/aws v3.0.0"
