@@ -6,9 +6,7 @@ state_store_provider {
 }
 
 from {
-  state_store "test_store" {
-    value = "source-pss.tfstate"
-
+  state_store "test_src" {
     provider "test" {}
   }
 }
