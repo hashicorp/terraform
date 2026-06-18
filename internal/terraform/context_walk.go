@@ -94,6 +94,9 @@ func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpt
 
 	walker := c.graphWalker(graph, operation, opts)
 
+	// Initialize the walker's internal state before watching for a stop (which accesses that internal state)
+	walker.once.Do(walker.init)
+
 	// Watch for a stop so we can call the provider Stop() API.
 	watchStop, watchWait := c.watchStop(walker)
 

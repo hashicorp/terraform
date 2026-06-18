@@ -122,8 +122,7 @@ func TestPlan_configLoaderRace(t *testing.T) {
 		shutdownCh <- struct{}{}
 	}()
 
-	code := c.Run([]string{})
-	t.Logf("plan command exited with status %d", code)
+	c.Run([]string{})
 
 	// Allow the abandoned config walk to drain before the test returns, so it
 	// doesn't keep writing the parser after the test completes.
