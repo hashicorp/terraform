@@ -40,7 +40,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 				// The PSS project is currently gated as experimental
 				// TODO(SarahFrench/radeksimko) - remove this from the test once
 				// the feature is GA.
-				parser.allowExperiments = true
+				parser.AllowLanguageExperiments(true)
 			}
 
 			path := filepath.Join("testdata/valid-modules", name)

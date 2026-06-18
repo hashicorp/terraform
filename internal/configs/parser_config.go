@@ -43,7 +43,7 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	test, testDiags := loadTestFile(body, p.allowExperiments)
+	test, testDiags := loadTestFile(body, p.AllowsLanguageExperiments())
 	diags = append(diags, testDiags...)
 	return test, diags
 }
@@ -81,7 +81,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 		return nil, diags
 	}
 
-	return parseConfigFile(body, diags, override, p.allowExperiments)
+	return parseConfigFile(body, diags, override, p.AllowsLanguageExperiments())
 }
 
 func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperiments bool) (*File, hcl.Diagnostics) {

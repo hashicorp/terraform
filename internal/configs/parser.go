@@ -29,7 +29,6 @@ type Parser struct {
 	// allowed and not-allowed situations.
 	allowExperiments bool
 
-	// the shared Parser must be concurrency-safe: https://github.com/hashicorp/terraform/issues/38725
 	mu sync.Mutex
 }
 
@@ -66,7 +65,6 @@ func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
 	defer p.mu.Unlock()
 
 	src, err := p.fs.ReadFile(path)
-
 	if err != nil {
 		return nil, hcl.Diagnostics{
 			{
@@ -111,6 +109,8 @@ func (p *Parser) Sources() map[string][]byte {
 // some other way. Most callers should load configuration via methods of
 // Parser, which will update the sources cache automatically.
 func (p *Parser) ForceFileSource(filename string, src []byte) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	// We'll make a synthetic hcl.File here just so we can reuse the
 	// existing cache.
 

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Add concurrency safety to configs.Parser and SourceBundleParser
+time: 2026-06-18T15:57:09.519762-04:00
+custom:
+    Issue: "38745"
