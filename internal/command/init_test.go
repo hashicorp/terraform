@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
-	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 
@@ -45,6 +44,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // cleanString removes newlines, and redundant spaces.
@@ -281,7 +281,8 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 				"hashicorp/test":   {"1.2.3"},
 			})
 
-			mockProvider := mockPluggableStateStorageProvider()
+			mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+			mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 			ui := new(cli.MockUi)
 			view, done := testView(t)
@@ -2553,7 +2554,8 @@ terraform {
 		})
 
 		// Mock provider to act as "hashicorp/test"
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -2684,7 +2686,8 @@ terraform {
 		})
 
 		// Mock provider to act as "hashicorp/test"
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -2808,7 +2811,8 @@ terraform {
 		})
 
 		// Mock provider to act as "hashicorp/test"
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -2939,7 +2943,8 @@ terraform {
 			"foobar": {"1.2.3", "9.9.9"},
 		})
 		// Mock provider to act as "hashicorp/test"
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4082,7 +4087,8 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytes("test_store")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			// The test fixture config has no version constraints, so the latest version will
@@ -4135,7 +4141,11 @@ Initializing provider plugins...
 		}
 
 		// Assert the default workspace was not created
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; exists {
+		exists, err := mockProvider.MockStates.StateIdExists("test_store", backend.DefaultStateName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if exists {
 			t.Fatal("expected the default workspace to not be created during init, but it exists")
 		}
 
@@ -4181,7 +4191,8 @@ Initializing provider plugins...
 		customWorkspace := "my-custom-workspace"
 		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytes("test_store")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
@@ -4224,13 +4235,17 @@ Initializing provider plugins...
 		}
 
 		// Assert no workspaces exist
-		if len(mockProvider.MockStates) != 0 {
-			t.Fatalf("expected no workspaces, but got: %#v", mockProvider.MockStates)
+		stateIds, err := mockProvider.MockStates.StateIds("test_store")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(stateIds) != 0 {
+			t.Fatalf("expected no workspaces, but got: %#v", stateIds)
 		}
 
 		// Assert no backend state file made due to the error
 		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
-		_, err := os.Stat(statePath)
+		_, err = os.Stat(statePath)
 		if pathErr, ok := err.(*os.PathError); !ok || !os.IsNotExist(pathErr.Err) {
 			t.Fatalf("expected backend state file to not be created, but it exists")
 		}
@@ -4246,15 +4261,16 @@ Initializing provider plugins...
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
-			States: []string{
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds(
+			"test_store",
+			[]string{
 				"foobar1",
 				"foobar2",
 				// Force provider to report workspaces exist
 				// But default workspace doesn't exist
 			},
-		}
+		)
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
@@ -4313,15 +4329,16 @@ Initializing provider plugins...
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{
-			States: []string{
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds(
+			"test_store",
+			[]string{
 				"foobar1",
 				"foobar2",
 				// Force provider to report workspaces exist
 				// But default workspace doesn't exist
 			},
-		}
+		)
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
@@ -4386,7 +4403,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		ui := new(cli.MockUi)
@@ -4447,7 +4465,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4529,7 +4548,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"hashicorp/test": {"1.2.3"},
 		}, returnApprovedHashes)
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4609,7 +4629,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4690,7 +4711,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		})
 
 		// Set up providers for use in the second init attempt.
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4795,7 +4817,8 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 		},
 	})
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
@@ -4892,7 +4915,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		ui := new(cli.MockUi)
@@ -4955,7 +4979,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
 			"hashicorp/test": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5044,7 +5069,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
 			"hashicorp/test": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5117,7 +5143,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
 			"hashicorp/test": {expectedVersion},
 		})
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5191,7 +5218,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
 			"hashicorp/test": {expectedVersion},
 		})
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5298,7 +5326,8 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
@@ -5382,7 +5411,8 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		// If the working directory was previously initialized successfully then at least
 		// one workspace is guaranteed to exist when a user is re-running init with no config
 		// changes since last init. So this test says `default` exists.
@@ -5468,11 +5498,13 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
-
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		// The previous init implied by this test scenario would have created this.
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
-		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+			"test_store",
+			"default",
+			[]byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`),
+		)
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
@@ -5556,11 +5588,16 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		// The previous init implied by this test scenario would have created this.
 		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}}
-		mockProvider.MockStates = map[string]interface{}{"default": []byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`)}
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+			"test_store",
+			"default",
+			[]byte(`{"version": 4,"terraform_version":"1.15.0","serial": 1,"lineage": "","outputs": {},"resources": [],"checks":[]}`),
+		)
 
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
@@ -5616,8 +5653,8 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
 		t.Chdir(td)
 
-		mockProvider := mockPluggableStateStorageProvider()
-		mockProvider.GetStatesResponse = &providers.GetStatesResponse{States: []string{"default"}} // The previous init implied by this test scenario would have created the default workspace.
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"}) // The previous init implied by this test scenario would have created the default workspace.
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -5701,7 +5738,8 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	// Make the state store's value attribute optional in this test.
 	mockProvider.GetProviderSchemaResponse.StateStores["test_store"].Body.Attributes["value"].Required = false
 
@@ -5811,7 +5849,8 @@ func TestInit_stateStore_unset(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	storeName := "test_store"
 	otherStoreName := "test_otherstore"
 	// Make the provider report that it contains a 2nd storage implementation with the above name
@@ -5914,7 +5953,8 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -6011,7 +6051,8 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-state-store"), td)
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
@@ -6252,7 +6293,8 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 	}
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -6431,7 +6473,8 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 	}
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -6544,7 +6587,8 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 	}
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -6704,7 +6748,8 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 	}
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -6943,7 +6988,8 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 	}
 	t.Chdir(td)
 
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.2.3"},
@@ -7645,14 +7691,27 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 	))
 }
 
-// TODO: introduce pssName as argument here to aid testing migrations
-func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
+func mockSingleStateStoreSchema(storeType string) map[string]providers.Schema {
+	return map[string]providers.Schema{
+		storeType: {
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	}
+}
+
+func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *testing_provider.MockProvider {
 	// Create a mock provider to use for PSS
 	// Get mock provider factory to be used during init
 	//
 	// This imagines a provider called `test` that contains
 	// a pluggable state store implementation called `store`.
-	pssName := "test_store"
 	mock := testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
@@ -7674,25 +7733,17 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 				},
 			},
 			ListResourceTypes: map[string]providers.Schema{},
-			StateStores: map[string]providers.Schema{
-				pssName: {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"value": {
-								Type:     cty.String,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
+			StateStores:       schemas,
 		},
 	}
-	mock.GetStatesFn = func(req providers.GetStatesRequest) providers.GetStatesResponse {
-		states := slices.Sorted(maps.Keys(mock.MockStates))
-		return providers.GetStatesResponse{
-			States: states,
+	mock.GetStatesFn = func(req providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+		stateIds, err := mock.MockStates.StateIds(req.TypeName)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
+		resp.States = stateIds
+
+		return resp
 	}
 	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 		return providers.ConfigureStateStoreResponse{
@@ -7701,29 +7752,35 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 			},
 		}
 	}
-	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
 		// Workspaces exist once the artefact representing it is written
-		if _, exist := mock.MockStates[req.StateId]; !exist {
-			// Ensure non-nil map
-			if mock.MockStates == nil {
-				mock.MockStates = make(map[string]interface{})
+		err := mock.MockStates.Write(req.TypeName, req.StateId, req.Bytes)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+
+		return resp
+	}
+	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
+		b, err := mock.MockStates.Read(req.TypeName, req.StateId)
+		if err != nil {
+			if errors.Is(err, testing_provider.StateNotFoundErr{TypeName: req.TypeName, StateId: req.StateId}) {
+				warn := tfdiags.SimpleWarning(err.Error())
+				resp.Diagnostics = resp.Diagnostics.Append(warn)
+			} else {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
 			}
 		}
-		mock.MockStates[req.StateId] = req.Bytes
+		resp.Bytes = b
 
-		return providers.WriteStateBytesResponse{
-			Diagnostics: nil, // success
-		}
+		return resp
 	}
-	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
-		state := []byte{}
-		if v, exist := mock.MockStates[req.StateId]; exist {
-			state = v.([]byte) // If this panics, the mock has been set up with a bad MockStates value
+	mock.DeleteStateFn = func(req providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+		err := mock.MockStates.Delete(req.TypeName, req.StateId)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
-		return providers.ReadStateBytesResponse{
-			Bytes:       state,
-			Diagnostics: nil, // success
-		}
+		return resp
 	}
 	return &mock
 }

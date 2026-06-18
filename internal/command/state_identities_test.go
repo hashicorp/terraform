@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
@@ -443,10 +444,12 @@ func TestStateIdentities_stateStore(t *testing.T) {
 	stateBytes := stateBuf.Bytes()
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
-		"default": stateBytes,
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBytes,
+	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := cli.NewMockUi()

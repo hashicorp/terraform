@@ -581,10 +581,12 @@ func TestPlan_outStateStore(t *testing.T) {
 	// Make a mock provider that:
 	// 1) will return the state defined above.
 	// 2) has a schema for the resource being managed in this test.
-	mock := mockPluggableStateStorageProvider()
-	mock.MockStates = map[string]interface{}{
-		"default": stateBytes,
-	}
+	mock := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mock.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBytes,
+	)
 	mock.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
 		"test_instance": {
 			Body: &configschema.Block{

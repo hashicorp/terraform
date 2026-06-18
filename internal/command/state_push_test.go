@@ -15,6 +15,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -58,7 +59,8 @@ func TestStatePush_stateStore(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	// Create a mock that doesn't have any internal states.
-	mockProvider := mockPluggableStateStorageProvider()
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
@@ -80,7 +82,11 @@ func TestStatePush_stateStore(t *testing.T) {
 	}
 
 	// Access the pushed state from the mock's internal store
-	r := bytes.NewReader(mockProvider.MockStates["default"].([]byte))
+	b, err := mockProvider.MockStates.Read("test_store", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := bytes.NewReader(b)
 	actual, err := statefile.Read(r)
 	if err != nil {
 		t.Fatal(err)
