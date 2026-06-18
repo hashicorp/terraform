@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Fixed the misspelling "occured" to "occurred" in the bcrypt() error message and the state-serialization diagnostics'
+time: 2026-06-18T17:56:08-00:00
+custom:
+    Issue: "38741"
