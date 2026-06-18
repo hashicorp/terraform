@@ -5371,32 +5371,17 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 	}
 }
 
-// Testing init's behaviors with `state_store` when run in a working directory where the configuration
-// doesn't match the backend state file.
+// Testing init's behaviors with `state_store` when run in a working directory where
+// nothing has changed since the last init.
 func TestInit_stateStore_configUnchanged(t *testing.T) {
 	// This matches the backend state test fixture in "state-store-unchanged"
 	v1_2_3, _ := version.NewVersion("1.2.3")
-	expectedState := &workdir.StateStoreConfigState{
-		Type:               "test_store",
-		ConfigRaw:          []byte("{\n            \"value\": \"foobar\"\n        }"),
-		Hash:               uint64(4158988729),
-		ProviderSupplyMode: getproviders.ManagedByTerraform,
-		Provider: &workdir.ProviderConfigState{
-			Version: v1_2_3,
-			Source: &tfaddr.Provider{
-				Hostname:  tfaddr.DefaultProviderRegistryHost,
-				Namespace: "hashicorp",
-				Type:      "test",
-			},
-			ConfigRaw: []byte("{\n                \"region\": null\n            }"),
-		},
-	}
 
-	t.Run("init is successful when the configuration and backend state match", func(t *testing.T) {
+	t.Run("successful init - no changes detected", func(t *testing.T) {
 		// Create a temporary working directory with state store configuration
 		// that matches the backend state file
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
@@ -5438,6 +5423,21 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 		s := sMgr.State()
 		if s == nil {
 			t.Fatal("expected backend state file to be present, but there isn't one")
+		}
+		expectedState := &workdir.StateStoreConfigState{
+			Type:               "test_store",
+			ConfigRaw:          []byte("{\n            \"value\": \"foobar\"\n        }"),
+			Hash:               uint64(4158988729),
+			ProviderSupplyMode: getproviders.ManagedByTerraform,
+			Provider: &workdir.ProviderConfigState{
+				Version: v1_2_3,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				ConfigRaw: []byte("{\n                \"region\": null\n            }"),
+			},
 		}
 		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
 			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
