@@ -1386,23 +1386,27 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		}, diags
 	}
 
-	pLock := pLocks.Provider(cfg.ProviderAddr)
-	lockVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Unable to determine version of the state store provider",
-			fmt.Sprintf("Failed to parse version of %s from the lock file: %s", cfg.ProviderAddr.ForDisplay(), err),
-		))
-		return nil, diags
-	}
-	if !lockVersion.Equal(cfgState.Provider.Version) {
-		return &ssInitReason{
-			Reason: fmt.Sprintf("State store provider %q (%s) version changed from %s to %s",
-				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay(),
-				cfgState.Provider.Version, lockVersion),
-			MigrationNeeded: true,
-		}, diags
+	// There will be no lock, and therefore no version data, if the provider is not managed by Terraform.
+	// As we compare supply modes above, this check can be conditional on the provider being managed.
+	if cfg.ProviderSupplyMode == getproviders.ManagedByTerraform {
+		pLock := pLocks.Provider(cfg.ProviderAddr)
+		lockVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Unable to determine version of the state store provider",
+				fmt.Sprintf("Failed to parse version of %s from the lock file: %s", cfg.ProviderAddr.ForDisplay(), err),
+			))
+			return nil, diags
+		}
+		if !lockVersion.Equal(cfgState.Provider.Version) {
+			return &ssInitReason{
+				Reason: fmt.Sprintf("State store provider %q (%s) version changed from %s to %s",
+					cfg.Provider.Name, cfg.ProviderAddr.ForDisplay(),
+					cfgState.Provider.Version, lockVersion),
+				MigrationNeeded: true,
+			}, diags
+		}
 	}
 
 	if cfgState.Type != cfg.Type {
@@ -2357,15 +2361,19 @@ func (m *Meta) stateStoreConfigNeedsMigration(cfg *configs.StateStore, cfgState 
 		return true
 	}
 
-	pLock := opts.Locks.Provider(cfg.ProviderAddr)
-	pVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
-	if err != nil {
-		log.Printf("[TRACE] stateStoreConfigNeedsMigration: unable to determine provider version (%s), so migration is required", err)
-		return true // let the migration codepath deal with the error
-	}
-	if !pVersion.Equal(cfgState.Provider.Version) {
-		log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider version changed from %q to %q, so migration is required", cfgState.Provider.Version, pVersion)
-		return true
+	// There will be no lock, and therefore no version data, if the provider is not managed by Terraform.
+	// As we compare supply modes above, this check can be conditional on the provider being managed.
+	if cfg.ProviderSupplyMode == getproviders.ManagedByTerraform {
+		pLock := opts.Locks.Provider(cfg.ProviderAddr)
+		pVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
+		if err != nil {
+			log.Printf("[TRACE] stateStoreConfigNeedsMigration: unable to determine provider version (%s), so migration is required", err)
+			return true // let the migration codepath deal with the error
+		}
+		if !pVersion.Equal(cfgState.Provider.Version) {
+			log.Printf("[TRACE] stateStoreConfigNeedsMigration: provider version changed from %q to %q, so migration is required", cfgState.Provider.Version, pVersion)
+			return true
+		}
 	}
 
 	if cfg.Type != cfgState.Type {

@@ -5679,6 +5679,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		// Check output
 		expectedErrMsgs := []string{
 			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			`Reason: State store "test_store" (hashicorp/test) configuration changed`,
 		}
 		output := cleanString(testOutput.Stderr())
 		for _, expectedErr := range expectedErrMsgs {
@@ -5706,6 +5707,65 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 
 		// Check output - should be same as before
 		output = cleanString(testOutput.Stderr())
+		for _, expectedErr := range expectedErrMsgs {
+			if !strings.Contains(output, expectedErr) {
+				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
+			}
+		}
+	})
+
+	t.Run("dev_override: changes in state store config are reported ok despite lack of version data", func(t *testing.T) {
+		// Create a temporary working directory with state store configuration
+		// that doesn't match the backend state file
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/store-config-with-dev-override"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+			// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PROVIDER IS A DEV OVERRIDE.
+			// The mock is still accessed via testingOverrides, but Terraform believes that it's a dev override due to
+			// its presence in the ProviderDevOverrides map.
+			ProviderDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				mockProviderAddress: ".",
+			},
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			// Just a plan init command, which should return early due to a config change being detected
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code == 0 {
+			t.Fatalf("expected non-zero exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output
+		expectedErrMsgs := []string{
+			"Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\"",
+			`Reason: State store "test_store" (hashicorp/test) configuration changed`,
+		}
+		output := cleanString(testOutput.Stderr())
 		for _, expectedErr := range expectedErrMsgs {
 			if !strings.Contains(output, expectedErr) {
 				t.Fatalf("unexpected error, expected %q, given: %q", expectedErr, output)
