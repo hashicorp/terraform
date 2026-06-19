@@ -52,6 +52,10 @@ Other Options:
                              part of the JSON output instead of written to a
                              file.
 
+	-policies                  Evaluate the policies in the given directory
+                             against query results. This flag may be
+                             repeated to evaluate multiple policy sets.
+
   -json                      If specified, machine readable output will be
                              printed in JSON format
 
