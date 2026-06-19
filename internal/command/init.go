@@ -45,6 +45,8 @@ import (
 type InitCommand struct {
 	Meta
 
+	// incompleteProviders is necessary here to coordinate separate
+	// provider installation and lock file update processes.
 	incompleteProviders []string
 }
 
