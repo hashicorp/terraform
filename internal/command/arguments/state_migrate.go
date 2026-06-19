@@ -5,6 +5,7 @@ package arguments
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -72,15 +73,35 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 		}
 
 	}
+
 	if srcLockFilePath == "" {
 		// setting default here instead of in the flag definition
 		// to make check above free of side effects
 		srcLockFilePath = lockFileName
+	} else {
+		// If a file is supplied via flag, it must exist.
+		if _, err := os.Stat(srcLockFilePath); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unreadable source provider lock file",
+				fmt.Sprintf("%q: %s", srcLockFilePath, err.Error()),
+			))
+		}
 	}
+
 	if dstLockFilePath == "" {
 		// setting default here instead of in the flag definition
 		// to make check above free of side effects
 		dstLockFilePath = lockFileName
+	} else {
+		// If a file is supplied via flag, it must exist.
+		if _, err := os.Stat(dstLockFilePath); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unreadable destination provider lock file",
+				fmt.Sprintf("%q: %s", dstLockFilePath, err.Error()),
+			))
+		}
 	}
 
 	srcFilename := filepath.Base(srcLockFilePath)
