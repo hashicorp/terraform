@@ -182,7 +182,7 @@ func (ChangeType) EnumDescriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{2}
 }
 
-// Sourced from: /terraform/internal/policy/proto/types.proto
+// Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
 type EvaluateResult int32
 
 const (
@@ -2699,7 +2699,7 @@ func (x *PolicyDiagnostic) GetExpressionValues() []*ExpressionValue {
 	return nil
 }
 
-// Sourced from: /terraform/internal/policy/proto/diagnostics.proto
+// Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
 type ExpressionValue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Traversal     *AttributePath         `protobuf:"bytes,1,opt,name=traversal,proto3" json:"traversal,omitempty"`
