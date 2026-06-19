@@ -138,7 +138,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	result := h.client.EvaluateModule(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
 		// Configuration attributes may not be available during init, so we will send an unknown
 		// dynamic value to the policy client.
-		Attrs:  policy.PolicyValue{Raw: cty.DynamicVal},
+		Attrs:  policy.CtyToPolicyValue(cty.DynamicVal),
 		Target: req.SourceAddr.String(),
 		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: moduleAddr,
@@ -201,7 +201,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 
 		// Configuration attributes may not be available during init, so we will send an unknown
 		// dynamic value to the policy client.
-		Attrs: policy.PolicyValue{Raw: cty.DynamicVal},
+		Attrs: policy.CtyToPolicyValue(cty.DynamicVal),
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
 			Name:      provider.Type,
 			Namespace: provider.Namespace,
