@@ -78,6 +78,30 @@ func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set
 	return s
 }
 
+// PrunedAncestors returns the ancestors of v, skipping all edges from vertices
+// which match the pruning function.
+func (g *AcyclicGraph) PrunedAncestors(v Vertex, pruneFunc func(Vertex) bool) Set {
+	s := make(Set)
+
+	searchFunc := func(v Vertex, d int) error {
+		if pruneFunc(v) {
+			return errStopWalkBranch
+		}
+		s.Add(v)
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.DepthFirstWalk(start, searchFunc)
+
+	return s
+}
+
 // MatchAncestor returns true if the given match function returns true for any
 // descendants of the given Vertex.
 func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {

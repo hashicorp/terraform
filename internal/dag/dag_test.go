@@ -230,6 +230,7 @@ func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
 
 func TestAcyclicGraphAncestors(t *testing.T) {
 	var g AcyclicGraph
+	g.Add(0)
 	g.Add(1)
 	g.Add(2)
 	g.Add(3)
@@ -244,6 +245,37 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	actual := g.Ancestors(2)
 
 	expected := []Vertex{3, 4, 5}
+
+	if actual.Len() != len(expected) {
+		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
+	}
+
+	for _, e := range expected {
+		if !actual.Include(e) {
+			t.Fatalf("expected: %#v to include: %#v", expected, actual)
+		}
+	}
+}
+
+func TestAcyclicGraphPrunedAncestors(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(0, 2))
+	g.Connect(BasicEdge(0, 3))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(3, 5))
+
+	actual := g.PrunedAncestors(0, func(v Vertex) bool {
+		return v == 2
+	})
+
+	expected := []Vertex{1, 3, 5}
 
 	if actual.Len() != len(expected) {
 		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
