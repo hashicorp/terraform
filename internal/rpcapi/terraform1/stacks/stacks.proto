@@ -269,7 +269,9 @@ message PlanStackChanges {
       PlannedChange planned_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 10;
-      PolicyEvaluationResponse policy_evaluation_response = 11;
+      
+      // Resources and modules evaluate policies for each component instance
+      PolicyEvaluationResponse component_instance_policy_evaluation = 11;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -344,7 +346,9 @@ message ApplyStackChanges {
       AppliedChange applied_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 3;
-      PolicyEvaluationResponse policy_evaluation_response = 4;
+
+      // Resources and modules evaluate policies for each component instance
+      PolicyEvaluationResponse component_instance_policy_evaluation = 4;
     }
   }
 }

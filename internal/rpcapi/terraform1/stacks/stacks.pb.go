@@ -4345,7 +4345,7 @@ type PlanStackChanges_Event struct {
 	//	*PlanStackChanges_Event_PlannedChange
 	//	*PlanStackChanges_Event_Diagnostic
 	//	*PlanStackChanges_Event_Progress
-	//	*PlanStackChanges_Event_PolicyEvaluationResponse
+	//	*PlanStackChanges_Event_ComponentInstancePolicyEvaluation
 	Event         isPlanStackChanges_Event_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4415,10 +4415,10 @@ func (x *PlanStackChanges_Event) GetProgress() *StackChangeProgress {
 	return nil
 }
 
-func (x *PlanStackChanges_Event) GetPolicyEvaluationResponse() *PolicyEvaluationResponse {
+func (x *PlanStackChanges_Event) GetComponentInstancePolicyEvaluation() *PolicyEvaluationResponse {
 	if x != nil {
-		if x, ok := x.Event.(*PlanStackChanges_Event_PolicyEvaluationResponse); ok {
-			return x.PolicyEvaluationResponse
+		if x, ok := x.Event.(*PlanStackChanges_Event_ComponentInstancePolicyEvaluation); ok {
+			return x.ComponentInstancePolicyEvaluation
 		}
 	}
 	return nil
@@ -4440,8 +4440,9 @@ type PlanStackChanges_Event_Progress struct {
 	Progress *StackChangeProgress `protobuf:"bytes,10,opt,name=progress,proto3,oneof"`
 }
 
-type PlanStackChanges_Event_PolicyEvaluationResponse struct {
-	PolicyEvaluationResponse *PolicyEvaluationResponse `protobuf:"bytes,11,opt,name=policy_evaluation_response,json=policyEvaluationResponse,proto3,oneof"`
+type PlanStackChanges_Event_ComponentInstancePolicyEvaluation struct {
+	// Resources and modules evaluate policies for each component instance
+	ComponentInstancePolicyEvaluation *PolicyEvaluationResponse `protobuf:"bytes,11,opt,name=component_instance_policy_evaluation,json=componentInstancePolicyEvaluation,proto3,oneof"`
 }
 
 func (*PlanStackChanges_Event_PlannedChange) isPlanStackChanges_Event_Event() {}
@@ -4450,7 +4451,7 @@ func (*PlanStackChanges_Event_Diagnostic) isPlanStackChanges_Event_Event() {}
 
 func (*PlanStackChanges_Event_Progress) isPlanStackChanges_Event_Event() {}
 
-func (*PlanStackChanges_Event_PolicyEvaluationResponse) isPlanStackChanges_Event_Event() {}
+func (*PlanStackChanges_Event_ComponentInstancePolicyEvaluation) isPlanStackChanges_Event_Event() {}
 
 type OpenStackPlan_RequestItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -4768,7 +4769,7 @@ type ApplyStackChanges_Event struct {
 	//	*ApplyStackChanges_Event_AppliedChange
 	//	*ApplyStackChanges_Event_Diagnostic
 	//	*ApplyStackChanges_Event_Progress
-	//	*ApplyStackChanges_Event_PolicyEvaluationResponse
+	//	*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation
 	Event         isApplyStackChanges_Event_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -4838,10 +4839,10 @@ func (x *ApplyStackChanges_Event) GetProgress() *StackChangeProgress {
 	return nil
 }
 
-func (x *ApplyStackChanges_Event) GetPolicyEvaluationResponse() *PolicyEvaluationResponse {
+func (x *ApplyStackChanges_Event) GetComponentInstancePolicyEvaluation() *PolicyEvaluationResponse {
 	if x != nil {
-		if x, ok := x.Event.(*ApplyStackChanges_Event_PolicyEvaluationResponse); ok {
-			return x.PolicyEvaluationResponse
+		if x, ok := x.Event.(*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation); ok {
+			return x.ComponentInstancePolicyEvaluation
 		}
 	}
 	return nil
@@ -4863,8 +4864,9 @@ type ApplyStackChanges_Event_Progress struct {
 	Progress *StackChangeProgress `protobuf:"bytes,3,opt,name=progress,proto3,oneof"`
 }
 
-type ApplyStackChanges_Event_PolicyEvaluationResponse struct {
-	PolicyEvaluationResponse *PolicyEvaluationResponse `protobuf:"bytes,4,opt,name=policy_evaluation_response,json=policyEvaluationResponse,proto3,oneof"`
+type ApplyStackChanges_Event_ComponentInstancePolicyEvaluation struct {
+	// Resources and modules evaluate policies for each component instance
+	ComponentInstancePolicyEvaluation *PolicyEvaluationResponse `protobuf:"bytes,4,opt,name=component_instance_policy_evaluation,json=componentInstancePolicyEvaluation,proto3,oneof"`
 }
 
 func (*ApplyStackChanges_Event_AppliedChange) isApplyStackChanges_Event_Event() {}
@@ -4873,7 +4875,7 @@ func (*ApplyStackChanges_Event_Diagnostic) isApplyStackChanges_Event_Event() {}
 
 func (*ApplyStackChanges_Event_Progress) isApplyStackChanges_Event_Event() {}
 
-func (*ApplyStackChanges_Event_PolicyEvaluationResponse) isApplyStackChanges_Event_Event() {}
+func (*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) isApplyStackChanges_Event_Event() {}
 
 type OpenStackInspector_Request struct {
 	state                 protoimpl.MessageState             `protogen:"open.v1"`
@@ -8203,7 +8205,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\aRequest\x12!\n" +
 	"\fstate_handle\x18\x01 \x01(\x03R\vstateHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\xfb\b\n" +
+	"\bResponse\"\x8e\t\n" +
 	"\x10PlanStackChanges\x1a\x95\x06\n" +
 	"\aRequest\x128\n" +
 	"\tplan_mode\x18\x01 \x01(\x0e2\x1b.terraform1.stacks.PlanModeR\bplanMode\x12.\n" +
@@ -8221,15 +8223,15 @@ const file_stacks_proto_rawDesc = "" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
 	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
-	"\x15_tfpolicy_plugin_path\x1a\xce\x02\n" +
+	"\x15_tfpolicy_plugin_path\x1a\xe1\x02\n" +
 	"\x05Event\x12I\n" +
 	"\x0eplanned_change\x18\x01 \x01(\v2 .terraform1.stacks.PlannedChangeH\x00R\rplannedChange\x128\n" +
 	"\n" +
 	"diagnostic\x18\x02 \x01(\v2\x16.terraform1.DiagnosticH\x00R\n" +
 	"diagnostic\x12D\n" +
 	"\bprogress\x18\n" +
-	" \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12k\n" +
-	"\x1apolicy_evaluation_response\x18\v \x01(\v2+.terraform1.stacks.PolicyEvaluationResponseH\x00R\x18policyEvaluationResponseB\a\n" +
+	" \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12~\n" +
+	"$component_instance_policy_evaluation\x18\v \x01(\v2+.terraform1.stacks.PolicyEvaluationResponseH\x00R!componentInstancePolicyEvaluationB\a\n" +
 	"\x05eventJ\x04\b\x03\x10\n" +
 	"\"s\n" +
 	"\rOpenStackPlan\x1a5\n" +
@@ -8243,7 +8245,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\vplan_handle\x18\x01 \x01(\x03R\n" +
 	"planHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\xe6\a\n" +
+	"\bResponse\"\xf9\a\n" +
 	"\x11ApplyStackChanges\x1a\x85\x05\n" +
 	"\aRequest\x12.\n" +
 	"\x13stack_config_handle\x18\x01 \x01(\x03R\x11stackConfigHandle\x124\n" +
@@ -8260,14 +8262,14 @@ const file_stacks_proto_rawDesc = "" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
 	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
-	"\x15_tfpolicy_plugin_pathJ\x04\b\x02\x10\x03\x1a\xc8\x02\n" +
+	"\x15_tfpolicy_plugin_pathJ\x04\b\x02\x10\x03\x1a\xdb\x02\n" +
 	"\x05Event\x12I\n" +
 	"\x0eapplied_change\x18\x01 \x01(\v2 .terraform1.stacks.AppliedChangeH\x00R\rappliedChange\x128\n" +
 	"\n" +
 	"diagnostic\x18\x02 \x01(\v2\x16.terraform1.DiagnosticH\x00R\n" +
 	"diagnostic\x12D\n" +
-	"\bprogress\x18\x03 \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12k\n" +
-	"\x1apolicy_evaluation_response\x18\x04 \x01(\v2+.terraform1.stacks.PolicyEvaluationResponseH\x00R\x18policyEvaluationResponseB\a\n" +
+	"\bprogress\x18\x03 \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12~\n" +
+	"$component_instance_policy_evaluation\x18\x04 \x01(\v2+.terraform1.stacks.PolicyEvaluationResponseH\x00R!componentInstancePolicyEvaluationB\a\n" +
 	"\x05event\"\xa6\x05\n" +
 	"\x12OpenStackInspector\x1a\x93\x04\n" +
 	"\aRequest\x12.\n" +
@@ -8918,7 +8920,7 @@ var file_stacks_proto_depIdxs = []int32{
 	35,  // 69: terraform1.stacks.PlanStackChanges.Event.planned_change:type_name -> terraform1.stacks.PlannedChange
 	140, // 70: terraform1.stacks.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	38,  // 71: terraform1.stacks.PlanStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
-	40,  // 72: terraform1.stacks.PlanStackChanges.Event.policy_evaluation_response:type_name -> terraform1.stacks.PolicyEvaluationResponse
+	40,  // 72: terraform1.stacks.PlanStackChanges.Event.component_instance_policy_evaluation:type_name -> terraform1.stacks.PolicyEvaluationResponse
 	139, // 73: terraform1.stacks.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
 	29,  // 74: terraform1.stacks.PlanStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
 	139, // 75: terraform1.stacks.OpenStackPlan.RequestItem.raw:type_name -> google.protobuf.Any
@@ -8927,7 +8929,7 @@ var file_stacks_proto_depIdxs = []int32{
 	37,  // 78: terraform1.stacks.ApplyStackChanges.Event.applied_change:type_name -> terraform1.stacks.AppliedChange
 	140, // 79: terraform1.stacks.ApplyStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	38,  // 80: terraform1.stacks.ApplyStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
-	40,  // 81: terraform1.stacks.ApplyStackChanges.Event.policy_evaluation_response:type_name -> terraform1.stacks.PolicyEvaluationResponse
+	40,  // 81: terraform1.stacks.ApplyStackChanges.Event.component_instance_policy_evaluation:type_name -> terraform1.stacks.PolicyEvaluationResponse
 	29,  // 82: terraform1.stacks.ApplyStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
 	93,  // 83: terraform1.stacks.OpenStackInspector.Request.state:type_name -> terraform1.stacks.OpenStackInspector.Request.StateEntry
 	94,  // 84: terraform1.stacks.OpenStackInspector.Request.input_values:type_name -> terraform1.stacks.OpenStackInspector.Request.InputValuesEntry
@@ -9088,14 +9090,14 @@ func file_stacks_proto_init() {
 		(*PlanStackChanges_Event_PlannedChange)(nil),
 		(*PlanStackChanges_Event_Diagnostic)(nil),
 		(*PlanStackChanges_Event_Progress)(nil),
-		(*PlanStackChanges_Event_PolicyEvaluationResponse)(nil),
+		(*PlanStackChanges_Event_ComponentInstancePolicyEvaluation)(nil),
 	}
 	file_stacks_proto_msgTypes[76].OneofWrappers = []any{}
 	file_stacks_proto_msgTypes[77].OneofWrappers = []any{
 		(*ApplyStackChanges_Event_AppliedChange)(nil),
 		(*ApplyStackChanges_Event_Diagnostic)(nil),
 		(*ApplyStackChanges_Event_Progress)(nil),
-		(*ApplyStackChanges_Event_PolicyEvaluationResponse)(nil),
+		(*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation)(nil),
 	}
 	file_stacks_proto_msgTypes[85].OneofWrappers = []any{
 		(*AttributePath_Step_AttributeName)(nil),

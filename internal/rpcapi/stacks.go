@@ -1087,8 +1087,8 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		}
 
 		evts.Send(&stacks.PlanStackChanges_Event{
-			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
-				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
+			Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
+				ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}
@@ -1114,8 +1114,8 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		}
 
 		evts.Send(&stacks.ApplyStackChanges_Event{
-			Event: &stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
-				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
+			Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
+				ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}

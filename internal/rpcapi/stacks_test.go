@@ -553,10 +553,10 @@ func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// No policy events should be emitted
-	wantEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 
 	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 	var diags []*terraform1.Diagnostic
 	for {
 		event, err := events.Recv()
@@ -568,7 +568,7 @@ func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
 		}
 
 		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_PolicyEvaluationResponse:
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, evt)
 		case *stacks.PlanStackChanges_Event_Diagnostic:
 			diags = append(diags, event.GetDiagnostic())
@@ -582,10 +582,10 @@ func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_PolicyEvaluationResponse) int {
+	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation) int {
 		return strings.Compare(
-			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
-			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 		)
 	})
 
@@ -661,17 +661,17 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	}
 
 	// All components will output the same policy evaluation data from different addresses
-	wantEvents := []*stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
+	wantEvents := []*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
 		{
-			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
+			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
 		},
 		{
-			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
+			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
 		},
 	}
 
 	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 	var diags []*terraform1.Diagnostic
 	for {
 		event, err := events.Recv()
@@ -683,7 +683,7 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 		}
 
 		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_PolicyEvaluationResponse:
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, evt)
 		case *stacks.PlanStackChanges_Event_Diagnostic:
 			diags = append(diags, event.GetDiagnostic())
@@ -697,10 +697,10 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	}
 
 	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_PolicyEvaluationResponse) int {
+	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation) int {
 		return strings.Compare(
-			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
-			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 		)
 	})
 
@@ -820,10 +820,10 @@ func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// No policy events should be emitted
-	wantEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 
 	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 	var diags []*terraform1.Diagnostic
 	for {
 		event, err := applyResp.Recv()
@@ -835,7 +835,7 @@ func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 		}
 
 		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse:
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, evt)
 		case *stacks.ApplyStackChanges_Event_Diagnostic:
 			diags = append(diags, event.GetDiagnostic())
@@ -849,10 +849,10 @@ func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse) int {
+	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) int {
 		return strings.Compare(
-			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
-			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 		)
 	})
 
@@ -973,17 +973,17 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 	}
 
 	// All components will output the same policy evaluation data from different addresses
-	wantEvents := []*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
+	wantEvents := []*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
 		{
-			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
+			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
 		},
 		{
-			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
+			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
 		},
 	}
 
 	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
 	var diags []*terraform1.Diagnostic
 	for {
 		event, err := applyResp.Recv()
@@ -995,7 +995,7 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 		}
 
 		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse:
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, evt)
 		case *stacks.ApplyStackChanges_Event_Diagnostic:
 			diags = append(diags, event.GetDiagnostic())
@@ -1009,10 +1009,10 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 	}
 
 	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse) int {
+	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) int {
 		return strings.Compare(
-			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
-			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 		)
 	})
 

@@ -671,7 +671,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				ComponentInstanceAddr: componentAddr.String(),
 			}
 
-			got := policyEvaluationResponseProto(componentAddr, tc.policyResults())
+			got := componentInstancePolicyEvaluationProto(componentAddr, tc.policyResults())
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
