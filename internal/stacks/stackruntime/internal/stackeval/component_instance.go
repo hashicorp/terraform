@@ -165,6 +165,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
 	plantimestamp := c.main.PlanTimestamp()
+
 	return &terraform.PlanOpts{
 		Mode:                       mode,
 		SkipRefresh:                skipRefresh,
@@ -310,6 +311,12 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
+			// If a policy client is initialized, we only want to evaluate during
+			// normal plans (i.e. no evaluating policies for refresh or destroy plans)
+			if c.mode == plans.NormalMode {
+				opts.PolicyClient = c.main.PolicyClient()
+			}
+
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
@@ -353,6 +360,15 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					addr:  c.Addr(),
 				},
 			}, c)
+
+			// Report policy results if we have any
+			if plan.PolicyResults.Len() > 0 {
+				hookSingle(ctx, h.ReportComponentInstancePlanPolicyResults, &hooks.ComponentInstancePlanPolicyResults{
+					Addr:          c.Addr(),
+					PolicyResults: plan.PolicyResults,
+				})
+			}
+
 			if plan != nil {
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {

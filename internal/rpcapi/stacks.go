@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -58,6 +60,8 @@ type stacksServer struct {
 	// for testing. This just ensures our tests aren't flaky as we can use a
 	// constant timestamp for the plan.
 	planTimestampOverride *time.Time
+	// policyClientOverride is an in-memory override of the policy client used for testing.
+	policyClientOverride policy.Client
 }
 
 var (
@@ -318,6 +322,25 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
+	// Setup the policy client if the caller provides a plugin path + policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+			if diags.HasErrors() {
+				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+			}
+		}
+
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+		defer policyClient.Stop()
+	}
+
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -382,8 +405,10 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		planMode = plans.NormalMode
 	case stacks.PlanMode_REFRESH_ONLY:
 		planMode = plans.RefreshOnlyMode
+		policyClient = nil // Policies are not evaluated during refresh
 	case stacks.PlanMode_DESTROY:
 		planMode = plans.DestroyMode
+		policyClient = nil // Policies are not evaluated during destroy
 	default:
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
 	}
@@ -414,6 +439,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		PolicyClient:       policyClient,
 
 		// planTimestampOverride will be null if not set, so it's fine for
 		// us to just set this all the time. In practice, this will only have
@@ -561,6 +587,25 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
+	// Setup the policy client if the caller provides a plugin path + policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+			if diags.HasErrors() {
+				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+			}
+		}
+
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+		defer policyClient.Stop()
+	}
+
 	if req.PlanHandle != 0 && len(req.PlannedChanges) != 0 {
 		return status.Error(codes.InvalidArgument, "must not set both plan_handle and planned_changes")
 	}
@@ -632,6 +677,11 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 	}
 
+	// Policies are not evaluated on refresh or destroy
+	if plan.Mode == plans.RefreshOnlyMode || plan.Mode == plans.DestroyMode {
+		policyClient = nil
+	}
+
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
@@ -652,6 +702,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		PolicyClient:       policyClient,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -1019,7 +1070,7 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 }
 
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_Progress{
@@ -1029,10 +1080,24 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		},
 		mainStackSource,
 	)
+
+	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.PlanStackChanges_Event{
+			Event: &stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
+	return changeHooks
 }
 
 func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_Progress{
@@ -1042,6 +1107,20 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		},
 		mainStackSource,
 	)
+
+	changeHooks.ReportComponentInstanceApplyPolicyResults = func(ctx context.Context, h *hooks.ComponentInstanceApplyPolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.ApplyStackChanges_Event{
+			Event: &stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
+				PolicyEvaluationResponse: policyEvaluationResponseProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
+	return changeHooks
 }
 
 // stackChangeHooks is the shared hook-handling logic for both [stackPlanHooks]

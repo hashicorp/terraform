@@ -92,3 +92,17 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 		cic.Forget++
 	}
 }
+
+// ComponentInstancePlanPolicyResults is the argument type for the hook callback which
+// sends plan-related policy results back to the client for a component instance.
+type ComponentInstancePlanPolicyResults struct {
+	Addr          stackaddrs.AbsComponentInstance
+	PolicyResults *plans.PolicyResults
+}
+
+// ComponentInstanceApplyPolicyResults is the argument type for the hook callback which
+// sends apply-related policy results back to the client for a component instance.
+type ComponentInstanceApplyPolicyResults struct {
+	Addr          stackaddrs.AbsComponentInstance
+	PolicyResults *plans.PolicyResults
+}

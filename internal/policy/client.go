@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/apparentlymart/go-versions/versions"
+	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/zclconf/go-cty/cty"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -29,11 +32,89 @@ const (
 var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
 
-func Connect(ctx context.Context) (Client, error) {
+// NewPolicyClient initializes and connects to a new tfpolicy-plugin process
+func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string) (Client, Diagnostics) {
+	var diags Diagnostics
+	client, err := Connect(ctx, policyPluginPath)
+	if err != nil {
+		diags = append(diags, NewErrorDiagnostic(
+			"Failed to connect to policy engine",
+			fmt.Sprintf("Failed to connect to policy engine: %s.", err),
+			SetupErrorResult,
+		))
+		return nil, diags
+	}
 
+	var callbackServiceID uint32
+
+	// initialize the callback service if the client supports it
+	if srv, ok := client.(CallbackService); ok {
+		callbackServer, cbDiags := srv.RegisterCallbackService(ctx)
+		if cbDiags != nil {
+			client.Stop()
+			return nil, cbDiags
+		}
+		callbackServiceID = callbackServer.ID
+	}
+
+	resp := client.Setup(ctx, SetupRequest{
+		SourceLocations: policyPaths,
+		CallbackService: callbackServiceID,
+	})
+	diags = append(diags, resp.Diagnostics...)
+	if diags.HasErrors() {
+		client.Stop()
+		return nil, diags
+	}
+
+	var requiredVersions constraints.IntersectionSpec
+	for _, config := range resp.ServerConfigurations() {
+		version, err := constraints.ParseRubyStyleMulti(config.RequiredVersion)
+		if err != nil {
+			diags = append(diags, NewErrorDiagnostic(
+				"Failed to validate required Terraform version",
+				fmt.Sprintf("The policy file %s had a Terraform version constraint that could not be parsed: %s.", config.File, err),
+				SetupErrorResult,
+			))
+			continue
+		}
+
+		requiredVersions = append(requiredVersions, version...)
+	}
+
+	if len(diags) > 0 {
+		client.Stop()
+		return nil, diags
+	}
+
+	terraformVersion, err := versions.ParseVersion(version.Version)
+	if err != nil {
+		client.Stop()
+		// This is crazy, it means the internal version number is invalid.
+		panic(err)
+	}
+
+	constraint := versions.MeetingConstraints(requiredVersions)
+	if !constraint.Has(terraformVersion) {
+		diags = append(diags, NewErrorDiagnostic(
+			"Invalid Terraform version for policies",
+			fmt.Sprintf("The current version of Terraform is %s, and it is not compatible with the versions of Terraform required by the selected policies.", version.String()),
+			SetupErrorResult,
+		))
+		client.Stop()
+		return nil, diags
+	}
+
+	return client, diags
+}
+
+// Connect creates a connection to tfpolicy-plugin. If policyPluginPath is empty, the command lookup
+// will default to the executable "tfpolicy-plugin" in the $PATH.
+func Connect(ctx context.Context, policyPluginPath string) (Client, error) {
 	pgm := "tfpolicy-plugin" // by default, just use this if it's in the path
-	if envvar := os.Getenv(TerraformPolicyPluginEnvVar); len(envvar) > 0 {
-		pgm = envvar
+
+	if policyPluginPath != "" {
+		pgm = policyPluginPath
 	}
 
 	cmd := exec.CommandContext(ctx, pgm, "rpcapi")

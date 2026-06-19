@@ -6,11 +6,13 @@ package stackruntime
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -4793,6 +4795,273 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
+}
+
+func TestApply_WithPolicyResults(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		`component.simple_component["comp1"]`: createExpectedPolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`: createExpectedPolicyEvaluation("policy-evaluation"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.RefreshOnlyMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		PrevState:    policyEvaluationPriorState(t),
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	if len(gotPolicyResults) != 0 {
+		t.Errorf("expected no policy result events for a refresh-only apply, got %d:\n%#v", len(gotPolicyResults), gotPolicyResults)
+	}
+}
+
+func TestApply_NoPolicyResultsOnDestroy(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.DestroyMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		PrevState:    policyEvaluationPriorState(t),
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	if len(gotPolicyResults) != 0 {
+		t.Errorf("expected no policy result events for a destroy apply, got %d:\n%#v", len(gotPolicyResults), gotPolicyResults)
+	}
+}
+
+func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
+	ctx := context.Background()
+	removedCfg := loadMainBundleConfigForTest(t, "policy-evaluation-removed")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	// This provider data store ensures that "comp1" will produce policy results as it's being updated. "comp2" will not
+	// produce policy results as it's being removed.
+	providerStore := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("comp1-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-parent"),
+			"value": cty.StringVal("this value will be updated"),
+		})).
+		AddResource("comp1-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-child"),
+			"value": cty.StringVal("this value will be updated"),
+		})).
+		AddResource("comp2-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-parent"),
+			"value": cty.StringVal("this value is irrelevant because it will be removed"),
+		})).
+		AddResource("comp2-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-child"),
+			"value": cty.StringVal("this value is irrelevant because it will be removed"),
+		})).
+		Build()
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       removedCfg,
+		PrevState:    policyEvaluationPriorState(t),
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, providerStore), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: removedCfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, providerStore), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		`component.simple_component["comp1"]`: createExpectedPolicyEvaluation("policy-evaluation-removed"),
+		// component.simple_component["comp2"] is removed in this config so there should be no policy result for it
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func planForApplyTest(t *testing.T, ctx context.Context, req PlanRequest) *stackplan.Plan {
+	t.Helper()
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors during plan\n%s", diags.ErrWithWarnings())
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			if err := planLoader.AddRaw(rawMsg); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return plan
+}
+
+func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRequest) map[string]map[string]plans.PolicyEvaluation {
+	t.Helper()
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	var mu sync.Mutex
+	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
+	applyHooks := &Hooks{
+		ReportComponentInstanceApplyPolicyResults: func(ctx context.Context, data *hooks.ComponentInstanceApplyPolicyResults) {
+			mu.Lock()
+			defer mu.Unlock()
+			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+		},
+	}
+
+	go Apply(ContextWithHooks(ctx, applyHooks), &req, &resp)
+	_, diags := collectApplyOutput(applyChangesCh, diagsCh)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors during apply\n%s", diags.ErrWithWarnings())
+	}
+
+	return gotPolicyResults
 }
 
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {

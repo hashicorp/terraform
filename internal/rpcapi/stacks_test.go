@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/policy"
+	policyproto "github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
@@ -485,6 +487,540 @@ func TestStacksPlanStackChanges(t *testing.T) {
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform()); diff != "" {
 		t.Errorf("wrong events\n%s", diff)
+	}
+}
+
+func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// No policy plugin or policies should result in no evaluations
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted
+	wantEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := events.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_PolicyEvaluationResponse:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_PolicyEvaluationResponse) int {
+		return strings.Compare(
+			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+		)
+	})
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:           stacks.PlanMode_NORMAL,
+		StackConfigHandle:  open.StackConfigHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// All components will output the same policy evaluation data from different addresses
+	wantEvents := []*stacks.PlanStackChanges_Event_PolicyEvaluationResponse{
+		{
+			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
+		},
+		{
+			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
+		},
+	}
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.PlanStackChanges_Event_PolicyEvaluationResponse, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := events.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_PolicyEvaluationResponse:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_PolicyEvaluationResponse) int {
+		return strings.Compare(
+			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+		)
+	})
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle: open.StackConfigHandle,
+		PlanHandle:        planResult.PlanHandle,
+
+		// No policy plugin or policies should result in no evaluations
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted
+	wantEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyResp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse) int {
+		return strings.Compare(
+			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+		)
+	})
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle:  open.StackConfigHandle,
+		PlanHandle:         planResult.PlanHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// All components will output the same policy evaluation data from different addresses
+	wantEvents := []*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse{
+		{
+			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
+		},
+		{
+			PolicyEvaluationResponse: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
+		},
+	}
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_PolicyEvaluationResponse, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyResp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_PolicyEvaluationResponse) int {
+		return strings.Compare(
+			a.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+			b.PolicyEvaluationResponse.GetAddr().GetComponentInstanceAddr(),
+		)
+	})
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
 	}
 }
 
@@ -2114,4 +2650,185 @@ func mustMsgpack(t *testing.T, v cty.Value, ty cty.Type) []byte {
 	}
 
 	return ret
+}
+
+// policyEvaluationTestClient returns a mock policy client that is configured to return
+// evalaution data for the "multiple-components" source bundle.
+func policyEvaluationTestClient(t *testing.T) policy.Client {
+	t.Helper()
+
+	policyClient := policy.NewTestMockClient(t)
+
+	policyObj := func(result policy.EvaluateResult) *policy.Policy {
+		return &policy.Policy{
+			Result:           result,
+			PolicySetName:    "some_policy_set",
+			Address:          "policy_name",
+			Directory:        "some/path/to",
+			Filename:         "policy_file.tfpolicy.hcl",
+			EnforcementLevel: "mandatory",
+		}
+	}
+
+	policyClient.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		// Assert some of the data from the component resource
+		if req.Target != "testing_resource" {
+			t.Fatalf(`unexpected resource evaluated, wanted: testing_resource, got: %q`, req.Target)
+		}
+		val := req.Attrs.Raw.GetAttr("value")
+		if !strings.HasPrefix(val.AsString(), "hello") {
+			t.Fatalf(`unexpected resource data, wanted: attr.value to start with "hello", got: %q`, val.AsString())
+		}
+
+		// Resource in the root module will return enforcement info
+		if req.Meta.ModulePath == "" {
+			return policy.EvaluationResponse{
+				Overall:  policy.AllowResult,
+				Policies: []*policy.Policy{policyObj(policy.AllowResult)},
+				Enforcements: []policy.EnforcementResult{
+					{
+						Result:     policy.AllowResult,
+						Message:    "just an advisory message",
+						BlockIndex: 1,
+						Policy:     policyObj(policy.AllowResult),
+					},
+				},
+			}
+		}
+
+		// Resource in child module will return a diagnostic
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
+	}
+
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		// Assert the module address
+		if req.Meta.Address != "module.child" {
+			t.Fatalf(`unexpected module evaluated, wanted: module.child, got: %q`, req.Meta.Address)
+		}
+
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
+	}
+
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		// TODO: Update this test to assert provider policy evaluation when we add it to the stacks runtime (follow-up PR)
+		t.Fatal("unexpected call to provider policy evaluation")
+		return policy.EvaluationResponse{}
+	}
+
+	return policyClient
+}
+
+func createExpectedPolicyEvaluationResponse(componentInstanceAddr string) *stacks.PolicyEvaluationResponse {
+	expectedPolicyMetadata := &stacks.PolicyMetaData{
+		PolicyName:       "policy_name",
+		PolicySetName:    "some_policy_set",
+		EnforcementLevel: "mandatory",
+		FileName:         "policy_file.tfpolicy.hcl",
+	}
+
+	return &stacks.PolicyEvaluationResponse{
+		Addr: &stacks.ComponentInstanceInStackAddr{
+			ComponentAddr:         "component.simple_component",
+			ComponentInstanceAddr: componentInstanceAddr,
+		},
+		Results: []*stacks.PolicyResult{
+			{
+				TargetAddress:  "module.child.testing_resource.child_resource",
+				PolicyMetadata: expectedPolicyMetadata,
+				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+			},
+			{
+				TargetAddress:  "testing_resource.parent_resource",
+				PolicyMetadata: expectedPolicyMetadata,
+				Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+			},
+			{
+				TargetAddress:  "module.child",
+				PolicyMetadata: expectedPolicyMetadata,
+				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+			},
+		},
+		Infos: []*stacks.PolicyInfo{
+			{
+				TargetAddress: "testing_resource.parent_resource",
+				PolicyMetadata: &stacks.PolicyMetaData{
+					PolicyName:       "policy_name",
+					PolicySetName:    "some_policy_set",
+					EnforcementLevel: "mandatory",
+					FileName:         "policy_file.tfpolicy.hcl",
+					EnforceIndex:     1,
+				},
+				Message: "just an advisory message",
+				Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+			},
+		},
+		Diagnostics: []*stacks.PolicyDiagnostic{
+			{
+				TargetAddress:  "module.child.testing_resource.child_resource",
+				PolicyMetadata: &stacks.PolicyMetaData{},
+				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				Diagnostic: &terraform1.Diagnostic{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Subject: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+						Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+						End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+					},
+					Context: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+						Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+						End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+					},
+				},
+			},
+			{
+				TargetAddress:  "module.child",
+				PolicyMetadata: &stacks.PolicyMetaData{},
+				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				Diagnostic: &terraform1.Diagnostic{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Subject: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+						Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+						End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+					},
+					Context: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+						Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+						End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+					},
+				},
+			},
+		},
+	}
 }
