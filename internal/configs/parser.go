@@ -43,7 +43,6 @@ func NewParser(fs afero.Fs) *Parser {
 	return &Parser{
 		fs: afero.Afero{Fs: fs},
 		p:  hclparse.NewParser(),
-		mu: sync.Mutex{},
 	}
 }
 
