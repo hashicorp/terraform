@@ -76,7 +76,7 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 	p.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	providerSource := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
+		"hashicorp/test": {"1.2.3"},
 	})
 
 	ui := cli.NewMockUi()
@@ -103,9 +103,14 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from backend "local" to state store "test_store" (hashicorp/test)...`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+	expectedMsg := []string{
+		"Initializing provider plugin for state store \"test_store\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		`Migrating state from backend "local" to state store "test_store" (hashicorp/test)...`,
+	}
+	for _, expectedMsg := range expectedMsg {
+		if !strings.Contains(out.Stdout(), expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		}
 	}
 
 	b, err := p.MockStates.Read("test_store", "default")
@@ -122,7 +127,9 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	}
 }
 
-func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
+// Testing migration between two state stores in a single provider.
+// Different cases describe whether the source provider is already in the dependency lock file or not.
+func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
 	t.Chdir(wd.RootModuleDir())
 
@@ -149,7 +156,7 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 		"test_dst": map[string][]byte{},
 	}
 	providerSource := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
+		"hashicorp/test": {"1.2.3"},
 	})
 
 	ui := cli.NewMockUi()
@@ -176,9 +183,15 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+	expectedMsg := []string{
+		`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
+		"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+	}
+	for _, expectedMsg := range expectedMsg {
+		if !strings.Contains(out.Stdout(), expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		}
 	}
 
 	b, err = p.MockStates.Read("test_dst", "default")
@@ -195,6 +208,7 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 	}
 }
 
+// Test migration from a state store to a backend, where the state store provider is already in the dependency lock file.
 func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-backend")
 	t.Chdir(wd.RootModuleDir())
@@ -211,7 +225,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	)
 
 	providerSource := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.0.0"},
+		"hashicorp/test": {"1.2.3"},
 	})
 
 	ui := cli.NewMockUi()
@@ -238,9 +252,14 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from state store "test_store" (hashicorp/test) to backend "local"...`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+	expectedMsg := []string{
+		"Initializing provider plugin for state store \"test_store\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		`Migrating state from state store "test_store" (hashicorp/test) to backend "local"...`,
+	}
+	for _, expectedMsg := range expectedMsg {
+		if !strings.Contains(out.Stdout(), expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		}
 	}
 
 	f, err := os.Open("destination-backend.tfstate")
@@ -267,6 +286,10 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-mod-files")
 	t.Chdir(wd.RootModuleDir())
 
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+
 	ui := cli.NewMockUi()
 	view, done := testView(t)
 	c := &StateMigrateCommand{
@@ -275,6 +298,7 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
+			ProviderSource:            providerSource,
 		},
 	}
 
@@ -298,6 +322,10 @@ func TestStateMigrate_emptyModuleFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-empty-mod-files")
 	t.Chdir(wd.RootModuleDir())
 
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+
 	ui := cli.NewMockUi()
 	view, done := testView(t)
 	c := &StateMigrateCommand{
@@ -306,6 +334,7 @@ func TestStateMigrate_emptyModuleFiles(t *testing.T) {
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
+			ProviderSource:            providerSource,
 		},
 	}
 
