@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// dependenclyLockFilename is the filename of the dependency lock file.
+// dependencyLockFilename is the filename of the dependency lock file.
 //
 // This file should live in the same directory as the .tf files for the
 // root module of the configuration, alongside the .terraform directory
@@ -29,10 +29,16 @@ import (
 // case. Eventually we will phase out those legacy arguments in favor of the
 // global -chdir=... option, which _does_ preserve the intended invariant
 // that the root module directory is always the current working directory.
-const dependencyLockFilename = ".terraform.lock.hcl"
+const dependencyLockFilename = depsfile.LockFilePath // .terraform.lock.hcl
 
-// lockedDependencies reads the dependency lock information from the lock file
+// lockedDependencies reads the dependency lock information from the default lock file location
 // in the current working directory.
+// Wraps the readLockedDependenciesFromPath method; see that method for details.
+func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
+	return m.readLockedDependenciesFromPath(dependencyLockFilename)
+}
+
+// readLockedDependenciesFromPath reads the dependency lock information from the lock file at the given path.
 //
 // If the lock file doesn't exist at the time of the call, lockedDependencies
 // indicates success and returns an empty Locks object. If the file does
@@ -43,19 +49,19 @@ const dependencyLockFilename = ".terraform.lock.hcl"
 // The result is a snapshot of the locked dependencies at the time of the call
 // and does not update as a result of calling replaceLockedDependencies
 // or any other modification method.
-func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
+func (m *Meta) readLockedDependenciesFromPath(filename string) (*depsfile.Locks, tfdiags.Diagnostics) {
 	// We check that the file exists first, because the underlying HCL
 	// parser doesn't distinguish that error from other error types
 	// in a machine-readable way but we want to treat that as a success
 	// with no locks. There is in theory a race condition here in that
 	// the file could be created or removed in the meantime, but we're not
 	// promising to support two concurrent dependency installation processes.
-	_, err := os.Stat(dependencyLockFilename)
+	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return m.annotateDependencyLocksWithOverrides(depsfile.NewLocks()), nil
 	}
 
-	ret, diags := depsfile.LoadLocksFromFile(dependencyLockFilename)
+	ret, diags := depsfile.LoadLocksFromFile(filename)
 	return m.annotateDependencyLocksWithOverrides(ret), diags
 }
 
