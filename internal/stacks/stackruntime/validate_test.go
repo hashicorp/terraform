@@ -342,7 +342,7 @@ var (
 // potentially be included in here unless it depends on provider plugins
 // to complete validation, since this test cannot supply provider plugins.
 func TestValidate_valid(t *testing.T) {
-	for name, _ := range validConfigurations {
+	for name := range validConfigurations {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 

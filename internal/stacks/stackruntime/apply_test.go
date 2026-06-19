@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -3750,8 +3751,11 @@ func TestApplyWithStateManipulation(t *testing.T) {
 
 			// Check the counts during the apply for this test.
 			gotCounts := collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]()
+			var gotCountsMu sync.Mutex
 			ctx = ContextWithHooks(ctx, &stackeval.Hooks{
 				ReportComponentInstanceApplied: func(ctx context.Context, span any, change *hooks.ComponentInstanceChange) any {
+					gotCountsMu.Lock()
+					defer gotCountsMu.Unlock()
 					gotCounts.Put(change.Addr, change)
 					return span
 				},
@@ -3804,6 +3808,8 @@ func TestApplyWithStateManipulation(t *testing.T) {
 			}
 
 			wantCounts := tc.counts
+			gotCountsMu.Lock()
+			defer gotCountsMu.Unlock()
 			for key, elem := range wantCounts.All() {
 				// First, make sure everything we wanted is present.
 				if !gotCounts.HasKey(key) {
