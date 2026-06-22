@@ -7,8 +7,8 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -16,29 +16,23 @@ import (
 	"github.com/spf13/afero"
 )
 
-// childModuleFile matches the descendant module configuration files in the
-// plan-modules-race fixture (e.g. "mod3/main.tf"), so the delaying filesystem
-// below only slows down the parts of config loading we care about.
-var childModuleFile = regexp.MustCompile(`(^|/)mod\d+/`)
+// moduleDir matches a descendant module's directory in the "plan-modules-race" fixture (e.g. ".../mod0")
+var moduleDir = regexp.MustCompile(`(^|/)mod\d+$`)
 
-// delayingFS is an afero.Fs that artificially slows down reads of descendant
-// module configuration files. This widens the window during which the config
-// loader's shared parser is being written by the config-loading graph walk,
-// so that an interrupt can land while modules are still being loaded.
-//
-// After deadline has passed it stops delaying, allowing the abandoned config
-// walk to drain promptly once the operation has been cancelled.
-type delayingFS struct {
+type mockFS struct {
 	afero.Fs
-	delay    time.Duration
-	deadline time.Time
+	loadingStarted chan struct{}
+	proceed        chan struct{}
+	once           sync.Once
 }
 
-func (d *delayingFS) Open(name string) (afero.File, error) {
-	if childModuleFile.MatchString(filepath.ToSlash(name)) && time.Now().Before(d.deadline) {
-		time.Sleep(d.delay)
+func (g *mockFS) Open(name string) (afero.File, error) {
+	if moduleDir.MatchString(filepath.ToSlash(name)) {
+		// Indicate the loading of modules has started, so we can trigger the shutdown channel
+		g.once.Do(func() { close(g.loadingStarted) })
+		<-g.proceed
 	}
-	return d.Fs.Open(name)
+	return g.Fs.Open(name)
 }
 
 // TestPlan_configLoaderRace is a regression test for a data race in the
@@ -46,14 +40,9 @@ func (d *delayingFS) Open(name string) (afero.File, error) {
 //
 // A plan loads descendant modules by walking the init graph, which parses each
 // module into the loader's shared *configs.Parser (the write side). When the
-// run is interrupted (Ctrl-C), Meta.RunOperation stops waiting for the
+// run is interrupted via the shutdown channel, (*Meta).RunOperation stops waiting for the
 // operation and the command renders the resulting diagnostics, which reads the
 // same parser's source cache via Loader.Sources (the read side).
-//
-// To make the interrupt land while modules are still loading, the loader is
-// given a filesystem that delays reads of module files, and two interrupts are
-// delivered on the ShutdownCh to force the cancel path (which returns after a
-// timeout without waiting for the still-running config walk).
 func TestPlan_configLoaderRace(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-modules-race"), td)
@@ -74,17 +63,14 @@ func TestPlan_configLoaderRace(t *testing.T) {
 		t.Fatalf("failed to install modules: %s", instDiags.Err())
 	}
 
-	// The loader the plan command will actually use reads through a filesystem
-	// that delays module file reads, so the config walk is still in progress
-	// when we interrupt below.
-	fs := &delayingFS{
-		Fs:       afero.NewOsFs(),
-		delay:    1 * time.Second,
-		deadline: time.Now().Add(7 * time.Second),
+	mockFS := &mockFS{
+		Fs:             afero.NewOsFs(),
+		loadingStarted: make(chan struct{}),
+		proceed:        make(chan struct{}),
 	}
 	testLoader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
-		OverrideFS: fs,
+		OverrideFS: mockFS,
 	})
 	if err != nil {
 		t.Fatalf("failed to create test loader: %s", err)
@@ -109,19 +95,24 @@ func TestPlan_configLoaderRace(t *testing.T) {
 		},
 	}
 
-	// Simulate the user pressing Ctrl-C twice while modules are still loading.
-	// The first interrupt asks the operation to stop gracefully; the second
-	// forces a cancel, after which RunOperation stops waiting for the operation
-	// (which is blocked in the delayed config walk) and the command proceeds to
-	// render diagnostics.
 	go func() {
-		time.Sleep(1 * time.Second)
+		// Wait until the modules begin loading
+		<-mockFS.loadingStarted
+
+		// Cancel the operation, which after 5 seconds will trigger the read side of
+		// the race condition (via the diagnostic renderer).
 		close(shutdownCh)
+
+		// Allow one module load to proceed, which will trigger the write side of
+		// the race condition (via the module being stored in the shared parser).
+		//
+		// The next module load will block until the shutdown has completed/timed
+		// out (which is where the race condition would occur).
+		mockFS.proceed <- struct{}{}
 	}()
 
 	c.Run([]string{})
 
-	// Allow the abandoned config walk to drain before the test returns, so it
-	// doesn't keep writing the parser after the test completes.
-	time.Sleep(time.Until(fs.deadline) + 1*time.Second)
+	// Now that the run command has timed out, allow the remaining modules to proceed
+	close(mockFS.proceed)
 }
