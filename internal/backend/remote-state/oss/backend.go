@@ -594,9 +594,21 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			if err != nil {
 				return nil, err
 			}
-			for _, v := range config["profiles"].([]interface{}) {
-				if current == v.(map[string]interface{})["name"] {
-					providerConfig = v.(map[string]interface{})
+			profilesRaw, ok := config["profiles"]
+			if !ok {
+				return nil, fmt.Errorf("aliyun config missing \"profiles\" key")
+			}
+			profiles, ok := profilesRaw.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("aliyun config \"profiles\" is not an array")
+			}
+			for _, v := range profiles {
+				profile, ok := v.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if current == profile["name"] {
+					providerConfig = profile
 				}
 			}
 		}
@@ -681,7 +693,12 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 		err = fmt.Errorf("refresh Ecs sts token err, fail to get Code: %s", err.Error())
 		return
 	}
-	if code.(string) != "Success" {
+	codeStr, ok := code.(string)
+	if !ok {
+		err = fmt.Errorf("refresh Ecs sts token err, Code field missing or not a string")
+		return
+	}
+	if codeStr != "Success" {
 		err = fmt.Errorf("refresh Ecs sts token err, Code is not Success")
 		return
 	}
@@ -707,6 +724,17 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	}
 
 	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
+}
+
+// safeStringAssertion asserts that v is a string and returns it, or returns an error
+// describing the unexpected type. Prevents panics from unchecked type assertions on
+// external data (e.g., ECS metadata responses).
+func safeStringAssertion(v interface{}, name string) (string, error) {
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("expected %s to be a string, got %T", name, v)
+	}
+	return s, nil
 }
 
 func getHttpProxyUrl(rawUrl string) (*url.URL, error) {

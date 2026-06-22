@@ -681,13 +681,29 @@ func (c *RemoteClient) chunkedMode() (bool, string, []string, *consulapi.KVPair,
 		// probably been gziped in single entry mode.
 		if err == nil {
 			// If we find the "current-hash" key we were in chunked mode
-			hash, ok := d["current-hash"]
+			hashRaw, ok := d["current-hash"]
 			if ok {
-				chunks := make([]string, 0)
-				for _, c := range d["chunks"].([]interface{}) {
-					chunks = append(chunks, c.(string))
+				hash, ok := hashRaw.(string)
+				if !ok {
+					return false, "", nil, pair, fmt.Errorf("consul state: \"current-hash\" is not a string, got %T", hashRaw)
 				}
-				return true, hash.(string), chunks, pair, nil
+				chunksRaw, ok := d["chunks"]
+				if !ok {
+					return false, "", nil, pair, fmt.Errorf("consul state: missing \"chunks\" key")
+				}
+				chunksSlice, ok := chunksRaw.([]interface{})
+				if !ok {
+					return false, "", nil, pair, fmt.Errorf("consul state: \"chunks\" is not an array, got %T", chunksRaw)
+				}
+				chunks := make([]string, 0, len(chunksSlice))
+				for i, v := range chunksSlice {
+					s, ok := v.(string)
+					if !ok {
+						return false, "", nil, pair, fmt.Errorf("consul state: chunk %d is not a string, got %T", i, v)
+					}
+					chunks = append(chunks, s)
+				}
+				return true, hash, chunks, pair, nil
 			}
 		}
 	}
