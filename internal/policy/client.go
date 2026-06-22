@@ -33,7 +33,7 @@ var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
 
 // NewPolicyClient initializes and connects to a new tfpolicy-plugin process
-func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string) (Client, Diagnostics) {
+func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string, ent *Entitlement) (Client, Diagnostics) {
 	var diags Diagnostics
 	client, err := Connect(ctx, policyPluginPath)
 	if err != nil {
@@ -60,6 +60,7 @@ func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths [
 	resp := client.Setup(ctx, SetupRequest{
 		SourceLocations: policyPaths,
 		CallbackService: callbackServiceID,
+		Entitlement:     ent,
 	})
 	diags = append(diags, resp.Diagnostics...)
 	if diags.HasErrors() {
