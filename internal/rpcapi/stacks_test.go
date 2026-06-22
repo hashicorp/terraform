@@ -712,6 +712,208 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	}
 }
 
+func TestStacksPlanStackChanges_noPolicyResultsForRefresh(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		// This plan mode should prevent policy evaluation from occurring
+		PlanMode:           stacks.PlanMode_REFRESH_ONLY,
+		StackConfigHandle:  open.StackConfigHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted as this plan is in refresh mode
+	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := events.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksPlanStackChanges_noPolicyResultsForDestroy(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		// This plan mode should prevent policy evaluation from occurring
+		PlanMode:           stacks.PlanMode_DESTROY,
+		StackConfigHandle:  open.StackConfigHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted as this plan is in destroy mode
+	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := events.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
 func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 	ctx := context.Background()
 
@@ -1015,6 +1217,298 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 		)
 	})
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_noPolicyResultsForRefresh(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		// This plan mode should prevent policy evaluation from occurring
+		PlanMode:          stacks.PlanMode_REFRESH_ONLY,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle:  open.StackConfigHandle,
+		PlanHandle:         planResult.PlanHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted as the plan for this apply was created in refresh mode
+	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyResp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_noPolicyResultsForDestroy(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		// This plan mode should prevent policy evaluation from occurring
+		PlanMode:          stacks.PlanMode_DESTROY,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle:  open.StackConfigHandle,
+		PlanHandle:         planResult.PlanHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted as the plan for this apply was created in destroy mode
+	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+
+	// Collect policy evaluation + diagnostics
+	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyResp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed

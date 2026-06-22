@@ -322,9 +322,10 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
-	// Setup the policy client if the caller provides a plugin path + policies
+	// Setup the policy client if the caller provides a plugin path, policies, and
+	// the plan request is the default mode (i.e. not refresh or destroy)
 	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && req.PlanMode == stacks.PlanMode_NORMAL {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
@@ -405,10 +406,8 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		planMode = plans.NormalMode
 	case stacks.PlanMode_REFRESH_ONLY:
 		planMode = plans.RefreshOnlyMode
-		policyClient = nil // Policies are not evaluated during refresh
 	case stacks.PlanMode_DESTROY:
 		planMode = plans.DestroyMode
-		policyClient = nil // Policies are not evaluated during destroy
 	default:
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
 	}
@@ -587,25 +586,6 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
-	// Setup the policy client if the caller provides a plugin path + policies
-	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
-		if s.policyClientOverride != nil {
-			// Tests use a mock policy client
-			policyClient = s.policyClientOverride
-		} else {
-			// Normal code path for connecting to a policy client
-			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
-			if diags.HasErrors() {
-				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
-			}
-		}
-
-		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
-		defer policyClient.Stop()
-	}
-
 	if req.PlanHandle != 0 && len(req.PlannedChanges) != 0 {
 		return status.Error(codes.InvalidArgument, "must not set both plan_handle and planned_changes")
 	}
@@ -677,9 +657,24 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 	}
 
-	// Policies are not evaluated on refresh or destroy
-	if plan.Mode == plans.RefreshOnlyMode || plan.Mode == plans.DestroyMode {
-		policyClient = nil
+	// Setup the policy client if the caller provides a plugin path, policies, and
+	// the plan being applied is the default mode (i.e. not refresh or destroy)
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && plan.Mode == plans.NormalMode {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+			if diags.HasErrors() {
+				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+			}
+		}
+
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+		defer policyClient.Stop()
 	}
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
