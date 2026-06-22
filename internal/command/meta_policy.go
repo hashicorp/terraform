@@ -176,10 +176,12 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	}
 	h.policyResults.AddModule(req.Path, result, moduleCall)
 
-	// return a generic error here that the init command returns to the CLI.
+	// Return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
-	// and will be formatted in the CLI output.
-	if result.Overall != policy.AllowResult {
+	// and will be formatted in the CLI output. Init uses diagnostics as the
+	// blocking signal because advisory policies may return deny without any
+	// error diagnostics.
+	if result.Diagnostics.HasErrors() {
 		return tfdiags.Diagnostics{
 			policy.NewErrorDiagnostic(
 				"Policy evaluation failed",
@@ -229,7 +231,9 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 
 	p.policyResults.AddProvider(addr, result, providerConfig)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
-	if result.Overall != policy.AllowResult {
+	// Init uses diagnostics as the blocking signal because advisory policies
+	// may return deny without any error diagnostics.
+	if result.Diagnostics.HasErrors() {
 		return fmt.Errorf("Provider download blocked due to policy violations. Please review other diagnostics for details.")
 	}
 

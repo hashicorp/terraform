@@ -22,50 +22,101 @@ import (
 )
 
 func TestInit_WithModulePolicy(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
-	t.Chdir(td)
 
-	ui := new(cli.MockUi)
-	view, done := testView(t)
-
-	overrides := metaOverridesForProvider(testProvider())
-	policyClient := policy.NewTestMockClient(t)
-	overrides.PolicyClient = policyClient
-
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides:          overrides,
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+	cases := []struct {
+		name     string
+		policy   *policy.EvaluationResponse
+		expected int
+	}{
+		{
+			name: "unknown module policy",
+			// This unknown evaluation should still lead to success of the init operation.
+			policy:   &policy.EvaluationResponse{Overall: policy.UnknownResult},
+			expected: 0,
+		},
+		{
+			name: "advisory deny module policy",
+			// Advisory policies may return deny without error diagnostics and should
+			// not block init.
+			policy:   &policy.EvaluationResponse{Overall: policy.DenyResult},
+			expected: 0,
+		},
+		{
+			name:     "success module policy",
+			policy:   &policy.EvaluationResponse{Overall: policy.AllowResult},
+			expected: 0,
+		},
+		{
+			name: "errored module policy",
+			policy: &policy.EvaluationResponse{
+				Overall: policy.DenyResult,
+				Diagnostics: policy.Diagnostics{
+					policy.NewErrorDiagnostic("test error", "test error detail", policy.DenyResult),
+				},
+			},
+			expected: 1,
 		},
 	}
 
-	code := c.Run([]string{"-policies", td, "-var", "module_name=example"})
-	output := done(t)
-	if code != 0 {
-		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
-	}
+	for _, tc := range cases {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
+		t.Chdir(td)
 
-	if !policyClient.EvaluateModuleCalled {
-		t.Fatal("expected EvaluateModule to be called")
-	}
+		ui := new(cli.MockUi)
+		view, done := testView(t)
 
-	if got, want := policyClient.EvaluateModuleRequest.Target, "./modules/example"; got != want {
-		t.Fatalf("wrong module policy target\ngot:  %q\nwant: %q", got, want)
-	}
+		overrides := metaOverridesForProvider(testProvider())
+		policyClient := policy.NewTestMockClient(t)
 
-	if policyClient.EvaluateModuleRequest.Meta == nil {
-		t.Fatal("expected module metadata to be set")
-	}
+		t.Run(tc.name, func(t *testing.T) {
 
-	if got, want := policyClient.EvaluateModuleRequest.Meta.Address, "module.example"; got != want {
-		t.Fatalf("wrong module address\ngot:  %q\nwant: %q", got, want)
-	}
+			policyClient.EvaluateModuleResponse = tc.policy
+			overrides.PolicyClient = policyClient
 
-	if got, want := policyClient.EvaluateModuleRequest.Meta.Version, ""; got != want {
-		t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides:          overrides,
+					Ui:                        ui,
+					View:                      view,
+					AllowExperimentalFeatures: true,
+				},
+			}
+
+			code := c.Run([]string{"-policies", td, "-var", "module_name=example"})
+			output := done(t)
+			if code != tc.expected {
+				t.Fatalf("got exit status %d; want %d\nstderr:\n%s\n\nstdout:\n%s", code, tc.expected, output.Stderr(), output.Stdout())
+			}
+
+			if !policyClient.EvaluateModuleCalled {
+				t.Fatal("expected EvaluateModule to be called")
+			}
+
+			if got, want := policyClient.EvaluateModuleRequest.Target, "./modules/example"; got != want {
+				t.Fatalf("wrong module policy target\ngot:  %q\nwant: %q", got, want)
+			}
+
+			if !policyClient.EvaluateModuleCalled {
+				t.Fatal("expected EvaluateModule to be called")
+			}
+
+			if got, want := policyClient.EvaluateModuleRequest.Target, "./modules/example"; got != want {
+				t.Fatalf("wrong module policy target\ngot:  %q\nwant: %q", got, want)
+			}
+
+			if policyClient.EvaluateModuleRequest.Meta == nil {
+				t.Fatal("expected module metadata to be set")
+			}
+
+			if got, want := policyClient.EvaluateModuleRequest.Meta.Address, "module.example"; got != want {
+				t.Fatalf("wrong module address\ngot:  %q\nwant: %q", got, want)
+			}
+
+			if got, want := policyClient.EvaluateModuleRequest.Meta.Version, ""; got != want {
+				t.Fatalf("wrong module version\ngot:  %q\nwant: %q", got, want)
+			}
+		})
 	}
 }
 
@@ -522,6 +573,15 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 			}
 		})
 
+		if req.Target == "test" {
+			// This unknown evaluation should still lead to success of the init operation.
+			return policy.EvaluationResponse{Overall: policy.UnknownResult}
+		}
+		if req.Target == "happycloud" {
+			// Advisory policies may return deny without error diagnostics and should
+			// not block init.
+			return policy.EvaluationResponse{Overall: policy.DenyResult}
+		}
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 	overrides.PolicyClient = policyClient
