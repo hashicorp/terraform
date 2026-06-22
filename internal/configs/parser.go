@@ -6,6 +6,7 @@ package configs
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -28,7 +29,7 @@ type Parser struct {
 	// allowed and not-allowed situations.
 	allowExperiments bool
 
-	// mu sync.Mutex
+	mu sync.Mutex
 }
 
 // NewParser creates and returns a new Parser that reads files from the given
@@ -59,8 +60,8 @@ func NewParser(fs afero.Fs) *Parser {
 // The file will be parsed using the HCL native syntax unless the filename
 // ends with ".json", in which case the HCL JSON syntax will be used.
 func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	src, err := p.fs.ReadFile(path)
 	if err != nil {
@@ -95,8 +96,8 @@ func (p *Parser) LoadHCLFile(path string) (hcl.Body, hcl.Diagnostics) {
 // have been loaded through this parser, with source filenames (as requested
 // when each file was opened) as the keys.
 func (p *Parser) Sources() map[string][]byte {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.p.Sources()
 }
 
@@ -107,8 +108,8 @@ func (p *Parser) Sources() map[string][]byte {
 // some other way. Most callers should load configuration via methods of
 // Parser, which will update the sources cache automatically.
 func (p *Parser) ForceFileSource(filename string, src []byte) {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	// We'll make a synthetic hcl.File here just so we can reuse the
 	// existing cache.
 	p.p.AddFile(filename, &hcl.File{
@@ -127,8 +128,8 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 // is responsible for deciding for itself whether and how to call this
 // method.
 func (p *Parser) AllowLanguageExperiments(allowed bool) {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.allowExperiments = allowed
 }
 
@@ -136,7 +137,7 @@ func (p *Parser) AllowLanguageExperiments(allowed bool) {
 // [Parser.AllowLanguageExperiments], or false if that method has not been
 // called on this object.
 func (p *Parser) AllowsLanguageExperiments() bool {
-	// p.mu.Lock()
-	// defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.allowExperiments
 }
