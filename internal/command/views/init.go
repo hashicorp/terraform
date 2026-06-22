@@ -18,7 +18,6 @@ type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
-	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
 }
@@ -56,10 +55,6 @@ func (v *InitHuman) PolicyResults(results *plans.PolicyResults, setupDiags polic
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
-}
-
-func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
@@ -101,15 +96,6 @@ func (v *InitJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	// don't add empty messages to json output
-	preppedMessage := v.PrepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
-
-	v.view.Log(preppedMessage)
-}
-
-func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.PrepareMessage(messageCode, params...)
 	if preppedMessage == "" {
 		return
