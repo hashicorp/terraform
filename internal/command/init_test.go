@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -282,7 +284,6 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 			})
 
 			mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-			mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 			ui := new(cli.MockUi)
 			view, done := testView(t)
@@ -4088,7 +4089,6 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 		t.Chdir(td)
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytes("test_store")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			// The test fixture config has no version constraints, so the latest version will
@@ -4192,7 +4192,6 @@ Initializing provider plugins...
 		t.Setenv(WorkspaceNameEnvVar, customWorkspace)
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytes("test_store")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
@@ -4404,7 +4403,6 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		})
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		ui := new(cli.MockUi)
@@ -4466,7 +4464,6 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		})
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4549,7 +4546,6 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}, returnApprovedHashes)
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4630,7 +4626,6 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		})
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		// Allow the test to respond to the pause in provider installation for
@@ -4712,7 +4707,6 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Set up providers for use in the second init attempt.
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -4818,7 +4812,6 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 	})
 
 	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	ui := new(cli.MockUi)
@@ -4916,7 +4909,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
 		ui := new(cli.MockUi)
@@ -4980,7 +4972,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 			"hashicorp/test": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5070,7 +5061,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 			"hashicorp/test": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5144,7 +5134,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 			"hashicorp/test": {expectedVersion},
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -5219,7 +5208,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 			"hashicorp/test": {expectedVersion},
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
 		ui := new(cli.MockUi)
 		view, done := testView(t)
@@ -7736,6 +7724,8 @@ func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *tes
 			StateStores:       schemas,
 		},
 	}
+	typeNames := slices.Sorted(maps.Keys(schemas))
+	mock.MockStates = testing_provider.NewMockStateBytesWithTypes(typeNames)
 	mock.GetStatesFn = func(req providers.GetStatesRequest) (resp providers.GetStatesResponse) {
 		stateIds, err := mock.MockStates.StateIds(req.TypeName)
 		if err != nil {

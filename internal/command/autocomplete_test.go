@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
 	pTesting "github.com/hashicorp/terraform/internal/providers/testing"
-	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/posener/complete"
 )
 
@@ -91,9 +90,6 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 		// Set up pluggable state store provider mock
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
-		// No workspaces exist in the mock
-		mockProvider.MockStates = pTesting.NewMockStateBytes("test")
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},

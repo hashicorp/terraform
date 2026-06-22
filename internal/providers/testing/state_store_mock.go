@@ -20,16 +20,18 @@ func NewMultipleMockStateBytes(types []string) MockStateBytes {
 	return m
 }
 
-func NewMockStateBytes(typeName string) MockStateBytes {
-	m := map[string]map[string][]byte{}
-	m[typeName] = map[string][]byte{}
-	return m
-}
-
 func NewMockStateBytesWithSingleState(typeName, stateId string, b []byte) MockStateBytes {
 	m := map[string]map[string][]byte{}
 	m[typeName] = map[string][]byte{
 		stateId: b,
+	}
+	return m
+}
+
+func NewMockStateBytesWithTypes(typeNames []string) MockStateBytes {
+	m := map[string]map[string][]byte{}
+	for _, typeName := range typeNames {
+		m[typeName] = map[string][]byte{}
 	}
 	return m
 }
