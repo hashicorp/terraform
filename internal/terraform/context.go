@@ -60,6 +60,8 @@ type ContextOpts struct {
 	// been passed to Terraform Core using this field.
 	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
+	TracingContext context.Context
+
 	UIInput UIInput
 }
 
@@ -165,6 +167,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		sh:                  sh,
+		tracingCtx:          opts.TracingContext,
 	}, diags
 }
 
@@ -257,14 +260,6 @@ func (c *Context) acquireRun(phase string) func() {
 	c.sh.Reset()
 
 	return c.releaseRun
-}
-
-// SetTracingContext records a context.Context that will be used as the parent
-// for all spans created within the graph walk.
-func (c *Context) SetTracingContext(ctx context.Context) {
-	c.l.Lock()
-	defer c.l.Unlock()
-	c.tracingCtx = ctx
 }
 
 func (c *Context) releaseRun() {
