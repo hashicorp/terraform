@@ -39,7 +39,6 @@ message GetDataSourceRequest {
 
 message GetDataSourceResponse {
   bytes result = 1;
-  // partial means that the request encountered unknown objects during evaluation,
-  // and the results may be incomplete.
-  bool partial = 2;
+  // deferred indicates that the data source read was deferred during evaluation.
+  bool deferred = 2;
 }

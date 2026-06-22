@@ -205,9 +205,8 @@ func (x *GetDataSourceRequest) GetEvaluationRequestId() uint32 {
 type GetDataSourceResponse struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Result []byte                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	// partial means that the request encountered unknown objects during evaluation,
-	// and the results may be incomplete.
-	Partial       bool `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
+	// deferred indicates that the data source read was deferred during evaluation.
+	Deferred      bool `protobuf:"varint,2,opt,name=deferred,proto3" json:"deferred,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,9 +248,9 @@ func (x *GetDataSourceResponse) GetResult() []byte {
 	return nil
 }
 
-func (x *GetDataSourceResponse) GetPartial() bool {
+func (x *GetDataSourceResponse) GetDeferred() bool {
 	if x != nil {
-		return x.Partial
+		return x.Deferred
 	}
 	return false
 }
@@ -273,10 +272,10 @@ const file_callback_proto_rawDesc = "" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06config\x18\x02 \x01(\fR\x06config\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"I\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"K\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\fR\x06result\x12\x18\n" +
-	"\apartial\x18\x02 \x01(\bR\apartial2\xa6\x01\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result\x12\x1a\n" +
+	"\bdeferred\x18\x02 \x01(\bR\bdeferred2\xa6\x01\n" +
 	"\x0fCallbackService\x12G\n" +
 	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12J\n" +
 	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"

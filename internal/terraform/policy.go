@@ -95,10 +95,11 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					if matched {
 						resource, _ = resource.UnmarkDeep()
 						found = append(found, resource)
+						continue
 					}
 
-					// The filtered attribute for matching is unknown for this resource instance,
-					// so we can't determine whether it matches. We'll mark the whole callback result as incomplete.
+					// If the filtered attribute for matching is unknown for this resource instance,
+					// we can't determine whether it matches, so we'll mark the whole callback result as incomplete.
 					// We still continue to the next resource instance, so that we return all known objects as well.
 					isPartialResult = isPartialResult || unknown
 
@@ -153,9 +154,9 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 
 	sawUnknown := false
 
+	attrTypes := resource.Type().AttributeTypes()
 	for name, attr := range filterAttrs {
-		if !resource.Type().HasAttribute(name) {
-			log.Printf("[DEBUG] attribute %q not found in resource %q", name, addr.String())
+		if _, ok := attrTypes[name]; !ok {
 			return false, false
 		}
 
