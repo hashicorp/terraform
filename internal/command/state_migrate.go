@@ -105,7 +105,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 	} else if smi.StateStore != nil {
 		source = fmt.Sprintf("state store %q (%s)", smi.StateStore.Type,
-			smi.StateStore.ProviderAddr)
+			smi.StateStore.ProviderAddr.ForDisplay())
 
 		srcLocks, srcLockDiags := depsfile.LoadLocksFromFile(args.SourceLockFilePath)
 		if srcLockDiags.HasErrors() {
@@ -138,7 +138,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 	} else if rootMod.StateStore != nil {
 		destination = fmt.Sprintf("state store %q (%s)", rootMod.StateStore.Type,
-			rootMod.StateStore.ProviderAddr)
+			rootMod.StateStore.ProviderAddr.ForDisplay())
 
 		dstLocks, dstLockDiags := depsfile.LoadLocksFromFile(args.DestinationLockFilePath)
 		if dstLockDiags.HasErrors() {

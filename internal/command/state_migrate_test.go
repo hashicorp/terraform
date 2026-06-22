@@ -103,7 +103,7 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from backend "local" to state store "test_store" (registry.terraform.io/hashicorp/test)...`
+	expectedMsg := `Migrating state from backend "local" to state store "test_store" (hashicorp/test)...`
 	if !strings.Contains(out.Stdout(), expectedMsg) {
 		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
 	}
@@ -176,7 +176,7 @@ func TestStateMigrate_fromStateStoreToStateStore(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from state store "test_src" (registry.terraform.io/hashicorp/test) to state store "test_dst" (registry.terraform.io/hashicorp/test)...`
+	expectedMsg := `Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`
 	if !strings.Contains(out.Stdout(), expectedMsg) {
 		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
 	}
@@ -238,7 +238,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Migrating state from state store "test_store" (registry.terraform.io/hashicorp/test) to backend "local"...`
+	expectedMsg := `Migrating state from state store "test_store" (hashicorp/test) to backend "local"...`
 	if !strings.Contains(out.Stdout(), expectedMsg) {
 		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
 	}
