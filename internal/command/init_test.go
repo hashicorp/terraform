@@ -5717,6 +5717,211 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 	// removed from this file in the same commit as this TODO.
 }
 
+// Test all scenarios where the init command should detect a change in how a state store is configured or used,
+// and ensure that Terraform returns an error and doesn't proceed with initialization.
+//
+// Each test will also assert that the reason for the error matches expectations.
+func TestInit_stateStore_changesDetected(t *testing.T) {
+	expectedError := `Error: State store initialization required, please run "terraform state migrate" or "terraform init -reconfigure"`
+	t.Run("store config changed", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/store-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("Expected Terraform to return an error after detecting need for a state migration, but it was missing: \n%s", testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.All(), expectedError) {
+			t.Fatalf("expected an error due to Terraform detecting 'State store initialization required', got: %s", testOutput.All())
+		}
+		expectedReason := `Reason: State store "test_store" (hashicorp/test) configuration changed`
+		if !strings.Contains(testOutput.All(), expectedReason) {
+			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
+		}
+	})
+	t.Run("state store provider config changed", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-config"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("Expected Terraform to return an error after detecting need for a state migration, but it was missing: \n%s", testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.All(), expectedError) {
+			t.Fatalf("expected an error due to Terraform detecting 'State store initialization required', got: %s", testOutput.All())
+		}
+		expectedReason := `Reason: State store provider "test" (hashicorp/test) configuration changed`
+		if !strings.Contains(testOutput.All(), expectedReason) {
+			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
+		}
+	})
+	t.Run("state store type changed, within same provider", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/state-store-type"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(map[string]providers.Schema{
+			"test_store": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+			"test_otherstore": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		})
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("Expected Terraform to return an error after detecting need for a state migration, but it was missing: \n%s", testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.All(), expectedError) {
+			t.Fatalf("expected an error due to Terraform detecting 'State store initialization required', got: %s", testOutput.All())
+		}
+		expectedReason := `Reason: State store type changed from "test_store" to "test_otherstore"`
+		if !strings.Contains(testOutput.All(), expectedReason) {
+			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
+		}
+	})
+	t.Run("state store provider changed", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-used"), td)
+		t.Chdir(td)
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"}, // Matches provider version in backend state file fixture
+			"hashicorp/test2": {"1.2.3"}, // Matches provider version in backend state file fixture
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_store"))),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("Expected Terraform to return an error after detecting need for a state migration, but it was missing: \n%s", testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.All(), expectedError) {
+			t.Fatalf("expected an error due to Terraform detecting 'State store initialization required', got: %s", testOutput.All())
+		}
+		expectedReason := `Reason: State store provider changed from hashicorp/test to hashicorp/test2`
+		if !strings.Contains(testOutput.All(), expectedReason) {
+			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
+		}
+	})
+}
+
 // Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
 // to result in the state store being configured in the same way. In this scenario the user isn't prompted to migrate
 // state but the backend state file is updated with a new hash to reflect the new configuration's values.
