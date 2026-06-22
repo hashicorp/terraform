@@ -257,6 +257,10 @@ message PlanStackChanges {
     int64 dependency_locks_handle = 4;
     int64 provider_cache_handle = 5;
     map<string, DynamicValueWithSource> input_values = 6;
+    // invoke_action_addrs lists full action invocation instance addresses to
+    // directly invoke during this plan. When set, the matched component
+    // instance plans in refresh-only mode targeting only the action.
+    repeated string invoke_action_addrs = 8;
     // TODO: Various other planning options
   }
   message Event {

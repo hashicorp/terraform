@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'stacks: add `invoke_action_addrs` plan option to directly invoke pre-defined actions, scoping the targeted component instance to a refresh-only plan that triggers only the action'
+time: 2026-06-22T10:28:51.000000-04:00
+custom:
+    Issue: "0"

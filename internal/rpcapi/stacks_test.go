@@ -488,6 +488,50 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 }
 
+func TestStacksPlanStackChanges_invalidInvokeActionAddr(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	fakeSourceBundle := &sourcebundle.Bundle{}
+	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)
+	emptyConfig := &stackconfig.Config{
+		Root: &stackconfig.ConfigNode{
+			Stack: &stackconfig.Stack{
+				SourceAddr: sourceaddrs.MustParseSource("git::https://example.com/foo.git").(sourceaddrs.RemoteSource),
+			},
+		},
+	}
+	configHnd, err := handles.NewStackConfig(emptyConfig, bundleHnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := stacks.NewStacksClient(grpcClient)
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: configHnd.ForProtobuf(),
+		InvokeActionAddrs: []string{"this is not a valid address"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error establishing stream: %s", err)
+	}
+
+	_, err = events.Recv()
+	if err == nil {
+		t.Fatal("expected an error for an invalid invoke action address, but got none")
+	}
+	if got, want := status.Code(err), codes.InvalidArgument; got != want {
+		t.Fatalf("wrong error code: got %s, want %s (err: %s)", got, want, err)
+	}
+}
+
 func TestStackChangeProgressDuringPlanNormal(t *testing.T) {
 	tcs := map[string]struct {
 		source      string

@@ -51,6 +51,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 		DependencyLocks:     req.DependencyLocks,
+		InvokeActionAddrs:   req.InvokeActionAddrs,
 
 		PlanTimestamp: planTimestamp,
 	})
@@ -99,6 +100,11 @@ type PlanRequest struct {
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
 	DependencyLocks   depsfile.Locks
+
+	// InvokeActionAddrs lists full action invocation instance addresses to
+	// directly invoke during this plan. When set, the matched component
+	// instance plans in refresh-only mode targeting only the action.
+	InvokeActionAddrs []stackaddrs.AbsActionInvocationInstance
 
 	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
 	// to return the given value instead of whatever real time the plan

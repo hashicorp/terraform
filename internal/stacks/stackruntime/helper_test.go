@@ -60,6 +60,7 @@ type TestCycle struct {
 
 	planMode           plans.Mode
 	planInputs         map[string]cty.Value
+	invokeActionAddrs  []stackaddrs.AbsActionInvocationInstance
 	wantPlannedChanges []stackplan.PlannedChange
 	wantPlannedHooks   *ExpectedHooks
 	wantPlannedDiags   tfdiags.Diagnostics
@@ -100,6 +101,7 @@ func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.
 		DependencyLocks:    tc.dependencyLocks,
 		ForcePlanTimestamp: tc.timestamp,
 		ExperimentsAllowed: true,
+		InvokeActionAddrs:  cycle.invokeActionAddrs,
 	}
 
 	changesCh := make(chan stackplan.PlannedChange)
