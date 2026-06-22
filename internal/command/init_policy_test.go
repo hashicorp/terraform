@@ -30,14 +30,31 @@ func TestInit_WithModulePolicy(t *testing.T) {
 	}{
 		{
 			name: "unknown module policy",
-			// This unknown evaluation should still lead to success of the init operation
+			// This unknown evaluation should still lead to success of the init operation.
 			policy:   &policy.EvaluationResponse{Overall: policy.UnknownResult},
+			expected: 0,
+		},
+		{
+			name: "advisory deny module policy",
+			// Advisory policies may return deny without error diagnostics and should
+			// not block init.
+			policy:   &policy.EvaluationResponse{Overall: policy.DenyResult},
 			expected: 0,
 		},
 		{
 			name:     "success module policy",
 			policy:   &policy.EvaluationResponse{Overall: policy.AllowResult},
 			expected: 0,
+		},
+		{
+			name: "errored module policy",
+			policy: &policy.EvaluationResponse{
+				Overall: policy.DenyResult,
+				Diagnostics: policy.Diagnostics{
+					policy.NewErrorDiagnostic("test error", "test error detail", policy.DenyResult),
+				},
+			},
+			expected: 1,
 		},
 	}
 
@@ -556,8 +573,13 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 		})
 
 		if req.Target == "test" {
-			// This unknown evaluation should still lead to success of the init operation
+			// This unknown evaluation should still lead to success of the init operation.
 			return policy.EvaluationResponse{Overall: policy.UnknownResult}
+		}
+		if req.Target == "happycloud" {
+			// Advisory policies may return deny without error diagnostics and should
+			// not block init.
+			return policy.EvaluationResponse{Overall: policy.DenyResult}
 		}
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
