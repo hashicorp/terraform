@@ -1081,7 +1081,7 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		mainStackSource,
 	)
 
-	changeHooks.ReportComponentInstancePlanPolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePlanPolicyResults) {
+	changeHooks.ReportComponentInstancePolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePolicyResults) {
 		if h.PolicyResults.Len() == 0 {
 			return
 		}
@@ -1108,7 +1108,7 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		mainStackSource,
 	)
 
-	changeHooks.ReportComponentInstanceApplyPolicyResults = func(ctx context.Context, h *hooks.ComponentInstanceApplyPolicyResults) {
+	changeHooks.ReportComponentInstancePolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePolicyResults) {
 		if h.PolicyResults.Len() == 0 {
 			return
 		}

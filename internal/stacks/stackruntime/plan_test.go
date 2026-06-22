@@ -7446,7 +7446,7 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	var mu sync.Mutex
 	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
 	planHooks := &Hooks{
-		ReportComponentInstancePlanPolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePlanPolicyResults) {
+		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
 			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())

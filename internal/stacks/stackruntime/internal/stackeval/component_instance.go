@@ -363,7 +363,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			// Report policy results if we have any
 			if plan.PolicyResults.Len() > 0 {
-				hookSingle(ctx, h.ReportComponentInstancePlanPolicyResults, &hooks.ComponentInstancePlanPolicyResults{
+				hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
 					Addr:          c.Addr(),
 					PolicyResults: plan.PolicyResults,
 				})

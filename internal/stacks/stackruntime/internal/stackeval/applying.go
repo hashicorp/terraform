@@ -354,7 +354,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 		// Report policy results if we have any
 		if policyResults.Len() > 0 {
-			hookSingle(ctx, h.ReportComponentInstanceApplyPolicyResults, &hooks.ComponentInstanceApplyPolicyResults{
+			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
 				Addr:          inst.Addr(),
 				PolicyResults: policyResults,
 			})
