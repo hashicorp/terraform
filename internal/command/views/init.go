@@ -106,21 +106,7 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		return
 	}
 
-	// Logged data includes by default:
-	// @level as "info"
-	// @module as "terraform.ui" (See NewJSONView)
-	// @timestamp formatted in the default way
-	//
-	// In the method below we:
-	// * Set @message as the first argument value
-	// * Annotate with extra data:
-	//     "type":"init_output"
-	//     "message_code":"<value>"
-	v.view.log.Info(
-		preppedMessage,
-		"type", "init_output",
-		"message_code", string(messageCode),
-	)
+	v.view.Log(preppedMessage)
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
