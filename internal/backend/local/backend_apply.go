@@ -60,7 +60,7 @@ func (b *Local) opApply(
 	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(stopCtx, op)
 
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
@@ -95,7 +95,6 @@ func (b *Local) opApply(
 
 	var plan *plans.Plan
 	combinedPlanApply := false
-	lr.Core.SetTracingContext(stopCtx)
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
 		// set the policy client to nil for the plan preceding apply

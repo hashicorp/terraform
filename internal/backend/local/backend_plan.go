@@ -92,7 +92,7 @@ func (b *Local) opPlan(
 	}
 
 	// Set up backend and get our context
-	lr, configSnap, opState, ctxDiags := b.localRun(op)
+	lr, configSnap, opState, ctxDiags := b.localRun(stopCtx, op)
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
@@ -121,7 +121,6 @@ func (b *Local) opPlan(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
-		lr.Core.SetTracingContext(stopCtx)
 		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 	}()
 

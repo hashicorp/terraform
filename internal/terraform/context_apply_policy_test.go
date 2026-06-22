@@ -1238,10 +1238,14 @@ func TestContext2Apply_PolicySpanParentage(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	commandCtx, commandSpan := otel.Tracer("test").Start(context.Background(), "terraform apply")
+	commandSpanContext := commandSpan.SpanContext()
+
 	tfCtx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(prov),
 		},
+		TracingContext: commandCtx,
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1251,13 +1255,6 @@ func TestContext2Apply_PolicySpanParentage(t *testing.T) {
 		PolicyClient: planClient,
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
-
-	// Open the command-level span, exactly as command.ApplyCommand does via
-	// Meta.StartCommandSpan, and install it as the caller context so the apply
-	// walk's run context is parented under it.
-	commandCtx, commandSpan := otel.Tracer("test").Start(context.Background(), "terraform apply")
-	commandSpanContext := commandSpan.SpanContext()
-	tfCtx.SetTracingContext(commandCtx)
 
 	_, diags = tfCtx.Apply(plan, mod, &ApplyOpts{
 		PolicyClient: applyClient,
