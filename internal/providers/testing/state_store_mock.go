@@ -9,6 +9,7 @@ import (
 	"slices"
 )
 
+// MockStateBytes is a map where the keys are state store types, i.e. names of store implementations in the mock provider. The value is a map of workspace name to bytes data.
 type MockStateBytes map[string]map[string][]byte
 
 func NewMultipleMockStateBytes(types []string) MockStateBytes {
