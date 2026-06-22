@@ -332,7 +332,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		} else {
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, nil)
 			if diags.HasErrors() {
 				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 			}
@@ -667,7 +667,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		} else {
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths)
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, nil)
 			if diags.HasErrors() {
 				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 			}
