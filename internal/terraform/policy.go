@@ -160,14 +160,10 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 			return false, false
 		}
 
-		if schema == nil || schema.Attributes[name] == nil {
-			return false, false
-		}
-
 		equals := attr.Equals(resource.GetAttr(name))
 		if !equals.IsKnown() {
-			// A filtered attribute for matching is unknown for this resource instance.
-			// We can't determine whether it matches. We track that we saw an unknown attribute, but continue to check other attributes.
+			// If the filtered attribute for matching is unknown for this resource instance, we
+			// can't determine whether it matches, so we track that we saw an unknown attribute and continue to check other attributes.
 			// This lets false matches take precedence over the unknown result, since we can still determine that the resource does not match.
 			sawUnknown = true
 			continue
