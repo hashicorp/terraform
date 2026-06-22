@@ -6499,6 +6499,94 @@ func TestPlanWithActionInvocationHooks(t *testing.T) {
 	testCtx.Plan(t, ctx, stackstate.NewState(), cycle)
 }
 
+// TestPlanWithDirectActionInvocation verifies that supplying an
+// InvokeActionAddrs entry plans the targeted component in refresh-only mode,
+// emitting the action invocation while suppressing the unrelated resource
+// change.
+func TestPlanWithDirectActionInvocation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "direct-invoke-action")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	webComponentInstance := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{Name: "web"},
+		},
+	}
+	notifyActionInstance := addrs.RootModuleInstance.ActionInstance("testing_action", "notify", addrs.NoKey)
+	invokeAddr := stackaddrs.AbsActionInvocationInstance{
+		Component: webComponentInstance,
+		Item:      notifyActionInstance,
+	}
+
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+			return stacks_testing_provider.NewProvider(t), nil
+		},
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	request := PlanRequest{
+		PlanMode:           plans.NormalMode,
+		Config:             cfg,
+		PrevState:          stackstate.NewState(),
+		ProviderFactories:  providerFactories,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		ExperimentsAllowed: true,
+		InvokeActionAddrs:  []stackaddrs.AbsActionInvocationInstance{invokeAddr},
+	}
+	response := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &request, &response)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow()
+	}
+
+	// (1) the action invocation is emitted, and it is a *direct* invocation
+	//     (InvokeActionTrigger) rather than a resource lifecycle trigger.
+	var foundDirectInvocation bool
+	// (2) the targeted component planned in RefreshOnly, so the unrelated
+	//     testing_resource.main change must be suppressed (no Create change).
+	var foundResourceCreate bool
+	for _, change := range gotChanges {
+		switch c := change.(type) {
+		case *stackplan.PlannedChangeActionInvocationInstancePlanned:
+			if c.ActionInvocationAddr.String() == invokeAddr.String() {
+				if c.Invocation != nil {
+					if _, ok := c.Invocation.ActionTrigger.(*plans.InvokeActionTrigger); ok {
+						foundDirectInvocation = true
+					}
+				}
+			}
+		case *stackplan.PlannedChangeResourceInstancePlanned:
+			if c.ChangeSrc != nil && c.ChangeSrc.Action == plans.Create {
+				foundResourceCreate = true
+			}
+		}
+	}
+
+	if !foundDirectInvocation {
+		t.Errorf("expected a direct action invocation for %s, but none was found", invokeAddr)
+		for i, change := range gotChanges {
+			t.Logf("  [%d] %T", i, change)
+		}
+	}
+	if foundResourceCreate {
+		t.Errorf("expected the unrelated resource change to be suppressed by refresh-only mode, but a Create change was planned")
+	}
+}
+
 func TestPlanWithDeferredActionInvocation(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "deferred-action")

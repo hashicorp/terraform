@@ -31,6 +31,11 @@ type PlanOpts struct {
 	PlanTimestamp time.Time
 
 	DependencyLocks depsfile.Locks
+
+	// InvokeActionAddrs lists full action invocation instance addresses to
+	// directly invoke during this plan. When set, the matched component
+	// instance plans in refresh-only mode targeting only the action.
+	InvokeActionAddrs []stackaddrs.AbsActionInvocationInstance
 }
 
 // Plannable is implemented by objects that can participate in planning.

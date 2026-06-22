@@ -404,6 +404,15 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		}
 	}
 
+	invokeActionAddrs := make([]stackaddrs.AbsActionInvocationInstance, 0, len(req.InvokeActionAddrs))
+	for _, raw := range req.InvokeActionAddrs {
+		addr, diags := stackaddrs.ParseActionInvocationInstanceStr(raw)
+		if diags.HasErrors() {
+			return status.Errorf(codes.InvalidArgument, "invalid invoke action address %q: %s", raw, diags.Err())
+		}
+		invokeActionAddrs = append(invokeActionAddrs, addr)
+	}
+
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
@@ -414,6 +423,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		InvokeActionAddrs:  invokeActionAddrs,
 
 		// planTimestampOverride will be null if not set, so it's fine for
 		// us to just set this all the time. In practice, this will only have

@@ -164,15 +164,32 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
+	// If any direct action invocation addresses target this component
+	// instance, scope the plan to only those actions by setting them as
+	// ActionTargets and forcing RefreshOnlyMode. This produces "only the
+	// action, nothing else" for the matched component while leaving
+	// non-matching component instances untouched.
+	var actionTargets []addrs.Targetable
+	for _, target := range c.main.PlanningOpts().InvokeActionAddrs {
+		if target.Component.String() == c.Addr().String() {
+			actionTargets = append(actionTargets, target.Item)
+		}
+	}
+	effectiveMode := mode
+	if len(actionTargets) > 0 {
+		effectiveMode = plans.RefreshOnlyMode
+	}
+
 	plantimestamp := c.main.PlanTimestamp()
 	return &terraform.PlanOpts{
-		Mode:                       mode,
+		Mode:                       effectiveMode,
 		SkipRefresh:                skipRefresh,
 		SetVariables:               inputValues,
 		ExternalProviders:          providerClients,
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		ActionTargets:              actionTargets,
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
