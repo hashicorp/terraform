@@ -116,8 +116,7 @@ func TestPlan_configLoaderRace(t *testing.T) {
 	// render diagnostics.
 	go func() {
 		time.Sleep(1 * time.Second)
-		shutdownCh <- struct{}{}
-		shutdownCh <- struct{}{}
+		close(shutdownCh)
 	}()
 
 	c.Run([]string{})
