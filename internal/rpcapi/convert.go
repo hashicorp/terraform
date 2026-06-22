@@ -206,18 +206,31 @@ func policyResultsToProto(addr string, policies []*policy.Policy) []*stacks.Poli
 	protoPolicyResults := make([]*stacks.PolicyResult, len(policies))
 	for i, policy := range policies {
 		result := stacks.PolicyResult{
-			TargetAddress: addr,
-			PolicyMetadata: &stacks.PolicyMetaData{
-				PolicyName:       policy.Address,
-				PolicySetName:    policy.PolicySetName,
-				FileName:         policy.Filename,
-				EnforcementLevel: policy.EnforcementLevel,
-			},
-			Result: policyEvaluateResultToProto(policy.Result),
+			TargetAddress:  addr,
+			PolicyMetadata: policyMetadataToProto(policy, nil),
+			Result:         policyEvaluateResultToProto(policy.Result),
 		}
 		protoPolicyResults[i] = &result
 	}
 	return protoPolicyResults
+}
+
+func policyMetadataToProto(policyObj *policy.Policy, enforceIndex *int32) *stacks.PolicyMetaData {
+	if policyObj == nil {
+		return nil
+	}
+	metadata := &stacks.PolicyMetaData{
+		PolicySetName:    policyObj.PolicySetName,
+		PolicyName:       policyObj.Address,
+		FileName:         policyObj.Filename,
+		EnforcementLevel: policyObj.EnforcementLevel,
+	}
+
+	if enforceIndex != nil {
+		metadata.EnforceIndex = *enforceIndex
+	}
+
+	return metadata
 }
 
 func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []*stacks.PolicyInfo {
@@ -227,17 +240,8 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 		if enforcement.Message == "" {
 			continue
 		}
-		var protoPolicyMetadata *stacks.PolicyMetaData
-		if enforcement.Policy != nil {
-			policy := enforcement.Policy
-			protoPolicyMetadata = &stacks.PolicyMetaData{
-				PolicyName:       policy.Address,
-				PolicySetName:    policy.PolicySetName,
-				EnforcementLevel: policy.EnforcementLevel,
-				FileName:         policy.Filename,
-				EnforceIndex:     enforcement.BlockIndex,
-			}
-		}
+		protoPolicyMetadata := policyMetadataToProto(enforcement.Policy, &enforcement.BlockIndex)
+
 		var protoPolicySnippet *stacks.PolicySnippet
 		if snippet := enforcement.Snippet; snippet != nil {
 			protoPolicySnippet = &stacks.PolicySnippet{
@@ -296,15 +300,7 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 			}
 
 			policyDiag.Result = policyEvaluateResultToProto(extra.Result)
-			policyDiag.PolicyMetadata = &stacks.PolicyMetaData{
-				PolicySetName:    extra.Policy.PolicySetName,
-				PolicyName:       extra.Policy.Address,
-				FileName:         extra.Policy.Filename,
-				EnforcementLevel: extra.Policy.EnforcementLevel,
-			}
-			if extra.EnforceIndex != nil {
-				policyDiag.PolicyMetadata.EnforceIndex = *extra.EnforceIndex
-			}
+			policyDiag.PolicyMetadata = policyMetadataToProto(&extra.Policy, extra.EnforceIndex)
 
 			if snippet := extra.Snippet; snippet != nil {
 				policyDiag.PolicySnippet = &stacks.PolicySnippet{

@@ -82,7 +82,7 @@ func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths [
 		requiredVersions = append(requiredVersions, version...)
 	}
 
-	if len(diags) > 0 {
+	if diags.HasErrors() {
 		client.Stop()
 		return nil, diags
 	}
