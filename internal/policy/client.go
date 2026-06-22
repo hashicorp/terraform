@@ -240,9 +240,7 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 }
 
 func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
-	ctx, span := tracer().Start(ctx, "policy.client.setup",
-		trace.WithAttributes(attribute.Int("policy.source_locations.count", len(req.SourceLocations))),
-	)
+	ctx, span := tracer().Start(ctx, "policy.client.setup")
 	defer span.End()
 
 	log.Printf("[DEBUG] Setting up Terraform Policy connection")
