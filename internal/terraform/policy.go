@@ -10,6 +10,7 @@ import (
 	"log"
 
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -55,7 +56,12 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 }
 
 func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
-	return func(_ context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+	return func(c context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
+			attribute.String("policy.callback.getResources.type", target),
+		))
+
+		defer span.End()
 		var found []cty.Value
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
@@ -115,12 +121,17 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				}
 			}
 		})
+		span.SetAttributes(attribute.String("policy.callback.getResources.result_count", fmt.Sprintf("%d", len(found))))
 		return found, isPartialResult, nil
 	}
 }
 
 func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(_ context.Context, target string, attrs cty.Value) (cty.Value, error) {
+	return func(c context.Context, target string, attrs cty.Value) (cty.Value, error) {
+		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
+			attribute.String("policy.callback.getDataSource.type", target),
+		))
+		defer span.End()
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {
