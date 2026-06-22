@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -21,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.Client, policy.Diagnostics, func()) {
+func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string, ent *policy.Entitlement) (policy.Client, policy.Diagnostics, func()) {
 	var client policy.Client
 	closer := func() {
 		if client != nil {
@@ -46,7 +47,7 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 	}
 
 	var diags policy.Diagnostics
-	client, diags = policy.NewPolicyClient(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar), policyPaths)
+	client, diags = policy.NewPolicyClient(ctx, os.Getenv(policy.TerraformPolicyPluginEnvVar), policyPaths, ent)
 	if diags.HasErrors() {
 		return nil, diags, closer
 	}
@@ -56,6 +57,17 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string) (policy.C
 }
 
 var _ initwd.ModuleInstallHook = &policyModuleInstallHook{}
+
+// backendPolicyEntitlement returns the entitlement from the backend if it
+// implements policy.EntitlementProvider, or nil otherwise (e.g. a local
+// backend).
+func backendPolicyEntitlement(be backend.Backend) *policy.Entitlement {
+	provider, ok := be.(policy.EntitlementProvider)
+	if !ok {
+		return nil
+	}
+	return provider.PolicyEntitlement()
+}
 
 // policyModuleInstallHook enables policy evaluation during module installation.
 type policyModuleInstallHook struct {

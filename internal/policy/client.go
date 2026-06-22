@@ -217,11 +217,19 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 
 func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 	log.Printf("[DEBUG] Setting up Terraform Policy connection")
-	response, err := c.client.Setup(ctx, &proto.PolicySetupRequest{
+	protoReq := &proto.PolicySetupRequest{
 		ClientCapabilities: new(proto.PolicySetupRequest_ClientCapabilities),
 		SourceLocations:    req.SourceLocations,
 		CallbackService:    req.CallbackService,
-	})
+	}
+	if req.Entitlement != nil {
+		protoReq.Entitlement = &proto.PolicySetupRequest_Entitlement{
+			Host:  req.Entitlement.Host,
+			Token: req.Entitlement.Token,
+			Org:   req.Entitlement.Org,
+		}
+	}
+	response, err := c.client.Setup(ctx, protoReq)
 	if err != nil {
 		return SetupResponse{Diagnostics: Diagnostics{
 			NewErrorDiagnostic("Failed to setup Terraform Policy connection",

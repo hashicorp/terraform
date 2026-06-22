@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself'
+time: 2026-06-12T14:05:00.000000-04:00
+custom:
+    Issue: "38716"
