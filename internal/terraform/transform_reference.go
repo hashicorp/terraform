@@ -111,54 +111,39 @@ type ReferenceTransformer struct{}
 
 func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Build a reference map so we can efficiently look up the references
-	vs := g.Vertices()
-	m := NewReferenceMap(vs)
+	vertices := g.Vertices()
+	m := NewReferenceMap(vertices)
 
 	// Find the things that reference things and connect them
-	for _, v := range vs {
-		// Only plan-time destroy nodes can be connected via references.
-		_, destroyer := v.(GraphNodeDestroyer)
-		_, planning := v.(GraphNodePlanDestroyer)
-		if destroyer && !planning {
+	for _, v := range vertices {
+		if _, ok := v.(GraphNodeConfigAction); ok {
+			// Because actions were allowed to reference the calling resource in
+			// configuration, we need to deal with the resulting cycles. Skip
+			// action nodes in the first round so that any triggers can be
+			// connected first and cycles can be detected.
 			continue
 		}
 
-		// Because actions were allowed to reference the calling resource in
-		// configuration, we need to deal with the resulting cycles. Skip action
-		// nodes in the first round so that any triggers can be connected first
-		// so cycles can be detected.
-		if _, ok := v.(*NodeActionConfig); ok {
-			continue
-		}
-
-		parents := m.References(v)
-		parentsDbg := make([]string, len(parents))
-		for i, v := range parents {
-			parentsDbg[i] = dag.VertexName(v)
+		referencedNodes := m.References(v)
+		refDbg := make([]string, len(referencedNodes))
+		for i, v := range referencedNodes {
+			refDbg[i] = dag.VertexName(v)
 		}
 		log.Printf(
 			"[DEBUG] ReferenceTransformer: %q references: %v",
-			dag.VertexName(v), parentsDbg)
+			dag.VertexName(v), refDbg)
 
-		for _, parent := range parents {
-			// A destroy plan relies solely on the state, so we only need to
-			// ensure that temporary values are connected to get the evaluation
-			// order correct. Any references to destroy nodes will cause
-			// cycles, because they are connected in reverse order.
-			if _, ok := parent.(GraphNodeDestroyer); ok {
-				continue
-			}
-
-			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
-				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(parent))
-				g.Connect(dag.BasicEdge(v, parent))
+		for _, referenced := range referencedNodes {
+			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, referenced) {
+				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(referenced))
+				g.Connect(dag.BasicEdge(v, referenced))
 			}
 		}
 	}
 
 	// now we can go back and connect the action configs to their dependencies
-	for _, v := range vs {
-		actionConfig, ok := v.(*NodeActionConfig)
+	for _, v := range vertices {
+		actionConfig, ok := v.(GraphNodeConfigAction)
 		if !ok {
 			continue
 		}
@@ -174,17 +159,17 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				caller, ok := ref.(GraphNodeActionCaller)
 				if !ok {
 					// this node cannot call any actions
-					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
+					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
 				}
 
 				// The reference can call actions, and we'll allow it if it
 				// directly references back to the same action node.
 				for _, actionCall := range caller.ActionCalls() {
-					if actionCall.Equal(actionConfig.Addr) {
+					if actionCall.Equal(actionConfig.ActionAddr()) {
 						continue ACTIONREFS
 					}
 				}
-				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.Addr, dag.VertexName(ref))
+				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
 			}
 
 			g.Connect(dag.BasicEdge(actionConfig, ref))
