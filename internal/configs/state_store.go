@@ -111,24 +111,19 @@ var StateStorageBlockSchema = &hcl.BodySchema{
 // resolveStateStoreProviderType is used to obtain provider source data from required_providers data.
 // The only exception is the builtin terraform provider, which we return source data for without using required_providers.
 // This code is reused in code for parsing config and modules.
-func resolveStateStoreProviderType(
-	requiredProviders map[string]*RequiredProvider,
-	deferredProviderExprs map[string]*ProviderRequirementExpr,
-	stateStore StateStore,
-) (tfaddr.Provider, hcl.Diagnostics) {
+func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvider, stateStore StateStore) (tfaddr.Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// We intentionally don't look for entries in required_providers under different local names and match them
 	// Users should use the same local name in the nested provider block as in required_providers.
 	addr, foundReqProviderEntry := requiredProviders[stateStore.Provider.Name]
-	_, foundDeferredProviderEntry := deferredProviderExprs[stateStore.Provider.Name]
 	switch {
-	case !foundReqProviderEntry && !foundDeferredProviderEntry && stateStore.Provider.Name == "terraform":
+	case !foundReqProviderEntry && stateStore.Provider.Name == "terraform":
 		// We do not expect users to include built in providers in required_providers
 		// So, if we don't find an entry in required_providers under local name 'terraform' we assume
 		// that the builtin provider is intended.
 		return addrs.NewBuiltInProvider("terraform"), nil
-	case !foundReqProviderEntry && !foundDeferredProviderEntry:
+	case !foundReqProviderEntry:
 		diags = diags.Append(
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -140,26 +135,11 @@ func resolveStateStoreProviderType(
 			},
 		)
 		return tfaddr.Provider{}, diags
-	case foundReqProviderEntry:
+	default:
 		// We've got a required_providers entry to use
 		// This code path is used for both re-attached providers
 		// providers that are fully managed by Terraform.
 		return addr.Type, nil
-	default:
-		// Provider exists in deferred requirements but has not yet been resolved.
-		// Use the implied provider type for now and allow later resolution to
-		// replace it with fully-resolved source data.
-		pType, err := addrs.ParseProviderPart(stateStore.Provider.Name)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider name",
-				Detail:   err.Error(),
-				Subject:  &stateStore.DeclRange,
-			})
-			return tfaddr.Provider{}, diags
-		}
-		return addrs.ImpliedProviderForUnqualifiedType(pType), nil
 	}
 }
 

@@ -989,7 +989,6 @@ func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
 
 	providerType, typeDiags := resolveStateStoreProviderType(
 		m.ProviderRequirements.RequiredProviders,
-		m.ProviderRequirementExprs,
 		*m.StateStore,
 	)
 

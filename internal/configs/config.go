@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -687,7 +687,6 @@ func (c *Config) resolveStateStoreProviderType() hcl.Diagnostics {
 
 	providerType, typeDiags := resolveStateStoreProviderType(
 		c.Root.Module.ProviderRequirements.RequiredProviders,
-		c.Root.Module.ProviderRequirementExprs,
 		*c.Root.Module.StateStore,
 	)
 
