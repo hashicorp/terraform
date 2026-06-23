@@ -38,8 +38,7 @@ message PolicySetupRequest {
   message ClientCapabilities {}
 
   // Entitlement carries the host, token, and org the plugin uses to verify
-  // policy-enforcement entitlement at Setup. The client resolves these itself.
-  // If unset or any field is empty, the plugin skips the check.
+  // policy-enforcement entitlement at Setup.
   message Entitlement {
     string host = 1;
     string token = 2;
@@ -57,8 +56,8 @@ message PolicySetupRequest {
   // callback_service allows Terraform Policy to use the Callback Service API.
   uint32 callback_service = 3;
 
-  // entitlement is optional; when present, the plugin uses it to call the
-  // entitlement-set endpoint and refuses Setup if the org is not entitled.
+  // entitlement is used to call the entitlement-set endpoint
+  // and refuse Setup if the org is not entitled.
   Entitlement entitlement = 4;
 }
 

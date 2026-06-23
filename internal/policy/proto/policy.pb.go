@@ -35,8 +35,8 @@ type PolicySetupRequest struct {
 	SourceLocations []string `protobuf:"bytes,2,rep,name=source_locations,json=sourceLocations,proto3" json:"source_locations,omitempty"`
 	// callback_service allows Terraform Policy to use the Callback Service API.
 	CallbackService uint32 `protobuf:"varint,3,opt,name=callback_service,json=callbackService,proto3" json:"callback_service,omitempty"`
-	// entitlement is optional; when present, the plugin uses it to call the
-	// entitlement-set endpoint and refuses Setup if the org is not entitled.
+	// entitlement is used to call the entitlement-set endpoint
+	// and refuse Setup if the org is not entitled.
 	Entitlement   *PolicySetupRequest_Entitlement `protobuf:"bytes,4,opt,name=entitlement,proto3" json:"entitlement,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -792,8 +792,7 @@ func (*PolicySetupRequest_ClientCapabilities) Descriptor() ([]byte, []int) {
 }
 
 // Entitlement carries the host, token, and org the plugin uses to verify
-// policy-enforcement entitlement at Setup. The client resolves these itself.
-// If unset or any field is empty, the plugin skips the check.
+// policy-enforcement entitlement at Setup.
 type PolicySetupRequest_Entitlement struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
