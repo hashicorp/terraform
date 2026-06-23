@@ -43,7 +43,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	finish := &nodePolicyEvalFinish{span: policyGraph.span}
 	policyGraph.graph.Add(finish)
 	for pn := range policyGraph.graph.VerticesSeq() {
-		if _, ok := pn.(*nodePolicyEval); !ok {
+		if _, ok := pn.(*nodeResourcePolicy); !ok {
 			continue
 		}
 		// finish depends on pn, so pn runs first and finish runs after.
