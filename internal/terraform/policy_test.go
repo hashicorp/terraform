@@ -4,9 +4,7 @@
 package terraform
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -94,11 +92,10 @@ resource "test_resource" "b" {
 	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
 
 	tests := []struct {
-		name          string
-		filter        cty.Value
-		wantNames     []string
-		wantUnknown   bool
-		wantPanicText string
+		name        string
+		filter      cty.Value
+		wantNames   []string
+		wantUnknown bool
 	}{
 		{
 			name:        "null filter returns all matching resources",
@@ -132,29 +129,9 @@ resource "test_resource" "b" {
 				got        []cty.Value
 				gotUnknown bool
 				gotErr     error
-				panicValue any
 			)
 
-			func() {
-				defer func() {
-					panicValue = recover()
-				}()
-				got, gotUnknown, gotErr = callback("test_resource", tt.filter)
-			}()
-
-			if tt.wantPanicText != "" {
-				if panicValue == nil {
-					t.Fatalf("expected panic containing %q, but callback returned normally", tt.wantPanicText)
-				}
-				if got := fmt.Sprint(panicValue); !strings.Contains(got, tt.wantPanicText) {
-					t.Fatalf("wrong panic\ngot:  %q\nwant substring: %q", got, tt.wantPanicText)
-				}
-				return
-			}
-
-			if panicValue != nil {
-				t.Fatalf("unexpected panic: %v", panicValue)
-			}
+			got, gotUnknown, gotErr = callback("test_resource", tt.filter)
 			if gotErr != nil {
 				t.Fatalf("unexpected error: %v", gotErr)
 			}
