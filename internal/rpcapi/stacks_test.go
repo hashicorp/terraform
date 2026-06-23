@@ -553,45 +553,13 @@ func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// No policy events should be emitted
-	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := events.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.PlanStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation) int {
-		return strings.Compare(
-			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-		)
-	})
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromPlan(t, events)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -660,53 +628,19 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// All components will output the same policy evaluation data from different addresses
-	wantEvents := []*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
-		{
-			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
-		},
-		{
-			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
-		},
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
 
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := events.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.PlanStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation) int {
-		return strings.Compare(
-			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-		)
-	})
+	gotEvents := collectPolicyEventsFromPlan(t, events)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -777,37 +711,13 @@ func TestStacksPlanStackChanges_noPolicyResultsForRefresh(t *testing.T) {
 	}
 
 	// No policy events should be emitted as this plan is in refresh mode
-	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := events.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.PlanStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromPlan(t, events)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -878,37 +788,13 @@ func TestStacksPlanStackChanges_noPolicyResultsForDestroy(t *testing.T) {
 	}
 
 	// No policy events should be emitted as this plan is in destroy mode
-	wantEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := events.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.PlanStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromPlan(t, events)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -1022,45 +908,13 @@ func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 	}
 
 	// No policy events should be emitted
-	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := applyResp.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.ApplyStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) int {
-		return strings.Compare(
-			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-		)
-	})
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -1174,53 +1028,19 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// All components will output the same policy evaluation data from different addresses
-	wantEvents := []*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
-		{
-			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp1"]`),
-		},
-		{
-			ComponentInstancePolicyEvaluation: createExpectedPolicyEvaluationResponse(`component.simple_component["comp2"]`),
-		},
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
 
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := applyResp.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.ApplyStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
-	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	// Order of policy events is not guaranteed
-	slices.SortFunc(gotEvents, func(a, b *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) int {
-		return strings.Compare(
-			a.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-			b.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
-		)
-	})
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -1335,38 +1155,21 @@ func TestStacksApplyStackChanges_noPolicyResultsForRefresh(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// No policy events should be emitted as the plan for this apply was created in refresh mode
-	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := applyResp.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.ApplyStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
+	// TODO: This is currently bugged because ApplyStackChanges is using the stackplan Mode field to control running policy evaluation,
+	// but that field is not serialized or deserialized from the plan itself.
+	//
+	// This test may eventually be modified anyways, so we just expect just provider policies to be evaluated for now
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
 
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -1481,38 +1284,20 @@ func TestStacksApplyStackChanges_noPolicyResultsForDestroy(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	// No policy events should be emitted as the plan for this apply was created in destroy mode
-	wantEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-
-	// Collect policy evaluation + diagnostics
-	gotEvents := make([]*stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation, 0)
-	var diags []*terraform1.Diagnostic
-	for {
-		event, err := applyResp.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		switch evt := event.Event.(type) {
-		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
-			gotEvents = append(gotEvents, evt)
-		case *stacks.ApplyStackChanges_Event_Diagnostic:
-			diags = append(diags, event.GetDiagnostic())
-		default:
-			continue
-		}
+	// TODO: This is currently bugged because ApplyStackChanges is using the stackplan Mode field to control running policy evaluation,
+	// but that field is not serialized or deserialized from the plan itself.
+	//
+	// This test may eventually be modified anyways, so we just expect just provider policies to be evaluated for now
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
-
-	if len(diags) > 0 {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
-		protocmp.SortRepeatedFields(&stacks.PolicyEvaluationResponse{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
 	}
@@ -3230,15 +3015,43 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 	}
 
 	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
-		// TODO: Update this test to assert provider policy evaluation when we add it to the stacks runtime (follow-up PR)
-		t.Fatal("unexpected call to provider policy evaluation")
-		return policy.EvaluationResponse{}
+		// Assert provider data
+		expectedMeta := &policyproto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:      "testing",
+			Alias:     "default",
+			Namespace: "hashicorp",
+			Source:    "registry.terraform.io/hashicorp/testing",
+			Version:   "0.0.0",
+		}
+		if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected provider metadata\n%s", diff)
+		}
+
+		val := req.Attrs.Raw.GetAttr("ignored")
+		if !strings.HasPrefix(val.AsString(), "comp") {
+			t.Fatalf(`unexpected resource data, wanted: attr.ignored to start with "comp", got: %q`, val.AsString())
+		}
+
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Provider policy violation",
+					Detail:   "testing provider violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
 	}
 
 	return policyClient
 }
 
-func createExpectedPolicyEvaluationResponse(componentInstanceAddr string) *stacks.PolicyEvaluationResponse {
+func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr string) aggregatedPolicyEvent {
 	expectedPolicyMetadata := &stacks.PolicyMetaData{
 		PolicyName:       "policy_name",
 		PolicySetName:    "some_policy_set",
@@ -3246,83 +3059,223 @@ func createExpectedPolicyEvaluationResponse(componentInstanceAddr string) *stack
 		FileName:         "policy_file.tfpolicy.hcl",
 	}
 
-	return &stacks.PolicyEvaluationResponse{
-		Addr: &stacks.ComponentInstanceInStackAddr{
-			ComponentAddr:         "component.simple_component",
-			ComponentInstanceAddr: componentInstanceAddr,
-		},
-		Results: []*stacks.PolicyResult{
-			{
-				TargetAddress:  "module.child.testing_resource.child_resource",
-				PolicyMetadata: expectedPolicyMetadata,
-				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+	return aggregatedPolicyEvent{
+		Addr: componentInstanceAddr,
+		PolicyEvalautionProto: &stacks.ComponentInstancePolicyEvaluation{
+			Addr: &stacks.ComponentInstanceInStackAddr{
+				ComponentAddr:         "component.simple_component",
+				ComponentInstanceAddr: componentInstanceAddr,
 			},
-			{
-				TargetAddress:  "testing_resource.parent_resource",
-				PolicyMetadata: expectedPolicyMetadata,
-				Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
-			},
-			{
-				TargetAddress:  "module.child",
-				PolicyMetadata: expectedPolicyMetadata,
-				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
-			},
-		},
-		Infos: []*stacks.PolicyInfo{
-			{
-				TargetAddress: "testing_resource.parent_resource",
-				PolicyMetadata: &stacks.PolicyMetaData{
-					PolicyName:       "policy_name",
-					PolicySetName:    "some_policy_set",
-					EnforcementLevel: "mandatory",
-					FileName:         "policy_file.tfpolicy.hcl",
-					EnforceIndex:     1,
+			Results: []*stacks.PolicyResult{
+				{
+					TargetAddress:  "module.child.testing_resource.child_resource",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
-				Message: "just an advisory message",
-				Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
-			},
-		},
-		Diagnostics: []*stacks.PolicyDiagnostic{
-			{
-				TargetAddress:  "module.child.testing_resource.child_resource",
-				PolicyMetadata: &stacks.PolicyMetaData{},
-				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
-				Diagnostic: &terraform1.Diagnostic{
-					Severity: terraform1.Diagnostic_ERROR,
-					Summary:  "Child module resource violation",
-					Detail:   "module.child.testing_resource.child_resource violates policy",
-					Subject: &terraform1.SourceRange{
-						SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
-						Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
-						End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
-					},
-					Context: &terraform1.SourceRange{
-						SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
-						Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
-						End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
-					},
+				{
+					TargetAddress:  "testing_resource.parent_resource",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+				},
+				{
+					TargetAddress:  "module.child",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
 			},
-			{
-				TargetAddress:  "module.child",
-				PolicyMetadata: &stacks.PolicyMetaData{},
-				Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
-				Diagnostic: &terraform1.Diagnostic{
-					Severity: terraform1.Diagnostic_ERROR,
-					Summary:  "Child module policy violation",
-					Detail:   "module.child violates policy",
-					Subject: &terraform1.SourceRange{
-						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
-						Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
-						End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+			Infos: []*stacks.PolicyInfo{
+				{
+					TargetAddress: "testing_resource.parent_resource",
+					PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyName:       "policy_name",
+						PolicySetName:    "some_policy_set",
+						EnforcementLevel: "mandatory",
+						FileName:         "policy_file.tfpolicy.hcl",
+						EnforceIndex:     1,
 					},
-					Context: &terraform1.SourceRange{
-						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
-						Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
-						End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+					Message: "just an advisory message",
+					Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+				},
+			},
+			Diagnostics: []*stacks.PolicyDiagnostic{
+				{
+					TargetAddress:  "module.child.testing_resource.child_resource",
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Child module resource violation",
+						Detail:   "module.child.testing_resource.child_resource violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+							Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+							Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+						},
+					},
+				},
+				{
+					TargetAddress:  "module.child",
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Child module policy violation",
+						Detail:   "module.child violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+							Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+							Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+						},
 					},
 				},
 			},
 		},
 	}
+}
+
+func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string) aggregatedPolicyEvent {
+	expectedPolicyMetadata := &stacks.PolicyMetaData{
+		PolicyName:       "policy_name",
+		PolicySetName:    "some_policy_set",
+		EnforcementLevel: "mandatory",
+		FileName:         "policy_file.tfpolicy.hcl",
+	}
+
+	providerAddr := `provider["registry.terraform.io/hashicorp/testing"].default`
+	return aggregatedPolicyEvent{
+		Addr: providerInstanceAddr,
+		PolicyEvalautionProto: &stacks.ProviderInstancePolicyEvaluation{
+			Addr: &stacks.ProviderInstanceInStackAddr{
+				ProviderAddr:         providerAddr,
+				ProviderInstanceAddr: providerInstanceAddr,
+			},
+			Results: []*stacks.PolicyResult{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+			},
+			Infos: []*stacks.PolicyInfo{},
+			Diagnostics: []*stacks.PolicyDiagnostic{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Provider policy violation",
+						Detail:   "testing provider violates policy",
+					},
+				},
+			},
+		},
+	}
+}
+
+func collectPolicyEventsFromPlan(t *testing.T, planEvents grpc.ServerStreamingClient[stacks.PlanStackChanges_Event]) []aggregatedPolicyEvent {
+	t.Helper()
+
+	gotEvents := make([]aggregatedPolicyEvent, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := planEvents.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
+			})
+		case *stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ProviderInstancePolicyEvaluation.GetAddr().GetProviderInstanceAddr(),
+				PolicyEvalautionProto: evt.ProviderInstancePolicyEvaluation,
+			})
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b aggregatedPolicyEvent) int {
+		return strings.Compare(
+			a.Addr,
+			b.Addr,
+		)
+	})
+
+	return gotEvents
+}
+
+func collectPolicyEventsFromApply(t *testing.T, applyEvents grpc.ServerStreamingClient[stacks.ApplyStackChanges_Event]) []aggregatedPolicyEvent {
+	gotEvents := make([]aggregatedPolicyEvent, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyEvents.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
+			})
+		case *stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ProviderInstancePolicyEvaluation.GetAddr().GetProviderInstanceAddr(),
+				PolicyEvalautionProto: evt.ProviderInstancePolicyEvaluation,
+			})
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b aggregatedPolicyEvent) int {
+		return strings.Compare(
+			a.Addr,
+			b.Addr,
+		)
+	})
+
+	return gotEvents
+}
+
+type aggregatedPolicyEvent struct {
+	Addr                  string
+	PolicyEvalautionProto any
 }

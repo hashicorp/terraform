@@ -1088,6 +1088,18 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		})
 	}
 
+	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.PlanStackChanges_Event{
+			Event: &stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
 	return changeHooks
 }
 
@@ -1111,6 +1123,18 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		evts.Send(&stacks.ApplyStackChanges_Event{
 			Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
 				ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
+	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.ApplyStackChanges_Event{
+			Event: &stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}

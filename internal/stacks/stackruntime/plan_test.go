@@ -21,6 +21,7 @@ import (
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -6955,8 +6956,46 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: createExpectedPolicyEvaluation("policy-evaluation"),
-		`component.simple_component["comp2"]`: createExpectedPolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestPlan_WithPolicyResults_EmbeddedStack(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation-embedded-stack")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	gotPolicyResults := planAndCollectPolicyResults(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		Config:   cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 	}
 
 	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
@@ -7049,8 +7088,10 @@ func TestPlan_NoPolicyResultsOnRemovedComponent(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: createExpectedPolicyEvaluation("policy-evaluation-removed"),
+		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		// component.simple_component["comp2"] is removed in this config so there should be no policy result for it
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
 
 	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
@@ -7335,15 +7376,43 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 	}
 
 	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
-		// TODO: Update this test to assert provider policy evaluation when we add it to the stacks runtime (follow-up PR)
-		t.Fatal("unexpected call to provider policy evaluation")
-		return policy.EvaluationResponse{}
+		// Assert provider data
+		expectedMeta := &policyproto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:      "testing",
+			Alias:     "default",
+			Namespace: "hashicorp",
+			Source:    "registry.terraform.io/hashicorp/testing",
+			Version:   "0.0.0",
+		}
+		if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected provider metadata\n%s", diff)
+		}
+
+		val := req.Attrs.Raw.GetAttr("ignored")
+		if !strings.HasPrefix(val.AsString(), "comp") {
+			t.Fatalf(`unexpected resource data, wanted: attr.ignored to start with "comp", got: %q`, val.AsString())
+		}
+
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Provider policy violation",
+					Detail:   "testing provider violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
 	}
 
 	return policyClient
 }
 
-func createExpectedPolicyEvaluation(bundleName string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
 	policyObj := func(result policy.EvaluateResult) *policy.Policy {
 		return &policy.Policy{
 			Result:           result,
@@ -7356,17 +7425,17 @@ func createExpectedPolicyEvaluation(bundleName string) map[string]plans.PolicyEv
 	}
 
 	rootModuleRange := hcl.Range{
-		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundleName),
+		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
 		End:      hcl.Pos{Line: 14, Column: 46, Byte: 206},
 	}
 	moduleCallRange := hcl.Range{
-		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundleName),
+		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 18, Column: 1, Byte: 259},
 		End:      hcl.Pos{Line: 18, Column: 15, Byte: 273},
 	}
 	childResourceRange := hcl.Range{
-		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/child/main.tf", bundleName),
+		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/child/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
 		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
 	}
@@ -7425,6 +7494,45 @@ func createExpectedPolicyEvaluation(bundleName string) map[string]plans.PolicyEv
 	}
 }
 
+func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
+	policyObj := func(result policy.EvaluateResult) *policy.Policy {
+		return &policy.Policy{
+			Result:           result,
+			PolicySetName:    "some_policy_set",
+			Address:          "policy_name",
+			Directory:        "some/path/to",
+			Filename:         "policy_file.tfpolicy.hcl",
+			EnforcementLevel: "mandatory",
+		}
+	}
+
+	providerRange := hcl.Range{
+		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tfcomponent.hcl", bundlePath),
+		Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
+		End:      hcl.Pos{Line: 8, Column: 29, Byte: 126},
+	}
+
+	return map[string]plans.PolicyEvaluation{
+		`provider["registry.terraform.io/hashicorp/testing"].default`: {
+			EvaluationResponse: policy.EvaluationResponse{
+				Overall:  policy.DenyResult,
+				Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+				Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+					{
+						Severity: policyproto.Severity_ERROR,
+						Summary:  "Provider policy violation",
+						Detail:   "testing provider violates policy",
+						Result: &policyproto.DiagnosticResult{
+							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+						},
+					},
+				}, nil),
+			},
+			ConfigDeclRange: providerRange,
+		},
+	}
+}
+
 func withLocalRange(diags policy.Diagnostics, rng hcl.Range) policy.Diagnostics {
 	out := make(policy.Diagnostics, len(diags))
 	for i, d := range diags {
@@ -7447,6 +7555,11 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
 	planHooks := &Hooks{
 		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
+			mu.Lock()
+			defer mu.Unlock()
+			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+		},
+		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
 			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())

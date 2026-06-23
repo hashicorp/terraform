@@ -50,18 +50,14 @@ func (pr *PolicyResults) AddResource(addr addrs.AbsResourceInstance, result poli
 	pr.set.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng})
 }
 
-func (pr *PolicyResults) AddProvider(addr addrs.AbsProviderConfig, result policy.EvaluationResponse, config *configs.Provider) {
+func (pr *PolicyResults) AddProvider(addr addrs.AbsProviderConfig, result policy.EvaluationResponse, configDeclRange hcl.Range) {
 	// Don't add empty results
 	if result.Empty() {
 		return
 	}
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
-	var rng hcl.Range
-	if config != nil {
-		rng = config.DeclRange
-	}
-	pr.pset.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng})
+	pr.pset.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: configDeclRange})
 }
 
 func (pr *PolicyResults) AddModule(addr addrs.Module, result policy.EvaluationResponse, config *configs.ModuleCall) {

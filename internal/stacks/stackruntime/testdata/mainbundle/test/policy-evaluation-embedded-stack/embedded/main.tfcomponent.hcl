@@ -15,7 +15,6 @@ provider "testing" "default" {
 
 variable "component_names" {
   type      = set(string)
-  default = ["comp1", "comp2"]
 }
 
 component "simple_component" {
