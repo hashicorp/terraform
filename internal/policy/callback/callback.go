@@ -11,7 +11,7 @@ import (
 )
 
 type Functions struct {
-	GetResources  func(resource string, attrs cty.Value) ([]cty.Value, error)
+	GetResources  func(resource string, attrs cty.Value) ([]cty.Value, bool, error)
 	GetDataSource func(datasource string, attrs cty.Value) (cty.Value, error)
 }
 

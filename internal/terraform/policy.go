@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -44,13 +45,14 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, error) {
-	return func(target string, attrs cty.Value) ([]cty.Value, error) {
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
+	return func(target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		var found []cty.Value
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
 		}
+		var isPartialResult bool
 		config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
@@ -89,41 +91,22 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				}
 
 				for resource := range resourcesSeq {
-					if attrs.IsNull() {
-						// then match everything
+					matched, unknown := resourceMatchesFilter(addr, schema.Body, filterMap, resource)
+					if matched {
+						resource, _ = resource.UnmarkDeep()
 						found = append(found, resource)
 						continue
 					}
 
-					matched := true
-					for name, attr := range filterMap {
-						if schema.Body == nil || schema.Body.Attributes[name] == nil {
-							matched = false
-							break
-						}
-
-						equals := attr.Equals(resource.GetAttr(name))
-						if !equals.IsKnown() {
-							// We'll treat unknown values as matches, and they
-							// can be handled on the Terraform Policy side.
-							continue
-						}
-
-						if equals.False() {
-							matched = false
-							break
-						}
-					}
-
-					if matched {
-						resource, _ = resource.UnmarkDeep()
-						found = append(found, resource)
-					}
+					// If the filtered attribute for matching is unknown for this resource instance,
+					// we can't determine whether it matches, so we'll mark the whole callback result as incomplete.
+					// We still continue to the next resource instance, so that we return all known objects as well.
+					isPartialResult = isPartialResult || unknown
 
 				}
 			}
 		})
-		return found, nil
+		return found, isPartialResult, nil
 	}
 }
 
@@ -156,4 +139,47 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 		}
 		return cty.NilVal, fmt.Errorf("no data source found for %s", target)
 	}
+}
+
+// resourceMatchesFilter returns whether the given resource matches the given filter attributes and/or if the filter attributes are unknown for the resource.
+func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block, filterAttrs map[string]cty.Value, resource cty.Value) (matches, unknown bool) {
+	if resource.IsNull() {
+		// if the resource is null, then it doesn't match anything
+		return false, false
+	}
+	if len(filterAttrs) == 0 {
+		// if the filter is null, then match everything
+		return true, false
+	}
+
+	sawUnknown := false
+
+	attrTypes := resource.Type().AttributeTypes()
+	for name, attr := range filterAttrs {
+		if _, ok := attrTypes[name]; !ok {
+			return false, false
+		}
+
+		equals := attr.Equals(resource.GetAttr(name))
+		if !equals.IsKnown() {
+			// If the filtered attribute for matching is unknown for this resource instance, we
+			// can't determine whether it matches, so we track that we saw an unknown attribute and continue to check other attributes.
+			// This lets false matches take precedence over the unknown result, since we can still determine that the resource does not match.
+			sawUnknown = true
+			continue
+		}
+
+		if equals.False() {
+			log.Printf("[DEBUG] attribute %q does not match in resource %q", name, addr.String())
+			// an attribute mismatch means we can't match this resource
+			return false, false
+		}
+	}
+
+	// We saw an unknown attribute, and no other attributes mismatched, so we can't determine whether the resource matches.
+	if sawUnknown {
+		return false, true
+	}
+
+	return true, false
 }
