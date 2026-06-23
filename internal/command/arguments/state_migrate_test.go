@@ -19,7 +19,7 @@ func TestStateMigrateArgs(t *testing.T) {
 		{
 			rawArgs: []string{""},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
+				SourceLockFilePath:      ".terraform.lock.hcl",
 				DestinationLockFilePath: ".terraform.lock.hcl",
 				Upgrade:                 false,
 				InputEnabled:            true,
@@ -61,7 +61,7 @@ func TestStateMigrateArgs(t *testing.T) {
 		{
 			rawArgs: []string{"-input=false", "-destination-provider-lock-file", "foo"},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
+				SourceLockFilePath:      ".terraform.lock.hcl",
 				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            false,

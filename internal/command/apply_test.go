@@ -763,7 +763,7 @@ func TestApply_plan_stateStore(t *testing.T) {
 	planPath := testPlanFile(t, snap, state, plan)
 
 	// Create a mock, to be used as the pluggable state store described in the planfile
-	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -820,7 +820,8 @@ output "foobar" {
 		}
 
 		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		source := newMockProviderSource(t, map[string][]string{
 			// The test fixture config has no version constraints, so the latest version will
@@ -936,7 +937,11 @@ output "foobar" {
 		// Terraform validates that builtin providers are called 'terraform' but we can still supply
 		// a mock in place of the actual builtin terraform provider. We just need the address and any
 		// schemas to match the builtin provider.
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithTypesAndStateIds(
+			[]string{"test_store", "terraform_store"},
+			[]string{"default"},
+		)
 		schema := mockProvider.GetProviderSchema()
 		schema.StateStores["terraform_store"] = schema.StateStores["test_store"] // rename to match pretending this is a store in the builtin terraform provider.
 		mockProvider.GetProviderSchemaResponse = &schema
@@ -1080,7 +1085,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 		planPath := testPlanFile(t, snap, state, plan)
 
 		// Create a mock, to be used as the pluggable state store described in the planfile
-		mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+		mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 		view, done := testView(t)
 		c := &ApplyCommand{
 			Meta: Meta{

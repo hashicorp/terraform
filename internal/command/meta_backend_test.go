@@ -1688,7 +1688,7 @@ func TestMetaBackend_planLocal_stateStore(t *testing.T) {
 
 	// Setup the meta, including a mock provider set up to mock PSS
 	m := testMetaBackend(t, nil)
-	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 	m.testingOverrides = &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
@@ -3141,7 +3141,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 
 		m := testMetaBackend(t, nil)
 		m.AllowExperimentalFeatures = true
-		mock := testStateStoreMockWithChunkNegotiation(t, 12345) // chunk size needs to be set, value is arbitrary
+		mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 12345) // chunk size needs to be set, value is arbitrary
 		m.testingOverrides = &testingOverrides{
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
@@ -3239,9 +3239,8 @@ func testStateStoreMock(t *testing.T) *testing_provider.MockProvider {
 // without this error: `Failed to negotiate acceptable chunk size`
 //
 // This is meant to be a convenience method when a test is definitely not testing anything related to state store configuration.
-func testStateStoreMockWithChunkNegotiation(t *testing.T, chunkSize int64) *testing_provider.MockProvider {
+func testStateStoreMockWithChunkNegotiation(t *testing.T, mock *testing_provider.MockProvider, chunkSize int64) *testing_provider.MockProvider {
 	t.Helper()
-	mock := testStateStoreMock(t)
 	mock.ConfigureStateStoreResponse = &providers.ConfigureStateStoreResponse{
 		Capabilities: providers.StateStoreServerCapabilities{
 			ChunkSize: chunkSize,

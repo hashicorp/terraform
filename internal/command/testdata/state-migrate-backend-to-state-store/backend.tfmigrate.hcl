@@ -1,5 +1,5 @@
 from {
   backend "local" {
-    path = "source.tfstate"
+    path = "source-backend.tfstate"
   }
 }
