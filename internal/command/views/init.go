@@ -13,6 +13,18 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// ProviderInstaller is an interface that describes the methods required by a view that's used
+// with provider installation methods.
+//
+// The method names here are constrained by the Init view interface, which is coupled to the
+// provider installation process. In a future major version of Terraform this could be improved.
+// See: https://github.com/hashicorp/terraform/issues/38763
+type ProviderInstaller interface {
+	LogInitMessage(messageCode InitMessageCode, params ...any)
+	Output(messageCode InitMessageCode, params ...any)
+	PrepareMessage(messageCode InitMessageCode, params ...any) string
+}
+
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -45,7 +57,10 @@ type InitHuman struct {
 	view *View
 }
 
-var _ Init = (*InitHuman)(nil)
+var (
+	_ Init              = (*InitHuman)(nil)
+	_ ProviderInstaller = (*InitHuman)(nil)
+)
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
@@ -89,7 +104,10 @@ type InitJSON struct {
 	view *JSONView
 }
 
-var _ Init = (*InitJSON)(nil)
+var (
+	_ Init              = (*InitJSON)(nil)
+	_ ProviderInstaller = (*InitJSON)(nil)
+)
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
