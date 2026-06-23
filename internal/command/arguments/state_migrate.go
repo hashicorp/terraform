@@ -8,10 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const lockFileName = ".terraform.lock.hcl"
+const lockFileName = depsfile.LockFilePath // .terraform.lock.hcl
 
 // StateMigrate represents the command-line arguments for the state migrate command.
 type StateMigrate struct {
