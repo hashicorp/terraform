@@ -117,6 +117,76 @@ func TestOutput_stateStore(t *testing.T) {
 	}
 }
 
+// Tests a scenario where the dependency lock file has been changed out-of-band so that it contains a different version of
+// the state store provider. For a non-init command this inconsistency would be detected at two points:
+// 1) In the `(StateStore).VerifyDependencySelection` method, called from `(Meta).backend` : detects mismatch between the dependency lock file and required_providers in the config.
+// 2) In the `(Meta).backendFromConfig` method when initialising the backend: detects mismatch between the dependency lock file and the state store provider version in the backend state file.
+//
+// In this PR I've commented out the first check, showing the second check is sufficient.
+// However, the first check is unique that it blocks the provider being used at all.
+func TestOutput_stateStore_changedLockFile(t *testing.T) {
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-tampered-lock-file"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{
+		"-no-color",
+		"foo",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected code 1, got code %d: \n%s", code, output.All())
+	}
+
+	actual := strings.TrimSpace(output.Stderr())
+	summary := "Error: State store initialization required, please run \"terraform state migrate\" or \"terraform init -reconfigure\""
+	if !strings.Contains(actual, summary) {
+		t.Fatalf("missing expected error summary: %#v", actual)
+	}
+	versionChangeText := "1.2.3 to 9.9.9"
+	if !strings.Contains(actual, versionChangeText) {
+		t.Fatalf("missing details about version change: %#v", actual)
+	}
+}
+
 func TestOutput_json(t *testing.T) {
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(

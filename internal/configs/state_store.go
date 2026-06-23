@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -147,15 +146,12 @@ func resolveStateStoreProviderType(requiredProviders map[string]*RequiredProvide
 // dependency lock file that matches the constraints in required_providers.
 // There is also special handling for providers that cannot be represented in the lock file (built-in providers, dev overrides)
 // and also special handling when the provider is re-attached and not managed by Terraform.
-func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, reqs *RequiredProviders, supplyMode getproviders.ProviderSupplyMode) tfdiags.Diagnostics {
+func (ss *StateStore) VerifyDependencySelection(depLocks *depsfile.Locks, supplyMode getproviders.ProviderSupplyMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// If we get nil arguments it suggests that there's a bug in the calling code.
 	if depLocks == nil {
 		panic("This run has no dependency lock information provided at all. This is a bug in Terraform and should be reported.")
-	}
-	if reqs == nil {
-		panic("This run has no required providers information provided at all. This is a bug in Terraform and should be reported.")
 	}
 
 	if supplyMode.NotManagedByTerraform() {
@@ -194,20 +190,13 @@ To make the initial dependency selections that will initialize the dependency lo
 		return diags
 	}
 
-	req, ok := reqs.RequiredProviders[ss.ProviderAddr.Type]
-	if !ok {
-		// The provider used for state storage is not in the required providers list.
-		// This should have been identified when the block was parsed, so if we get here
-		// it suggests that upstream code is swallowing that error.
-		panic("State store provider is missing from required providers but this was not caught during config parsing, which is a bug in Terraform; please report it!")
-	}
-
-	// Is the provider in the lock file, and is it an appropriate version matching the constraints in required_providers?
+	// Is the provider in the lock file?
+	// Whether the version matches the backend state file is checked later in the
+	// backend initialisation process. Here we only check if a lock is present or not.
 
 	lock := depLocks.Provider(ss.ProviderAddr)
-	constraints := providerreqs.MustParseVersionConstraints(req.Requirement.Required.String())
 	if lock == nil {
-		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", ss.ProviderAddr, providerreqs.VersionConstraintsString(constraints))
+		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry", ss.ProviderAddr)
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Inconsistent dependency lock file",
@@ -221,43 +210,6 @@ To make the initial dependency selections that will initialize the dependency lo
 		))
 	}
 
-	selectedVersion := lock.Version()
-	allowedVersions := providerreqs.MeetingConstraints(constraints)
-	log.Printf("[TRACE] StateStore.VerifyDependencySelection: provider %s has %s to satisfy %q", ss.ProviderAddr, selectedVersion.String(), providerreqs.VersionConstraintsString(constraints))
-	if !allowedVersions.Has(selectedVersion) {
-		currentConstraints := providerreqs.VersionConstraintsString(constraints)
-		lockedConstraints := providerreqs.VersionConstraintsString(lock.VersionConstraints())
-		switch {
-		case currentConstraints != lockedConstraints:
-			return diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Inconsistent dependency lock file",
-				fmt.Sprintf(`The provider dependency used for state storage recorded in the lock file is inconsistent with the current configuration:
-  - provider %s: locked version selection %s doesn't match the updated version constraints %q
-
-To update the locked dependency selections to match a changed configuration, run:
-  terraform init -upgrade`,
-					ss.ProviderAddr,
-					selectedVersion.String(),
-					currentConstraints,
-				),
-			))
-		default:
-			return diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Inconsistent dependency lock file",
-				fmt.Sprintf(`The provider dependency used for state storage recorded in the lock file is inconsistent with the current configuration:
-  - provider %s: version constraints %q don't match the locked version selection %s
-
-To make the initial dependency selections that will initialize the dependency lock file, run:
-  terraform init`,
-					ss.ProviderAddr,
-					selectedVersion.String(),
-					currentConstraints,
-				),
-			))
-		}
-	}
 	return diags
 }
 

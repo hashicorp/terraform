@@ -2098,7 +2098,7 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		// Remember, the (Meta).backend method is used for non-init commands, so we expect dependency locks
 		// to be present or for the provider to be otherwise available, e.g. via reattach config.
 		root.StateStore.ProviderSupplyMode = m.getProviderSupplyModeForStateStore(root)
-		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.ProviderRequirements, root.StateStore.ProviderSupplyMode)
+		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.StateStore.ProviderSupplyMode)
 		diags = diags.Append(depsDiags)
 		if depsDiags.HasErrors() {
 			return nil, diags
