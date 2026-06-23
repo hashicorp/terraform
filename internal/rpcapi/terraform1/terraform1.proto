@@ -4,6 +4,8 @@
 syntax = "proto3";
 package terraform1;
 
+import "google/protobuf/timestamp.proto";
+
 
 // Represents a selected or available version of a provider, from either a
 // dependency lock object (selected) or a provider cache object (available).
@@ -75,4 +77,53 @@ message SourcePos {
     int64 byte = 1;
     int64 line = 2;
     int64 column = 3;
+}
+
+message WorkloadIdentity {
+    string spiffe_id = 1;
+    string token = 2;
+}
+
+message OperationalIntent {
+    string action = 1;
+    string context = 2;
+}
+
+message ExecutionProvenance {
+    string git_commit = 1;
+    string ci_job_id = 2;
+}
+
+message ResourceNode {
+    string id = 1;
+    string type = 2;
+}
+
+message Edge {
+    string source_id = 1;
+    string target_id = 2;
+}
+
+message DAGPreview {
+    repeated ResourceNode nodes = 1;
+    repeated Edge edges = 2;
+}
+
+message AITripartiteHandshakeRequest {
+    int32 protocol_version = 1;
+    string magic_cookie_key = 2;
+    string magic_cookie_value = 3;
+    WorkloadIdentity client_identity = 4;
+    OperationalIntent intent = 5;
+    DAGPreview dag_preview = 6;
+    ExecutionProvenance provenance = 7;
+    string nonce = 8;
+    google.protobuf.Timestamp timestamp = 9;
+}
+
+message AITripartiteHandshakeResponse {
+    int32 accepted_protocol_version = 1;
+    string ai_authorization_jwt = 2;
+    repeated string denied_capabilities = 3;
+    string inference_diagnostics = 4;
 }
