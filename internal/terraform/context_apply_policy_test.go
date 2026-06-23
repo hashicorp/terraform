@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -503,6 +504,193 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 	rs := state.Resource(mustAbsResourceAddr("test_resource.test"))
 	if rs == nil {
 		t.Fatal("expected resource to be in the state")
+	}
+}
+
+func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
+	providerAddr := addrs.NewDefaultProvider("ephem")
+
+	for _, tc := range []struct {
+		name             string
+		applyResourceFn  func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
+		expectPolicyCall bool
+		assertPolicyReq  func(*testing.T, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata])
+		expectDiags      tfdiags.Diagnostics
+	}{
+		{
+			name: "policy receives null write-only attrs",
+			applyResourceFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+				return providers.ApplyResourceChangeResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.Config.GetAttr("normal"),
+						"write_only": cty.NullVal(cty.String),
+					}),
+				}
+			},
+			expectPolicyCall: true,
+			assertPolicyReq: func(t *testing.T, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) {
+				t.Helper()
+
+				if req.Target != "ephem_write_only" {
+					t.Fatalf("unexpected policy target %q", req.Target)
+				}
+				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+					ProviderType: "ephem",
+					Operation:    proto.Operation_UPDATE,
+				}, protocmp.Transform()); diff != "" {
+					t.Fatalf("invalid resource metadata: %s", diff)
+				}
+
+				if req.Attrs.Raw.IsNull() {
+					t.Fatal("expected non-null attrs for policy evaluation")
+				}
+				if req.PriorAttrs.Raw.IsNull() {
+					t.Fatal("expected non-null prior attrs for policy evaluation")
+				}
+
+				if got := req.Attrs.Raw.GetAttr("normal").AsString(); got != "updated" {
+					t.Fatalf("expected attrs.normal to be updated, got %q", got)
+				}
+				if got := req.PriorAttrs.Raw.GetAttr("normal").AsString(); got != "outdated" {
+					t.Fatalf("expected prior_attrs.normal to be outdated, got %q", got)
+				}
+				if got := req.Attrs.Raw.GetAttr("write_only"); !got.IsNull() {
+					t.Fatalf("expected attrs.write_only to be null, got %v", got)
+				}
+				if got := req.PriorAttrs.Raw.GetAttr("write_only"); !got.IsNull() {
+					t.Fatalf("expected prior_attrs.write_only to be null, got %v", got)
+				}
+			},
+		},
+		{
+			name: "provider returning write-only value fails before policy",
+			applyResourceFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+				return providers.ApplyResourceChangeResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.Config.GetAttr("normal"),
+						"write_only": cty.StringVal("should not be returned by the provider"),
+					}),
+				}
+			},
+			expectPolicyCall: false,
+			expectDiags: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+			)),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": `
+					variable "ephem" {
+						type      = string
+						ephemeral = true
+					}
+
+					resource "ephem_write_only" "wo" {
+						normal     = "updated"
+						write_only = var.ephem
+					}
+				`,
+				"main.tfpolicy.hcl": `
+					resource_policy "ephem_write_only" "policy_name" {
+						enforce {
+							condition = true
+						}
+					}
+				`,
+			})
+
+			provider := &testing_provider.MockProvider{}
+			provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				ResourceTypes: map[string]providers.Schema{
+					"ephem_write_only": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"normal": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"write_only": {
+									Type:      cty.String,
+									Required:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			}
+			provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.ProposedNewState.GetAttr("normal"),
+						"write_only": cty.NullVal(cty.String),
+					}),
+				}
+			}
+			provider.ApplyResourceChangeFn = tc.applyResourceFn
+
+			priorState := states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("ephem_write_only.wo"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"normal":"outdated","write_only":null}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: providerAddr,
+						Module:   addrs.RootModule,
+					},
+				)
+			})
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, priorState, &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"ephem": {
+						Value:      cty.StringVal("ephemeral-secret"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			applyPolicyClient := policy.NewTestMockClient(t)
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				if tc.assertPolicyReq != nil {
+					tc.assertPolicyReq(t, req)
+				}
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			_, diags = ctx.Apply(plan, m, &ApplyOpts{
+				SetVariables: InputValues{
+					"ephem": {
+						Value:      cty.StringVal("ephemeral-secret"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+				PolicyClient: applyPolicyClient,
+			})
+
+			if tc.expectDiags != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if applyPolicyClient.EvaluateCalled != tc.expectPolicyCall {
+				t.Fatalf("expected policy evaluation called=%t, got %t", tc.expectPolicyCall, applyPolicyClient.EvaluateCalled)
+			}
+		})
 	}
 }
 
