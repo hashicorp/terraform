@@ -13,6 +13,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// ProviderInstaller is an interface that abstracts the output of provider installation messages.
+// Methods using for provider installation that log messages should accept this interface to allow
+// provider installation logic to be re-used across different commands.
+type ProviderInstaller interface {
+	Output(messageCode InitMessageCode, params ...any)
+	PrepareMessage(messageCode InitMessageCode, params ...any) string
+}
+
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)

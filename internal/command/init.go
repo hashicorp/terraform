@@ -300,7 +300,6 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 }
 
 func (c *InitCommand) Validate(args *arguments.Init) (diags tfdiags.Diagnostics) {
-
 	diags = diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 	return diags
 }
@@ -589,7 +588,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 // updated dependency lock data. The dependency lock *file* itself isn't updated here.
 //
 // See getProvidersFromPSSConfig which is equivalent for state store providers.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pssConfigLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pssConfigLocks *depsfile.Locks, pluginDirs []string, view views.ProviderInstaller, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -725,7 +724,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
-func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLocks *depsfile.Locks, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
 	// Get the combination of locks from both potential provider download steps.
 	newLocks := c.mergeLockedDependencies(pssLock, providerLocks)
 
@@ -1034,14 +1033,14 @@ func (c *InitCommand) Synopsis() string {
 }
 
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
-func providerAlreadyInstalledCallback(view views.Init) func(provider addrs.Provider, selectedVersion getproviders.Version) {
+func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
 		view.Output(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
 	}
 }
 
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
-func builtInProviderAvailableCallback(view views.Init) func(provider addrs.Provider) {
+func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
 		view.Output(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
 	}
@@ -1059,14 +1058,14 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 }
 
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
-func linkFromCacheBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 		view.Output(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
-func fetchPackageBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 		view.Output(views.InstallingProviderMessage, provider.ForDisplay(), version)
 	}
@@ -1307,7 +1306,7 @@ func fetchPackageFailureCallback(diags *tfdiags.Diagnostics, reqs getproviders.R
 }
 
 // Returns a reused callback function for the FetchPackageSuccess event in a providercache.InstallerEvents struct.
-func fetchPackageSuccessCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+func fetchPackageSuccessCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 	return func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 		var keyID string
 		if authResult != nil && authResult.ThirdPartySigned() {
@@ -1361,7 +1360,7 @@ func providersLockUpdatedCallback(incompleteProviders *[]string) func(provider a
 }
 
 // Returns a reused callback function for the ProvidersFetched event in a providercache.InstallerEvents struct.
-func providersFetchedCallback(view views.Init) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+func providersFetchedCallback(view views.ProviderInstaller) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 	return func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 		thirdPartySigned := false
 		for _, authResult := range authResults {
