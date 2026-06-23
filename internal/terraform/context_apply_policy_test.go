@@ -1302,3 +1302,208 @@ func TestContext2Apply_PolicySpanParentage(t *testing.T) {
 		t.Errorf("policy.client.evaluate_resource span is not nested under the terraform apply span")
 	}
 }
+
+// TestContext2Apply_PolicyPhaseSpanOutlivesEvaluations verifies that the
+// policy-phase span ("terraform.policy.evaluate") is ended only after every
+// policy evaluation, and any spans nested below them, has finished. The span is
+// ended by the nodePolicyEvalFinish sentinel node, which must depend on every
+// policy node in the subgraph; otherwise it closes the span while evaluations
+// are still running and child spans outlive their parent.
+//
+// It mutates the global OpenTelemetry TracerProvider, so it must not run in
+// parallel.
+func TestContext2Apply_PolicyPhaseSpanOutlivesEvaluations(t *testing.T) {
+	// Each evaluation sleeps for this long so an out-of-order finish node closes
+	// the phase span observably early.
+	const evalDelay = 100 * time.Millisecond
+
+	// Record spans into an in-memory exporter. Restore the previous (global)
+	// provider rather than setting nil so other tests don't hit a nil provider.
+	prevProvider := otel.GetTracerProvider()
+	exp := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exp)))
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		provider.Shutdown(context.Background())
+		otel.SetTracerProvider(prevProvider)
+	})
+
+	// With the prior state below, this yields one update, one create and one
+	// delete evaluation during apply.
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_instance" "to_update" {
+			ami = "new"
+		}
+
+		resource "test_instance" "to_create" {
+			ami = "fresh"
+		}
+	`
+	policyConfig := `
+		resource_policy "test_instance" "policy_name" {
+			enforce {
+				condition = true
+			}
+		}
+	`
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	prov := testProvider("test")
+	prov.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+	prov.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	// Prior state so that to_update is updated and to_delete is destroyed.
+	priorState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_instance.to_update"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"update-id","ami":"old"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_instance.to_delete"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"delete-id","ami":"obsolete"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	// Plan uses a plain allow-all client; the span assertions concern apply.
+	planClient := policy.NewTestMockClient(t)
+
+	// The apply client mirrors the real client: per evaluation it starts a
+	// per-resource span under the phase span, invokes a callback to nest a
+	// further span, then does some work.
+	applyClient := policy.NewTestMockClient(t)
+	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		spanCtx, span := otel.Tracer("test").Start(ctx, "policy.client.evaluate_resource")
+		defer span.End()
+
+		if req.Callbacks.GetResources != nil {
+			req.Callbacks.GetResources(spanCtx, "test_instance", cty.NullVal(cty.DynamicPseudoType))
+		}
+
+		time.Sleep(evalDelay)
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	tfCtx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(prov),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := tfCtx.Plan(mod, priorState, &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: planClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// Sanity check that the plan really covers all three evaluation kinds.
+	gotActions := map[string]plans.Action{}
+	for _, rc := range plan.Changes.Resources {
+		gotActions[rc.Addr.String()] = rc.Action
+	}
+	for addr, want := range map[string]plans.Action{
+		"test_instance.to_update": plans.Update,
+		"test_instance.to_create": plans.Create,
+		"test_instance.to_delete": plans.Delete,
+	} {
+		if gotActions[addr] != want {
+			t.Fatalf("expected %s to have action %s, got %s", addr, want, gotActions[addr])
+		}
+	}
+
+	_, diags = tfCtx.Apply(plan, mod, &ApplyOpts{
+		PolicyClient: applyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	spans := exp.GetSpans()
+	byID := make(map[trace.SpanID]tracetest.SpanStub, len(spans))
+	for _, s := range spans {
+		byID[s.SpanContext.SpanID()] = s
+	}
+
+	// isDescendantOf reports whether s is nested (at any depth) under ancestorID.
+	isDescendantOf := func(s tracetest.SpanStub, ancestorID trace.SpanID) bool {
+		parentID := s.Parent.SpanID()
+		for parentID.IsValid() {
+			if parentID == ancestorID {
+				return true
+			}
+			parent, ok := byID[parentID]
+			if !ok {
+				return false
+			}
+			parentID = parent.Parent.SpanID()
+		}
+		return false
+	}
+
+	var phaseSpans []tracetest.SpanStub
+	var evaluateSpans int
+	for _, s := range spans {
+		switch s.Name {
+		case "terraform.policy.evaluate":
+			phaseSpans = append(phaseSpans, s)
+		case "policy.client.evaluate_resource":
+			evaluateSpans++
+		}
+	}
+
+	if len(phaseSpans) == 0 {
+		t.Fatal("no terraform.policy.evaluate phase span was recorded")
+	}
+	if evaluateSpans < 3 {
+		t.Fatalf("expected at least 3 policy.client.evaluate_resource spans (create, update, delete), got %d", evaluateSpans)
+	}
+
+	// Every span nested under a phase span must have finished no later than the
+	// phase span itself.
+	checkedDescendants := 0
+	for _, phase := range phaseSpans {
+		for _, s := range spans {
+			if s.SpanContext.SpanID() == phase.SpanContext.SpanID() {
+				continue
+			}
+			if !isDescendantOf(s, phase.SpanContext.SpanID()) {
+				continue
+			}
+			checkedDescendants++
+			if s.EndTime.After(phase.EndTime) {
+				t.Errorf("span %q finished %s after its ancestor phase span %q; the phase span was closed before policy evaluation completed",
+					s.Name, s.EndTime.Sub(phase.EndTime), phase.Name)
+			}
+		}
+	}
+
+	if checkedDescendants == 0 {
+		t.Fatal("no descendant spans were found under any policy phase span; the test did not exercise nested policy evaluation as intended")
+	}
+}
