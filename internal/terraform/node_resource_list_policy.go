@@ -143,8 +143,13 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 		// -generate-config-out: provider RPC first, legacy fallback second.
 		// On failure, record Unknown with the error diagnostics and continue
 		// so that one bad element does not abort the entire list block.
+		// Provider GenerateResourceConfig RPC failure is the most likely error source.
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
 		if configDiags.HasErrors() {
+			// FIXME: if configDiags contains errors, consider whether to propagate them
+			// in the returned diags (surfacing at the list block execution level) or
+			// keep them contained in the listResourcePolicy Diags field only. Currently
+			// they are appended to both — see the matching FIXME in listResourceExecute.
 			diags = diags.Append(configDiags)
 			results = append(results, listResourcePolicy{
 				SyntheticAddr:  syntheticAddr,
@@ -152,7 +157,15 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 				ResourceConfig: n.Config,
 				ListBlockAddr:  listBlockAddr,
 				Unknown:        true,
-				Diags:          configDiags,
+				Diags: tfdiags.Diagnostics{tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Policy evaluation skipped",
+					fmt.Sprintf(
+						"Resource at index %d in list block %s could not generate config. "+
+							"Policy evaluation cannot be performed.",
+						idx, listBlockAddr.String(),
+					),
+				)}.Append(configDiags.InConfigBody(n.Config.Config, listBlockAddr.String())),
 			})
 			continue
 		}

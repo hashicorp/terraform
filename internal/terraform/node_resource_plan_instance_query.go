@@ -155,6 +155,19 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return h.PostListQuery(rId, results, identityVersion)
 	})
 
+	var policyInputs []listResourcePolicy
+	if ctx.PolicyClient() != nil {
+		var policyDiags tfdiags.Diagnostics
+		policyInputs, policyDiags = n.generateListResourcePolicyData(ctx, addr, resp.Result.GetAttr("data"))
+		diags = diags.Append(policyDiags)
+		// FIXME: decide whether to gate on diags.HasErrors() here. Gating aborts
+		// list block execution on a per-element config-gen failure; omitting it
+		// preserves soft-error semantics but deviates from convention elsewhere
+		// in this function.
+	}
+	// TODO(CORE-3): iterate policyInputs to insert nodeQueryResourcePolicy nodes
+	_ = policyInputs
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,
