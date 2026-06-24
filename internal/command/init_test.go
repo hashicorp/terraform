@@ -5920,6 +5920,55 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
 		}
 	})
+
+	// This test handles an edge case where the dependency lock file has been changed out of band.
+	// Currently it is impossible to change the state store provider version via init and it must be done
+	// as part of a state migration via the state migrate command.
+	t.Run("state store provider version changed (out of band)", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-changed/provider-version-changed"), td)
+		t.Chdir(td)
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {
+				"1.2.3", // Matches provider version in backend state file fixture
+				"1.5.0", // Matches provider version in lock file fixture
+			},
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))),
+					},
+				},
+				ProviderSource:            providerSource,
+				Ui:                        ui,
+				View:                      view,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("Expected Terraform to return an error after detecting need for a state migration, but it was missing: \n%s", testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.All(), expectedError) {
+			t.Fatalf("expected an error due to Terraform detecting 'State store initialization required', got: %s", testOutput.All())
+		}
+		expectedReason := "Reason: State store provider \"test\" (hashicorp/test) version changed from\n1.2.3 to 1.5.0"
+		if !strings.Contains(testOutput.All(), expectedReason) {
+			t.Fatalf("expected reason to be: %s\ngot: %s", expectedReason, testOutput.All())
+		}
+	})
 }
 
 // Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
