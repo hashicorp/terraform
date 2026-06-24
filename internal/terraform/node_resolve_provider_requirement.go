@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -17,7 +19,6 @@ import (
 type nodeResolveProviderRequirements struct {
 	Addr   addrs.ModuleInstance
 	Module *configs.Module
-	Exprs  map[string]*configs.ProviderRequirementExpr
 }
 
 var (
@@ -27,8 +28,38 @@ var (
 	_ dag.NamedVertex         = (*nodeResolveProviderRequirements)(nil)
 )
 
+func (n *nodeResolveProviderRequirements) Path() addrs.ModuleInstance {
+	return n.Addr
+}
+
 func (n *nodeResolveProviderRequirements) Name() string {
 	return n.Addr.String()
+}
+
+func (n *nodeResolveProviderRequirements) ModulePath() addrs.Module {
+	return n.Addr.Module()
+}
+
+func (n *nodeResolveProviderRequirements) References() []*addrs.Reference {
+	var refs []*addrs.Reference
+
+	for _, req := range n.Module.ProviderRequirements.RequiredProviders {
+		if req.SourceExpr != nil {
+			sourceRefs, _ := langrefs.ReferencesInExpr(
+				addrs.ParseRef, req.SourceExpr,
+			)
+			refs = append(refs, sourceRefs...)
+		}
+
+		if req.RequirementExpression != nil {
+			versionRefs, _ := langrefs.ReferencesInExpr(
+				addrs.ParseRef, req.RequirementExpression,
+			)
+			refs = append(refs, versionRefs...)
+		}
+	}
+
+	return refs
 }
 
 func (n *nodeResolveProviderRequirements) Execute(
@@ -37,66 +68,30 @@ func (n *nodeResolveProviderRequirements) Execute(
 ) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	for name, expr := range n.Exprs {
-		rp, rpDiags := n.resolveProvider(name, expr, ctx)
-		diags = append(diags, rpDiags...)
-		if rpDiags.HasErrors() {
-			continue
+	log.Printf("[TRACE] nodeResolveProviderRequirements: In %s with %#v", n.Path(), n.Module.ProviderRequirements.RequiredProviders)
+	for _, req := range n.Module.ProviderRequirements.RequiredProviders {
+		if req.SourceExpr != nil {
+			sourceStr, sourceType, sourceDiags :=
+				evalProviderSource(req.SourceExpr, ctx)
+			diags = diags.Append(sourceDiags)
+			if sourceDiags.HasErrors() {
+				return diags
+			}
+			req.SourceR = sourceStr
+			req.Type = sourceType
 		}
 
-		n.Module.ProviderRequirements.RequiredProviders[name] = rp
+		if req.RequirementExpression != nil {
+			vc, vcDiags := evalProviderVersion(req.RequirementExpression, ctx)
+			diags = diags.Append(vcDiags)
+			if vcDiags.HasErrors() {
+				return diags
+			}
+			req.RequirementR = vc
+		}
 	}
-
-	n.Module.GatherProviderLocalNames()
 
 	return diags
-}
-
-func (n *nodeResolveProviderRequirements) resolveProvider(
-	name string,
-	expr *configs.ProviderRequirementExpr,
-	ctx EvalContext,
-) (*configs.RequiredProvider, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	rp := &configs.RequiredProvider{
-		Name:      name,
-		Aliases:   expr.ConfigAliases,
-		DeclRange: expr.DeclRange,
-	}
-
-	if expr.SourceExpr != nil {
-		sourceStr, sourceType, sourceDiags :=
-			evalProviderSource(expr.SourceExpr, ctx)
-		diags = diags.Append(sourceDiags)
-		if sourceDiags.HasErrors() {
-			return nil, diags
-		}
-		rp.Source = sourceStr
-		rp.Type = sourceType
-	} else { // Regular string parsing (no vars)
-		pType, err := addrs.ParseProviderPart(name)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider name",
-				err.Error(),
-			))
-			return nil, diags
-		}
-		rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
-	}
-
-	if expr.VersionExpr != nil {
-		vc, vcDiags := evalProviderVersion(expr.VersionExpr, ctx)
-		diags = diags.Append(vcDiags)
-		if vcDiags.HasErrors() {
-			return nil, diags
-		}
-		rp.Requirement = vc
-	}
-
-	return rp, diags
 }
 
 func evalProviderSource(
@@ -220,33 +215,4 @@ func evalProviderVersion(
 
 	ret.Required = constraints
 	return ret, diags
-}
-
-func (n *nodeResolveProviderRequirements) References() []*addrs.Reference {
-	var refs []*addrs.Reference
-	for _, expr := range n.Exprs {
-		if expr.SourceExpr != nil {
-			sourceRefs, _ := langrefs.ReferencesInExpr(
-				addrs.ParseRef, expr.SourceExpr,
-			)
-			refs = append(refs, sourceRefs...)
-		}
-
-		if expr.VersionExpr != nil {
-			versionRefs, _ := langrefs.ReferencesInExpr(
-				addrs.ParseRef, expr.VersionExpr,
-			)
-			refs = append(refs, versionRefs...)
-		}
-	}
-
-	return refs
-}
-
-func (n *nodeResolveProviderRequirements) Path() addrs.ModuleInstance {
-	return n.Addr
-}
-
-func (n *nodeResolveProviderRequirements) ModulePath() addrs.Module {
-	return n.Addr.Module()
 }

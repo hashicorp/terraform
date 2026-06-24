@@ -296,7 +296,7 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 			}
 
 			vc.Required = constraints
-			ssProvider.Requirement = vc
+			ssProvider.RequirementR = vc
 
 		case "source":
 			source, err := kv.Value.Value(nil)
@@ -326,7 +326,7 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 				return nil, diags
 			}
 
-			ssProvider.Source = source.AsString()
+			ssProvider.SourceR = source.AsString()
 			ssProvider.Type = fqn
 		default:
 			diags = append(diags, &hcl.Diagnostic{

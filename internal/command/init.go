@@ -395,7 +395,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	reqs := make(providerreqs.Requirements, 1)
 	for providerReq := range maps.Values(allReqs.RequiredProviders) {
 		if providerReq.Type.Equals(rootModEarly.StateStore.ProviderAddr) {
-			con, err := providerreqs.ParseVersionConstraints(providerReq.Requirement.Required.String())
+			con, err := providerreqs.ParseVersionConstraints(providerReq.RequirementR.Required.String())
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -404,7 +404,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 					// the section of input that was incorrect, so we don't need to
 					// include that here.
 					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
-					Subject: providerReq.Requirement.DeclRange.Ptr(),
+					Subject: providerReq.RequirementR.DeclRange.Ptr(),
 				})
 			}
 			reqs[providerReq.Type] = con
