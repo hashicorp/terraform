@@ -132,7 +132,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) (cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
 			attribute.String("policy.callback.getDataSource.type", target),
@@ -155,7 +155,6 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 			readResp := provider.ReadDataSource(providers.ReadDataSourceRequest{
 				TypeName:           target,
 				Config:             configVal,
-				ProviderMeta:       meta,
 				ClientCapabilities: ctx.ClientCapabilities(),
 			})
 			if err := readResp.Diagnostics.Err(); err != nil {
