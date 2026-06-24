@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -87,6 +88,7 @@ resource "test_resource" "b" {
 	ctx := &MockEvalContext{
 		StateState:     state,
 		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
 	}
 
 	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
