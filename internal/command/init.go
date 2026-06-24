@@ -705,7 +705,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode, installerHook)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		view.Diagnostics(diags)
 		return true, nil, diags
 	}
 	if err != nil {
