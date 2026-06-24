@@ -132,8 +132,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(c context.Context, target string, attrs cty.Value) (cty.Value, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
+	return func(c context.Context, target string, attrs cty.Value) (cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
 			attribute.String("policy.callback.getDataSource.type", target),
 		))
@@ -141,7 +141,7 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {
-				return cty.NilVal, fmt.Errorf("invalid attributes for %q: %w", target, err)
+				return cty.NilVal, false, fmt.Errorf("invalid attributes for %q: %w", target, err)
 			}
 
 			validateResp := provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
@@ -149,21 +149,35 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 				Config:   configVal,
 			})
 			if err := validateResp.Diagnostics.Err(); err != nil {
-				return cty.NilVal, fmt.Errorf("failed to validate data source configuration: %s", err)
+				return cty.NilVal, false, fmt.Errorf("failed to validate data source configuration: %s", err)
 			}
 
 			readResp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-				TypeName:     target,
-				Config:       configVal,
-				ProviderMeta: meta,
+				TypeName:           target,
+				Config:             configVal,
+				ProviderMeta:       meta,
+				ClientCapabilities: ctx.ClientCapabilities(),
 			})
 			if err := readResp.Diagnostics.Err(); err != nil {
-				return cty.NilVal, fmt.Errorf("failed to read data source: %s", err)
+				return cty.NilVal, false, fmt.Errorf("failed to read data source: %s", err)
 			}
 
-			return readResp.State, nil
+			// If the data source indicates deferral (which would be unlikely here), we need to pass that info back to the caller
+			deferred := false
+			if readResp.Deferred != nil {
+				// If we don't support deferrals, but the provider reports a deferral, we should emit an error.
+				if !ctx.Deferrals().DeferralAllowed() {
+					return cty.NilVal, false, fmt.Errorf("failed to read data source: "+
+						"The provider signaled a deferred action for %s, but in this context deferrals are disabled. "+
+						"This is a bug in the provider, please file an issue with the provider developers.", target)
+				}
+
+				deferred = true
+			}
+
+			return readResp.State, deferred, nil
 		}
-		return cty.NilVal, fmt.Errorf("no data source found for %s", target)
+		return cty.NilVal, false, fmt.Errorf("no data source found for %s", target)
 	}
 }
 

@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1167,7 +1168,169 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_PolicyCallback_Deferral(t *testing.T) {
+func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
+	t.Parallel()
+
+	type callbackResult struct {
+		DataSourceResult   cty.Value
+		DataSourceDeferred bool
+	}
+
+	testCases := map[string]struct {
+		targetDataSource        string
+		dataSourceReqConfig     cty.Value
+		deferralAllowed         bool
+		deferralResponse        *providers.Deferred
+		expectedCallbackResults []callbackResult
+		expectedErr             string
+	}{
+		"getdatasource returns result": {
+			targetDataSource: "test_data_source",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String), // computed
+				"foo": cty.StringVal("test val"),
+			}),
+			expectedCallbackResults: []callbackResult{
+				{
+					DataSourceResult: cty.ObjectVal(map[string]cty.Value{
+						"id":  cty.StringVal("computed val"),
+						"foo": cty.StringVal("test val"),
+					}),
+					DataSourceDeferred: false,
+				},
+			},
+		},
+		"getdatasource not found": {
+			targetDataSource: "test_non_existent",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"foo": cty.StringVal("test val"),
+			}),
+			expectedErr: `no data source found for test_non_existent`,
+		},
+		"getdatasource returns deferred": {
+			targetDataSource: "test_data_source",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"foo": cty.StringVal("test val"),
+			}),
+			deferralAllowed: true,
+			deferralResponse: &providers.Deferred{
+				Reason: providers.DeferredReasonAbsentPrereq,
+			},
+			expectedCallbackResults: []callbackResult{
+				{
+					DataSourceResult: cty.ObjectVal(map[string]cty.Value{
+						"id":  cty.NullVal(cty.String),
+						"foo": cty.StringVal("test val"),
+					}),
+					DataSourceDeferred: true,
+				},
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			// The plan policy client allows everything; the callback assertions run during apply only.
+			planPolicyClient := policy.NewTestMockClient(t)
+			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			var gotResults []callbackResult
+			applyPolicyClient := policy.NewTestMockClient(t)
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				result, deferred, err := req.Callbacks.GetDataSource(t.Context(), tc.targetDataSource, tc.dataSourceReqConfig)
+				if err != nil {
+					if !strings.Contains(err.Error(), tc.expectedErr) {
+						t.Errorf("Unexpected error in callback GetDataSource(test_data_source): %v", err)
+					}
+
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				gotResults = append(gotResults, callbackResult{
+					DataSourceResult:   result,
+					DataSourceDeferred: deferred,
+				})
+
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			testProvider := testProvider("test")
+			testProvider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+				// We aren't checking the client capability here to enable testing an invalid provider implementation
+				if tc.deferralResponse != nil {
+					return providers.ReadDataSourceResponse{
+						State:    req.Config,
+						Deferred: tc.deferralResponse,
+					}
+				}
+
+				stateVal := req.Config.AsValueMap()
+				stateVal["id"] = cty.StringVal("computed val")
+				return providers.ReadDataSourceResponse{
+					State: cty.ObjectVal(stateVal),
+				}
+			}
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			mod := testModuleInline(t, map[string]string{
+				// Config isn't as important to this test, since we're just testing the getdatasource callback
+				// which will directly call a configured provider instance.
+				"main.tf": `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "foo" {
+			value = "foo"
+			defer = false
+		}
+	`,
+				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
+			})
+			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: tc.deferralAllowed,
+				PolicyClient:    planPolicyClient,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			policyResults := plans.NewPolicyResults()
+			_, diags = ctx.Apply(plan, mod, &ApplyOpts{
+				PolicyClient:  applyPolicyClient,
+				PolicyResults: policyResults,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range policyResults.Iter() {
+				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			}
+			tfdiags.AssertNoDiagnostics(t, policyDiags)
+
+			if diff := cmp.Diff(tc.expectedCallbackResults, gotResults, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+				t.Errorf("unexpected policy callback results\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 	t.Parallel()
 
 	type callbackResult struct {
