@@ -188,7 +188,14 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
-	return module, diags
+
+	finalModule, _ := terraform.BuildModuleWithGraph(
+		module,
+		nil, // TODO: support variables at a later stage
+	)
+	// diags = diags.Append(buildDiags)
+
+	return finalModule, diags
 }
 
 // loadSingleModuleWithTests matches loadSingleModule except it also loads any
@@ -205,7 +212,14 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 
 	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
 	diags = diags.Append(hclDiags)
-	return module, diags
+
+	finalModule, _ := terraform.BuildModuleWithGraph(
+		module,
+		nil, // TODO: support variables at a later stage
+	)
+	// diags = diags.Append(buildDiags)
+
+	return finalModule, diags
 }
 
 // dirIsConfigPath checks if the given path is a directory that contains at

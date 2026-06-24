@@ -432,7 +432,7 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 			// don't exactly agree in practice 🙄 so this might produce new errors.
 			// TODO: Use the new parser throughout this package so we can get the
 			// better error messages it produces in more situations.
-			constraints, err := providerreqs.ParseVersionConstraints(providerReqs.Requirement.Required.String())
+			constraints, err := providerreqs.ParseVersionConstraints(providerReqs.RequirementR.Required.String())
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -441,7 +441,7 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 					// the section of input that was incorrect, so we don't need to
 					// include that here.
 					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
-					Subject: providerReqs.Requirement.DeclRange.Ptr(),
+					Subject: providerReqs.RequirementR.DeclRange.Ptr(),
 				})
 			}
 			reqs[fqn] = append(reqs[fqn], constraints...)

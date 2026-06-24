@@ -12,14 +12,13 @@ type ProviderRequirementExprTransformer struct {
 var _ GraphTransformer = (*ProviderRequirementExprTransformer)(nil)
 
 func (t *ProviderRequirementExprTransformer) Transform(g *Graph) error {
-	if len(t.Config.Module.ProviderRequirementExprs) == 0 {
+	if len(t.Config.Module.ProviderRequirements.RequiredProviders) == 0 {
 		return nil
 	}
 
 	node := &nodeResolveProviderRequirements{
 		Addr:   g.Path,
 		Module: t.Config.Module,
-		Exprs:  t.Config.Module.ProviderRequirementExprs,
 	}
 
 	g.Add(node)

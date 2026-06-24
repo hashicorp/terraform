@@ -205,7 +205,7 @@ To make the initial dependency selections that will initialize the dependency lo
 	// Is the provider in the lock file, and is it an appropriate version matching the constraints in required_providers?
 
 	lock := depLocks.Provider(ss.ProviderAddr)
-	constraints := providerreqs.MustParseVersionConstraints(req.Requirement.Required.String())
+	constraints := providerreqs.MustParseVersionConstraints(req.RequirementR.Required.String())
 	if lock == nil {
 		log.Printf("[TRACE] StateStore.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", ss.ProviderAddr, providerreqs.VersionConstraintsString(constraints))
 		return diags.Append(tfdiags.Sourceless(

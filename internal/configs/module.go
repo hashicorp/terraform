@@ -28,18 +28,19 @@ type Module struct {
 	// values.
 	SourceDir string
 
+	// ProviderReqResolved
+
 	CoreVersionConstraints []VersionConstraint
 
 	ActiveExperiments experiments.Set
 
-	Backend                  *Backend
-	StateStore               *StateStore
-	CloudConfig              *CloudConfig
-	ProviderConfigs          map[string]*Provider
-	ProviderRequirements     *RequiredProviders
-	ProviderRequirementExprs map[string]*ProviderRequirementExpr
-	ProviderLocalNames       map[addrs.Provider]string
-	ProviderMetas            map[addrs.Provider]*ProviderMeta
+	Backend              *Backend
+	StateStore           *StateStore
+	CloudConfig          *CloudConfig
+	ProviderConfigs      map[string]*Provider
+	ProviderRequirements *RequiredProviders
+	ProviderLocalNames   map[addrs.Provider]string
+	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
 	StateMigrationInstructions *StateMigrationInstructions
 
@@ -80,13 +81,12 @@ type File struct {
 
 	ActiveExperiments experiments.Set
 
-	Backends              []*Backend
-	StateStores           []*StateStore
-	CloudConfigs          []*CloudConfig
-	ProviderConfigs       []*Provider
-	ProviderMetas         []*ProviderMeta
-	RequiredProviders     []*RequiredProviders
-	RequiredProviderExprs []*ProviderRequirementExpr
+	Backends          []*Backend
+	StateStores       []*StateStore
+	CloudConfigs      []*CloudConfig
+	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
+	RequiredProviders []*RequiredProviders
 
 	Variables []*Variable
 	Locals    []*Local
@@ -125,21 +125,20 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
-		ProviderConfigs:          map[string]*Provider{},
-		ProviderLocalNames:       map[addrs.Provider]string{},
-		Variables:                map[string]*Variable{},
-		Locals:                   map[string]*Local{},
-		Outputs:                  map[string]*Output{},
-		ModuleCalls:              map[string]*ModuleCall{},
-		ManagedResources:         map[string]*Resource{},
-		EphemeralResources:       map[string]*Resource{},
-		DataResources:            map[string]*Resource{},
-		ListResources:            map[string]*Resource{},
-		Checks:                   map[string]*Check{},
-		ProviderMetas:            map[addrs.Provider]*ProviderMeta{},
-		ProviderRequirementExprs: map[string]*ProviderRequirementExpr{},
-		Tests:                    map[string]*TestFile{},
-		Actions:                  map[string]*Action{},
+		ProviderConfigs:    map[string]*Provider{},
+		ProviderLocalNames: map[addrs.Provider]string{},
+		Variables:          map[string]*Variable{},
+		Locals:             map[string]*Local{},
+		Outputs:            map[string]*Output{},
+		ModuleCalls:        map[string]*ModuleCall{},
+		ManagedResources:   map[string]*Resource{},
+		EphemeralResources: map[string]*Resource{},
+		DataResources:      map[string]*Resource{},
+		ListResources:      map[string]*Resource{},
+		Checks:             map[string]*Check{},
+		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Tests:              map[string]*TestFile{},
+		Actions:            map[string]*Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -174,19 +173,6 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 			for name, rp := range override.RequiredProviders {
 				mod.ProviderRequirements.RequiredProviders[name] = rp
 			}
-		}
-	}
-
-	// Collect any deferred provider requirement expressions from all files.
-	for _, file := range primaryFiles {
-		for _, expr := range file.RequiredProviderExprs {
-			mod.ProviderRequirementExprs[expr.Name] = expr
-		}
-	}
-
-	for _, file := range overrideFiles {
-		for _, expr := range file.RequiredProviderExprs {
-			mod.ProviderRequirementExprs[expr.Name] = expr
 		}
 	}
 
