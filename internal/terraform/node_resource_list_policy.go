@@ -22,10 +22,9 @@ type listResourcePolicy struct {
 	//   keyed:   <type>.<list-resource-name>_<expansionEnum>_<idx>
 	SyntheticAddr addrs.AbsResourceInstance
 
-	// GeneratedConfig is the cty config value derived via the provider's
-	// GenerateResourceConfig RPC (when ServerCapabilities.GenerateResourceConfig
-	// is true) or via genconfig.ExtractLegacyConfigFromState (fallback).
-	// Zero value (cty.NilVal) when Unknown is true.
+	// GeneratedConfig is the cty config value from the provider's
+	// GenerateResourceConfig RPC or genconfig.ExtractLegacyConfigFromState (fallback).
+	// Zero value when Unknown is true.
 	GeneratedConfig cty.Value
 
 	// Identity is the identity cty object from the list response element.
@@ -39,10 +38,8 @@ type listResourcePolicy struct {
 	// block.
 	ListBlockAddr addrs.AbsResourceInstance
 
-	// Unknown is true when the resource element was skipped because it had no
-	// "state" attribute in the list response (include_resource = false). Policy
-	// evaluation cannot be performed without state, so such resources are
-	// recorded with an Unknown policy outcome.
+	// Unknown is true when the resource had no "state" attribute in the list
+	// response (include_resource = false), preventing config generation.
 	Unknown bool
 
 	// Diags carries an explanatory Warning when Unknown is true, or error
@@ -57,11 +54,6 @@ type listResourcePolicy struct {
 // data must be the "data" attribute of the provider's ListResource response
 // (resp.Result.GetAttr("data")). listBlockAddr is the AbsResourceInstance of
 // the list block walk node (n.ResourceInstanceAddr()).
-//
-// The method applies soft-error semantics: a config-generation failure for one
-// element records that element as Unknown and continues; the returned diags
-// accumulate non-fatal warnings and errors without aborting the remaining
-// elements.
 func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 	ctx EvalContext,
 	listBlockAddr addrs.AbsResourceInstance,
@@ -74,9 +66,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 		return nil, diags
 	}
 
-	// Fetch the expansion enum for the list block address. This mirrors the
-	// logic in generateHCLListResourceDef and is needed to build synthetic
-	// addresses that match genconfig.GenerateListResourceContents exactly.
+	// Expansion enum required for the keyed synthetic address formula.
 	expansionEnum := ctx.InstanceExpander().ResourceExpansionEnum(listBlockAddr)
 
 	var results []listResourcePolicy
@@ -111,10 +101,8 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 			identity = val.GetAttr("identity")
 		}
 
-		// Check whether the element carries a "state" attribute. The provider
-		// omits this attribute when the list block is configured with
-		// include_resource = false. Without state we cannot generate config,
-		// so the resource receives an Unknown policy outcome.
+		// Absent "state" means include_resource = false.
+		// skip with Unknown outcome.
 		hasState := val.Type().HasAttribute("state") && !val.GetAttr("state").IsNull()
 		if !hasState {
 			results = append(results, listResourcePolicy{
@@ -139,10 +127,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 
 		stateVal := val.GetAttr("state")
 
-		// Generate the resource config using the same two-path strategy as
-		// -generate-config-out: provider RPC first, legacy fallback second.
-		// On failure, record Unknown with the error diagnostics and continue
-		// so that one bad element does not abort the entire list block.
+		// Provider RPC first, legacy fallback second; on failure record Unknown and continue.
 		// Provider GenerateResourceConfig RPC failure is the most likely error source.
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
 		if configDiags.HasErrors() {
@@ -170,6 +155,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 			continue
 		}
 
+		// Successfully captured policy evaluation inputs for this discovered resource.
 		results = append(results, listResourcePolicy{
 			SyntheticAddr:   syntheticAddr,
 			GeneratedConfig: generatedConfig,
