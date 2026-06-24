@@ -276,19 +276,22 @@ func TestGenerateListResourcePolicyData_IncludeResourceFalse(t *testing.T) {
 	if !got.Unknown {
 		t.Error("expected Unknown = true for resource without state")
 	}
+	if got.UnknownReason != unknownReasonNoState {
+		t.Errorf("UnknownReason = %v, want unknownReasonNoState", got.UnknownReason)
+	}
 	if got.GeneratedConfig != cty.NilVal {
 		t.Errorf("expected zero GeneratedConfig when Unknown = true, got %#v", got.GeneratedConfig)
 	}
 
 	var hasSkipWarning bool
-	for _, d := range got.Diags {
+	for _, d := range diags {
 		if d.Severity() == tfdiags.Warning && d.Description().Summary == "Policy evaluation skipped" {
 			hasSkipWarning = true
 			break
 		}
 	}
 	if !hasSkipWarning {
-		t.Error(`expected "Policy evaluation skipped" warning in result Diags`)
+		t.Error(`expected "Policy evaluation skipped" warning in returned diags`)
 	}
 }
 

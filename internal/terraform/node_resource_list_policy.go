@@ -12,6 +12,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// listResourcePolicyUnknownReason classifies why a discovered resource cannot
+// be evaluated for policy. The zero value unknownReasonNone indicates the
+// resource is a valid policy input with no skip.
+type listResourcePolicyUnknownReason uint8
+
+const (
+	unknownReasonNone            listResourcePolicyUnknownReason = iota
+	unknownReasonNoState                                         // include_resource = false or state absent from list response
+	unknownReasonConfigGenFailed                                 // provider RPC or legacy fallback could not produce config
+)
+
 // listResourcePolicy holds the policy evaluation inputs for a single resource
 // discovered during list block execution.
 type listResourcePolicy struct {
@@ -42,9 +53,9 @@ type listResourcePolicy struct {
 	// response (include_resource = false), preventing config generation.
 	Unknown bool
 
-	// Diags carries an explanatory Warning when Unknown is true, or error
-	// diagnostics when config generation failed.
-	Diags tfdiags.Diagnostics
+	// UnknownReason classifies why Unknown is true. unknownReasonNone when
+	// Unknown is false.
+	UnknownReason listResourcePolicyUnknownReason
 }
 
 // generateListResourcePolicyData iterates over the discovered resources in a
@@ -70,6 +81,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 	expansionEnum := ctx.InstanceExpander().ResourceExpansionEnum(listBlockAddr)
 
 	var results []listResourcePolicy
+	var unknownCount, configErrCount int
 
 	iter := data.ElementIterator()
 	for idx := 0; iter.Next(); idx++ {
@@ -101,26 +113,17 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 			identity = val.GetAttr("identity")
 		}
 
-		// Absent "state" means include_resource = false.
-		// skip with Unknown outcome.
+		// Absent "state" means include_resource = false; skip with Unknown outcome.
 		hasState := val.Type().HasAttribute("state") && !val.GetAttr("state").IsNull()
 		if !hasState {
+			unknownCount++
 			results = append(results, listResourcePolicy{
 				SyntheticAddr:  syntheticAddr,
 				Identity:       identity,
 				ResourceConfig: n.Config,
 				ListBlockAddr:  listBlockAddr,
 				Unknown:        true,
-				Diags: tfdiags.Diagnostics{tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Policy evaluation skipped",
-					fmt.Sprintf(
-						"Resource at index %d in list block %s has no state "+
-							"(include_resource = false). Policy evaluation "+
-							"cannot be performed without resource state.",
-						idx, listBlockAddr.String(),
-					),
-				)},
+				UnknownReason:  unknownReasonNoState,
 			})
 			continue
 		}
@@ -131,26 +134,14 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 		// Provider GenerateResourceConfig RPC failure is the most likely error source.
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
 		if configDiags.HasErrors() {
-			// FIXME: if configDiags contains errors, consider whether to propagate them
-			// in the returned diags (surfacing at the list block execution level) or
-			// keep them contained in the listResourcePolicy Diags field only. Currently
-			// they are appended to both — see the matching FIXME in listResourceExecute.
-			diags = diags.Append(configDiags)
+			configErrCount++
 			results = append(results, listResourcePolicy{
 				SyntheticAddr:  syntheticAddr,
 				Identity:       identity,
 				ResourceConfig: n.Config,
 				ListBlockAddr:  listBlockAddr,
 				Unknown:        true,
-				Diags: tfdiags.Diagnostics{tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Policy evaluation skipped",
-					fmt.Sprintf(
-						"Resource at index %d in list block %s could not generate config. "+
-							"Policy evaluation cannot be performed.",
-						idx, listBlockAddr.String(),
-					),
-				)}.Append(configDiags.InConfigBody(n.Config.Config, listBlockAddr.String())),
+				UnknownReason:  unknownReasonConfigGenFailed,
 			})
 			continue
 		}
@@ -163,6 +154,30 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 			ResourceConfig:  n.Config,
 			ListBlockAddr:   listBlockAddr,
 		})
+	}
+
+	// Emit one consolidated warning per skip category rather than one per resource.
+	if unknownCount > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Policy evaluation skipped",
+			fmt.Sprintf(
+				"%d resource(s) in list block %s have no state (include_resource = false). "+
+					"Policy evaluation cannot be performed without resource state.",
+				unknownCount, listBlockAddr.String(),
+			),
+		))
+	}
+	if configErrCount > 0 {
+		// Config generation errors are unexpected but possible.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Policy evaluation skipped",
+			fmt.Sprintf(
+				"%d resource(s) in list block %s could not generate config for policy evaluation.",
+				configErrCount, listBlockAddr.String(),
+			),
+		))
 	}
 
 	return results, diags
