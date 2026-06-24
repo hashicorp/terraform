@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
@@ -33,7 +34,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	var closeProviderNodes []dag.Vertex
 
 	for v := range g.VerticesSeq() {
-		if _, ok := v.(GraphNodeConfigResource); ok {
+		if node, ok := v.(GraphNodeConfigResource); ok && node.ResourceAddr().Resource.Mode == addrs.ManagedResourceMode {
 			terminalNodes = append(terminalNodes, v)
 			hasManagedResourceNode = true
 			continue
