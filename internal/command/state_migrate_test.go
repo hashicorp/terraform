@@ -130,82 +130,181 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 // Testing migration between two state stores in a single provider.
 // Different cases describe whether the source provider is already in the dependency lock file or not.
 func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) {
-	wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
-	t.Chdir(wd.RootModuleDir())
+	t.Run("provider is already in the dependency lock file", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
+		t.Chdir(wd.RootModuleDir())
 
-	b, err := os.ReadFile("source-pss.tfstate")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pssSchemas := map[string]providers.Schema{
-		"test_src": {
-			Body: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{},
-			},
-		},
-		"test_dst": {
-			Body: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{},
-			},
-		},
-	}
-	p := mockPluggableStateStorageProvider(pssSchemas)
-	p.MockStates = testing_provider.MockStateBytes{
-		"test_src": map[string][]byte{"default": []byte(b)},
-		"test_dst": map[string][]byte{},
-	}
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.2.3"},
-	})
-
-	ui := cli.NewMockUi()
-	view, done := testView(t)
-	c := &StateMigrateCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			WorkingDir:                wd,
-			AllowExperimentalFeatures: true,
-			testingOverrides:          metaOverridesForProvider(p),
-			ProviderSource:            providerSource,
-		},
-	}
-
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
-
-	args := []string{"-no-color"}
-	code := c.Run(args)
-	out := done(t)
-	if code != 0 {
-		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
-	}
-
-	expectedMsg := []string{
-		`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
-		"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-		"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-	}
-	for _, expectedMsg := range expectedMsg {
-		if !strings.Contains(out.Stdout(), expectedMsg) {
-			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
 
-	b, err = p.MockStates.Read("test_dst", "default")
-	if err != nil {
-		t.Fatalf("unable to find migrated state in mock provider: %s", err)
-	}
-	s, err := statefile.Read(bytes.NewBuffer(b))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, ok := s.State.RootOutputValues["test"]
-	if !ok {
-		t.Fatalf("unable to find test output in migrated state")
-	}
+		pssSchemas := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+			"test_dst": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		p := mockPluggableStateStorageProvider(pssSchemas)
+		p.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+			"test_dst": map[string][]byte{},
+		}
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides:          metaOverridesForProvider(p),
+				ProviderSource:            providerSource,
+			},
+		}
+
+		_ = testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		expectedMsg := []string{
+			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
+			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		}
+		for _, expectedMsg := range expectedMsg {
+			if !strings.Contains(out.Stdout(), expectedMsg) {
+				t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+			}
+		}
+
+		b, err = p.MockStates.Read("test_dst", "default")
+		if err != nil {
+			t.Fatalf("unable to find migrated state in mock provider: %s", err)
+		}
+		s, err := statefile.Read(bytes.NewBuffer(b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
+	})
+
+	t.Run("no existing dependency lock file: provider is downloaded and added to the dependency lock file", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
+		t.Chdir(wd.RootModuleDir())
+
+		// In this scenario, there is no provider in the dep lock file
+		// Achieve this by truncating the dep lock file from the copied fixtures
+		if err := os.Truncate(filepath.Join(wd.RootModuleDir(), dependencyLockFilename), 0); err != nil {
+			t.Fatalf("error while truncating lock file during test setup: %s", err)
+		}
+
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		pssSchemas := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+			"test_dst": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		p := mockPluggableStateStorageProvider(pssSchemas)
+		p.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+			"test_dst": map[string][]byte{},
+		}
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := cli.NewMockUi()
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides:          metaOverridesForProvider(p),
+				ProviderSource:            providerSource,
+			},
+		}
+
+		_ = testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		expectedMsg := []string{
+			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
+			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file\n- Using previously-installed hashicorp/test v1.2.3",
+		}
+		for _, expectedMsg := range expectedMsg {
+			if !strings.Contains(out.Stdout(), expectedMsg) {
+				t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+			}
+		}
+
+		// Assert the state is migrated successfully to the
+		// destination state store by inspecting the mock.
+		b, err = p.MockStates.Read("test_dst", "default")
+		if err != nil {
+			t.Fatalf("unable to find migrated state in mock provider: %s", err)
+		}
+		s, err := statefile.Read(bytes.NewBuffer(b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
+
+		// Assert the provider is added to the dependency lock file
+		lockFilePath := filepath.Join(wd.RootModuleDir(), dependencyLockFilename)
+		lockFileBytes, err := os.ReadFile(lockFilePath)
+		if err != nil {
+			t.Fatalf("unable to read dependency lock file: %s", err)
+		}
+		if !strings.Contains(string(lockFileBytes), "hashicorp/test") {
+			t.Fatalf("expected provider hashicorp/test to be added to the dependency lock file, got: %s", string(lockFileBytes))
+		}
+	})
 }
 
 // Test migration from a state store to a backend, where the state store provider is already in the dependency lock file.

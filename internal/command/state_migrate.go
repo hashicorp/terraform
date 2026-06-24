@@ -87,6 +87,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// Load the source backend
 	var source string
+	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
 	if smi.Backend != nil {
 		source = fmt.Sprintf("backend %q", smi.Backend.Type)
 
@@ -109,7 +110,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 
 		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
-		_, sourceLock, srcProviderDiags := c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
+		var srcProviderDiags tfdiags.Diagnostics
+		_, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
@@ -157,6 +159,19 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 
+		// The source provider download step may have introduced a new lock that can be re-used here.
+		// Else, this download step could re-download the same provider if the migration is between stores
+		// in the same provider.
+		//
+		// TODO: Make this conditional based on whether we're doing an upgrade or not?
+		//       Or is use of upgrade flag in second download sufficient?
+		var mergedLocks *depsfile.Locks
+		if sourceLock != nil {
+			mergedLocks = c.mergeLockedDependencies(dstLocks, sourceLock)
+		} else {
+			mergedLocks = dstLocks
+		}
+
 		// Perform download of the destination provider.
 		// This may be controlled by a pre-existing lock from above or not, therefore the returned
 		// lock for the destination state store may not already be in the lock file.
@@ -165,7 +180,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// returned. This will be added the dependency lock file after a successful migration.
 		upgrade := false // TODO - control this by -upgrade flag
 		var dstProviderDiags tfdiags.Diagnostics
-		_, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, dstLocks, upgrade, MigrationDestination, stateMigrate)
+		_, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, stateMigrate)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
