@@ -23,34 +23,49 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// Collect all managed resource instance nodes and all provider closer
-	// nodes that are already in the graph.
-	var resourceNodes []dag.Vertex
+	// Collect all provider closer nodes and all of the terminal nodes in the
+	// main graph, ignoring provider closer nodes. The policy node must wait for
+	// those terminal nodes so that all mutations to changes and state are
+	// complete before policy evaluation closes those objects for read-only
+	// callbacks.
+	var hasManagedResourceNode bool
+	var terminalNodes []dag.Vertex
 	var closeProviderNodes []dag.Vertex
 
 	for v := range g.VerticesSeq() {
 		if _, ok := v.(GraphNodeConfigResource); ok {
-			resourceNodes = append(resourceNodes, v)
+			terminalNodes = append(terminalNodes, v)
+			hasManagedResourceNode = true
+			continue
 		}
 
+		// select close provider nodes
 		if _, ok := v.(GraphNodeCloseProvider); ok {
 			closeProviderNodes = append(closeProviderNodes, v)
+			continue
+		}
+
+		// select terminal nodes
+		if g.UpEdges(v).Len() == 0 {
+			terminalNodes = append(terminalNodes, v)
+			continue
 		}
 	}
 
 	// If there are no managed resources at all, there is nothing to evaluate
 	// policy against.
-	if len(resourceNodes) == 0 {
+	if !hasManagedResourceNode {
 		return nil
 	}
 
 	policyNode := &nodePolicyEval{}
 	g.Add(policyNode)
 
-	// Connect every resource node to the policy node,
-	// so that the policy node executes after every managed resource instance node.
-	for _, rsNode := range resourceNodes {
-		g.Connect(dag.BasicEdge(policyNode, rsNode))
+	// Connect the policy node to every terminal node so that it
+	// executes only after all remaining graph work that can still mutate state
+	// or changes has completed.
+	for _, node := range terminalNodes {
+		g.Connect(dag.BasicEdge(policyNode, node))
 	}
 
 	// We keep the provider open until after policy evaluation so that the

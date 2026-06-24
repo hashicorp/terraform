@@ -129,6 +129,8 @@ func TestPlanGraphBuilder_PolicyClient(t *testing.T) {
 		if nodes := len(policyNode.Collect()); nodes != 1 {
 			t.Fatalf("expected 1 policy evaluation node in plan graph with policy client, got %d", nodes)
 		}
+
+		testGraphHappensBefore(t, g, "output.instance_id (expand)", "(evaluate policies)")
 	})
 
 	t.Run("without policy client", func(t *testing.T) {
