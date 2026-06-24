@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/cloud: Fixed CLI hanging indefinitely when policy evaluations remain pending after a run task fails, is canceled, or errors'
+time: 2026-06-22T12:53:00.535000+05:30
+custom:
+    Issue: "IPL-9136"

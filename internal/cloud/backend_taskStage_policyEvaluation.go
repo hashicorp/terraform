@@ -17,6 +17,38 @@ type policyEvaluationSummary struct {
 	passed      int
 }
 
+func isPendingPolicyEvaluationStatus(status tfe.PolicyEvaluationStatus) bool {
+	switch status {
+	case tfe.PolicyEvaluationRunning, tfe.PolicyEvaluationPending, tfe.PolicyEvaluationStatus(tfe.PolicyQueued):
+		return true
+	default:
+		return false
+	}
+}
+
+func isTerminalTaskStageStatus(status tfe.TaskStageStatus) bool {
+	switch status {
+	case tfe.TaskStageFailed, tfe.TaskStageCanceled, tfe.TaskStageErrored:
+		return true
+	default:
+		return false
+	}
+}
+
+func partitionPolicyEvaluations(policyEvaluations []*tfe.PolicyEvaluation) ([]*tfe.PolicyEvaluation, []*tfe.PolicyEvaluation) {
+	completed := make([]*tfe.PolicyEvaluation, 0, len(policyEvaluations))
+	pending := make([]*tfe.PolicyEvaluation, 0, len(policyEvaluations))
+	for _, policyEvaluation := range policyEvaluations {
+		if isPendingPolicyEvaluationStatus(policyEvaluation.Status) {
+			pending = append(pending, policyEvaluation)
+			continue
+		}
+		completed = append(completed, policyEvaluation)
+	}
+
+	return completed, pending
+}
+
 type Symbol rune
 
 const (
@@ -57,6 +89,23 @@ func (pes *policyEvaluationSummarizer) Summarize(context *IntegrationContext, ou
 	counts := summarizePolicyEvaluationResults(ts.PolicyEvaluations)
 
 	if counts.pending != 0 {
+		if isTerminalTaskStageStatus(ts.Status) {
+			completed, pending := partitionPolicyEvaluations(ts.PolicyEvaluations)
+
+			if len(completed) == 0 {
+				output.Output("Skipping policy evaluation.")
+				output.End()
+				return false, nil, nil
+			}
+
+			if err := pes.taskStageWithPolicyEvaluation(context, output, completed); err != nil {
+				return false, nil, err
+			}
+			output.Output(fmt.Sprintf("Skipping %d pending policy evaluation(s) because task stage is %s.", len(pending), ts.Status))
+			output.End()
+			pes.finished = true
+			return false, nil, nil
+		}
 		pendingMessage := "Evaluating ... "
 		return true, &pendingMessage, nil
 	}
