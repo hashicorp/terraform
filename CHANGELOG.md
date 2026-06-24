@@ -1,4 +1,4 @@
-## 1.16.0 (Unreleased)
+## 1.16.0-alpha20260624 (June 24, 2026)
 
 
 NEW FEATURES:
@@ -27,6 +27,8 @@ ENHANCEMENTS:
 * Action configuration now has a new `caller` symbol which contains the object value from the calling resource. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
 * Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
 
 
 BUG FIXES:
