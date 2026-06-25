@@ -4,13 +4,11 @@
 package command
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -249,38 +247,15 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 
 		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
-		switch safeInstallAction {
-		case Proceed:
-			// do nothing; provider is already trusted and there's no need to notify the user.
-		case RequireApproval:
-			if c.input {
-				// Prompt the user about trusting the provider used for state storage.
-				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLock, stateStoreProviderAuthResult))
-				if diags.HasErrors() {
-					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
-					view.Diagnostics(diags)
-					return 1
-				}
-				view.Output(views.StateStoreProviderInteractiveApprovedMessage)
-			} else {
-				// Confirm that a lock was used to control download.
-				// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
-				if alteredPreviousLocks.Provider(rootModEarly.StateStore.ProviderAddr) == nil {
-					// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Missing lock for state store provider",
-						"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
-					))
-					view.Diagnostics(diags)
-					return 1
-				}
-				view.Output(views.StateStoreProviderAutomationApprovedMessage)
-			}
-		default:
-			// Handle Invalid or unexpected action types
-			panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInstallAction))
+		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks)
+		diags = diags.Append(safeDiags)
+		if safeDiags.HasErrors() {
+			view.Output(views.StateStoreProviderInteractiveRejectedMessage)
+			view.Diagnostics(diags)
+			return 1
 		}
+		view.Output(views.StateStoreProviderAutomationApprovedMessage)
+		view.Output(views.EmptyMessage)
 
 		// Record how the state store provider is supplied to Terraform
 		rootModEarly.StateStore.ProviderSupplyMode = c.Meta.getProviderSupplyModeForStateStore(rootModEarly)
@@ -495,56 +470,4 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		view.Output(output)
 	}
 	return 0
-}
-
-// promptStateStorageProviderApproval is used when Terraform is unsure about the safety of the provider downloaded for state storage
-// purposes, and we need to prompt the user to approve or reject using it.
-func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks, authResult *getproviders.PackageAuthenticationResult) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// If we can receive input then we prompt for ok from the user
-	lock := configLocks.Provider(stateStorageProvider)
-
-	var hashList strings.Builder
-	for _, hash := range lock.PreferredHashes() {
-		hashList.WriteString(fmt.Sprintf("- %s\n", hash))
-	}
-
-	var authentication string
-	if authResult != nil && authResult.KeyID != "" {
-		authentication = fmt.Sprintf("%s, key ID %s", authResult.String(), authResult.KeyID)
-	} else {
-		authentication = authResult.String()
-	}
-
-	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "approve",
-		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
-Platform: %s
-Authentication: %s
-Hashes:
-%s
-`,
-			lock.Provider().Type,
-			lock.Provider(),
-			lock.Version(),
-			getproviders.CurrentPlatform.String(),
-			authentication,
-			hashList.String(),
-		),
-		Description: fmt.Sprintf(`Check the details above for provider %q and confirm that you trust the provider.
-	Only 'yes' will be accepted to confirm.`, lock.Provider().Type),
-	})
-	if err != nil {
-		return diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
-	}
-	if v != "yes" {
-		return diags.Append(
-			fmt.Errorf("State store provider %q (%s) was not approved, so init cannot continue.",
-				lock.Provider().Type,
-				lock.Provider(),
-			),
-		)
-	}
-	return diags
 }
