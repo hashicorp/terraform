@@ -2497,8 +2497,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 		blockSchema             map[string]*configschema.NestedBlock
 		module                  map[string]string
 		expectedValidationDiags func(*configs.Config) tfdiags.Diagnostics
-		expectedPlanDiags       func(*configs.Config) tfdiags.Diagnostics
-		expectedApplyDiags      func(*configs.Config) tfdiags.Diagnostics
 	}{
 		"in locals": {
 			attributeSchema: map[string]*configschema.Attribute{
@@ -2610,9 +2608,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 					},
 				})
 			},
-			// During apply we take the planned value for the output. Since the plan
-			// does not contain marks we can not detect this usage at apply time.
-			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics { return tfdiags.Diagnostics{} },
 		},
 
 		"in resource attribute": {
@@ -2663,18 +2658,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
             }
              `,
 			},
-			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 9, Column: 31, Byte: 245},
-						End:      hcl.Pos{Line: 9, Column: 58, Byte: 272},
-					},
-				})
-			},
 		},
 
 		"in postcondition condition": {
@@ -2693,18 +2676,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
               }
             }
              `,
-			},
-			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 31, Byte: 160},
-						End:      hcl.Pos{Line: 6, Column: 45, Byte: 174},
-					},
-				})
 			},
 		},
 
@@ -2741,27 +2712,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
             }
              `,
 			},
-			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
-						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
-					},
-				}).Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 5, Column: 45, Byte: 135},
-						End:      hcl.Pos{Line: 5, Column: 45, Byte: 135},
-					},
-				})
-			},
 		},
 
 		"in check assertion": {
@@ -2780,18 +2730,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
               }
             }
              `,
-			},
-			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 7, Column: 29, Byte: 170},
-						End:      hcl.Pos{Line: 7, Column: 56, Byte: 197},
-					},
-				})
 			},
 		},
 
@@ -2868,30 +2806,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 					},
 				})
 			},
-			expectedPlanDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{} // We can not connect this during planning
-			},
-			expectedApplyDiags: func(c *configs.Config) tfdiags.Diagnostics {
-				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 36, Byte: 177},
-						End:      hcl.Pos{Line: 6, Column: 57, Byte: 198},
-					},
-				}).Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  `Deprecated value used`,
-					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 9, Column: 26, Byte: 284},
-						End:      hcl.Pos{Line: 9, Column: 47, Byte: 305},
-					},
-				})
-			},
 		},
 
 		"in action config": {
@@ -2922,6 +2836,109 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				})
 			},
 		},
+
+		"nested deprecated attr in root module output": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 23, Byte: 116},
+						End:      hcl.Pos{Line: 5, Column: 40, Byte: 133},
+					},
+				})
+			},
+		},
+
+		"nested deprecated attr in child module output": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+			module "child" {
+				source = "./child"
+			}`,
+				"child/main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test
+            }
+             `,
+			},
+			// no diags expected!
+		},
+
+		"explicit deprecated attr in child module output": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+			module "child" {
+				source = "./child"
+			}`,
+				"child/main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test.foo
+            }
+             `,
+			},
+			expectedValidationDiags: func(c *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  `Deprecated value used`,
+					Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(c.Module.SourceDir, "child/main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 23, Byte: 116},
+						End:      hcl.Pos{Line: 5, Column: 44, Byte: 137},
+					},
+				})
+			},
+		},
+
+		"referencing nested deprecated attr in child module output": {
+			attributeSchema: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true, Deprecated: true},
+			},
+			module: map[string]string{
+				"main.tf": `
+			module "child" {
+				source = "./child"
+			}
+
+			output "deprecated" {
+				value = module.child.deprecated.foo
+			}	
+			`,
+				"child/main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test
+            }
+             `,
+			},
+			// This is not caught by validate.
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			// Default values
@@ -2929,14 +2946,6 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				tc.expectedValidationDiags = func(c *configs.Config) tfdiags.Diagnostics {
 					return tfdiags.Diagnostics{}
 				}
-			}
-			// By default we want the same validations in plan as in validate
-			if tc.expectedPlanDiags == nil {
-				tc.expectedPlanDiags = tc.expectedValidationDiags
-			}
-			// And the same validations in apply as in plan
-			if tc.expectedApplyDiags == nil {
-				tc.expectedApplyDiags = tc.expectedPlanDiags
 			}
 
 			pr := simpleMockProvisioner()
@@ -2969,10 +2978,9 @@ func TestContext2Validate_deprecatedAttr(t *testing.T) {
 				},
 			})
 
-			t.Run("validate", func(t *testing.T) {
-				validateDiags := ctx.Validate(m, nil)
-				tfdiags.AssertDiagnosticsMatch(t, validateDiags, tc.expectedValidationDiags(m))
-			})
+			validateDiags := ctx.Validate(m, nil)
+			tfdiags.AssertDiagnosticsMatch(t, validateDiags, tc.expectedValidationDiags(m))
+
 		})
 	}
 }
