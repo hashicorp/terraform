@@ -4,7 +4,6 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -132,7 +131,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	}
 
 	if len(args.PolicyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), args.PolicyPaths)
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
 		// if there has been any errors when setting up the policy client, we log them but
 		// we still proceed with the operation, as a failure to set up the policy client
 		// should not prevent the query operation from running
