@@ -20,15 +20,6 @@ import (
 //
 // We always expect to find this file in the current working directory
 // because that should also be the root module directory.
-//
-// Some commands have legacy command line arguments that make the root module
-// directory something other than the root module directory; when using those,
-// the lock file will be written in the "wrong" place (the current working
-// directory instead of the root module directory) but we do that intentionally
-// to match where the ".terraform" directory would also be written in that
-// case. Eventually we will phase out those legacy arguments in favor of the
-// global -chdir=... option, which _does_ preserve the intended invariant
-// that the root module directory is always the current working directory.
 const dependencyLockFilename = depsfile.LockFilePath // .terraform.lock.hcl
 
 // lockedDependencies reads the dependency lock information from the default lock file location
