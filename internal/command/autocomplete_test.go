@@ -39,7 +39,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	t.Run("test autocompletion using a state store", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock
@@ -85,7 +85,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	t.Run("test autocompletion using a state store containing no workspaces", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock

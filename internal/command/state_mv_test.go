@@ -163,7 +163,7 @@ func TestStateMv(t *testing.T) {
 func TestStateMv_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing resources
