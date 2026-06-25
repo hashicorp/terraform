@@ -3056,6 +3056,17 @@ func (m *Meta) StateStoreProviderFactoryFromConfigState(cfgState *workdir.StateS
 	return factory, diags
 }
 
+// SafeStateStoreProviderInstallAction describes the action that should be taken by Terraform based on whether
+// pluggable state storage is in use, if the provider is going to be downloaded via HTTP or not,
+// and whether Terraform is being run in automation or not.
+type SafeStateStoreProviderInstallAction rune
+
+const (
+	Invalid         SafeStateStoreProviderInstallAction = 0
+	Proceed         SafeStateStoreProviderInstallAction = 'P'
+	RequireApproval SafeStateStoreProviderInstallAction = 'A'
+)
+
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------

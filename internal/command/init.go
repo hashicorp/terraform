@@ -375,17 +375,6 @@ the backend configuration is present and valid.
 	return diags
 }
 
-// SafeInitAction describes the action that should be taken by Terraform based on whether
-// pluggable state storage is in use, if the provider is going to be downloaded via HTTP or not,
-// and whether Terraform is being run in automation or not.
-type SafeInitAction rune
-
-const (
-	SafeInitActionInvalid         SafeInitAction = 0
-	SafeInitActionProceed         SafeInitAction = 'P'
-	SafeInitActionRequireApproval SafeInitAction = 'I'
-)
-
 // getProvidersFromPSSConfig determines what provider is required given state store configuration
 // and downloads the provider that isn't already downloaded and then returns
 // updated dependency lock data. The dependency lock file itself isn't updated here.
@@ -395,7 +384,7 @@ const (
 // to only download a single provider, and the method will only return a single lock.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -448,7 +437,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, nil, diags
+		return false, nil, Invalid, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -545,7 +534,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, nil, SafeInitActionInvalid, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -555,7 +544,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			diags = diags.Append(err)
 		}
 
-		return true, nil, SafeInitActionInvalid, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 
 	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
