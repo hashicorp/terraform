@@ -8,7 +8,7 @@ import (
 	"maps"
 	"slices"
 
-	versionConstraints "github.com/apparentlymart/go-versions/versions/constraints"
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -271,24 +271,18 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*StateStoreProviderRequire
 				return nil, diags
 			}
 
-			var err error
-			constraints, err = providerreqs.ParseVersionConstraints(versionString.AsString())
+			// This means it's only valid to specify a single version in the format "1.0.0",
+			// but disallows using the equivalent "=1.0.0"
+			v, err := versions.ParseVersion(versionString.AsString())
+			if err != nil {
+				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
+				return nil, diags
+			}
+
+			constraints, err = providerreqs.ParseVersionConstraints(v.String())
 			if err != nil {
 				// ParseVersionConstraints doesn't return user-friendly errors, so we'll just
 				// ignore the provided error and produce our own generic one.
-				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
-				return nil, diags
-			}
-
-			if len(constraints) != 1 {
-				// Suggests a multi-part constraint, e.g. ">= 1.0.0, < 2.0.0"
-				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
-				return nil, diags
-			}
-
-			con := constraints[0]
-			if con.Operator != versionConstraints.OpEqual {
-				// Suggests a range constraint, e.g. ">= 1.0.0"
 				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
 				return nil, diags
 			}
@@ -379,7 +373,7 @@ func badVersionConstraintErrorDiag(version string, subject *hcl.Range) *hcl.Diag
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  `Invalid provider version in "state_store_provider" configuration block`,
-		Detail:   fmt.Sprintf("Version must be a string, specifying a single version, but got: %s. Please ensure the version string is valid and specifies a single version, for example \"1.0.0\" or \"=1.0.0\".", version),
+		Detail:   fmt.Sprintf("Version must be a string, specifying a single version, but got: %s. Please ensure the version string is valid and specifies a single version in format  \"1.0.0\"", version),
 		Subject:  subject,
 	}
 }
