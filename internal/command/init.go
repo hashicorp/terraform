@@ -382,7 +382,7 @@ the backend configuration is present and valid.
 // to only download a single provider, and the method will only return a single lock.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInstallAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -545,35 +545,10 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		return true, nil, Invalid, nil, diags
 	}
 
-	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
-	location, ok := providerLocations[rootModEarly.StateStore.ProviderAddr]
-	if !ok {
-		// The provider was not processed in the FetchPackageBegin callback.
-		// A provider that wasn't downloaded during this init could be because:
-		// * It was already present from a previous installation.
-		// * If upgrading, no newer version was available that matched version constraints.
-		// * Or, the provider is unmanaged/reattached and so download was skipped.
-		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-		safeInitAction = SafeInitActionProceed
-	} else {
-		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
-		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
+	// Return advice to the calling code about what to do regarding safe state store provider installation
+	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations)
 
-		switch location.(type) {
-		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
-			// If the provider is downloaded from a local source we assume it's safe.
-			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionProceed
-		case getproviders.PackageHTTPURL:
-			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionRequireApproval
-		default:
-			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", rootModEarly.StateStore.ProviderAddr, location))
-		}
-	}
-
-	return true, lock, safeInitAction, stateStoreProviderAuthResult, diags
+	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state
