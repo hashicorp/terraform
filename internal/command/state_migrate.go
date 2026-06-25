@@ -110,7 +110,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
-		_, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
+		_, sourceLock, _, _, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
@@ -179,7 +179,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// returned. This will be added the dependency lock file after a successful migration.
 		upgrade := false // TODO - control this by -upgrade flag
 		var dstProviderDiags tfdiags.Diagnostics
-		_, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, stateMigrate)
+		_, destinationLock, _, _, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, stateMigrate)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
@@ -321,7 +321,7 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 // Download of the up to 2 providers is kept separate due to:
 // - Potential for downloading different versions of the same provider
 // - Need to keep the locks separate for source and destination providers; destination providers are added to the dependency lock file.
-func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName string, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, store *configs.StateStore, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, safeInstallAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install state migration "+location+" provider")
 	defer span.End()
 
@@ -344,21 +344,28 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, Invalid, nil, diags
 	}
 
 	// Use a source that looks for providers in all of the standard locations,
 	// possibly customized by the user in CLI config.
 	inst := c.providerInstaller()
 
-	// Because we're currently just streaming a series of events sequentially
-	// into the terminal, we're showing only a subset of the events to keep
-	// things relatively concise. Later it'd be nice to have a progress UI
-	// where statuses update in-place, but we can't do that as long as we
-	// are shimming our vt100 output to the legacy console API on Windows.
+	// Prepare callback functions for the installer.
+	// These allow us to send output to the terminal as events happen, catch
+	// diagnostics, etc.
+	//
+	// We use some callbacks to capture data that's surfaced during the
+	// installation process:
+	// - provider authentication info.
+	// - info about what type of location a provider is sourced from.
+	// These pieces of data are used to determine if additional security features
+	// need to be enabled.
+	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
+	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitMessage(views.InitializingStateStoreProviderPluginMessage, storeName)
+			view.LogInitMessage(views.InitializingStateStoreProviderPluginMessage, store.Type)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
@@ -374,13 +381,35 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 				}
 			}
 		},
-		LinkFromCacheBegin:   linkFromCacheBeginCallback(view),
-		FetchPackageBegin:    fetchPackageBeginCallback(view),
+		LinkFromCacheBegin: linkFromCacheBeginCallback(view),
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			// 1) Record the location of this provider.
+			//
+			// FetchPackageBegin is the callback hook at the start of the process of obtaining a provider that isn't yet
+			// in the dependency lock file. Providers that are processed here will not be processed here on the next init,
+			// as then they will be in the lock file. The same provider type would only be processed here again if the
+			// provider version changed via an `init -upgrade` command.
+			providerLocations[provider] = location
+
+			// 2) Call the shared callback for FetchPackageBegin.
+			cb := fetchPackageBeginCallback(view)
+			cb(provider, version, location)
+		},
 		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, nil),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
-		FetchPackageSuccess:  fetchPackageSuccessCallback(view),
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			// 1. Capture auth result if this provider is used for state storage.
+			if store != nil && provider.Equals(store.ProviderAddr) {
+				log.Printf("[TRACE] getProvidersFromConfig: state storage provider %s (%q) auth result: %q", store.ProviderAddr.Type, store.ProviderAddr.ForDisplay(), stateStoreProviderAuthResult.String())
+				stateStoreProviderAuthResult = authResult
+			}
+
+			// 2. Call the shared callback for FetchPackageSuccess
+			cb := fetchPackageSuccessCallback(view)
+			cb(provider, version, localDir, authResult)
+		},
 		ProvidersLockUpdated: providersLockUpdatedCallback(&c.incompleteProviders),
 		ProvidersFetched:     providersFetchedCallback(view),
 	}
@@ -394,7 +423,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	newLocks, err := inst.EnsureProviderVersions(ctx, locks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		return true, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -404,8 +433,11 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 			diags = diags.Append(err)
 		}
 
-		return true, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 
-	return true, newLocks, diags
+	// Return advice to the calling code about what to do regarding safe state store provider installation
+	safeInstallAction = c.determineSafeProviderInstallAction(store.ProviderAddr, providerLocations)
+
+	return true, newLocks, safeInstallAction, stateStoreProviderAuthResult, diags
 }
