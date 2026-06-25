@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -261,5 +262,62 @@ func TestContextApply_import_duplication(t *testing.T) {
 	// the parent module import takes precedence (confirming the comment in refactoring/import_statement.go)
 	if got, want := attrs["id"], "rootimport"; got != want {
 		t.Fatalf("wrong id! got:  %#v  want: %#v\n", got, want)
+	}
+}
+
+func TestContextApply_import_in_state_not_config(t *testing.T) {
+	// regression test for https://github.com/hashicorp/terraform/issues/38660:
+	// ensure a clear error when the requested import resource exists in state
+	// but not config
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			import {
+				to = test_object.foo
+				id = "importable"
+			}
+		`,
+	})
+
+	p := simpleMockProvider()
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("importable"),
+				}),
+			},
+		},
+	}
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("hi, mom!"),
+		}),
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.foo"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"foo"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// verify the module is valid
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Plan(m, state, nil)
+	if !strings.Contains(diags.Err().Error(), "Configuration for import target does not exist") {
+		t.Fatalf("wrong error! got %s\n", diags.Err())
 	}
 }
