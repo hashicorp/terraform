@@ -4272,8 +4272,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutputs := []string{
-			`Initializing provider plugin for state store "test_store"...
+		expectedOutput := `Initializing provider plugin for state store "test_store"...
 - Finding latest version of hashicorp/test...
 - Installing hashicorp/test v1.2.3...
 - Installed hashicorp/test v1.2.3 (verified checksum)
@@ -4282,12 +4281,9 @@ Initializing the state store "test_store"...
 
 Initializing provider plugins...
 - Reusing previous version of hashicorp/test from the dependency lock file
-- Using previously-installed hashicorp/test v1.2.3`,
-		}
-		for _, expected := range expectedOutputs {
-			if !strings.Contains(output, expected) {
-				t.Fatalf("expected output to include %q, but got:\n%s", expected, output)
-			}
+- Using previously-installed hashicorp/test v1.2.3`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got:\n%s", expectedOutput, output)
 		}
 
 		// Assert the default workspace was not created
@@ -4814,6 +4810,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"The state store provider was rejected",
+			`Error: State store provider "test" (registry.terraform.io/hashicorp/test) was not approved, so init cannot continue.`,
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
@@ -4890,6 +4887,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"The state store provider was rejected",
+			`Error: State store provider "test" (registry.terraform.io/hashicorp/test) was not approved, so init cannot continue.`,
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {
@@ -5398,7 +5396,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
 			"Error: Missing lock for state store provider",
-			"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
+			"Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider",
+			"If you are performing a \"terraform init\" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag",
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
