@@ -18,9 +18,9 @@ import (
 type listResourcePolicyUnknownReason uint8
 
 const (
-	unknownReasonNone         listResourcePolicyUnknownReason = iota
-	unknownReasonNoState                                       // include_resource = false or state absent from list response
-	unknownReasonConfigGenFailed                               // provider RPC or legacy fallback could not produce config
+	unknownReasonNone            listResourcePolicyUnknownReason = iota
+	unknownReasonNoState                                         // include_resource = false or state absent from list response
+	unknownReasonConfigGenFailed                                 // provider RPC or legacy fallback could not produce config
 )
 
 // listResourcePolicy holds the policy evaluation inputs for a single resource
@@ -45,26 +45,20 @@ type listResourcePolicy struct {
 	// nodes use this for source location in diagnostics (DeclRange).
 	ResourceConfig *configs.Resource
 
-	// ListBlockAddr is the AbsResourceInstance address of the originating list
-	// block.
+	// ListBlockAddr is the AbsResourceInstance address of the originating list block.
 	ListBlockAddr addrs.AbsResourceInstance
 
 	// Unknown is true when the resource had no "state" attribute in the list
 	// response (include_resource = false), preventing config generation.
 	Unknown bool
 
-	// UnknownReason classifies why Unknown is true. unknownReasonNone when
-	// Unknown is false.
+	// UnknownReason classifies why Unknown is true. unknownReasonNone when Unknown is false.
 	UnknownReason listResourcePolicyUnknownReason
 }
 
 // generateListResourcePolicyData iterates over the discovered resources in a
 // list block response and generates per-resource config data required for
 // policy evaluation.
-//
-// data must be the "data" attribute of the provider's ListResource response
-// (resp.Result.GetAttr("data")). listBlockAddr is the AbsResourceInstance of
-// the list block walk node (n.ResourceInstanceAddr()).
 func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 	ctx EvalContext,
 	listBlockAddr addrs.AbsResourceInstance,
@@ -72,8 +66,9 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 ) ([]listResourcePolicy, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// Check null or unknwon data
 	if !data.CanIterateElements() {
-		// Null or unknown data — no resources to process.
+		// no resources to process.
 		return nil, diags
 	}
 
@@ -81,14 +76,14 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 	expansionEnum := ctx.InstanceExpander().ResourceExpansionEnum(listBlockAddr)
 
 	var results []listResourcePolicy
+	// Counters to aggregate possible diagnostics from enumerated list.
 	var unknownCount, configErrCount int
 
 	iter := data.ElementIterator()
 	for idx := 0; iter.Next(); idx++ {
 		_, val := iter.Element()
 
-		// Build the synthetic address using the same formula as
-		// genconfig.GenerateListResourceContents.
+		// Build the synthetic address using the same formula as genconfig.GenerateListResourceContents.
 		var syntheticName string
 		if listBlockAddr.Resource.Key == addrs.NoKey {
 			syntheticName = fmt.Sprintf("%s_%d", listBlockAddr.Resource.Resource.Name, idx)
@@ -130,9 +125,9 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 
 		stateVal := val.GetAttr("state")
 
-		// Provider RPC first, legacy fallback second; on failure record Unknown and continue.
-		// Provider GenerateResourceConfig RPC failure is the most likely error source.
+		// Call Provider RPC to generate configuration; fallback to legacy extraction config from state
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
+		// Handle Provider GenerateResourceConfig RPC failure.
 		if configDiags.HasErrors() {
 			configErrCount++
 			results = append(results, listResourcePolicy{
