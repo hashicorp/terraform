@@ -457,7 +457,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// will not use it due to the lock file being unchanged.
 		finalLocks = c.mergeLockedDependencies(pssLock, finalLocks)
 	}
-	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, initArgs.Lockfile, view)
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, c.incompleteProviders, initArgs.Lockfile, view)
 	diags = diags.Append(lockFileDiags)
 	if lockFileDiags.HasErrors() {
 		view.Diagnostics(diags)
