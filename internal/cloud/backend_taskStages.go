@@ -36,6 +36,15 @@ type taskStageSummarizer interface {
 	Summarize(*IntegrationContext, IntegrationOutputWriter, *tfe.TaskStage) (bool, *string, error)
 }
 
+func isTerminalTaskStageStatus(status tfe.TaskStageStatus) bool {
+	switch status {
+	case tfe.TaskStageFailed, tfe.TaskStageCanceled, tfe.TaskStageErrored:
+		return true
+	default:
+		return false
+	}
+}
+
 func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId string) (taskStages, error) {
 	taskStages := make(taskStages, 0)
 	result, err := client.Runs.ReadWithOptions(ctx, runId, &tfe.RunReadOptions{

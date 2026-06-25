@@ -75,6 +75,20 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
 		},
+		"unreachable-with-pending-in-terminal-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: "pending", PolicyKind: "opa"},
+					{ID: "pol-unreachable", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: "unreachable", PolicyKind: "opa"},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
 		"pending-with-failed-task-stage": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
@@ -139,7 +153,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: "passed", PolicyKind: "opa"},
 					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: "failed", PolicyKind: "opa"},
 					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: "pending", PolicyKind: "opa"},
-					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: "running", PolicyKind: "opa"},
+					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: "queued", PolicyKind: "opa"},
 				}
 				return ts
 			},
@@ -278,6 +292,20 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
 		},
+		"unreachable-with-pending-in-terminal-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: "pending", PolicyKind: "sentinel"},
+					{ID: "pol-unreachable", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: "unreachable", PolicyKind: "sentinel"},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
 		"pending-with-failed-task-stage": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
@@ -342,7 +370,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: "passed", PolicyKind: "sentinel"},
 					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: "failed", PolicyKind: "sentinel"},
 					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: "pending", PolicyKind: "sentinel"},
-					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: "running", PolicyKind: "sentinel"},
+					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: "queued", PolicyKind: "sentinel"},
 				}
 				return ts
 			},
