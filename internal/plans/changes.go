@@ -455,7 +455,7 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 		switch rc.Action {
 		case Delete:
 			// We'll fall out and just return rc verbatim, then.
-		case CreateThenDelete, DeleteThenCreate:
+		case CreateThenDelete, DeleteThenCreate, CreateThenForget:
 			return &ResourceInstanceChange{
 				Addr:         rc.Addr,
 				DeposedKey:   rc.DeposedKey,
@@ -506,7 +506,7 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
-		case CreateThenDelete, DeleteThenCreate:
+		case CreateThenDelete, DeleteThenCreate, CreateThenForget:
 			return &ResourceInstanceChange{
 				Addr:         rc.Addr,
 				DeposedKey:   rc.DeposedKey,

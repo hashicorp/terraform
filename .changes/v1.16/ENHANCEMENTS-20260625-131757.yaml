@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Support destroy=false in resource lifecycle blocks.
+time: 2026-06-25T13:17:57.053523-04:00
+custom:
+    Issue: "38784"
