@@ -25,6 +25,7 @@ import (
 type corePlugin struct {
 	plugin.Plugin
 
+	debugging          bool
 	experimentsAllowed bool
 }
 
@@ -36,6 +37,7 @@ func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 
 func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
 	generalOpts := &serviceOpts{
+		debugging:          p.debugging,
 		experimentsAllowed: p.experimentsAllowed,
 	}
 	registerGRPCServices(s, generalOpts)
@@ -46,7 +48,7 @@ func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	// We initially only register the setup server, because the registration
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
-	server := newSetupServer(serverHandshake(s, opts))
+	server := newSetupServer(serverHandshake(s, opts), opts)
 	setup.RegisterSetupServer(s, server)
 }
 
@@ -99,6 +101,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 // This could potentially be embedded inside a service-specific options
 // structure, if needed.
 type serviceOpts struct {
+	debugging          bool
 	experimentsAllowed bool
 }
 

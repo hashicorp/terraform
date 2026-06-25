@@ -31,12 +31,14 @@ type setupServer struct {
 	// RPC is called.
 	stopper *stopper
 
-	mu sync.Mutex
+	debugging bool
+	mu        sync.Mutex
 }
 
-func newSetupServer(initOthers func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error)) setup.SetupServer {
+func newSetupServer(initOthers func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error), opts *serviceOpts) setup.SetupServer {
 	return &setupServer{
 		initOthers: initOthers,
+		debugging:  opts.debugging,
 		stopper:    newStopper(),
 	}
 }
@@ -56,7 +58,10 @@ func (s *setupServer) Handshake(ctx context.Context, req *setup.Handshake_Reques
 		serverCaps, err = s.initOthers(ctx, req, s.stopper)
 		span.End()
 	}
-	s.initOthers = nil // cannot handshake again
+
+	if !s.debugging {
+		s.initOthers = nil // cannot handshake again
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dlv-terraform-rpcapi-attach",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/terraform-rpcapi-debug-attach.sh",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "delve",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Attaching Delve",
+          "endsPattern": "^API server listening at"
+        }
+      }
+    },
+    {
+      "label": "dlv-terraform-rpcapi-kill",
+      "type": "shell",
+      "command": "docker exec --user root $(docker ps -qf 'ancestor=hashicorp/tfc-agent-debug:latest') pkill -f 'listen=:2346'",
+      "problemMatcher": []
+    }
+  ]
+}

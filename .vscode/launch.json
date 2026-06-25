@@ -1,0 +1,18 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to terraform rpcapi",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "host": "127.0.0.1",
+            "port": 2346,
+            "preLaunchTask": "dlv-terraform-rpcapi-attach",
+            "postDebugTask": "dlv-terraform-rpcapi-kill"
+        }
+    ]
+}

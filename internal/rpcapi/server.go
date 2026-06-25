@@ -5,8 +5,13 @@ package rpcapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
+	"os/signal"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/go-plugin"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -28,11 +33,45 @@ func ServePlugin(ctx context.Context, opts ServerOpts) error {
 		return ErrNotPluginClient
 	}
 
-	plugin.Serve(&plugin.ServeConfig{
+	var debugging bool
+	var serveTestCfg *plugin.ServeTestConfig
+	debugCh := make(chan *plugin.ReattachConfig)
+	debugCloseCh := make(chan struct{})
+
+	// This could also be a flag, but env variable is easier to setup for now
+	if os.Getenv("TF_RPCAPI_DEBUG") != "" {
+		debugCtx, cancel := context.WithCancel(context.Background())
+		signalCh := make(chan os.Signal, 1)
+
+		signal.Notify(signalCh, []os.Signal{os.Interrupt}...)
+
+		defer func() {
+			signal.Stop(signalCh)
+			cancel()
+		}()
+
+		go func() {
+			select {
+			case <-signalCh:
+				cancel()
+			case <-ctx.Done():
+			}
+		}()
+
+		debugging = true
+		serveTestCfg = &plugin.ServeTestConfig{
+			Context:          debugCtx,
+			ReattachConfigCh: debugCh,
+			CloseCh:          debugCloseCh,
+		}
+	}
+
+	srvCfg := &plugin.ServeConfig{
 		HandshakeConfig: handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
 				"tfcore": &corePlugin{
+					debugging:          debugging,
 					experimentsAllowed: opts.ExperimentsAllowed,
 				},
 			},
@@ -54,7 +93,57 @@ func ServePlugin(ctx context.Context, opts ServerOpts) error {
 			}()
 			return server
 		},
+		Test: serveTestCfg,
+	}
+
+	if !debugging {
+		plugin.Serve(srvCfg)
+		return nil
+	}
+
+	go plugin.Serve(srvCfg)
+
+	var pluginReattachConfig *plugin.ReattachConfig
+	select {
+	case pluginReattachConfig = <-debugCh:
+	case <-time.After(10 * time.Second):
+		return errors.New("timeout waiting on reattach configuration")
+	}
+
+	if pluginReattachConfig == nil {
+		return errors.New("nil reattach configuration received")
+	}
+	type reattachConfigAddr struct {
+		Network string
+		String  string
+	}
+
+	type reattachConfig struct {
+		Protocol        string
+		ProtocolVersion int
+		Pid             int
+		Test            bool
+		Addr            reattachConfigAddr
+	}
+
+	reattachBytes, err := json.Marshal(reattachConfig{
+		Protocol:        string(pluginReattachConfig.Protocol),
+		ProtocolVersion: pluginReattachConfig.ProtocolVersion,
+		Pid:             pluginReattachConfig.Pid,
+		Test:            pluginReattachConfig.Test,
+		Addr: reattachConfigAddr{
+			Network: pluginReattachConfig.Addr.Network(),
+			String:  pluginReattachConfig.Addr.String(),
+		},
 	})
+
+	if err != nil {
+		return fmt.Errorf("Error building reattach string: %w", err)
+	}
+
+	fmt.Printf("\t%s='%s'\n", "TF_RPCAPI_REATTACH", strings.ReplaceAll(string(reattachBytes), `'`, `'"'"'`))
+	<-debugCloseCh
+
 	return nil
 }
 

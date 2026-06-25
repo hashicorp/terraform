@@ -20,7 +20,7 @@ func TestSetupServer_Handshake(t *testing.T) {
 			t.Fatalf("incorrect token. got %q, want %q", got, want)
 		}
 		return &setup.ServerCapabilities{}, nil
-	})
+	}, nil)
 
 	req := &setup.Handshake_Request{
 		Capabilities: &setup.ClientCapabilities{},
@@ -54,7 +54,7 @@ func TestSetupServer_Stop(t *testing.T) {
 	server := newSetupServer(func(ctx context.Context, req *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
 		s = stopper
 		return &setup.ServerCapabilities{}, nil
-	})
+	}, nil)
 	_, err := server.Handshake(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
