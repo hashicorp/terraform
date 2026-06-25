@@ -130,8 +130,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
+		var safeInstallAction SafeStateStoreProviderInstallAction
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var output bool
-		output, sourceLock, _, _, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
+		output, sourceLock, safeInstallAction, stateStoreProviderAuthResult, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -140,6 +142,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		if output {
 			// Space out provider download output from the migration output below.
 			view.Spacer()
+		}
+
+		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
+		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, args.SourceLockFilePath, c, view)
+		diags = diags.Append(safeDiags)
+		if safeDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
 		}
 
 		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
@@ -232,8 +242,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// returned. This will be added the dependency lock file after a successful migration.
 		upgrade := false // TODO - control this by -upgrade flag
 		var dstProviderDiags tfdiags.Diagnostics
+		var safeInstallAction SafeStateStoreProviderInstallAction
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var output bool
-		output, destinationLock, _, _, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
+		output, destinationLock, safeInstallAction, stateStoreProviderAuthResult, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -242,6 +254,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		if output {
 			// Space out provider download output from the migration output below.
 			view.Spacer()
+		}
+
+		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
+		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootMod.StateStore.ProviderAddr, stateStoreProviderAuthResult, destinationLock, mergedLocks, args.DestinationLockFilePath, c, view)
+		diags = diags.Append(safeDiags)
+		if safeDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
 		}
 
 		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
