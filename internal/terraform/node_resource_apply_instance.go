@@ -288,18 +288,19 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if err := n.taintInstanceState(ctx, state, diffApply.Action); err != nil {
 			return diags.Append(err)
 		}
-	}
-
-	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-		// The resource has been applied, so we add a policy node to send its data
-		// for policy evaluation.
-		policyGraph.Add(&nodeResourcePolicy{
-			ResourceAddr: diffApply.Addr,
-			ProviderAddr: diffApply.ProviderAddr,
-			Before:       diffApply.Before,
-			After:        state.Value,
-			Action:       diffApply.Action,
-		})
+	} else {
+		// We only add a policy node if the apply was successful.
+		if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+			// The resource has been applied, so we add a policy node to send its data
+			// for policy evaluation.
+			policyGraph.Add(&nodeResourcePolicy{
+				ResourceAddr: diffApply.Addr,
+				ProviderAddr: diffApply.ProviderAddr,
+				Before:       diffApply.Before,
+				After:        state.Value,
+				Action:       diffApply.Action,
+			})
+		}
 	}
 
 	// We clear the change out here so that future nodes don't see a change
