@@ -9,7 +9,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
@@ -187,7 +190,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
-	return &ContextGraphWalker{
+	walker := &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
 		Config:                  opts.Config,
@@ -212,5 +215,13 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PolicyClient:            opts.PolicyClient,
 		PolicyResults:           opts.PolicyResults,
 		Deprecations:            deprecation.NewDeprecations(),
+		contexts:                collections.NewMap[evalContextScope, *BuiltinEvalContext](),
+		providerCache:           make(map[string]providers.Interface),
+		providerFuncCache:       make(map[string]providers.Interface),
+		providerSchemas:         make(map[string]providers.ProviderSchema),
+		provisionerCache:        make(map[string]provisioners.Interface),
+		provisionerSchemas:      make(map[string]*configschema.Block),
 	}
+
+	return walker
 }
