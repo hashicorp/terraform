@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,9 +18,14 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -503,6 +509,193 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 	rs := state.Resource(mustAbsResourceAddr("test_resource.test"))
 	if rs == nil {
 		t.Fatal("expected resource to be in the state")
+	}
+}
+
+func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
+	providerAddr := addrs.NewDefaultProvider("ephem")
+
+	for _, tc := range []struct {
+		name             string
+		applyResourceFn  func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
+		expectPolicyCall bool
+		assertPolicyReq  func(*testing.T, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata])
+		expectDiags      tfdiags.Diagnostics
+	}{
+		{
+			name: "policy receives null write-only attrs",
+			applyResourceFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+				return providers.ApplyResourceChangeResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.Config.GetAttr("normal"),
+						"write_only": cty.NullVal(cty.String),
+					}),
+				}
+			},
+			expectPolicyCall: true,
+			assertPolicyReq: func(t *testing.T, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) {
+				t.Helper()
+
+				if req.Target != "ephem_write_only" {
+					t.Fatalf("unexpected policy target %q", req.Target)
+				}
+				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+					ProviderType: "ephem",
+					Operation:    proto.Operation_UPDATE,
+				}, protocmp.Transform()); diff != "" {
+					t.Fatalf("invalid resource metadata: %s", diff)
+				}
+
+				if req.Attrs.Raw.IsNull() {
+					t.Fatal("expected non-null attrs for policy evaluation")
+				}
+				if req.PriorAttrs.Raw.IsNull() {
+					t.Fatal("expected non-null prior attrs for policy evaluation")
+				}
+
+				if got := req.Attrs.Raw.GetAttr("normal").AsString(); got != "updated" {
+					t.Fatalf("expected attrs.normal to be updated, got %q", got)
+				}
+				if got := req.PriorAttrs.Raw.GetAttr("normal").AsString(); got != "outdated" {
+					t.Fatalf("expected prior_attrs.normal to be outdated, got %q", got)
+				}
+				if got := req.Attrs.Raw.GetAttr("write_only"); !got.IsNull() {
+					t.Fatalf("expected attrs.write_only to be null, got %v", got)
+				}
+				if got := req.PriorAttrs.Raw.GetAttr("write_only"); !got.IsNull() {
+					t.Fatalf("expected prior_attrs.write_only to be null, got %v", got)
+				}
+			},
+		},
+		{
+			name: "provider returning write-only value fails before policy",
+			applyResourceFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+				return providers.ApplyResourceChangeResponse{
+					NewState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.Config.GetAttr("normal"),
+						"write_only": cty.StringVal("should not be returned by the provider"),
+					}),
+				}
+			},
+			expectPolicyCall: false,
+			expectDiags: tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+			)),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": `
+					variable "ephem" {
+						type      = string
+						ephemeral = true
+					}
+
+					resource "ephem_write_only" "wo" {
+						normal     = "updated"
+						write_only = var.ephem
+					}
+				`,
+				"main.tfpolicy.hcl": `
+					resource_policy "ephem_write_only" "policy_name" {
+						enforce {
+							condition = true
+						}
+					}
+				`,
+			})
+
+			provider := &testing_provider.MockProvider{}
+			provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				ResourceTypes: map[string]providers.Schema{
+					"ephem_write_only": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"normal": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"write_only": {
+									Type:      cty.String,
+									Required:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			}
+			provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState: cty.ObjectVal(map[string]cty.Value{
+						"normal":     req.ProposedNewState.GetAttr("normal"),
+						"write_only": cty.NullVal(cty.String),
+					}),
+				}
+			}
+			provider.ApplyResourceChangeFn = tc.applyResourceFn
+
+			priorState := states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("ephem_write_only.wo"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"normal":"outdated","write_only":null}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: providerAddr,
+						Module:   addrs.RootModule,
+					},
+				)
+			})
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, priorState, &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: InputValues{
+					"ephem": {
+						Value:      cty.StringVal("ephemeral-secret"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			applyPolicyClient := policy.NewTestMockClient(t)
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				if tc.assertPolicyReq != nil {
+					tc.assertPolicyReq(t, req)
+				}
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			_, diags = ctx.Apply(plan, m, &ApplyOpts{
+				SetVariables: InputValues{
+					"ephem": {
+						Value:      cty.StringVal("ephemeral-secret"),
+						SourceType: ValueFromCLIArg,
+					},
+				},
+				PolicyClient: applyPolicyClient,
+			})
+
+			if tc.expectDiags != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if applyPolicyClient.EvaluateCalled != tc.expectPolicyCall {
+				t.Fatalf("expected policy evaluation called=%t, got %t", tc.expectPolicyCall, applyPolicyClient.EvaluateCalled)
+			}
+		})
 	}
 }
 
@@ -991,5 +1184,514 @@ func TestContext2Apply_PolicyEvaluation_Destroy(t *testing.T) {
 	rs := resultState.Resource(mustAbsResourceAddr("test_resource.test"))
 	if rs != nil {
 		t.Fatal("expected test_resource.test to be removed from state after destroy")
+	}
+}
+
+func TestContext2Apply_PolicyCallback(t *testing.T) {
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_instance" "foo" {
+			ami = "bar"
+		}
+
+		resource "test_instance" "baz" {
+			ami = "qux"
+			depends_on = [test_instance.foo]
+		}
+
+		resource "test_instance" "boop" {
+			ami = "booper"
+			depends_on = [test_instance.baz]
+		}
+	`
+
+	policyConfig := `
+		resource_policy "test_instance" "policy_name" {
+			enforce {
+				condition = core::getresources("some_resource_type", {})[0].value != null
+			}
+		}
+	`
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	// Apply echoes the planned config back as the new state, so the applied
+	// instances carry concrete ami values in state for the callback to read.
+	provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	type callbackResult struct {
+		matchAllResults  []cty.Value
+		filteredResults  []cty.Value
+		noMatchCount     int
+		unknownTypeCount int
+	}
+
+	// The plan policy client allows everything; the callback assertions run
+	// during apply only.
+	planPolicyClient := policy.NewTestMockClient(t)
+	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	var mu sync.Mutex
+	results := make(map[string]callbackResult)
+
+	applyPolicyClient := policy.NewTestMockClient(t)
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		cr := callbackResult{}
+
+		if req.Callbacks.GetResources == nil {
+			t.Errorf("GetResources callback was nil")
+			return policy.EvaluationResponse{Overall: policy.AllowResult}
+		}
+
+		// 1. Match all test_instance resources with null attrs (no filter).
+		all, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.NullVal(cty.DynamicPseudoType))
+		if err != nil {
+			t.Errorf("GetResources(test_instance, null): %v", err)
+		} else {
+			cr.matchAllResults = all
+		}
+
+		// 2. Match resources with ami="bar" filter.
+		filtered, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("bar"),
+		}))
+		if err != nil {
+			t.Errorf("GetResources(test_instance, ami=bar): %v", err)
+		} else {
+			cr.filteredResults = filtered
+		}
+
+		// 3. Match with an attribute filter that will never match.
+		noMatch, _, err := req.Callbacks.GetResources(t.Context(), "test_instance", cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("nonexistent"),
+		}))
+		if err != nil {
+			t.Errorf("GetResources(test_instance, ami=nonexistent): %v", err)
+		} else {
+			cr.noMatchCount = len(noMatch)
+		}
+
+		// 4. Query for a resource type that doesn't exist in the config.
+		unknown, _, err := req.Callbacks.GetResources(t.Context(), "nonexistent_resource", cty.NullVal(cty.DynamicPseudoType))
+		if err != nil {
+			t.Errorf("GetResources(nonexistent_resource): %v", err)
+		} else {
+			cr.unknownTypeCount = len(unknown)
+		}
+
+		ami := req.Attrs.Raw.GetAttr("ami").AsString()
+		mu.Lock()
+		results[ami] = cr
+		mu.Unlock()
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: planPolicyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Apply(plan, mod, &ApplyOpts{
+		PolicyClient: applyPolicyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// We expect exactly 3 evaluations (one per test_instance resource) during
+	// apply.
+	if len(results) != 3 {
+		t.Fatalf("expected 3 policy evaluations during apply, got %d", len(results))
+	}
+
+	for ami, cr := range results {
+		// match-all reads every test_instance from state: all 3 instances.
+		if len(cr.matchAllResults) != 3 {
+			t.Errorf("evaluation[%s]: expected 3 results for matchAll from state, got %d", ami, len(cr.matchAllResults))
+		}
+		// ami="bar" matches exactly the one foo instance.
+		if len(cr.filteredResults) != 1 {
+			t.Errorf("evaluation[%s]: expected 1 result for ami=bar filter, got %d", ami, len(cr.filteredResults))
+		}
+		// ami="nonexistent" matches nothing.
+		if cr.noMatchCount != 0 {
+			t.Errorf("evaluation[%s]: expected 0 results for ami=nonexistent filter, got %d", ami, cr.noMatchCount)
+		}
+		// An unknown resource type returns nothing.
+		if cr.unknownTypeCount != 0 {
+			t.Errorf("evaluation[%s]: expected 0 results for nonexistent_resource, got %d", ami, cr.unknownTypeCount)
+		}
+	}
+}
+
+// TestContext2Apply_PolicySpanParentage verifies the OpenTelemetry wiring that
+// makes per-resource policy spans children of the enclosing "terraform apply"
+// command span.
+func TestContext2Apply_PolicySpanParentage(t *testing.T) {
+	// Collect spans into an in-memory exporter. The tracer provider is a
+	// global, so this test must not run in parallel. We restore the previous
+	// provider (rather than setting nil) so later tests in this package that
+	// emit spans -- e.g. the policy-phase span -- don't hit a nil provider.
+	prevProvider := otel.GetTracerProvider()
+	exp := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exp)))
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		provider.Shutdown(context.Background())
+		otel.SetTracerProvider(prevProvider)
+	})
+
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_instance" "foo" {
+			ami = "bar"
+		}
+	`
+	policyConfig := `
+		resource_policy "test_instance" "policy_name" {
+			enforce {
+				condition = attrs.ami != ""
+			}
+		}
+	`
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	prov := testProvider("test")
+	prov.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+	prov.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	// Plan with an allow-all client (no spans needed during plan here).
+	planClient := policy.NewTestMockClient(t)
+	planClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	// The apply client starts a span named like the real client's, using the
+	// context the engine passes in. That context is ctx.StopCtx() (the run
+	// context), which acquireRun parents on the caller context we set below.
+	var evaluateSpanContext trace.SpanContext
+	applyClient := policy.NewTestMockClient(t)
+	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		_, span := otel.Tracer("test").Start(ctx, "policy.client.evaluate_resource")
+		evaluateSpanContext = span.SpanContext()
+		span.End()
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	commandCtx, commandSpan := otel.Tracer("test").Start(context.Background(), "terraform apply")
+	commandSpanContext := commandSpan.SpanContext()
+
+	tfCtx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(prov),
+		},
+		TracingContext: commandCtx,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := tfCtx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: planClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = tfCtx.Apply(plan, mod, &ApplyOpts{
+		PolicyClient: applyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+	commandSpan.End()
+
+	if !evaluateSpanContext.IsValid() {
+		t.Fatal("policy evaluate span was never started during apply")
+	}
+
+	// The evaluate span must belong to the same trace as the command span...
+	if evaluateSpanContext.TraceID() != commandSpanContext.TraceID() {
+		t.Errorf("policy evaluate span is in a different trace than the terraform apply span\n  apply trace:    %s\n  evaluate trace: %s",
+			commandSpanContext.TraceID(), evaluateSpanContext.TraceID())
+	}
+
+	// ...and it must be a descendant of the command span. We find the recorded
+	// evaluate span in the exporter and walk its parent chain up to the command
+	// span.
+	spans := exp.GetSpans()
+	byID := make(map[trace.SpanID]tracetest.SpanStub, len(spans))
+	for _, s := range spans {
+		byID[s.SpanContext.SpanID()] = s
+	}
+
+	cur, ok := byID[evaluateSpanContext.SpanID()]
+	if !ok {
+		t.Fatalf("evaluate span %s was not recorded by the exporter", evaluateSpanContext.SpanID())
+	}
+	foundCommandAncestor := false
+	for {
+		parentID := cur.Parent.SpanID()
+		if parentID == commandSpanContext.SpanID() {
+			foundCommandAncestor = true
+			break
+		}
+		next, ok := byID[parentID]
+		if !ok {
+			break
+		}
+		cur = next
+	}
+	if !foundCommandAncestor {
+		t.Errorf("policy.client.evaluate_resource span is not nested under the terraform apply span")
+	}
+}
+
+// TestContext2Apply_PolicyPhaseSpanOutlivesEvaluations verifies that the
+// policy-phase span ("terraform.policy.evaluate") is ended only after every
+// policy evaluation, and any spans nested below them, has finished. The span is
+// ended by the nodePolicyEvalFinish sentinel node, which must depend on every
+// policy node in the subgraph; otherwise it closes the span while evaluations
+// are still running and child spans outlive their parent.
+//
+// It mutates the global OpenTelemetry TracerProvider, so it must not run in
+// parallel.
+func TestContext2Apply_PolicyPhaseSpanOutlivesEvaluations(t *testing.T) {
+	// Each evaluation sleeps for this long so an out-of-order finish node closes
+	// the phase span observably early.
+	const evalDelay = 100 * time.Millisecond
+
+	// Record spans into an in-memory exporter. Restore the previous (global)
+	// provider rather than setting nil so other tests don't hit a nil provider.
+	prevProvider := otel.GetTracerProvider()
+	exp := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exp)))
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() {
+		provider.Shutdown(context.Background())
+		otel.SetTracerProvider(prevProvider)
+	})
+
+	// With the prior state below, this yields one update, one create and one
+	// delete evaluation during apply.
+	mainConfig := `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_instance" "to_update" {
+			ami = "new"
+		}
+
+		resource "test_instance" "to_create" {
+			ami = "fresh"
+		}
+	`
+	policyConfig := `
+		resource_policy "test_instance" "policy_name" {
+			enforce {
+				condition = true
+			}
+		}
+	`
+	mod := testModuleInline(t, map[string]string{
+		"main.tf":           mainConfig,
+		"main.tfpolicy.hcl": policyConfig,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	prov := testProvider("test")
+	prov.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+	prov.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	// Prior state so that to_update is updated and to_delete is destroyed.
+	priorState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_instance.to_update"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"update-id","ami":"old"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_instance.to_delete"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"delete-id","ami":"obsolete"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	// Plan uses a plain allow-all client; the span assertions concern apply.
+	planClient := policy.NewTestMockClient(t)
+
+	// The apply client mirrors the real client: per evaluation it starts a
+	// per-resource span under the phase span, invokes a callback to nest a
+	// further span, then does some work.
+	applyClient := policy.NewTestMockClient(t)
+	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		spanCtx, span := otel.Tracer("test").Start(ctx, "policy.client.evaluate_resource")
+		defer span.End()
+
+		if req.Callbacks.GetResources != nil {
+			req.Callbacks.GetResources(spanCtx, "test_instance", cty.NullVal(cty.DynamicPseudoType))
+		}
+
+		time.Sleep(evalDelay)
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	tfCtx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(prov),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := tfCtx.Plan(mod, priorState, &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: planClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// Sanity check that the plan really covers all three evaluation kinds.
+	gotActions := map[string]plans.Action{}
+	for _, rc := range plan.Changes.Resources {
+		gotActions[rc.Addr.String()] = rc.Action
+	}
+	for addr, want := range map[string]plans.Action{
+		"test_instance.to_update": plans.Update,
+		"test_instance.to_create": plans.Create,
+		"test_instance.to_delete": plans.Delete,
+	} {
+		if gotActions[addr] != want {
+			t.Fatalf("expected %s to have action %s, got %s", addr, want, gotActions[addr])
+		}
+	}
+
+	_, diags = tfCtx.Apply(plan, mod, &ApplyOpts{
+		PolicyClient: applyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	spans := exp.GetSpans()
+	byID := make(map[trace.SpanID]tracetest.SpanStub, len(spans))
+	for _, s := range spans {
+		byID[s.SpanContext.SpanID()] = s
+	}
+
+	// isDescendantOf reports whether s is nested (at any depth) under ancestorID.
+	isDescendantOf := func(s tracetest.SpanStub, ancestorID trace.SpanID) bool {
+		parentID := s.Parent.SpanID()
+		for parentID.IsValid() {
+			if parentID == ancestorID {
+				return true
+			}
+			parent, ok := byID[parentID]
+			if !ok {
+				return false
+			}
+			parentID = parent.Parent.SpanID()
+		}
+		return false
+	}
+
+	var phaseSpans []tracetest.SpanStub
+	var evaluateSpans int
+	for _, s := range spans {
+		switch s.Name {
+		case "terraform.policy.evaluate":
+			phaseSpans = append(phaseSpans, s)
+		case "policy.client.evaluate_resource":
+			evaluateSpans++
+		}
+	}
+
+	if len(phaseSpans) == 0 {
+		t.Fatal("no terraform.policy.evaluate phase span was recorded")
+	}
+	if evaluateSpans < 3 {
+		t.Fatalf("expected at least 3 policy.client.evaluate_resource spans (create, update, delete), got %d", evaluateSpans)
+	}
+
+	// Every span nested under a phase span must have finished no later than the
+	// phase span itself.
+	checkedDescendants := 0
+	for _, phase := range phaseSpans {
+		for _, s := range spans {
+			if s.SpanContext.SpanID() == phase.SpanContext.SpanID() {
+				continue
+			}
+			if !isDescendantOf(s, phase.SpanContext.SpanID()) {
+				continue
+			}
+			checkedDescendants++
+			if s.EndTime.After(phase.EndTime) {
+				t.Errorf("span %q finished %s after its ancestor phase span %q; the phase span was closed before policy evaluation completed",
+					s.Name, s.EndTime.Sub(phase.EndTime), phase.Name)
+			}
+		}
+	}
+
+	if checkedDescendants == 0 {
+		t.Fatal("no descendant spans were found under any policy phase span; the test did not exercise nested policy evaluation as intended")
 	}
 }

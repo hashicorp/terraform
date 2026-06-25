@@ -81,7 +81,9 @@ func realMain() int {
 	{
 		// At minimum we emit a span covering the entire command execution.
 		_, displayArgs := shquot.POSIXShellSplit(os.Args)
-		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		// Extract the parent traces from the environment if present.
+		parentCtx := extractParentTraceContext(context.Background())
+		ctx, otelSpan = tracer.Start(parentCtx, fmt.Sprintf("terraform %s", displayArgs))
 		defer otelSpan.End()
 	}
 

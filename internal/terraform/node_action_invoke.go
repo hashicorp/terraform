@@ -170,7 +170,7 @@ func (n *nodeActionPlanInvoke) planActions(ctx EvalContext) tfdiags.Diagnostics 
 	// We're relying on the given addr derived from the action target to
 	// determine which action instance to evaluate. If the address has no key
 	// and the action is expanded, we will plan all instances.
-	actionVals, actionDiags := n.ActionConfig.EvalInvokedInstances(ctx, n.Addr.Action, nil, n.Caller)
+	actionVals, actionDiags := n.ActionConfig.EvalInvokedInstances(ctx, n.Addr.Action, n.Caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -65,6 +66,8 @@ var (
 	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeActionInvoker             = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeActionCaller              = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
@@ -115,6 +118,31 @@ func (n *NodeAbstractResourceInstance) ReferenceableAddrs() []addrs.Referenceabl
 		// would match both aws_instance.foo[0] and aws_instance.foo[1].
 		addr.ContainingResource().Resource,
 	}
+}
+
+// destroyActionReferences are used by destroy nodes to ensure that only actions
+// are connected by references, since a destroy node cannot reference anything
+// else from the config.
+func (n *NodeAbstractResourceInstance) destroyActionReferences() []*addrs.Reference {
+	var refs []*addrs.Reference
+	// Resources are destroyed using their state, but we do need to evaluate any
+	// potential destroy actions.
+	for _, trigger := range n.actionTriggers {
+		// don't bother with non-destroy references
+		if !slices.ContainsFunc(trigger.config.Events, configs.ActionTriggerEvent.IsDestroy) {
+			continue
+		}
+
+		for _, actionRef := range trigger.actionRefs {
+			refs = append(refs, &addrs.Reference{
+				Subject: actionRef.actionNode.Addr.Action,
+			})
+		}
+
+		rs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
+		refs = append(refs, rs...)
+	}
+	return refs
 }
 
 func (n *NodeAbstractResourceInstance) ActionCalls() []addrs.ConfigAction {
@@ -3301,19 +3329,6 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionVal)
 	return
-}
-
-// pre-check for before actions since being able to evaluate actions requires a
-// slightly different behavior for diff handling, we guard that change by seeing if
-// it's needed at all.
-func (n *NodeAbstractResourceInstance) hasBeforeActions() bool {
-	for _, trigger := range n.actionApplyTriggers {
-		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
-		if event.IsBefore() {
-			return true
-		}
-	}
-	return false
 }
 
 // invokeDestroyAction currently cannot reevaluate the action config due to not

@@ -63,14 +63,9 @@ var (
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodePlanDestroyer                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
-}
-
-func (n *NodePlanDeposedResourceInstanceObject) PlanDestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 
@@ -91,7 +86,9 @@ func (n *NodePlanDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.Ref
 // GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
 func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference {
 	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
+	// make no references. Deposed instances do not invoke actions, since the
+	// fact they are deposed during plan indicated that the instance already
+	// errored out during a create-before-destroy apply.
 	return nil
 }
 
@@ -311,12 +308,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	if n.hasBeforeActions() {
-		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-		diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
-		if diags.HasErrors() {
-			return diags
-		}
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// we pass a nil configuration to apply because we are destroying

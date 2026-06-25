@@ -39,11 +39,11 @@ func (b *Local) LocalRun(ctx context.Context, op *backendrun.Operation) (*backen
 
 	op.StateLocker = op.StateLocker.WithContext(ctx)
 
-	lr, _, stateMgr, diags := b.localRun(op)
+	lr, _, stateMgr, diags := b.localRun(ctx, op)
 	return lr, stateMgr, diags
 }
 
-func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) localRun(ctx context.Context, op *backendrun.Operation) (*backendrun.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Get the latest state.
@@ -83,6 +83,7 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 	}
 	coreOpts.UIInput = op.UIIn
 	coreOpts.Hooks = op.Hooks
+	coreOpts.TracingContext = ctx
 
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot

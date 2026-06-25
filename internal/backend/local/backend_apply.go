@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -58,7 +60,7 @@ func (b *Local) opApply(
 	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(stopCtx, op)
 
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
@@ -445,7 +447,22 @@ func (b *Local) opApply(
 	diags = diags.Append(applyDiags)
 
 	// Print the policy results we found during apply
+	policyResultCount := 0
+	if plan.PolicyResults != nil {
+		policyResultCount = plan.PolicyResults.Len()
+	}
+	var polRenderSpan trace.Span
+	polRenderSpanEnd := func() {}
+	if policyResultCount > 0 {
+		_, polRenderSpan = tracer().Start(stopCtx, "terraform.local.apply.render_policy_results",
+			trace.WithAttributes(
+				attribute.Int("apply.policy_results", policyResultCount),
+			),
+		)
+		polRenderSpanEnd = func() { polRenderSpan.End() }
+	}
 	op.View.PolicyResults(plan.PolicyResults, nil)
+	polRenderSpanEnd()
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.

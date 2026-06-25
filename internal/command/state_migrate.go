@@ -5,7 +5,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -35,30 +34,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	}
 
 	c.Meta.input = args.InputEnabled
-
-	if args.SourceLockFilePath != "" {
-		if _, err := os.Stat(args.SourceLockFilePath); err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Unreadable source provider lock file",
-				fmt.Sprintf("%q: %s", args.SourceLockFilePath, err.Error()),
-			))
-		}
-	}
-
-	// It is valid for the destination lockfile to be missing
-	// while state exists - e.g. through the use of builtin provider
-	// or outputs and use of a builtin backend
-	// (as opposed to pluggable state store).
-	if args.DestinationLockFilePath != "" {
-		if _, err := os.Stat(args.DestinationLockFilePath); err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Unreadable destination provider lock file",
-				fmt.Sprintf("%q: %s", args.DestinationLockFilePath, err.Error()),
-			))
-		}
-	}
 
 	// return validation errors early if there are any
 	if diags.HasErrors() {

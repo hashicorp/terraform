@@ -87,6 +87,12 @@ func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable
 	return []addrs.Referenceable{}
 }
 
+func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
+	// destroyers don't reference, except when we need destroy actions to be
+	// reevaluated.
+	return n.destroyActionReferences()
+}
+
 // GraphNodeExecutable
 func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
@@ -157,12 +163,10 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		}
 	}
 
-	if n.hasBeforeActions() {
-		log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-		diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
-		if diags.HasErrors() {
-			return diags
-		}
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Managed resources need to be destroyed, while data sources

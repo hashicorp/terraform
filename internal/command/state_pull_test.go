@@ -72,7 +72,7 @@ func TestStatePull(t *testing.T) {
 func TestStatePull_stateStore(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing a resource

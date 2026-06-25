@@ -4,6 +4,7 @@
 package callback
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -11,8 +12,8 @@ import (
 )
 
 type Functions struct {
-	GetResources  func(resource string, attrs cty.Value) ([]cty.Value, bool, error)
-	GetDataSource func(datasource string, attrs cty.Value) (cty.Value, error)
+	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
+	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, error)
 }
 
 // Registry is an interface for managing callback functions for resources and

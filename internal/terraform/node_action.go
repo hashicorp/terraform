@@ -300,7 +300,7 @@ func (n *NodeActionConfig) SetProvider(p addrs.AbsProviderConfig) {
 // addrs.NoKey This function uses addrs.ActionInstance even though it only needs
 // the key because we need to use use a full instance addr for the resulting map
 // keys anyway.
-func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, callRange *hcl.Range, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
 
@@ -319,7 +319,7 @@ func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.Acti
 
 	for _, instAddr := range instances {
 		repData := expander.GetActionInstanceRepetitionData(instAddr)
-		val, evalDiags := n.evalInstance(ctx, repData, callRange, caller, cty.NilVal)
+		val, evalDiags := n.evalInstance(ctx, repData, caller, cty.NilVal)
 		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			return all, diags
@@ -444,13 +444,13 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 
 	repData := expander.GetActionInstanceRepetitionData(instAddr)
 
-	return n.evalInstance(ctx, repData, callRange, caller, callerVal)
+	return n.evalInstance(ctx, repData, caller, callerVal)
 }
 
 // Eval one or more instances of the action. This function expects that the key
 // is already validated for the the calling context, and will not produce
 // diagnostics for incorrect key types.
-func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, callRange *hcl.Range, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	diagsWith := n.Addr.String()

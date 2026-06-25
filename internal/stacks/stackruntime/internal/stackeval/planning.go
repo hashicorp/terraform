@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -31,6 +32,8 @@ type PlanOpts struct {
 	PlanTimestamp time.Time
 
 	DependencyLocks depsfile.Locks
+
+	PolicyClient policy.Client
 }
 
 // Plannable is implemented by objects that can participate in planning.

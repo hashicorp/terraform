@@ -5,13 +5,13 @@ package configs
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -29,7 +29,7 @@ import (
 // module element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirSuccess(t *testing.T) {
-	dirs, err := ioutil.ReadDir("testdata/valid-modules")
+	dirs, err := os.ReadDir("testdata/valid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 
 	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("testdata/valid-files")
+	files, err := os.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -317,14 +317,27 @@ func TestParserLoadConfigDirWithStateMigrations_from_state_store(t *testing.T) {
 
 	// Assert that the module includes expected information from state_store_provider block
 	ssp := mod.StateMigrationInstructions.StateStoreProvider
-	if ssp.Name != "test" || ssp.Source != "hashicorp/test" || !ssp.Type.Equals(addrs.NewDefaultProvider("test")) {
-		t.Fatalf("unexpected state store provider info, got:\n Name: %q\n Source: %q\n Type: %q\n VersionConstraint: %q",
-			ssp.Name, ssp.Source, ssp.Type, ssp.Requirement,
+	expectedAddr := addrs.NewDefaultProvider("test")
+	if ssp.Source != "hashicorp/test" || !ssp.Type.Equals(expectedAddr) {
+		t.Fatalf("unexpected state store provider info, got:\n Type: %q\n Source: %q",
+			ssp.Type, ssp.Source,
 		)
 	}
-	expectedConstraint := "1.0.0"
-	if ssp.Requirement.Required.String() != expectedConstraint {
-		t.Fatalf("unexpected version constraint, got %q, want %q", ssp.Requirement.Required.String(), expectedConstraint)
+	// Making assertions about the version constraint looks a little hairy,
+	// but essentially we want to know that:
+	// - only one requirement is in the map made by parsing
+	// - the underlying version constraint matches what we'd expect after parsing "1.0.0" or "=1.0.0",
+	//     which are equivalent ways to pin a single version.
+	reqs := ssp.Requirement[expectedAddr]
+	if len(reqs) != 1 {
+		t.Fatalf("expected parsed state_store_provider block to represent a single version constraint, got %d:\n %#v", len(reqs), reqs)
+	}
+	req := reqs[0]
+	if req.Operator != constraints.OpEqual {
+		t.Fatalf("expected parsed state_store_provider block's version attribute to represent a an exact version constraint with operator = (%s), got:\n %#v", constraints.OpEqual, req.Operator)
+	}
+	if req.Boundary.Major.Num != 1 || req.Boundary.Minor.Num != 0 || req.Boundary.Patch.Num != 0 {
+		t.Fatalf("expected parsed state_store_provider block's version attribute to represent version constraint of 1.0.0, got:\n %#v", req)
 	}
 }
 
@@ -396,8 +409,18 @@ func TestParserLoadConfigDirWithStateMigrations_error_cases(t *testing.T) {
 		},
 		// Invalid contents of state_store_provider block
 		{
-			name:              "invalid version constraint in state_store_provider block",
-			directory:         "testdata/state-migration-files/invalid/invalid-version-state-store-provider-block",
+			name:              "not pinned version in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/state-store-provider-range-version-constraint",
+			diagnosticSummary: `Invalid provider version in "state_store_provider" configuration block`,
+		},
+		{
+			name:              "multi-part version constraint in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/state-store-provider-multipart-version-constraint",
+			diagnosticSummary: `Invalid provider version in "state_store_provider" configuration block`,
+		},
+		{
+			name:              "incorrect data type for version attribute in state_store_provider block",
+			directory:         "testdata/state-migration-files/invalid/state-store-provider-version-incorrect-data-type",
 			diagnosticSummary: `Invalid provider version in "state_store_provider" configuration block`,
 		},
 		{
@@ -580,7 +603,7 @@ func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 // diagnostics in particular. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirFailure(t *testing.T) {
-	dirs, err := ioutil.ReadDir("testdata/invalid-modules")
+	dirs, err := os.ReadDir("testdata/invalid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -603,7 +626,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 
 	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("testdata/invalid-files")
+	files, err := os.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -611,7 +634,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -28,6 +28,8 @@ ENHANCEMENTS:
 
 * Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
+* policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
+
 
 BUG FIXES:
 

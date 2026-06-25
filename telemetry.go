@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform/version"
 	"go.opentelemetry.io/contrib/exporters/autoexport"
@@ -87,4 +88,31 @@ func openTelemetryInit() error {
 	otel.SetTextMapPropagator(pgtr)
 
 	return nil
+}
+
+// extractParentTraceContext returns a context that carries any trace context
+// propagated to this CLI invocation by a parent process via the standard
+// W3C environment variables TRACEPARENT and TRACESTATE, plus OpenTelemetry
+// BAGGAGE.
+//
+// Extraction uses the globally-installed TextMapPropagator, which is only
+// configured when telemetry export is enabled (see openTelemetryInit). When
+// telemetry is disabled, or when no trace-context variables are present in
+// the environment, the supplied context is returned unchanged so the command
+// simply starts a brand-new root span.
+func extractParentTraceContext(ctx context.Context) context.Context {
+	// The W3C TraceContext/Baggage propagators use lower-case carrier keys
+	// ("traceparent", "tracestate", "baggage"); the corresponding environment
+	// variables are conventionally upper-case.
+	carrier := propagation.MapCarrier{}
+	for _, key := range []string{"traceparent", "tracestate", "baggage"} {
+		if v := os.Getenv(strings.ToUpper(key)); v != "" {
+			carrier[key] = v
+		}
+	}
+	if len(carrier) == 0 {
+		return ctx
+	}
+
+	return otel.GetTextMapPropagator().Extract(ctx, carrier)
 }
