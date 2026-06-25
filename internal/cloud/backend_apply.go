@@ -215,7 +215,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 
 	// Show the Terraform policy results for the apply stage. The plan/pre-plan
 	// stages were already shown during plan.
-	if err := b.renderTFPolicyEvaluations(stopCtx, r, len(r.PolicyPaths) > 0,
+	if err := b.renderTFPolicyEvaluations(stopCtx, r,
 		tfe.TFPolicyEvaluationStageTypeApply); err != nil {
 		return &RunResult{run: r, backend: b}, err
 	}
