@@ -110,6 +110,9 @@ func TestApplyGraphBuilder_PolicyClient(t *testing.T) {
 		if nodes := len(policyNode.Collect()); nodes != 1 {
 			t.Fatalf("expected 1 policy evaluation node in apply graph with policy client, got %d", nodes)
 		}
+
+		testGraphHappensBefore(t, g, "module.child (close)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "(evaluate policies)", "provider[\"registry.terraform.io/hashicorp/test\"] (close)")
 	})
 
 	t.Run("without policy client", func(t *testing.T) {

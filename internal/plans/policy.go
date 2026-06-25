@@ -15,7 +15,7 @@ import (
 
 // PolicyResults represents the results of policy evaluation of resources, modules, and providers for a single plan.
 type PolicyResults struct {
-	mu   *sync.Mutex
+	mu   sync.Mutex
 	set  addrs.Map[addrs.AbsResourceInstance, PolicyEvaluation]
 	pset addrs.Map[addrs.AbsProviderConfig, PolicyEvaluation]
 	mset addrs.Map[addrs.Module, PolicyEvaluation]
@@ -29,7 +29,7 @@ type PolicyEvaluation struct {
 
 func NewPolicyResults() *PolicyResults {
 	return &PolicyResults{
-		mu:   &sync.Mutex{},
+		mu:   sync.Mutex{},
 		set:  addrs.MakeMap[addrs.AbsResourceInstance, PolicyEvaluation](),
 		pset: addrs.MakeMap[addrs.AbsProviderConfig, PolicyEvaluation](),
 		mset: addrs.MakeMap[addrs.Module, PolicyEvaluation](),
