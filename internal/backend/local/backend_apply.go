@@ -450,13 +450,9 @@ func (b *Local) opApply(
 	diags = diags.Append(applyDiags)
 
 	// Print the policy results we found during apply
-	policyResultCount := 0
-	if policyResults != nil {
-		policyResultCount = policyResults.Len()
-	}
 	var polRenderSpan trace.Span
 	polRenderSpanEnd := func() {}
-	if policyResultCount > 0 {
+	if policyResultCount := policyResults.Len(); policyResultCount > 0 {
 		_, polRenderSpan = tracer().Start(stopCtx, "terraform.local.apply.render_policy_results",
 			trace.WithAttributes(
 				attribute.Int("apply.policy_results", policyResultCount),
