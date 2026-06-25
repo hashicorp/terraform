@@ -104,6 +104,15 @@ func TestPlanGraphBuilder_PolicyClient(t *testing.T) {
 				"aws_instance":       {Body: simpleTestSchema()},
 				"aws_load_balancer":  {Body: simpleTestSchema()},
 			},
+			DataSources: map[string]providers.Schema{
+				"aws_data_source": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Optional: true, Computed: true},
+						},
+					},
+				},
+			},
 		},
 	}
 	openstackProvider := mockProviderWithResourceTypeSchema("openstack_floating_ip", simpleTestSchema())
@@ -149,6 +158,74 @@ func TestPlanGraphBuilder_PolicyClient(t *testing.T) {
 		if nodes := len(policyNode.Collect()); nodes != 0 {
 			t.Fatalf("expected 0 policy evaluation nodes in plan graph without policy client, got %d", nodes)
 		}
+	})
+
+	t.Run("Data source before policy", func(t *testing.T) {
+		config := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "aws_instance" "foo" {
+  ami = "bar"
+}
+
+data "aws_data_source" "a" {
+  id = "zzzzz"
+}
+`,
+		})
+
+		b := &PlanGraphBuilder{
+			Config:       config,
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		testGraphHappensBefore(t, g, "data.aws_data_source.a (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "(evaluate policies)", "provider[\"registry.terraform.io/hashicorp/aws\"] (close)")
+	})
+
+	t.Run("Output evaluates before policy", func(t *testing.T) {
+		config := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "aws_instance" "foo" {
+  ami = "bar"
+}
+
+module "child" {
+  source = "./child"
+}
+`,
+			"child/main.tf": `
+data "aws_data_source" "a" {
+  id = "zzzzz"
+}
+
+output "value" {
+  value = data.aws_data_source.a.id
+}
+`,
+		})
+
+		b := &PlanGraphBuilder{
+			Config:       config,
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		testGraphHappensBefore(t, g, "module.child.output.value (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "module.child.data.aws_data_source.a (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "module.child (close)", "(evaluate policies)")
 	})
 }
 

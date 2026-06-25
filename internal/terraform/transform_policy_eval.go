@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
@@ -23,57 +22,26 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	if t.PolicyClient == nil {
 		return nil
 	}
-
-	// Collect all provider closer nodes and all of the terminal nodes in the
-	// main graph, ignoring provider closer nodes. The policy node must wait for
-	// those terminal nodes so that all mutations to changes and state are
-	// complete before policy evaluation closes those objects for read-only
-	// callbacks.
-	var hasManagedResourceNode bool
-	var terminalNodes []dag.Vertex
-	var closeProviderNodes []dag.Vertex
-
-	for v := range g.VerticesSeq() {
-		if node, ok := v.(GraphNodeConfigResource); ok && node.ResourceAddr().Resource.Mode == addrs.ManagedResourceMode {
-			terminalNodes = append(terminalNodes, v)
-			hasManagedResourceNode = true
-			continue
-		}
-
-		// select close provider nodes
-		if _, ok := v.(GraphNodeCloseProvider); ok {
-			closeProviderNodes = append(closeProviderNodes, v)
-			continue
-		}
-
-		// select terminal nodes
-		if g.UpEdges(v).Len() == 0 {
-			terminalNodes = append(terminalNodes, v)
-			continue
-		}
-	}
-
-	// If there are no managed resources at all, there is nothing to evaluate
-	// policy against.
-	if !hasManagedResourceNode {
-		return nil
-	}
-
 	policyNode := &nodePolicyEval{}
 	g.Add(policyNode)
 
-	// Connect the policy node to every terminal node so that it
-	// executes only after all remaining graph work that can still mutate state
-	// or changes has completed.
-	for _, node := range terminalNodes {
-		g.Connect(dag.BasicEdge(policyNode, node))
-	}
+	for v := range g.VerticesSeq() {
+		if v == policyNode {
+			continue
+		}
+		// Connect provider closer nodes to policy so that
+		// we keep all providers open until after policy evaluation so that the
+		// policy engine callbacks can still use them. For example, policies may need to access data
+		// sources of a provider.
+		if _, ok := v.(GraphNodeCloseProvider); ok {
+			g.Connect(dag.BasicEdge(v, policyNode))
+			continue
+		}
 
-	// We keep the provider open until after policy evaluation so that the
-	// policy engine callbacks can still use them. For example, policies may need to access data
-	// sources of a provider.
-	for _, providerNode := range closeProviderNodes {
-		g.Connect(dag.BasicEdge(providerNode, policyNode))
+		// Connect the policy node to every non-provider closer node so that it
+		// executes only after all remaining graph work that can still mutate state
+		// or changes has completed.
+		g.Connect(dag.BasicEdge(policyNode, v))
 	}
 
 	return nil
