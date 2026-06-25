@@ -14,8 +14,12 @@ import (
 // renderTFPolicyEvaluations fetches the Terraform policy evaluation outcomes for
 // a finished run and prints a per-stage summary. A run can hold one evaluation
 // per stage, so stages limits rendering to the given stages (empty means all).
-// When no outcomes are available it falls back to the previous success message.
-func (b *Cloud) renderTFPolicyEvaluations(stopCtx context.Context, r *tfe.Run, localPoliciesConfigured bool, stages ...tfe.TFPolicyEvaluationStageType) error {
+//
+// Terraform-native policy is configured as workspace-attached policy sets and
+// evaluated server-side, so HCP returns outcomes whenever a policy set applies,
+// regardless of any local --policies paths. When HCP returns no outcomes there
+// is nothing to render and the function is silent.
+func (b *Cloud) renderTFPolicyEvaluations(stopCtx context.Context, r *tfe.Run, stages ...tfe.TFPolicyEvaluationStageType) error {
 	if b.renderer == nil {
 		return nil
 	}
@@ -32,20 +36,21 @@ func (b *Cloud) renderTFPolicyEvaluations(stopCtx context.Context, r *tfe.Run, l
 	if err != nil {
 		// Older TFE versions don't know this include; nothing to render.
 		if strings.HasSuffix(err.Error(), "Invalid include parameter") {
-			b.renderTFPolicyEvalFallback(localPoliciesConfigured)
 			return nil
 		}
 		return b.generalError("Failed to retrieve Terraform policy evaluations", err)
 	}
 
+	// No policy set attached to the workspace (or none applied) → nothing to render.
 	if len(run.TFPolicyEvaluations) == 0 {
-		b.renderTFPolicyEvalFallback(localPoliciesConfigured)
 		return nil
 	}
 
 	// Fetch the policy-set outcomes for each evaluation we want to show.
 	var rendered []tfPolicyStageOutcomes
 	for _, eval := range run.TFPolicyEvaluations {
+		// "unreachable" means this stage's evaluation never ran because an
+		// earlier stage errored or was canceled, so it has no outcomes to show.
 		if eval.Status == tfe.TFPolicyEvaluationStatusUnreachable {
 			continue
 		}
@@ -53,20 +58,38 @@ func (b *Cloud) renderTFPolicyEvaluations(stopCtx context.Context, r *tfe.Run, l
 			continue
 		}
 
-		list, err := b.client.TFPolicyEvaluationOutcomes.List(stopCtx, eval.ID, nil)
+		sets, err := b.listTFPolicyOutcomes(stopCtx, eval.ID)
 		if err != nil {
 			return b.generalError("Failed to retrieve Terraform policy outcomes", err)
 		}
-		rendered = append(rendered, tfPolicyStageOutcomes{eval: eval, sets: list.Items})
+		rendered = append(rendered, tfPolicyStageOutcomes{eval: eval, sets: sets})
 	}
 
 	if len(rendered) == 0 {
-		b.renderTFPolicyEvalFallback(localPoliciesConfigured)
 		return nil
 	}
 
 	b.writeTFPolicyEvaluations(rendered)
 	return nil
+}
+
+// listTFPolicyOutcomes fetches all policy-set outcomes for an evaluation,
+// following pagination so large policy sets aren't truncated to the first page.
+func (b *Cloud) listTFPolicyOutcomes(ctx context.Context, evalID string) ([]*tfe.TFPolicySetOutcome, error) {
+	var sets []*tfe.TFPolicySetOutcome
+	opts := &tfe.TFPolicyEvaluationListOptions{}
+	for {
+		page, err := b.client.TFPolicyEvaluationOutcomes.List(ctx, evalID, opts)
+		if err != nil {
+			return nil, err
+		}
+		sets = append(sets, page.Items...)
+		if page.Pagination == nil || page.CurrentPage >= page.TotalPages {
+			break
+		}
+		opts.PageNumber = page.NextPage
+	}
+	return sets, nil
 }
 
 // tfPolicyStageOutcomes pairs one stage's evaluation with its policy-set outcomes.
@@ -78,21 +101,21 @@ type tfPolicyStageOutcomes struct {
 // writeTFPolicyEvaluations renders the fetched per-stage outcomes. It is split
 // from the fetch logic so the formatting can be tested without a live API.
 func (b *Cloud) writeTFPolicyEvaluations(rendered []tfPolicyStageOutcomes) {
+	// Count the evaluated policies from the outcomes we render, so the total
+	// always matches the per-stage breakdown (tfPolicyStageCounts) below and
+	// stays consistent regardless of the server-side ResultCount aggregate.
 	overallFailed := false
 	total := 0
 	for _, stage := range rendered {
+		// TODO: non-failure statuses (overridden, canceled, awaiting_override)
+		// are treated as failed for now. Override handling will be added later,
+		// mirroring the Sentinel override flow, since overrides only apply when
+		// a policy actually failed.
 		if stage.eval.Status != tfe.TFPolicyEvaluationStatusPassed {
 			overallFailed = true
 		}
-		total += tfPolicyEvaluationCount(stage.eval.ResultCount)
-	}
-
-	// If the API didn't populate counts, count the outcomes ourselves.
-	if total == 0 {
-		for _, stage := range rendered {
-			for _, set := range stage.sets {
-				total += len(set.Outcomes)
-			}
+		for _, set := range stage.sets {
+			total += len(set.Outcomes)
 		}
 	}
 
@@ -132,23 +155,6 @@ func (b *Cloud) writeTFPolicyEvaluations(rendered []tfPolicyStageOutcomes) {
 			}
 		}
 	}
-}
-
-// renderTFPolicyEvalFallback prints the previous success message, but only for
-// runs that used local --policies paths so other runs stay silent.
-func (b *Cloud) renderTFPolicyEvalFallback(localPoliciesConfigured bool) {
-	if b.renderer == nil || !localPoliciesConfigured {
-		return
-	}
-	b.renderer.Streams.Println(b.Colorize().Color(tfpolicyEvalSuccessful))
-}
-
-// tfPolicyEvaluationCount returns the total policy count for a result count.
-func tfPolicyEvaluationCount(rc *tfe.TFPolicyEvaluationResultCount) int {
-	if rc == nil {
-		return 0
-	}
-	return rc.AdvisoryFailed + rc.MandatoryFailed + rc.Errored + rc.Passed + rc.Unknown
 }
 
 // tfPolicyStageCounts returns a breakdown line for a stage, e.g.

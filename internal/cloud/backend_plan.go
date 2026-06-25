@@ -322,9 +322,9 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		}
 	}
 
-	// Show the Terraform policy results. Not gated on shouldRenderPlan: a failed
-	// mandatory policy errors the run, but the user still needs to see why.
-	if err := b.renderTFPolicyEvaluations(stopCtx, r, len(r.PolicyPaths) > 0,
+	// Show the Terraform policy results. A failed mandatory policy errors the
+	// run, but the user still needs to see why, so this always renders.
+	if err := b.renderTFPolicyEvaluations(stopCtx, r,
 		tfe.TFPolicyEvaluationStageTypeInit, tfe.TFPolicyEvaluationStageTypePlan); err != nil {
 		return r, err
 	}
@@ -582,8 +582,4 @@ https://%s/app/%s/%s/runs/%s
 const lockTimeoutErr = `
 [reset][red]Lock timeout exceeded, sending interrupt to cancel the remote operation.
 [reset]
-`
-
-const tfpolicyEvalSuccessful = `
-[reset][green]Terraform policies evaluated successfully.[reset]
 `
