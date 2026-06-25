@@ -373,7 +373,7 @@ func badVersionConstraintErrorDiag(version string, subject *hcl.Range) *hcl.Diag
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  `Invalid provider version in "state_store_provider" configuration block`,
-		Detail:   fmt.Sprintf("Version must be a string, specifying a single version, but got: %s. Please ensure the version string is valid and specifies a single version in format  \"1.0.0\"", version),
+		Detail:   fmt.Sprintf("Version must be a string, specifying a single version, but got: %s. Please ensure the version string is valid and specifies a single version in format \"1.0.0\"", version),
 		Subject:  subject,
 	}
 }
