@@ -352,8 +352,11 @@ func TestCloud_planWithPolicyPaths(t *testing.T) {
 	outp := close(t)
 	gotOut := outp.Stdout()
 
-	if !strings.Contains(gotOut, "Terraform policies evaluated successfully.") {
-		t.Fatalf("expected tfpolicy status in output: %s", gotOut)
+	// The legacy "evaluated successfully" one-liner was removed: the policy
+	// summary now renders only from server-side outcomes (none in this mock),
+	// so a plan with policy paths must still succeed and stay silent on policy.
+	if strings.Contains(gotOut, "Terraform policies evaluated successfully.") {
+		t.Fatalf("legacy tfpolicy success message should no longer be rendered:\n%s", gotOut)
 	}
 }
 
