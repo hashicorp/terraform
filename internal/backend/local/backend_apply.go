@@ -427,6 +427,9 @@ func (b *Local) opApply(
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 
+	// We use a new store for the apply policy results, as objects that failed during the plan policy
+	// evaluation may have updated data which yields a different policy evaluation result.
+	policyResults := plans.NewPolicyResults()
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -437,7 +440,7 @@ func (b *Local) opApply(
 			SetVariables:  applyTimeValues,
 			ProviderLocks: providerLocksSnapshot(op.DependencyLocks),
 			PolicyClient:  lr.PolicyClient,
-			PolicyResults: plan.PolicyResults,
+			PolicyResults: policyResults,
 		})
 	}()
 
@@ -448,8 +451,8 @@ func (b *Local) opApply(
 
 	// Print the policy results we found during apply
 	policyResultCount := 0
-	if plan.PolicyResults != nil {
-		policyResultCount = plan.PolicyResults.Len()
+	if policyResults != nil {
+		policyResultCount = policyResults.Len()
 	}
 	var polRenderSpan trace.Span
 	polRenderSpanEnd := func() {}
@@ -461,7 +464,7 @@ func (b *Local) opApply(
 		)
 		polRenderSpanEnd = func() { polRenderSpan.End() }
 	}
-	op.View.PolicyResults(plan.PolicyResults, nil)
+	op.View.PolicyResults(policyResults, nil)
 	polRenderSpanEnd()
 
 	// Even on error with an empty state, the state value should not be nil.
