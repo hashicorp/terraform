@@ -18,9 +18,9 @@ import (
 type listResourcePolicyUnknownReason uint8
 
 const (
-	unknownReasonNone            listResourcePolicyUnknownReason = iota
-	unknownReasonNoState                                         // include_resource = false or state absent from list response
-	unknownReasonConfigGenFailed                                 // provider RPC or legacy fallback could not produce config
+	unknownReasonNone         listResourcePolicyUnknownReason = iota
+	unknownReasonNoState                                       // include_resource = false or state absent from list response
+	unknownReasonConfigGenFailed                               // provider RPC or legacy fallback could not produce config
 )
 
 // listResourcePolicy holds the policy evaluation inputs for a single resource
