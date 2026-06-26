@@ -391,6 +391,10 @@ const (
 // and downloads the provider that isn't already downloaded and then returns
 // updated dependency lock data. The dependency lock file itself isn't updated here.
 //
+// Note: This method gets the required providers in the root module and then creates a new set of requirements
+// that includes only the state store provider. By doing so the provider installation process is guaranteed
+// to only download a single provider, and the method will only return a single lock.
+//
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
 func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
