@@ -76,30 +76,17 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
-	providerRef := ProviderRef{
-		Addr:     providerAddr,
-		Resolved: true,
-	}
-
 	// the module config may be nil if the module call has been removed from the configuration
 	// in this case, we are fine with a nil resource config, as that would only mean
-	// that we do not have the terraform config's source information in the diagnostics
-	// and neither do we have provider meta information to include in the policy request.
+	// that we do not have the terraform config's source information in the diagnostics.
 	var resourceConfig *configs.Resource
-	var metaVal cty.Value
 	if modCfg != nil {
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-		var metaDiags tfdiags.Diagnostics
-		metaVal, metaDiags = providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
-		diags = diags.Append(metaDiags)
-		if diags.HasErrors() {
-			return diags
-		}
 	}
 
 	callbacks := callback.Functions{
 		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)

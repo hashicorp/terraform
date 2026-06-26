@@ -60,9 +60,9 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
 			attribute.String("policy.callback.getResources.type", target),
 		))
-
 		defer span.End()
-		var found []cty.Value
+
+		found := make([]cty.Value, 0)
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
@@ -77,10 +77,19 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				addr := resource.Addr().InModule(c.Path)
 				schema := schema.SchemaForResourceAddr(addr.Resource)
 
+				// Before checking the data to see if there is a match, check if there is a deferral for this address.
+				//
+				// If there is a deferral, we can't use the data to determine if there is a match so we'll indicate
+				// the callback return is a partial result.
+				deferred := ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{addr})
+				if deferred {
+					isPartialResult = true
+					continue
+				}
+
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
 				var resourcesSeq iter.Seq[cty.Value]
-				var count int
 				if walkOperation == walkApply {
 					// Read each config resource instance from the state, decoding it into a cty.Value
 					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
@@ -92,14 +101,12 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
 							return cty.NilVal, false
 						}
-						count++
 						return rsc.Value, true
 					})
 				} else {
 					// Read each config resource change from the plan, returning the corresponding cty.Value
 					resourcesSeq = func(yield func(cty.Value) bool) {
 						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
-							count++
 							yield(change.After)
 						}
 					}
@@ -117,7 +124,6 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 					// we can't determine whether it matches, so we'll mark the whole callback result as incomplete.
 					// We still continue to the next resource instance, so that we return all known objects as well.
 					isPartialResult = isPartialResult || unknown
-
 				}
 			}
 		})
@@ -126,8 +132,8 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse, meta cty.Value) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, error) {
-	return func(c context.Context, target string, attrs cty.Value) (cty.Value, error) {
+func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
+	return func(c context.Context, target string, attrs cty.Value) (cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
 			attribute.String("policy.callback.getDataSource.type", target),
 		))
@@ -135,7 +141,7 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {
-				return cty.NilVal, fmt.Errorf("invalid attributes for %q: %w", target, err)
+				return cty.NilVal, false, fmt.Errorf("invalid attributes for %q: %w", target, err)
 			}
 
 			validateResp := provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
@@ -143,21 +149,34 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 				Config:   configVal,
 			})
 			if err := validateResp.Diagnostics.Err(); err != nil {
-				return cty.NilVal, fmt.Errorf("failed to validate data source configuration: %s", err)
+				return cty.NilVal, false, fmt.Errorf("failed to validate data source configuration: %s", err)
 			}
 
 			readResp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-				TypeName:     target,
-				Config:       configVal,
-				ProviderMeta: meta,
+				TypeName:           target,
+				Config:             configVal,
+				ClientCapabilities: ctx.ClientCapabilities(),
 			})
 			if err := readResp.Diagnostics.Err(); err != nil {
-				return cty.NilVal, fmt.Errorf("failed to read data source: %s", err)
+				return cty.NilVal, false, fmt.Errorf("failed to read data source: %s", err)
 			}
 
-			return readResp.State, nil
+			// If the data source indicates deferral (which would be unlikely here), we need to pass that info back to the caller
+			deferred := false
+			if readResp.Deferred != nil {
+				// If we don't support deferrals, but the provider reports a deferral, we should emit an error.
+				if !ctx.Deferrals().DeferralAllowed() {
+					return cty.NilVal, false, fmt.Errorf("failed to read data source: "+
+						"The provider signaled a deferred action for %s, but in this context deferrals are disabled. "+
+						"This is a bug in the provider, please file an issue with the provider developers.", target)
+				}
+
+				deferred = true
+			}
+
+			return readResp.State, deferred, nil
 		}
-		return cty.NilVal, fmt.Errorf("no data source found for %s", target)
+		return cty.NilVal, false, fmt.Errorf("no data source found for %s", target)
 	}
 }
 

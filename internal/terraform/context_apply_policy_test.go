@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1352,6 +1353,364 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 		if cr.unknownTypeCount != 0 {
 			t.Errorf("evaluation[%s]: expected 0 results for nonexistent_resource, got %d", ami, cr.unknownTypeCount)
 		}
+	}
+}
+
+func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
+	t.Parallel()
+
+	type callbackResult struct {
+		DataSourceResult   cty.Value
+		DataSourceDeferred bool
+	}
+
+	testCases := map[string]struct {
+		targetDataSource        string
+		dataSourceReqConfig     cty.Value
+		deferralAllowed         bool
+		deferralResponse        *providers.Deferred
+		expectedCallbackResults []callbackResult
+		expectedErr             string
+	}{
+		"getdatasource returns result": {
+			targetDataSource: "test_data_source",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String), // computed
+				"foo": cty.StringVal("test val"),
+			}),
+			expectedCallbackResults: []callbackResult{
+				{
+					DataSourceResult: cty.ObjectVal(map[string]cty.Value{
+						"id":  cty.StringVal("computed val"),
+						"foo": cty.StringVal("test val"),
+					}),
+					DataSourceDeferred: false,
+				},
+			},
+		},
+		"getdatasource not found": {
+			targetDataSource: "test_non_existent",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"foo": cty.StringVal("test val"),
+			}),
+			expectedErr: `no data source found for test_non_existent`,
+		},
+		"getdatasource returns deferred": {
+			targetDataSource: "test_data_source",
+			dataSourceReqConfig: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"foo": cty.StringVal("test val"),
+			}),
+			deferralAllowed: true,
+			deferralResponse: &providers.Deferred{
+				Reason: providers.DeferredReasonAbsentPrereq,
+			},
+			expectedCallbackResults: []callbackResult{
+				{
+					DataSourceResult: cty.ObjectVal(map[string]cty.Value{
+						"id":  cty.NullVal(cty.String),
+						"foo": cty.StringVal("test val"),
+					}),
+					DataSourceDeferred: true,
+				},
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			// The plan policy client allows everything; the callback assertions run during apply only.
+			planPolicyClient := policy.NewTestMockClient(t)
+			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			var gotResults []callbackResult
+			applyPolicyClient := policy.NewTestMockClient(t)
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				result, deferred, err := req.Callbacks.GetDataSource(t.Context(), tc.targetDataSource, tc.dataSourceReqConfig)
+				if err != nil {
+					if !strings.Contains(err.Error(), tc.expectedErr) {
+						t.Errorf("Unexpected error in callback GetDataSource(test_data_source): %v", err)
+					}
+
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				gotResults = append(gotResults, callbackResult{
+					DataSourceResult:   result,
+					DataSourceDeferred: deferred,
+				})
+
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			testProvider := testProvider("test")
+			testProvider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+				// We aren't checking the client capability here to enable testing an invalid provider implementation
+				if tc.deferralResponse != nil {
+					return providers.ReadDataSourceResponse{
+						State:    req.Config,
+						Deferred: tc.deferralResponse,
+					}
+				}
+
+				stateVal := req.Config.AsValueMap()
+				stateVal["id"] = cty.StringVal("computed val")
+				return providers.ReadDataSourceResponse{
+					State: cty.ObjectVal(stateVal),
+				}
+			}
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			mod := testModuleInline(t, map[string]string{
+				// Config isn't as important to this test, since we're just testing the getdatasource callback
+				// which will directly call a configured provider instance.
+				"main.tf": `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "foo" {
+			value = "foo"
+			defer = false
+		}
+	`,
+				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
+			})
+			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: tc.deferralAllowed,
+				PolicyClient:    planPolicyClient,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			policyResults := plans.NewPolicyResults()
+			_, diags = ctx.Apply(plan, mod, &ApplyOpts{
+				PolicyClient:  applyPolicyClient,
+				PolicyResults: policyResults,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range policyResults.Iter() {
+				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			}
+			tfdiags.AssertNoDiagnostics(t, policyDiags)
+
+			if diff := cmp.Diff(tc.expectedCallbackResults, gotResults, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+				t.Errorf("unexpected policy callback results\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
+	t.Parallel()
+
+	type callbackResult struct {
+		TestResourceMatches []cty.Value
+		TestResourcePartial bool
+
+		TestInstanceMatches []cty.Value
+		TestInstancePartial bool
+	}
+
+	testCases := map[string]struct {
+		config                  string
+		expectedCallbackResults []callbackResult
+	}{
+		"resource type lookup with deferral return partial result": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		# Deferred (directly)
+		resource "test_resource" "foo" {
+			value = "foo"
+			defer = true
+		}
+
+		# Deferred (by dependency)
+		resource "test_instance" "foo" {
+			value = test_resource.foo.value
+		}
+
+		# Not deferred, policy is evaluated
+		resource "test_resource" "bar" {
+			value = "bar"
+			defer = false
+		}
+	`,
+			expectedCallbackResults: []callbackResult{
+				{
+					// This is the only non-deferred test_resource we can match
+					TestResourceMatches: []cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"id":              cty.StringVal(""),
+							"value":           cty.StringVal("bar"),
+							"sensitive_value": cty.NullVal(cty.String),
+							"defer":           cty.False,
+							"random":          cty.NullVal(cty.String),
+							"nesting_single": cty.NullVal(cty.Object(map[string]cty.Type{
+								"value":           cty.String,
+								"sensitive_value": cty.String,
+							})),
+						}),
+					},
+					TestResourcePartial: true,
+
+					// test_instance is deferred, so the response is partial with no matches
+					TestInstanceMatches: []cty.Value{},
+					TestInstancePartial: true,
+				},
+			},
+		},
+		"resource type lookup without deferral return full result": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		# Deferred (directly)
+		resource "test_resource" "foo" {
+			value = "foo"
+			defer = true
+		}
+
+		# Not deferred, policy is evaluated
+		resource "test_instance" "foo" {
+			value = "foo"
+		}
+	`,
+			expectedCallbackResults: []callbackResult{
+				{
+					// test_resource is deferred, so the response is partial with no matches
+					TestResourceMatches: []cty.Value{},
+					TestResourcePartial: true,
+
+					// There are no test_instance resources being deferred so the response is not partial.
+					TestInstanceMatches: []cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"id":            cty.StringVal(""),
+							"ami":           cty.NullVal(cty.String),
+							"dep":           cty.NullVal(cty.String),
+							"num":           cty.NullVal(cty.Number),
+							"require_new":   cty.NullVal(cty.String),
+							"var":           cty.NullVal(cty.String),
+							"foo":           cty.NullVal(cty.String),
+							"bar":           cty.NullVal(cty.String),
+							"compute":       cty.NullVal(cty.String),
+							"compute_value": cty.NullVal(cty.String),
+							"value":         cty.StringVal("foo"),
+							"output":        cty.NullVal(cty.String),
+							"write":         cty.NullVal(cty.String),
+							"instance":      cty.NullVal(cty.String),
+							"vpc_id":        cty.NullVal(cty.String),
+							"type":          cty.StringVal(""),
+							"unknown":       cty.StringVal(""),
+						}),
+					},
+					TestInstancePartial: false,
+				},
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			// The plan policy client allows everything; the callback assertions run during apply only.
+			planPolicyClient := policy.NewTestMockClient(t)
+			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			gotResults := make([]callbackResult, 0)
+			applyPolicyClient := policy.NewTestMockClient(t)
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				cr := callbackResult{}
+
+				matches, partial, err := req.Callbacks.GetResources(t.Context(), "test_resource", cty.NullVal(cty.DynamicPseudoType))
+				if err != nil {
+					t.Errorf("Unexpected error in callback GetResources(test_resource): %v", err)
+				} else {
+					cr.TestResourceMatches = matches
+					cr.TestResourcePartial = partial
+				}
+
+				matches, partial, err = req.Callbacks.GetResources(t.Context(), "test_instance", cty.NullVal(cty.DynamicPseudoType))
+				if err != nil {
+					t.Errorf("Unexpected error in callback GetResources(test_instance): %v", err)
+				} else {
+					cr.TestInstanceMatches = matches
+					cr.TestInstancePartial = partial
+				}
+
+				gotResults = append(gotResults, cr)
+
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider("test")),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			mod := testModuleInline(t, map[string]string{
+				"main.tf":           tc.config,
+				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
+			})
+			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				PolicyClient:    planPolicyClient,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			policyResults := plans.NewPolicyResults()
+			_, diags = ctx.Apply(plan, mod, &ApplyOpts{
+				PolicyClient:  applyPolicyClient,
+				PolicyResults: policyResults,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range policyResults.Iter() {
+				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			}
+			tfdiags.AssertNoDiagnostics(t, policyDiags)
+
+			if diff := cmp.Diff(tc.expectedCallbackResults, gotResults, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+				t.Errorf("unexpected policy callback results\n%s", diff)
+			}
+		})
 	}
 }
 

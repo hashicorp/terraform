@@ -70,7 +70,7 @@ func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSource
 		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 		return nil, err
 	}
-	datasource, err := functions.GetDataSource(ctx, request.Type, config)
+	datasource, isDeferred, err := functions.GetDataSource(ctx, request.Type, config)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,8 @@ func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSource
 	}
 
 	return &proto.GetDataSourceResponse{
-		Result: result,
+		Result:   result,
+		Deferred: isDeferred,
 	}, nil
 }
 
