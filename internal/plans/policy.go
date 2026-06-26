@@ -55,6 +55,19 @@ func (pr *PolicyResults) AddProvider(addr addrs.AbsProviderConfig, result policy
 	if result.Empty() {
 		return
 	}
+
+	// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
+	// policy source and the object being enforced.
+	if !configDeclRange.Empty() {
+		ptr := configDeclRange.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	pr.pset.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: configDeclRange})
