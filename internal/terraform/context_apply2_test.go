@@ -5193,15 +5193,18 @@ resource test_object default {}
 
 		plan, diags := ctx.Plan(m, state, nil)
 		if len(diags) != 1 {
-			t.Errorf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
 		}
 		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
-			t.Errorf("missing expected diagnostic")
+			t.Fatal("missing expected diagnostic")
 		}
 		assertPlan(t, plan, forget, plans.CreateThenForget)
 
 		state, applyDiags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, applyDiags)
+		if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
 	})
 
 	t.Run("remember", func(t *testing.T) {
