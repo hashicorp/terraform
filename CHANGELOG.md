@@ -1,4 +1,4 @@
-## 1.16.0 (Unreleased)
+## 1.16.0-alpha20260626 (June 26, 2026)
 
 
 NEW FEATURES:
@@ -28,7 +28,11 @@ ENHANCEMENTS:
 
 * Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
+* cloud: Render a summary of Terraform policy evaluation outcomes for plan and apply runs against HCP Terraform ([#38715](https://github.com/hashicorp/terraform/issues/38715))
+
 * policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
+
+* child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
 
 
 BUG FIXES:
