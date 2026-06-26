@@ -7517,7 +7517,7 @@ func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[strin
 			EvaluationResponse: policy.EvaluationResponse{
 				Overall:  policy.DenyResult,
 				Policies: []*policy.Policy{policyObj(policy.DenyResult)},
-				Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
 					{
 						Severity: policyproto.Severity_ERROR,
 						Summary:  "Provider policy violation",
@@ -7526,7 +7526,7 @@ func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[strin
 							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 						},
 					},
-				}, nil),
+				}, nil), providerRange),
 			},
 			ConfigDeclRange: providerRange,
 		},
