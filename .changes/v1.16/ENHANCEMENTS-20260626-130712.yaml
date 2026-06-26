@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: contains() function can now test for null
+time: 2026-06-26T13:07:12.264854-04:00
+custom:
+  Issue: "38792"
