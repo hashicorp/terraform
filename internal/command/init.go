@@ -416,7 +416,8 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	allReqs := rootModEarly.ProviderRequirements
 
 	// Get the state store provider from the root module's required providers.
-	reqs := make(providerreqs.Requirements, 1)
+	// The download process is guaranteed to receive a single required provider and return a single lock for that provider.
+	req := make(providerreqs.Requirements, 1)
 	for providerReq := range maps.Values(allReqs.RequiredProviders) {
 		if providerReq.Type.Equals(rootModEarly.StateStore.ProviderAddr) {
 			con, err := providerreqs.ParseVersionConstraints(providerReq.Requirement.Required.String())
@@ -431,11 +432,11 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 					Subject: providerReq.Requirement.DeclRange.Ptr(),
 				})
 			}
-			reqs[providerReq.Type] = con
+			req[providerReq.Type] = con
 		}
 	}
 
-	for providerAddr := range reqs {
+	for providerAddr := range req {
 		if providerAddr.IsLegacy() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -514,10 +515,10 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			cb := fetchPackageBeginCallback(view)
 			cb(provider, version, location)
 		},
-		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, rootModEarly.StateStore),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), req, rootModEarly.StateStore),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
-		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
+		FetchPackageFailure:  fetchPackageFailureCallback(&diags, req),
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			// 1. Capture auth result if this provider is used for state storage.
 			if rootModEarly.StateStore != nil && provider.Equals(rootModEarly.StateStore.ProviderAddr) {
@@ -541,7 +542,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+	lock, err := inst.EnsureProviderVersions(ctx, previousLocks, req, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
@@ -586,7 +587,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		}
 	}
 
-	return true, configLocks, safeInitAction, stateStoreProviderAuthResult, diags
+	return true, lock, safeInitAction, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state

@@ -167,7 +167,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
-	var pssLocks *depsfile.Locks // May end up containing 0 or 1 lock, and needs to be able to influence `getProviders` below.
+	var pssLock *depsfile.Locks // May end up containing 0 or 1 lock, and needs to be able to influence `getProviders` below.
 	if rootModEarly.StateStore != nil {
 		// If the user supplies -state-provider-lock-file to init then we need to let those locks influence provider installation.
 		// `alteredPreviousLocks` will only be different from the locks loaded from the working directory if the user supplied a supplementary lock file via -state-provider-lock-file.
@@ -236,7 +236,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		var safeInitAction SafeInitAction
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var configProviderDiags tfdiags.Diagnostics
-		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		configProvidersOutput, pssLock, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -255,7 +255,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		case SafeInitActionRequireApproval:
 			if c.input {
 				// Prompt the user about trusting the provider used for state storage.
-				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLocks, stateStoreProviderAuthResult))
+				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLock, stateStoreProviderAuthResult))
 				if diags.HasErrors() {
 					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
 					view.Diagnostics(diags)
@@ -297,7 +297,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, pssLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, pssLock, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -436,7 +436,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// If a provider is used for state storage, the lock returned from getProvidersFromPSSConfig
 		// is the only guaranteed source of that lock. We need to ensure its presence to influence
 		// `getProviders`, else that method could download the PSS provider a second time, or download a different version.
-		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLocks, previousLocksWithPSSOverride)
+		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLock, previousLocksWithPSSOverride)
 	}
 	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
@@ -457,7 +457,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// then we override the state store provider lock with the pre-upgrade version.
 		// Even if the upgrade process downloaded a newer version of the provider Terraform
 		// will not use it due to the lock file being unchanged.
-		finalLocks = c.mergeLockedDependencies(pssLocks, finalLocks)
+		finalLocks = c.mergeLockedDependencies(pssLock, finalLocks)
 	}
 	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, initArgs.Lockfile, view)
 	diags = diags.Append(lockFileDiags)
