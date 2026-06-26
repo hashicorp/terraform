@@ -3176,6 +3176,16 @@ func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string)
 						Severity: terraform1.Diagnostic_ERROR,
 						Summary:  "Provider policy violation",
 						Detail:   "testing provider violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+							Start:      &terraform1.SourcePos{Byte: 98, Line: 8, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 126, Line: 8, Column: 29},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+							Start:      &terraform1.SourcePos{Byte: 98, Line: 8, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 126, Line: 8, Column: 29},
+						},
 					},
 				},
 			},
