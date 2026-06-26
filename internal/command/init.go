@@ -590,7 +590,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 // updated dependency lock data. The dependency lock *file* itself isn't updated here.
 //
 // See getProvidersFromPSSConfig which is equivalent for state store providers.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pssConfigLocks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, locks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -628,18 +628,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if diags.HasErrors() {
 		return false, nil, diags
 	}
-
-	// Create a combination of:
-	// * The 0 or 1 locks from downloading the state store provider earlier in the init command
-	// * Any previous locks from the dependency lock file.
-	// This helps the installer in getProviders re-download locked versions if necessary and avoid re-downloading the state storage provider.
-	var moreDiags tfdiags.Diagnostics
-	previousLocks, moreDiags := c.lockedDependencies()
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return false, nil, diags
-	}
-	inProgressLocks := c.mergeLockedDependencies(pssConfigLocks, previousLocks)
 
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
@@ -704,7 +692,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		mode = providercache.InstallUpgrades
 	}
 
-	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode, installerHook)
+	newLocks, err := inst.EnsureProviderVersions(ctx, locks, reqs, mode, installerHook)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		return true, nil, diags
@@ -726,10 +714,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
-func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLocks *depsfile.Locks, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
-	// Get the combination of locks from both potential provider download steps.
-	newLocks := c.mergeLockedDependencies(pssLock, providerLocks)
-
+func (c *InitCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
 	// If the provider dependencies have changed since the last run then we'll
 	// say a little about that in case the reader wasn't expecting a change.
 	// (When we later integrate module dependencies into the lock file we'll
