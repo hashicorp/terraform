@@ -6,7 +6,7 @@ terraform {
   }
 
   # changed to using `test2` provider, versus `test` used in the backend state file
-  state_store "test2_store" {
+  state_store "test2_dst" {
     provider "test2" {
       region = "foobar"
     }

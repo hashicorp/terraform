@@ -335,7 +335,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 		}
 		// hashicorp/test2
 		destinationPssSchema := map[string]providers.Schema{
-			"test2_store": {
+			"test2_dst": {
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{},
 				},
@@ -343,7 +343,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 		}
 		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
 		destinationProvider.MockStates = testing_provider.MockStateBytes{
-			"test2_store": map[string][]byte{}, // No existing state in the destination
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
 		}
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test":  {"1.2.3"},
@@ -381,8 +381,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 
 		expectedMsg := []string{
 			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
-			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
+			"Initializing provider plugin for state store \"test2_dst\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
+			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_dst" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -391,7 +391,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 		}
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
-		b, err = destinationProvider.MockStates.Read("test2_store", "default")
+		b, err = destinationProvider.MockStates.Read("test2_dst", "default")
 		if err != nil {
 			t.Fatalf("unable to find migrated state in mock provider: %s", err)
 		}
@@ -439,6 +439,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 
 provider "registry.terraform.io/hashicorp/test2" {
   version = "3.2.1"
+  hashes = [
+    "h1:gv1gFnIZulslzchnaoyMJ5KoPvoRgVvSGb3tVS803iw=",
+  ]
 }`
 		if err := os.WriteFile(filepath.Join(wd.RootModuleDir(), dependencyLockFilename), []byte(lockFileContents), 0644); err != nil {
 			t.Fatalf("unable to overwrite dependency lock file as part of test setup: %s", err)
@@ -463,7 +466,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 		// hashicorp/test2
 		destinationPssSchema := map[string]providers.Schema{
-			"test2_store": {
+			"test2_dst": {
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{},
 				},
@@ -471,7 +474,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
 		destinationProvider.MockStates = testing_provider.MockStateBytes{
-			"test2_store": map[string][]byte{}, // No existing state in the destination
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
 		}
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test":  {"1.2.3"},
@@ -509,8 +512,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 
 		expectedMsg := []string{
 			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
-			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
+			"Initializing provider plugin for state store \"test2_dst\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
+			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_dst" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -519,7 +522,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
-		b, err = destinationProvider.MockStates.Read("test2_store", "default")
+		b, err = destinationProvider.MockStates.Read("test2_dst", "default")
 		if err != nil {
 			t.Fatalf("unable to find migrated state in mock provider: %s", err)
 		}
@@ -571,7 +574,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 		// hashicorp/test2
 		destinationPssSchema := map[string]providers.Schema{
-			"test2_store": {
+			"test2_dst": {
 				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{},
 				},
@@ -579,7 +582,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
 		destinationProvider.MockStates = testing_provider.MockStateBytes{
-			"test2_store": map[string][]byte{}, // No existing state in the destination
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
 		}
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test":  {"1.2.3"},
@@ -617,8 +620,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 
 		expectedMsg := []string{
 			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
-			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
+			"Initializing provider plugin for state store \"test2_dst\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
+			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_dst" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -627,7 +630,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
-		b, err = destinationProvider.MockStates.Read("test2_store", "default")
+		b, err = destinationProvider.MockStates.Read("test2_dst", "default")
 		if err != nil {
 			t.Fatalf("unable to find migrated state in mock provider: %s", err)
 		}
