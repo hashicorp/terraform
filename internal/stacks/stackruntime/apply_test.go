@@ -4907,6 +4907,26 @@ func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
+	// Create a provider data store to indicate drift so the plan is applyable
+	dataStore := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("comp1-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp1-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		Build()
+
 	plan := planForApplyTest(t, ctx, PlanRequest{
 		PlanMode: plans.RefreshOnlyMode,
 		// Omit policy client as we're not asserting policy results for the plan phase in this test
@@ -4915,7 +4935,7 @@ func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 		PrevState:    policyEvaluationPriorState(t),
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -4926,15 +4946,18 @@ func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
 			},
 		},
 		DependencyLocks: *lock,
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	// Since we're just refreshing, no resource or module policies will be ran during apply (only during plan)
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		// The module runtime currently does not evaluate resource policies during refresh, only module policies
+		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -5062,7 +5085,7 @@ func TestApply_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
-		// Removed components are not refreshed before destroy, so only resource policies are evaluated
+		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),

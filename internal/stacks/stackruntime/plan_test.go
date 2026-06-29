@@ -7068,6 +7068,8 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		// Stacks runs multiple calls to the module runtime for planning a full destroy, one refresh and one destroy plan.
+		// The separate refresh plan will emit module policy evaluations, then the destroy plan will emit resource policy evaluations
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -7133,7 +7135,8 @@ func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
-		// Removed components are not refreshed before destroy, so only resource policies are evaluated
+		// Stacks runs a single call to the module runtime for planning a component destroy, a destroy plan.
+		// The refresh prior to destroy does evaluate module policies but it does not emit them. The destroy plan will emit resource policy evaluations.
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
