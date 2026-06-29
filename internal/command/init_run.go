@@ -210,8 +210,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		)
 	}
 
-	policyResults := plans.NewPolicyResults()
-
 	var pssLocks *depsfile.Locks // May end up containing 0 or 1 lock.
 	if rootModEarly.StateStore != nil {
 		var configProvidersOutput bool
@@ -331,6 +329,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			return 1
 		}
 	}
+	policyResults := plans.NewPolicyResults()
 	providerHook := &providerPolicyHook{
 		client:        policyClient,
 		policyResults: policyResults,
