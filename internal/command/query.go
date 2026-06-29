@@ -126,7 +126,6 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Gated by OperationRequest AllowExperimentalFeatures check
 	if len(args.PolicyPaths) > 0 {
 		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
 		// if there has been any errors when setting up the policy client, we log them but
@@ -171,6 +170,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
+	// validatePolicyPaths call ejects early if -policies flag was passed for non-experimental builds
 	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
@@ -197,11 +197,7 @@ func (c *QueryCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.View = view.Operation()
 	opReq.Query = true
-
-	// EXPERIMENTAL: Only allow attachment of -policies arguments to request if experimental features are enabled.
-	if c.AllowExperimentalFeatures {
-		opReq.PolicyPaths = policyPaths
-	}
+	opReq.PolicyPaths = policyPaths
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
