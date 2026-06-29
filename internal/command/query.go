@@ -52,10 +52,6 @@ Other Options:
                              part of the JSON output instead of written to a
                              file.
 
-	-policies                  Evaluate the policies in the given directory
-                             against query results. This flag may be
-                             repeated to evaluate multiple policy sets.
-
   -json                      If specified, machine readable output will be
                              printed in JSON format
 
@@ -200,7 +196,11 @@ func (c *QueryCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.View = view.Operation()
 	opReq.Query = true
-	opReq.PolicyPaths = policyPaths
+
+	// EXPERIMENTAL: Only allow attachment of -policies arguments to request if experimental features are enabled.
+	if c.AllowExperimentalFeatures {
+		opReq.PolicyPaths = policyPaths
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
