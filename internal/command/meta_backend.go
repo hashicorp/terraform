@@ -3156,7 +3156,7 @@ func (m *Meta) promptStateStorageProviderApproval(stateStorageProvider addrs.Pro
 	}
 
 	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "approve",
+		Id: fmt.Sprintf("approve-provider-%s-%s", lock.Provider().Type, lock.Version()), // E.g. approve-provider-aws-4.0.0. This needs to be unique in case the command needs approval for >1 provider.
 		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
 Platform: %s
 Authentication: %s
