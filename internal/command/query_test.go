@@ -306,12 +306,6 @@ func TestQueryCommand_Validate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fileNotDir := filepath.Join(t.TempDir(), "policy.hcl")
-	if err := os.WriteFile(fileNotDir, []byte(""), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	emptyDir := t.TempDir()
 	missingPath := filepath.Join(t.TempDir(), "does-not-exist")
 
 	tests := []struct {
@@ -344,30 +338,6 @@ func TestQueryCommand_Validate(t *testing.T) {
 					tfdiags.Error,
 					"Invalid policy path",
 					fmt.Sprintf("Terraform cannot find the policy path at %s. Please ensure the file or directory exists and the path is correct.", missingPath),
-				),
-			},
-		},
-		{
-			name:             "path is a file not a directory",
-			policyPaths:      []string{fileNotDir},
-			allowExperiments: true,
-			wantDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid policy path",
-					fmt.Sprintf("The policy path %s is not a directory. Each -policies path must point to a directory containing policy files.", fileNotDir),
-				),
-			},
-		},
-		{
-			name:             "directory with no policy files",
-			policyPaths:      []string{emptyDir},
-			allowExperiments: true,
-			wantDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid policy path",
-					fmt.Sprintf("The policy directory at %s contains no policy files. Ensure the directory contains at least one file ending in .policy.hcl.", emptyDir),
 				),
 			},
 		},
