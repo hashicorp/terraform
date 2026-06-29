@@ -245,7 +245,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
-			view.PolicyResults(policyResults, nil)
 			view.Diagnostics(diags)
 			return 1
 		}
