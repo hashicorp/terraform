@@ -126,6 +126,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	// Gated by OperationRequest AllowExperimentalFeatures check
 	if len(args.PolicyPaths) > 0 {
 		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
 		// if there has been any errors when setting up the policy client, we log them but
