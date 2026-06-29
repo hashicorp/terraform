@@ -418,7 +418,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	// Get the state store provider from the root module's required providers.
 	// The download process is guaranteed to receive a single required provider and return a single lock for that provider.
 	req := make(providerreqs.Requirements, 1)
-	for providerReq := range maps.Values(allReqs.RequiredProviders) {
+	for _, providerReq := range allReqs.RequiredProviders {
 		if providerReq.Type.Equals(rootModEarly.StateStore.ProviderAddr) {
 			con, err := providerreqs.ParseVersionConstraints(providerReq.Requirement.Required.String())
 			if err != nil {
