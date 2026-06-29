@@ -5213,8 +5213,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		// Check output via view
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
-			"Error: State store provider not found in -state-provider-lock-file dependency lock file",
-			fmt.Sprintf("Terraform could not find the state store provider \"test\" (hashicorp/test) in the dependency lock file \"%s\" provided via the -state-provider-lock-file flag", lockFileName),
+			"Error: State store provider not described in dependency lock file supplied via -state-provider-lock-file flag",
+			fmt.Sprintf("Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider", lockFileName),
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {

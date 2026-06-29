@@ -190,11 +190,11 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			if lock == nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"State store provider not found in -state-provider-lock-file dependency lock file",
-					fmt.Sprintf("Terraform could not find the state store provider %q (%s) in the dependency lock file %q provided via the -state-provider-lock-file flag. Please ensure the lock file contains a lock for the state store provider and try again.",
+					"State store provider not described in dependency lock file supplied via -state-provider-lock-file flag",
+					fmt.Sprintf("Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider %q (%s). To get a sufficient lock file create a minimal configuration with the specific provider and version you want to use described in a required_providers block. Then, perform \"terraform init\" manually to create a dependency lock file describing that provider. After checking the lock file's contents you can retry the original command that produced this error by running: \"terraform init -input=false -state-provider-lock-file=<path to the newly-created lock file>\".",
+						initArgs.StateStoreProviderLockFile,
 						rootModEarly.StateStore.ProviderAddr.Type,
 						rootModEarly.StateStore.ProviderAddr.ForDisplay(),
-						initArgs.StateStoreProviderLockFile,
 					),
 				))
 				view.Diagnostics(diags)
