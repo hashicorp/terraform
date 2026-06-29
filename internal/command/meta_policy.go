@@ -11,6 +11,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -168,7 +169,11 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
 	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
-	p.policyResults.AddProvider(addr, result, providerConfig)
+	var rng hcl.Range
+	if providerConfig != nil {
+		rng = providerConfig.DeclRange
+	}
+	p.policyResults.AddProvider(addr, result, rng)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	// Init uses diagnostics as the blocking signal because advisory policies
 	// may return deny without any error diagnostics.

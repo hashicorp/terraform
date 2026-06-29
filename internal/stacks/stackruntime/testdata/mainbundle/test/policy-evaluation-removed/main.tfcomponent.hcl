@@ -5,7 +5,13 @@ required_providers {
   }
 }
 
-provider "testing" "default" {}
+provider "testing" "default" {
+  for_each = var.component_names
+  
+  config {
+    ignored = each.key
+  }
+}
 
 variable "component_names" {
   type    = set(string)
@@ -21,7 +27,7 @@ component "simple_component" {
   }
 
   providers = {
-    testing = provider.testing.default
+    testing = provider.testing.default[each.key]
   }
 }
 
@@ -31,6 +37,6 @@ removed {
   from = component.simple_component["comp2"]
 
   providers = {
-    testing = provider.testing.default
+    testing = provider.testing.default["comp2"]
   }
 }

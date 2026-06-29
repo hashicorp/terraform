@@ -50,18 +50,27 @@ func (pr *PolicyResults) AddResource(addr addrs.AbsResourceInstance, result poli
 	pr.set.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng})
 }
 
-func (pr *PolicyResults) AddProvider(addr addrs.AbsProviderConfig, result policy.EvaluationResponse, config *configs.Provider) {
+func (pr *PolicyResults) AddProvider(addr addrs.AbsProviderConfig, result policy.EvaluationResponse, configDeclRange hcl.Range) {
 	// Don't add empty results
 	if result.Empty() {
 		return
 	}
+
+	// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
+	// policy source and the object being enforced.
+	if !configDeclRange.Empty() {
+		ptr := configDeclRange.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
-	var rng hcl.Range
-	if config != nil {
-		rng = config.DeclRange
-	}
-	pr.pset.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng})
+	pr.pset.Put(addr, PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: configDeclRange})
 }
 
 func (pr *PolicyResults) AddModule(addr addrs.Module, result policy.EvaluationResponse, config *configs.ModuleCall) {

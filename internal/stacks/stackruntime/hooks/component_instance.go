@@ -99,3 +99,10 @@ type ComponentInstancePolicyResults struct {
 	Addr          stackaddrs.AbsComponentInstance
 	PolicyResults *plans.PolicyResults
 }
+
+// ProviderInstancePolicyResults is the argument type for the hook callback which
+// sends policy results back to the client for a provider instance.
+type ProviderInstancePolicyResults struct {
+	Addr          stackaddrs.AbsProviderConfigInstance
+	PolicyResults *plans.PolicyResults
+}

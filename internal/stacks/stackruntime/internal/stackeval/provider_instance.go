@@ -12,12 +12,17 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -236,7 +241,8 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 
 			// We unmark the config before making the RPC call, as marks cannot
 			// be serialized.
-			unmarkedArgs, _ := p.ProviderArgs(ctx, phase).UnmarkDeep()
+			configVal := p.ProviderArgs(ctx, phase)
+			unmarkedArgs, _ := configVal.UnmarkDeep()
 			if unmarkedArgs == cty.NilVal {
 				// Then we had an error previously, so we'll rely on that error
 				// being exposed elsewhere.
@@ -256,6 +262,54 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				// gets cleaned up by the cleanup function above, despite being
 				// inaccessible to the caller.)
 				return stubs.ErroredProvider(), diags
+			}
+
+			// If a policy client is configured and the planning mode is normal (i.e. not refresh or destroy), evaluate policy for the provider instance
+			if policyClient := p.main.PolicyClient(); p.main.PlanningMode() == plans.NormalMode && policyClient != nil {
+				providerTypeAddr := providerType.Addr()
+
+				var providerLockVersion string
+				depLocks := p.main.DependencyLocks(phase)
+				if depLocks != nil {
+					if providerLock := depLocks.AllProviders()[providerTypeAddr]; providerLock != nil {
+						providerLockVersion = providerLock.Version().String()
+					}
+				}
+
+				result := policyClient.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
+					Target: providerTypeAddr.Type,
+					// We use the marked "configVal" so that we can send sensitive paths to the
+					// policy plugin. Provider schemas don't have a defined usage/behavior for
+					// the "Sensitive" field, so we don't add sensitive paths from the schema to this value.
+					Attrs: policy.CtyToPolicyValue(configVal),
+					Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
+						Name:      providerTypeAddr.Type,
+						Alias:     p.addr.Item.ProviderConfig.Name,
+						Namespace: providerTypeAddr.Namespace,
+						Source:    providerTypeAddr.String(),
+						Version:   providerLockVersion,
+					},
+				})
+
+				// This address is only used to share the module runtime policy result struct
+				// and won't be used outside of this method.
+				providerConfigAddr := addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: p.provider.addr.Item.Provider,
+					Alias:    p.provider.addr.Item.Name,
+				}
+
+				policyResults := plans.NewPolicyResults()
+				policyResults.AddProvider(providerConfigAddr, result, decl.DeclRange.ToHCL())
+
+				// Report policy results if we have any
+				if policyResults.Len() > 0 {
+					h := hooksFromContext(ctx)
+					hookSingle(ctx, h.ReportProviderInstancePolicyResults, &hooks.ProviderInstancePolicyResults{
+						Addr:          p.addr,
+						PolicyResults: policyResults,
+					})
+				}
 			}
 
 			return unconfigurableProvider{

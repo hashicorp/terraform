@@ -242,20 +242,15 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 	})
 
 	// if this was an "implicit provider", and we have no configuration
-	// for it, There's going to be no source information for these errors.
+	// for it, there will be no source information for any diagnostics.
+	var rng hcl.Range
 	if n.Config != nil {
-		ptr := n.Config.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		rng = n.Config.DeclRange
 	}
 
 	// always add the result to the policy results
 	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
+		ctx.PolicyResults().AddProvider(n.Addr, result, rng)
 	}
 
 	return nil
