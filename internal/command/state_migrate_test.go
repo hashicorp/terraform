@@ -985,7 +985,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		_ = testInputMap(t, map[string]string{
-			"approve":                       "yes",
+			"approve-provider-test-1.2.3":   "yes",
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -1092,7 +1092,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		_ = testInputMap(t, map[string]string{
-			"approve":                       "yes",
+			"approve-provider-test2-3.2.1":  "yes",
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
