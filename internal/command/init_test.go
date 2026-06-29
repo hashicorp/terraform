@@ -6271,8 +6271,8 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			Meta: Meta{
 				testingOverrides: &testingOverrides{
 					Providers: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))),
-						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_store"))),
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_src"))),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_dst"))),
 					},
 				},
 				ProviderSource:            providerSource,
