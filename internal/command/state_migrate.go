@@ -127,7 +127,11 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-		stateMigrate.Output(views.StateStoreProviderAutomationApprovedMessage)
+		// TODO how do we know to show StateStoreProviderInteractiveApprovedMessage, or rejected ?
+		if !c.input && args.SourceLockFilePath != depsfile.LockFilePath {
+			// user supplied a lock file via -source-provider-lock-file, so provide feedback to the user that it happened successfully.
+			stateMigrate.Output(views.StateStoreProviderAutomationApprovedMessage)
+		}
 
 		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
 		diags = diags.Append(srcDiags)
@@ -207,7 +211,11 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-		stateMigrate.Output(views.StateStoreProviderAutomationApprovedMessage)
+		// TODO how do we know to show StateStoreProviderInteractiveApprovedMessage, or rejected ?
+		if !c.input && args.DestinationLockFilePath != depsfile.LockFilePath {
+			// user supplied a lock file via -destination-provider-lock-file, so provide feedback to the user that it happened successfully.
+			stateMigrate.Output(views.StateStoreProviderAutomationApprovedMessage)
+		}
 
 		dstB, _, _, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
 		diags = diags.Append(dstDiags)
@@ -460,7 +468,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, store *conf
 	}
 
 	// Return advice to the calling code about what to do regarding safe state store provider installation
-	safeInstallAction = c.determineSafeProviderInstallAction(store.ProviderAddr, providerLocations)
+	safeInstallAction = c.determineSafeProviderInstallAction(store.ProviderAddr, providerLocations, locks)
 
 	return true, newLocks, safeInstallAction, stateStoreProviderAuthResult, diags
 }

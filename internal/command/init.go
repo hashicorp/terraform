@@ -548,7 +548,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	}
 
 	// Return advice to the calling code about what to do regarding safe state store provider installation
-	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations)
+	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
 
 	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
 }
