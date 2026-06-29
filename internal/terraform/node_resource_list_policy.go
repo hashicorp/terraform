@@ -108,7 +108,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 			identity = val.GetAttr("identity")
 		}
 
-		// Absent "state" means include_resource = false; skip with Unknown outcome.
+		// Absent "state" means include_resource is false so we'll skip with Unknown outcome.
 		hasState := val.Type().HasAttribute("state") && !val.GetAttr("state").IsNull()
 		if !hasState {
 			unknownCount++
@@ -125,7 +125,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 
 		stateVal := val.GetAttr("state")
 
-		// Call Provider RPC to generate configuration; fallback to legacy extraction config from state
+		// Call Provider RPC to generate configuration with fallback to legacy extraction config from state
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
 		// Handle Provider GenerateResourceConfig RPC failure.
 		if configDiags.HasErrors() {
