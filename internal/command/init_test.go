@@ -2397,6 +2397,126 @@ func TestInit_cancelProviders(t *testing.T) {
 
 // Test different scenarios when upgrading providers with the -upgrade flag is attempted
 func TestInit_getUpgradePlugins(t *testing.T) {
+	t.Run("no upgrade if -upgrade=false set, and a lockfile controls installed version", func(t *testing.T) {
+		// Create a temporary working directory and copy in test fixtures
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-get-providers-with-lockfile"), td)
+		t.Chdir(td)
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// looking for an exact version
+			"exact": {"1.2.3"},
+			// config requires >= 2.3.3, lockfile specifies 2.3.3
+			"greater-than": {"2.3.4", "2.3.3", "2.3.0"},
+			// config specifies > 1.0.0, < 3.0.0, lockfile specifies 2.3.4
+			"between": {"3.4.5", "2.9.9", "2.3.4", "1.2.3"},
+		})
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		m := Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		}
+
+		// Make Terraform believe there are already some versions of some providers installed
+		installFakeProviderPackages(t, &m, map[string][]string{
+			"exact":        {"0.0.1"},
+			"greater-than": {"2.3.3"},
+		})
+
+		c := &InitCommand{
+			Meta: m,
+		}
+
+		args := []string{
+			"-upgrade=false",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("command did not complete successfully:\n%s", done(t).All())
+		}
+
+		cacheDir := m.providerLocalCacheDir()
+		gotPackages := cacheDir.AllAvailablePackages()
+		wantPackages := map[addrs.Provider][]providercache.CachedProvider{
+			// "between" wasn't previously installed at all, so we installed
+			// the newest available version that matched the version constraints.
+			addrs.NewDefaultProvider("between"): {
+				{
+					Provider:   addrs.NewDefaultProvider("between"),
+					Version:    getproviders.MustParseVersion("2.3.4"),
+					PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
+				},
+			},
+			// The existing version of "exact" did not match the version constraints,
+			// so we installed what the configuration selected as well.
+			addrs.NewDefaultProvider("exact"): {
+				{
+					Provider:   addrs.NewDefaultProvider("exact"),
+					Version:    getproviders.MustParseVersion("1.2.3"),
+					PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
+				},
+				// Previous version is still there, but not selected
+				{
+					Provider:   addrs.NewDefaultProvider("exact"),
+					Version:    getproviders.MustParseVersion("0.0.1"),
+					PackageDir: expectedPackageInstallPath("exact", "0.0.1", false),
+				},
+			},
+			// The existing version of "greater-than" _did_ match the constraints.
+			// This version is in the lock file and, as we're not performing an upgrade,
+			// no other version was downloaded.
+			addrs.NewDefaultProvider("greater-than"): {
+				// Previous version is still there, but not selected
+				{
+					Provider:   addrs.NewDefaultProvider("greater-than"),
+					Version:    getproviders.MustParseVersion("2.3.3"),
+					PackageDir: expectedPackageInstallPath("greater-than", "2.3.3", false),
+				},
+			},
+		}
+		if diff := cmp.Diff(wantPackages, gotPackages); diff != "" {
+			t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
+		}
+
+		locks, err := m.lockedDependencies()
+		if err != nil {
+			t.Fatalf("failed to get locked dependencies: %s", err)
+		}
+		gotProviderLocks := locks.AllProviders()
+		wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+			addrs.NewDefaultProvider("between"): depsfile.NewProviderLock(
+				addrs.NewDefaultProvider("between"),
+				getproviders.MustParseVersion("2.3.4"),
+				getproviders.MustParseVersionConstraints("> 1.0.0, < 3.0.0"),
+				[]getproviders.Hash{
+					getproviders.HashScheme1.New("JVqAvZz88A+hS2wHVtTWQkHaxoA/LrUAz0H3jPBWPIA="),
+				},
+			),
+			addrs.NewDefaultProvider("exact"): depsfile.NewProviderLock(
+				addrs.NewDefaultProvider("exact"),
+				getproviders.MustParseVersion("1.2.3"),
+				getproviders.MustParseVersionConstraints("= 1.2.3"),
+				[]getproviders.Hash{
+					getproviders.HashScheme1.New("H1TxWF8LyhBb6B4iUdKhLc/S9sC/jdcrCykpkbGcfbg="),
+				},
+			),
+			addrs.NewDefaultProvider("greater-than"): depsfile.NewProviderLock(
+				addrs.NewDefaultProvider("greater-than"),
+				getproviders.MustParseVersion("2.3.3"),
+				getproviders.MustParseVersionConstraints(">= 2.3.3"),
+				[]getproviders.Hash{
+					getproviders.HashScheme1.New("4VW33E3N9PSejfg3jmsBcDAVRy7D+ri2FtqkgVxVJsc="),
+				},
+			),
+		}
+		if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
+			t.Errorf("wrong version selections after upgrade\n%s", diff)
+		}
+	})
+
 	t.Run("the -upgrade flag allows providers to be upgraded to latest versions matching constraints", func(t *testing.T) {
 		// Create a temporary working directory and copy in test fixtures
 		td := t.TempDir()
@@ -2426,6 +2546,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		installFakeProviderPackages(t, &m, map[string][]string{
 			"exact":        {"0.0.1"},
 			"greater-than": {"2.3.3"},
+			// no "between" installed previously
 		})
 
 		c := &InitCommand{
