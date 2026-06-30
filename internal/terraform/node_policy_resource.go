@@ -103,7 +103,9 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
-	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
+	if ctx.PolicyResults() != nil {
+		ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
+	}
 	return diags
 }
 

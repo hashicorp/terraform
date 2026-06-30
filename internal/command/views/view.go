@@ -196,6 +196,63 @@ func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Dia
 	}
 }
 
+func (v *View) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	configSources := v.configSources()
+	var buf strings.Builder
+	var foundInfo bool
+
+	for _, enforcement := range result.EvaluationResponse.Enforcements {
+		var src []byte
+		if enforcement.LocalRange != nil {
+			src = configSources[enforcement.LocalRange.Filename]
+		}
+		info := json.NewPolicyInfo(src, enforcement)
+		// Print info message attached to the enforcement
+		if info.Message != "" {
+			foundInfo = true
+			buf.WriteString("Policy Info:\n")
+			if info.PolicyRange != nil && info.PolicySnippet != nil {
+				fmt.Fprintf(
+					&buf,
+					"on %s line %d, in %s\n",
+					info.PolicyRange.Filename,
+					info.PolicyRange.Start.Line,
+					info.PolicySnippet.Code,
+				)
+			} else if enforcement.Policy != nil {
+				fmt.Fprintf(
+					&buf,
+					"in policy %s\n",
+					enforcement.Policy.Address,
+				)
+			}
+			fmt.Fprintf(&buf, "%q\n", info.Message)
+
+			if !result.ConfigDeclRange.Empty() {
+				cfgRange := result.ConfigDeclRange
+				resourceContext := string(cfgRange.SliceBytes(configSources[cfgRange.Filename]))
+
+				fmt.Fprintf(
+					&buf,
+					"\non %s line %d, in %s\n",
+					cfgRange.Filename,
+					cfgRange.Start.Line,
+					resourceContext,
+				)
+			}
+			buf.WriteString("\n")
+		}
+	}
+
+	// Print policy diagnostics
+	v.Diagnostics(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+
+	if foundInfo {
+		v.streams.Println()
+		v.streams.Println(buf.String())
+	}
+}
+
 // HelpPrompt is intended to be called from commands which fail to parse all
 // of their CLI arguments successfully. It refers users to the full help output
 // rather than rendering it directly, which can be overwhelming and confusing.

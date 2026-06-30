@@ -169,6 +169,11 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
+
+	// PolicyResults, when non nil, is the sink that policy evaluation results
+	// are written to during the walk. When nil, a buffered *PolicyResults is created and
+	// attached to the resulting plan (used by stacks currently).
+	PolicyResults plans.PolicyResult
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -802,8 +807,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// Hold reference to this so we can store the table data in the plan file.
 	funcResults := lang.NewFunctionResultsTable(nil)
 
-	// Initialize the map to store policy evaluation results.
-	policyResults := plans.NewPolicyResults()
+	// The sink that policy evaluation results are written to. If the caller
+	// injected one (e.g. a streaming sink), use it and don't retain results on
+	// the plan; otherwise buffer into a *PolicyResults attached to the plan.
+	var bufferedPolicyResults *plans.PolicyResults
+	policyResults := opts.PolicyResults
+	if policyResults == nil {
+		bufferedPolicyResults = plans.NewPolicyResults()
+		policyResults = bufferedPolicyResults
+	}
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
@@ -901,9 +913,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// Other fields get populated by Context.Plan after we return
 	}
 
-	if policyResults != nil {
-		plan.PolicyResults = policyResults
-	}
+	// Only the buffered sink is retained on the plan; a streaming sink keeps
+	// nothing (results were rendered live during the walk).
+	plan.PolicyResults = bufferedPolicyResults
 
 	if !schemaDiags.HasErrors() {
 		deferredResources, deferredDiags := c.deferredResources(schemas, walker.Deferrals.GetDeferredChanges())

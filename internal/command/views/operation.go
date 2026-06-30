@@ -37,6 +37,8 @@ type Operation interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
+
+	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -136,6 +138,10 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 
 func (v *OperationHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
 	v.view.PolicyResults(results, setupDiags)
+}
+
+func (v *OperationHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.StreamPolicyResult(addr, result)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -299,6 +305,10 @@ func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (v *OperationJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
 	v.view.PolicyResults(results, setupDiags)
+}
+
+func (v *OperationJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.StreamPolicyResult(addr, result)
 }
 
 const fatalInterrupt = `

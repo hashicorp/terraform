@@ -102,6 +102,10 @@ func (v *QueryOperationHuman) PolicyResults(results *plans.PolicyResults, setupD
 	v.view.PolicyResults(results, setupDiags)
 }
 
+func (v *QueryOperationHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.StreamPolicyResult(addr, result)
+}
+
 type QueryOperationJSON struct {
 	view *JSONView
 }
@@ -143,4 +147,8 @@ func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (v *QueryOperationJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
 	v.view.PolicyResults(results, setupDiags)
+}
+
+func (v *QueryOperationJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.StreamPolicyResult(addr, result)
 }
