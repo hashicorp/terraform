@@ -196,7 +196,10 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 Options:
 
   -json       Output the version information as a JSON object.
-Error parsing command-line flags: flag provided but not defined: -foobar`
+
+Error: Failed to parse command-line flags
+
+flag provided but not defined: -foobar`
 		if actual != expected {
 			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
 		}
@@ -229,7 +232,10 @@ Error parsing command-line flags: flag provided but not defined: -foobar`
 Options:
 
   -json       Output the version information as a JSON object.
-Error parsing command-line flags: flag provided but not defined: -foobar`
+
+Error: Failed to parse command-line flags
+
+flag provided but not defined: -foobar`
 		if actual != expected {
 			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
 		}
