@@ -90,6 +90,86 @@ func TestVersion_flags(t *testing.T) {
 	}
 }
 
+func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
+	t.Run("unexpected positional arguments are ignored without error", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		m := Meta{
+			Ui: ui,
+		}
+
+		// `terraform version`
+		c := &VersionCommand{
+			Meta:              m,
+			Version:           "4.5.6",
+			VersionPrerelease: "foo",
+			Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
+		}
+
+		args := []string{
+			"foo",
+			"bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(ui.OutputWriter.String())
+		expected := "Terraform v4.5.6-foo\non aros_riscv64"
+		if actual != expected {
+			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		actual = strings.TrimSpace(ui.ErrorWriter.String())
+		expected = ""
+		if actual != expected {
+			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+	})
+
+	t.Run("incorrect flag", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		m := Meta{
+			Ui: ui,
+		}
+
+		// `terraform version`
+		c := &VersionCommand{
+			Meta:              m,
+			Version:           "4.5.6",
+			VersionPrerelease: "foo",
+			Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
+		}
+
+		args := []string{
+			"-foobar",
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected code 1 and error output, but got code %d:\nstdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		}
+
+		// Check stdout
+		actual := strings.TrimSpace(ui.OutputWriter.String())
+		expected := ""
+		if actual != expected {
+			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		// Check stderr
+		actual = strings.TrimSpace(ui.ErrorWriter.String())
+		expected = `Usage: terraform [global options] version [options]
+
+  Displays the version of Terraform and all installed plugins
+
+Options:
+
+  -json       Output the version information as a JSON object.
+Error parsing command-line flags: flag provided but not defined: -foobar`
+		if actual != expected {
+			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+	})
+}
+
 func TestVersion_outdated(t *testing.T) {
 	ui := new(cli.MockUi)
 	m := Meta{
@@ -195,7 +275,6 @@ func TestVersion_json(t *testing.T) {
 	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Fatalf("wrong output\n%s", diff)
 	}
-
 }
 
 func TestVersion_jsonoutdated(t *testing.T) {
