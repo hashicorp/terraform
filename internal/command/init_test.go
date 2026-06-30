@@ -2512,7 +2512,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 				},
 			),
 		}
-		if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
+		if diff := cmp.Diff(wantProviderLocks, gotProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 			t.Errorf("wrong version selections after upgrade\n%s", diff)
 		}
 	})
