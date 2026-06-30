@@ -766,6 +766,7 @@ func TestOperationJSON_plan_with_actions(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(3),
 				"add":               float64(1),
 				"import":            float64(0),
@@ -795,6 +796,7 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(0),
 				"import":            float64(0),
@@ -964,6 +966,7 @@ func TestOperationJSON_plan(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(3),
 				"import":            float64(0),
@@ -1112,6 +1115,7 @@ func TestOperationJSON_planWithImport(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(1),
 				"import":            float64(4),
@@ -1250,6 +1254,7 @@ func TestOperationJSON_planDriftWithMove(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(0),
 				"import":            float64(0),
@@ -1382,6 +1387,7 @@ func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(0),
 				"import":            float64(0),
@@ -1443,6 +1449,7 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"operation":         "plan",
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(0),
 				"import":            float64(0),

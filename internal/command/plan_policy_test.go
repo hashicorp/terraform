@@ -5,7 +5,6 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync/atomic"
 	"testing"
@@ -327,7 +326,7 @@ func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
 {"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","policy_address":"resource_policy.foo","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.foo","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","target_address":"test_instance.foo","type":"policy_result"}
 {"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","policy_address":"resource_policy.bar","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.bar","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"DenyResult","target_address":"test_instance.foo","type":"policy_result"}
 {"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
-{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"plan"},"type":"change_summary"}`
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_fail":0,"action_invocation":0,"operation":"plan"},"type":"change_summary"}`
 
 	checkGoldenReferenceStr(t, output, expected)
 }
@@ -965,7 +964,6 @@ func TestPlan_WithPolicySetupFailureJSON(t *testing.T) {
 {"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
 {"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
 {"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
-{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"operation":"plan"},"type":"change_summary"}`
-	fmt.Println(output.Stdout())
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"action_fail":0,"operation":"plan"},"type":"change_summary"}`
 	checkGoldenReferenceStr(t, output, expected)
 }

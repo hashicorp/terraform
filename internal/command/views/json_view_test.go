@@ -252,6 +252,7 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(1),
 				"import":            float64(0),
@@ -283,6 +284,7 @@ func TestJSONView_ChangeSummaryWithImport(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
 				"action_invocation": float64(0),
 				"add":               float64(1),
 				"change":            float64(2),
@@ -314,6 +316,7 @@ func TestJSONView_ChangeSummaryWithActionInvocations(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
 				"action_invocation": float64(23),
 				"add":               float64(1),
 				"change":            float64(2),
@@ -346,6 +349,7 @@ func TestJSONView_ChangeSummaryWithActionInvocationsAndImports(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
 				"action_invocation": float64(23),
 				"add":               float64(1),
 				"change":            float64(2),
@@ -447,7 +451,6 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 	// Remove final trailing newline
 	output = strings.TrimSuffix(output, "\n")
-
 	// Split log into lines, each of which should be a JSON log message
 	gotLines := strings.Split(output, "\n")
 
@@ -481,6 +484,8 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 		}
 
 		if !cmp.Equal(wantStruct, gotStruct, options...) {
+			fmt.Printf("WANT: %#v\n", wantStruct)
+			fmt.Printf("GOT: %#v\n", gotStruct)
 			t.Errorf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
 		}
 	}
