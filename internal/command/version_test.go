@@ -105,6 +105,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 			Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 		}
 
+		// Human output
 		args := []string{
 			"foo",
 			"bar",
@@ -117,6 +118,39 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 		expected := "Terraform v4.5.6-foo\non aros_riscv64"
 		if actual != expected {
 			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		actual = strings.TrimSpace(ui.ErrorWriter.String())
+		expected = ""
+		if actual != expected {
+			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		// Machine-readable / JSON output
+		ui = new(cli.MockUi)
+		c.Meta = Meta{
+			Ui: ui,
+		}
+		args = []string{
+			"-json",
+			"foo",
+			"bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		actual = strings.TrimSpace(ui.OutputWriter.String())
+		expected = strings.TrimSpace(`
+{
+  "terraform_version": "4.5.6-foo",
+  "platform": "aros_riscv64",
+  "provider_selections": {},
+  "terraform_outdated": false
+}
+`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("wrong output\n%s", diff)
 		}
 
 		actual = strings.TrimSpace(ui.ErrorWriter.String())
@@ -140,6 +174,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 			Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 		}
 
+		// Human output
 		args := []string{
 			"-foobar",
 		}
@@ -147,14 +182,45 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 			t.Fatalf("expected code 1 and error output, but got code %d:\nstdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 		}
 
-		// Check stdout
 		actual := strings.TrimSpace(ui.OutputWriter.String())
 		expected := ""
 		if actual != expected {
 			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
 		}
 
-		// Check stderr
+		actual = strings.TrimSpace(ui.ErrorWriter.String())
+		expected = `Usage: terraform [global options] version [options]
+
+  Displays the version of Terraform and all installed plugins
+
+Options:
+
+  -json       Output the version information as a JSON object.
+Error parsing command-line flags: flag provided but not defined: -foobar`
+		if actual != expected {
+			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		// Machine-readable / JSON output
+		ui = new(cli.MockUi)
+		c.Meta = Meta{
+			Ui: ui,
+		}
+		args = []string{
+			"-json",
+			"-foobar",
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected code 1 and error output, but got code %d:\nstdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		}
+
+		actual = strings.TrimSpace(ui.OutputWriter.String())
+		expected = ""
+		if actual != expected {
+			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
+		}
+
+		// Human error output is rendered despite -json flag when an error occurs
 		actual = strings.TrimSpace(ui.ErrorWriter.String())
 		expected = `Usage: terraform [global options] version [options]
 
