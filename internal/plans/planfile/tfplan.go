@@ -1344,14 +1344,6 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 	}
 	ret.Addr = actionAddr
 
-	if rawAction.Caller != "" {
-		callerAddr, diags := addrs.ParseRefStr(rawAction.Caller)
-		if diags.HasErrors() {
-			return nil, fmt.Errorf("invalid action caller address %q: %w", rawAction.Caller, diags.Err())
-		}
-		ret.Caller = callerAddr.Subject
-	}
-
 	switch at := rawAction.ActionTrigger.(type) {
 	case *planproto.ActionInvocationInstance_ResourceActionTrigger:
 		triggeringResourceAddrs, diags := addrs.ParseAbsResourceInstanceStr(at.ResourceActionTrigger.TriggeringResourceAddr)
@@ -1385,7 +1377,19 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 			ActionTriggerEvent:      ate,
 		}
 	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
-		ret.ActionTrigger = new(plans.InvokeActionTrigger)
+		var triggeringResourceAddr *addrs.AbsResourceInstance
+		if at.InvokeActionTrigger.CallingResourceAddr != "" {
+			addr, diags := addrs.ParseAbsResourceInstanceStr(at.InvokeActionTrigger.CallingResourceAddr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			triggeringResourceAddr = &addr
+		}
+
+		ret.ActionTrigger = &plans.InvokeActionTrigger{
+			CallingResourceAddr: triggeringResourceAddr,
+		}
+
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
@@ -1423,10 +1427,6 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		Provider: action.ProviderAddr.String(),
 	}
 
-	if action.Caller != nil {
-		ret.Caller = action.Caller.String()
-	}
-
 	switch at := action.ActionTrigger.(type) {
 	case *plans.ResourceActionTrigger:
 		triggerEvent := planproto.ActionTriggerEvent_INVALID_EVENT
@@ -1453,7 +1453,16 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 			},
 		}
 	case *plans.InvokeActionTrigger:
-		ret.ActionTrigger = new(planproto.ActionInvocationInstance_InvokeActionTrigger)
+		var callingResourceAddr string
+		if at.CallingResourceAddr != nil {
+			callingResourceAddr = at.CallingResourceAddr.String()
+		}
+
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_InvokeActionTrigger{
+			InvokeActionTrigger: &planproto.InvokeActionTrigger{
+				CallingResourceAddr: callingResourceAddr,
+			},
+		}
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type: %T", at)
