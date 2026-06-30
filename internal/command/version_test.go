@@ -60,9 +60,11 @@ func TestVersion(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("wrong output\ngot:\n%s\nwant:\n%s", actual, expected)
 	}
-
 }
 
+// terraform version must support (but not use) -v and -version flags.
+// This is because whenever a user runs `terraform <any command name> -version`, etc, main.go
+// will call the version command with all of the supplied flags and arguments.
 func TestVersion_flags(t *testing.T) {
 	ui := new(cli.MockUi)
 	m := Meta{
@@ -77,7 +79,7 @@ func TestVersion_flags(t *testing.T) {
 		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 
-	if code := c.Run([]string{"-v", "-version"}); code != 0 {
+	if code := c.Run([]string{"-v", "-version", "--version"}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
