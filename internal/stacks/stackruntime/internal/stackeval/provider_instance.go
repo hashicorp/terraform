@@ -264,8 +264,8 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return stubs.ErroredProvider(), diags
 			}
 
-			// If a policy client is configured and the planning mode is normal (i.e. not refresh or destroy), evaluate policy for the provider instance
-			if policyClient := p.main.PolicyClient(); p.main.PlanningMode() == plans.NormalMode && policyClient != nil {
+			// If a policy client is configured, evaluate policy for the provider instance
+			if policyClient := p.main.PolicyClient(); policyClient != nil {
 				providerTypeAddr := providerType.Addr()
 
 				var providerLockVersion string

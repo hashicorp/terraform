@@ -325,7 +325,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// Setup the policy client if the caller provides a plugin path, policies, and
 	// the plan request is the default mode (i.e. not refresh or destroy)
 	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && req.PlanMode == stacks.PlanMode_NORMAL {
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
@@ -660,7 +660,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// Setup the policy client if the caller provides a plugin path, policies, and
 	// the plan being applied is the default mode (i.e. not refresh or destroy)
 	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && plan.Mode == plans.NormalMode {
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride

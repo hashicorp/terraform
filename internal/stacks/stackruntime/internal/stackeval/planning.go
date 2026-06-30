@@ -123,8 +123,9 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
 
-func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
+func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, tfHooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	h := hooksFromContext(ctx)
 
 	// This is our main bridge from the stacks language into the main Terraform
 	// module language during the planning phase. We need to ask the main
@@ -178,7 +179,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	}
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
-		Hooks:                    hooks,
+		Hooks:                    tfHooks,
 		Providers:                providerFactories,
 		PreloadedProviderSchemas: providerSchemas,
 		Provisioners:             main.availableProvisioners(),
@@ -209,6 +210,16 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 
 	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)
 	diags = diags.Append(moreDiags)
+
+	if plan != nil {
+		// Report policy results if we have any
+		if plan.PolicyResults.Len() > 0 {
+			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
+				Addr:          scope.Addr(),
+				PolicyResults: plan.PolicyResults,
+			})
+		}
+	}
 
 	return plan, diags
 }

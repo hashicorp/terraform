@@ -4895,7 +4895,7 @@ func TestApply_WithPolicyResults_EmbeddedStack(t *testing.T) {
 	}
 }
 
-func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
+func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
 
@@ -4907,6 +4907,26 @@ func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
+	// Create a provider data store to indicate drift so the plan is applyable
+	dataStore := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("comp1-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp1-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		Build()
+
 	plan := planForApplyTest(t, ctx, PlanRequest{
 		PlanMode: plans.RefreshOnlyMode,
 		// Omit policy client as we're not asserting policy results for the plan phase in this test
@@ -4915,7 +4935,7 @@ func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
 		PrevState:    policyEvaluationPriorState(t),
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -4926,18 +4946,18 @@ func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
 			},
 		},
 		DependencyLocks: *lock,
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	// TODO: This is currently bugged because Apply is using the stackplan Mode field to control running policy evaluation,
-	// but that field is not serialized or deserialized from the plan itself.
-	//
-	// This test may eventually be modified anyways, so we just expect just provider policies to be evaluated for now
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		// The module runtime currently does not evaluate resource policies during refresh, only module policies
+		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -4947,7 +4967,7 @@ func TestApply_NoPolicyResultsOnRefresh(t *testing.T) {
 	}
 }
 
-func TestApply_NoPolicyResultsOnDestroy(t *testing.T) {
+func TestApply_WithPolicyResultsOnDestroy(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
 
@@ -4985,11 +5005,10 @@ func TestApply_NoPolicyResultsOnDestroy(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	// TODO: This is currently bugged because Apply is using the stackplan Mode field to control running policy evaluation,
-	// but that field is not serialized or deserialized from the plan itself.
-	//
-	// This test may eventually be modified anyways, so we just expect just provider policies to be evaluated for now
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -4999,7 +5018,7 @@ func TestApply_NoPolicyResultsOnDestroy(t *testing.T) {
 	}
 }
 
-func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
+func TestApply_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 	ctx := context.Background()
 	removedCfg := loadMainBundleConfigForTest(t, "policy-evaluation-removed")
 
@@ -5011,25 +5030,31 @@ func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
-	// This provider data store ensures that "comp1" will produce policy results as it's being updated. "comp2" will not
-	// produce policy results as it's being removed.
-	providerStore := stacks_testing_provider.NewResourceStoreBuilder().
-		AddResource("comp1-parent", cty.ObjectVal(map[string]cty.Value{
-			"id":    cty.StringVal("comp1-parent"),
-			"value": cty.StringVal("this value will be updated"),
-		})).
-		AddResource("comp1-child", cty.ObjectVal(map[string]cty.Value{
-			"id":    cty.StringVal("comp1-child"),
-			"value": cty.StringVal("this value will be updated"),
-		})).
-		AddResource("comp2-parent", cty.ObjectVal(map[string]cty.Value{
-			"id":    cty.StringVal("comp2-parent"),
-			"value": cty.StringVal("this value is irrelevant because it will be removed"),
-		})).
-		AddResource("comp2-child", cty.ObjectVal(map[string]cty.Value{
-			"id":    cty.StringVal("comp2-child"),
-			"value": cty.StringVal("this value is irrelevant because it will be removed"),
-		})).
+	// Create comp1, remove/destroy comp2
+	priorState := stackstate.NewStateBuilder().
+		AddInput("component_names", cty.SetVal([]cty.Value{cty.StringVal("comp1"), cty.StringVal("comp2")})).
+		AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance(`component.simple_component["comp2"]`)).
+			AddInputVariable("name", cty.StringVal("comp2"))).
+		AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+			SetAddr(mustAbsResourceInstanceObject(`component.simple_component["comp2"].testing_resource.parent_resource`)).
+			SetProviderAddr(mustDefaultRootProvider("testing")).
+			SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+					"id":    "comp2-parent",
+					"value": "hello from the root of comp2",
+				}),
+			})).
+		AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+			SetAddr(mustAbsResourceInstanceObject(`component.simple_component["comp2"].module.child.testing_resource.child_resource`)).
+			SetProviderAddr(mustDefaultRootProvider("testing")).
+			SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+					"id":    "comp2-child",
+					"value": "hello from child module in comp2",
+				}),
+			})).
 		Build()
 
 	plan := planForApplyTest(t, ctx, PlanRequest{
@@ -5037,10 +5062,10 @@ func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
 		// Omit policy client as we're not asserting policy results for the plan phase in this test
 		PolicyClient: nil,
 		Config:       removedCfg,
-		PrevState:    policyEvaluationPriorState(t),
+		PrevState:    priorState,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, providerStore), nil
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -5051,7 +5076,7 @@ func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(t, providerStore), nil
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -5060,7 +5085,8 @@ func TestApply_NoPolicyResultsOnRemovedComponent(t *testing.T) {
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
-		// component.simple_component["comp2"] is removed in this config so there should be no policy result for it
+		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
@@ -5122,7 +5148,19 @@ func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRe
 		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
-			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+
+			results := maps.Collect(data.PolicyResults.Iter())
+			existingResults, ok := gotPolicyResults[data.Addr.String()]
+			if !ok {
+				gotPolicyResults[data.Addr.String()] = results
+				return
+			}
+
+			// Merge the two results together
+			for key, result := range results {
+				existingResults[key] = result
+			}
+			gotPolicyResults[data.Addr.String()] = existingResults
 		},
 		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()

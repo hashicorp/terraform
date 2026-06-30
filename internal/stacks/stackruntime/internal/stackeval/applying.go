@@ -240,14 +240,9 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	var newState *states.State
 
-	// We only want to evaluate policy when applying a normal plan (i.e. no evaluating policies for refresh or destroy plans)
-	var policyClient policy.Client
-	if stackPlan.Mode == plans.NormalMode {
-		policyClient = main.PolicyClient()
-	}
-
 	// Initialize policy results if we are evaluating policy
 	var policyResults *plans.PolicyResults
+	policyClient := main.PolicyClient()
 	if policyClient != nil {
 		policyResults = plans.NewPolicyResults()
 	}
@@ -351,14 +346,6 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		}
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
-
-		// Report policy results if we have any
-		if policyResults.Len() > 0 {
-			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
-				Addr:          inst.Addr(),
-				PolicyResults: policyResults,
-			})
-		}
 	}
 
 	if diags.HasErrors() {
@@ -373,6 +360,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// must assume that the state is totally unchanged in that case.
 		newState = plan.PrevRunState
 		affectedResourceInstanceObjects = nil
+	}
+
+	// Report policy results if we have any
+	if policyResults.Len() > 0 {
+		hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
+			Addr:          inst.Addr(),
+			PolicyResults: policyResults,
+		})
 	}
 
 	return &ComponentInstanceApplyResult{
