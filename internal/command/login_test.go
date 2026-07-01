@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
 	tfeserver "github.com/hashicorp/terraform/internal/command/testdata/login-tfe-server"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
@@ -34,7 +35,7 @@ func TestLogin(t *testing.T) {
 	ts := httptest.NewServer(tfeserver.Handler)
 	defer ts.Close()
 
-	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *cli.MockUi)) func(t *testing.T) {
+	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi)) func(t *testing.T) {
 		return func(t *testing.T) {
 			t.Helper()
 			workDir := t.TempDir()
@@ -104,7 +105,7 @@ func TestLogin(t *testing.T) {
 		}
 	}
 
-	t.Run("app.terraform.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("app.terraform.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
 		_ = testInputMap(t, map[string]string{
@@ -129,7 +130,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt.
 		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
@@ -153,7 +154,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		host, _ := c.Services.Discover("example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 		if len(client.Scopes) != 0 {
@@ -161,7 +162,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt.
 		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
@@ -186,7 +187,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		host, _ := c.Services.Discover("with-scopes.example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 
@@ -200,7 +201,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
 		_ = testInputMap(t, map[string]string{
@@ -226,7 +227,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
 		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
@@ -247,7 +248,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		status := c.Run([]string{"unsupported.example.net"})
 		if status == 0 {
 			t.Fatalf("successful exit; want error")
@@ -258,7 +259,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "no" at the consent prompt
 		_ = testInputMap(t, map[string]string{
 			"approve": "no",
@@ -273,7 +274,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "y" at the consent prompt
 		_ = testInputMap(t, map[string]string{
 			"approve": "y",
