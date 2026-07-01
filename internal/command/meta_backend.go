@@ -3071,20 +3071,21 @@ const (
 
 // determineSafeProviderInstallAction returns a `SafeProviderInstallAction` rune that instructs calling code about what to do following download of the state store provider.
 // The `providerLocations` map parameter is expected to be created by the `FetchPackageBegin` callback, which is called during provider download.
-func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, providerLocations map[addrs.Provider]getproviders.PackageLocation) SafeStateStoreProviderInstallAction {
+func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, providerLocations map[addrs.Provider]getproviders.PackageLocation, previousLocks *depsfile.Locks) SafeStateStoreProviderInstallAction {
 	location, ok := providerLocations[provider]
-	if !ok {
-		// The provider was not processed in the FetchPackageBegin callback.
-		// A provider that wasn't downloaded during this init could be because:
-		// * It was already present from a previous installation.
-		// * If upgrading, no newer version was available that matched version constraints.
-		// * Or, the provider is unmanaged/reattached and so download was skipped.
-		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", provider.Type, provider)
+	if !ok || previousLocks.AllProviders()[provider] != nil {
+		// Either:
+		//  - the provider was already downloaded to the cache (ok == false, due to FetchPackageBegin callback not being invoked)
+		// or:
+		//  - the provider isn't already downloaded to the cache BUT installation is controlled by a lock file.
+		//
+		// In both cases trust is already established; skip requesting approval.
+		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) was present in a dependency lock file during provider installation, so we consider it safe", provider.Type, provider)
 		return Proceed
 	} else {
-		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
+		// The provider wasn't in the dependency lock file so it's being download for the first time
+		// (we block upgrading the state store provider in this method).
 		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", provider.Type, provider)
-
 		switch location.(type) {
 		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
 			// If the provider is downloaded from a local source we assume it's safe.
