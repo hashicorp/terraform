@@ -46,7 +46,7 @@ func TestLogin(t *testing.T) {
 
 			// Do not use the NewMockUi initializer here, as we want to delay
 			// the call to init until after setting up the input mocks
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t, new(cli.MockUi))
 
 			browserLauncher := webbrowser.NewMockLauncher(ctx)
 			creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))

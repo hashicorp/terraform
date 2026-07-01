@@ -588,7 +588,7 @@ func TestFmt_checkStdin(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),

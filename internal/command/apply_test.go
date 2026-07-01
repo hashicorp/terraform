@@ -119,7 +119,7 @@ func TestApply_approveNo(t *testing.T) {
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 
 	p := applyFixtureProvider()
 	view, done := testView(t)
@@ -164,7 +164,7 @@ func TestApply_approveYes(t *testing.T) {
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 
 	view, done := testView(t)
 	c := &ApplyCommand{
