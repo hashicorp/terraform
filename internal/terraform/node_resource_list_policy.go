@@ -12,17 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// listResourcePolicyUnknownReason classifies why a discovered resource cannot
-// be evaluated for policy. The zero value unknownReasonNone indicates the
-// resource is a valid policy input with no skip.
-type listResourcePolicyUnknownReason uint8
-
-const (
-	unknownReasonNone            listResourcePolicyUnknownReason = iota
-	unknownReasonNoState                                         // include_resource = false or state absent from list response
-	unknownReasonConfigGenFailed                                 // provider RPC or legacy fallback could not produce config
-)
-
 // listResourcePolicy holds the policy evaluation inputs for a single resource
 // discovered during list block execution.
 type listResourcePolicy struct {
@@ -51,9 +40,6 @@ type listResourcePolicy struct {
 	// Unknown is true when the resource had no "state" attribute in the list
 	// response (include_resource = false), preventing config generation.
 	Unknown bool
-
-	// UnknownReason classifies why Unknown is true. unknownReasonNone when Unknown is false.
-	UnknownReason listResourcePolicyUnknownReason
 }
 
 // generateListResourcePolicyData iterates over the discovered resources in a
@@ -66,7 +52,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 ) ([]listResourcePolicy, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// Check null or unknwon data
+	// Check null or unknown data
 	if !data.CanIterateElements() {
 		// no resources to process.
 		return nil, diags
@@ -118,7 +104,6 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 				ResourceConfig: n.Config,
 				ListBlockAddr:  listBlockAddr,
 				Unknown:        true,
-				UnknownReason:  unknownReasonNoState,
 			})
 			continue
 		}
@@ -136,7 +121,6 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 				ResourceConfig: n.Config,
 				ListBlockAddr:  listBlockAddr,
 				Unknown:        true,
-				UnknownReason:  unknownReasonConfigGenFailed,
 			})
 			continue
 		}
