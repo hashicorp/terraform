@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -22,7 +21,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		td := t.TempDir()
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		meta := &Meta{Ui: ui}
 
 		predictor := meta.completePredictWorkspaceName()
@@ -54,7 +53,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		wd := workdir.NewDir(".")
 		wd.OverrideOriginalWorkingDir(td)
@@ -95,7 +94,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		wd := workdir.NewDir(".")
 		wd.OverrideOriginalWorkingDir(td)

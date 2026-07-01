@@ -829,7 +829,7 @@ output "foobar" {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -876,7 +876,7 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
@@ -891,7 +891,7 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
@@ -951,7 +951,7 @@ output "foobar" {
 			"hashicorp/terraform": {"1.2.3"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -991,7 +991,7 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
@@ -1006,7 +1006,7 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
@@ -2914,7 +2914,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	// Create new env
 	{
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -2928,7 +2928,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Switch to it
 	{
 		args := []string{"test"}
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		selCmd := &WorkspaceSelectCommand{
 			Meta: Meta{
 				Ui: ui,

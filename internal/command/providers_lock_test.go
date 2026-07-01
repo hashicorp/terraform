@@ -29,7 +29,7 @@ func TestProvidersLock(t *testing.T) {
 		os.MkdirAll(td, 0755)
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -121,7 +121,7 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersLockCommand{
 		Meta: Meta{
 			Ui:               ui,
@@ -150,7 +150,7 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -169,7 +169,7 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -201,7 +201,7 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -226,7 +226,7 @@ func TestProvidersLock_constVariable(t *testing.T) {
 func TestProvidersLock_args(t *testing.T) {
 
 	t.Run("mirror collision", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -250,7 +250,7 @@ func TestProvidersLock_args(t *testing.T) {
 	})
 
 	t.Run("invalid platform", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -271,7 +271,7 @@ func TestProvidersLock_args(t *testing.T) {
 	})
 
 	t.Run("invalid provider argument", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
