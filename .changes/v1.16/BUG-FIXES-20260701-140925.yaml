@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "`terraform login` now reliably shows the success page in the browser after authorization completes"
+time: 2026-07-01T14:09:25.589760-04:00
+custom:
+    Issue: "38816"
