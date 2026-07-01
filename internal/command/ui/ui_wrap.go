@@ -20,3 +20,14 @@ type WrappedUi struct {
 func (u *WrappedUi) Warn(msg string) {
 	u.Ui.Output(msg)
 }
+
+// WrappedMockUi is specifically for use in tests. By wrapping a MockUi, instead of an interface,
+// calling code in tests are still able to access MockUi exported fields. This enables access to fields
+// such as OutputWriter and ErrorWriter for making assertions about command output.
+type WrappedMockUi struct {
+	*cli.MockUi
+}
+
+func (u *WrappedMockUi) Warn(msg string) {
+	u.MockUi.Output(msg)
+}
