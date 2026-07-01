@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -248,7 +249,15 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		rng = n.Config.DeclRange
 	}
 
-	// always add the result to the policy results
+	if !result.Empty() {
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			eval := plans.PolicyEvaluation{EvaluationResponse: result}
+			if n.Config != nil {
+				eval.ConfigDeclRange = n.Config.DeclRange
+			}
+			return h.PolicyResult(n.Addr.String(), eval)
+		})
+	}
 	if ctx.PolicyResults() != nil {
 		ctx.PolicyResults().AddProvider(n.Addr, result, rng)
 	}

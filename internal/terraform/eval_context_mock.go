@@ -175,7 +175,7 @@ type MockEvalContext struct {
 
 	ProviderLocksValue map[addrs.Provider]*depsfile.ProviderLock
 	PolicyClientValue  policy.Client
-	PolicyResultsValue *plans.PolicyResults
+	PolicyResultsValue plans.PolicyResult
 	ConfigValue        *configs.Config
 	DeprecationCalled  bool
 	DeprecationState   *deprecation.Deprecations
@@ -475,7 +475,7 @@ func (c *MockEvalContext) Config() *configs.Config {
 	return c.ConfigValue
 }
 
-func (c *MockEvalContext) PolicyResults() *plans.PolicyResults {
+func (c *MockEvalContext) PolicyResults() plans.PolicyResult {
 	return c.PolicyResultsValue
 }
 

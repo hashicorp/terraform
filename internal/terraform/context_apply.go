@@ -57,7 +57,7 @@ type ApplyOpts struct {
 	// When set, policy evaluation logic will be executed in the graph.
 	// When nil, that logic will be skipped.
 	PolicyClient  policy.Client
-	PolicyResults *plans.PolicyResults
+	PolicyResults plans.PolicyResult
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that

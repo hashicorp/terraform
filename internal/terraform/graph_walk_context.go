@@ -67,8 +67,8 @@ type ContextGraphWalker struct {
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient  policy.Client
-	PolicyResults *plans.PolicyResults // Used to store policy evaluation results
-	PolicyGraph   *policySubgraph      // Used for writing resource policy evaluation nodes
+	PolicyResults plans.PolicyResult // Used to store policy evaluation results
+	PolicyGraph   *policySubgraph    // Used for writing resource policy evaluation nodes
 
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex

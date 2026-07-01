@@ -54,6 +54,11 @@ type UiHook struct {
 
 var _ terraform.Hook = (*UiHook)(nil)
 
+func (h *UiHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
+	h.view.StreamPolicyResult(addr, result)
+	return terraform.HookActionContinue, nil
+}
+
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
 	// Address represents resource address

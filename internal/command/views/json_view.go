@@ -146,8 +146,53 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
+func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
+	// Log all the info messages
+	for _, enforcement := range result.EvaluationResponse.Enforcements {
+		if enforcement.Message == "" {
+			continue
+		}
+		var src []byte
+		if enforcement.LocalRange != nil {
+			src = v.view.configSources()[enforcement.LocalRange.Filename]
+		}
+		info := json.NewPolicyInfo(src, enforcement)
+		args := []any{
+			"type", json.MessagePolicyInfo,
+			"target_address", addr,
+			json.MessagePolicyInfo, info,
+			"@policy", "true",
+			"result", enforcement.Result.String(),
+		}
+		if enforcement.Policy != nil {
+			args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
+		}
+		v.log.Info("Policy info", args...)
+	}
+
+	for _, diag := range result.EvaluationResponse.Diagnostics {
+		v.logPolicyDiagnostic(diag, "target_address", addr)
+	}
+
+	for _, policy := range result.EvaluationResponse.Policies {
+		v.log.Info(
+			"Policy Result",
+			"type", json.MessagePolicyEvaluationResult,
+			"result", policy.Result.String(),
+			"target_address", addr,
+			"policy_address", policy.Address,
+			"@policy", "true",
+			"policy_metadata", json.MetadataFromPolicy(*policy),
+		)
+	}
+}
+
+func (v *JSONView) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.logPolicyResult(addr, result)
+}
+
 func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	// Log all non-policy-specific diagnostics if any.
+
 	for _, diag := range setupDiags {
 		v.logPolicyDiagnostic(diag)
 	}
@@ -157,44 +202,7 @@ func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy
 	}
 
 	for addr, result := range results.Iter() {
-		// Log all the info messages
-		for _, enforcement := range result.EvaluationResponse.Enforcements {
-			if enforcement.Message == "" {
-				continue
-			}
-			var src []byte
-			if enforcement.LocalRange != nil {
-				src = v.view.configSources()[enforcement.LocalRange.Filename]
-			}
-			info := json.NewPolicyInfo(src, enforcement)
-			args := []any{
-				"type", json.MessagePolicyInfo,
-				"target_address", addr,
-				json.MessagePolicyInfo, info,
-				"@policy", "true",
-				"result", enforcement.Result.String(),
-			}
-			if enforcement.Policy != nil {
-				args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
-			}
-			v.log.Info("Policy info", args...)
-		}
-
-		for _, diag := range result.EvaluationResponse.Diagnostics {
-			v.logPolicyDiagnostic(diag, "target_address", addr)
-		}
-
-		for _, policy := range result.EvaluationResponse.Policies {
-			v.log.Info(
-				"Policy Result",
-				"type", json.MessagePolicyEvaluationResult,
-				"result", policy.Result.String(),
-				"target_address", addr,
-				"policy_address", policy.Address,
-				"@policy", "true",
-				"policy_metadata", json.MetadataFromPolicy(*policy),
-			)
-		}
+		v.logPolicyResult(addr, result)
 	}
 }
 
