@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -1254,7 +1255,28 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func testUiWrapped(t *testing.T, testUi ...*cli.MockUi) *ui.WrappedMockUi {
+	t.Helper()
+
+	// Calling code might be opinionated about whether the mock should be
+	// created using the cli.NewMockUi constructor or not. Therefore we let
+	// the caller either pass in a pre-constructed MockUi or let this function
+	// create one for them.
+	var wrappedMock *cli.MockUi
+	switch len(testUi) {
+	case 0:
+		wrappedMock = cli.NewMockUi()
+	case 1:
+		wrappedMock = testUi[0]
+	default:
+		t.Fatalf("incorrect use of testUiWrapped: only zero or one MockUi instance is allowed")
+	}
+
+	return &ui.WrappedMockUi{MockUi: wrappedMock}
+}
+
 func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
+	t.Helper()
 	streams, done := terminal.StreamsForTesting(t)
 	return views.NewView(streams), done
 }
