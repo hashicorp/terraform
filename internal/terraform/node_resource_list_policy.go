@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -97,6 +98,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 		// Absent "state" means include_resource is false so we'll skip with Unknown outcome.
 		hasState := val.Type().HasAttribute("state") && !val.GetAttr("state").IsNull()
 		if !hasState {
+			log.Printf("[DEBUG] generateListResourcePolicyData: skipping policy evaluation for %s in list block %s: include_resource = false (no state)", syntheticAddr, listBlockAddr)
 			unknownCount++
 			results = append(results, listResourcePolicy{
 				SyntheticAddr:  syntheticAddr,
@@ -114,6 +116,7 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 		generatedConfig, configDiags := n.generateResourceConfig(ctx, stateVal)
 		// Handle Provider GenerateResourceConfig RPC failure.
 		if configDiags.HasErrors() {
+			log.Printf("[DEBUG] generateListResourcePolicyData: skipping policy evaluation for %s in list block %s: config generation failed: %s", syntheticAddr, listBlockAddr, configDiags.Err())
 			configErrCount++
 			results = append(results, listResourcePolicy{
 				SyntheticAddr:  syntheticAddr,
