@@ -53,10 +53,8 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 ) ([]listResourcePolicy, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// Check null or unknown data
 	if !data.CanIterateElements() {
-		// no resources to process.
-		return nil, diags
+		panic(fmt.Sprintf("invalid list resource data: %#v\n", data))
 	}
 
 	// Expansion enum required for the keyed synthetic address formula.
