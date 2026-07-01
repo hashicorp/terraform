@@ -477,7 +477,7 @@ func TestTaint_missingAllow(t *testing.T) {
 	}
 
 	// Check for the warning
-	actual := strings.TrimSpace(ui.ErrorWriter.String())
+	actual := strings.TrimSpace(ui.OutputWriter.String())
 	expected := strings.TrimSpace(`
 Warning: No such resource instance
 

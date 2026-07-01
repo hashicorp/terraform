@@ -265,18 +265,18 @@ func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 		"init",
 	}
 	for _, msg := range expectedWarningMessages {
-		if !strings.Contains(ui.ErrorWriter.String(), msg) {
-			t.Fatalf("expected stderr output to include: %s\ngot: %s",
+		if !strings.Contains(ui.OutputWriter.String(), msg) {
+			t.Fatalf("expected stdout output to include: %s\ngot: %s",
 				msg,
-				ui.ErrorWriter,
+				ui.OutputWriter,
 			)
 		}
 	}
 
 	// No other output is present
-	if ui.OutputWriter.String() != "" {
-		t.Fatalf("unexpected stdout: %s",
-			ui.OutputWriter,
+	if ui.ErrorWriter.String() != "" {
+		t.Fatalf("unexpected stderr: %s",
+			ui.ErrorWriter,
 		)
 	}
 }
@@ -1016,10 +1016,10 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+	if !strings.Contains(ui.OutputWriter.String(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			ui.ErrorWriter.String(),
+			ui.OutputWriter.String(),
 		)
 	}
 
@@ -1039,10 +1039,10 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	if code := selectCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+	if !strings.Contains(ui.OutputWriter.String(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			ui.ErrorWriter.String(),
+			ui.OutputWriter.String(),
 		)
 	}
 
@@ -1059,10 +1059,10 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	if code := listCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+	if !strings.Contains(ui.OutputWriter.String(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			ui.ErrorWriter.String(),
+			ui.OutputWriter.String(),
 		)
 	}
 
@@ -1105,10 +1105,10 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	if code := deleteCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), expectedWarning) {
+	if !strings.Contains(ui.OutputWriter.String(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			ui.ErrorWriter.String(),
+			ui.OutputWriter.String(),
 		)
 	}
 }
