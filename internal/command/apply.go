@@ -73,6 +73,18 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	// The -target flag cannot be combined with a saved plan file, because a
+	// saved plan already records the exact set of actions to be applied.
+	if planFile != nil && len(args.Operation.Targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't set targets when applying a saved plan",
+			"The -target option is not allowed when applying a saved plan file, because a saved plan already includes the changes to be applied. To limit the resources affected, use -target when creating the plan with \"terraform plan\".",
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	// FIXME: the -input flag value is needed to initialize the backend and the
 	// operation, but there is no clear path to pass this value down, so we
 	// continue to mutate the Meta object state for now.
