@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -63,7 +62,7 @@ func TestInit_WithModulePolicy(t *testing.T) {
 		testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		overrides := metaOverridesForProvider(testProvider())
@@ -125,7 +124,7 @@ func TestInit_WithPolicyClientStopAfterInit(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -189,7 +188,7 @@ func TestInit_WithModulePolicy_AlreadyInstalled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -261,7 +260,7 @@ func TestInit_WithPolicySetupFailureJSON(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	c := &InitCommand{
@@ -290,7 +289,7 @@ func TestInit_WithModulePolicyDiagnostics(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -366,7 +365,7 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-nested-provider-requirements"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	// assert modules are evaluated correctly
@@ -451,7 +450,7 @@ func TestInit_WithModulePolicyJSON(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -522,7 +521,7 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -619,7 +618,7 @@ func TestInit_WithProviderPolicyDiagnostics(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -704,7 +703,7 @@ func TestInit_WithProviderPolicyJSON(t *testing.T) {
 		"hashicorp/grandchild":   {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())

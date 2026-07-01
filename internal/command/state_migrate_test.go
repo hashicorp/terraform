@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
@@ -25,7 +24,7 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-backend-to-backend")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -102,7 +101,7 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -241,7 +240,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
@@ -329,7 +328,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
@@ -469,7 +468,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
@@ -604,7 +603,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
@@ -715,7 +714,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
@@ -815,7 +814,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -897,7 +896,7 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -933,7 +932,7 @@ func TestStateMigrate_emptyModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -965,7 +964,7 @@ func TestStateMigrate_missingMigrationFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-migrate-files")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
@@ -997,7 +996,7 @@ func TestStateMigrate_nonExistentLockFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{

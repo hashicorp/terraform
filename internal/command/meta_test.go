@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -443,7 +442,7 @@ func TestCommand_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	meta := Meta{
 		Ui: ui,
 	}

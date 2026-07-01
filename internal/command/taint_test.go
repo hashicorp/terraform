@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -38,7 +36,7 @@ func TestTaint(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -83,7 +81,7 @@ func TestTaint_lockedState(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer unlock()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -131,7 +129,7 @@ func TestTaint_backup(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -176,7 +174,7 @@ func TestTaint_backupDisable(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -201,7 +199,7 @@ func TestTaint_backupDisable(t *testing.T) {
 }
 
 func TestTaint_badState(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -244,7 +242,7 @@ func TestTaint_defaultState(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -268,7 +266,7 @@ func TestTaint_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
@@ -294,7 +292,7 @@ func TestTaint_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
@@ -331,7 +329,7 @@ module.child:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
@@ -384,7 +382,7 @@ func TestTaint_defaultWorkspaceState(t *testing.T) {
 	testWorkspace := "development"
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	meta := Meta{Ui: ui, View: view}
 	meta.SetWorkspace(testWorkspace)
@@ -422,7 +420,7 @@ func TestTaint_missing(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -460,7 +458,7 @@ func TestTaint_missingAllow(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -517,7 +515,7 @@ func TestTaint_stateOut(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -573,7 +571,7 @@ func TestTaint_module(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -619,7 +617,7 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	})
 	path := testStateFile(t, state)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
