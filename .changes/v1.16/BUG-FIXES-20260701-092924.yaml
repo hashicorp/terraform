@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "`terraform apply` now returns an error when `-target` is used together with a saved plan file, instead of silently ignoring `-target`"
+time: 2026-07-01T09:29:24.752180-04:00
+custom:
+    Issue: "38807"
