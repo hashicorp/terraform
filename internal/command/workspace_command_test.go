@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1118,8 +1119,8 @@ func TestWorkspace_extraArgError(t *testing.T) {
 
 	// No temp directory needed as the tests check argument parsing.
 
-	newMeta := func() (Meta, *cli.MockUi) {
-		ui := new(cli.MockUi)
+	newMeta := func() (Meta, *ui.WrappedMockUi) {
+		ui := testUiWrapped(t)
 		return Meta{
 			Ui: ui,
 		}, ui
@@ -1194,8 +1195,8 @@ func TestWorkspace_extraArgError(t *testing.T) {
 
 // Test human output from commands, with color enabled or disabled
 func TestWorkspace_humanOutput(t *testing.T) {
-	newMeta := func(colourEnabled bool) (Meta, *cli.MockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
-		ui := new(cli.MockUi)
+	newMeta := func(colourEnabled bool) (Meta, *ui.WrappedMockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		return Meta{
 			Ui:         ui,
