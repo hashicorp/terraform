@@ -251,7 +251,12 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// Course of action depends on the safeInitAction returned from getProvidersFromPSSConfig
 		switch safeInitAction {
 		case SafeInitActionProceed:
-			// do nothing; provider is already trusted and there's no need to notify the user.
+			if !c.input && initArgs.StateStoreProviderLockFile != "" {
+				// user supplied a lock file via -state-provider-lock-file, so provide feedback to the user that it happened successfully.
+				view.Output(views.StateStoreProviderAutomationApprovedMessage)
+			}
+
+			// otherwise do nothing; provider is already trusted and there's no need to notify the user.
 		case SafeInitActionRequireApproval:
 			if c.input {
 				// Prompt the user about trusting the provider used for state storage.
@@ -262,20 +267,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 					return 1
 				}
 				view.Output(views.StateStoreProviderInteractiveApprovedMessage)
-			} else {
-				// Confirm that a lock was used to control download.
-				// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
-				if alteredPreviousLocks.Provider(rootModEarly.StateStore.ProviderAddr) == nil {
-					// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Missing lock for state store provider",
-						"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
-					))
-					view.Diagnostics(diags)
-					return 1
-				}
-				view.Output(views.StateStoreProviderAutomationApprovedMessage)
 			}
 		default:
 			// Handle SafeInitActionInvalid or unexpected action types
