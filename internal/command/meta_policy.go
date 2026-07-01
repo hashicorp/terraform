@@ -75,7 +75,7 @@ type policyModuleInstallHook struct {
 	initwd.ModuleInstallHookImpl
 	client        policy.Client
 	rootModule    *configs.Module
-	policyResults *plans.PolicyResults
+	policyResults plans.PolicyResult
 }
 
 // ModuleSourceResolved implements [initwd.ModuleInstallHook] and is called after a module source is resolved, and enables policy evaluation for the module before
@@ -138,7 +138,7 @@ var _ providercache.InstallerHook = &providerPolicyHook{}
 // providerPolicyHook enables policy evaluation during provider installation.
 type providerPolicyHook struct {
 	client        policy.Client
-	policyResults *plans.PolicyResults
+	policyResults plans.PolicyResult
 	rootModule    *configs.Module
 }
 

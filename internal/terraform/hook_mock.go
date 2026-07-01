@@ -409,6 +409,12 @@ func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
 }
 
+func (h *MockHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+	return HookActionContinue, nil
+}
+
 func (h *MockHook) StartAction(id HookActionIdentity) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()

@@ -236,7 +236,7 @@ type EvalContext interface {
 	PolicyClient() policy.Client
 
 	// PolicyResults returns the object that tracks policy evaluation results.
-	PolicyResults() *plans.PolicyResults
+	PolicyResults() plans.PolicyResult
 
 	Config() *configs.Config
 

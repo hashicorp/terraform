@@ -9,9 +9,6 @@ import (
 	"io"
 	"log"
 
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -112,6 +109,10 @@ func (b *Local) opPlan(
 	// Since planning doesn't immediately change the persisted state, the
 	// resulting state is always just the input state.
 	runningOp.State = lr.InputState
+
+	if lr.PlanOpts.PolicyClient != nil {
+		lr.PlanOpts.PolicyResults = plans.NewDiscardPolicyResults()
+	}
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
@@ -224,24 +225,6 @@ func (b *Local) opPlan(
 	}
 
 	op.View.Plan(plan, schemas)
-
-	// Report all policy results that may have accumulated during the plan
-	policyResultCount := 0
-	if plan.PolicyResults != nil {
-		policyResultCount = plan.PolicyResults.Len()
-	}
-	var polRenderSpan trace.Span
-	polRenderSpanEnd := func() {}
-	if policyResultCount > 0 {
-		_, polRenderSpan = tracer().Start(stopCtx, "terraform.local.plan.render_policy_results",
-			trace.WithAttributes(
-				attribute.Int("plan.policy_results", policyResultCount),
-			),
-		)
-		polRenderSpanEnd = func() { polRenderSpan.End() }
-	}
-	op.View.PolicyResults(plan.PolicyResults, nil)
-	polRenderSpanEnd()
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially

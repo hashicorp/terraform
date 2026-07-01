@@ -45,6 +45,13 @@ func (h *testHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PolicyResult", addr})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

@@ -149,6 +149,8 @@ type Hook interface {
 	// concurrent writes. Implementations which modify or retain the state after
 	// the call has returned must copy the state.
 	PostStateUpdate(new *states.State) (HookAction, error)
+
+	PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -258,5 +260,9 @@ func (*NilHook) Stopping() {
 }
 
 func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
 	return HookActionContinue, nil
 }

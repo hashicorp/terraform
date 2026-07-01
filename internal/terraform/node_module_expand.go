@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -384,7 +385,15 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 		}
 	}
 
-	// always add the result to the policy results
+	if !result.Empty() {
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			eval := plans.PolicyEvaluation{EvaluationResponse: result}
+			if n.ModuleCall != nil {
+				eval.ConfigDeclRange = n.ModuleCall.DeclRange
+			}
+			return h.PolicyResult(n.Addr.String(), eval)
+		})
+	}
 	if ctx.PolicyResults() != nil {
 		ctx.PolicyResults().AddModule(n.Addr, result, n.ModuleCall)
 	}
