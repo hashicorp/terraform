@@ -295,13 +295,20 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, destinationLock, stateMigrate)
+
+		// Get the combination of locks
+		//
+		// Take the lock from the destination provider download and add in the original locks from the dependency lock file.
+		// This means the lock created from the destination provider download is authoritative (e.g. any hashes from the
+		// installation process are preserved)
+		newLocks := c.mergeLockedDependencies(destinationLock, originalLocks)
+
+		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, stateMigrate)
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-
 		if output {
 			stateMigrate.LogInitMessage(views.EmptyMessage)
 		}
@@ -411,14 +418,10 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-// The calling code is expected to provide:
-// 1. the previous locks (if any)
-// 2. the lock for the destination state store provider (if any)
-func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, dstProviderLock *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
-	// Get the combination of locks from both potential provider download steps.
-	newLocks := c.mergeLockedDependencies(dstProviderLock, previousLocks)
-
+func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
 	// The state migrate command does not support the -lockfile=readonly flag
+	// This flag is specific to the init command, and can only take "" or "readonly" as values.
+	// As state migrate doesn't take this flag, we can safely set it to "" here.
 	flagLockfile := ""
 
 	return c.Meta.saveDependencyLockFile(previousLocks, newLocks, c.incompleteProviders, flagLockfile, view)
