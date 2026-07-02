@@ -435,7 +435,6 @@ func (b *Local) opApply(
 			SetVariables:  applyTimeValues,
 			ProviderLocks: providerLocksSnapshot(op.DependencyLocks),
 			PolicyClient:  lr.PolicyClient,
-			PolicyResults: plans.NewDiscardPolicyResults(),
 		})
 	}()
 

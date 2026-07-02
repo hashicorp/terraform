@@ -13,45 +13,12 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 )
 
-type PolicyResult interface {
-	AddResource(addr addrs.AbsResourceInstance, result policy.EvaluationResponse, config *configs.Resource)
-	AddModule(addr addrs.Module, result policy.EvaluationResponse, config *configs.ModuleCall)
-	AddProvider(addr addrs.AbsProviderConfig, result policy.EvaluationResponse, configDeclRange hcl.Range)
-}
-
-// discardPolicyResults is a PolicyResult that drops everything.
-// while stacks keeps buffering.
-type discardPolicyResults struct{}
-
-// NewDiscardPolicyResults returns a PolicyResult that retains nothing.
-func NewDiscardPolicyResults() PolicyResult { return discardPolicyResults{} }
-
-func (discardPolicyResults) AddResource(addrs.AbsResourceInstance, policy.EvaluationResponse, *configs.Resource) {
-}
-func (discardPolicyResults) AddModule(addrs.Module, policy.EvaluationResponse, *configs.ModuleCall) {}
-func (discardPolicyResults) AddProvider(addrs.AbsProviderConfig, policy.EvaluationResponse, hcl.Range) {
-}
-
 // PolicyResults represents the results of policy evaluation of resources, modules, and providers for a single plan.
 type PolicyResults struct {
 	mu   sync.Mutex
 	set  addrs.Map[addrs.AbsResourceInstance, PolicyEvaluation]
 	pset addrs.Map[addrs.AbsProviderConfig, PolicyEvaluation]
 	mset addrs.Map[addrs.Module, PolicyEvaluation]
-}
-
-// *PolicyResults is the buffered implementation of PolicyResult.
-var _ PolicyResult = (*PolicyResults)(nil)
-
-// AsPolicyResult adapts a concrete *PolicyResults to the PolicyResult
-// interface, converting a nil pointer into a true nil interface. Use this at
-// every concrete->interface boundary so callers' `!= nil` checks stay correct
-// and never see a typed-nil.
-func AsPolicyResult(pr *PolicyResults) PolicyResult {
-	if pr == nil {
-		return nil
-	}
-	return pr
 }
 
 // PolicyEvaluation holds the result of a policy evaluation for a single resource, module, or provider.

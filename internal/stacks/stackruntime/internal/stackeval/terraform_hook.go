@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"iter"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -46,6 +47,8 @@ type componentInstanceTerraformHook struct {
 	// Track provider addresses for action invocations so we can report them
 	// in action lifecycle hooks.
 	actionInvocationProviderAddr addrs.Map[addrs.AbsActionInstance, addrs.Provider]
+
+	policyResults map[string]plans.PolicyEvaluation
 }
 
 var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
@@ -278,6 +281,24 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 		Trigger:      ai.Trigger,
 	})
 	return terraform.HookActionContinue, nil
+}
+
+func (h *componentInstanceTerraformHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
+	if h.policyResults == nil {
+		h.policyResults = make(map[string]plans.PolicyEvaluation)
+	}
+	h.policyResults[addr] = result
+	return terraform.HookActionContinue, nil
+}
+
+func (h *componentInstanceTerraformHook) policyResultsSeq() iter.Seq2[string, plans.PolicyEvaluation] {
+	return func(yield func(string, plans.PolicyEvaluation) bool) {
+		for addr, result := range h.policyResults {
+			if !yield(addr, result) {
+				return
+			}
+		}
+	}
 }
 
 // actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation

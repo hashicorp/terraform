@@ -316,7 +316,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
 		defer stopClient()
-		view.PolicyResults(nil, policyDiags)
 		if policyDiags.HasErrors() {
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)
@@ -325,9 +324,9 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 	}
 	providerHook := &providerPolicyHook{
-		client:        policyClient,
-		policyResults: views.NewStreamingPolicyResults(view),
-		rootModule:    rootModEarly,
+		client:     policyClient,
+		view:       view,
+		rootModule: rootModEarly,
 	}
 
 	var state *states.State
@@ -467,9 +466,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		view.Output(views.EmptyMessage)
 	}
 
-	// If we accumulated any warnings along the way that weren't accompanied
-	// by errors then we'll output them here so that the success message is
-	// still the final thing shown.
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage

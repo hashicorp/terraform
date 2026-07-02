@@ -24,8 +24,9 @@ func TestNilHook_impl(t *testing.T) {
 // It is intended for testing that core code is emitting the correct hooks
 // for a given situation.
 type testHook struct {
-	mu    sync.Mutex
-	Calls []*testHookCall
+	mu            sync.Mutex
+	Calls         []*testHookCall
+	PolicyResults map[string]plans.PolicyEvaluation
 }
 
 var _ Hook = (*testHook)(nil)
@@ -49,6 +50,10 @@ func (h *testHook) PolicyResult(addr string, result plans.PolicyEvaluation) (Hoo
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PolicyResult", addr})
+	if h.PolicyResults == nil {
+		h.PolicyResults = make(map[string]plans.PolicyEvaluation)
+	}
+	h.PolicyResults[addr] = result
 	return HookActionContinue, nil
 }
 

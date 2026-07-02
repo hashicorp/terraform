@@ -7665,7 +7665,7 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 			mu.Lock()
 			defer mu.Unlock()
 
-			results := maps.Collect(data.PolicyResults.Iter())
+			results := data.PolicyResults
 			existingResults, ok := gotPolicyResults[data.Addr.String()]
 			if !ok {
 				gotPolicyResults[data.Addr.String()] = results

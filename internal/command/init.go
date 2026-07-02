@@ -112,9 +112,9 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	hooks := []initwd.ModuleInstallHook{uiHook}
 	if policyClient != nil {
 		policyHook := &policyModuleInstallHook{
-			client:        policyClient,
-			rootModule:    earlyRoot,
-			policyResults: views.NewStreamingPolicyResults(view),
+			client:     policyClient,
+			rootModule: earlyRoot,
+			view:       view,
 		}
 		hooks = append(hooks, policyHook)
 	}

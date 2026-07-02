@@ -110,10 +110,6 @@ func (b *Local) opPlan(
 	// resulting state is always just the input state.
 	runningOp.State = lr.InputState
 
-	if lr.PlanOpts.PolicyClient != nil {
-		lr.PlanOpts.PolicyResults = plans.NewDiscardPolicyResults()
-	}
-
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics

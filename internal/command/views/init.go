@@ -28,7 +28,6 @@ type ProviderInstaller interface {
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
-	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
 	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
