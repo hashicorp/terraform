@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -68,6 +69,26 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 	_, ok := s.State.RootOutputValues["test"]
 	if !ok {
 		t.Fatalf("unable to find test output in migrated state")
+	}
+
+	// Assert the backend state file describes the new backend location,
+	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+	backendState := sMgr.State()
+	if backendState.StateStore != nil {
+		t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
+	}
+	if backendState.Backend == nil {
+		t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
+	}
+	if backendState.Backend.Type != "local" {
+		t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
+	}
+	if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
@@ -127,11 +148,69 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	if !ok {
 		t.Fatalf("unable to find test output in migrated state")
 	}
+
+	// Assert the backend state file describes the new state store location.
+	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+	backendState := sMgr.State()
+	if backendState.Backend != nil {
+		t.Fatalf("expected backend state file to not describe a backend during backend=>state_store migration, but it's set")
+	}
+	if backendState.StateStore == nil {
+		t.Fatalf("expected backend state file to describe a state store during backend=>state_store migration, but it's nil")
+	}
+	if backendState.StateStore.Provider.Source.Type != "test" {
+		t.Fatalf("expected backend state file to describe the destination state store provider \"test\", but got %q", backendState.StateStore.Provider)
+	}
+	if backendState.StateStore.Provider.Version.String() != "1.2.3" {
+		t.Fatalf("expected backend state file to describe the destination state store provider version \"1.2.3\", but got %q", backendState.StateStore.Provider.Version)
+	}
+	if backendState.StateStore.Type != "test_store" {
+		t.Fatalf("expected backend state file to describe the destination state store type \"test_store\", but got %q", backendState.StateStore.Type)
+	}
 }
 
 // Testing migration between two state stores in a single provider.
 // Different cases describe whether the source provider is already in the dependency lock file or not.
 func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) {
+	// All test cases perform a migration from test_src to test_dst store implementations in v1.2.3 of hashicorp/test provider.
+	// So a common assertion func can be re-used.
+	assertBackendStateFile := func(t *testing.T, c *StateMigrateCommand) {
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+
+		backendState := sMgr.State()
+		if backendState.Backend != nil {
+			t.Fatalf("expected backend state file to not describe a backend during state_store=>state_store migration, but it's set")
+		}
+		if backendState.StateStore == nil {
+			t.Fatalf("expected backend state file to describe a state store during state_store=>state_store migration, but it's nil")
+		}
+		if backendState.StateStore.Provider.Source.Type != "test" {
+			t.Fatalf("expected backend state file to describe the destination state store provider \"test\", but got %q", backendState.StateStore.Provider)
+		}
+		if backendState.StateStore.Provider.Version.String() != "1.2.3" {
+			t.Fatalf("expected backend state file to describe the destination state store provider version \"1.2.3\", but got %q", backendState.StateStore.Provider.Version)
+		}
+		if backendState.StateStore.Type != "test_dst" {
+			t.Fatalf("expected backend state file to describe the destination state store type \"test_dst\", but got %q", backendState.StateStore.Type)
+		}
+		// The state store schema is empty, so not even any null fields in expected JSON
+		if got, want := normalizeJSON(t, backendState.StateStore.ConfigRaw), `{}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+		// The provider schema includes a 'region' attr, but it's unset in config; null.
+		if got, want := normalizeJSON(t, backendState.StateStore.Provider.ConfigRaw), `{"region":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	}
+
 	t.Run("provider is already in the dependency lock file", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "state-migrate-state-store-to-state-store")
 		t.Chdir(wd.RootModuleDir())
@@ -209,6 +288,9 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 		if !ok {
 			t.Fatalf("unable to find test output in migrated state")
 		}
+
+		// Assert the backend state file describes the new state store location.
+		assertBackendStateFile(t, c)
 	})
 
 	t.Run("no existing dependency lock file: provider is downloaded and added to the dependency lock file", func(t *testing.T) {
@@ -306,12 +388,49 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 		if !strings.Contains(string(lockFileBytes), "hashicorp/test") {
 			t.Fatalf("expected provider hashicorp/test to be added to the dependency lock file, got: %s", string(lockFileBytes))
 		}
+
+		// Assert the backend state file describes the new state store location.
+		assertBackendStateFile(t, c)
 	})
 }
 
 // Test migration between two state stores in different providers.
 // Different cases describe whether the source provider is already in the dependency lock file or not.
 func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing.T) {
+	// All test cases perform a migration to hashicorp/test2, version v3.2.1, test2_store store.
+	// So a common assertion func can be re-used.
+	assertBackendStateFile := func(t *testing.T, c *StateMigrateCommand) {
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+
+		backendState := sMgr.State()
+		if backendState.Backend != nil {
+			t.Fatalf("expected backend state file to not describe a backend during state_store=>state_store migration, but it's set")
+		}
+		if backendState.StateStore == nil {
+			t.Fatalf("expected backend state file to describe a state store during state_store=>state_store migration, but it's nil")
+		}
+		if backendState.StateStore.Provider.Source.Type != "test2" {
+			t.Fatalf("expected backend state file to describe the destination state store provider \"test2\", but got %q", backendState.StateStore.Provider)
+		}
+		if backendState.StateStore.Provider.Version.String() != "3.2.1" {
+			t.Fatalf("expected backend state file to describe the destination state store provider version \"3.2.1\", but got %q", backendState.StateStore.Provider.Version)
+		}
+		if backendState.StateStore.Type != "test2_store" {
+			t.Fatalf("expected backend state file to describe the destination state store type \"test2_store\", but got %q", backendState.StateStore.Type)
+		}
+		// The state store schema is empty, so not even any null fields in expected JSON
+		if got, want := normalizeJSON(t, backendState.StateStore.ConfigRaw), `{}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+		// The provider schema includes a 'region' attr, but it's unset in config; null.
+		if got, want := normalizeJSON(t, backendState.StateStore.Provider.ConfigRaw), `{"region":"foobar"}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	}
 	t.Run("source provider already in the dependency lock file, destination is not", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "state-store-changed/provider-used")
 		t.Chdir(wd.RootModuleDir())
@@ -428,6 +547,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 		if diff := cmp.Diff(expectedContents, string(lockFileBytes)); diff != "" {
 			t.Fatalf("unexpected dependency lock file contents, diff:\n%s", diff)
 		}
+
+		// Assert the backend state file describes the new state store location.
+		assertBackendStateFile(t, c)
 	})
 	t.Run("destination provider already in the dependency lock file, source is not", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "state-store-changed/provider-used")
@@ -542,6 +664,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 		if diff := cmp.Diff(lockFileContents, string(lockFileBytes)); diff != "" {
 			t.Fatalf("unexpected dependency lock file contents, diff:\n%s", diff)
 		}
+
+		// Assert the backend state file describes the new state store location.
+		assertBackendStateFile(t, c)
 	})
 	t.Run("no existing dependency lock file: only destination provider saved to the dependency lock file", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "state-store-changed/provider-used")
@@ -661,6 +786,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 		if diff := cmp.Diff(expectedContents, string(lockFileBytes)); diff != "" {
 			t.Fatalf("unexpected dependency lock file contents, diff:\n%s", diff)
 		}
+
+		// Assert the backend state file describes the new state store location.
+		assertBackendStateFile(t, c)
 	})
 }
 
@@ -734,6 +862,26 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	_, ok := s.State.RootOutputValues["test"]
 	if !ok {
 		t.Fatalf("unable to find test output in migrated state")
+	}
+
+	// Assert the backend state file describes the new backend location,
+	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+	backendState := sMgr.State()
+	if backendState.StateStore != nil {
+		t.Fatalf("expected backend state file to not describe a state_store during state_store=>backend migration, but it's set")
+	}
+	if backendState.Backend == nil {
+		t.Fatalf("expected backend state file to describe a backend during state_store=>backend migration, but it's nil")
+	}
+	if backendState.Backend.Type != "local" {
+		t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
+	}
+	if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
