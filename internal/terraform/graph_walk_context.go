@@ -83,6 +83,14 @@ type ContextGraphWalker struct {
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
 
+// scopeEvalContextExists checks if the given scope has an associated eval context
+func (w *ContextGraphWalker) scopeEvalContextExists(scope evalContextScope) bool {
+	w.contextLock.Lock()
+	defer w.contextLock.Unlock()
+
+	return w.contexts.HasKey(scope)
+}
+
 // enterScope provides an EvalContext associated with the given scope.
 func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
 	if scope == nil {
