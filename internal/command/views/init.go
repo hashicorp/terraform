@@ -28,6 +28,7 @@ type ProviderInstaller interface {
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
+	PolicyDiagnostics(diags policy.Diagnostics)
 	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
@@ -66,8 +67,8 @@ func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *InitHuman) PolicyDiagnostics(setupDiags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(setupDiags)
 }
 
 func (v *InitHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
@@ -117,8 +118,8 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *InitJSON) PolicyDiagnostics(setupDiags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(setupDiags)
 }
 
 func (v *InitJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {

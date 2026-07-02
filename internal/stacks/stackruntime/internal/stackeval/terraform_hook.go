@@ -5,7 +5,6 @@ package stackeval
 
 import (
 	"context"
-	"iter"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -284,21 +283,13 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 }
 
 func (h *componentInstanceTerraformHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	if h.policyResults == nil {
 		h.policyResults = make(map[string]plans.PolicyEvaluation)
 	}
 	h.policyResults[addr] = result
 	return terraform.HookActionContinue, nil
-}
-
-func (h *componentInstanceTerraformHook) policyResultsSeq() iter.Seq2[string, plans.PolicyEvaluation] {
-	return func(yield func(string, plans.PolicyEvaluation) bool) {
-		for addr, result := range h.policyResults {
-			if !yield(addr, result) {
-				return
-			}
-		}
-	}
 }
 
 // actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation

@@ -127,73 +127,10 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 	}
 }
 
-// PolicyResults renders the policy results in human-readable format.
-// This is done separately from the plan rendering because it may require additional
-// source information that is not available in the plan renderer.
-func (v *View) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	configSources := v.configSources()
-	var buf strings.Builder
-	var foundInfo bool
-
+// PolicyDiagnostics renders the policy diagnostics in human-readable format.
+func (v *View) PolicyDiagnostics(setupDiags policy.Diagnostics) {
 	// Print setup diagnostics
 	v.Diagnostics(setupDiags.AsTerraformDiags())
-
-	if results == nil {
-		return
-	}
-
-	for _, result := range results.Iter() {
-		for _, enforcement := range result.EvaluationResponse.Enforcements {
-			var src []byte
-			if enforcement.LocalRange != nil {
-				src = configSources[enforcement.LocalRange.Filename]
-			}
-			info := json.NewPolicyInfo(src, enforcement)
-			// Print info message attached to the enforcement
-			if info.Message != "" {
-				foundInfo = true
-				buf.WriteString("Policy Info:\n")
-				if info.PolicyRange != nil && info.PolicySnippet != nil {
-					fmt.Fprintf(
-						&buf,
-						"on %s line %d, in %s\n",
-						info.PolicyRange.Filename,
-						info.PolicyRange.Start.Line,
-						info.PolicySnippet.Code,
-					)
-				} else if enforcement.Policy != nil {
-					fmt.Fprintf(
-						&buf,
-						"in policy %s\n",
-						enforcement.Policy.Address,
-					)
-				}
-				fmt.Fprintf(&buf, "%q\n", info.Message)
-
-				if !result.ConfigDeclRange.Empty() {
-					cfgRange := result.ConfigDeclRange
-					resourceContext := string(cfgRange.SliceBytes(configSources[cfgRange.Filename]))
-
-					// Here we want the resource source context
-					fmt.Fprintf(
-						&buf,
-						"\non %s line %d, in %s\n",
-						cfgRange.Filename,
-						cfgRange.Start.Line,
-						resourceContext,
-					)
-				}
-				buf.WriteString("\n")
-			}
-		}
-
-		// Print policy diagnostics
-		v.Diagnostics(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
-	}
-	if foundInfo {
-		v.streams.Println()
-		v.streams.Println(buf.String())
-	}
 }
 
 func (v *View) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {

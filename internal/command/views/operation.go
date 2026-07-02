@@ -36,7 +36,7 @@ type Operation interface {
 
 	Diagnostics(diags tfdiags.Diagnostics)
 
-	PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics)
+	PolicyDiagnostics(setupDiags policy.Diagnostics)
 
 	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
 }
@@ -136,8 +136,8 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 }
 
-func (v *OperationHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *OperationHuman) PolicyDiagnostics(setupDiags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(setupDiags)
 }
 
 func (v *OperationHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
@@ -303,8 +303,8 @@ func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *OperationJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *OperationJSON) PolicyDiagnostics(setupDiags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(setupDiags)
 }
 
 func (v *OperationJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {

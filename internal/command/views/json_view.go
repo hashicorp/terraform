@@ -146,7 +146,7 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
-func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
+func (v *JSONView) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
 	// Log all the info messages
 	for _, enforcement := range result.EvaluationResponse.Enforcements {
 		if enforcement.Message == "" {
@@ -171,7 +171,7 @@ func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
 	}
 
 	for _, diag := range result.EvaluationResponse.Diagnostics {
-		v.logPolicyDiagnostic(diag, "target_address", addr)
+		v.PolicyDiagnostic(diag, "target_address", addr)
 	}
 
 	for _, policy := range result.EvaluationResponse.Policies {
@@ -187,29 +187,16 @@ func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
 	}
 }
 
-func (v *JSONView) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.logPolicyResult(addr, result)
-}
-
-func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-
+func (v *JSONView) PolicyDiagnostics(setupDiags policy.Diagnostics) {
 	for _, diag := range setupDiags {
-		v.logPolicyDiagnostic(diag)
-	}
-
-	if results == nil {
-		return
-	}
-
-	for addr, result := range results.Iter() {
-		v.logPolicyResult(addr, result)
+		v.PolicyDiagnostic(diag)
 	}
 }
 
-// logPolicyDiagnostic logs the policy diagnostics. These are emitted as `policy_diagnostic` messages,
+// PolicyDiagnostic logs the policy diagnostics. These are emitted as `policy_diagnostic` messages,
 // not standard Terraform `diagnostic` messages. We use the severity level only to
 // set the log level for that policy-specific output.
-func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any) {
+func (v *JSONView) PolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any) {
 	sources := v.view.configSources()
 	diagnostic := json.NewDiagnostic(diag, sources)
 

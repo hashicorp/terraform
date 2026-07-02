@@ -316,6 +316,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
 		defer stopClient()
+		view.PolicyDiagnostics(policyDiags)
 		if policyDiags.HasErrors() {
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)
