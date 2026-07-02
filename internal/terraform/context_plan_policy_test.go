@@ -2439,6 +2439,124 @@ func TestContext2Plan_PolicyEvaluation_NoOpOperation(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_PolicyEvaluation_RefreshOnlyOperation(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "test" {
+				sensitive_value = "config"
+			}
+		`,
+		"main.tfpolicy.hcl": `
+			resource_policy "test_resource" "policy_name" {
+				enforce {
+					condition = true
+				}
+			}
+		`,
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_resource.test"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"existing","sensitive_value":"stale"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		resp.NewState = cty.ObjectVal(map[string]cty.Value{
+			"id":              cty.StringVal("existing"),
+			"value":           cty.NullVal(cty.String),
+			"sensitive_value": cty.StringVal("current"),
+			"defer":           cty.NullVal(cty.Bool),
+			"random":          cty.NullVal(cty.String),
+			"nesting_single": cty.NullVal(cty.Object(map[string]cty.Type{
+				"value":           cty.String,
+				"sensitive_value": cty.String,
+			})),
+		})
+		return resp
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	var evaluateCalls int
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evaluateCalls++
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
+		}
+
+		actualAttrs := req.Attrs.Raw
+		if actualAttrs.IsNull() {
+			t.Fatal("expected non-null attrs for refresh-only evaluation")
+		}
+		actualAttrs = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualAttrs.GetAttr("id"),
+			"sensitive_value": actualAttrs.GetAttr("sensitive_value"),
+		})
+		wantAttrs := cty.ObjectVal(map[string]cty.Value{
+			"id":              cty.StringVal("existing"),
+			"sensitive_value": cty.StringVal("current"),
+		})
+		if diff := cmp.Diff(actualAttrs, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected attrs (-got +want):\n%s", diff)
+		}
+
+		actualPrior := req.PriorAttrs.Raw
+		if actualPrior.IsNull() {
+			t.Fatal("expected non-null prior attrs for refresh-only evaluation")
+		}
+		actualPrior = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualPrior.GetAttr("id"),
+			"sensitive_value": actualPrior.GetAttr("sensitive_value"),
+		})
+		if diff := cmp.Diff(actualPrior, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected prior attrs (-got +want):\n%s", diff)
+		}
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.RefreshOnlyMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("expected refresh-only plan to record no resource changes, got %d", got)
+	}
+	if evaluateCalls != 1 {
+		t.Fatalf("expected 1 policy evaluation call for refresh-only resource, got %d", evaluateCalls)
+	}
+}
+
 func assertPathsEqual(t *testing.T, got, want []cty.Path) {
 	t.Helper()
 
