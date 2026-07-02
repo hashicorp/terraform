@@ -67,6 +67,9 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		stateMigrate.Diagnostics(diags)
 		return 1
 	}
+	if cfg.Module.StateStore != nil {
+		cfg.Module.StateStore.ProviderSupplyMode = c.getProviderSupplyModeForStateStore(cfg.Module)
+	}
 
 	smi := cfg.Module.StateMigrationInstructions
 	if smi == nil {
