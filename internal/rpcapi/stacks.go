@@ -332,16 +332,17 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
 		} else {
-			if req.PolicyEntitlement == nil {
-				return status.Error(codes.InvalidArgument, "failed to setup policy client, policy entitlement was not provided.")
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
 			}
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, &policy.Entitlement{
-				Host:  req.PolicyEntitlement.Host,
-				Token: req.PolicyEntitlement.Token,
-				Org:   req.PolicyEntitlement.Org,
-			})
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
 			if diags.HasErrors() {
 				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 			}
@@ -696,16 +697,17 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
 		} else {
-			if req.PolicyEntitlement == nil {
-				return status.Error(codes.InvalidArgument, "failed to setup policy client, policy entitlement was not provided.")
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
 			}
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, &policy.Entitlement{
-				Host:  req.PolicyEntitlement.Host,
-				Token: req.PolicyEntitlement.Token,
-				Org:   req.PolicyEntitlement.Org,
-			})
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
 			if diags.HasErrors() {
 				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
 			}
