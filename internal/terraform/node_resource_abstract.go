@@ -411,6 +411,25 @@ func (n *NodeAbstractResource) ActionCalls() []addrs.ConfigAction {
 	return calls
 }
 
+// This is very specific to determining during plan if a destroy action might
+// fail to reevaluate an ephemeral resource. Since we need to statically
+// validate the config, we check if the resource has any destroy action events,
+// and any actions depend on ephemeral resources.
+func (n *NodeAbstractResource) DestroyActionCalls() []addrs.ConfigAction {
+	var calls []addrs.ConfigAction
+
+	for _, trigger := range n.actionTriggers {
+		for _, event := range trigger.config.Events {
+			if event.IsDestroy() {
+				for _, actionRef := range trigger.actionRefs {
+					calls = append(calls, actionRef.actionNode.Addr)
+				}
+			}
+		}
+	}
+	return calls
+}
+
 // GraphNodeProvisionerConsumer
 func (n *NodeAbstractResource) ProvisionedBy() []string {
 	// If we have no configuration, then we have no provisioners

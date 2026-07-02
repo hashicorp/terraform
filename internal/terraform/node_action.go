@@ -33,6 +33,13 @@ type GraphNodeActionCaller interface {
 	// Action calls returns all action references so they can be connected to
 	// any of the actions which use the caller symbol
 	ActionCalls() []addrs.ConfigAction
+
+	// DestroyActionCalls is used in the reference transformer to validate
+	// destroy action references. A destroy action can contain ephemeral values,
+	// but those require it to be reevaluated during apply, and the dependencies
+	// required to do so can cause cycles. If there are no destroy events
+	// possible, the action call is exempt from this validation.
+	DestroyActionCalls() []addrs.ConfigAction
 }
 
 // GraphNodeActionInvoker attaches planned action invocations to a node which
@@ -436,7 +443,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Reference to non-existent action instance",
-			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", inst.Action.Key),
+			Detail:   fmt.Sprintf("The given key %s does not identify an instance of %s", inst.Action.Key, inst),
 			Subject:  callRange,
 		})
 		return cty.DynamicVal, diags

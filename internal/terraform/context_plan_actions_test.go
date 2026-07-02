@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -1012,7 +1013,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   `The given key ["c"] does not identify an instance of action.test_action.hello`,
+						Detail:   `The given key ["c"] does not identify an instance of action.test_action.hello["c"]`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
@@ -1047,7 +1048,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
+						Detail:   "The given key [2] does not identify an instance of action.test_action.hello[2]",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
@@ -1494,7 +1495,7 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 			},
 
-			"no ephemeral in destroy": {
+			"basic ephemeral in destroy": {
 				module: map[string]string{
 					"main.tf": `
 action "test_action_wo" "test" {
@@ -1529,19 +1530,7 @@ resource "test_object" "a" {
 						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 					)
 				},
-				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-					return diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Action config contains ephemeral values",
-						Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
-							End:      hcl.Pos{Line: 2, Column: 31, Byte: 31},
-						},
-					})
-				},
+				expectPlanActionCalled: true,
 			},
 
 			"destroy action must be known": {
@@ -4489,4 +4478,164 @@ resource "test_object" "a" {
 	if diags.Err().Error() != expectedErr {
 		t.Fatalf("wrong error!, got %q, expected %q", diags.Err().Error(), expectedErr)
 	}
+}
+
+func TestContextPlan_delete_actions_shared_dependencies_cause_cycle(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+// the replacement of this resource could cause a cycle with a destroy action,
+// so we can't allow it to exist in the shared dependencies of test_object.a and
+// action_example.bye.
+resource test_object root {}
+
+action "action_example" "bye" {
+  config {
+    attr = test_object.root.name
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_destroy]
+      actions = [action.action_example.bye]
+    }
+  }
+  depends_on = [test_object.root]
+}
+`,
+	})
+
+	testProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	actionProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Actions: map[string]providers.ActionSchema{
+				"action_example": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {
+								Type:      cty.String,
+								Optional:  true,
+								WriteOnly: true,
+							},
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
+		},
+	})
+
+	// Just a sanity check that the module is valid
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if !strings.Contains(diags.Err().Error(), "The destroy action config must not also depend on any dependencies of the calling resource") {
+		t.Fatal("expected error about overlappign dependencies, got:", diags.ErrWithWarnings())
+	}
+}
+
+func TestContextPlan_delete_and_create_with_deifferent_deps(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+// the replacement of this resource could cause a cycle with a destroy action,
+// so we can't allow it to exist in the shared dependencies of test_object.a and
+// action_example.bye.
+resource test_object root {}
+
+action "action_example" "bye" {
+  config {
+    attr = "bye"
+  }
+}
+
+action "action_example" "hello" {
+  config {
+    attr = test_object.root.name
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_destroy]
+      actions = [action.action_example.bye]
+    }
+    action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.hello]
+    }
+  }
+  depends_on = [test_object.root]
+}
+`,
+	})
+
+	testProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	actionProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Actions: map[string]providers.ActionSchema{
+				"action_example": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {
+								Type:      cty.String,
+								Optional:  true,
+								WriteOnly: true,
+							},
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
+		},
+	})
+
+	// Just a sanity check that the module is valid
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertNoDiagnostics(t, diags)
 }

@@ -484,8 +484,6 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 		}
 
 		if !cmp.Equal(wantStruct, gotStruct, options...) {
-			fmt.Printf("WANT: %#v\n", wantStruct)
-			fmt.Printf("GOT: %#v\n", gotStruct)
 			t.Errorf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
 		}
 	}

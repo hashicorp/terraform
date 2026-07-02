@@ -25,7 +25,6 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
-	// FIXME: sensitive paths are missing
 	ConfigValue cty.Value
 
 	Caller addrs.Referenceable
@@ -149,7 +148,6 @@ func (t *InvokeActionTrigger) Less(other ActionTrigger) bool {
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*ActionInvocationInstanceSrc, error) {
-
 	ret := &ActionInvocationInstanceSrc{
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,

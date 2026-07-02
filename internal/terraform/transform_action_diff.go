@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -34,16 +35,21 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	}
 
 	for _, ai := range t.Changes.ActionInvocations {
+		actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
+		if !ok {
+			return fmt.Errorf("no action config node found for action trigger %s", ai.ActionTrigger)
+		}
+
+		actionTriggerInstance := &actionTriggerApplyInstance{
+			ActionInvocation: ai,
+			actionNode:       actionConfig,
+		}
+
 		switch actionTrigger := ai.ActionTrigger.(type) {
 		case *plans.ResourceActionTrigger:
 			resourceInstances, ok := resourceInstanceNodes.GetOk(actionTrigger.TriggeringResourceAddr)
 			if !ok {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
-			}
-
-			actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
-			if !ok {
-				return fmt.Errorf("no action config node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
 
 			foundNode := false
@@ -55,37 +61,43 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 					return fmt.Errorf("node %s type %T is not a GraphNodeActionInvoker", resourceInstance.ResourceInstanceAddr(), resourceInstance)
 				}
 
-				if actionTrigger.ActionTriggerEvent.IsDestroy() {
-					// we may have both create and destroy nodes under ths same
-					// address, so match make sure the destroy action trigger is
-					// only attached to a destroyer node
-					if _, ok := resourceInstance.(GraphNodeDestroyer); !ok {
+				switch resourceInstance.(type) {
+				case GraphNodeDestroyer:
+					if !actionTrigger.ActionTriggerEvent.IsDestroy() {
+						// we may have both create and destroy nodes under ths
+						// same address, so make sure only destroy action triggers
+						// are attached to destroyer nodes
 						continue
 					}
-				}
 
-				invoker.AttachActionApplyTrigger(&actionTriggerApplyInstance{
-					ActionInvocation: ai,
-					actionNode:       actionConfig,
-				})
-				foundNode = true
+					// A destroy node might need to reevaluate the action in the
+					// case of ephemeral values, so store the caller's change in
+					// case it's needed later. We can't decode the change
+					// however, so leave that to the caller to handle.
+					changeSrc := t.Changes.ResourceInstance(actionTrigger.TriggeringResourceAddr)
+					log.Printf("[DEBUG] ActionDiffTransformer: storing action destroy change src for %s", actionTrigger.TriggeringResourceAddr)
+					actionTriggerInstance.callerChange = changeSrc
+
+					invoker.AttachActionApplyTrigger(actionTriggerInstance)
+					foundNode = true
+
+				default:
+					if actionTrigger.ActionTriggerEvent.IsDestroy() {
+						continue
+					}
+
+					invoker.AttachActionApplyTrigger(actionTriggerInstance)
+					foundNode = true
+				}
 			}
+
 			if !foundNode {
 				return fmt.Errorf("no resource node found for action trigger %s", actionTrigger.TriggeringResourceAddr)
 			}
-		case *plans.InvokeActionTrigger:
-			actionConfig, ok := actionConfigNodes.GetOk(ai.Addr.ConfigAction())
-			if !ok {
-				panic(fmt.Sprintf("FIXME: missing action for invoke: %s", ai.Addr))
-			}
 
+		case *plans.InvokeActionTrigger:
 			// Add nodes for each action invocation
-			node := &nodeActionInvokeApplyInstance{
-				&actionTriggerApplyInstance{
-					ActionInvocation: ai,
-					actionNode:       actionConfig,
-				},
-			}
+			node := &nodeActionInvokeApplyInstance{actionTriggerInstance}
 			g.Add(node)
 		}
 	}

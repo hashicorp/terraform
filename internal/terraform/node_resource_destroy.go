@@ -89,7 +89,7 @@ func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable
 func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	// destroyers don't reference, except when we need destroy actions to be
 	// reevaluated.
-	return n.destroyActionReferences()
+	return n.destroyActionApplyReferences()
 }
 
 // GraphNodeExecutable

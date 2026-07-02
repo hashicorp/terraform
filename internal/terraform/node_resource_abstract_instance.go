@@ -120,10 +120,10 @@ func (n *NodeAbstractResourceInstance) ReferenceableAddrs() []addrs.Referenceabl
 	}
 }
 
-// destroyActionReferences are used by destroy nodes to ensure that only actions
+// destroyActionPlanReferences are used by destroy nodes to ensure that only actions
 // are connected by references, since a destroy node cannot reference anything
 // else from the config.
-func (n *NodeAbstractResourceInstance) destroyActionReferences() []*addrs.Reference {
+func (n *NodeAbstractResourceInstance) destroyActionPlanReferences() []*addrs.Reference {
 	var refs []*addrs.Reference
 	// Resources are destroyed using their state, but we do need to evaluate any
 	// potential destroy actions.
@@ -141,6 +141,23 @@ func (n *NodeAbstractResourceInstance) destroyActionReferences() []*addrs.Refere
 
 		rs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
 		refs = append(refs, rs...)
+	}
+	return refs
+}
+
+// destroyActionApplyReferences are used by destroy nodes to ensure that only actions
+// are connected by references, since a destroy node cannot reference anything
+// else from the config.
+func (n *NodeAbstractResourceInstance) destroyActionApplyReferences() []*addrs.Reference {
+	var refs []*addrs.Reference
+	// Resources are destroyed using their state, but we may need to evaluate any
+	// potential destroy actions.
+	for _, trigger := range n.actionApplyTriggers {
+		// the condition must be known during plan, so the only reference we
+		// need for correct evaluation is the action config itself
+		refs = append(refs, &addrs.Reference{
+			Subject: trigger.ActionInvocation.Addr.Action,
+		})
 	}
 	return refs
 }
@@ -3284,16 +3301,6 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 			})
 			return
 		}
-
-		if len(ephemeral.EphemeralValuePaths(actionVal)) > 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Action config contains ephemeral values",
-				Detail:   "A destroy action configuration must be fully planned, and cannot contain ephemeral values.",
-				Subject:  actionRef.actionNode.Config.DeclRange.Ptr(),
-			})
-			return
-		}
 	}
 
 	provider, _, err := getProvider(ctx, actionRef.actionNode.ResolvedProvider)
@@ -3336,7 +3343,8 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 	}
 
 	ai.ConfigValue = ephemeral.RemoveEphemeralValues(actionVal)
-	return
+
+	return ai, deferred, diags
 }
 
 // invokeDestroyAction currently cannot reevaluate the action config due to not
@@ -3352,8 +3360,16 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 			continue
 		}
 
+		// get the last known prior value of the caller, so that we can be sure
+		// it's value is available during execution
+		change, err := trigger.callerChange.Decode(*n.Schema)
+		if err != nil {
+			diags = diags.Append(err)
+			continue
+		}
+
 		log.Printf("[DEBUG] NodeAbstractResourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
-		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true))
+		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, change.Before))
 		if diags.HasErrors() {
 			break
 		}
@@ -3387,7 +3403,7 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 			continue
 		}
 
-		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, callerVal, false)
+		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, callerVal)
 		if invokeDiags.HasErrors() {
 			switch onFailure {
 			case configs.ActionOnFailureHalt:

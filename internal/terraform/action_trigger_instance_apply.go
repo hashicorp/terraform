@@ -21,16 +21,22 @@ type actionTriggerApplyInstance struct {
 	// actionNode links the trigger to it's action config node.
 	// This is connected by the diff transformer.
 	actionNode *NodeActionConfig
+
+	// The original caller may no longer be available when we get around to
+	// evaluating destroy actions, so we need to get the prior value from the
+	// planned changes. This is done before provider execution however, so we
+	// only have the encoded version of the change available.
+	callerChange *plans.ResourceInstanceChangeSrc
 }
 
 var (
 	// this doesn't operate as an independent node in the graph, but we obtain
-	// the relevant information for evaluataion via these interfaces
+	// the relevant information for evaluation via these interfaces
 	_ GraphNodeReferencer       = (*actionTriggerApplyInstance)(nil)
 	_ GraphNodeProviderConsumer = (*actionTriggerApplyInstance)(nil)
 )
 
-func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value, fromPlan bool) tfdiags.Diagnostics {
+func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Referenceable, callerVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	diagsWith := n.ActionInvocation.Addr.String()
@@ -38,7 +44,7 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 		diagsWith = fmt.Sprintf("%s, called from %s", diagsWith, caller)
 	}
 
-	provider, actionProviderSchema, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
+	provider, _, err := getProvider(ctx, n.ActionInvocation.ProviderAddr)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -59,35 +65,12 @@ func (n *actionTriggerApplyInstance) Invoke(ctx EvalContext, caller addrs.Refere
 		return diags
 	}
 
-	var configVal cty.Value
-
-	// fromPlan indicates we can use the entire planned value for the action,
-	// and should not attempt to reevaluate the config.
-	if fromPlan {
-		actionSchema, ok := actionProviderSchema.Actions[n.ActionInvocation.Addr.Action.Action.Type]
-		if !ok {
-			// This should have been caught earlier, but we don't want to panic
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Action %s not found in provider schema", n.ActionInvocation.Addr),
-				Detail:   fmt.Sprintf("The action %s was not found in the provider schema for %s", n.ActionInvocation.Addr, n.ActionInvocation.ProviderAddr),
-				Subject:  n.actionNode.Config.DeclRange.Ptr(),
-			})
-			return diags
-		}
-		inv, err := n.ActionInvocation.Decode(&actionSchema)
-		if err != nil {
-			return diags.Append(err)
-		}
-		configVal = inv.ConfigValue
-	} else {
-		val, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller, callerVal)
-		diags = diags.Append(actionDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-		configVal = val
+	val, actionDiags := n.actionNode.EvalInstance(ctx, n.ActionInvocation.Addr, nil, caller, callerVal)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		return diags
 	}
+	configVal := val
 
 	if !configVal.IsWhollyKnown() {
 		return diags.Append(&hcl.Diagnostic{

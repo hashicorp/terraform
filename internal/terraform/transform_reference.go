@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -114,13 +115,18 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	vertices := g.Vertices()
 	m := NewReferenceMap(vertices)
 
+	actionConfigNodes := addrs.MakeMap[addrs.ConfigAction, GraphNodeConfigAction]()
+
 	// Find the things that reference things and connect them
 	for _, v := range vertices {
-		if _, ok := v.(GraphNodeConfigAction); ok {
+		if action, ok := v.(GraphNodeConfigAction); ok {
 			// Because actions were allowed to reference the calling resource in
 			// configuration, we need to deal with the resulting cycles. Skip
 			// action nodes in the first round so that any triggers can be
 			// connected first and cycles can be detected.
+
+			// record these for later validation
+			actionConfigNodes.Put(action.ActionAddr(), action)
 			continue
 		}
 
@@ -177,6 +183,82 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	return t.validateDestroyActionReferences(g, actionConfigNodes)
+}
+
+// validateDestroyActionReferences checks that actions referencing resources
+// won't create dependency cycles when inserted into resource replacement
+// graphs. Evaluating destroy actions requires that the destroy node be
+// connected the action config, which in turn could connect to other managed
+// resources. If the action's dependencies overlap with the destroy instance's
+// resource dependencies, we get a cycle during replacement. A form of this
+// cycle can also happen when a provider depends on managed resources, but since
+// that was allowed in legacy Terraform configurations, the
+// DestroyEdgeTransformer breaks the cycle rather than pre-validate it on the
+// grounds that inter-provider dependencies need not be as strict.
+func (t *ReferenceTransformer) validateDestroyActionReferences(g *Graph, actionConfigNodes addrs.Map[addrs.ConfigAction, GraphNodeConfigAction]) error {
+	// we only want to check for resource nodes in the overlapping dependencies,
+	// because they are the only ones which create replacement subgraphs
+	resourceFilter := func(v any) bool {
+		_, ok := v.(GraphNodeConfigResource)
+		return ok
+	}
+
+	// And now finally, another exception for actions is that they might need to
+	// re-evaluate during a destroy from within a destroy node. This usually
+	// isn't allowed because references will introduce cycles, so we pre-vet the
+	// allowed cases from here. This must be statically validated, so we can't
+	// pre-check for known-ness of the config, nor can we be sure no ephemeral
+	// value will be inserted, but we can trigger the exception when an
+	// ephemeral resource exists in the dependency chain.
+	for _, v := range g.Vertices() {
+		caller, isActionCaller := v.(GraphNodeActionCaller)
+		if !isActionCaller {
+			continue
+		}
+
+		destroyActionCalls := caller.DestroyActionCalls()
+		if len(destroyActionCalls) == 0 {
+			// no reason to validate this resource's calls, because they will
+			// never be triggered by a destroy event.
+			continue
+		}
+
+		// we want all ancestors resources without references indirectly added
+		// via action nodes
+		callerDeps := g.PrunedAncestors(caller, func(v dag.Vertex) bool {
+			_, ok := v.(GraphNodeConfigAction)
+			return ok
+		}).Filter(resourceFilter)
+
+		for _, calledAction := range destroyActionCalls {
+			actionNode, ok := actionConfigNodes.GetOk(calledAction)
+			if !ok {
+				// this should be validated already, but make sure nothing missing here
+				return fmt.Errorf("missing action node for %s called from %s", calledAction, caller.ResourceAddr())
+			}
+
+			// This node references an action config. We can ensure that by
+			// verifying there is no intersection between the action node's
+			// dependencies and the resource node's dependencies.
+			actionDeps := g.Ancestors(actionNode).Filter(resourceFilter)
+
+			if intersection := callerDeps.Intersection(actionDeps); intersection.Len() > 0 {
+				// get the names of the shared dependencies to help the user
+				// locate where the intersection lies in the config
+				var intersectionNames []string
+				for res := range intersection.List() {
+					// we know these were filtered down to GraphNodeConfigResources
+					intersectionNames = append(intersectionNames, res.(GraphNodeConfigResource).ResourceAddr().String())
+				}
+
+				return fmt.Errorf("The destroy action %s and calling resource (%s) share dependencies of [%s] which can cause cycles during destroy. "+
+					"The destroy action config must not also depend on any dependencies of the calling resource.",
+					actionNode.ActionAddr(), caller.ResourceAddr(), strings.Join(intersectionNames, ", "),
+				)
+			}
+		}
+	}
 	return nil
 }
 

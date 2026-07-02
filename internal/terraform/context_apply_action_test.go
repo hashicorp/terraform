@@ -3217,6 +3217,164 @@ resource "test_object" "a" {
 	}
 }
 
+func TestContextApply_delete_actions_using_ephemeral_resources(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+// the replacement of this resource could cause a cycle with a destroy action,
+// so we can't allow it to exist in the shared dependencies of test_object.a and
+// action_example.bye.
+resource test_object root {
+  name = "secret"
+}
+
+ephemeral "test_ephem" "secret" {
+}
+
+action "action_example" "bye" {
+  config {
+    attr = ephemeral.test_ephem.secret.token
+  }
+}
+
+action "action_example" "hello" {
+  config {
+    attr = test_object.root.name
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_destroy]
+      actions = [action.action_example.bye]
+    }
+	action_trigger {
+      events  = [after_create]
+      actions = [action.action_example.hello]
+    }
+  }
+}
+`,
+	})
+
+	testProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"test_ephem": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"token": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			time.Sleep(100 * time.Millisecond)
+			return providers.ApplyResourceChangeResponse{
+				NewState:    arcr.PlannedState,
+				NewIdentity: arcr.PlannedIdentity,
+			}
+		},
+		OpenEphemeralResourceFn: func(req providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+			resp.Result = cty.ObjectVal(map[string]cty.Value{
+				"token": cty.StringVal("secret"),
+			})
+			return resp
+		},
+		CloseEphemeralResourceFn: func(req providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+			return resp
+		},
+	}
+
+	actionProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Actions: map[string]providers.ActionSchema{
+				"action_example": {
+					ConfigSchema: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"attr": {
+								Type:      cty.String,
+								Optional:  true,
+								WriteOnly: true,
+							},
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{},
+		},
+
+		InvokeActionFn: func(req providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+			resp.Events = func(yield func(providers.InvokeActionEvent) bool) {
+				yield(providers.InvokeActionEvent_Completed{})
+			}
+			attr := req.PlannedActionData.GetAttr("attr")
+			if attr.IsNull() || attr.AsString() != "secret" {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf(`expected "secret", got: %#v`, attr))
+			}
+
+			return resp
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("action"): testProviderFuncFixed(actionProvider),
+		},
+	})
+
+	// Just a sanity check that the module is valid
+	diags := ctx.Validate(m, &ValidateOpts{})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// planOpts := SimplePlanOpts(plans.DestroyMode, InputValues{})
+	planOpts := SimplePlanOpts(plans.NormalMode, InputValues{})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"name":"old"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.root"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"name":"old"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	plan, diags := ctx.Plan(m, state, planOpts)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !actionProvider.InvokeActionCalled {
+		t.Fatal("InvokeAction not called")
+	}
+}
+
 func testContextActionProvider(invokeActionFn func(req providers.InvokeActionRequest) providers.InvokeActionResponse) *testing_provider.MockProvider {
 	return &testing_provider.MockProvider{
 		InvokeActionFn: invokeActionFn,

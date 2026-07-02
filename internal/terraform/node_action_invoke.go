@@ -276,7 +276,7 @@ func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, op walkOperatio
 		}
 	}
 
-	return n.Invoke(ctx, caller, cty.DynamicVal, true)
+	return n.Invoke(ctx, caller, cty.NilVal)
 }
 
 func (n *nodeActionInvokeApplyInstance) References() []*addrs.Reference {
