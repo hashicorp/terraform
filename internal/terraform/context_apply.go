@@ -56,8 +56,7 @@ type ApplyOpts struct {
 	// Optional policy client.
 	// When set, policy evaluation logic will be executed in the graph.
 	// When nil, that logic will be skipped.
-	PolicyClient  policy.Client
-	PolicyResults plans.PolicyResult
+	PolicyClient policy.Client
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -223,7 +222,6 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 		ProviderLocks: opts.ProviderLocks,
 		PolicyClient:  opts.PolicyClient,
-		PolicyResults: opts.PolicyResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

@@ -419,10 +419,13 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	hook := &testHook{}
+
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks:       []Hook{hook},
 		Parallelism: 1,
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
@@ -482,15 +485,13 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
-	applyResults := plans.NewPolicyResults()
 	state, diags = ctx.Apply(plan, mod, &ApplyOpts{
-		PolicyClient:  applyPolicyClient,
-		PolicyResults: applyResults,
+		PolicyClient: applyPolicyClient,
 	})
 	tfdiags.AssertDiagnosticCount(t, diags, 0)
 
 	var policyDiags tfdiags.Diagnostics
-	for _, res := range applyResults.Iter() {
+	for _, res := range hook.PolicyResults {
 		policyDiags = policyDiags.Append(res.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	var exp tfdiags.Diagnostics
@@ -999,10 +1000,13 @@ func TestContext2Apply_PolicyEvaluation_PartialApply(t *testing.T) {
 		return resp
 	}
 
+	hook := &testHook{}
+
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{hook},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1014,7 +1018,6 @@ func TestContext2Apply_PolicyEvaluation_PartialApply(t *testing.T) {
 
 	applyPolicyClient := policy.NewTestMockClient(t)
 	evaluatedPolicyValues := map[string]struct{}{}
-	applyResults := plans.NewPolicyResults()
 	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		if req.Attrs.Raw.Type().IsObjectType() && !req.Attrs.Raw.IsNull() {
 			evaluatedPolicyValues[req.Attrs.Raw.GetAttr("value").AsString()] = struct{}{}
@@ -1023,15 +1026,14 @@ func TestContext2Apply_PolicyEvaluation_PartialApply(t *testing.T) {
 	}
 
 	_, diags = ctx.Apply(plan, mod, &ApplyOpts{
-		PolicyClient:  applyPolicyClient,
-		PolicyResults: applyResults,
+		PolicyClient: applyPolicyClient,
 	})
 	if !diags.HasErrors() {
 		t.Fatal("expected apply to fail")
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range applyResults.Iter() {
+	for _, result := range hook.PolicyResults {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 
@@ -1464,10 +1466,12 @@ func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
 				}
 			}
 
+			hook := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
 				},
+				Hooks: []Hook{hook},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1498,15 +1502,13 @@ func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			policyResults := plans.NewPolicyResults()
 			_, diags = ctx.Apply(plan, mod, &ApplyOpts{
-				PolicyClient:  applyPolicyClient,
-				PolicyResults: policyResults,
+				PolicyClient: applyPolicyClient,
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range policyResults.Iter() {
+			for _, result := range hook.PolicyResults {
 				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
@@ -1676,10 +1678,12 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}
 
+			hook := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider("test")),
 				},
+				Hooks: []Hook{hook},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1694,15 +1698,13 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
-			policyResults := plans.NewPolicyResults()
 			_, diags = ctx.Apply(plan, mod, &ApplyOpts{
-				PolicyClient:  applyPolicyClient,
-				PolicyResults: policyResults,
+				PolicyClient: applyPolicyClient,
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range policyResults.Iter() {
+			for _, result := range hook.PolicyResults {
 				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)

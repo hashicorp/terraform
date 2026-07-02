@@ -235,9 +235,6 @@ type EvalContext interface {
 	// Absent if policy evaluation is not enabled.
 	PolicyClient() policy.Client
 
-	// PolicyResults returns the object that tracks policy evaluation results.
-	PolicyResults() plans.PolicyResult
-
 	Config() *configs.Config
 
 	// Deprecations returns the deprecations object that tracks meta-information

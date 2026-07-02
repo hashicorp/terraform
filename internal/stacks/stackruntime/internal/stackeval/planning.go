@@ -211,13 +211,13 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)
 	diags = diags.Append(moreDiags)
 
-	if plan != nil {
-		// Report policy results if we have any
-		if plan.PolicyResults.Len() > 0 {
+	for _, hook := range tfHooks {
+		if componentHook, ok := hook.(*componentInstanceTerraformHook); ok {
 			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
 				Addr:          scope.Addr(),
-				PolicyResults: plan.PolicyResults,
+				PolicyResults: componentHook.policyResults,
 			})
+
 		}
 	}
 

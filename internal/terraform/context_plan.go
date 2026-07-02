@@ -169,10 +169,6 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
-
-	// PolicyResults when nil, a buffered *PolicyResults is created and
-	// attached to the resulting plan (used by stacks currently).
-	PolicyResults plans.PolicyResult
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -806,17 +802,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// Hold reference to this so we can store the table data in the plan file.
 	funcResults := lang.NewFunctionResultsTable(nil)
 
-	// The sink that policy evaluation results are written to. If the caller
-	// injected one (e.g. a streaming sink), use it and don't retain results on
-	// the plan; otherwise buffer into a *PolicyResults attached to the plan currently
-	// kept as being used in stacks
-	var bufferedPolicyResults *plans.PolicyResults
-	policyResults := opts.PolicyResults
-	if policyResults == nil {
-		bufferedPolicyResults = plans.NewPolicyResults()
-		policyResults = bufferedPolicyResults
-	}
-
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
 		InputState:                 prevRunState,
@@ -831,7 +816,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Forget:                     opts.Forget,
 		ProviderLocks:              opts.ProviderLocks,
 		PolicyClient:               opts.PolicyClient,
-		PolicyResults:              policyResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -912,10 +896,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		FunctionResults:    funcResults.GetHashes(),
 		// Other fields get populated by Context.Plan after we return
 	}
-
-	// Only the buffered sink is retained on the plan, a streaming sink keeps
-	// nothing (results were rendered live during the walk).
-	plan.PolicyResults = bufferedPolicyResults
 
 	if !schemaDiags.HasErrors() {
 		deferredResources, deferredDiags := c.deferredResources(schemas, walker.Deferrals.GetDeferredChanges())
