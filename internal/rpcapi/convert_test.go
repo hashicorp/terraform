@@ -5,6 +5,7 @@ package rpcapi
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -671,7 +672,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				ComponentInstanceAddr: componentAddr.String(),
 			}
 
-			got := componentInstancePolicyEvaluationProto(componentAddr, tc.policyResults())
+			got := componentInstancePolicyEvaluationProto(componentAddr, maps.Collect(tc.policyResults().Iter()))
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)

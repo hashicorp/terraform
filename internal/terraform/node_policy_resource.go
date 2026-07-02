@@ -99,9 +99,6 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 			return h.PolicyResult(n.ResourceAddr.String(), eval)
 		})
 	}
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
-	}
 	return diags
 }
 

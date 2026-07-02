@@ -242,24 +242,16 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		},
 	})
 
-	// if this was an "implicit provider", and we have no configuration
-	// for it, there will be no source information for any diagnostics.
-	var rng hcl.Range
-	if n.Config != nil {
-		rng = n.Config.DeclRange
-	}
-
 	if !result.Empty() {
 		ctx.Hook(func(h Hook) (HookAction, error) {
 			eval := plans.PolicyEvaluation{EvaluationResponse: result}
+			// if this was an "implicit provider", and we have no configuration
+			// for it, there will be no source information for any diagnostics.
 			if n.Config != nil {
 				eval.ConfigDeclRange = n.Config.DeclRange
 			}
 			return h.PolicyResult(n.Addr.String(), eval)
 		})
-	}
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddProvider(n.Addr, result, rng)
 	}
 
 	return nil

@@ -394,9 +394,6 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 			return h.PolicyResult(n.Addr.String(), eval)
 		})
 	}
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddModule(n.Addr, result, n.ModuleCall)
-	}
 
 	return nil
 }
