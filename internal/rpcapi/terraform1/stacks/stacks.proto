@@ -262,7 +262,8 @@ message PlanStackChanges {
     optional string tfpolicy_plugin_path = 8;
 
     // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
-    repeated string policy_paths = 9; 
+    repeated string policy_paths = 9;
+    PolicyEntitlement policy_entitlement = 10;
   }
   message Event {
     oneof event {
@@ -341,6 +342,7 @@ message ApplyStackChanges {
 
     // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
     repeated string policy_paths = 10;
+    PolicyEntitlement policy_entitlement = 11;
 
     reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
   }
@@ -1177,4 +1179,10 @@ enum EvaluateResult {
 message ExpressionValue {
   AttributePath traversal = 1;
   bytes value = 2;
+}
+
+message PolicyEntitlement { 
+  string host  = 1;
+  string token = 2;
+  string org   = 3;
 }
