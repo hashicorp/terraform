@@ -331,6 +331,7 @@ func (b *PlanGraphBuilder) initPlan() {
 	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
 			NodeAbstractProvider: a,
+			preDestroyRefresh:    b.preDestroyRefresh,
 		}
 	}
 

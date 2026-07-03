@@ -21,6 +21,10 @@ import (
 // NodeApplyableProvider represents a provider during an apply.
 type NodeApplyableProvider struct {
 	*NodeAbstractProvider
+
+	// preDestroyRefresh indicates that this node belongs to the refresh walk
+	// that runs immediately before a destroy plan.
+	preDestroyRefresh bool
 }
 
 var (
@@ -230,6 +234,14 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		return nil
 	}
 
+	if n.preDestroyRefresh {
+		// The destroy walk that follows this pre-destroy refresh evaluates and
+		// reports provider policy itself, so evaluating it here as well would
+		// stream the same result to the hooks twice.
+		log.Printf("[DEBUG] Skipping provider policy evaluation during pre-destroy refresh for %s", n.Addr)
+		return nil
+	}
+
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
 		Attrs:  policy.CtyToPolicyValue(attrs),
@@ -242,14 +254,23 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		},
 	})
 
+	// Annotate the result diagnostics and enforcements with the local range of
+	// the provider config block.
+	var rng hcl.Range
+	if n.Config != nil {
+		rng = n.Config.DeclRange
+		ptr := rng.Ptr()
+		for idx, diag := range result.Diagnostics {
+			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
+		}
+		for idx := range result.Enforcements {
+			result.Enforcements[idx].LocalRange = ptr
+		}
+	}
+
 	if !result.Empty() {
 		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result}
-			// if this was an "implicit provider", and we have no configuration
-			// for it, there will be no source information for any diagnostics.
-			if n.Config != nil {
-				eval.ConfigDeclRange = n.Config.DeclRange
-			}
+			eval := plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng}
 			return h.PolicyResult(n.Addr.String(), eval)
 		})
 	}
