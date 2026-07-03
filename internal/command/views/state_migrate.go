@@ -43,7 +43,8 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.view.streams.Println(fmt.Sprintf(message, params...))
+	msg := s.view.colorize.Color(fmt.Sprintf(message, params...))
+	s.view.streams.Println(msg)
 }
 
 // Implements Spacer

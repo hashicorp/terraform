@@ -276,7 +276,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Log("Migrating state from %s to %s...", source, destination)
+	view.Log("[reset][bold]Migrating state from %s to %s...[reset]", source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
@@ -324,7 +324,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	view.Diagnostics(diags) // Log any warnings
 
-	view.Log("Finished migrating state from %s to %s...", source, destination)
+	view.Log("[reset][bold]Finished migrating state from %s to %s...[reset]", source, destination)
 
 	return 0
 }
