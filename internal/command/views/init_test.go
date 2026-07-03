@@ -132,7 +132,7 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.StreamPolicyResult(
+	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
 		plans.PolicyEvaluation{
 			EvaluationResponse: policy.EvaluationResponse{
@@ -210,7 +210,7 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.StreamPolicyResult(
+	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
 		plans.PolicyEvaluation{
 			EvaluationResponse: policy.EvaluationResponse{
@@ -241,7 +241,7 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.StreamPolicyResult(
+	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
 		plans.PolicyEvaluation{
 			EvaluationResponse: policy.EvaluationResponse{

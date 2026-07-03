@@ -117,7 +117,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 			result.Enforcements[idx].LocalRange = ptr
 		}
 	}
-	h.view.StreamPolicyResult(
+	h.view.PolicyResult(
 		req.Path.String(),
 		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
 	)
@@ -187,7 +187,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 			result.Enforcements[idx].LocalRange = rng.Ptr()
 		}
 	}
-	p.view.StreamPolicyResult(
+	p.view.PolicyResult(
 		addr.String(),
 		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
 	)

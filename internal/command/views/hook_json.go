@@ -50,7 +50,7 @@ type jsonHook struct {
 }
 
 func (h *jsonHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
-	h.view.StreamPolicyResult(addr, result)
+	h.view.PolicyResult(addr, result)
 	return terraform.HookActionContinue, nil
 }
 

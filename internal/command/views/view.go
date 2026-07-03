@@ -127,14 +127,14 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 	}
 }
 
-// StreamPolicyDiagnostics renders policy diagnostics that are not tied to a
+// PolicyDiagnostics renders policy diagnostics that are not tied to a
 // specific target, such as setup diagnostics (e.g. a failure to connect to
 // the policy engine).
-func (v *View) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+func (v *View) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.Diagnostics(diags.AsTerraformDiags())
 }
 
-func (v *View) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
+func (v *View) PolicyResult(addr string, result plans.PolicyEvaluation) {
 	configSources := v.configSources()
 	var buf strings.Builder
 	var foundInfo bool

@@ -36,9 +36,9 @@ type Operation interface {
 
 	Diagnostics(diags tfdiags.Diagnostics)
 
-	StreamPolicyDiagnostics(diags policy.Diagnostics)
+	PolicyDiagnostics(diags policy.Diagnostics)
 
-	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
+	PolicyResult(addr string, result plans.PolicyEvaluation)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -136,12 +136,12 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 }
 
-func (v *OperationHuman) StreamPolicyDiagnostics(diags policy.Diagnostics) {
-	v.view.StreamPolicyDiagnostics(diags)
+func (v *OperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.StreamPolicyResult(addr, result)
+func (v *OperationHuman) PolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.PolicyResult(addr, result)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -303,12 +303,12 @@ func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *OperationJSON) StreamPolicyDiagnostics(diags policy.Diagnostics) {
-	v.view.StreamPolicyDiagnostics(diags)
+func (v *OperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.StreamPolicyResult(addr, result)
+func (v *OperationJSON) PolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.view.PolicyResult(addr, result)
 }
 
 const fatalInterrupt = `

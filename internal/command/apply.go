@@ -109,7 +109,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		// we still proceed with the operation, as a failure to set up the policy client
 		// should not prevent the apply operation from running
 		if opReq.View != nil && policyDiags != nil {
-			opReq.View.StreamPolicyDiagnostics(policyDiags)
+			opReq.View.PolicyDiagnostics(policyDiags)
 		}
 		opReq.PolicyClient = client
 		defer stopClient()

@@ -318,7 +318,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		defer stopClient()
 		// Stream any policy setup diagnostics (e.g. a failure to connect to the
 		// policy engine).
-		view.StreamPolicyDiagnostics(policyDiags)
+		view.PolicyDiagnostics(policyDiags)
 		if policyDiags.HasErrors() {
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)

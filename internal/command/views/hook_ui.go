@@ -57,7 +57,7 @@ var _ terraform.Hook = (*UiHook)(nil)
 func (h *UiHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
 	h.viewLock.Lock()
 	defer h.viewLock.Unlock()
-	h.view.StreamPolicyResult(addr, result)
+	h.view.PolicyResult(addr, result)
 	return terraform.HookActionContinue, nil
 }
 
