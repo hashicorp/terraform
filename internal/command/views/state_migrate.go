@@ -43,7 +43,7 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
-	msg := s.view.colorize.Color(fmt.Sprintf(message, params...))
+	msg := s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message, params...)))
 	s.view.streams.Println(msg)
 }
 
