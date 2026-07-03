@@ -88,8 +88,7 @@ type graphWalkOpts struct {
 
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
-	PolicyClient  policy.Client
-	PolicyResults *plans.PolicyResults
+	PolicyClient policy.Client
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -213,7 +212,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		Forget:                  opts.Forget,
 		ProviderLocks:           opts.ProviderLocks,
 		PolicyClient:            opts.PolicyClient,
-		PolicyResults:           opts.PolicyResults,
 		Deprecations:            deprecation.NewDeprecations(),
 		contexts:                collections.NewMap[evalContextScope, *BuiltinEvalContext](),
 		providerCache:           make(map[string]providers.Interface),

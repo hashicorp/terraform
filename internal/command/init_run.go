@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -317,7 +316,9 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
 		defer stopClient()
-		view.PolicyResults(nil, policyDiags)
+		// Stream any policy setup diagnostics (e.g. a failure to connect to the
+		// policy engine).
+		view.PolicyDiagnostics(policyDiags)
 		if policyDiags.HasErrors() {
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)
@@ -325,11 +326,10 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			return 1
 		}
 	}
-	policyResults := plans.NewPolicyResults()
 	providerHook := &providerPolicyHook{
-		client:        policyClient,
-		policyResults: policyResults,
-		rootModule:    rootModEarly,
+		client:     policyClient,
+		view:       view,
+		rootModule: rootModEarly,
 	}
 
 	var state *states.State
@@ -362,9 +362,8 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	if initArgs.Get {
-		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, policyClient)
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, policyClient)
 		diags = diags.Append(modsDiags)
-		view.PolicyResults(policyResults, nil)
 		if modsAbort || modsDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
@@ -441,7 +440,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
-		view.PolicyResults(policyResults, nil)
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -474,7 +472,6 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
-	view.PolicyResults(policyResults, nil)
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage

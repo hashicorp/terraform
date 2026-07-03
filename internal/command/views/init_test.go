@@ -132,31 +132,29 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
-		policy.EvaluationResponse{
-			Overall: policy.DenyResult,
-			Diagnostics: policy.Diagnostics{
-				policy.NewErrorDiagnostic(
-					"module policy denied",
-					"module policy blocked installation",
-					policy.DenyResult,
-				),
-			},
-			Policies: []*policy.Policy{
-				{
-					Address:          "module_policy.example",
-					Filename:         "policy_file.tfpolicy.hcl",
-					EnforcementLevel: "mandatory",
-					Result:           policy.DenyResult,
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
+		plans.PolicyEvaluation{
+			EvaluationResponse: policy.EvaluationResponse{
+				Overall: policy.DenyResult,
+				Diagnostics: policy.Diagnostics{
+					policy.NewErrorDiagnostic(
+						"module policy denied",
+						"module policy blocked installation",
+						policy.DenyResult,
+					),
+				},
+				Policies: []*policy.Policy{
+					{
+						Address:          "module_policy.example",
+						Filename:         "policy_file.tfpolicy.hcl",
+						EnforcementLevel: "mandatory",
+						Result:           policy.DenyResult,
+					},
 				},
 			},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -212,23 +210,21 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
-		policy.EvaluationResponse{
-			Overall: policy.DenyResult,
-			Diagnostics: policy.Diagnostics{
-				policy.NewErrorDiagnostic(
-					"module policy denied",
-					"module policy blocked installation",
-					policy.DenyResult,
-				),
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
+		plans.PolicyEvaluation{
+			EvaluationResponse: policy.EvaluationResponse{
+				Overall: policy.DenyResult,
+				Diagnostics: policy.Diagnostics{
+					policy.NewErrorDiagnostic(
+						"module policy denied",
+						"module policy blocked installation",
+						policy.DenyResult,
+					),
+				},
 			},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	actual := done(t).All()
 	expected := "\nError: module policy denied\n\nmodule policy blocked installation\n"
@@ -245,23 +241,21 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
-		policy.EvaluationResponse{
-			Overall: policy.AllowResult,
-			Enforcements: []policy.EnforcementResult{{
-				Result:  policy.AllowResult,
-				Message: "module policy allowed installation",
-				Policy: &policy.Policy{
-					Address: "module_policy.example",
-				},
-			}},
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
+		plans.PolicyEvaluation{
+			EvaluationResponse: policy.EvaluationResponse{
+				Overall: policy.AllowResult,
+				Enforcements: []policy.EnforcementResult{{
+					Result:  policy.AllowResult,
+					Message: "module policy allowed installation",
+					Policy: &policy.Policy{
+						Address: "module_policy.example",
+					},
+				}},
+			},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	actual := done(t).Stdout()
 	if !strings.Contains(actual, "Policy Info:") {

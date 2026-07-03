@@ -5149,15 +5149,14 @@ func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRe
 			mu.Lock()
 			defer mu.Unlock()
 
-			results := maps.Collect(data.PolicyResults.Iter())
 			existingResults, ok := gotPolicyResults[data.Addr.String()]
 			if !ok {
-				gotPolicyResults[data.Addr.String()] = results
+				gotPolicyResults[data.Addr.String()] = data.PolicyResults
 				return
 			}
 
 			// Merge the two results together
-			for key, result := range results {
+			for key, result := range data.PolicyResults {
 				existingResults[key] = result
 			}
 			gotPolicyResults[data.Addr.String()] = existingResults

@@ -36,6 +36,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 	type data struct {
 		config          *configs.Config
 		plan            *plans.Plan
+		viewHook        *testHook
 		state           *states.State
 		diags           tfdiags.Diagnostics
 		policy          *policy.MockClient
@@ -1083,7 +1084,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				tfdiags.AssertNoDiagnostics(t, d.diags)
 
 				var gotResults int
-				for addr, result := range d.plan.PolicyResults.Iter() {
+				for addr, result := range d.viewHook.PolicyResults {
 					gotResults++
 					if addr != "module.child.test_resource.test" {
 						t.Fatalf("Expected policy result for module.child.test_resource.test, got %q", addr)
@@ -1133,9 +1134,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			// mock expectations
 			policyClient := policy.NewTestMockClient(t)
 			data := &data{
-				config: mod,
-				state:  state,
-				policy: policyClient,
+				config:   mod,
+				state:    state,
+				policy:   policyClient,
+				viewHook: &testHook{},
 			}
 			planMode := tc.planMode
 			if planMode == 0 {
@@ -1151,6 +1153,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					providerAddr: testProviderFuncFixed(provider),
 				},
 				Parallelism: 1,
+				Hooks:       []Hook{data.viewHook},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1171,7 +1174,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				t.Fatalf("expected %d resource policy evaluation call(s), got %d", tc.expectCalls, data.policyEvalCalls)
 			}
 
-			for _, result := range plan.PolicyResults.Iter() {
+			for _, result := range data.viewHook.PolicyResults {
 				data.diags = data.diags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
 			if tc.assertPolicyResults != nil {
@@ -1533,11 +1536,13 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
 		Parallelism: 4,
+		Hooks:       []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1557,7 +1562,7 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
+	for _, result := range h.PolicyResults {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
@@ -1701,14 +1706,16 @@ resource_policy "test_resource" "policy_name" {
 
 	policyClient := policy.NewTestMockClient(t)
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
@@ -1720,7 +1727,7 @@ resource_policy "test_resource" "policy_name" {
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
+	for _, result := range h.PolicyResults {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
@@ -1775,14 +1782,16 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
@@ -1792,7 +1801,7 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
+	for _, result := range h.PolicyResults {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 
@@ -1928,14 +1937,16 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
@@ -1943,7 +1954,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
+	for _, result := range h.PolicyResults {
 		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
@@ -2101,10 +2112,12 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 				}
 			}
 
+			h := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
 				},
+				Hooks: []Hook{h},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -2128,7 +2141,7 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 	`,
 				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
 			})
-			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: tc.deferralAllowed,
 				PolicyClient:    mockPolicyClient,
@@ -2136,7 +2149,7 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range plan.PolicyResults.Iter() {
+			for _, result := range h.PolicyResults {
 				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
@@ -2301,10 +2314,12 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}
 
+			h := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider("test")),
 				},
+				Hooks: []Hook{h},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -2312,7 +2327,7 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				"main.tf":           tc.config,
 				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
 			})
-			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: true,
 				PolicyClient:    mockPolicyClient,
@@ -2320,7 +2335,7 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range plan.PolicyResults.Iter() {
+			for _, result := range h.PolicyResults {
 				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
