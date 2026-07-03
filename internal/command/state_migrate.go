@@ -335,7 +335,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	view.Diagnostics(diags) // Log any warnings
 
-	view.Log("[reset][bold]Finished migrating state from %s to %s...[reset]", source, destination)
+	view.Log("[reset][bold]Finished migrating state from %s to %s.[reset]", source, destination)
 
 	return 0
 }

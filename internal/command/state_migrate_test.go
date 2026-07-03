@@ -47,7 +47,7 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 		t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Finished migrating state from backend "local" to backend "local"...`
+	expectedMsg := `Finished migrating state from backend "local" to backend "local".`
 	if !strings.Contains(out.Stdout(), expectedMsg) {
 		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
 	}
