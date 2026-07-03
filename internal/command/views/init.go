@@ -29,6 +29,7 @@ type ProviderInstaller interface {
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 	StreamPolicyResult(addr string, result plans.PolicyEvaluation)
+	StreamPolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
@@ -66,8 +67,8 @@ func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *InitHuman) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.StreamPolicyDiagnostics(diags)
 }
 
 func (v *InitHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
@@ -117,8 +118,8 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *InitJSON) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.StreamPolicyDiagnostics(diags)
 }
 
 func (v *InitJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {

@@ -191,18 +191,12 @@ func (v *JSONView) StreamPolicyResult(addr string, result plans.PolicyEvaluation
 	v.logPolicyResult(addr, result)
 }
 
-func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-
-	for _, diag := range setupDiags {
+// StreamPolicyDiagnostics logs policy diagnostics that are not tied to a specific
+// target, such as setup diagnostics (e.g. a failure to connect to the policy
+// engine), so no target address is attached.
+func (v *JSONView) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+	for _, diag := range diags {
 		v.logPolicyDiagnostic(diag)
-	}
-
-	if results == nil {
-		return
-	}
-
-	for addr, result := range results.Iter() {
-		v.logPolicyResult(addr, result)
 	}
 }
 

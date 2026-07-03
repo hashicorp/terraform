@@ -98,8 +98,8 @@ func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *QueryOperationHuman) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *QueryOperationHuman) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.StreamPolicyDiagnostics(diags)
 }
 
 func (v *QueryOperationHuman) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
@@ -145,8 +145,8 @@ func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *QueryOperationJSON) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	v.view.PolicyResults(results, setupDiags)
+func (v *QueryOperationJSON) StreamPolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.StreamPolicyDiagnostics(diags)
 }
 
 func (v *QueryOperationJSON) StreamPolicyResult(addr string, result plans.PolicyEvaluation) {
