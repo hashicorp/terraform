@@ -21,6 +21,11 @@ type Query struct {
 	// the found resources in the query and which path the generated file should
 	// be written to.
 	GenerateConfigPath string
+
+	// EXPERIMENTAL
+	// PolicyPaths contains optional paths to policy set directories that should
+	// be evaluated during this query operation.
+	PolicyPaths []string
 }
 
 func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
@@ -40,6 +45,8 @@ func ParseQuery(args []string) (*Query, tfdiags.Diagnostics) {
 	query.Vars.varFiles = &varFilesFlags
 	cmdFlags.Var(query.Vars.vars, "var", "var")
 	cmdFlags.Var(query.Vars.varFiles, "var-file", "var-file")
+
+	cmdFlags.Var((*FlagStringSlice)(&query.PolicyPaths), "policies", "policies")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

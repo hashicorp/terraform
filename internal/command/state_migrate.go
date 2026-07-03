@@ -6,13 +6,16 @@ package command
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -67,6 +70,9 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		stateMigrate.Diagnostics(diags)
 		return 1
 	}
+	if cfg.Module.StateStore != nil {
+		cfg.Module.StateStore.ProviderSupplyMode = c.getProviderSupplyModeForStateStore(cfg.Module)
+	}
 
 	smi := cfg.Module.StateMigrationInstructions
 	if smi == nil {
@@ -79,8 +85,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// TODO: Account for cases where lock entries are missing
-
+	// When configuring the source and destination backends,
+	// we prepare options for the migration action.
 	migrateOpts := &backendMigrateOpts{
 		ViewType: args.ViewType,
 	}
@@ -129,15 +135,37 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	// Load the destination backend
 	rootMod := cfg.Module
 	var destination string
-	var destinationLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
+	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
+	var bsf *workdir.BackendStateFile = workdir.NewBackendStateFile() // Collect data below for updating the backend state file.
 	if rootMod.Backend != nil {
 		destination = fmt.Sprintf("backend %q", rootMod.Backend.Type)
 
-		dstB, _, dstDiags := c.Meta.backendInitFromConfig(rootMod.Backend)
+		dstB, dstConfig, dstDiags := c.Meta.backendInitFromConfig(rootMod.Backend)
 		diags = diags.Append(dstDiags)
 		if !diags.HasErrors() {
+			// Assign migration options for the migration action later in the command
 			migrateOpts.DestinationType = rootMod.Backend.Type
 			migrateOpts.Destination = dstB
+
+			// Capture details of the destination backend for updating the backend state file after a successful migration.
+			_, cHash, bcDiags := c.backendConfig(&BackendOpts{
+				BackendConfig: rootMod.Backend,
+			})
+			diags = diags.Append(bcDiags)
+			if bcDiags.HasErrors() {
+				stateMigrate.Diagnostics(diags)
+				return 1
+			}
+			bsf.Backend = &workdir.BackendConfigState{
+				Type: rootMod.Backend.Type,
+				Hash: uint64(cHash),
+			}
+			err := bsf.Backend.SetConfig(dstConfig, dstB.ConfigSchema())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
+				stateMigrate.Diagnostics(diags)
+				return 1
+			}
 		}
 	} else if rootMod.StateStore != nil {
 		destination = fmt.Sprintf("state store %q (%s)", rootMod.StateStore.Type,
@@ -187,12 +215,54 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 
-		dstB, _, _, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
+		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
 		diags = diags.Append(dstDiags)
 		if !diags.HasErrors() {
 			migrateOpts.DestinationType = rootMod.StateStore.Type
 			migrateOpts.Destination = dstB
 		}
+
+		// Capture details of the destination state store for updating the backend state file after a successful migration.
+		_, cHash, sscDiags := c.stateStoreConfig(&BackendOpts{
+			StateStoreConfig: rootMod.StateStore,
+			Locks:            destinationLock,
+		})
+		diags = diags.Append(sscDiags)
+		if sscDiags.HasErrors() {
+			stateMigrate.Diagnostics(diags)
+			return 1
+		}
+		v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
+		version, err := providerreqs.GoVersionFromVersion(v)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
+			stateMigrate.Diagnostics(diags)
+			return 1
+		}
+
+		bsf.StateStore = &workdir.StateStoreConfigState{
+			Type: rootMod.StateStore.Type,
+			Hash: uint64(cHash),
+			Provider: &workdir.ProviderConfigState{
+				Source:  &rootMod.StateStore.ProviderAddr,
+				Version: version,
+			},
+			ProviderSupplyMode: rootMod.StateStore.ProviderSupplyMode,
+		}
+		err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
+			stateMigrate.Diagnostics(diags)
+			return 1
+		}
+
+		err = bsf.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
+			stateMigrate.Diagnostics(diags)
+			return 1
+		}
+
 	} else {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -238,7 +308,15 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 	}
 
-	stateMigrate.Diagnostics(diags)
+	// Success, so update backend state file to reflect the new location state is stored in.
+	bsfDiags := c.updateBackendStateFile(bsf)
+	diags = diags.Append(bsfDiags)
+	if bsfDiags.HasErrors() {
+		stateMigrate.Diagnostics(diags)
+		return 1
+	}
+
+	stateMigrate.Diagnostics(diags) // Log any warnings
 
 	stateMigrate.Log("Finished migrating state from %s to %s...", source, destination)
 
@@ -278,6 +356,28 @@ const (
 	MigrationSource      = "source"
 	MigrationDestination = "destination"
 )
+
+func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load the backend state file when preparing to update it: %s", err))
+		return diags
+	}
+
+	if err := sMgr.WriteState(s); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return diags
+	}
+	if err := sMgr.PersistState(); err != nil {
+		diags = diags.Append(errBackendWriteSavedDiag(err))
+		return diags
+	}
+
+	return diags
+}
 
 func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provider addrs.Provider, configReqs *configs.RequiredProviders) (providerreqs.Requirements, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
