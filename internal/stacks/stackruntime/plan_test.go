@@ -7029,10 +7029,8 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		// The module runtime currently does not evaluate resource policies during refresh, only module policies
-		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
-		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
-
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7361,7 +7359,7 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 			t.Fatalf(`unexpected resource evaluated, wanted: testing_resource, got: %q`, req.Target)
 		}
 
-		// If we're creating, validate the attr data
+		// validate the attr data if it exists
 		if req.PriorAttrs.Raw.IsNull() {
 			if req.Attrs.Raw == cty.NilVal || req.Attrs.Raw.IsNull() {
 				t.Fatal(`unexpected resource data, wanted: attr.value to start with "hello", attrs was <null>`)
@@ -7369,11 +7367,6 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 			val := req.Attrs.Raw.GetAttr("value")
 			if !strings.HasPrefix(val.AsString(), "hello") {
 				t.Fatalf(`unexpected resource data, wanted: attr.value to start with "hello", got: %q`, val.AsString())
-			}
-		} else {
-			// Otherwise, assume we're destroying (since we have no tests exercising updates)
-			if !req.Attrs.Raw.IsNull() {
-				t.Fatalf(`unexpected resource data, wanted: <null>, got: %s`, req.Attrs.Raw.GoString())
 			}
 		}
 

@@ -51,6 +51,7 @@ enum Operation {
   CREATE = 0;
   UPDATE = 1;
   DELETE = 2;
+  NO_OP = 3;
 }
 
 message ResourceAttributes {

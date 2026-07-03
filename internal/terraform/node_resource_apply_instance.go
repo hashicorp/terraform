@@ -267,8 +267,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// If there is no change, there was nothing to apply, and we don't need to
-	// re-write the state, but we do need to re-evaluate postconditions.
+	// re-write the state, but we do need to re-evaluate postconditions and
+	// still evaluate policy against the final state.
 	if diffApply.Action == plans.NoOp {
+		n.addPolicyNode(ctx, diffApply, state)
+
 		return diags.Append(n.managedResourcePostconditions(ctx, repData))
 	}
 
@@ -290,17 +293,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	} else {
 		// We only add a policy node if the apply was successful.
-		if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-			// The resource has been applied, so we add a policy node to send its data
-			// for policy evaluation.
-			policyGraph.Add(&nodeResourcePolicy{
-				ResourceAddr: diffApply.Addr,
-				ProviderAddr: diffApply.ProviderAddr,
-				Before:       diffApply.Before,
-				After:        state.Value,
-				Action:       diffApply.Action,
-			})
-		}
+		n.addPolicyNode(ctx, diffApply, state)
 	}
 
 	// We clear the change out here so that future nodes don't see a change

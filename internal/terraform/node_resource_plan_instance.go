@@ -525,6 +525,21 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		)
 		diags = diags.Append(checkDiags)
 
+		// We also need to send refreshed objects to the policy.
+		if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+			value := cty.NilVal
+			if instanceRefreshState != nil {
+				value = instanceRefreshState.Value
+			}
+			policyGraph.Add(&nodeResourcePolicy{
+				ResourceAddr: n.ResourceInstanceAddr(),
+				ProviderAddr: n.ResolvedProvider,
+				Before:       value,
+				After:        value,
+				Action:       plans.NoOp,
+			})
+		}
+
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
 		// any output values referring to this will not react to the drift.

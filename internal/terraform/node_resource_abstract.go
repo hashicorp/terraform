@@ -12,9 +12,11 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -641,6 +643,32 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 	}
 
 	return obj, diags
+}
+
+func (n *NodeAbstractResource) addPolicyNode(
+	ctx EvalContext,
+	change *plans.ResourceInstanceChange,
+	state *states.ResourceInstanceObject) {
+	if change == nil {
+		return
+	}
+
+	policyGraph := ctx.PolicyGraph()
+	if policyGraph == nil {
+		return
+	}
+
+	after := cty.NilVal
+	if state != nil {
+		after = state.Value
+	}
+	policyGraph.Add(&nodeResourcePolicy{
+		ResourceAddr: change.Addr,
+		ProviderAddr: change.ProviderAddr,
+		Before:       change.Before,
+		After:        after,
+		Action:       change.Action,
+	})
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an

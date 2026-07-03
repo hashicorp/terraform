@@ -114,6 +114,7 @@ const (
 	Operation_CREATE Operation = 0
 	Operation_UPDATE Operation = 1
 	Operation_DELETE Operation = 2
+	Operation_NO_OP  Operation = 3
 )
 
 // Enum value maps for Operation.
@@ -122,11 +123,13 @@ var (
 		0: "CREATE",
 		1: "UPDATE",
 		2: "DELETE",
+		3: "NO_OP",
 	}
 	Operation_value = map[string]int32{
 		"CREATE": 0,
 		"UPDATE": 1,
 		"DELETE": 2,
+		"NO_OP":  3,
 	}
 )
 
@@ -380,14 +383,15 @@ const file_types_proto_rawDesc = "" +
 	"\x15ERROR_EVALUATE_RESULT\x10\x02\x12\x19\n" +
 	"\x15ALLOW_EVALUATE_RESULT\x10\x03\x12\x18\n" +
 	"\x14DENY_EVALUATE_RESULT\x10\x04\x12\x1f\n" +
-	"\x1bSETUP_ERROR_EVALUATE_RESULT\x10\x05*/\n" +
+	"\x1bSETUP_ERROR_EVALUATE_RESULT\x10\x05*:\n" +
 	"\tOperation\x12\n" +
 	"\n" +
 	"\x06CREATE\x10\x00\x12\n" +
 	"\n" +
 	"\x06UPDATE\x10\x01\x12\n" +
 	"\n" +
-	"\x06DELETE\x10\x02B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\x06DELETE\x10\x02\x12\t\n" +
+	"\x05NO_OP\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_types_proto_rawDescOnce sync.Once
