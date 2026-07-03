@@ -5,7 +5,6 @@ package stackeval
 
 import (
 	"context"
-	"iter"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -319,16 +318,6 @@ func (h *componentInstanceTerraformHook) collectedPolicyResults() map[string]pla
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.policyResults
-}
-
-func (h *componentInstanceTerraformHook) policyResultsSeq() iter.Seq2[string, plans.PolicyEvaluation] {
-	return func(yield func(string, plans.PolicyEvaluation) bool) {
-		for addr, result := range h.policyResults {
-			if !yield(addr, result) {
-				return
-			}
-		}
-	}
 }
 
 // policyResultCollector is implemented by the Terraform hooks that accumulate
