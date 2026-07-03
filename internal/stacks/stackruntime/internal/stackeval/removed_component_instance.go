@@ -151,6 +151,9 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 				seq:   seq,
 				hooks: hooksFromContext(ctx),
 				addr:  r.Addr(),
+				// A removed component is a destroy; module policies evaluated
+				// during the pre-destroy refresh are intentionally not reported.
+				skipModulePolicies: true,
 			},
 		}, r)
 		if plan != nil {

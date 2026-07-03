@@ -210,20 +210,20 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
-		policy.EvaluationResponse{
-			Overall: policy.DenyResult,
-			Diagnostics: policy.Diagnostics{
-				policy.NewErrorDiagnostic(
-					"module policy denied",
-					"module policy blocked installation",
-					policy.DenyResult,
-				),
+	newInit.StreamPolicyResult(
+		addrs.RootModule.Child("example").String(),
+		plans.PolicyEvaluation{
+			EvaluationResponse: policy.EvaluationResponse{
+				Overall: policy.DenyResult,
+				Diagnostics: policy.Diagnostics{
+					policy.NewErrorDiagnostic(
+						"module policy denied",
+						"module policy blocked installation",
+						policy.DenyResult,
+					),
+				},
 			},
 		},
-		nil,
 	)
 
 	actual := done(t).All()

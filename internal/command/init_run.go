@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -316,6 +317,11 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		var stopClient func()
 		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
 		defer stopClient()
+		// Stream any policy setup diagnostics (e.g. a failure to connect to the
+		// policy engine).
+		view.StreamPolicyResult("", plans.PolicyEvaluation{
+			EvaluationResponse: policy.EvaluationResponse{Diagnostics: policyDiags},
+		})
 		if policyDiags.HasErrors() {
 			diags = diags.Append(earlyConfDiags)
 			diags = diags.Append(backDiags)

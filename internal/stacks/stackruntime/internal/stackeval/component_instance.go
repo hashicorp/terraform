@@ -291,6 +291,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						seq:   seq,
 						hooks: hooksFromContext(ctx),
 						addr:  c.Addr(),
+						// This is the destroy half of a full destroy; module
+						// policies are reported by the separate refresh plan.
+						skipModulePolicies: true,
 					},
 				}, c)
 				if plan != nil {

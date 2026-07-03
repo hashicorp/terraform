@@ -212,12 +212,14 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	diags = diags.Append(moreDiags)
 
 	for _, hook := range tfHooks {
-		if componentHook, ok := hook.(*componentInstanceTerraformHook); ok {
-			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
-				Addr:          scope.Addr(),
-				PolicyResults: componentHook.policyResults,
-			})
-
+		if collector, ok := hook.(policyResultCollector); ok {
+			// Only report policy results if we have any
+			if results := collector.collectedPolicyResults(); len(results) > 0 {
+				hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
+					Addr:          scope.Addr(),
+					PolicyResults: results,
+				})
+			}
 		}
 	}
 
