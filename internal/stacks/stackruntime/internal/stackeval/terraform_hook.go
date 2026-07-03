@@ -48,13 +48,6 @@ type componentInstanceTerraformHook struct {
 	actionInvocationProviderAddr addrs.Map[addrs.AbsActionInstance, addrs.Provider]
 
 	policyResults map[string]plans.PolicyEvaluation
-
-	// skipModulePolicies suppresses recording of module (call) policy results.
-	// It is set for destroy plans: for a full destroy the module policy results
-	// are reported by the separate pre-destroy refresh plan, and for a removed
-	// component the module policies evaluated during the pre-destroy refresh are
-	// intentionally not surfaced. Resource policy results are always recorded.
-	skipModulePolicies bool
 }
 
 var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
@@ -292,26 +285,11 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 func (h *componentInstanceTerraformHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.skipModulePolicies && isModulePolicyAddr(addr) {
-		return terraform.HookActionContinue, nil
-	}
 	if h.policyResults == nil {
 		h.policyResults = make(map[string]plans.PolicyEvaluation)
 	}
 	h.policyResults[addr] = result
 	return terraform.HookActionContinue, nil
-}
-
-// isModulePolicyAddr reports whether the given policy result address refers to a
-// module call (a module policy) rather than a resource (a resource policy).
-// Module policy addresses parse as a module instance; resource policy addresses
-// parse as a resource instance.
-func isModulePolicyAddr(addr string) bool {
-	if _, diags := addrs.ParseAbsResourceInstanceStr(addr); !diags.HasErrors() {
-		return false
-	}
-	_, diags := addrs.ParseModuleInstanceStr(addr)
-	return !diags.HasErrors()
 }
 
 func (h *componentInstanceTerraformHook) collectedPolicyResults() map[string]plans.PolicyEvaluation {
@@ -325,35 +303,6 @@ func (h *componentInstanceTerraformHook) collectedPolicyResults() map[string]pla
 // can report them once the plan completes.
 type policyResultCollector interface {
 	collectedPolicyResults() map[string]plans.PolicyEvaluation
-}
-
-// policyOnlyHook is a minimal terraform.Hook that only accumulates policy
-// evaluation results. It is used for the pre-destroy refresh plan, where we
-// want to capture (and later report) module policy results without emitting the
-// resource-lifecycle hooks that the full componentInstanceTerraformHook would.
-type policyOnlyHook struct {
-	terraform.NilHook
-
-	mu            sync.Mutex
-	policyResults map[string]plans.PolicyEvaluation
-}
-
-var _ policyResultCollector = (*policyOnlyHook)(nil)
-
-func (h *policyOnlyHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.policyResults == nil {
-		h.policyResults = make(map[string]plans.PolicyEvaluation)
-	}
-	h.policyResults[addr] = result
-	return terraform.HookActionContinue, nil
-}
-
-func (h *policyOnlyHook) collectedPolicyResults() map[string]plans.PolicyEvaluation {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	return h.policyResults
 }
 
 // actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation

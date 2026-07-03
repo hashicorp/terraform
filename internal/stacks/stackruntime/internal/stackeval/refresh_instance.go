@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -75,13 +74,7 @@ func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagno
 		// compatible with the destroy operation.
 		opts.PreDestroyRefresh = true
 
-		// The pre-destroy refresh is where module policies are evaluated for a
-		// full destroy, so we attach a policy-only hook to capture and report
-		// them. We deliberately avoid the full componentInstanceTerraformHook
-		// here so that we don't emit resource-lifecycle hooks during the refresh.
-		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, []terraform.Hook{
-			&policyOnlyHook{},
-		}, r.component)
+		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, nil, r.component)
 		return plan, diags.Append(moreDiags)
 	})
 }

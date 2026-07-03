@@ -21,10 +21,6 @@ import (
 // NodeApplyableProvider represents a provider during an apply.
 type NodeApplyableProvider struct {
 	*NodeAbstractProvider
-
-	// preDestroyRefresh indicates that this node belongs to the refresh walk
-	// that runs immediately before a destroy plan.
-	preDestroyRefresh bool
 }
 
 var (
@@ -231,14 +227,6 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
 	if ctx.PolicyClient() == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
-		return nil
-	}
-
-	if n.preDestroyRefresh {
-		// The destroy walk that follows this pre-destroy refresh evaluates and
-		// reports provider policy itself, so evaluating it here as well would
-		// stream the same result to the hooks twice.
-		log.Printf("[DEBUG] Skipping provider policy evaluation during pre-destroy refresh for %s", n.Addr)
 		return nil
 	}
 
