@@ -464,50 +464,6 @@ func (x *Snippet) GetHighlightEndOffset() int64 {
 	return 0
 }
 
-type AttributePath struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Steps         []*AttributePath_Step  `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AttributePath) Reset() {
-	*x = AttributePath{}
-	mi := &file_diagnostics_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AttributePath) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AttributePath) ProtoMessage() {}
-
-func (x *AttributePath) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AttributePath.ProtoReflect.Descriptor instead.
-func (*AttributePath) Descriptor() ([]byte, []int) {
-	return file_diagnostics_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *AttributePath) GetSteps() []*AttributePath_Step {
-	if x != nil {
-		return x.Steps
-	}
-	return nil
-}
-
 type ExpressionValue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// traversal is the path taken to reach this value in the object graph.
@@ -520,7 +476,7 @@ type ExpressionValue struct {
 
 func (x *ExpressionValue) Reset() {
 	*x = ExpressionValue{}
-	mi := &file_diagnostics_proto_msgTypes[6]
+	mi := &file_diagnostics_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +488,7 @@ func (x *ExpressionValue) String() string {
 func (*ExpressionValue) ProtoMessage() {}
 
 func (x *ExpressionValue) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[6]
+	mi := &file_diagnostics_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +501,7 @@ func (x *ExpressionValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExpressionValue.ProtoReflect.Descriptor instead.
 func (*ExpressionValue) Descriptor() ([]byte, []int) {
-	return file_diagnostics_proto_rawDescGZIP(), []int{6}
+	return file_diagnostics_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ExpressionValue) GetTraversal() *AttributePath {
@@ -571,7 +527,7 @@ type DiagnosticResult struct {
 
 func (x *DiagnosticResult) Reset() {
 	*x = DiagnosticResult{}
-	mi := &file_diagnostics_proto_msgTypes[7]
+	mi := &file_diagnostics_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +539,7 @@ func (x *DiagnosticResult) String() string {
 func (*DiagnosticResult) ProtoMessage() {}
 
 func (x *DiagnosticResult) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[7]
+	mi := &file_diagnostics_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +552,7 @@ func (x *DiagnosticResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiagnosticResult.ProtoReflect.Descriptor instead.
 func (*DiagnosticResult) Descriptor() ([]byte, []int) {
-	return file_diagnostics_proto_rawDescGZIP(), []int{7}
+	return file_diagnostics_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DiagnosticResult) GetResult() EvaluateResult {
@@ -605,91 +561,6 @@ func (x *DiagnosticResult) GetResult() EvaluateResult {
 	}
 	return EvaluateResult_INVALID_EVALUATE_RESULT
 }
-
-type AttributePath_Step struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Step:
-	//
-	//	*AttributePath_Step_Attribute
-	//	*AttributePath_Step_Index
-	Step          isAttributePath_Step_Step `protobuf_oneof:"step"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AttributePath_Step) Reset() {
-	*x = AttributePath_Step{}
-	mi := &file_diagnostics_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AttributePath_Step) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AttributePath_Step) ProtoMessage() {}
-
-func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_diagnostics_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AttributePath_Step.ProtoReflect.Descriptor instead.
-func (*AttributePath_Step) Descriptor() ([]byte, []int) {
-	return file_diagnostics_proto_rawDescGZIP(), []int{5, 0}
-}
-
-func (x *AttributePath_Step) GetStep() isAttributePath_Step_Step {
-	if x != nil {
-		return x.Step
-	}
-	return nil
-}
-
-func (x *AttributePath_Step) GetAttribute() string {
-	if x != nil {
-		if x, ok := x.Step.(*AttributePath_Step_Attribute); ok {
-			return x.Attribute
-		}
-	}
-	return ""
-}
-
-func (x *AttributePath_Step) GetIndex() []byte {
-	if x != nil {
-		if x, ok := x.Step.(*AttributePath_Step_Index); ok {
-			return x.Index
-		}
-	}
-	return nil
-}
-
-type isAttributePath_Step_Step interface {
-	isAttributePath_Step_Step()
-}
-
-type AttributePath_Step_Attribute struct {
-	// attribute is used to look up an attribute in the object value.
-	Attribute string `protobuf:"bytes,1,opt,name=attribute,proto3,oneof"`
-}
-
-type AttributePath_Step_Index struct {
-	// index is used to look up an element in an indexable collection type.
-	// The index can be a string or a number, depending on the collection type.
-	Index []byte `protobuf:"bytes,2,opt,name=index,proto3,oneof"`
-}
-
-func (*AttributePath_Step_Attribute) isAttributePath_Step_Step() {}
-
-func (*AttributePath_Step_Index) isAttributePath_Step_Step() {}
 
 var File_diagnostics_proto protoreflect.FileDescriptor
 
@@ -730,13 +601,7 @@ const file_diagnostics_proto_rawDesc = "" +
 	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
 	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffsetB\n" +
 	"\n" +
-	"\b_context\"\x88\x01\n" +
-	"\rAttributePath\x12/\n" +
-	"\x05steps\x18\x01 \x03(\v2\x19.proto.AttributePath.StepR\x05steps\x1aF\n" +
-	"\x04Step\x12\x1e\n" +
-	"\tattribute\x18\x01 \x01(\tH\x00R\tattribute\x12\x16\n" +
-	"\x05index\x18\x02 \x01(\fH\x00R\x05indexB\x06\n" +
-	"\x04step\"[\n" +
+	"\b_context\"[\n" +
 	"\x0fExpressionValue\x122\n" +
 	"\ttraversal\x18\x01 \x01(\v2\x14.proto.AttributePathR\ttraversal\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value\"A\n" +
@@ -760,39 +625,37 @@ func file_diagnostics_proto_rawDescGZIP() []byte {
 }
 
 var file_diagnostics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_diagnostics_proto_goTypes = []any{
-	(Severity)(0),              // 0: proto.Severity
-	(*Diagnostic)(nil),         // 1: proto.Diagnostic
-	(*PolicySet)(nil),          // 2: proto.PolicySet
-	(*Range)(nil),              // 3: proto.Range
-	(*Position)(nil),           // 4: proto.Position
-	(*Snippet)(nil),            // 5: proto.Snippet
-	(*AttributePath)(nil),      // 6: proto.AttributePath
-	(*ExpressionValue)(nil),    // 7: proto.ExpressionValue
-	(*DiagnosticResult)(nil),   // 8: proto.DiagnosticResult
-	(*AttributePath_Step)(nil), // 9: proto.AttributePath.Step
-	(EvaluateResult)(0),        // 10: proto.EvaluateResult
+	(Severity)(0),            // 0: proto.Severity
+	(*Diagnostic)(nil),       // 1: proto.Diagnostic
+	(*PolicySet)(nil),        // 2: proto.PolicySet
+	(*Range)(nil),            // 3: proto.Range
+	(*Position)(nil),         // 4: proto.Position
+	(*Snippet)(nil),          // 5: proto.Snippet
+	(*ExpressionValue)(nil),  // 6: proto.ExpressionValue
+	(*DiagnosticResult)(nil), // 7: proto.DiagnosticResult
+	(*AttributePath)(nil),    // 8: proto.AttributePath
+	(EvaluateResult)(0),      // 9: proto.EvaluateResult
 }
 var file_diagnostics_proto_depIdxs = []int32{
 	0,  // 0: proto.Diagnostic.severity:type_name -> proto.Severity
 	3,  // 1: proto.Diagnostic.subject:type_name -> proto.Range
 	3,  // 2: proto.Diagnostic.context:type_name -> proto.Range
-	8,  // 3: proto.Diagnostic.result:type_name -> proto.DiagnosticResult
-	6,  // 4: proto.Diagnostic.attribute:type_name -> proto.AttributePath
+	7,  // 3: proto.Diagnostic.result:type_name -> proto.DiagnosticResult
+	8,  // 4: proto.Diagnostic.attribute:type_name -> proto.AttributePath
 	5,  // 5: proto.Diagnostic.snippet:type_name -> proto.Snippet
-	7,  // 6: proto.Diagnostic.expression_values:type_name -> proto.ExpressionValue
+	6,  // 6: proto.Diagnostic.expression_values:type_name -> proto.ExpressionValue
 	2,  // 7: proto.Diagnostic.policy_set:type_name -> proto.PolicySet
 	4,  // 8: proto.Range.start:type_name -> proto.Position
 	4,  // 9: proto.Range.end:type_name -> proto.Position
-	9,  // 10: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
-	6,  // 11: proto.ExpressionValue.traversal:type_name -> proto.AttributePath
-	10, // 12: proto.DiagnosticResult.result:type_name -> proto.EvaluateResult
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	8,  // 10: proto.ExpressionValue.traversal:type_name -> proto.AttributePath
+	9,  // 11: proto.DiagnosticResult.result:type_name -> proto.EvaluateResult
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_diagnostics_proto_init() }
@@ -802,17 +665,13 @@ func file_diagnostics_proto_init() {
 	}
 	file_types_proto_init()
 	file_diagnostics_proto_msgTypes[4].OneofWrappers = []any{}
-	file_diagnostics_proto_msgTypes[8].OneofWrappers = []any{
-		(*AttributePath_Step_Attribute)(nil),
-		(*AttributePath_Step_Index)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_diagnostics_proto_rawDesc), len(file_diagnostics_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

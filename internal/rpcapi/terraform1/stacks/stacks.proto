@@ -257,13 +257,24 @@ message PlanStackChanges {
     int64 dependency_locks_handle = 4;
     int64 provider_cache_handle = 5;
     map<string, DynamicValueWithSource> input_values = 6;
-    // TODO: Various other planning options
+
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 8;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 9; 
   }
   message Event {
     oneof event {
       PlannedChange planned_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 10;
+      
+      // Resources and modules evaluate policies for each component instance
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 11;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -325,6 +336,12 @@ message ApplyStackChanges {
     // creating the plan.
     map<string, DynamicValueWithSource> input_values = 7;
 
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 9;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 10;
+
     reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
   }
   message Event {
@@ -332,6 +349,12 @@ message ApplyStackChanges {
       AppliedChange applied_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 3;
+
+      // Resources and modules evaluate policies for each component instance
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 4;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
     }
   }
 }
@@ -404,6 +427,14 @@ message AttributePath {
     }
   }
   repeated Step steps = 1;
+}
+
+// Represents the address of a specific provider instance within a stack.
+message ProviderInstanceInStackAddr {
+  // The address of the static provider config that this is an instance of.
+  string provider_addr = 1;
+  // The address of the provider instance config.
+  string provider_instance_addr = 2;
 }
 
 // Represents the address of a specific component instance within a stack.
@@ -1075,4 +1106,75 @@ message ListResourceIdentities {
     string resource_instance_addr = 3;
     DynamicValue resource_identity = 4;
   }
+}
+
+message ComponentInstancePolicyEvaluation {
+  ComponentInstanceInStackAddr addr = 1;
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message ProviderInstancePolicyEvaluation {
+  ProviderInstanceInStackAddr addr = 1;
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message PolicyMetaData {
+  string policy_name = 1;
+  string policy_set_name = 2;
+  string enforcement_level = 3;
+  string file_name = 4;
+  int32 enforce_index = 5;
+}
+
+message PolicyResult {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+}
+
+message PolicyInfo {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string message = 3;
+  terraform1.SourceRange policy_range = 4;
+  PolicySnippet policy_snippet = 5;
+  EvaluateResult result = 6;
+}
+
+message PolicySnippet {
+  string context = 1;
+  string code = 2;
+  int64 start_line = 3;
+  int64 highlight_start_offset = 4;
+  int64 highlight_end_offset = 5;
+}
+
+message PolicyDiagnostic {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+  terraform1.Diagnostic diagnostic = 4;
+  PolicySnippet policy_snippet = 5;
+  terraform1.SourceRange policy_range = 6;
+  repeated ExpressionValue expression_values = 7;
+}
+
+// Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
+enum EvaluateResult {
+  INVALID_EVALUATE_RESULT = 0;
+  UNKNOWN_EVALUATE_RESULT = 1;
+  ERROR_EVALUATE_RESULT = 2;
+  ALLOW_EVALUATE_RESULT = 3;
+  DENY_EVALUATE_RESULT = 4;
+  SETUP_ERROR_EVALUATE_RESULT = 5;
+}
+
+// Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
+message ExpressionValue {
+  AttributePath traversal = 1;
+  bytes value = 2;
 }

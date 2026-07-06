@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
@@ -23,46 +22,26 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	if t.PolicyClient == nil {
 		return nil
 	}
-
-	// Collect all managed resource instance nodes and all provider closer
-	// nodes that are already in the graph.
-	var resourceNodes []dag.Vertex
-	var closeProviderNodes []dag.Vertex
-
-	for v := range g.VerticesSeq() {
-		if ri, ok := v.(GraphNodeConfigResource); ok {
-			addr := ri.ResourceAddr()
-			// we are only interested in managed resources
-			if addr.Resource.Mode == addrs.ManagedResourceMode {
-				resourceNodes = append(resourceNodes, v)
-			}
-		}
-
-		if _, ok := v.(GraphNodeCloseProvider); ok {
-			closeProviderNodes = append(closeProviderNodes, v)
-		}
-	}
-
-	// If there are no managed resources at all, there is nothing to evaluate
-	// policy against.
-	if len(resourceNodes) == 0 {
-		return nil
-	}
-
 	policyNode := &nodePolicyEval{}
 	g.Add(policyNode)
 
-	// Connect every resource node to the policy node,
-	// so that the policy node executes after every managed resource instance node.
-	for _, rsNode := range resourceNodes {
-		g.Connect(dag.BasicEdge(policyNode, rsNode))
-	}
+	for v := range g.VerticesSeq() {
+		if v == policyNode {
+			continue
+		}
+		// Connect provider closer nodes to policy so that
+		// we keep all providers open until after policy evaluation so that the
+		// policy engine callbacks can still use them. For example, policies may need to access data
+		// sources of a provider.
+		if _, ok := v.(GraphNodeCloseProvider); ok {
+			g.Connect(dag.BasicEdge(v, policyNode))
+			continue
+		}
 
-	// We keep the provider open until after policy evaluation so that the
-	// policy engine callbacks can still use them. For example, policies may need to access data
-	// sources of a provider.
-	for _, providerNode := range closeProviderNodes {
-		g.Connect(dag.BasicEdge(providerNode, policyNode))
+		// Connect the policy node to every non-provider closer node so that it
+		// executes only after all remaining graph work that can still mutate state
+		// or changes has completed.
+		g.Connect(dag.BasicEdge(policyNode, v))
 	}
 
 	return nil

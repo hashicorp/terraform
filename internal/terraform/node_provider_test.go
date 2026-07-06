@@ -752,12 +752,11 @@ func TestNodeApplyableProvider_EvalPolicy_versionMeta(t *testing.T) {
 		meta := mockPolicy.EvaluateProviderRequest.Meta
 
 		checks := map[string]string{
-			"name":        meta.Name,
-			"alias":       meta.Alias,
-			"namespace":   meta.Namespace,
-			"source":      meta.Source,
-			"module_path": meta.ModulePath,
-			"version":     meta.Version,
+			"name":      meta.Name,
+			"alias":     meta.Alias,
+			"namespace": meta.Namespace,
+			"source":    meta.Source,
+			"version":   meta.Version,
 		}
 		expected := map[string]string{
 			"name":        "aws",

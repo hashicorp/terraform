@@ -60,6 +60,8 @@ type ContextOpts struct {
 	// been passed to Terraform Core using this field.
 	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
+	TracingContext context.Context
+
 	UIInput UIInput
 }
 
@@ -106,6 +108,9 @@ type Context struct {
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
+
+	// tracingCtx is as the parent context for tracing within the graph walk
+	tracingCtx context.Context
 }
 
 // (additional methods on Context can be found in context_*.go files.)
@@ -162,6 +167,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		sh:                  sh,
+		tracingCtx:          opts.TracingContext,
 	}, diags
 }
 
@@ -243,8 +249,12 @@ func (c *Context) acquireRun(phase string) func() {
 	// Build our lock
 	c.runCond = sync.NewCond(&c.l)
 
-	// Create a new run context
-	c.runContext, c.runContextCancel = context.WithCancel(context.Background())
+	// Use tracingCtx as parent context so tracing spans inherit the hierarchy properly
+	parent := c.tracingCtx
+	if parent == nil {
+		parent = context.Background()
+	}
+	c.runContext, c.runContextCancel = context.WithCancel(parent)
 
 	// Reset the stop hook so we're not stopped
 	c.sh.Reset()

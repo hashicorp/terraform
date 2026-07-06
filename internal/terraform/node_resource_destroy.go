@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -34,6 +33,7 @@ var (
 	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeActionCaller        = (*NodeDestroyResourceInstance)(nil)
 )
 
 func (n *NodeDestroyResourceInstance) Name() string {
@@ -44,7 +44,7 @@ func (n *NodeDestroyResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()
@@ -86,29 +86,10 @@ func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable
 	return []addrs.Referenceable{}
 }
 
-// GraphNodeReferencer, overriding NodeAbstractResource
 func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
-	// If we have a config, then we need to include destroy-time dependencies
-	if c := n.Config; c != nil && c.Managed != nil {
-		var result []*addrs.Reference
-
-		// We include conn info and config for destroy time provisioners
-		// as dependencies that we have.
-		for _, p := range c.Managed.Provisioners {
-			schema := n.ProvisionerSchemas[p.Type]
-
-			if p.When == configs.ProvisionerWhenDestroy {
-				if p.Connection != nil {
-					result = append(result, ReferencesFromConfig(p.Connection.Config, connectionBlockSupersetSchema)...)
-				}
-				result = append(result, ReferencesFromConfig(p.Config, schema)...)
-			}
-		}
-
-		return result
-	}
-
-	return nil
+	// destroyers don't reference, except when we need destroy actions to be
+	// reevaluated.
+	return n.destroyActionReferences()
 }
 
 // GraphNodeExecutable
@@ -181,6 +162,12 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		}
 	}
 
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	// we pass a nil configuration to apply because we are destroying
@@ -194,21 +181,11 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		return diags.Append(err)
 	}
 
-	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-		after := cty.NilVal
-		if state != nil {
-			after = state.Value
-		}
-		// The resource has been destroyed, so we add a policy node to send its data
-		// for policy evaluation.
-		policyGraph.Add(&nodeResourcePolicy{
-			ResourceAddr: changeApply.Addr,
-			ProviderAddr: changeApply.ProviderAddr,
-			Before:       changeApply.Before,
-			After:        after,
-			Action:       changeApply.Action,
-		})
-	}
+	// add a policy node to send the resource data for policy evaluation
+	n.addPolicyNode(ctx, changeApply, state)
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))

@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -58,7 +60,7 @@ func (b *Local) opApply(
 	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(stopCtx, op)
 
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
@@ -425,6 +427,9 @@ func (b *Local) opApply(
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
 
+	// We use a new store for the apply policy results, as objects that failed during the plan policy
+	// evaluation may have updated data which yields a different policy evaluation result.
+	policyResults := plans.NewPolicyResults()
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -435,7 +440,7 @@ func (b *Local) opApply(
 			SetVariables:  applyTimeValues,
 			ProviderLocks: providerLocksSnapshot(op.DependencyLocks),
 			PolicyClient:  lr.PolicyClient,
-			PolicyResults: plan.PolicyResults,
+			PolicyResults: policyResults,
 		})
 	}()
 
@@ -445,7 +450,17 @@ func (b *Local) opApply(
 	diags = diags.Append(applyDiags)
 
 	// Print the policy results we found during apply
-	op.View.PolicyResults(plan.PolicyResults, nil)
+	polRenderSpanEnd := func() {}
+	if policyResultCount := policyResults.Len(); policyResultCount > 0 {
+		_, polRenderSpan := tracer().Start(stopCtx, "terraform.local.apply.render_policy_results",
+			trace.WithAttributes(
+				attribute.Int("apply.policy_results", policyResultCount),
+			),
+		)
+		polRenderSpanEnd = func() { polRenderSpan.End() }
+	}
+	op.View.PolicyResults(policyResults, nil)
+	polRenderSpanEnd()
 
 	// Even on error with an empty state, the state value should not be nil.
 	// Return early here to prevent corrupting any existing state.

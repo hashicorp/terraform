@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -31,6 +32,8 @@ type PlanOpts struct {
 	PlanTimestamp time.Time
 
 	DependencyLocks depsfile.Locks
+
+	PolicyClient policy.Client
 }
 
 // Plannable is implemented by objects that can participate in planning.
@@ -120,8 +123,9 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
 
-func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
+func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, tfHooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	h := hooksFromContext(ctx)
 
 	// This is our main bridge from the stacks language into the main Terraform
 	// module language during the planning phase. We need to ask the main
@@ -175,7 +179,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	}
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
-		Hooks:                    hooks,
+		Hooks:                    tfHooks,
 		Providers:                providerFactories,
 		PreloadedProviderSchemas: providerSchemas,
 		Provisioners:             main.availableProvisioners(),
@@ -206,6 +210,16 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 
 	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)
 	diags = diags.Append(moreDiags)
+
+	if plan != nil {
+		// Report policy results if we have any
+		if plan.PolicyResults.Len() > 0 {
+			hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
+				Addr:          scope.Addr(),
+				PolicyResults: plan.PolicyResults,
+			})
+		}
+	}
 
 	return plan, diags
 }

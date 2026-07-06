@@ -15,12 +15,26 @@ NEW FEATURES:
 
 * workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag ([#38397](https://github.com/hashicorp/terraform/issues/38397))
 
+* Resource action triggers can now use `on_failure` modes of `halt`, `taint`, or `continue` ([#38722](https://github.com/hashicorp/terraform/issues/38722))
+
 
 ENHANCEMENTS:
 
 * feat(cli): terraform state show accepts a -json flag ([#23940](https://github.com/hashicorp/terraform/issues/23940))
 
 * Show info when resources are left behind due to skip_cleanup ([#38449](https://github.com/hashicorp/terraform/issues/38449))
+
+* Action configuration now has a new `caller` symbol which contains the object value from the calling resource. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* cloud: Render a summary of Terraform policy evaluation outcomes for plan and apply runs against HCP Terraform ([#38715](https://github.com/hashicorp/terraform/issues/38715))
+
+* policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
+
+* child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
+
+* contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
 BUG FIXES:
@@ -37,10 +51,18 @@ BUG FIXES:
 
 * init: Add warnings when unmanaged providers are in use and will impact provider installation processes. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
 
+* Actions are now invoked with respect to all resource dependencies. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* merge no longer panics with null objects ([#38792](https://github.com/hashicorp/terraform/issues/38792))
+
 
 NOTES:
 
 * init: Errors due to incompatible `-upgrade` and `-lockfile=readonly` flags are now raised earlier in the init process. ([#38561](https://github.com/hashicorp/terraform/issues/38561))
+
+* command/init: Provider installation was changed to enable future enhancements in the area. This effectively reverses the log message changes from v1.15. `initializing_provider_plugin_message` is being re-introduced to replace the short-lived two message types `initializing_provider_plugin_from_config_message` & `initializing_provider_plugin_from_state_message`. The change should not have any significant end-user impact aside from the command output. ([#38648](https://github.com/hashicorp/terraform/issues/38648))
+
+* command/init: Provider installation was changed to enable future enhancements in the area. This partially reverses the init event order changes from v1.15; module installation will now occur after the backend is initialized. The change should not have any significant end-user impact aside from the command output. ([#38699](https://github.com/hashicorp/terraform/issues/38699))
 
 
 UPGRADE NOTES:

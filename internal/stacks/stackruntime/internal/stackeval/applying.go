@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
@@ -48,6 +49,8 @@ type ApplyOpts struct {
 	InputVariableValues map[stackaddrs.InputVariable]ExternalInputValue
 
 	ExperimentsAllowed bool
+
+	PolicyClient policy.Client
 }
 
 // Applyable is an interface implemented by types which represent objects
@@ -236,6 +239,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	providerClients := configuredProviderClients(ctx, main, known, unknown, ApplyPhase)
 
 	var newState *states.State
+
+	// Initialize policy results if we are evaluating policy
+	var policyResults *plans.PolicyResults
+	policyClient := main.PolicyClient()
+	if policyClient != nil {
+		policyResults = plans.NewPolicyResults()
+	}
+
 	if plan.Applyable {
 		// When our given context is cancelled, we want to instruct the
 		// modules runtime to stop the running operation. We use this
@@ -256,6 +267,8 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
+			PolicyClient:              policyClient,
+			PolicyResults:             policyResults,
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -347,6 +360,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// must assume that the state is totally unchanged in that case.
 		newState = plan.PrevRunState
 		affectedResourceInstanceObjects = nil
+	}
+
+	// Report policy results if we have any
+	if policyResults.Len() > 0 {
+		hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
+			Addr:          inst.Addr(),
+			PolicyResults: policyResults,
+		})
 	}
 
 	return &ComponentInstanceApplyResult{

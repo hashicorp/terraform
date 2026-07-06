@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -35,11 +36,16 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	testCopyDir(t, testFixturePath("state-store-new"), td)
 	t.Chdir(td)
 
-	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	mock := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mock = testStateStoreMockWithChunkNegotiation(t, mock, 1000)
 
 	// Mock that a custom workspace already exists.
 	preExistingState := "pre-existing"
-	mock.MockStates = map[string]interface{}{preExistingState: true}
+	mock.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		preExistingState,
+		[]byte(`{"version":4,"terraform_version":"1.16.0","serial":1,"lineage":"8595356e-c764-dea1-8dae-156b936ec6e2","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+	)
 
 	// Assumes the mocked provider is hashicorp/test
 	providerSource := newMockProviderSource(t, map[string][]string{
@@ -71,7 +77,11 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
 	}
 	// We expect a state to have not been created for the default workspace
-	if _, ok := mock.MockStates["default"]; ok {
+	ok, err := mock.MockStates.StateIdExists("test_store", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
 		t.Fatal("expected the default workspace to not exist, but it did")
 	}
 
@@ -101,7 +111,11 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
 	}
 	// We expect a state to have been created for the new custom workspace
-	if _, ok := mock.MockStates[newWorkspace]; !ok {
+	ok, err = mock.MockStates.StateIdExists("test_store", newWorkspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
 		t.Fatalf("expected the %s workspace to exist, but it didn't", newWorkspace)
 	}
 	current, _ = newCmd.Workspace()
@@ -203,10 +217,10 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 func TestWorkspace_list_noReturnedWorkspaces(t *testing.T) {
 	// Create a temporary working directory with pluggable state storage in the config
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
-	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 
 	// Assumes the mocked provider is hashicorp/test
 	providerSource := newMockProviderSource(t, map[string][]string{
@@ -1394,11 +1408,11 @@ func TestWorkspace_humanOutput(t *testing.T) {
 func TestWorkspace_list_jsonOutput(t *testing.T) {
 	// Create a temporary working directory with pluggable state storage in the config
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Using PSS in this test allows easy mocking of pre-existing workspaces
-	mock := testStateStoreMockWithChunkNegotiation(t, 1000)
+	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 	mock.GetStatesResponse = &providers.GetStatesResponse{
 		States:      []string{"default", "dev", "stage", "prod"},
 		Diagnostics: nil,

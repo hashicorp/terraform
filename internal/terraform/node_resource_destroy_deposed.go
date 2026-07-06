@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -85,7 +86,9 @@ func (n *NodePlanDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.Ref
 // GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
 func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference {
 	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
+	// make no references. Deposed instances do not invoke actions, since the
+	// fact they are deposed during plan indicated that the instance already
+	// errored out during a create-before-destroy apply.
 	return nil
 }
 
@@ -248,13 +251,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.
 	return nil
 }
 
-// GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
-func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Reference {
-	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
-	return nil
-}
-
 // GraphNodeDestroyer
 func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
@@ -312,6 +308,12 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// we pass a nil configuration to apply because we are destroying
 	state, applyDiags := n.apply(ctx, state, change, nil, instances.RepetitionData{}, false)
 	diags = diags.Append(applyDiags)
@@ -321,10 +323,13 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
 	writeDiags := n.writeResourceInstanceState(ctx, state)
-	diags.Append(writeDiags)
+	diags = diags.Append(writeDiags)
 	if diags.HasErrors() {
 		return diags
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 

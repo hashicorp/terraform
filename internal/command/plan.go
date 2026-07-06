@@ -4,7 +4,6 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -86,6 +85,18 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		// if there has been any errors when setting up the policy client, we log them but
+		// we still proceed with the operation, as a failure to set up the policy client
+		// should not prevent the plan operation from running
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyResults(nil, policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	// Collect variable value and add them to the operation request
@@ -178,16 +189,6 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
 		return nil, diags
-	}
-
-	if len(policyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(context.Background(), policyPaths)
-		// if there has been any errors when setting up the policy client, we'll log them
-		if opReq.View != nil && policyDiags != nil {
-			opReq.View.PolicyResults(nil, policyDiags)
-		}
-		opReq.PolicyClient = client
-		defer stopClient()
 	}
 
 	return opReq, diags

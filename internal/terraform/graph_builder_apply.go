@@ -162,31 +162,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
 		&DiffTransformer{
-			Concrete: concreteResourceInstance,
-			State:    b.State,
-			Changes:  b.Changes,
-			Config:   b.Config,
-		},
-
-		&ActionTriggerConfigTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-
-			ConcreteActionTriggerNodeFunc: func(node *nodeAbstractActionTrigger, timing RelativeActionTiming) dag.Vertex {
-				return &nodeActionTriggerApplyExpand{
-					nodeAbstractActionTrigger: node,
-
-					relativeTiming: timing,
-				}
-			},
-		},
-
-		&ActionInvokeApplyTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			Changes:       b.Changes,
+			Concrete:     concreteResourceInstance,
+			State:        b.State,
+			Changes:      b.Changes,
+			Config:       b.Config,
+			PolicyClient: b.PolicyClient,
 		},
 
 		&ActionDiffTransformer{

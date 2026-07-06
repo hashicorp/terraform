@@ -148,12 +148,12 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 		case ss != nil && ssp != nil:
 			// Both 'from { state_store }' and 'state_store_provider' blocks are present,
 			// but are they in agreement with each other?
-			if ss.Provider.Name != ssp.Name {
+			if ss.Provider.Name != ssp.Type.Type {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  `Inconsistent provider information for state migration`,
 					Detail: fmt.Sprintf(`The configuration's "state_store_provider" block defines a provider called %q but the "migrate_from_state_store" block uses a provider called %q instead. Please update the blocks so that they are in agreement.`,
-						ssp.Name,
+						ssp.Type.Type,
 						ss.Provider.Name,
 					),
 				})
@@ -225,7 +225,7 @@ func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.
 //
 // If the given directory does not exist or cannot be read, error diagnostics
 // are returned. If errors are returned, the resulting lists may be incomplete.
-func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []string, diags hcl.Diagnostics) {
+func (p *Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []string, diags hcl.Diagnostics) {
 	fSet, diags := p.dirFileSet(dir, opts...)
 	return fSet.Primary, fSet.Override, diags
 }

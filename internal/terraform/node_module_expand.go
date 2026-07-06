@@ -358,7 +358,7 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 	// In the above example, the reference to `module.child.output` is deferred until the resource
 	// `test_instance.test2` is evaluated, and any attempt to evaluate it here would result in a cyclic dependency error.
 	result := ctx.PolicyClient().EvaluateModule(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]{
-		Attrs:  cty.NilVal,
+		Attrs:  policy.CtyToPolicyValue(cty.DynamicVal),
 		Target: source,
 		Meta: &proto.PolicyEvaluateModuleRequest_ModuleMetadata{
 			Address: n.Addr.String(),

@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -37,13 +38,14 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance       = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer                = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable             = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeActionProviderConsumer = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -142,7 +144,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		}
 	}
 
-	diags = diags.Append(n.writeChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, states.NotDeposed))
 
 	diags = diags.Append(updateStateHook(ctx))
 
@@ -216,9 +218,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Get the saved diff
 	diff := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -256,56 +267,78 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// If there is no change, there was nothing to apply, and we don't need to
-	// re-write the state, but we do need to re-evaluate postconditions.
+	// re-write the state, but we do need to re-evaluate postconditions and
+	// still evaluate policy against the final state.
 	if diffApply.Action == plans.NoOp {
-		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+		n.addPolicyNode(ctx, diffApply, state)
+
+		return diags.Append(n.managedResourcePostconditions(ctx, repData))
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+	// run any before_* actions
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	_, actionDiags := n.invokeActions(ctx, repData, configs.BeforeEvents, diffApply.After)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		log.Printf("[ERROR] NodeApplyableResourceInstance encountered errors while invoking actions, apply aborted.")
+		return diags
+	}
 
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repData, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
-
-	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-		// The resource has been applied, so we add a policy node to send its data
-		// for policy evaluation.
-		policyGraph.Add(&nodeResourcePolicy{
-			ResourceAddr: diffApply.Addr,
-			ProviderAddr: diffApply.ProviderAddr,
-			Before:       diffApply.Before,
-			After:        state.Value,
-			Action:       diffApply.Action,
-		})
+	if diags.HasErrors() {
+		// apply errors might need to taint the state
+		if err := n.taintInstanceState(ctx, state, diffApply.Action); err != nil {
+			return diags.Append(err)
+		}
+	} else {
+		// We only add a policy node if the apply was successful.
+		n.addPolicyNode(ctx, diffApply, state)
 	}
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	err = n.writeChange(ctx, nil, "")
+	err = n.writeChange(ctx, nil, states.NotDeposed)
 	if err != nil {
 		return diags.Append(err)
 	}
-
-	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
 
 	if state != nil {
 		// dependencies are always updated to match the configuration during apply
 		state.Dependencies = n.Dependencies
 	}
-	err = n.writeResourceInstanceState(ctx, state, workingState)
-	if err != nil {
+	if err = n.writeResourceInstanceState(ctx, state, workingState); err != nil {
 		return diags.Append(err)
 	}
 
-	// Run Provisioners
-	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
-	applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate)
-	// the provisioner errors count as port of the apply error, so we can bundle the diags
-	diags = diags.Append(applyProvisionersDiags)
+	///////////
+	// Run provisioners and actions. We don't try to invoke either if the
+	// resource was already tainted, because apply must have failed.
+	if state.Status != states.ObjectTainted {
+		createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
+		applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate)
+		// the provisioner errors count as port of the apply error, so we can bundle the diags
+		diags = diags.Append(applyProvisionersDiags)
+		// provisioners always tainted on error
+		if diags.HasErrors() {
+			if err := n.taintInstanceState(ctx, state, diffApply.Action); err != nil {
+				// we always return immediately if we can't update state
+				return diags.Append(err)
+			}
+		}
 
-	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
-
-	err = n.writeResourceInstanceState(ctx, state, workingState)
-	if err != nil {
-		return diags.Append(err)
+		// Actions will directly tell us if the resource is tainted separately from
+		// diagnostics.
+		taintInstance, actionDiags := n.invokeActions(ctx, repData, configs.AfterEvents, state.Value)
+		diags = diags.Append(actionDiags)
+		if taintInstance {
+			if err := n.taintInstanceState(ctx, state, diffApply.Action); err != nil {
+				// we always return immediately if we can't update state
+				return diags.Append(err)
+			}
+		}
+	} else {
+		log.Printf("[TRACE] evalApply: %s is tainted, so skipping provisioners and actions", n.Addr)
 	}
 
 	if createBeforeDestroyEnabled && diags.HasErrors() {
@@ -349,7 +382,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
-	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	diags = diags.Append(n.managedResourcePostconditions(ctx, repData))
+
+	return diags
 }
 
 func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
@@ -430,29 +465,20 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	return diags
 }
 
-// maybeTainted takes the resource addr, new value, planned change, and possible
-// error from an apply operation and return a new instance object marked as
-// tainted if it appears that a create operation has failed.
-func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, change *plans.ResourceInstanceChange, err error) *states.ResourceInstanceObject {
-	if state == nil || change == nil || err == nil {
-		return state
+// taintInstanceState takes the state object error from an apply operation and
+// writes the instance object to the global stated marked as tainted, but only
+// if the instance was being created.
+//
+// TODO: Tainted was invented for failed create events, and provisioners which
+// could only be associated with those create events. If actions ever need to be
+// rerun for other event types, something more specific than `Tainted` needs to
+// be added to the resource state.
+func (n *NodeApplyableResourceInstance) taintInstanceState(ctx EvalContext, state *states.ResourceInstanceObject, action plans.Action) error {
+	if action != plans.Create {
+		return nil
 	}
-	if state.Status == states.ObjectTainted {
-		log.Printf("[TRACE] maybeTainted: %s was already tainted, so nothing to do", addr)
-		return state
-	}
-	if change.Action == plans.Create {
-		// If there are errors during a _create_ then the object is
-		// in an undefined state, and so we'll mark it as tainted so
-		// we can try again on the next run.
-		//
-		// We don't do this for other change actions because errors
-		// during updates will often not change the remote object at all.
-		// If there _were_ changes prior to the error, it's the provider's
-		// responsibility to record the effect of those changes in the
-		// object value it returned.
-		log.Printf("[TRACE] maybeTainted: %s encountered an error during creation, so it is now marked as tainted", addr)
-		return state.AsTainted()
-	}
-	return state
+
+	log.Printf("[TRACE] taintState: %s encountered an error during creation, so it is now marked as tainted", n.Addr)
+	return n.writeResourceInstanceState(ctx, state.AsTainted(), workingState)
+
 }

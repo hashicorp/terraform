@@ -37,6 +37,14 @@ message PolicySetupRequest {
   // compatibility concerns to worry about.
   message ClientCapabilities {}
 
+  // Entitlement carries the host, token, and org the plugin uses to verify
+  // policy-enforcement entitlement at Setup.
+  message Entitlement {
+    string host = 1;
+    string token = 2;
+    string org = 3;
+  }
+
   // client_capabilities should be populated by the client to indicate which
   // behaviours the client is aware of.
   ClientCapabilities client_capabilities = 1;
@@ -44,9 +52,13 @@ message PolicySetupRequest {
   // source_locations is the list of locations that Policy should use to
   // source policies.
   repeated string source_locations = 2;
-
+  
   // callback_service allows Terraform Policy to use the Callback Service API.
   uint32 callback_service = 3;
+
+  // entitlement is used to call the entitlement-set endpoint
+  // and refuse Setup if the org is not entitled.
+  Entitlement entitlement = 4;
 }
 
 // SetupResponse is the message response for the Setup RPC.
@@ -85,18 +97,19 @@ message PolicyEvaluateResourceRequest {
 
   // attrs contains the data that will eventually be made available within the
   // resource_value data referenced within Terraform Policy files.
-  bytes attrs = 3;
+  ResourceAttributes attrs = 3;
 
   // metadata contains the data that will eventually be made available within
   // the meta object referenced within Terraform Policy files.
   ResourceMetadata metadata = 4;
 
   // prior_attrs contains the state of the resource prior to the current operation.
-  bytes prior_attrs = 5;
+  ResourceAttributes prior_attrs = 5;
 
   message ResourceMetadata {
     string provider_type = 1;
     Operation operation = 2;
+    string module_path = 3;
   }
 }
 
@@ -168,7 +181,7 @@ message PolicyEvaluateProviderRequest {
 
   // attrs contains the provider configuration data that will be made available within the
   // provider_value data referenced within Terraform Policy files.
-  bytes attrs = 2;
+  ResourceAttributes attrs = 2;
 
   // metadata contains the provider metadata that will be made available within the
   // provider_metadata data referenced within Terraform Policy files.
@@ -179,8 +192,7 @@ message PolicyEvaluateProviderRequest {
     string alias = 2;
     string namespace = 3;
     string source = 4;
-    string module_path = 5;
-    string version = 6;
+    string version = 5;
   }
 }
 
@@ -201,7 +213,7 @@ message PolicyEvaluateModuleRequest {
 
   // attrs contains the module configuration data that will be made available within the
   // module_value data referenced within Terraform Policy files.
-  bytes attrs = 2;
+  ResourceAttributes attrs = 2;
 
   // metadata contains the module metadata that will be made available within the
   // meta object referenced within module policy blocks.

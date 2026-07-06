@@ -540,9 +540,6 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
 
-		// Connect references so ordering is correct
-		&ReferenceTransformer{},
-
 		// Make sure there is a single root
 		&RootTransformer{},
 	}
@@ -590,6 +587,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		a.Dependencies = n.dependencies
 		a.preDestroyRefresh = n.preDestroyRefresh
 		a.generateConfigPath = n.generateConfigPath
+		a.actionTriggers = n.actionTriggers
 
 		m = &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -642,6 +640,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 	a.Schema = n.Schema
 	a.ProvisionerSchemas = n.ProvisionerSchemas
 	a.ProviderMetas = n.ProviderMetas
+	a.actionTriggers = n.actionTriggers
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,

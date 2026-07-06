@@ -141,7 +141,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 			return diags
 		}
 
-		diags = diags.Append(n.writeChange(ctx, change, ""))
+		diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 
 		// Post-conditions might block further progress. We intentionally do this
 		// _after_ writing the state/diff because we want to check against
@@ -252,6 +252,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 						},
 					},
 				})
+				// can't have actions to defer if there's no config to trigger them
 				return diags
 			}
 		}
@@ -358,20 +359,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
-
 		// add this instance to n.forceReplace if replacement is triggered by
 		// another change
-		repData := instances.RepetitionData{}
-		switch k := addr.Resource.Key.(type) {
-		case addrs.IntKey:
-			repData.CountIndex = k.Value()
-		case addrs.StringKey:
-			repData.EachKey = k.Value()
-			repData.EachValue = cty.DynamicVal
-		}
-
 		diags = diags.Append(n.replaceTriggered(ctx, repData))
 		if diags.HasErrors() {
 			// Pre-Diff error hook
@@ -381,8 +381,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		change, instancePlanState, planDeferred, repeatData, planDiags := n.plan(
-			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+		change, instancePlanState, planDeferred, planDiags := n.plan(
+			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
@@ -403,7 +403,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 						GeneratedConfig: n.generatedConfigHCL,
 					},
 				}
-				diags = diags.Append(n.writeChange(ctx, change, ""))
+				diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 			}
 
 			return diags
@@ -438,28 +438,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// refresh or planning stage. We'll report the deferral and
 			// store what we could produce in the deferral tracker.
 			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
+			n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+
 		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
 			// We intentionally write the change before the subsequent checks, because
 			// all of the checks below this point are for problems caused by the
 			// context surrounding the change, rather than the change itself, and
 			// so it's helpful to still include the valid-in-isolation change as
 			// part of the plan as additional context in our error output.
-			//
-			// FIXME: it is currently important that we write resource changes to
-			// the plan (n.writeChange) before we write the corresponding state
-			// (n.writeResourceInstanceState).
-			//
-			// This is because the planned resource state will normally have the
-			// status of states.ObjectPlanned, which causes later logic to refer to
-			// the contents of the plan to retrieve the resource data. Because
-			// there is no shared lock between these two data structures, reversing
-			// the order of these writes will cause a brief window of inconsistency
-			// which can lead to a failed safety check.
-			//
-			// Future work should adjust these APIs such that it is impossible to
-			// update these two data structures incorrectly through any objects
-			// reachable via the terraform.EvalContext API.
-			diags = diags.Append(n.writeChange(ctx, change, ""))
+			diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -496,7 +483,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			checkDiags := evalCheckRules(
 				addrs.ResourcePostcondition,
 				n.Config.Postconditions,
-				ctx, n.ResourceInstanceAddr(), repeatData,
+				ctx, n.ResourceInstanceAddr(), repData,
 				checkRuleSeverity,
 			)
 			diags = diags.Append(checkDiags)
@@ -511,7 +498,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// value registered here as the value of this resource instance,
 			// instead of using the plan.
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+			n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 		}
+
+		// Now that the instance is planned we can plan any triggered actions.
+		// Note that these may also result in resource deferral, so we can't
+		// count in having a plan yet.
+		diags = diags.Append(n.planActionTriggers(ctx, repData, change))
+
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -530,6 +524,21 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
+
+		// We also need to send refreshed objects to the policy.
+		if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+			value := cty.NilVal
+			if instanceRefreshState != nil {
+				value = instanceRefreshState.Value
+			}
+			policyGraph.Add(&nodeResourcePolicy{
+				ResourceAddr: n.ResourceInstanceAddr(),
+				ProviderAddr: n.ResolvedProvider,
+				Before:       value,
+				After:        value,
+				Action:       plans.NoOp,
+			})
+		}
 
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
@@ -567,6 +576,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
+			n.reportDeferredActionTriggers(ctx, deferred.Reason)
 		}
 	}
 
@@ -1108,27 +1118,21 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	return true
 }
 
-func actionIsTriggeredByEvent(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
+func eventsForPlannedAction(events []configs.ActionTriggerEvent, action plans.Action) []configs.ActionTriggerEvent {
 	triggeredEvents := []configs.ActionTriggerEvent{}
 	for _, event := range events {
 		switch event {
 		case configs.BeforeCreate, configs.AfterCreate:
 			if action.IsReplace() || action == plans.Create {
 				triggeredEvents = append(triggeredEvents, event)
-			} else {
-				continue
 			}
 		case configs.BeforeUpdate, configs.AfterUpdate:
 			if action == plans.Update {
 				triggeredEvents = append(triggeredEvents, event)
-			} else {
-				continue
 			}
 		case configs.BeforeDestroy, configs.AfterDestroy:
 			if action == plans.DeleteThenCreate || action == plans.CreateThenDelete || action == plans.Delete {
 				triggeredEvents = append(triggeredEvents, event)
-			} else {
-				continue
 			}
 		default:
 			panic(fmt.Sprintf("unknown action trigger event %s", event))

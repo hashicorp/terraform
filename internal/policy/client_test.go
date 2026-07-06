@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
+	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -20,9 +21,14 @@ import (
 type stubPolicyClient struct {
 	proto.PolicyClient
 
+	setupFn            func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error)
 	evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
 	evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 	evaluateModuleFn   func(*proto.PolicyEvaluateModuleRequest) (*proto.PolicyEvaluateModuleResponse, error)
+}
+
+func (s *stubPolicyClient) Setup(ctx context.Context, req *proto.PolicySetupRequest, _ ...grpc.CallOption) (*proto.PolicySetupResponse, error) {
+	return s.setupFn(req)
 }
 
 func (s *stubPolicyClient) EvaluateResource(ctx context.Context, req *proto.PolicyEvaluateResourceRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateResourceResponse, error) {
@@ -42,8 +48,8 @@ func TestClientEvaluate(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		attrs      cty.Value
-		priorAttrs cty.Value
+		attrs      PolicyValue
+		priorAttrs PolicyValue
 
 		// an optional function to override the default evaluateResourceFn
 		evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
@@ -53,8 +59,8 @@ func TestClientEvaluate(t *testing.T) {
 	}{
 		{
 			name:       "nil attrs and prior attrs",
-			attrs:      cty.NilVal,
-			priorAttrs: cty.NilVal,
+			attrs:      PolicyValue{Raw: cty.NilVal},
+			priorAttrs: PolicyValue{Raw: cty.NilVal},
 			assertResponse: func(t *testing.T, registry *callback.MockRegistry, req *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -69,9 +75,14 @@ func TestClientEvaluate(t *testing.T) {
 			},
 		},
 		{
-			name:       "non-nil attrs and prior attrs",
-			attrs:      cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
-			priorAttrs: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("prior")}),
+			name: "non-nil attrs and prior attrs",
+			attrs: PolicyValue{
+				Raw:           cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
+				RedactedPaths: []cty.Path{cty.GetAttrPath("secret")},
+			},
+			priorAttrs: PolicyValue{
+				Raw: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("prior")}),
+			},
 			assertResponse: func(t *testing.T, registry *callback.MockRegistry, req *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -80,12 +91,19 @@ func TestClientEvaluate(t *testing.T) {
 				if len(resp.Diagnostics) != 0 {
 					t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
 				}
+
+				want := &proto.AttributePath{Steps: []*proto.AttributePath_Step{{
+					Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "secret"},
+				}}}
+				if len(req.Attrs.RedactedPaths) != 1 || !gproto.Equal(req.Attrs.RedactedPaths[0], want) {
+					t.Fatalf("unexpected redacted paths: %#v", req.Attrs.RedactedPaths)
+				}
 			},
 		},
 		{
 			name:       "transforms diagnostics from response",
-			attrs:      cty.NilVal,
-			priorAttrs: cty.NilVal,
+			attrs:      PolicyValue{Raw: cty.NilVal},
+			priorAttrs: PolicyValue{Raw: cty.NilVal},
 			evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
 				return &proto.PolicyEvaluateResourceResponse{
 					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
@@ -204,13 +222,26 @@ func TestClientEvaluateProvider(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		attrs              cty.Value
+		attrs              PolicyValue
 		evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 		assertResponse     func(*testing.T, EvaluationResponse)
 	}{
 		{
 			name:  "nil attrs",
-			attrs: cty.NilVal,
+			attrs: PolicyValue{Raw: cty.NilVal},
+			assertResponse: func(t *testing.T, resp EvaluationResponse) {
+				t.Helper()
+				if resp.Overall != AllowResult {
+					t.Fatalf("unexpected result: got %s, want %s", resp.Overall, AllowResult)
+				}
+				if len(resp.Diagnostics) != 0 {
+					t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
+				}
+			},
+		},
+		{
+			name:  "unknown attrs",
+			attrs: PolicyValue{Raw: cty.UnknownVal(cty.EmptyObject)},
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -223,7 +254,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 		},
 		{
 			name:  "non-nil attrs",
-			attrs: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")}),
+			attrs: PolicyValue{Raw: cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("test")})},
 			assertResponse: func(t *testing.T, resp EvaluationResponse) {
 				t.Helper()
 				if resp.Overall != AllowResult {
@@ -236,7 +267,7 @@ func TestClientEvaluateProvider(t *testing.T) {
 		},
 		{
 			name:  "transforms diagnostics from response",
-			attrs: cty.NilVal,
+			attrs: PolicyValue{Raw: cty.NilVal},
 			evaluateProviderFn: func(req *proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error) {
 				return &proto.PolicyEvaluateProviderResponse{
 					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
@@ -427,6 +458,74 @@ func TestClientEvaluateModule(t *testing.T) {
 			}
 			if gotReq.ModuleSource != "./child" {
 				t.Fatalf("unexpected module source: got %q, want %q", gotReq.ModuleSource, "./child")
+			}
+		})
+	}
+}
+
+func TestClientSetupEntitlement(t *testing.T) {
+	ctx := t.Context()
+
+	tests := []struct {
+		name        string
+		entitlement *Entitlement
+		want        *proto.PolicySetupRequest_Entitlement
+	}{
+		{
+			name:        "nil entitlement is not serialized",
+			entitlement: nil,
+			want:        nil,
+		},
+		{
+			name: "entitlement is mapped onto the proto request",
+			entitlement: &Entitlement{
+				Host:  "app.terraform.io",
+				Token: "secret",
+				Org:   "hashicorp",
+			},
+			want: &proto.PolicySetupRequest_Entitlement{
+				Host:  "app.terraform.io",
+				Token: "secret",
+				Org:   "hashicorp",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotReq *proto.PolicySetupRequest
+			c := &client{
+				client: &stubPolicyClient{
+					setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+						gotReq = req
+						return &proto.PolicySetupResponse{}, nil
+					},
+				},
+			}
+
+			resp := c.Setup(ctx, SetupRequest{
+				SourceLocations: []string{"./policies"},
+				Entitlement:     tt.entitlement,
+			})
+			if resp.Diagnostics.HasErrors() {
+				t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
+			}
+			if gotReq == nil {
+				t.Fatal("expected a setup request to be sent")
+			}
+
+			got := gotReq.Entitlement
+			if tt.want == nil {
+				if got != nil {
+					t.Fatalf("expected nil entitlement, got %+v", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected entitlement, got nil")
+			}
+			if got.Host != tt.want.Host || got.Token != tt.want.Token || got.Org != tt.want.Org {
+				t.Fatalf("unexpected entitlement: got %+v, want %+v", got, tt.want)
 			}
 		})
 	}

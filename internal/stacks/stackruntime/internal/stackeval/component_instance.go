@@ -165,6 +165,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
 	plantimestamp := c.main.PlanTimestamp()
+
 	return &terraform.PlanOpts{
 		Mode:                       mode,
 		SkipRefresh:                skipRefresh,
@@ -173,6 +174,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		PolicyClient:               c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
@@ -353,6 +355,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					addr:  c.Addr(),
 				},
 			}, c)
+
 			if plan != nil {
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {

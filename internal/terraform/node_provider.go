@@ -205,7 +205,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	}
 
 	// Post-provider config policy evaluation
-	policyDiags := n.EvalPolicy(ctx, unmarkedConfigVal)
+	//
+	// We use the marked "configVal" so that we can send sensitive paths to the
+	// policy plugin. Provider schemas don't have a defined usage/behavior for
+	// the "Sensitive" field, so we don't add sensitive paths from the schema to this value.
+	policyDiags := n.EvalPolicy(ctx, configVal)
 	diags = diags.Append(policyDiags)
 	if policyDiags.HasErrors() {
 		return diags
@@ -224,34 +228,29 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
 		return nil
 	}
+
 	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
 		Target: n.Addr.Provider.Type,
-		Attrs:  attrs,
+		Attrs:  policy.CtyToPolicyValue(attrs),
 		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
-			Name:       n.Addr.Provider.Type,
-			Alias:      n.Addr.Alias,
-			Namespace:  n.Addr.Provider.Namespace,
-			Source:     n.Addr.Provider.String(),
-			ModulePath: n.Addr.Module.String(),
-			Version:    n.providerVersion(ctx),
+			Name:      n.Addr.Provider.Type,
+			Alias:     n.Addr.Alias,
+			Namespace: n.Addr.Provider.Namespace,
+			Source:    n.Addr.Provider.String(),
+			Version:   n.providerVersion(ctx),
 		},
 	})
 
 	// if this was an "implicit provider", and we have no configuration
-	// for it, There's going to be no source information for these errors.
+	// for it, there will be no source information for any diagnostics.
+	var rng hcl.Range
 	if n.Config != nil {
-		ptr := n.Config.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		rng = n.Config.DeclRange
 	}
 
 	// always add the result to the policy results
 	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
+		ctx.PolicyResults().AddProvider(n.Addr, result, rng)
 	}
 
 	return nil

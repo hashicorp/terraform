@@ -23,10 +23,15 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
 var logger = logging.HCLogger()
+
+// Some blocks contain a fixed config block to hold the object configuration,
+// and their diagnostics will always be returned relative to this path.
+var configBlockPath = cty.GetAttrPath("config")
 
 // GRPCProviderPlugin implements plugin.GRPCPlugin for the go-plugin package.
 type GRPCProviderPlugin struct {
@@ -714,7 +719,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedState = state
 
 	for _, p := range protoResp.RequiresReplace {
-		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p))
+		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p, nil))
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
@@ -1382,7 +1387,7 @@ func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) providers.L
 			break
 		}
 
-		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(event.Diagnostic))
+		resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(event.Diagnostic, configBlockPath))
 		if resp.Diagnostics.HasErrors() {
 			// If we have errors, we stop processing and return early
 			break
@@ -1507,15 +1512,30 @@ func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
-		return resp
-	}
-	if resp.Diagnostics.HasErrors() {
-		return resp
+	// We only allow deferral from the provider as a whole. The provider must be
+	// able to accept unknown configuration.
+	if protoResp.Deferred != nil {
+		if !r.ClientCapabilities.DeferralAllowed {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferral",
+				fmt.Sprintf("The provider %s signaled a deferred action, but deferrals are not enabled for this client.", p.Addr.ForDisplay()),
+			))
+			return resp
+		}
+
+		if protoResp.Deferred.Reason != proto.Deferred_PROVIDER_CONFIG_UNKNOWN {
+			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Invalid deferred reason",
+				fmt.Sprintf("An action can only be deferred due to an unknown provider configuration. Provider %s returned %s.", p.Addr.ForDisplay(), protoResp.Deferred.Reason),
+			))
+		}
+
+		resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 	}
 
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 
@@ -1555,6 +1575,7 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 	resp.Events = func(yield func(providers.InvokeActionEvent) bool) {
 		logger.Trace("GRPCProvider: InvokeAction: streaming events")
 
+	RECV:
 		for {
 			event, err := protoClient.Recv()
 			if err == io.EOF {
@@ -1572,16 +1593,20 @@ func (p *GRPCProvider) InvokeAction(r providers.InvokeActionRequest) (resp provi
 
 			switch ev := event.Type.(type) {
 			case *proto.InvokeAction_Event_Progress_:
-				yield(providers.InvokeActionEvent_Progress{
+				if !yield(providers.InvokeActionEvent_Progress{
 					Message: ev.Progress.Message,
-				})
+				}) {
+					break RECV
+				}
 
 			case *proto.InvokeAction_Event_Completed_:
-				diags := convert.ProtoToDiagnostics(ev.Completed.Diagnostics)
+				diags := convert.ProtoToDiagnosticsWithPrefix(ev.Completed.Diagnostics, configBlockPath)
 
-				yield(providers.InvokeActionEvent_Completed{
+				if !yield(providers.InvokeActionEvent_Completed{
 					Diagnostics: diags,
-				})
+				}) {
+					break RECV
+				}
 
 			default:
 				panic(fmt.Sprintf("unexpected event type %T in InvokeAction response", event.Type))
@@ -1624,7 +1649,7 @@ func (p *GRPCProvider) ValidateActionConfig(r providers.ValidateActionConfigRequ
 		return resp
 	}
 
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnosticsWithPrefix(protoResp.Diagnostics, configBlockPath))
 	return resp
 }
 

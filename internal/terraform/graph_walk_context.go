@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -59,7 +58,6 @@ type ContextGraphWalker struct {
 	// only allowed in the context of a destroy plan.
 	Forget bool
 
-	Actions      *actions.Actions
 	Deprecations *deprecation.Deprecations
 
 	// This is an output. Do not set this, nor read it while a graph walk
@@ -72,7 +70,6 @@ type ContextGraphWalker struct {
 	PolicyResults *plans.PolicyResults // Used to store policy evaluation results
 	PolicyGraph   *policySubgraph      // Used for writing resource policy evaluation nodes
 
-	once               sync.Once
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex
 	providerCache      map[string]providers.Interface
@@ -108,8 +105,6 @@ func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
 }
 
 func (w *ContextGraphWalker) EvalContext() EvalContext {
-	w.once.Do(w.init)
-
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
@@ -155,7 +150,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		ActionsValue:            w.Actions,
 		ProviderLocksValue:      w.ProviderLocks,
 		PolicyClientValue:       w.PolicyClient,
 		PolicyResultsValue:      w.PolicyResults,
@@ -163,15 +157,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	}
 
 	return ctx
-}
-
-func (w *ContextGraphWalker) init() {
-	w.contexts = collections.NewMap[evalContextScope, *BuiltinEvalContext]()
-	w.providerCache = make(map[string]providers.Interface)
-	w.providerFuncCache = make(map[string]providers.Interface)
-	w.providerSchemas = make(map[string]providers.ProviderSchema)
-	w.provisionerCache = make(map[string]provisioners.Interface)
-	w.provisionerSchemas = make(map[string]*configschema.Block)
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

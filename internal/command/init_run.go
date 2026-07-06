@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -157,63 +159,56 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 
-	// If -state-provider-lock-file is set, we'll use that to obtain a new lock used for the state store provider
-	// This will be 'upserted': it may be that the previous locks don't contain the provider being added. potentially due to being empty, or contain a different version.
-	// The lock added will be used in the first step of provider download.
-	//
-	// We load locks from any pre-existing dependency lock file. These may or may not be altered by the -state-provider-lock-file flag.
-	// The altered copy of the locks will be used to influence subsequent provider download steps.
-	// The unaltered copy of the locks will be used at the end of the run to determine whether we need to update the dependency lock file on disk.
+	// Load locks from any pre-existing dependency lock file.
 	previousLocks, locksDiags := c.lockedDependencies()
 	diags = diags.Append(locksDiags)
 	if locksDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
-	alteredPreviousLocks := previousLocks.DeepCopy()
-	if initArgs.StateStoreProviderLockFile != "" {
-		stateStoreLocks, lockDiags := depsfile.LoadLocksFromFile(initArgs.StateStoreProviderLockFile)
-		if lockDiags.HasErrors() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error loading -state-provider-lock-file lock file",
-				fmt.Sprintf("Terraform experienced an error loading the file at %q: %s", initArgs.StateStoreProviderLockFile, lockDiags.Err()),
-			))
-			view.Diagnostics(diags)
-			return 1
-		}
-		diags = diags.Append(lockDiags) // capture any warnings
 
-		lock := stateStoreLocks.Provider(rootModEarly.StateStore.ProviderAddr)
-		if lock == nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"State store provider not found in -state-provider-lock-file dependency lock file",
-				fmt.Sprintf("Terraform could not find the state store provider %q (%s) in the dependency lock file %q provided via the -state-provider-lock-file flag. Please ensure the lock file contains a lock for the state store provider and try again.",
-					rootModEarly.StateStore.ProviderAddr.Type,
-					rootModEarly.StateStore.ProviderAddr.ForDisplay(),
-					initArgs.StateStoreProviderLockFile,
-				),
-			))
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		// Overwrite or add the state store provider lock to the other locks for this project
-		alteredPreviousLocks.SetProvider(
-			lock.Provider(),
-			lock.Version(),
-			lock.VersionConstraints(),
-			lock.PreferredHashes(),
-		)
-	}
-
-	var pssLocks *depsfile.Locks // May end up containing 0 or 1 lock.
+	var pssLock *depsfile.Locks // May end up containing 0 or 1 lock, and needs to be able to influence `getProviders` below.
 	if rootModEarly.StateStore != nil {
-		var configProvidersOutput bool
-		var safeInitAction SafeInitAction
-		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var configProviderDiags tfdiags.Diagnostics
+		// If the user supplies -state-provider-lock-file to init then we need to let those locks influence provider installation.
+		// `alteredPreviousLocks` will only be different from the locks loaded from the working directory if the user supplied a supplementary lock file via -state-provider-lock-file.
+		alteredPreviousLocks := previousLocks.DeepCopy()
+
+		if initArgs.StateStoreProviderLockFile != "" {
+			stateStoreLocks, lockDiags := c.readLockedDependenciesFromPath(initArgs.StateStoreProviderLockFile)
+			if lockDiags.HasErrors() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Error loading -state-provider-lock-file lock file",
+					fmt.Sprintf("Terraform experienced an error loading the file at %q: %s", initArgs.StateStoreProviderLockFile, lockDiags.Err()),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+			diags = diags.Append(lockDiags) // capture any warnings
+
+			lock := stateStoreLocks.Provider(rootModEarly.StateStore.ProviderAddr)
+			if lock == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"State store provider not described in dependency lock file supplied via -state-provider-lock-file flag",
+					fmt.Sprintf("Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider %q (%s). To get a sufficient lock file create a minimal configuration with the specific provider and version you want to use described in a required_providers block. Then, perform \"terraform init\" manually to create a dependency lock file describing that provider. After checking the lock file's contents you can retry the original command that produced this error by running: \"terraform init -input=false -state-provider-lock-file=<path to the newly-created lock file>\".",
+						initArgs.StateStoreProviderLockFile,
+						rootModEarly.StateStore.ProviderAddr.Type,
+						rootModEarly.StateStore.ProviderAddr.ForDisplay(),
+					),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			// Overwrite or add the state store provider lock to the other locks for this project
+			alteredPreviousLocks.SetProvider(
+				lock.Provider(),
+				lock.Version(),
+				lock.VersionConstraints(),
+				lock.PreferredHashes(),
+			)
+		}
 
 		// The init command is not allowed to upgrade the provider used for state storage
 		// We warn that upgrades will not impact the provider, and upgrades will only work via `terraform state migrate -upgrade`.
@@ -237,8 +232,11 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			}
 		}
 
-		// Use alteredPreviousLocks, which may contain an additional lock supplied from the -state-provider-lock-file flag
-		configProvidersOutput, pssLocks, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		var configProvidersOutput bool
+		var safeInitAction SafeInitAction
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
+		var configProviderDiags tfdiags.Diagnostics
+		configProvidersOutput, pssLock, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(configProviderDiags)
 		if configProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -257,7 +255,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		case SafeInitActionRequireApproval:
 			if c.input {
 				// Prompt the user about trusting the provider used for state storage.
-				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLocks, stateStoreProviderAuthResult))
+				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLock, stateStoreProviderAuthResult))
 				if diags.HasErrors() {
 					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
 					view.Diagnostics(diags)
@@ -299,7 +297,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, pssLocks, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs, pssLock, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -308,6 +306,30 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Output(views.EmptyMessage)
+	}
+
+	// Set up the policy client now that the backend is configured, so the
+	// entitlement can be read from it (as plan and apply do). getModules and
+	// getProviders below consume the client through the provider hook.
+	var policyClient policy.Client
+	if len(initArgs.PolicyPaths) > 0 {
+		var policyDiags policy.Diagnostics
+		var stopClient func()
+		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
+		defer stopClient()
+		view.PolicyResults(nil, policyDiags)
+		if policyDiags.HasErrors() {
+			diags = diags.Append(earlyConfDiags)
+			diags = diags.Append(backDiags)
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+	policyResults := plans.NewPolicyResults()
+	providerHook := &providerPolicyHook{
+		client:        policyClient,
+		policyResults: policyResults,
+		rootModule:    rootModEarly,
 	}
 
 	var state *states.State
@@ -340,8 +362,9 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	if initArgs.Get {
-		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view)
+		modsOutput, modsAbort, policyResults, modsDiags := c.getModules(ctx, path, initArgs.TestsDirectory, rootModEarly, initArgs.Upgrade, view, policyClient)
 		diags = diags.Append(modsDiags)
+		view.PolicyResults(policyResults, nil)
 		if modsAbort || modsDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
@@ -407,9 +430,18 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	// Proceed with downloading providers
-	stateProvidersOutput, providerLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, pssLocks, initArgs.PluginPath, view)
+	var previousLocksWithPSSOverride *depsfile.Locks
+	previousLocksWithPSSOverride = previousLocks.DeepCopy()
+	if rootModEarly.StateStore != nil {
+		// If a provider is used for state storage, the lock returned from getProvidersFromPSSConfig
+		// is the only guaranteed source of that lock. We need to ensure its presence to influence
+		// `getProviders`, else that method could download the PSS provider a second time, or download a different version.
+		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLock, previousLocksWithPSSOverride)
+	}
+	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
 	diags = diags.Append(stateProvidersDiags)
 	if stateProvidersDiags.HasErrors() {
+		view.PolicyResults(policyResults, nil)
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -420,7 +452,14 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	}
 
 	// Update the dependency lock file, if it has changed.
-	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, pssLocks, providerLocks, initArgs.Lockfile, view)
+	if rootModEarly.StateStore != nil && initArgs.Upgrade && !initArgs.Reconfigure {
+		// If there's a provider upgrade happening (outside the context of -reconfigure),
+		// then we override the state store provider lock with the pre-upgrade version.
+		// Even if the upgrade process downloaded a newer version of the provider Terraform
+		// will not use it due to the lock file being unchanged.
+		finalLocks = c.mergeLockedDependencies(pssLock, finalLocks)
+	}
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, initArgs.Lockfile, view)
 	diags = diags.Append(lockFileDiags)
 	if lockFileDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -435,6 +474,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
+	view.PolicyResults(policyResults, nil)
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := views.OutputInitSuccessMessage

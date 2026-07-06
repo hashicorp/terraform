@@ -4,6 +4,8 @@
 package arguments
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -11,6 +13,21 @@ import (
 )
 
 func TestStateMigrateArgs(t *testing.T) {
+	t.Parallel()
+
+	// Create lock files to use in test, as validation will check for the existence of the
+	// file if a path is supplied via CLI flags.
+	td := t.TempDir()
+	userLockFilePath := filepath.Join(td, ".terraform.lock.hcl")
+	if err := os.WriteFile(userLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	invalidLockFilePath := filepath.Join(td, "invalid.lock.hcl")
+	if err := os.WriteFile(invalidLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
 	testCases := []struct {
 		rawArgs       []string
 		expectedArgs  *StateMigrate
@@ -19,7 +36,7 @@ func TestStateMigrateArgs(t *testing.T) {
 		{
 			rawArgs: []string{""},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
+				SourceLockFilePath:      ".terraform.lock.hcl",
 				DestinationLockFilePath: ".terraform.lock.hcl",
 				Upgrade:                 false,
 				InputEnabled:            true,
@@ -28,21 +45,21 @@ func TestStateMigrateArgs(t *testing.T) {
 		},
 		{ // set or override all flags
 			rawArgs: []string{
-				"-source-provider-lock-file", "/some/path/.terraform.lock.hcl",
-				"-destination-provider-lock-file", "/some/other/path/.terraform.lock.hcl",
+				"-source-provider-lock-file", userLockFilePath,
+				"-destination-provider-lock-file", userLockFilePath,
 				"-upgrade",
 				"-input=false",
 			},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "/some/path/.terraform.lock.hcl",
-				DestinationLockFilePath: "/some/other/path/.terraform.lock.hcl",
+				SourceLockFilePath:      userLockFilePath,
+				DestinationLockFilePath: userLockFilePath,
 				Upgrade:                 true,
 				InputEnabled:            false,
 				ViewType:                ViewHuman,
 			},
 		},
 		{
-			rawArgs: []string{"-input=false", "-source-provider-lock-file", "foo"},
+			rawArgs: []string{"-input=false", "-source-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
 				SourceLockFilePath:      "",
 				DestinationLockFilePath: ".terraform.lock.hcl",
@@ -54,14 +71,14 @@ func TestStateMigrateArgs(t *testing.T) {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid source-provider-lock-file",
-					"Expected lock file name to be .terraform.lock.hcl, got: foo",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
 				),
 			},
 		},
 		{
-			rawArgs: []string{"-input=false", "-destination-provider-lock-file", "foo"},
+			rawArgs: []string{"-input=false", "-destination-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
+				SourceLockFilePath:      ".terraform.lock.hcl",
 				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            false,
@@ -71,7 +88,7 @@ func TestStateMigrateArgs(t *testing.T) {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid destination-provider-lock-file",
-					"Expected lock file name to be .terraform.lock.hcl, got: foo",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
 				),
 			},
 		},

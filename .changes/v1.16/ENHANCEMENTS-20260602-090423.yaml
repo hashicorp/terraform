@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Action configuration now has a new `caller` symbol which contains the object value from the calling resource.
+time: 2026-06-02T09:04:23.077822-04:00
+custom:
+    Issue: "38668"

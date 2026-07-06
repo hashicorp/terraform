@@ -6,8 +6,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"maps"
-	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -31,14 +29,12 @@ import (
 // resources including module resources, rather than creating module nodes that
 // are then "flattened".
 type ConfigTransformer struct {
-	Concrete       ConcreteResourceNodeFunc
-	ConcreteAction ConcreteActionNodeFunc
+	Concrete ConcreteResourceNodeFunc
 
 	// Module is the module to add resources from.
 	Config *configs.Config
 
-	// some actions are skipped during the destroy process
-	destroy bool
+	Operation walkOperation
 
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
@@ -94,8 +90,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
+	destroy := t.Operation == walkDestroy || t.Operation == walkPlanDestroy
+
 	var allResources []*configs.Resource
-	if !t.destroy {
+	if !destroy {
 		for _, r := range module.ManagedResources {
 			allResources = append(allResources, r)
 		}
@@ -134,82 +132,57 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// collect all the Action Declarations (configs.Actions) in this module so
 	// we can validate that actions referenced in a resource's ActionTriggers
 	// exist in this module.
-	allConfigActions := make(map[string]*configs.Action)
+	allConfigActions := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
+
+	// because action blocks are usable in multiple ways we also need to track
+	// which ones have not been "used" within the configuration, so that they
+	// can be validated as standalone blocks with no caller.
+	referencedActionConfigs := addrs.MakeSet[addrs.ConfigAction]()
+
 	for _, a := range module.Actions {
 		if a != nil {
 			addr := a.Addr().InModule(path)
-			allConfigActions[addr.String()] = a
 			log.Printf("[TRACE] ConfigTransformer: Adding action %s", addr)
-			abstract := &NodeAbstractAction{
+			abstract := &NodeActionConfig{
 				Addr:   addr,
-				Config: *a,
+				Config: a,
 			}
-			var node dag.Vertex
-			if f := t.ConcreteAction; f != nil {
-				node = f(abstract)
-			} else {
-				node = DefaultConcreteActionNodeFunc(abstract)
-			}
-			g.Add(node)
+
+			g.Add(abstract)
+			allConfigActions.Put(addr, abstract)
 		}
 	}
 
 	for _, r := range allResources {
 		relAddr := r.Addr()
+		configAddr := relAddr.InModule(path)
 
-		// Verify that any actions referenced in the resource's ActionTriggers exist in this module
-		var diags tfdiags.Diagnostics
-		if r.Managed != nil && r.Managed.ActionTriggers != nil {
-			for _, at := range r.Managed.ActionTriggers {
-				for _, action := range at.Actions {
-
-					refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
-					if parseRefDiags != nil {
-						return parseRefDiags.Err()
-					}
-
-					var configAction addrs.ConfigAction
-
-					for _, ref := range refs {
-						switch a := ref.Subject.(type) {
-						case addrs.Action:
-							configAction = a.InModule(config.Path)
-						case addrs.ActionInstance:
-							configAction = a.Action.InModule(config.Path)
-						case addrs.CountAttr, addrs.ForEachAttr:
-							// nothing to do, these will get evaluated later
-						default:
-							// This should have been caught during validation
-							panic(fmt.Sprintf("unexpected action address %T", a))
-						}
-					}
-
-					_, ok := allConfigActions[configAction.String()]
-					if !ok {
-						suggestion := didyoumean.NameSuggestion(configAction.String(), slices.Collect(maps.Keys(allConfigActions)))
-						if suggestion != "" {
-							suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-						}
-
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "action_trigger actions references non-existent action",
-							Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
-							Subject:  action.Expr.Range().Ptr(),
-							Context:  r.DeclRange.Ptr(),
-						})
-					}
-				}
-			}
+		abstract := &NodeAbstractResource{
+			Addr: configAddr,
 		}
+		var diags tfdiags.Diagnostics
+
+		// Build the action triggers for the configured resource nodes,
+		// connecting them to the respective ConfigAction nodes.
+		triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
+		diags = diags.Append(triggerDiags)
 		if diags.HasErrors() {
 			return diags.Err()
+		}
+
+		abstract.actionTriggers = triggers
+
+		// now record all the action nodes which were used by resources, so that
+		// they are not validated on their own since they may container "caller"
+		for _, trigger := range triggers {
+			for _, actionRef := range trigger.actionRefs {
+				referencedActionConfigs.Add(actionRef.actionNode.Addr)
+			}
 		}
 
 		// If any of the import targets can apply to this node's instances,
 		// filter them down to the applicable addresses.
 		var imports []*ImportTarget
-		configAddr := relAddr.InModule(path)
 
 		var matchedIndices []int
 		for ix, i := range importTargets {
@@ -237,10 +210,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			importTargets = append(importTargets[:tIx], importTargets[tIx+1:]...)
 		}
 
-		abstract := &NodeAbstractResource{
-			Addr:          configAddr,
-			importTargets: imports,
-		}
+		abstract.importTargets = imports
 
 		if r.List != nil {
 			abstract.generateConfigPath = t.generateConfigPathForImportTargets
@@ -252,6 +222,19 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		g.Add(node)
+	}
+
+	// Convert unused action config nodes into validation nodes. Any triggered
+	// actions will be validated from the caller so we can actually validate the
+	// use of "caller".
+	if t.Operation == walkValidate {
+		for addr, node := range allConfigActions.Iter() {
+			if !referencedActionConfigs.Has(addr) {
+				g.Remove(node)
+				log.Printf("[DEBUG] replacing unused ActionConfig %s with standalone validation node", addr)
+				g.Add(&NodeValidatableAction{node})
+			}
+		}
 	}
 
 	// If any import targets were not claimed by resources we may be
@@ -281,9 +264,11 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 // validateImportTargets ensures that the import target module exists in the
 // configuration. Individual resources will be check by the validation node.
 func (t *ConfigTransformer) validateImportTargets() error {
-	if t.destroy {
+	// there are no imports during destroy
+	if t.Operation == walkDestroy || t.Operation == walkPlanDestroy {
 		return nil
 	}
+
 	var diags tfdiags.Diagnostics
 
 	for _, i := range t.importTargets {
@@ -307,4 +292,76 @@ func (t *ConfigTransformer) validateImportTargets() error {
 	}
 
 	return diags.Err()
+}
+
+// buildActionTriggers constructs the list of action refs along with their
+// associated action nodes for a managed resource.
+func buildActionTriggers(resource *configs.Resource, path addrs.Module, allConfigActions addrs.Map[addrs.ConfigAction, *NodeActionConfig]) ([]*resourceActionTrigger, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var actionTriggers []*resourceActionTrigger
+
+	if resource.Managed == nil {
+		return nil, nil
+	}
+
+	for blockIdx, at := range resource.Managed.ActionTriggers {
+		resActTrig := &resourceActionTrigger{
+			config: at,
+		}
+		for actionIdx, action := range at.Actions {
+			refs, parseRefDiags := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+			diags = diags.Append(parseRefDiags)
+			if diags.HasErrors() {
+				return nil, diags
+			}
+
+			var configAction addrs.ConfigAction
+
+			for _, ref := range refs {
+				switch a := ref.Subject.(type) {
+				case addrs.Action:
+					configAction = a.InModule(path)
+				case addrs.ActionInstance:
+					configAction = a.Action.InModule(path)
+				case addrs.CountAttr, addrs.ForEachAttr:
+					// nothing to do, these will get evaluated later
+				default:
+					// This should have been caught during config loading
+					panic(fmt.Sprintf("unexpected action address %T", a))
+				}
+			}
+
+			// Verify that any actions referenced in the resource's ActionTriggers exist in this module
+			// FIXME: can this be checked during config loading?
+			actionNode, ok := allConfigActions.GetOk(configAction)
+			if !ok {
+				var keys []string
+				for k := range allConfigActions.Iter() {
+					keys = append(keys, k.String())
+				}
+				suggestion := didyoumean.NameSuggestion(configAction.String(), keys)
+				if suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "action_trigger actions references non-existent action",
+					Detail:   fmt.Sprintf("The lifecycle action_trigger actions list contains a reference to the action %q that does not exist in the configuration of this module.%s", configAction.String(), suggestion),
+					Subject:  action.Expr.Range().Ptr(),
+					Context:  resource.DeclRange.Ptr(),
+				})
+				continue
+			}
+
+			resActTrig.actionRefs = append(resActTrig.actionRefs, actionRef{
+				configRef:   action,
+				actionNode:  actionNode,
+				blockIndex:  blockIdx,
+				actionIndex: actionIdx,
+			})
+		}
+		actionTriggers = append(actionTriggers, resActTrig)
+	}
+	return actionTriggers, diags
 }

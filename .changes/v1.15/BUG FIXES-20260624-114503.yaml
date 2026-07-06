@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix submodule variable validation during init
+time: 2026-06-24T11:45:03.408023+02:00
+custom:
+    Issue: "38770"

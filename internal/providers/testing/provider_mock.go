@@ -5,11 +5,8 @@ package testing
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"sync"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -155,12 +152,12 @@ type MockProvider struct {
 	ReadStateBytesCalled   bool
 	ReadStateBytesRequest  providers.ReadStateBytesRequest
 	ReadStateBytesFn       func(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse
-	ReadStateBytesResponse providers.ReadStateBytesResponse
+	ReadStateBytesResponse *providers.ReadStateBytesResponse
 
 	WriteStateBytesCalled   bool
 	WriteStateBytesRequest  providers.WriteStateBytesRequest
 	WriteStateBytesFn       func(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse
-	WriteStateBytesResponse providers.WriteStateBytesResponse
+	WriteStateBytesResponse *providers.WriteStateBytesResponse
 
 	// See providers.StateStoreChunkSizeSetter interface
 	SetStateStoreChunkSizeCalled bool
@@ -176,9 +173,8 @@ type MockProvider struct {
 	UnlockStateRequest  providers.UnlockStateRequest
 	UnlockStateFn       func(providers.UnlockStateRequest) providers.UnlockStateResponse
 
-	// MockStates is an internal field that tracks which workspaces have been created in a test
-	// The map keys are state ids (workspaces) and the value depends on the test.
-	MockStates map[string]interface{}
+	// MockStates is an internal field that tracks state data stored during a test
+	MockStates MockStateBytes
 
 	GetStatesCalled   bool
 	GetStatesResponse *providers.GetStatesResponse
@@ -345,8 +341,11 @@ func (p *MockProvider) ReadStateBytes(r providers.ReadStateBytesRequest) (resp p
 	if p.ReadStateBytesFn != nil {
 		return p.ReadStateBytesFn(r)
 	}
+	if p.ReadStateBytesResponse != nil {
+		return *p.ReadStateBytesResponse
+	}
 
-	return p.ReadStateBytesResponse
+	return resp
 }
 
 func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
@@ -358,15 +357,11 @@ func (p *MockProvider) WriteStateBytes(r providers.WriteStateBytesRequest) (resp
 	if p.WriteStateBytesFn != nil {
 		return p.WriteStateBytesFn(r)
 	}
-
-	// If we haven't already, record in the mock that
-	// the matching workspace exists
-	if p.MockStates == nil {
-		p.MockStates = make(map[string]interface{})
+	if p.WriteStateBytesResponse != nil {
+		return *p.WriteStateBytesResponse
 	}
-	p.MockStates[r.StateId] = true
 
-	return p.WriteStateBytesResponse
+	return resp
 }
 
 func (p *MockProvider) LockState(r providers.LockStateRequest) (resp providers.LockStateResponse) {
@@ -1086,16 +1081,13 @@ func (p *MockProvider) GetStates(r providers.GetStatesRequest) (resp providers.G
 		return resp
 	}
 
-	if p.GetStatesResponse != nil {
-		return *p.GetStatesResponse
-	}
-
 	if p.GetStatesFn != nil {
 		return p.GetStatesFn(r)
 	}
 
-	// When no custom logic is provided to the mock, return the internal states list
-	resp.States = slices.Sorted(maps.Keys(p.MockStates))
+	if p.GetStatesResponse != nil {
+		return *p.GetStatesResponse
+	}
 
 	return resp
 }
@@ -1114,23 +1106,12 @@ func (p *MockProvider) DeleteState(r providers.DeleteStateRequest) (resp provide
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ConfigureStateStore not called before DeleteState %q", r.TypeName))
 	}
 
-	if p.DeleteStateResponse != nil {
-		return *p.DeleteStateResponse
-	}
-
 	if p.DeleteStateFn != nil {
 		return p.DeleteStateFn(r)
 	}
 
-	// When no custom logic is provided to the mock, delete matching internal state
-	if _, match := p.MockStates[r.StateId]; match {
-		delete(p.MockStates, r.StateId)
-	} else {
-		resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Workspace cannot be deleted",
-			Detail:   fmt.Sprintf("The workspace %q does not exist, so cannot be deleted", r.StateId),
-		})
+	if p.DeleteStateResponse != nil {
+		return *p.DeleteStateResponse
 	}
 
 	// If the response contains no diagnostics then the deletion is assumed to be successful.

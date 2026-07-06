@@ -87,8 +87,11 @@ func (x *GetResourcesRequest) GetEvaluationRequestId() uint32 {
 }
 
 type GetResourcesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Results       [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Results [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	// partial means that the request encountered unknown objects during evaluation,
+	// and the results may be incomplete.
+	Partial       bool `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -128,6 +131,13 @@ func (x *GetResourcesResponse) GetResults() [][]byte {
 		return x.Results
 	}
 	return nil
+}
+
+func (x *GetResourcesResponse) GetPartial() bool {
+	if x != nil {
+		return x.Partial
+	}
+	return false
 }
 
 type GetDataSourceRequest struct {
@@ -193,8 +203,10 @@ func (x *GetDataSourceRequest) GetEvaluationRequestId() uint32 {
 }
 
 type GetDataSourceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        []byte                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Result []byte                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	// deferred indicates that the data source read was deferred during evaluation.
+	Deferred      bool `protobuf:"varint,2,opt,name=deferred,proto3" json:"deferred,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -236,6 +248,13 @@ func (x *GetDataSourceResponse) GetResult() []byte {
 	return nil
 }
 
+func (x *GetDataSourceResponse) GetDeferred() bool {
+	if x != nil {
+		return x.Deferred
+	}
+	return false
+}
+
 var File_callback_proto protoreflect.FileDescriptor
 
 const file_callback_proto_rawDesc = "" +
@@ -246,15 +265,17 @@ const file_callback_proto_rawDesc = "" +
 	"\n" +
 	"attributes\x18\x02 \x01(\fR\n" +
 	"attributes\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"0\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"J\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
-	"\aresults\x18\x01 \x03(\fR\aresults\"v\n" +
+	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\"v\n" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06config\x18\x02 \x01(\fR\x06config\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"/\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"K\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\fR\x06result2\xa6\x01\n" +
+	"\x06result\x18\x01 \x01(\fR\x06result\x12\x1a\n" +
+	"\bdeferred\x18\x02 \x01(\bR\bdeferred2\xa6\x01\n" +
 	"\x0fCallbackService\x12G\n" +
 	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12J\n" +
 	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"

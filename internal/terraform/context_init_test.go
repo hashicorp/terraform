@@ -1004,6 +1004,64 @@ module "local" {
 				VersionConstraint: mustVersionContraint(t, "1.0.0"),
 			}},
 		},
+
+		"incomplete module call config": {
+			module: map[string]string{"main.tf": `
+module "example" {
+  source = "./modules/example"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+}
+`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+		"incomplete module call config with const": {
+			module: map[string]string{"main.tf": `
+module "example" {
+  source = "./modules/example"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+}
+
+module "name" {
+  source = var.name
+}
+`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing required argument",
+					Detail:   `The argument "name" is required, but no definition was found.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 18, Byte: 18},
+						End:      hcl.Pos{Line: 2, Column: 18, Byte: 18},
+					},
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testRootModuleInline(t, tc.module, tc.ignoreParsingErrors)

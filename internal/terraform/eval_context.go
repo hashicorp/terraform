@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -184,8 +183,8 @@ type EvalContext interface {
 
 	// PolicyGraph returns the policy subgraph for this context.
 	// It is used to store resource policy nodes that are collected during the resource
-	// graph evaluation. Each resource that produces a plan or state change
-	// will have a corresponding policy node in this graph.
+	// graph evaluation. Each managed resource instance selected for
+	// policy evaluation will have a corresponding policy node in this graph.
 	PolicyGraph() *policySubgraph
 
 	// InstanceExpander returns a helper object for tracking the expansion of
@@ -227,11 +226,6 @@ type EvalContext interface {
 	// only allowed in the context of a destroy plan.
 	Forget() bool
 
-	// Actions returns the actions object that tracks all of the action
-	// declarations and their instances that are available in this
-	// EvalContext.
-	Actions() *actions.Actions
-
 	// ProviderLocks returns a read-only snapshot of provider locks (exact
 	// version per provider selected during init).
 	ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock
@@ -245,6 +239,7 @@ type EvalContext interface {
 	PolicyResults() *plans.PolicyResults
 
 	Config() *configs.Config
+
 	// Deprecations returns the deprecations object that tracks meta-information
 	// about deprecation, e.g. which module calls suppress deprecation warnings.
 	Deprecations() *deprecation.Deprecations

@@ -25,7 +25,10 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
+	// FIXME: sensitive paths are missing
 	ConfigValue cty.Value
+
+	Caller addrs.Referenceable
 }
 
 func (ai *ActionInvocationInstance) Equals(other *ActionInvocationInstance) bool {
@@ -137,6 +140,7 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,
 		ProviderAddr:  ai.ProviderAddr,
+		Caller:        ai.Caller,
 	}
 
 	if ai.ConfigValue != cty.NilVal {

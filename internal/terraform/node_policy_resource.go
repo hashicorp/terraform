@@ -16,6 +16,8 @@ import (
 )
 
 // nodeResourcePolicy is a node that evaluates a resource instance's policy.
+// The node is not part of the main graph, but is executed as part of the
+// policy subgraph of nodePolicyEval.
 type nodeResourcePolicy struct {
 	ResourceAddr addrs.AbsResourceInstance
 	ProviderAddr addrs.AbsProviderConfig
@@ -52,59 +54,52 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
-	attrs, _ := n.After.UnmarkDeep()
-	priorAttrs, _ := n.Before.UnmarkDeep()
-
-	var policyOperation proto.Operation
-	switch action := n.Action; action {
-	case plans.Create:
-		policyOperation = proto.Operation_CREATE
-	case plans.Delete:
-		policyOperation = proto.Operation_DELETE
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
-		policyOperation = proto.Operation_UPDATE
-	default:
-		log.Printf("[DEBUG] Unsupported plan action %q, skipping policy evaluation", action)
+	policyOperation, ok := policyOperationForAction(n.Action)
+	if !ok {
+		log.Printf("[DEBUG] Unsupported plan action for policies %q, skipping policy evaluation", n.Action)
 		return nil
 	}
 
 	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    policyOperation,
-	}
-
-	providerRef := ProviderRef{
-		addr:     providerAddr,
-		resolved: true,
+		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration
 	// in this case, we are fine with a nil resource config, as that would only mean
-	// that we do not have the terraform config's source information in the diagnostics
-	// and neither do we have provider meta information to include in the policy request.
+	// that we do not have the terraform config's source information in the diagnostics.
 	var resourceConfig *configs.Resource
-	var metaVal cty.Value
 	if modCfg != nil {
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-		var metaDiags tfdiags.Diagnostics
-		metaVal, metaDiags = providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
-		diags = diags.Append(metaDiags)
-		if diags.HasErrors() {
-			return diags
-		}
 	}
 
 	callbacks := callback.Functions{
 		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
-	result := evaluatePolicies(ctx, operation, n.ResourceAddr, resourceConfig, client, attrs, priorAttrs, meta, callbacks)
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
 	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
 	return diags
+}
+
+func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
+	switch action {
+	case plans.Create:
+		return proto.Operation_CREATE, true
+	case plans.Delete:
+		return proto.Operation_DELETE, true
+	case plans.NoOp:
+		return proto.Operation_NO_OP, true
+	case plans.Update,
+		plans.DeleteThenCreate,
+		plans.CreateThenDelete,
+		plans.CreateThenForget:
+		return proto.Operation_UPDATE, true
+	default:
+		return 0, false
+	}
 }
 
 // policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.

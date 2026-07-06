@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -13,6 +14,8 @@ import (
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	ProviderInstaller
 }
 
 func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
@@ -24,6 +27,11 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 	}
 }
 
+var (
+	_ StateMigrate      = (*StateMigrateHuman)(nil)
+	_ ProviderInstaller = (*StateMigrateHuman)(nil)
+)
+
 type StateMigrateHuman struct {
 	view *View
 }
@@ -33,5 +41,39 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.view.streams.Print(fmt.Sprintf(message, params...))
+	s.view.streams.Println(fmt.Sprintf(message, params...))
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogInitMessage(code InitMessageCode, params ...any) {
+	msg, ok := MessageRegistry[code]
+	if !ok {
+		panic("missing message for InstallingProviderMessage init message code")
+	}
+	s.Log(msg.HumanValue, params...)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
+	msg, ok := MessageRegistry[code]
+	if !ok {
+		panic("missing message for InstallingProviderMessage init message code")
+	}
+	s.Log(msg.HumanValue, params...)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) PrepareMessage(code InitMessageCode, params ...any) string {
+	message, ok := MessageRegistry[code]
+	if !ok {
+		// display the message code as fallback if not found in the message registry
+		return string(code)
+	}
+
+	if message.HumanValue == "" {
+		// no need to apply colorization if the message is empty
+		return message.HumanValue
+	}
+
+	return s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
 }

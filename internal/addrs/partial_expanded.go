@@ -975,3 +975,12 @@ func (per PartialExpandedAction) PartialExpandedModule() (PartialExpandedModule,
 	}
 	return per.module, true
 }
+
+// MatchesAction returns true if and only if the given action belongs to
+// the recieving partially-expanded action address pattern.
+func (per PartialExpandedAction) MatchesAction(inst AbsAction) bool {
+	if !per.module.MatchesInstance(inst.Module) {
+		return false
+	}
+	return inst.Action.Equal(per.action)
+}

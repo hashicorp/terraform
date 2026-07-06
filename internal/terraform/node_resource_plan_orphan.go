@@ -45,10 +45,16 @@ var (
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeDestroyer            = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {
 	return n.ResourceInstanceAddr().String() + " (orphan)"
+}
+
+func (n *NodePlannableResourceInstanceOrphan) DestroyAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
 }
 
 // GraphNodeExecutable
@@ -70,10 +76,24 @@ func (n *NodePlannableResourceInstanceOrphan) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()
+}
+
+func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Referenceable {
+	// destroy nodes are not referenceable, so we must override the method from
+	// the abstract layers
+	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
+	return n.destroyActionReferences()
+}
+
+func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
+	n.actionTriggers = triggers
 }
 
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
@@ -174,6 +194,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	} else if shouldDefer {
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 		return diags
 	}
 
@@ -190,7 +211,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// context surrounding the change, rather than the change itself, and
 	// so it's helpful to still include the valid-in-isolation change as
 	// part of the plan as additional context in our error output.
-	diags = diags.Append(n.writeChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -202,7 +223,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
+	diags = diags.Append(n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change))
+	return diags
 }
 
 func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {

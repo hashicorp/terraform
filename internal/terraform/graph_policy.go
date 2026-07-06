@@ -5,12 +5,18 @@ package terraform
 
 import (
 	"sync"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // policySubgraph is a subgraph that stores resource policy nodes.
 type policySubgraph struct {
 	lock  sync.Mutex
 	graph Graph
+
+	// span carries the tracing information. We need the span itself so we can end it
+	// when the policy evaluation is finished
+	span trace.Span
 }
 
 func newPolicySubgraph() *policySubgraph {

@@ -150,6 +150,64 @@ func TestCloud_planJSONBasic(t *testing.T) {
 	}
 }
 
+func TestCloud_planJSONPolicy(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-policy")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backendrun.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+
+	cliOutput := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(cliOutput, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", cliOutput)
+	}
+
+	output := close(t).Stdout()
+	if !strings.Contains(output, "streamed line should be shown") {
+		t.Fatalf("expected streamed plan log in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", output)
+	}
+
+	for _, str := range []string{"Policy info", "Policy result", "policy diagnostic"} {
+		if strings.Contains(strings.ToLower(output), strings.ToLower(str)) {
+			t.Fatalf("unexpected %s in output: %s", str, output)
+		}
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
+	}
+}
+
 func TestCloud_planCanceled(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -294,8 +352,11 @@ func TestCloud_planWithPolicyPaths(t *testing.T) {
 	outp := close(t)
 	gotOut := outp.Stdout()
 
-	if !strings.Contains(gotOut, "Terraform policies evaluated successfully.") {
-		t.Fatalf("expected tfpolicy status in output: %s", gotOut)
+	// The legacy "evaluated successfully" one-liner was removed: the policy
+	// summary now renders only from server-side outcomes (none in this mock),
+	// so a plan with policy paths must still succeed and stay silent on policy.
+	if strings.Contains(gotOut, "Terraform policies evaluated successfully.") {
+		t.Fatalf("legacy tfpolicy success message should no longer be rendered:\n%s", gotOut)
 	}
 }
 

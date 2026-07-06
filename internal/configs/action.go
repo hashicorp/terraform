@@ -19,7 +19,7 @@ func invalidActionDiag(subj *hcl.Range) *hcl.Diagnostic {
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  `Invalid action argument inside action_triggers`,
-		Detail:   `action_triggers.actions must only refer to actions in the current module.`,
+		Detail:   `action_triggers.actions must only refer to actions in the current module, count.index, or each.key.`,
 		Subject:  subj,
 	}
 }
@@ -37,6 +37,7 @@ type Action struct {
 
 	DeclRange hcl.Range
 	TypeRange hcl.Range
+	Body      hcl.Body
 }
 
 // ActionTrigger represents a configured "action_trigger" inside the lifecycle
@@ -44,10 +45,31 @@ type Action struct {
 type ActionTrigger struct {
 	Condition hcl.Expression
 	Events    []ActionTriggerEvent
-	Actions   []ActionRef // References to actions
+	Actions   []ActionRef
+	OnFailure ActionOnFailure
 
 	DeclRange hcl.Range
 }
+
+// ActionFailureResult describes the result of an action invocation failure on a
+// a resource and its dependencies.
+type ActionOnFailure int
+
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ActionOnFailure
+
+const (
+	// Halt stops all further processing of actions and dependencies
+	ActionOnFailureHalt ActionOnFailure = iota
+
+	// Taint stops all further process of actions and dependencies. If the
+	// resource was just created, the state will be marked as tainted for
+	// replacement.
+	ActionOnFailureTaint
+
+	// Continue saves all action diagnostics as warnings, allowing processing to
+	// continue.
+	ActionOnFailureContinue
+)
 
 // ActionTriggerEvent is an enum for valid values for events for action
 // triggers.
@@ -56,7 +78,7 @@ type ActionTriggerEvent int
 //go:generate go tool golang.org/x/tools/cmd/stringer -type ActionTriggerEvent
 
 const (
-	Unknown ActionTriggerEvent = iota
+	EventUnknown ActionTriggerEvent = iota
 	BeforeCreate
 	AfterCreate
 	BeforeUpdate
@@ -64,6 +86,24 @@ const (
 	BeforeDestroy
 	AfterDestroy
 	Invoke
+)
+
+func (e ActionTriggerEvent) IsBefore() bool {
+	return slices.Contains(BeforeEvents, e)
+}
+
+func (e ActionTriggerEvent) IsAfter() bool {
+	return slices.Contains(AfterEvents, e)
+}
+
+func (e ActionTriggerEvent) IsDestroy() bool {
+	return slices.Contains(DestroyEvents, e)
+}
+
+var (
+	BeforeEvents  = []ActionTriggerEvent{BeforeCreate, BeforeUpdate, BeforeDestroy}
+	AfterEvents   = []ActionTriggerEvent{AfterCreate, AfterUpdate, AfterDestroy}
+	DestroyEvents = []ActionTriggerEvent{BeforeDestroy, AfterDestroy}
 )
 
 // ActionRef represents a reference to a configured Action
@@ -78,29 +118,14 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		Events:    []ActionTriggerEvent{},
 		Actions:   []ActionRef{},
 		Condition: nil,
+		DeclRange: block.DefRange,
 	}
 
 	content, bodyDiags := block.Body.Content(actionTriggerSchema)
 	diags = append(diags, bodyDiags...)
 
-	var refs []*addrs.Reference
-	var refDiags tfdiags.Diagnostics
 	if attr, exists := content.Attributes["condition"]; exists {
 		a.Condition = attr.Expr
-
-		refs, refDiags = langrefs.ReferencesInExpr(addrs.ParseRef, attr.Expr)
-		diags = append(diags, refDiags.ToHCL()...)
-
-		for _, ref := range refs {
-			if ref.Subject == addrs.Self {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Self reference not allowed",
-					Detail:   `The condition expression cannot reference "self".`,
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
-		}
 	}
 
 	if attr, exists := content.Attributes["events"]; exists {
@@ -108,26 +133,27 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, ediags...)
 
 		events := []ActionTriggerEvent{}
-		containsBefore := false
 
 		for _, expr := range exprs {
 			var event ActionTriggerEvent
 			switch hcl.ExprAsKeyword(expr) {
 			case "before_create":
 				event = BeforeCreate
-				containsBefore = true
 			case "after_create":
 				event = AfterCreate
 			case "before_update":
 				event = BeforeUpdate
-				containsBefore = true
 			case "after_update":
 				event = AfterUpdate
+			case "before_destroy":
+				event = BeforeDestroy
+			case "after_destroy":
+				event = AfterDestroy
 			default:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Invalid \"event\" value %s", hcl.ExprAsKeyword(expr)),
-					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+					Detail:   "The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 					Subject:  expr.Range().Ptr(),
 				})
 				continue
@@ -144,29 +170,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 				continue
 			}
 
-			// Check that there aren't any before_ events using self, count or for_each in the condition
-			if containsBefore && refs != nil { // if refs isn't empty, there was a condition
-				for _, ref := range refs {
-					if _, ok := ref.Subject.(addrs.CountAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Count reference not allowed",
-							Detail:   `The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-
-					if _, ok := ref.Subject.(addrs.ForEachAttr); ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Each reference not allowed",
-							Detail:   `The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-							Subject:  a.Condition.Range().Ptr(),
-						})
-					}
-				}
-			}
-
 			events = append(events, event)
 		}
 
@@ -177,6 +180,25 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		actionRefs, ediags := decodeActionTriggerRef(attr.Expr)
 		diags = append(diags, ediags...)
 		a.Actions = actionRefs
+	}
+
+	if attr, exists := content.Attributes["on_failure"]; exists {
+		switch hcl.ExprAsKeyword(attr.Expr) {
+		case "halt":
+			a.OnFailure = ActionOnFailureHalt
+		case "taint":
+			a.OnFailure = ActionOnFailureTaint
+		case "continue":
+			a.OnFailure = ActionOnFailureContinue
+
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid \"on_failure\" keyword",
+				Detail:   "The \"on_failure\" argument requires one of the following keywords: halt, taint or continue.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+		}
 	}
 
 	if len(a.Actions) == 0 {
@@ -206,6 +228,7 @@ func decodeActionBlock(block *hcl.Block) (*Action, hcl.Diagnostics) {
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
+		Body:      block.Body,
 	}
 
 	if !hclsyntax.ValidIdentifier(a.Type) {
@@ -308,6 +331,10 @@ var actionTriggerSchema = &hcl.BodySchema{
 			Name:     "actions",
 			Required: true,
 		},
+		{
+			Name:     "on_failure",
+			Required: false,
+		},
 	},
 }
 
@@ -356,6 +383,7 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 	}
 	actionRefs := make([]ActionRef, len(exprs))
 
+EXPRS:
 	for i, expr := range exprs {
 		// Since we are manually parsing the action_trigger.Actions argument, we
 		// need to specially handle json configs, in which case the values will
@@ -397,6 +425,8 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 			switch ref.Subject.(type) {
 			case addrs.Action, addrs.ActionInstance:
 				actionCount++
+			case addrs.CountAttr, addrs.ForEachAttr:
+				// these are OK
 			case addrs.ModuleCall, addrs.ModuleCallInstance, addrs.ModuleCallInstanceOutput:
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -404,13 +434,11 @@ func decodeActionTriggerRef(expr hcl.Expression) ([]ActionRef, hcl.Diagnostics) 
 					Detail:   "Actions can only be referenced in the module they are declared in.",
 					Subject:  expr.Range().Ptr(),
 				})
-				continue
-			case addrs.Resource, addrs.ResourceInstance:
+				continue EXPRS
+			default:
 				// definitely not an action
 				diags = append(diags, invalidActionDiag(expr.Range().Ptr()))
-				continue
-			default:
-				// we've checked what we can
+				continue EXPRS
 			}
 		}
 

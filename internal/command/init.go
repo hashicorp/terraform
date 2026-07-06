@@ -31,6 +31,9 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -42,6 +45,8 @@ import (
 type InitCommand struct {
 	Meta
 
+	// incompleteProviders is necessary here to coordinate separate
+	// provider installation and lock file update processes.
 	incompleteProviders []string
 }
 
@@ -65,7 +70,7 @@ func (c *InitCommand) Run(args []string) int {
 		loader.Parser().ForceFileSource(filename, src)
 	})
 	diags = diags.Append(varDiags)
-
+	diags = diags.Append(c.Validate(initArgs))
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -74,7 +79,7 @@ func (c *InitCommand) Run(args []string) int {
 	return c.run(initArgs, view)
 }
 
-func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool, view views.Init, policyClient policy.Client) (output bool, abort bool, policyResults *plans.PolicyResults, diags tfdiags.Diagnostics) {
 	testModules := false // We can also have modules buried in test files.
 	for _, file := range earlyRoot.Tests {
 		for _, run := range file.Runs {
@@ -86,7 +91,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 	if len(earlyRoot.ModuleCalls) == 0 && !testModules {
 		// Nothing to do
-		return false, false, nil
+		return false, false, nil, nil
 	}
 
 	ctx, span := tracer.Start(ctx, "install modules", trace.WithAttributes(
@@ -100,13 +105,23 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		view.Output(views.InitializingModulesMessage)
 	}
 
-	hooks := uiModuleInstallHooks{
+	uiHook := uiModuleInstallHooks{
 		Ui:             c.Ui,
 		ShowLocalPaths: true,
 		View:           view,
 	}
+	hooks := []initwd.ModuleInstallHook{uiHook}
+	if policyClient != nil {
+		policyResults = plans.NewPolicyResults()
+		policyHook := &policyModuleInstallHook{
+			client:        policyClient,
+			rootModule:    earlyRoot,
+			policyResults: policyResults,
+		}
+		hooks = append(hooks, policyHook)
+	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks...)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
@@ -126,7 +141,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		}
 	}
 
-	return true, installAbort, diags
+	return true, installAbort, policyResults, diags
 }
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
@@ -286,6 +301,11 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	return back, true, diags
 }
 
+func (c *InitCommand) Validate(args *arguments.Init) (diags tfdiags.Diagnostics) {
+	diags = diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags
+}
+
 func (c *InitCommand) earlyValidateBackend(root *configs.Module, initArgs *arguments.Init) (diags tfdiags.Diagnostics) {
 	switch {
 	case root.StateStore != nil && root.Backend != nil:
@@ -371,6 +391,10 @@ const (
 // and downloads the provider that isn't already downloaded and then returns
 // updated dependency lock data. The dependency lock file itself isn't updated here.
 //
+// Note: This method gets the required providers in the root module and then creates a new set of requirements
+// that includes only the state store provider. By doing so the provider installation process is guaranteed
+// to only download a single provider, and the method will only return a single lock.
+//
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
 func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
@@ -392,8 +416,9 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	allReqs := rootModEarly.ProviderRequirements
 
 	// Get the state store provider from the root module's required providers.
-	reqs := make(providerreqs.Requirements, 1)
-	for providerReq := range maps.Values(allReqs.RequiredProviders) {
+	// The download process is guaranteed to receive a single required provider and return a single lock for that provider.
+	req := make(providerreqs.Requirements, 1)
+	for _, providerReq := range allReqs.RequiredProviders {
 		if providerReq.Type.Equals(rootModEarly.StateStore.ProviderAddr) {
 			con, err := providerreqs.ParseVersionConstraints(providerReq.Requirement.Required.String())
 			if err != nil {
@@ -407,11 +432,11 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 					Subject: providerReq.Requirement.DeclRange.Ptr(),
 				})
 			}
-			reqs[providerReq.Type] = con
+			req[providerReq.Type] = con
 		}
 	}
 
-	for providerAddr := range reqs {
+	for providerAddr := range req {
 		if providerAddr.IsLegacy() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -490,10 +515,10 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			cb := fetchPackageBeginCallback(view)
 			cb(provider, version, location)
 		},
-		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), req, rootModEarly.StateStore),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
-		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
+		FetchPackageFailure:  fetchPackageFailureCallback(&diags, req),
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			// 1. Capture auth result if this provider is used for state storage.
 			if rootModEarly.StateStore != nil && provider.Equals(rootModEarly.StateStore.ProviderAddr) {
@@ -517,7 +542,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 
 	// Determine which required providers are already downloaded, and download any
 	// new providers or newer versions of providers
-	configLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
+	lock, err := inst.EnsureProviderVersions(ctx, previousLocks, req, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
@@ -562,7 +587,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		}
 	}
 
-	return true, configLocks, safeInitAction, stateStoreProviderAuthResult, diags
+	return true, lock, safeInitAction, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state
@@ -570,7 +595,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 // updated dependency lock data. The dependency lock *file* itself isn't updated here.
 //
 // See getProvidersFromPSSConfig which is equivalent for state store providers.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, configLocks *depsfile.Locks, pluginDirs []string, view views.Init) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, locks *depsfile.Locks, pluginDirs []string, view views.Init, installerHook providercache.InstallerHook) (output bool, resultingLocks *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -609,18 +634,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		return false, nil, diags
 	}
 
-	// The locks below are used to avoid re-downloading any providers in the
-	// second download step.
-	// We combine any locks from the dependency lock file and locks identified
-	// from the configuration
-	var moreDiags tfdiags.Diagnostics
-	previousLocks, moreDiags := c.lockedDependencies()
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return false, nil, diags
-	}
-	inProgressLocks := c.mergeLockedDependencies(configLocks, previousLocks)
-
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
 		// By default we use a source that looks for providers in all of the
@@ -645,6 +658,10 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
+	var stateStore *configs.StateStore
+	if config != nil && config.Module != nil {
+		stateStore = config.Module.StateStore // may be nil, and that's fine
+	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
 			view.Output(views.InitializingProviderPluginMessage)
@@ -665,7 +682,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		},
 		LinkFromCacheBegin:   linkFromCacheBeginCallback(view),
 		FetchPackageBegin:    fetchPackageBeginCallback(view),
-		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs),
+		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, stateStore),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
@@ -680,16 +697,9 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		mode = providercache.InstallUpgrades
 	}
 
-	// We don't handle upgrade flags here, i.e. what happens at this point in getProvidersFromConfig:
-	// > We cannot upgrade a provider used only by the state, as there are no version constraints in state.
-	//    > Given the overlap between providers in the config and state, using the upgrade mode here
-	//      would remove the effects of version constraints from the config.
-	// > Any validation of CLI flag usage is already done in getProvidersFromConfig
-
-	newLocks, err := inst.EnsureProviderVersions(ctx, inProgressLocks, reqs, mode)
+	newLocks, err := inst.EnsureProviderVersions(ctx, locks, reqs, mode, installerHook)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		view.Diagnostics(diags)
 		return true, nil, diags
 	}
 	if err != nil {
@@ -709,10 +719,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
 // The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
 // configuration and state data.
-func (c *InitCommand) saveDependencyLockFile(previousLocks, pssLock, providerLocks *depsfile.Locks, flagLockfile string, view views.Init) (output bool, diags tfdiags.Diagnostics) {
-	// Get the combination of locks from both potential provider download steps.
-	newLocks := c.mergeLockedDependencies(pssLock, providerLocks)
-
+func (c *InitCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
 	// If the provider dependencies have changed since the last run then we'll
 	// say a little about that in case the reader wasn't expecting a change.
 	// (When we later integrate module dependencies into the lock file we'll
@@ -1018,14 +1025,14 @@ func (c *InitCommand) Synopsis() string {
 }
 
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
-func providerAlreadyInstalledCallback(view views.Init) func(provider addrs.Provider, selectedVersion getproviders.Version) {
+func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
 		view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
 	}
 }
 
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
-func builtInProviderAvailableCallback(view views.Init) func(provider addrs.Provider) {
+func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
 		view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
 	}
@@ -1043,21 +1050,21 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 }
 
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
-func linkFromCacheBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 		view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
-func fetchPackageBeginCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 		view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
 	}
 }
 
 // Returns a reused callback function for the QueryPackagesFailure event in a providercache.InstallerEvents struct.
-func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements) func(provider addrs.Provider, err error) {
+func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Context, source getproviders.Source, reqs getproviders.Requirements, stateStore *configs.StateStore) func(provider addrs.Provider, err error) {
 	return func(provider addrs.Provider, err error) {
 		switch errorTy := err.(type) {
 		case getproviders.ErrProviderNotFound:
@@ -1135,6 +1142,35 @@ func queryPackagesFailureCallback(diags *tfdiags.Diagnostics, ctx context.Contex
 			// but rather just emit a single general message about it at
 			// the end, by checking ctx.Err().
 
+		case getproviders.ErrLockConflictsWithConstraints:
+			if stateStore != nil && stateStore.ProviderAddr.Equals(provider) {
+				// Handles an edge case where the lock obtained by getProvidersFromPSSConfig using the root module
+				// is not compatible with version constraints from child modules. This is a result of needing to download
+				// the provider for the state store separately to other providers defined in the config.
+				//
+				// The root module takes precedence as it defines and controls the state store.
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				*diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unable to download the provider used for state storage",
+					fmt.Sprintf("Provider %q (%s) is used to store state, so the root module's version constraints take precedence when downloading the provider. Terraform encountered an error that suggests that version constraint may be conflicting with a version constraint from a child module. If you want to upgrade the provider used for state storage you must use the following command:\n    terraform state migrate -upgrade\n\nError from the installer: %s%s",
+						provider.Type,
+						provider.ForDisplay(),
+						err,
+						suggestion,
+					),
+				))
+			} else {
+				// duplicate of default logic below
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
+				*diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
+					),
+				))
+			}
 		default:
 			suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
 			*diags = diags.Append(tfdiags.Sourceless(
@@ -1262,7 +1298,7 @@ func fetchPackageFailureCallback(diags *tfdiags.Diagnostics, reqs getproviders.R
 }
 
 // Returns a reused callback function for the FetchPackageSuccess event in a providercache.InstallerEvents struct.
-func fetchPackageSuccessCallback(view views.Init) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+func fetchPackageSuccessCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 	return func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 		var keyID string
 		if authResult != nil && authResult.ThirdPartySigned() {
@@ -1316,7 +1352,7 @@ func providersLockUpdatedCallback(incompleteProviders *[]string) func(provider a
 }
 
 // Returns a reused callback function for the ProvidersFetched event in a providercache.InstallerEvents struct.
-func providersFetchedCallback(view views.Init) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+func providersFetchedCallback(view views.ProviderInstaller) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 	return func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 		thirdPartySigned := false
 		for _, authResult := range authResults {
