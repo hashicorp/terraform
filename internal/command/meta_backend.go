@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -2068,7 +2068,7 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 
 	// Only return error diagnostics at this point. Any warnings will be caught
 	// again later and duplicated in the output.
-	root, mDiags := m.loadSingleModule(configPath)
+	root, mDiags := m.loadRawModule(configPath)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
 		return nil, diags

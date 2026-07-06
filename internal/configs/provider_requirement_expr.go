@@ -23,3 +23,8 @@ type ProviderRequirementExpr struct {
 func (e *ProviderRequirementExpr) IsEmpty() bool {
 	return e.SourceExpr == nil && e.VersionExpr == nil
 }
+
+func (e *ProviderRequirementExpr) NeedsEvalContext() bool {
+	return (e.SourceExpr != nil && len(e.SourceExpr.Variables()) > 0) ||
+		(e.VersionExpr != nil && len(e.VersionExpr.Variables()) > 0)
+}

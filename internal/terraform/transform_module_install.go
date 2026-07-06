@@ -17,7 +17,7 @@ type ModuleTransformer struct {
 }
 
 func (t *ModuleTransformer) Transform(graph *Graph) error {
-	if t.Config == nil {
+	if t.Config == nil || t.Walker == nil {
 		return nil
 	}
 

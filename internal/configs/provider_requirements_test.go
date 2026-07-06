@@ -324,7 +324,20 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, _, diags := decodeRequiredProvidersBlock(test.Block)
+			got, deferredExprs, diags := decodeRequiredProvidersBlock(test.Block)
+
+			// Simulate the static resolution which is not being done in
+			// provider_requirements anymore
+			if len(deferredExprs) > 0 {
+				mod := &Module{
+					ProviderRequirements:     got,
+					ProviderRequirementExprs: deferredExprs,
+				}
+				resolveDiags := mod.resolveStaticProviderExprs()
+				diags = append(diags, resolveDiags...)
+				got = mod.ProviderRequirements
+			}
+
 			if diags.HasErrors() {
 				if test.Error == "" {
 					t.Fatalf("unexpected error: %v", diags)

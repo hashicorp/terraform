@@ -40,3 +40,24 @@ func BuildConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, 
 
 	return cfg, diags
 }
+
+func BuildModuleWithGraph(mod *configs.Module, vars InputValues) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ctx, ctxDiags := NewContext(&ContextOpts{
+		Parallelism: 1,
+	})
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return nil, diags
+	}
+
+	cfg, initDiags := ctx.Init(mod, InitOpts{
+		SetVariables: vars,
+	})
+	diags = diags.Append(initDiags)
+	if diags.HasErrors() {
+		return mod, diags
+	}
+
+	return cfg.Module, diags
+}

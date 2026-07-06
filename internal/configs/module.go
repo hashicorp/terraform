@@ -6,7 +6,9 @@ package configs
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
@@ -189,6 +191,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 			mod.ProviderRequirementExprs[expr.Name] = expr
 		}
 	}
+
+	diags = append(diags, mod.resolveStaticProviderExprs()...)
 
 	for _, file := range primaryFiles {
 		fileDiags := mod.appendFile(file)
@@ -961,6 +965,165 @@ func (m *Module) GatherProviderLocalNames() {
 		providers[v.Type] = k
 	}
 	m.ProviderLocalNames = providers
+}
+
+func (m *Module) resolveStaticProviderExprs() hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for name, expr := range m.ProviderRequirementExprs {
+		if expr.NeedsEvalContext() {
+			// Keep it deferred; will be resolved by nodeResolveProviderRequirements.
+			continue
+		}
+
+		rp := &RequiredProvider{
+			Name:      name,
+			Aliases:   expr.ConfigAliases,
+			DeclRange: expr.DeclRange,
+		}
+
+		if expr.SourceExpr != nil {
+			sourceVal, valDiags := expr.SourceExpr.Value(nil)
+			if valDiags.HasErrors() || !sourceVal.Type().Equals(cty.String) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source",
+					Detail:   "Source must be specified as a string.",
+					Subject:  expr.SourceExpr.Range().Ptr(),
+				})
+				continue
+			}
+
+			fqn, sourceDiags := addrs.ParseProviderSourceString(sourceVal.AsString())
+			if sourceDiags.HasErrors() {
+				hclDiags := sourceDiags.ToHCL()
+				for _, d := range hclDiags {
+					if d.Subject == nil {
+						d.Subject = expr.SourceExpr.Range().Ptr()
+					}
+				}
+				diags = append(diags, hclDiags...)
+				continue
+			}
+
+			rp.Source = sourceVal.AsString()
+			rp.Type = fqn
+		}
+
+		if expr.VersionExpr != nil {
+			constraintVal, valDiags := expr.VersionExpr.Value(nil)
+			if valDiags.HasErrors() || !constraintVal.Type().Equals(cty.String) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					Detail:   "Version must be specified as a string.",
+					Subject:  expr.VersionExpr.Range().Ptr(),
+				})
+				continue
+			}
+
+			constraints, err := version.NewConstraint(constraintVal.AsString())
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					Detail:   "This string does not use correct version constraint syntax.",
+					Subject:  expr.VersionExpr.Range().Ptr(),
+				})
+				continue
+			}
+
+			rp.Requirement = VersionConstraint{
+				Required:  constraints,
+				DeclRange: expr.VersionExpr.Range(),
+			}
+		}
+
+		if rp.Type.IsZero() {
+			pType, err := addrs.ParseProviderPart(name)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider name",
+					Detail:   err.Error(),
+					Subject:  expr.DeclRange.Ptr(),
+				})
+				continue
+			}
+			rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+		}
+
+		m.ProviderRequirements.RequiredProviders[name] = rp
+		delete(m.ProviderRequirementExprs, name)
+	}
+
+	return diags
+}
+
+// ResolveResourceProviders re-assigns the provider FQN for every resource in
+// the module using the current state of ProviderRequirements. This must be
+// called after ProviderRequirements has been fully populated (e.g. after
+// dynamic required_provider expressions have been evaluated during init), so
+// that resources whose provider FQN was set to a default during parsing are
+// corrected to reflect the actual declared provider source.
+func (m *Module) ResolveResourceProviders() {
+	for _, r := range m.ManagedResources {
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+
+	for _, r := range m.DataResources {
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+
+	for _, r := range m.EphemeralResources {
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+
+	for _, a := range m.Actions {
+		if a.ProviderConfigRef != nil {
+			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
+		} else {
+			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+			if err == nil {
+				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
+
+	for _, i := range m.Import {
+		if i.ProviderConfigRef != nil {
+			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
+				LocalName: i.ProviderConfigRef.Name,
+				Alias:     i.ProviderConfigRef.Alias,
+			})
+		} else {
+			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
+			if err == nil {
+				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+		}
+	}
 }
 
 // resolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
