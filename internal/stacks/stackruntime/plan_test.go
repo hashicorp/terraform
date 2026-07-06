@@ -23,18 +23,15 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
-
 	"github.com/hashicorp/terraform/internal/addrs"
-
 	"github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -43,6 +40,7 @@ import (
 	default_testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -62,10 +60,6 @@ import (
 func TestPlan_valid(t *testing.T) {
 	for name, tc := range validConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
@@ -135,10 +129,6 @@ func TestPlan_valid(t *testing.T) {
 func TestPlan_invalid(t *testing.T) {
 	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
@@ -2471,12 +2461,10 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
-				mustAbsComponent("stack.sensitive.component.self"),
-			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			RequiredComponents:  collections.NewSet(mustAbsComponent("stack.sensitive.component.self")),
 			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"secret": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
@@ -2783,7 +2771,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item:  stackaddrs.Component{Name: "sensitive"},
@@ -2946,12 +2934,10 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
-				mustAbsComponent("stack.sensitive.component.self"),
-			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			RequiredComponents:  collections.NewSet(mustAbsComponent("stack.sensitive.component.self")),
 			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
@@ -3558,7 +3544,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  false,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item: stackaddrs.Component{
@@ -3815,7 +3801,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 			},
 			PlannedCheckResults: &states.CheckResults{},
 			PlanTimestamp:       fakePlanTimestamp,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item: stackaddrs.Component{
@@ -4431,14 +4417,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr: mustAbsComponentInstance("component.self"),
-						Move: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr: mustAbsComponentInstance("component.self"),
+					Move: 1,
+				},
+			}),
 		},
 		"cross-type-moved": {
 			state: stackstate.NewStateBuilder().
@@ -4513,14 +4498,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr: mustAbsComponentInstance("component.self"),
-						Move: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr: mustAbsComponentInstance("component.self"),
+					Move: 1,
+				},
+			}),
 		},
 		"import": {
 			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
@@ -4604,14 +4588,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					RequiredOnApply: false,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr:   mustAbsComponentInstance("component.self"),
-						Import: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr:   mustAbsComponentInstance("component.self"),
+					Import: 1,
+				},
+			}),
 		},
 		"removed": {
 			state: stackstate.NewStateBuilder().
@@ -4684,14 +4667,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr:   mustAbsComponentInstance("component.self"),
-						Forget: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr:   mustAbsComponentInstance("component.self"),
+					Forget: 1,
+				},
+			}),
 			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
 		},
 	}
@@ -5065,7 +5047,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				mustAbsComponent("component.first"),
 				mustAbsComponent("stack.second.component.self"),
 			),
@@ -5113,7 +5095,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				mustAbsComponent("component.first"),
 				mustAbsComponent("component.empty"),
 			),
