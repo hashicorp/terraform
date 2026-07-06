@@ -860,7 +860,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
-		if rc.Action == plans.Forget {
+		if rc.Action == plans.Forget || rc.Action == plans.CreateThenForget {
 			// TODO KEM display resource ids
 			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
 		}

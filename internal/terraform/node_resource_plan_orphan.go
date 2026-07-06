@@ -144,6 +144,12 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
+	if n.Config != nil && n.Config.Managed != nil {
+		if n.Config.Managed.DestroySet && !n.Config.Managed.Destroy {
+			forget = true
+		}
+	}
+
 	if !n.skipRefresh && !forget {
 		// Refresh this instance even though it is going to be destroyed, in
 		// order to catch missing resources. If this is a normal plan,
