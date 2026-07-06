@@ -164,6 +164,97 @@ func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
 	}
 }
 
+func TestProvidersSchema_output_withProviderMeta(t *testing.T) {
+	t.Parallel()
+
+	fixtureDir := "providers-schema/with-provider-meta"
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(fixtureDir), td)
+
+	// We don't call t.Chdir, intentionally.
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		// Schema includes a provider meta schema
+		ProviderMeta: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"module_name": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+						"volumes": {
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":        {Type: cty.String, Required: true},
+									"mount_point": {Type: cty.String, Required: true},
+								},
+							},
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	ui := new(cli.MockUi)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			Ui:               ui,
+			testingOverrides: metaOverridesForProvider(p),
+
+			// Setting WorkingDir mimics what calling code would do
+			// when running a command with -chdir.
+			WorkingDir: workdir.NewDir(td),
+		},
+	}
+
+	args := []string{
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Assert we got the expected output, despite no changing into that directory.
+	var got, want providerSchemas
+
+	gotString := ui.OutputWriter.String()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open(filepath.Join(td, "output.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
 func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	// State with a 'baz' provider not in the config
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -371,6 +462,7 @@ type providerSchemas struct {
 
 type providerSchema struct {
 	Provider          interface{}            `json:"provider,omitempty"`
+	ProviderMeta      interface{}            `json:"provider_meta,omitempty"`
 	ResourceSchemas   map[string]interface{} `json:"resource_schemas,omitempty"`
 	DataSourceSchemas map[string]interface{} `json:"data_source_schemas,omitempty"`
 	StateStoreSchemas map[string]interface{} `json:"state_store_schemas,omitempty"`
@@ -392,6 +484,13 @@ func providersSchemaFixtureSchema() *providers.GetProviderSchemaResponse {
 			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ProviderMeta: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"module_name": {Type: cty.String, Optional: true},
 				},
 			},
 		},

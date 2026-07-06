@@ -15,6 +15,9 @@
                     "description_kind": "plain"
                 }
             },
+            "provider_meta": {
+                "version": 0
+            },
             "resource_schemas": {
                 "test_instance": {
                     "version": 0,
@@ -64,6 +67,9 @@
                     },
                     "description_kind": "plain"
                 }
+            },
+            "provider_meta": {
+                "version": 0
             },
             "resource_schemas": {
                 "test_instance": {

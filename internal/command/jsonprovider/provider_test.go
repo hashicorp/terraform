@@ -27,6 +27,7 @@ func TestMarshalProvider(t *testing.T) {
 			providers.ProviderSchema{},
 			&Provider{
 				Provider:                 &Schema{},
+				ProviderMeta:             &Schema{},
 				ResourceSchemas:          map[string]*Schema{},
 				DataSourceSchemas:        map[string]*Schema{},
 				EphemeralResourceSchemas: map[string]*Schema{},
@@ -45,6 +46,18 @@ func TestMarshalProvider(t *testing.T) {
 							"region": {
 								AttributeType:   json.RawMessage(`"string"`),
 								Required:        true,
+								DescriptionKind: "plain",
+							},
+						},
+						DescriptionKind: "plain",
+					},
+				},
+				ProviderMeta: &Schema{
+					Block: &Block{
+						Attributes: map[string]*Attribute{
+							"meta_attr": {
+								AttributeType:   json.RawMessage(`"string"`),
+								Optional:        true,
 								DescriptionKind: "plain",
 							},
 						},
@@ -272,6 +285,16 @@ func testProvider() providers.ProviderSchema {
 			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Required: true},
+				},
+			},
+		},
+		ProviderMeta: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"meta_attr": {
+						Type:     cty.String,
+						Optional: true,
+					},
 				},
 			},
 		},

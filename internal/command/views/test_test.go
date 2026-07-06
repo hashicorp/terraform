@@ -2844,6 +2844,9 @@ func TestTestJSON_Run(t *testing.T) {
 								"provider": map[string]interface{}{
 									"version": 0.0,
 								},
+								"provider_meta": map[string]interface{}{
+									"version": 0.0,
+								},
 								"resource_schemas": map[string]interface{}{
 									"test_resource": map[string]interface{}{
 										"block": map[string]interface{}{
@@ -2967,6 +2970,9 @@ func TestTestJSON_Run(t *testing.T) {
 						"provider_schemas": map[string]interface{}{
 							"registry.terraform.io/hashicorp/test": map[string]interface{}{
 								"provider": map[string]interface{}{
+									"version": 0.0,
+								},
+								"provider_meta": map[string]interface{}{
 									"version": 0.0,
 								},
 								"resource_schemas": map[string]interface{}{
