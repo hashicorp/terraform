@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: return correct error when import target exists in state, but not config
+time: 2026-06-25T10:30:56.385054-04:00
+custom:
+    Issue: "38782"
