@@ -304,12 +304,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					rng := decl.DeclRange.ToHCL()
 					if !rng.Empty() {
 						ptr := rng.Ptr()
-						for idx, diag := range result.Diagnostics {
-							result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-						}
-						for idx := range result.Enforcements {
-							result.Enforcements[idx].LocalRange = ptr
-						}
+						result = result.WithLocalRange(ptr)
 					}
 					h := hooksFromContext(ctx)
 					// Report policy results if we have any

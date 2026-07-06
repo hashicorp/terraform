@@ -247,12 +247,7 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 	if n.Config != nil {
 		rng = n.Config.DeclRange
 		ptr := rng.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(ptr)
 	}
 
 	var diags tfdiags.Diagnostics

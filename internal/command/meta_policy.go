@@ -173,15 +173,10 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 
 	var rng hcl.Range
 	if providerConfig != nil {
-		rng = providerConfig.DeclRange
 		// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
 		// policy source and the object being enforced.
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(rng.Ptr())
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = rng.Ptr()
-		}
+		rng = providerConfig.DeclRange
+		result = result.WithLocalRange(rng.Ptr())
 	}
 	p.view.PolicyResult(addr.String(), result, rng)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)

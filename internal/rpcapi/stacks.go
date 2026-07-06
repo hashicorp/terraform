@@ -402,7 +402,18 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	planHooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, planHooks)
 
+	// We collect policy evaluation results from individual resource events
+	// during the planning process and then send them at once to the stacks client.
 	policyResults := stackPolicyEvaluationHooks(policyClient, planHooks)
+	sendPolicyResults := sync.OnceFunc(func() {
+		for addr, results := range policyResults.All() {
+			syncEvts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
+					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+	})
 
 	var planMode plans.Mode
 	switch req.PlanMode {
@@ -471,14 +482,8 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	go func() {
 		stackruntime.Plan(planCtx, &rtReq, &rtResp)
 
-		// Send policy evaluation results to the client.
-		for addr, results := range policyResults.All() {
-			syncEvts.Send(&stacks.PlanStackChanges_Event{
-				Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
-					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
-				},
-			})
-		}
+		// Send policy evaluation results to the client after the plan completes.
+		sendPolicyResults()
 	}()
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
@@ -515,6 +520,10 @@ Events:
 						emitDiag(diag)
 					}
 				}
+
+				// If the changes channel is closed before we finish, we still
+				// need to send any policy results so far to the client.
+				sendPolicyResults()
 				break Events
 			}
 
@@ -702,8 +711,19 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// to propagate a subset of the events to our client.
 	applyHooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, applyHooks)
-	policyResults := stackPolicyEvaluationHooks(policyClient, applyHooks)
 
+	// We collect policy evaluation results from individual resource events
+	// during the apply process and then send them at once to the stacks client.
+	policyResults := stackPolicyEvaluationHooks(policyClient, applyHooks)
+	sendPolicyResults := sync.OnceFunc(func() {
+		for addr, results := range policyResults.All() {
+			syncEvts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
+					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+	})
 	changesCh := make(chan stackstate.AppliedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.ApplyRequest{
@@ -737,14 +757,8 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	go func() {
 		stackruntime.Apply(applyCtx, &rtReq, &rtResp)
 
-		// Send policy evaluation results to the client.
-		for addr, results := range policyResults.All() {
-			syncEvts.Send(&stacks.ApplyStackChanges_Event{
-				Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
-					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
-				},
-			})
-		}
+		// Send policy evaluation results to the client after the apply completes.
+		sendPolicyResults()
 	}()
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
@@ -781,6 +795,10 @@ Events:
 						emitDiag(diag)
 					}
 				}
+
+				// If the changes channel is closed before we finish, we still
+				// need to send any policy results so far to the client.
+				sendPolicyResults()
 				break Events
 			}
 

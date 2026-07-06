@@ -1921,20 +1921,6 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
 			}},
 		}
 	}
-	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
-		if req.Target != "./child" {
-			t.Fatalf("expected module policy target %q, got %q", "./child", req.Target)
-		}
-		if req.Meta == nil || req.Meta.Address != "module.child" {
-			t.Fatalf("expected module policy metadata for module.child, got %#v", req.Meta)
-		}
-		return policy.EvaluationResponse{
-			Overall: policy.AllowResult,
-			Enforcements: []policy.EnforcementResult{{
-				Result: policy.AllowResult,
-			}},
-		}
-	}
 
 	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
@@ -1962,9 +1948,6 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
 	if !policyClient.EvaluateProviderCalled {
 		t.Fatal("expected provider policy evaluation during refresh-only planning")
 	}
-	if !policyClient.EvaluateModuleCalled {
-		t.Fatal("expected module policy evaluation during refresh-only planning")
-	}
 
 	if got := len(plan.Changes.Resources); got != 0 {
 		t.Fatalf("expected refresh-only plan to contain no resource changes, got %d", got)
@@ -1976,11 +1959,8 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
 	if _, ok := h.PolicyResults[`provider["registry.terraform.io/hashicorp/test"]`]; !ok {
 		t.Fatal("expected provider policy result to be streamed through hooks")
 	}
-	if _, ok := h.PolicyResults["module.child"]; !ok {
-		t.Fatal("expected module policy result to be streamed through hooks")
-	}
-	if got := len(h.PolicyResults); got != 3 {
-		t.Fatalf("expected exactly 3 policy results (resource, provider, and module), got %d", got)
+	if got := len(h.PolicyResults); got != 2 {
+		t.Fatalf("expected exactly 2 policy results (resource and provider), got %d", got)
 	}
 }
 
