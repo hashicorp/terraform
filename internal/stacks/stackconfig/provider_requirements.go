@@ -246,3 +246,20 @@ func (pr *ProviderRequirements) LocalNameForProvider(providerAddr addrs.Provider
 	}
 	return "", false
 }
+
+// VersionConstraintsForProvider returns the version constraints declared for
+// the given provider in this required_providers block.
+//
+// The second return value is false if the provider is not declared in this
+// required_providers block, in which case the first return value is nil.
+func (pr *ProviderRequirements) VersionConstraintsForProvider(providerAddr addrs.Provider) (constraints.IntersectionSpec, bool) {
+	if pr == nil {
+		return nil, false
+	}
+	for _, obj := range pr.Requirements {
+		if obj.Provider == providerAddr {
+			return obj.VersionConstraints, true
+		}
+	}
+	return nil, false
+}
