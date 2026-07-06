@@ -44,8 +44,8 @@ func TestNamedPromisesPlan(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		providerAddrs,
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("1.0.0"),
+		providerreqs.MustParseVersionConstraints("1.0.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
