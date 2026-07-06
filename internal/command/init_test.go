@@ -5333,7 +5333,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
 			"Error: State store provider not described in dependency lock file supplied via -state-provider-lock-file flag",
-			fmt.Sprintf("Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider", lockFileName),
+			fmt.Sprintf(`Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider "test" (hashicorp/test).`, lockFileName),
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
@@ -5396,8 +5396,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
 			"Error: Missing lock for state store provider",
-			"Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider",
-			"If you are performing a \"terraform init\" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag",
+			`Terraform used the working directory's lock file by default, but it was empty or did not exist.`,
+			`When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.`,
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {

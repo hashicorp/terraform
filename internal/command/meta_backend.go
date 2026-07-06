@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -3099,7 +3100,10 @@ func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, provi
 	}
 }
 
-func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInstallAction, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, locksAfterInstall, locksBeforeInstall *depsfile.Locks, view views.ProviderInstaller) tfdiags.Diagnostics {
+// handleSafeProviderInstallAction takes the action determined by `determineSafeProviderInstallAction` and either prompts the user for approval, or returns an error if something has gone wrong with pre-supplied locks when Terraform was run in automation.
+//
+// NOTE: the command parameter is used to determine which command is being run, so that we can provide more specific guidance to the user. Do not use that parameter for any other purpose!
+func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInstallAction, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, stateStoreProviderLock, locksBeforeInstall *depsfile.Locks, flagLockfilePath string, command cli.Command, view views.ProviderInstaller) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	switch action {
@@ -3108,7 +3112,7 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 	case RequireApproval:
 		if m.input {
 			// Prompt the user about trusting the provider used for state storage.
-			diags = diags.Append(m.promptStateStorageProviderApproval(provider, locksAfterInstall, stateStoreProviderAuthResult))
+			diags = diags.Append(m.promptStateStorageProviderApproval(provider, stateStoreProviderLock, stateStoreProviderAuthResult))
 			if diags.HasErrors() {
 				view.Output(views.StateStoreProviderInteractiveRejectedMessage)
 				view.Output(views.EmptyMessage)
@@ -3122,14 +3126,48 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 			// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
 			if locksBeforeInstall.Provider(provider) == nil {
 				// No lock was provided for the state store provider either through pre-existing locks or through CLI flags.
+
+				var lockfileProblem string
+				switch {
+				case flagLockfilePath != "":
+					// CLI-supplied file
+					lockfileProblem = fmt.Sprintf("The lock file at %q (supplied via CLI flag) was empty or did not contain a lock for the state store provider.", flagLockfilePath)
+				case locksBeforeInstall.Empty():
+					// Default lock file used, but it was empty.
+					lockfileProblem = "Terraform used the working directory's lock file by default, but it was empty or did not exist."
+				default:
+					// Default lock file used, and it exists/has locks in it.
+					lockfileProblem = "Terraform used the working directory's lock file by default, but it did not contain a lock for the state store provider."
+				}
+
+				var guidance string
+				var remediationInstructions string
+				switch command.(type) {
+				case *InitCommand:
+					guidance = `When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.`
+					remediationInstructions = `To fix this, create a minimal configuration containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform init -state-provider-lock-file=<path to lockfile>".
+`
+				case *StateMigrateCommand:
+					guidance = `When performing a "terraform state migrate" command in automation, make sure to supply a lock file for the source and/or destination state store providers using -source-provider-lock-file and/or -destination-provider-lock-file flags.`
+					remediationInstructions = `To fix this, create a minimal configuration(s) containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform state migrate -source-provider-lock-file=<path to lockfile> -destination-provider-lock-file=<path to lockfile>".`
+
+				default:
+					panic("Unexpected command type in handleSafeProviderInstallAction; this is a bug in Terraform and should be reported.")
+				}
+
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing lock for state store provider",
-					`Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via CLI flags.
-If you are performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.
-If you are performing a "terraform state migrate" command in automation, make sure to supply a lock file for the source and/or destination state store providers using -source-provider-lock-file and/or -destination-provider-lock-file flags.
+					fmt.Sprintf(`Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+%s
 
-To get a sufficient lock file to supply via these flags, create a minimal configuration with the specific provider and version you need to use. Then, perform "terraform init" manually to create a dependency lock file describing that provider. After checking the lock file's contents you can retry the original command that produced this error while supplying the path to that lock file via the appropriate CLI flag.`,
+%s
+
+%s`,
+						lockfileProblem,
+						guidance,
+						remediationInstructions,
+					),
 				))
 				return diags
 			}

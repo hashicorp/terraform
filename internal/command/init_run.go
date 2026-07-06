@@ -246,7 +246,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 
 		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
-		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, view)
+		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
 		diags = diags.Append(safeDiags)
 		if safeDiags.HasErrors() {
 			view.Diagnostics(diags)
