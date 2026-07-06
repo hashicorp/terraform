@@ -190,6 +190,22 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		}
 	}
 
+	resolver := HCLEvalExprEvaluator{Ctx: nil}
+	for name, expr := range mod.ProviderRequirementExprs {
+		rp, resolved, rDiags := ResolveProviderRequirement(
+			name,
+			expr,
+			resolver,
+			ProviderRequirementResolveOpts{DeferUnresolved: true},
+		)
+		diags = append(diags, rDiags.ToHCL()...)
+		if rDiags.HasErrors() || !resolved {
+			continue
+		}
+		mod.ProviderRequirements.RequiredProviders[name] = rp
+		delete(mod.ProviderRequirementExprs, name)
+	}
+
 	for _, file := range primaryFiles {
 		fileDiags := mod.appendFile(file)
 		diags = append(diags, fileDiags...)
@@ -971,8 +987,10 @@ func (m *Module) GatherProviderLocalNames() {
 func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	providerType, typeDiags := resolveStateStoreProviderType(m.ProviderRequirements.RequiredProviders,
-		*m.StateStore)
+	providerType, typeDiags := resolveStateStoreProviderType(
+		m.ProviderRequirements.RequiredProviders,
+		*m.StateStore,
+	)
 
 	if typeDiags.HasErrors() {
 		diags = append(diags, typeDiags...)

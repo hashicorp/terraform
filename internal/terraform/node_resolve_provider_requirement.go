@@ -4,14 +4,11 @@
 package terraform
 
 import (
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeResolveProviderRequirements struct {
@@ -45,6 +42,9 @@ func (n *nodeResolveProviderRequirements) Execute(
 		}
 
 		n.Module.ProviderRequirements.RequiredProviders[name] = rp
+		if n.Module.StateStore != nil && n.Module.StateStore.Provider != nil && n.Module.StateStore.Provider.Name == name {
+			n.Module.StateStore.ProviderAddr = rp.Type
+		}
 	}
 
 	n.Module.GatherProviderLocalNames()
@@ -57,169 +57,7 @@ func (n *nodeResolveProviderRequirements) resolveProvider(
 	expr *configs.ProviderRequirementExpr,
 	ctx EvalContext,
 ) (*configs.RequiredProvider, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	rp := &configs.RequiredProvider{
-		Name:      name,
-		Aliases:   expr.ConfigAliases,
-		DeclRange: expr.DeclRange,
-	}
-
-	if expr.SourceExpr != nil {
-		sourceStr, sourceType, sourceDiags :=
-			evalProviderSource(expr.SourceExpr, ctx)
-		diags = diags.Append(sourceDiags)
-		if sourceDiags.HasErrors() {
-			return nil, diags
-		}
-		rp.Source = sourceStr
-		rp.Type = sourceType
-	} else { // Regular string parsing (no vars)
-		pType, err := addrs.ParseProviderPart(name)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider name",
-				err.Error(),
-			))
-			return nil, diags
-		}
-		rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
-	}
-
-	if expr.VersionExpr != nil {
-		vc, vcDiags := evalProviderVersion(expr.VersionExpr, ctx)
-		diags = diags.Append(vcDiags)
-		if vcDiags.HasErrors() {
-			return nil, diags
-		}
-		rp.Requirement = vc
-	}
-
-	return rp, diags
-}
-
-func evalProviderSource(
-	sourceExpr hcl.Expression,
-	ctx EvalContext,
-) (string, addrs.Provider, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, sourceExpr)
-	diags = diags.Append(refsDiags)
-	if diags.HasErrors() {
-		return "", addrs.Provider{}, diags
-	}
-
-	for _, ref := range refs {
-		// Limit references to vars, locals
-		switch ref.Subject.(type) {
-		case addrs.InputVariable, addrs.LocalValue:
-		// Allowed
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unknown provider source",
-				Detail:   "Only literal values and const variables can be evaluated during init.",
-				Subject:  ref.SourceRange.ToHCL().Ptr(),
-			})
-			return "", addrs.Provider{}, diags
-		}
-	}
-
-	value, valueDiags := ctx.EvaluateExpr(sourceExpr, cty.String, nil)
-	diags = diags.Append(valueDiags)
-	if diags.HasErrors() {
-		return "", addrs.Provider{}, diags
-	}
-
-	if !value.IsWhollyKnown() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unknown provider source",
-			Detail:   "Only literal values and const variables can be evaluated during init.",
-			Subject:  sourceExpr.Range().Ptr(),
-		})
-		return "", addrs.Provider{}, diags
-	}
-
-	sourceStr := value.AsString()
-	fqn, sourceDiags := addrs.ParseProviderSourceString(sourceStr)
-	if sourceDiags.HasErrors() {
-		hclDiags := sourceDiags.ToHCL()
-		for _, d := range hclDiags {
-			if d.Subject == nil {
-				d.Subject = sourceExpr.Range().Ptr()
-			}
-		}
-		diags = diags.Append(hclDiags)
-		return "", addrs.Provider{}, diags
-	}
-
-	return sourceStr, fqn, diags
-}
-
-func evalProviderVersion(
-	versionExpr hcl.Expression,
-	ctx EvalContext,
-) (configs.VersionConstraint, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	ret := configs.VersionConstraint{
-		DeclRange: versionExpr.Range(),
-	}
-
-	refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, versionExpr)
-	diags = diags.Append(refsDiags)
-	if diags.HasErrors() {
-		return ret, diags
-	}
-
-	for _, ref := range refs {
-		switch ref.Subject.(type) {
-		case addrs.InputVariable, addrs.LocalValue:
-		// Allowed
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unknown provider version",
-				Detail:   "Only literal values and const variables can be evaluated during init.",
-				Subject:  ref.SourceRange.ToHCL().Ptr(),
-			})
-			return ret, diags
-		}
-	}
-
-	value, valueDiags := ctx.EvaluateExpr(versionExpr, cty.String, nil)
-	diags = diags.Append(valueDiags)
-	if diags.HasErrors() {
-		return ret, diags
-	}
-
-	if !value.IsWhollyKnown() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unknown provider version",
-			Detail:   "Only literal values and const variables can be evaluated during init.",
-			Subject:  versionExpr.Range().Ptr(),
-		})
-		return ret, diags
-	}
-
-	constraintStr := value.AsString()
-	constraints, err := version.NewConstraint(constraintStr)
-	if err != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid version constraint",
-			Detail:   "This string is not a valid version constraint.",
-			Subject:  versionExpr.Range().Ptr(),
-		})
-		return ret, diags
-	}
-
-	ret.Required = constraints
-	return ret, diags
+	return ResolveProvider(name, expr, ctx)
 }
 
 func (n *nodeResolveProviderRequirements) References() []*addrs.Reference {

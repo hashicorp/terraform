@@ -46,10 +46,16 @@ var (
 )
 
 func TestDecodeRequiredProvidersBlock(t *testing.T) {
+	type deferredExpect struct {
+		HasSourceExpr  bool
+		HasVersionExpr bool
+	}
+
 	tests := map[string]struct {
-		Block *hcl.Block
-		Want  *RequiredProviders
-		Error string
+		Block        *hcl.Block
+		Want         *RequiredProviders
+		WantDeferred map[string]deferredExpect
+		Error        string
 	}{
 		"legacy": {
 			Block: &hcl.Block{
@@ -93,16 +99,11 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my-test": {
-						Name:        "my-test",
-						Source:      "mycloud/test",
-						Type:        addrs.NewProvider(addrs.DefaultProviderRegistryHost, "mycloud", "test"),
-						Requirement: testVC("2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
+			},
+			WantDeferred: map[string]deferredExpect{
+				"my-test": {HasSourceExpr: true, HasVersionExpr: true},
 			},
 		},
 		"mixed": {
@@ -133,15 +134,11 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
 					},
-					"my-test": {
-						Name:        "my-test",
-						Source:      "mycloud/test",
-						Type:        addrs.NewProvider(addrs.DefaultProviderRegistryHost, "mycloud", "test"),
-						Requirement: testVC("2.0.0"),
-						DeclRange:   mockRange,
-					},
 				},
 				DeclRange: blockRange,
+			},
+			WantDeferred: map[string]deferredExpect{
+				"my-test": {HasSourceExpr: true, HasVersionExpr: true},
 			},
 		},
 		"version-only block": {
@@ -160,15 +157,11 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"test": {
-						Name:        "test",
-						Type:        addrs.NewDefaultProvider("test"),
-						Requirement: testVC("~>2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
+			},
+			WantDeferred: map[string]deferredExpect{
+				"test": {HasSourceExpr: false, HasVersionExpr: true},
 			},
 		},
 		"invalid source": {
@@ -191,7 +184,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{},
 				DeclRange:         blockRange,
 			},
-			Error: "Invalid provider source string",
+			WantDeferred: map[string]deferredExpect{
+				"my-test": {HasSourceExpr: true, HasVersionExpr: true},
+			},
 		},
 		"invalid localname": {
 			Block: &hcl.Block{
@@ -255,7 +250,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{},
 				DeclRange:         blockRange,
 			},
-			Error: "Invalid version constraint",
+			WantDeferred: map[string]deferredExpect{
+				"my-test": {HasSourceExpr: true, HasVersionExpr: true},
+			},
 		},
 		"invalid required_providers attribute value": {
 			Block: &hcl.Block{
@@ -295,7 +292,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{},
 				DeclRange:         blockRange,
 			},
-			Error: "Invalid source",
+			WantDeferred: map[string]deferredExpect{
+				"my-test": {HasSourceExpr: true, HasVersionExpr: false},
+			},
 		},
 		"additional attributes": {
 			Block: &hcl.Block{
@@ -324,7 +323,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, _, diags := decodeRequiredProvidersBlock(test.Block)
+			got, deferred, diags := decodeRequiredProvidersBlock(test.Block)
 			if diags.HasErrors() {
 				if test.Error == "" {
 					t.Fatalf("unexpected error: %v", diags)
@@ -338,6 +337,22 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 			if !cmp.Equal(got, test.Want, ignoreUnexported, comparer) {
 				t.Fatalf("wrong result:\n %s", cmp.Diff(got, test.Want, ignoreUnexported, comparer))
+			}
+
+			if len(deferred) != len(test.WantDeferred) {
+				t.Fatalf("wrong number of deferred expressions: got %d want %d", len(deferred), len(test.WantDeferred))
+			}
+			for providerName, want := range test.WantDeferred {
+				expr, ok := deferred[providerName]
+				if !ok {
+					t.Fatalf("missing deferred provider expression for %q", providerName)
+				}
+				if got := expr.SourceExpr != nil; got != want.HasSourceExpr {
+					t.Fatalf("wrong SourceExpr presence for %q: got %t want %t", providerName, got, want.HasSourceExpr)
+				}
+				if got := expr.VersionExpr != nil; got != want.HasVersionExpr {
+					t.Fatalf("wrong VersionExpr presence for %q: got %t want %t", providerName, got, want.HasVersionExpr)
+				}
 			}
 		})
 	}

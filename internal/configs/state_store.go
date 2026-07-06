@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
