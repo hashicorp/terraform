@@ -146,55 +146,57 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
-func (v *JSONView) PolicyResults(results *plans.PolicyResults, setupDiags policy.Diagnostics) {
-	// Log all non-policy-specific diagnostics if any.
-	for _, diag := range setupDiags {
+func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
+	// Log all the info messages
+	for _, enforcement := range result.EvaluationResponse.Enforcements {
+		if enforcement.Message == "" {
+			continue
+		}
+		var src []byte
+		if enforcement.LocalRange != nil {
+			src = v.view.configSources()[enforcement.LocalRange.Filename]
+		}
+		info := json.NewPolicyInfo(src, enforcement)
+		args := []any{
+			"type", json.MessagePolicyInfo,
+			"target_address", addr,
+			json.MessagePolicyInfo, info,
+			"@policy", "true",
+			"result", enforcement.Result.String(),
+		}
+		if enforcement.Policy != nil {
+			args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
+		}
+		v.log.Info("Policy info", args...)
+	}
+
+	for _, diag := range result.EvaluationResponse.Diagnostics {
+		v.logPolicyDiagnostic(diag, "target_address", addr)
+	}
+
+	for _, policy := range result.EvaluationResponse.Policies {
+		v.log.Info(
+			"Policy Result",
+			"type", json.MessagePolicyEvaluationResult,
+			"result", policy.Result.String(),
+			"target_address", addr,
+			"policy_address", policy.Address,
+			"@policy", "true",
+			"policy_metadata", json.MetadataFromPolicy(*policy),
+		)
+	}
+}
+
+func (v *JSONView) PolicyResult(addr string, result plans.PolicyEvaluation) {
+	v.logPolicyResult(addr, result)
+}
+
+// PolicyDiagnostics logs policy diagnostics that are not tied to a specific
+// target, such as setup diagnostics (e.g. a failure to connect to the policy
+// engine), so no target address is attached.
+func (v *JSONView) PolicyDiagnostics(diags policy.Diagnostics) {
+	for _, diag := range diags {
 		v.logPolicyDiagnostic(diag)
-	}
-
-	if results == nil {
-		return
-	}
-
-	for addr, result := range results.Iter() {
-		// Log all the info messages
-		for _, enforcement := range result.EvaluationResponse.Enforcements {
-			if enforcement.Message == "" {
-				continue
-			}
-			var src []byte
-			if enforcement.LocalRange != nil {
-				src = v.view.configSources()[enforcement.LocalRange.Filename]
-			}
-			info := json.NewPolicyInfo(src, enforcement)
-			args := []any{
-				"type", json.MessagePolicyInfo,
-				"target_address", addr,
-				json.MessagePolicyInfo, info,
-				"@policy", "true",
-				"result", enforcement.Result.String(),
-			}
-			if enforcement.Policy != nil {
-				args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
-			}
-			v.log.Info("Policy info", args...)
-		}
-
-		for _, diag := range result.EvaluationResponse.Diagnostics {
-			v.logPolicyDiagnostic(diag, "target_address", addr)
-		}
-
-		for _, policy := range result.EvaluationResponse.Policies {
-			v.log.Info(
-				"Policy Result",
-				"type", json.MessagePolicyEvaluationResult,
-				"result", policy.Result.String(),
-				"target_address", addr,
-				"policy_address", policy.Address,
-				"@policy", "true",
-				"policy_metadata", json.MetadataFromPolicy(*policy),
-			)
-		}
 	}
 }
 

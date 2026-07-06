@@ -49,6 +49,11 @@ type jsonHook struct {
 	periodicUiTimer time.Duration
 }
 
+func (h *jsonHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
+	h.view.PolicyResult(addr, result)
+	return terraform.HookActionContinue, nil
+}
+
 var _ terraform.Hook = (*jsonHook)(nil)
 
 type resourceProgress struct {

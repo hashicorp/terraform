@@ -25,6 +25,9 @@ type Graph struct {
 	// Plan is the path to a saved plan file to render as a graph.
 	Plan string
 
+	// Format is the output format to emit (dot or mermaid).
+	Format string
+
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
 }
@@ -42,6 +45,7 @@ func ParseGraph(args []string) (*Graph, tfdiags.Diagnostics) {
 	cmdFlags := extendedFlagSet("graph", nil, nil, graph.Vars)
 	cmdFlags.BoolVar(&graph.DrawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.StringVar(&graph.GraphType, "type", "", "type")
+	cmdFlags.StringVar(&graph.Format, "format", "dot", "format")
 	cmdFlags.IntVar(&graph.ModuleDepth, "module-depth", -1, "module-depth")
 	cmdFlags.BoolVar(&graph.Verbose, "verbose", false, "verbose")
 	cmdFlags.StringVar(&graph.Plan, "plan", "", "plan")
