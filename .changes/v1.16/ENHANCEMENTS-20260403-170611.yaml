@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Print apply summary even on failure
+time: 2026-04-03T17:06:11.38489-07:00
+custom:
+    Issue: "38343"
