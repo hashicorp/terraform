@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -146,9 +145,9 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
-func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
+func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
 	// Log all the info messages
-	for _, enforcement := range result.EvaluationResponse.Enforcements {
+	for _, enforcement := range resp.Enforcements {
 		if enforcement.Message == "" {
 			continue
 		}
@@ -170,11 +169,11 @@ func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
 		v.log.Info("Policy info", args...)
 	}
 
-	for _, diag := range result.EvaluationResponse.Diagnostics {
+	for _, diag := range resp.Diagnostics {
 		v.logPolicyDiagnostic(diag, "target_address", addr)
 	}
 
-	for _, policy := range result.EvaluationResponse.Policies {
+	for _, policy := range resp.Policies {
 		v.log.Info(
 			"Policy Result",
 			"type", json.MessagePolicyEvaluationResult,
@@ -187,8 +186,8 @@ func (v *JSONView) logPolicyResult(addr string, result plans.PolicyEvaluation) {
 	}
 }
 
-func (v *JSONView) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.logPolicyResult(addr, result)
+func (v *JSONView) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
+	v.logPolicyResult(addr, resp, rng)
 }
 
 // PolicyDiagnostics logs policy diagnostics that are not tied to a specific

@@ -5,6 +5,7 @@ package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -93,16 +94,18 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 	}
 }
 
-// ComponentInstancePolicyResults is the argument type for the hook callback which
-// sends policy results back to the client for a component instance.
-type ComponentInstancePolicyResults struct {
-	Addr          stackaddrs.AbsComponentInstance
-	PolicyResults map[string]plans.PolicyEvaluation
+// ComponentInstancePolicyResult is the argument type for the hook callback which
+// sends policy results back to the client for a resource instance.
+type ComponentInstancePolicyResult struct {
+	ComponentAddr stackaddrs.AbsComponentInstance
+	ResourceAddr  string
+	Result        policy.EvaluationResponse
 }
 
 // ProviderInstancePolicyResults is the argument type for the hook callback which
 // sends policy results back to the client for a provider instance.
 type ProviderInstancePolicyResults struct {
-	Addr          stackaddrs.AbsProviderConfigInstance
-	PolicyResults *plans.PolicyResults
+	Addr         stackaddrs.AbsProviderConfigInstance
+	ProviderAddr string
+	Result       policy.EvaluationResponse
 }

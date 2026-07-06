@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -37,8 +38,7 @@ type Operation interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	PolicyDiagnostics(diags policy.Diagnostics)
-
-	PolicyResult(addr string, result plans.PolicyEvaluation)
+	PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -140,8 +140,8 @@ func (v *OperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationHuman) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *OperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
+	v.view.PolicyResult(addr, resp, rng)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -307,8 +307,8 @@ func (v *OperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationJSON) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *OperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
+	v.view.PolicyResult(addr, resp, rng)
 }
 
 const fatalInterrupt = `

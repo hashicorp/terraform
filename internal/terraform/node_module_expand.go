@@ -6,11 +6,11 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -385,15 +385,17 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 		}
 	}
 
+	var diags tfdiags.Diagnostics
 	if !result.Empty() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result}
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			var rng hcl.Range
 			if n.ModuleCall != nil {
-				eval.ConfigDeclRange = n.ModuleCall.DeclRange
+				rng = n.ModuleCall.DeclRange
 			}
-			return h.PolicyResult(n.Addr.String(), eval)
+			return h.PolicyResult(n.Addr.String(), result, rng)
 		})
+		diags = diags.Append(hookErr)
 	}
 
-	return nil
+	return diags
 }

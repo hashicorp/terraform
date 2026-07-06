@@ -5,17 +5,16 @@ package rpcapi
 
 import (
 	"fmt"
-	"maps"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	stackhooks "github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -218,23 +217,21 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 
 	testCases := map[string]struct {
 		componentAddr string
-		policyResults func() *plans.PolicyResults
+		policyResults func() map[string]policy.EvaluationResponse
 		want          *stacks.ComponentInstancePolicyEvaluation
 	}{
 		"no results": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				return plans.NewPolicyResults()
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{},
 		},
 		"policy result with diagnostic": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddModule(
-					addrs.RootModule.Child("example"),
-					policy.EvaluationResponse{
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
 						Overall: policy.DenyResult,
 						Diagnostics: policy.Diagnostics{
 							policy.NewErrorDiagnostic(
@@ -243,18 +240,14 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 								policy.DenyResult,
 							),
 						},
-						Policies: []*policy.Policy{
-							{
-								Address:          "module_policy.example",
-								Filename:         "policy_file.tfpolicy.hcl",
-								EnforcementLevel: "mandatory",
-								Result:           policy.DenyResult,
-							},
-						},
+						Policies: []*policy.Policy{{
+							Address:          "module_policy.example",
+							Filename:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+							Result:           policy.DenyResult,
+						}},
 					},
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
@@ -284,11 +277,9 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		},
 		"policy info with snippet and range": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddModule(
-					addrs.RootModule.Child("example"),
-					policy.EvaluationResponse{
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
 						Overall:  policy.AllowResult,
 						Policies: []*policy.Policy{policyObj},
 						Enforcements: []policy.EnforcementResult{
@@ -317,9 +308,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							},
 						},
 					},
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
@@ -364,11 +353,9 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		},
 		"policy diagnostic with extra data": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddModule(
-					addrs.RootModule.Child("example"),
-					policy.EvaluationResponse{
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
 						Overall: policy.DenyResult,
 						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
 							{
@@ -393,11 +380,9 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 								ExpressionValues: []*proto.ExpressionValue{
 									{
 										Traversal: &proto.AttributePath{
-											Steps: []*proto.AttributePath_Step{
-												{
-													Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
-												},
-											},
+											Steps: []*proto.AttributePath_Step{{
+												Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
+											}},
 										},
 										Value: exprValueBytes,
 									},
@@ -405,9 +390,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							},
 						}, policyObj),
 					},
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
@@ -449,47 +432,36 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		},
 		"policy diagnostic with enforce block index": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddModule(
-					addrs.RootModule.Child("example"),
-					// EnforceIndex is set from data in the policy proto struct that is not exported
-					policy.EvaluationFromProtoResponse(
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): policy.EvaluationFromProtoResponse(
 						proto.EvaluateResult_DENY_EVALUATE_RESULT,
-						[]*proto.PolicyEvaluationDetail{
-							{
-								Address:              "module_policy.example",
-								Result:               proto.EvaluateResult_DENY_EVALUATE_RESULT,
-								File:                 "policy_file.tfpolicy.hcl",
-								PolicySetName:        "some_policy_set",
-								PolicySetEnforcement: "mandatory",
-								DefRange: &proto.Range{
-									Filename: "policy_file.tfpolicy.hcl",
-									Start:    &proto.Position{Byte: 0, Line: 1, Column: 1},
-									End:      &proto.Position{Byte: 40, Line: 5, Column: 2},
-								},
-								EnforceResults: []*proto.EnforceBlockResult{
-									{
-										Result:     proto.EvaluateResult_DENY_EVALUATE_RESULT,
-										BlockIndex: 2,
-										Diagnostics: []*proto.Diagnostic{
-											{
-												Severity: proto.Severity_ERROR,
-												Summary:  "enforce block denied module",
-												Detail:   "the enforce block condition failed",
-												Result: &proto.DiagnosticResult{
-													Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
-												},
-											},
-										},
-									},
-								},
+						[]*proto.PolicyEvaluationDetail{{
+							Address:              "module_policy.example",
+							Result:               proto.EvaluateResult_DENY_EVALUATE_RESULT,
+							File:                 "policy_file.tfpolicy.hcl",
+							PolicySetName:        "some_policy_set",
+							PolicySetEnforcement: "mandatory",
+							DefRange: &proto.Range{
+								Filename: "policy_file.tfpolicy.hcl",
+								Start:    &proto.Position{Byte: 0, Line: 1, Column: 1},
+								End:      &proto.Position{Byte: 40, Line: 5, Column: 2},
 							},
-						},
+							EnforceResults: []*proto.EnforceBlockResult{{
+								Result:     proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								BlockIndex: 2,
+								Diagnostics: []*proto.Diagnostic{{
+									Severity: proto.Severity_ERROR,
+									Summary:  "enforce block denied module",
+									Detail:   "the enforce block condition failed",
+									Result: &proto.DiagnosticResult{
+										Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+									},
+								}},
+							}},
+						}},
 					),
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
@@ -526,18 +498,15 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		},
 		"policy diagnostic with warning severity and local range": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				diags := policy.DiagsFromProto([]*proto.Diagnostic{
-					{
-						Severity: proto.Severity_WARNING,
-						Summary:  "resource policy warning",
-						Detail:   "the resource is discouraged",
-						Result: &proto.DiagnosticResult{
-							Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT,
-						},
+			policyResults: func() map[string]policy.EvaluationResponse {
+				diags := policy.DiagsFromProto([]*proto.Diagnostic{{
+					Severity: proto.Severity_WARNING,
+					Summary:  "resource policy warning",
+					Detail:   "the resource is discouraged",
+					Result: &proto.DiagnosticResult{
+						Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT,
 					},
-				}, policyObj)
+				}}, policyObj)
 
 				// WithLocalRange attaches the Terraform source location, which
 				// becomes the diagnostic's Subject and Context.
@@ -547,15 +516,12 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 					End:      hcl.Pos{Line: 5, Column: 20, Byte: 70},
 				})
 
-				results.AddResource(
-					resourceAddr,
-					policy.EvaluationResponse{
+				return map[string]policy.EvaluationResponse{
+					resourceAddr.String(): {
 						Overall:     policy.AllowResult,
 						Diagnostics: diags,
 					},
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
@@ -589,50 +555,32 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		},
 		"policy diagnostic with duplicate and invalid expression values": {
 			componentAddr: "component.test",
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddResource(
-					resourceAddr,
-					policy.EvaluationResponse{
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					resourceAddr.String(): {
 						Overall: policy.DenyResult,
-						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
-							{
-								Severity: proto.Severity_ERROR,
-								Summary:  "policy error",
-								Detail:   "the resource is not allowed",
-								Result: &proto.DiagnosticResult{
-									Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{{
+							Severity: proto.Severity_ERROR,
+							Summary:  "policy error",
+							Detail:   "the resource is not allowed",
+							Result: &proto.DiagnosticResult{
+								Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+							},
+							ExpressionValues: []*proto.ExpressionValue{
+								{
+									// first occurrence of "value" is kept
+									Traversal: &proto.AttributePath{Steps: []*proto.AttributePath_Step{{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
+									Value:     exprValueBytes,
 								},
-								ExpressionValues: []*proto.ExpressionValue{
-									{
-										// first occurrence of "value" is kept
-										Traversal: &proto.AttributePath{
-											Steps: []*proto.AttributePath_Step{
-												{
-													Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
-												},
-											},
-										},
-										Value: exprValueBytes,
-									},
-									{
-										// duplicate "value" path is skipped
-										Traversal: &proto.AttributePath{
-											Steps: []*proto.AttributePath_Step{
-												{
-													Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
-												},
-											},
-										},
-										Value: exprValueBytes,
-									},
+								{
+									// duplicate "value" path is skipped
+									Traversal: &proto.AttributePath{Steps: []*proto.AttributePath_Step{{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
+									Value:     exprValueBytes,
 								},
 							},
-						}, policyObj),
+						}}, policyObj),
 					},
-					nil,
-				)
-				return results
+				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
@@ -672,7 +620,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				ComponentInstanceAddr: componentAddr.String(),
 			}
 
-			got := componentInstancePolicyEvaluationProto(componentAddr, maps.Collect(tc.policyResults().Iter()))
+			got := componentInstancePolicyEvaluationProto(componentAddr, tc.policyResults())
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
@@ -709,24 +657,24 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		policyResults func() *plans.PolicyResults
+		policyResults func() *stackhooks.ProviderInstancePolicyResults
 		want          *stacks.ProviderInstancePolicyEvaluation
 	}{
 		"no results": {
-			policyResults: func() *plans.PolicyResults {
-				return plans.NewPolicyResults()
+			policyResults: func() *stackhooks.ProviderInstancePolicyResults {
+				return &stackhooks.ProviderInstancePolicyResults{
+					Addr:         providerInstanceAddr,
+					ProviderAddr: `provider["registry.terraform.io/hashicorp/testing"]`,
+				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{},
 		},
 		"policy result with diagnostic": {
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddProvider(
-					addrs.AbsProviderConfig{
-						Module:   addrs.RootModule,
-						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
-					},
-					policy.EvaluationResponse{
+			policyResults: func() *stackhooks.ProviderInstancePolicyResults {
+				return &stackhooks.ProviderInstancePolicyResults{
+					Addr:         providerInstanceAddr,
+					ProviderAddr: `provider["registry.terraform.io/hashicorp/testing"]`,
+					Result: policy.EvaluationResponse{
 						Overall: policy.DenyResult,
 						Diagnostics: policy.Diagnostics{
 							policy.NewErrorDiagnostic(
@@ -744,9 +692,7 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							},
 						},
 					},
-					hcl.Range{},
-				)
-				return results
+				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
@@ -775,14 +721,11 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy info with snippet and range": {
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddProvider(
-					addrs.AbsProviderConfig{
-						Module:   addrs.RootModule,
-						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
-					},
-					policy.EvaluationResponse{
+			policyResults: func() *stackhooks.ProviderInstancePolicyResults {
+				return &stackhooks.ProviderInstancePolicyResults{
+					Addr:         providerInstanceAddr,
+					ProviderAddr: `provider["registry.terraform.io/hashicorp/testing"]`,
+					Result: policy.EvaluationResponse{
 						Overall:  policy.AllowResult,
 						Policies: []*policy.Policy{policyObj},
 						Enforcements: []policy.EnforcementResult{
@@ -811,9 +754,7 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							},
 						},
 					},
-					hcl.Range{},
-				)
-				return results
+				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
@@ -857,14 +798,11 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy diagnostic with extra data": {
-			policyResults: func() *plans.PolicyResults {
-				results := plans.NewPolicyResults()
-				results.AddProvider(
-					addrs.AbsProviderConfig{
-						Module:   addrs.RootModule,
-						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
-					},
-					policy.EvaluationResponse{
+			policyResults: func() *stackhooks.ProviderInstancePolicyResults {
+				return &stackhooks.ProviderInstancePolicyResults{
+					Addr:         providerInstanceAddr,
+					ProviderAddr: `provider["registry.terraform.io/hashicorp/testing"]`,
+					Result: policy.EvaluationResponse{
 						Overall: policy.DenyResult,
 						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
 							{
@@ -889,11 +827,9 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 								ExpressionValues: []*proto.ExpressionValue{
 									{
 										Traversal: &proto.AttributePath{
-											Steps: []*proto.AttributePath_Step{
-												{
-													Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
-												},
-											},
+											Steps: []*proto.AttributePath_Step{{
+												Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
+											}},
 										},
 										Value: exprValueBytes,
 									},
@@ -901,9 +837,7 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							},
 						}, policyObj),
 					},
-					hcl.Range{},
-				)
-				return results
+				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
@@ -953,7 +887,7 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 				ProviderInstanceAddr: providerInstanceAddr.String(),
 			}
 
-			got := providerInstancePolicyEvaluationProto(providerInstanceAddr, tc.policyResults())
+			got := providerInstancePolicyEvaluationProto(tc.policyResults())
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)

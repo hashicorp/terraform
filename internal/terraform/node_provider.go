@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -256,14 +255,15 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		}
 	}
 
+	var diags tfdiags.Diagnostics
 	if !result.Empty() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng}
-			return h.PolicyResult(n.Addr.String(), eval)
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.Addr.String(), result, rng)
 		})
+		diags = diags.Append(hookErr)
 	}
 
-	return nil
+	return diags
 }
 
 // providerVersion returns the exact locked version for this provider from the

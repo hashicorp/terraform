@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -54,10 +56,10 @@ type UiHook struct {
 
 var _ terraform.Hook = (*UiHook)(nil)
 
-func (h *UiHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
+func (h *UiHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (terraform.HookAction, error) {
 	h.viewLock.Lock()
 	defer h.viewLock.Unlock()
-	h.view.PolicyResult(addr, result)
+	h.view.PolicyResult(addr, resp, rng)
 	return terraform.HookActionContinue, nil
 }
 

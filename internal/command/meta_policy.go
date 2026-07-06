@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -117,10 +116,7 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 			result.Enforcements[idx].LocalRange = ptr
 		}
 	}
-	h.view.PolicyResult(
-		req.Path.String(),
-		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
-	)
+	h.view.PolicyResult(req.Path.String(), result, rng)
 
 	// Return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
@@ -187,10 +183,7 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 			result.Enforcements[idx].LocalRange = rng.Ptr()
 		}
 	}
-	p.view.PolicyResult(
-		addr.String(),
-		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
-	)
+	p.view.PolicyResult(addr.String(), result, rng)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	// Init uses diagnostics as the blocking signal because advisory policies
 	// may return deny without any error diagnostics.

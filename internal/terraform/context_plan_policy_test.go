@@ -1089,11 +1089,11 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if addr != "module.child.test_resource.test" {
 						t.Fatalf("Expected policy result for module.child.test_resource.test, got %q", addr)
 					}
-					if result.ConfigDeclRange.Filename != "" {
-						t.Fatalf("Expected empty config declaration range for removed config, got %#v", result.ConfigDeclRange)
+					if len(result.Enforcements) != 1 {
+						t.Fatalf("Expected 1 enforcement result, got %d", len(result.Enforcements))
 					}
-					if len(result.EvaluationResponse.Enforcements) != 1 {
-						t.Fatalf("Expected 1 enforcement result, got %d", len(result.EvaluationResponse.Enforcements))
+					if result.Enforcements[0].LocalRange != nil {
+						t.Fatalf("Expected empty local range for removed config, got %#v", result.Enforcements[0].LocalRange)
 					}
 				}
 				if gotResults != 1 {
@@ -1175,7 +1175,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			}
 
 			for _, result := range data.viewHook.PolicyResults {
-				data.diags = data.diags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+				data.diags = data.diags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			if tc.assertPolicyResults != nil {
 				tc.assertPolicyResults(t, data)
@@ -1563,7 +1563,7 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
@@ -1728,7 +1728,7 @@ resource_policy "test_resource" "policy_name" {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
@@ -1802,7 +1802,7 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 
 	// now check that the policy evaluation results match our expectations
@@ -1813,6 +1813,174 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	}
 	if len(policyDiags) != 0 {
 		t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
+	}
+}
+
+func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			provider "test" {}
+
+			resource "test_object" "a" {
+				arg = "after"
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"arg":"before"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := simpleMockProvider()
+	provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Body: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	provider.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
+				return cty.StringVal("current"), nil
+			}
+			return v, nil
+		})
+		if err != nil {
+			t.Fatalf("ReadResourceFn transform failed: %s", err)
+		}
+		return providers.ReadResourceResponse{NewState: newVal}
+	}
+	provider.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"arg": cty.StringVal("before"),
+			}),
+		}
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	evalCount := 0
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evalCount++
+		if req.Target != "test_object" {
+			t.Fatalf("expected resource policy target %q, got %q", "test_object", req.Target)
+		}
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Fatalf("invalid resource metadata: %s", diff)
+		}
+		if req.Attrs.Raw.IsNull() {
+			t.Fatal("expected non-null attrs for refresh-only policy evaluation")
+		}
+		if req.PriorAttrs.Raw.IsNull() {
+			t.Fatal("expected non-null PriorAttrs for refresh-only policy evaluation")
+		}
+		if !req.Attrs.Raw.RawEquals(req.PriorAttrs.Raw) {
+			t.Fatalf("expected refresh-only policy attrs and prior attrs to match, got attrs=%#v prior=%#v", req.Attrs.Raw, req.PriorAttrs.Raw)
+		}
+		if got := req.Attrs.Raw.GetAttr("arg"); !got.RawEquals(cty.StringVal("current")) {
+			t.Fatalf("expected refreshed arg value %q, got %#v", "current", got)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		if req.Target != "test" {
+			t.Fatalf("expected provider policy target %q, got %q", "test", req.Target)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		if req.Target != "./child" {
+			t.Fatalf("expected module policy target %q, got %q", "./child", req.Target)
+		}
+		if req.Meta == nil || req.Meta.Address != "module.child" {
+			t.Fatalf("expected module policy metadata for module.child, got %#v", req.Meta)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
+
+	h := &testHook{}
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+		Hooks:       []Hook{h},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.RefreshOnlyMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if evalCount != 1 {
+		t.Fatalf("expected exactly 3 policy evaluations, got %d", evalCount)
+	}
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected resource policy evaluation during refresh-only planning")
+	}
+	if !policyClient.EvaluateProviderCalled {
+		t.Fatal("expected provider policy evaluation during refresh-only planning")
+	}
+	if !policyClient.EvaluateModuleCalled {
+		t.Fatal("expected module policy evaluation during refresh-only planning")
+	}
+
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("expected refresh-only plan to contain no resource changes, got %d", got)
+	}
+
+	if _, ok := h.PolicyResults[addr.String()]; !ok {
+		t.Fatalf("expected resource policy result for %s during refresh-only planning", addr)
+	}
+	if _, ok := h.PolicyResults[`provider["registry.terraform.io/hashicorp/test"]`]; !ok {
+		t.Fatal("expected provider policy result to be streamed through hooks")
+	}
+	if _, ok := h.PolicyResults["module.child"]; !ok {
+		t.Fatal("expected module policy result to be streamed through hooks")
+	}
+	if got := len(h.PolicyResults); got != 3 {
+		t.Fatalf("expected exactly 3 policy results (resource, provider, and module), got %d", got)
 	}
 }
 
@@ -1955,7 +2123,7 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -2150,7 +2318,7 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 
 			var policyDiags tfdiags.Diagnostics
 			for _, result := range h.PolicyResults {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -2336,7 +2504,7 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 
 			var policyDiags tfdiags.Diagnostics
 			for _, result := range h.PolicyResults {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 

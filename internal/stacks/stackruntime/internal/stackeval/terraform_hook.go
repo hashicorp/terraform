@@ -7,8 +7,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -46,8 +48,6 @@ type componentInstanceTerraformHook struct {
 	// Track provider addresses for action invocations so we can report them
 	// in action lifecycle hooks.
 	actionInvocationProviderAddr addrs.Map[addrs.AbsActionInstance, addrs.Provider]
-
-	policyResults map[string]plans.PolicyEvaluation
 }
 
 var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
@@ -282,27 +282,13 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if h.policyResults == nil {
-		h.policyResults = make(map[string]plans.PolicyEvaluation)
-	}
-	h.policyResults[addr] = result
+func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (terraform.HookAction, error) {
+	hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
+		ComponentAddr: h.addr,
+		ResourceAddr:  addr,
+		Result:        resp,
+	})
 	return terraform.HookActionContinue, nil
-}
-
-func (h *componentInstanceTerraformHook) collectedPolicyResults() map[string]plans.PolicyEvaluation {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	return h.policyResults
-}
-
-// policyResultCollector is implemented by the Terraform hooks that accumulate
-// policy evaluation results during a component plan so that the stacks runtime
-// can report them once the plan completes.
-type policyResultCollector interface {
-	collectedPolicyResults() map[string]plans.PolicyEvaluation
 }
 
 // actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation

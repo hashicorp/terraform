@@ -9,9 +9,11 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -26,7 +28,7 @@ func TestNilHook_impl(t *testing.T) {
 type testHook struct {
 	mu            sync.Mutex
 	Calls         []*testHookCall
-	PolicyResults map[string]plans.PolicyEvaluation
+	PolicyResults map[string]policy.EvaluationResponse
 }
 
 var _ Hook = (*testHook)(nil)
@@ -46,14 +48,14 @@ func (h *testHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+func (h *testHook) PolicyResult(addr string, resp policy.EvaluationResponse, _ hcl.Range) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PolicyResult", addr})
 	if h.PolicyResults == nil {
-		h.PolicyResults = make(map[string]plans.PolicyEvaluation)
+		h.PolicyResults = make(map[string]policy.EvaluationResponse)
 	}
-	h.PolicyResults[addr] = result
+	h.PolicyResults[addr] = resp
 	return HookActionContinue, nil
 }
 

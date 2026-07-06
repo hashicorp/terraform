@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"path"
 	"path/filepath"
 	"sort"
@@ -6937,7 +6936,7 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -6973,7 +6972,7 @@ func TestPlan_WithPolicyResults_EmbeddedStack(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
@@ -7010,7 +7009,7 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -7023,11 +7022,6 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 }
 
 func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
-	// TODO: Policy result reporting for the destroy phases (full destroy and
-	// removed components) is not wired up for the streaming hook path yet and
-	// will be addressed in a separate PR.
-	t.Skip("destroy-phase policy result reporting will be addressed in a separate PR")
-
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
 
@@ -7052,11 +7046,11 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Stacks runs multiple calls to the module runtime for planning a full destroy, one refresh and one destroy plan.
-		// The separate refresh plan will emit module policy evaluations, then the destroy plan will emit resource policy evaluations
-		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		// Only the destroy plan will emit resource policy evaluations
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7067,11 +7061,6 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 }
 
 func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
-	// TODO: Policy result reporting for the destroy phases (full destroy and
-	// removed components) is not wired up for the streaming hook path yet and
-	// will be addressed in a separate PR.
-	t.Skip("destroy-phase policy result reporting will be addressed in a separate PR")
-
 	ctx := context.Background()
 	removedCfg := loadMainBundleConfigForTest(t, "policy-evaluation-removed")
 
@@ -7123,11 +7112,11 @@ func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Stacks runs a single call to the module runtime for planning a component destroy, a destroy plan.
-		// The refresh prior to destroy does evaluate module policies but it does not emit them. The destroy plan will emit resource policy evaluations.
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
+		// The plan emits modules and resources policy evaluations.
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
@@ -7215,31 +7204,28 @@ func TestPlan_NoPolicyResultsOnDeferredResource(t *testing.T) {
 		End:      hcl.Pos{Line: 14, Column: 48, Byte: 210},
 	}
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`component.simple_component["comp1"]`: map[string]policy.EvaluationResponse{
 			"testing_deferred_resource.resource": {
-				EvaluationResponse: policy.EvaluationResponse{
-					Overall: policy.DenyResult,
-					Policies: []*policy.Policy{&policy.Policy{
-						Result:           policy.DenyResult,
-						PolicySetName:    "some_policy_set",
-						Address:          "policy_name",
-						Directory:        "some/path/to",
-						Filename:         "policy_file.tfpolicy.hcl",
-						EnforcementLevel: "mandatory",
-					}},
-					Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-						{
-							Severity: policyproto.Severity_ERROR,
-							Summary:  "Resource violation",
-							Detail:   "testing_deferred_resource.resource violates policy",
-							Result: &policyproto.DiagnosticResult{
-								Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-							},
+				Overall: policy.DenyResult,
+				Policies: []*policy.Policy{&policy.Policy{
+					Result:           policy.DenyResult,
+					PolicySetName:    "some_policy_set",
+					Address:          "policy_name",
+					Directory:        "some/path/to",
+					Filename:         "policy_file.tfpolicy.hcl",
+					EnforcementLevel: "mandatory",
+				}},
+				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+					{
+						Severity: policyproto.Severity_ERROR,
+						Summary:  "Resource violation",
+						Detail:   "testing_deferred_resource.resource violates policy",
+						Result: &policyproto.DiagnosticResult{
+							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 						},
-					}, nil), wantResourceRange),
-				},
-				ConfigDeclRange: wantResourceRange,
+					},
+				}, nil), wantResourceRange),
 			},
 		},
 		// `component.simple_component["comp2"]` is not evaluated as the resource is deferred,
@@ -7455,36 +7441,33 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 }
 
 // This helper is used for tests that only expect module policies to be evaluated (refresh-only plans)
-func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string) map[string]policy.EvaluationResponse {
 	moduleCallRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 18, Column: 1, Byte: 259},
 		End:      hcl.Pos{Line: 18, Column: 15, Byte: 273},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"module.child": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module policy violation",
-						Detail:   "module.child violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), moduleCallRange),
-			},
-			ConfigDeclRange: moduleCallRange,
+				},
+			}, nil), moduleCallRange),
 		},
 	}
 }
 
 // This helper is used for tests that only expect resource policies to be evaluated (destroy apply, removed component plans)
-func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath string) map[string]policy.EvaluationResponse {
 	rootModuleRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
@@ -7496,44 +7479,38 @@ func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath stri
 		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"testing_resource.parent_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.AllowResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
-				Enforcements: []policy.EnforcementResult{
-					{
-						Result:     policy.AllowResult,
-						Message:    "just an advisory message",
-						BlockIndex: 1,
-						Policy:     mockPolicyObj(policy.AllowResult),
-						LocalRange: rootModuleRange.Ptr(),
-					},
+			Overall:  policy.AllowResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:     policy.AllowResult,
+					Message:    "just an advisory message",
+					BlockIndex: 1,
+					Policy:     mockPolicyObj(policy.AllowResult),
+					LocalRange: rootModuleRange.Ptr(),
 				},
 			},
-			ConfigDeclRange: rootModuleRange,
 		},
 		"module.child.testing_resource.child_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module resource violation",
-						Detail:   "module.child.testing_resource.child_resource violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), childResourceRange),
-			},
-			ConfigDeclRange: childResourceRange,
+				},
+			}, nil), childResourceRange),
 		},
 	}
 }
 
-func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
 	rootModuleRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
@@ -7550,84 +7527,72 @@ func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[stri
 		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"testing_resource.parent_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.AllowResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
-				Enforcements: []policy.EnforcementResult{
-					{
-						Result:     policy.AllowResult,
-						Message:    "just an advisory message",
-						BlockIndex: 1,
-						Policy:     mockPolicyObj(policy.AllowResult),
-						LocalRange: rootModuleRange.Ptr(),
-					},
+			Overall:  policy.AllowResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:     policy.AllowResult,
+					Message:    "just an advisory message",
+					BlockIndex: 1,
+					Policy:     mockPolicyObj(policy.AllowResult),
+					LocalRange: rootModuleRange.Ptr(),
 				},
 			},
-			ConfigDeclRange: rootModuleRange,
 		},
 		"module.child": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module policy violation",
-						Detail:   "module.child violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), moduleCallRange),
-			},
-			ConfigDeclRange: moduleCallRange,
+				},
+			}, nil), moduleCallRange),
 		},
 		"module.child.testing_resource.child_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module resource violation",
-						Detail:   "module.child.testing_resource.child_resource violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), childResourceRange),
-			},
-			ConfigDeclRange: childResourceRange,
+				},
+			}, nil), childResourceRange),
 		},
 	}
 }
 
-func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
 	providerRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tfcomponent.hcl", bundlePath),
 		Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
 		End:      hcl.Pos{Line: 8, Column: 29, Byte: 126},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		`provider["registry.terraform.io/hashicorp/testing"].default`: {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Provider policy violation",
-						Detail:   "testing provider violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Provider policy violation",
+					Detail:   "testing provider violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), providerRange),
-			},
-			ConfigDeclRange: providerRange,
+				},
+			}, nil), providerRange),
 		},
 	}
 }
@@ -7640,7 +7605,7 @@ func withLocalRange(diags policy.Diagnostics, rng hcl.Range) policy.Diagnostics 
 	return out
 }
 
-func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequest) map[string]map[string]plans.PolicyEvaluation {
+func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequest) map[string]map[string]policy.EvaluationResponse {
 	t.Helper()
 
 	changesCh := make(chan stackplan.PlannedChange)
@@ -7651,29 +7616,31 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	}
 
 	var mu sync.Mutex
-	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
+	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
 	planHooks := &Hooks{
-		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
+		ReportComponentInstancePolicyResult: func(ctx context.Context, a any, data *hooks.ComponentInstancePolicyResult) any {
 			mu.Lock()
 			defer mu.Unlock()
 
-			results := data.PolicyResults
-			existingResults, ok := gotPolicyResults[data.Addr.String()]
+			existingResults, ok := gotPolicyResults[data.ComponentAddr.String()]
 			if !ok {
-				gotPolicyResults[data.Addr.String()] = results
-				return
+				gotPolicyResults[data.ComponentAddr.String()] = map[string]policy.EvaluationResponse{
+					data.ResourceAddr: data.Result,
+				}
+				return a
 			}
 
 			// Merge the two results together
-			for key, result := range results {
-				existingResults[key] = result
-			}
-			gotPolicyResults[data.Addr.String()] = existingResults
+			existingResults[data.ResourceAddr] = data.Result
+
+			return a
 		},
 		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
-			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+			gotPolicyResults[data.Addr.String()] = map[string]policy.EvaluationResponse{
+				data.ProviderAddr: data.Result,
+			}
 		},
 	}
 
