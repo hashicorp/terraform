@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -83,11 +82,10 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-			var rng hcl.Range
 			if resourceConfig != nil {
-				rng = resourceConfig.DeclRange
+				result = result.WithLocalRange(resourceConfig.DeclRange.Ptr())
 			}
-			return h.PolicyResult(n.ResourceAddr.String(), result, rng)
+			return h.PolicyResult(n.ResourceAddr.String(), result)
 		})
 		diags = diags.Append(hookErr)
 	}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -411,7 +410,7 @@ func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
 }
 
-func (h *MockHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (HookAction, error) {
+func (h *MockHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 	return HookActionContinue, nil

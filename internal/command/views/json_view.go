@@ -145,7 +145,7 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 	)
 }
 
-func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
+func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse) {
 	// Log all the info messages
 	for _, enforcement := range resp.Enforcements {
 		if enforcement.Message == "" {
@@ -186,8 +186,8 @@ func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse, 
 	}
 }
 
-func (v *JSONView) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
-	v.logPolicyResult(addr, resp, rng)
+func (v *JSONView) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.logPolicyResult(addr, resp)
 }
 
 // PolicyDiagnostics logs policy diagnostics that are not tied to a specific

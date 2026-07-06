@@ -151,7 +151,6 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 				},
 			},
 		},
-		hcl.Range{},
 	)
 
 	version := tfversion.String()
@@ -220,7 +219,6 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 				),
 			},
 		},
-		hcl.Range{},
 	)
 
 	actual := done(t).All()
@@ -250,7 +248,6 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 				},
 			}},
 		},
-		hcl.Range{},
 	)
 
 	actual := done(t).Stdout()

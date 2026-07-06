@@ -7,7 +7,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -282,7 +281,7 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
 		ComponentAddr: h.addr,
 		ResourceAddr:  addr,

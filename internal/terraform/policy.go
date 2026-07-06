@@ -43,13 +43,7 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
 	// for such errors.
 	if config != nil {
-		ptr := config.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(config.DeclRange.Ptr())
 	}
 
 	return result

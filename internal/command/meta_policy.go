@@ -11,7 +11,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -105,18 +104,10 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 		moduleCall = req.Parent.Module.ModuleCalls[req.Name]
 	}
 
-	var rng hcl.Range
 	if moduleCall != nil {
-		rng = moduleCall.DeclRange
-		ptr := rng.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(moduleCall.DeclRange.Ptr())
 	}
-	h.view.PolicyResult(req.Path.String(), result, rng)
+	h.view.PolicyResult(req.Path.String(), result)
 
 	// Return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
@@ -171,14 +162,12 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
 	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
-	var rng hcl.Range
 	if providerConfig != nil {
 		// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
 		// policy source and the object being enforced.
-		rng = providerConfig.DeclRange
-		result = result.WithLocalRange(rng.Ptr())
+		result = result.WithLocalRange(providerConfig.DeclRange.Ptr())
 	}
-	p.view.PolicyResult(addr.String(), result, rng)
+	p.view.PolicyResult(addr.String(), result)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	// Init uses diagnostics as the blocking signal because advisory policies
 	// may return deny without any error diagnostics.

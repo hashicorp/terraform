@@ -13,7 +13,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
@@ -51,8 +50,8 @@ type jsonHook struct {
 	periodicUiTimer time.Duration
 }
 
-func (h *jsonHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (terraform.HookAction, error) {
-	h.view.PolicyResult(addr, resp, rng)
+func (h *jsonHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.view.PolicyResult(addr, resp)
 	return terraform.HookActionContinue, nil
 }
 

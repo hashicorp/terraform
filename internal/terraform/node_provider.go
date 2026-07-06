@@ -243,17 +243,14 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 
 	// Annotate the result diagnostics and enforcements with the local range of
 	// the provider config block.
-	var rng hcl.Range
 	if n.Config != nil {
-		rng = n.Config.DeclRange
-		ptr := rng.Ptr()
-		result = result.WithLocalRange(ptr)
+		result = result.WithLocalRange(n.Config.DeclRange.Ptr())
 	}
 
 	var diags tfdiags.Diagnostics
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PolicyResult(n.Addr.String(), result, rng)
+			return h.PolicyResult(n.Addr.String(), result)
 		})
 		diags = diags.Append(hookErr)
 	}

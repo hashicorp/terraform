@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -28,7 +27,7 @@ type ProviderInstaller interface {
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
-	PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range)
+	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
@@ -71,8 +70,8 @@ func (v *InitHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
-	v.view.PolicyResult(addr, resp, rng)
+func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
@@ -122,8 +121,8 @@ func (v *InitJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
-	v.view.PolicyResult(addr, resp, rng)
+func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -127,7 +126,7 @@ func (h *stopHook) CompleteAction(id HookActionIdentity, err error) (HookAction,
 	return h.hook()
 }
 
-func (h *stopHook) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) (HookAction, error) {
+func (h *stopHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	return h.hook()
 }
 

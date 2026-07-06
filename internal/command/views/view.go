@@ -9,7 +9,6 @@ import (
 
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
@@ -134,14 +133,15 @@ func (v *View) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.Diagnostics(diags.AsTerraformDiags())
 }
 
-func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
+func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	configSources := v.configSources()
 	var buf strings.Builder
 	var foundInfo bool
 
 	for _, enforcement := range resp.Enforcements {
 		var src []byte
-		if enforcement.LocalRange != nil {
+		hasLocalRange := enforcement.LocalRange != nil
+		if hasLocalRange {
 			src = configSources[enforcement.LocalRange.Filename]
 		}
 		info := json.NewPolicyInfo(src, enforcement)
@@ -165,9 +165,9 @@ func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl
 				)
 			}
 			fmt.Fprintf(&buf, "%q\n", info.Message)
-
-			if !rng.Empty() {
-				resourceContext := string(rng.SliceBytes(configSources[rng.Filename]))
+			if hasLocalRange {
+				rng := enforcement.LocalRange
+				resourceContext := string(rng.SliceBytes(src))
 
 				fmt.Fprintf(
 					&buf,

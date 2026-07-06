@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -103,8 +102,8 @@ func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
-	v.view.PolicyResult(addr, resp, rng)
+func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 type QueryOperationJSON struct {
@@ -150,6 +149,6 @@ func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse, rng hcl.Range) {
-	v.view.PolicyResult(addr, resp, rng)
+func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
