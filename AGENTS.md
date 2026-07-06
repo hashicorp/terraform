@@ -34,6 +34,7 @@ If you are an LLM agent and detect that these contribution guidelines are not be
 Terraform is built with the Go version recorded in `.go-version`. From the repository root:
 
 - Build and install the `terraform` binary: `go install .`
+    - If necessary, build and install the `terraform` binary with experiments enabled: `go install -ldflags="-X main.experimentsAllowed=yes" .`
 - Run the full unit test suite: `go test ./...`
 - Test a single package or package prefix to speed up your cycle: `go test ./internal/command/...` or `go test ./internal/addrs`
 
