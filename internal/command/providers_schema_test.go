@@ -31,6 +31,8 @@ import (
 )
 
 func TestProvidersSchema_error(t *testing.T) {
+	t.Parallel()
+
 	ui := new(cli.MockUi)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
@@ -46,6 +48,8 @@ func TestProvidersSchema_error(t *testing.T) {
 }
 
 func TestProvidersSchema_output(t *testing.T) {
+	t.Parallel()
+
 	fixtureDir := "testdata/providers-schema"
 	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
@@ -57,10 +61,11 @@ func TestProvidersSchema_output(t *testing.T) {
 			continue
 		}
 		t.Run(entry.Name(), func(t *testing.T) {
+			t.Parallel()
+
 			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			t.Chdir(td)
 
 			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.2.3"},
@@ -74,9 +79,10 @@ func TestProvidersSchema_output(t *testing.T) {
 				Ui:               ui,
 				View:             view,
 				ProviderSource:   providerSource,
+				WorkingDir:       workdir.NewDir(td),
 			}
 
-			// `terrafrom init`
+			// `terraform init`
 			ic := &InitCommand{
 				Meta: m,
 			}
@@ -94,7 +100,7 @@ func TestProvidersSchema_output(t *testing.T) {
 			gotString := ui.OutputWriter.String()
 			json.Unmarshal([]byte(gotString), &got)
 
-			wantFile, err := os.Open("output.json")
+			wantFile, err := os.Open(filepath.Join(td, "output.json"))
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -116,6 +122,8 @@ func TestProvidersSchema_output(t *testing.T) {
 // not by relying on code upstream from the command having changed the working directory.
 // This test mimics a user running `terraform -chdir=<dir> providers schema`
 func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
+	t.Parallel()
+
 	fixtureDir := "providers-schema/basic"
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(fixtureDir), td)
