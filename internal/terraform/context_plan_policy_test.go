@@ -1682,13 +1682,26 @@ resource_policy "test_resource" "policy_name" {
 						Type:     cty.String,
 						Required: true,
 					},
+					"imported_only": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
 			},
 		},
 	})
 	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		planned := req.ProposedNewState.AsValueMap()
+		if !req.PriorState.IsNull() {
+			if got := req.PriorState.GetAttr("id"); got.IsKnown() && !got.IsNull() {
+				planned["id"] = got
+			}
+			if got := req.PriorState.GetAttr("imported_only"); got.IsKnown() && !got.IsNull() {
+				planned["imported_only"] = got
+			}
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(planned),
 		}
 	}
 	provider.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
@@ -1697,7 +1710,8 @@ resource_policy "test_resource" "policy_name" {
 				{
 					TypeName: "test_resource",
 					State: cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal("importable"),
+						"id":            cty.StringVal("importable"),
+						"imported_only": cty.StringVal("from-import"),
 					}),
 				},
 			},
@@ -1705,13 +1719,48 @@ resource_policy "test_resource" "policy_name" {
 	}
 
 	policyClient := policy.NewTestMockClient(t)
+	var evalCount int
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evalCount++
+		if req.Target != "test_resource" {
+			t.Fatalf("unexpected policy target %q", req.Target)
+		}
+
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Errorf("Invalid resource metadata: %s", diff)
+		}
+
+		if req.Attrs.Raw.IsNull() {
+			t.Fatal("expected non-null attrs for import policy evaluation")
+		}
+		if req.PriorAttrs.Raw.IsNull() {
+			t.Fatal("expected non-null prior attrs for import policy evaluation")
+		}
+		if got := req.Attrs.Raw.GetAttr("imported_only"); !got.RawEquals(cty.StringVal("from-import")) {
+			t.Fatalf("expected attrs.imported_only to come from imported state, got %#v", got)
+		}
+		if got := req.PriorAttrs.Raw.GetAttr("imported_only"); !got.RawEquals(cty.StringVal("from-import")) {
+			t.Fatalf("expected prior_attrs.imported_only to come from imported state, got %#v", got)
+		}
+
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
 
 	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
-		Hooks: []Hook{h},
+		Parallelism: 1,
+		Hooks:       []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
