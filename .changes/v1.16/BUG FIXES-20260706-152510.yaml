@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body:
-  "Fix `terraform init` error when installing providers sourced from a service-discovery
-  alias advertised by the configured backend (such as `localterraform.com`)"
-time: 2026-07-06T15:25:10.085953-04:00

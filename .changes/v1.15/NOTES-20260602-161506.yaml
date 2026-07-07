@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'command/init: Provider installation was changed to enable future enhancements in the area. This effectively reverses the log message changes from v1.15. `initializing_provider_plugin_message` is being re-introduced to replace the short-lived two message types `initializing_provider_plugin_from_config_message` & `initializing_provider_plugin_from_state_message`. The change should not have any significant end-user impact aside from the command output.'
+time: 2026-06-02T16:15:06.066251+01:00
+custom:
+    Issue: "38838"
