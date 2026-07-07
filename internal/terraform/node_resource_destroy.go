@@ -99,7 +99,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, op)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
 	default:
@@ -107,7 +107,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	}
 }
 
-func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -163,7 +163,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	}
 
 	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy, op))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -185,7 +185,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	n.addPolicyNode(ctx, changeApply, state)
 
 	// after destroy we continue to use the before value, since there is no after
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy, op))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))

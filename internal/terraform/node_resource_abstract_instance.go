@@ -3343,7 +3343,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 // being able to order dependencies without causing cycles. The entire config
 // and condition must be known at plan time, so if we have a planned action we
 // simply decode and call invoke.
-func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, forEvent configs.ActionTriggerEvent) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, forEvent configs.ActionTriggerEvent, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for _, trigger := range n.actionApplyTriggers {
@@ -3353,7 +3353,16 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 		}
 
 		log.Printf("[DEBUG] NodeAbstractResourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
-		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true))
+		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true)
+
+		// a full destroy walk must never be blocked
+		onFailureContinue := op == walkDestroy || n.getApplyActionTriggerBlock(trigger).OnFailure == configs.ActionOnFailureContinue
+
+		if onFailureContinue {
+			invokeDiags = tfdiags.OverrideAll(invokeDiags, tfdiags.Warning, nil)
+		}
+		diags = diags.Append(invokeDiags)
+
 		if diags.HasErrors() {
 			break
 		}

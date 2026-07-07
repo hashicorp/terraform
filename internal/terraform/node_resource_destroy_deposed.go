@@ -314,7 +314,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy, op))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -334,7 +334,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// after destroy we continue to use the before value, since there is no after
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy, op))
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 
