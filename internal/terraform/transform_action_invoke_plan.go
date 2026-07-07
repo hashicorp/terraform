@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type ActionInvokePlanTransformer struct {
@@ -22,6 +23,10 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 	if t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) == 0 {
 		return nil
 	}
+
+	// we need to track the targets we've made use of so we can report back to
+	// the user when some target is not found.
+	targetSet := addrs.MakeSet[addrs.Targetable](t.ActionTargets...)
 
 	// We could be invoking an action which is triggered from a resource,
 	// requiring us to resolve `caller`. In that case the calling resource
@@ -97,8 +102,14 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 				ActionConfig: actionNode,
 				Callers:      resourceCallers,
 			})
+			targetSet.Remove(target)
 		}
 	}
 
-	return nil
+	var diags tfdiags.Diagnostics
+	for target := range targetSet.Iter() {
+		diags = diags.Append(fmt.Errorf("invoke target %s not found", target))
+	}
+
+	return diags.ErrWithWarnings()
 }

@@ -85,6 +85,7 @@ func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
 
 func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
+	var diags tfdiags.Diagnostics
 
 	expander := ctx.InstanceExpander()
 
@@ -94,6 +95,8 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	syncState := ctx.State()
 	state := syncState.Lock()
 	defer syncState.Unlock()
+
+	found := false
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
 		if !mod.TargetContains(n.Target) {
@@ -107,6 +110,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 				ActionConfig: n.ActionConfig,
 				ProviderAddr: n.ActionConfig.ResolvedProvider,
 			})
+			found = true
 		} else {
 			for _, caller := range n.Callers {
 				for _, res := range state.Resources(caller) {
@@ -128,6 +132,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 							ProviderAddr: n.ActionConfig.ResolvedProvider,
 							Caller:       res.Addr.Resource.Instance(instKey),
 						})
+						found = true
 					}
 				}
 			}
@@ -135,7 +140,11 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	}
 	addRootNodeToGraph(&g)
 
-	return &g, nil
+	if !found {
+		diags = diags.Append(fmt.Errorf("invoke target %s not found", n.Target))
+	}
+
+	return &g, diags
 }
 
 var (

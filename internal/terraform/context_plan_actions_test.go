@@ -2966,6 +2966,86 @@ module "mod" {
 				},
 			},
 
+			"invalid action invoke in expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(1),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[1].action.test_action.one[1] not found") {
+						t.Fatalf("expected 'invoke target module.mod[1].action.test_action.one[1] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
+			"invalid action module invoke": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(3)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(0),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[3].action.test_action.one[0] not found") {
+						t.Fatalf("expected 'invoke target module.mod[3].action.test_action.one[0] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
 			"action invoke with count (all)": {
 				module: map[string]string{
 					"main.tf": `
