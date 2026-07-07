@@ -3169,10 +3169,8 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 
 	for _, trigger := range n.actionTriggers {
 		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
-		cond := cty.True
 		if trigger.config.Condition != nil {
-			var conditionEvalDiags tfdiags.Diagnostics
-			cond, conditionEvalDiags = scope.EvalExpr(trigger.config.Condition, cty.Bool)
+			cond, conditionEvalDiags := scope.EvalExpr(trigger.config.Condition, cty.Bool)
 			diags = diags.Append(conditionEvalDiags)
 			if diags.HasErrors() {
 				continue
