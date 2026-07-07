@@ -25,7 +25,6 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
-	// FIXME: sensitive paths are missing
 	ConfigValue cty.Value
 
 	Caller addrs.Referenceable

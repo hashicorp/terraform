@@ -120,10 +120,10 @@ func (n *NodeAbstractResourceInstance) ReferenceableAddrs() []addrs.Referenceabl
 	}
 }
 
-// destroyActionReferences are used by destroy nodes to ensure that only actions
+// destroyActionPlanReferences are used by destroy nodes to ensure that only actions
 // are connected by references, since a destroy node cannot reference anything
 // else from the config.
-func (n *NodeAbstractResourceInstance) destroyActionReferences() []*addrs.Reference {
+func (n *NodeAbstractResourceInstance) destroyActionPlanReferences() []*addrs.Reference {
 	var refs []*addrs.Reference
 	// Resources are destroyed using their state, but we do need to evaluate any
 	// potential destroy actions.
@@ -3190,11 +3190,11 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 		// though because the event is set within a nested interface inside a
 		// pointer to the ActionInvocationInstance.
 		for _, event := range eventsForPlannedAction(trigger.config.Events, change.Action) {
-			if event.IsDestroy() && !cond.IsKnown() {
+			if event.IsDestroy() && trigger.config.Condition != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Unknown action trigger condition",
-					Detail:   "Condition expression must be known to plan a destroy action.",
+					Summary:  "Condition on destroy action",
+					Detail:   "Condition expression may not be used with a destroy action.",
 					Subject:  trigger.config.Condition.Range().Ptr(),
 				})
 				return diags

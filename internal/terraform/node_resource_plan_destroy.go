@@ -56,7 +56,7 @@ func (n *NodePlanDestroyableResourceInstance) ReferenceableAddrs() []addrs.Refer
 }
 
 func (n *NodePlanDestroyableResourceInstance) References() (refs []*addrs.Reference) {
-	return n.destroyActionReferences()
+	return n.destroyActionPlanReferences()
 }
 
 func (n *NodePlanDestroyableResourceInstance) AttachActionTriggers(triggers []*resourceActionTrigger) {

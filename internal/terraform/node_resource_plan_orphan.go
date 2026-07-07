@@ -89,7 +89,7 @@ func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Refer
 }
 
 func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
-	return n.destroyActionReferences()
+	return n.destroyActionPlanReferences()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
