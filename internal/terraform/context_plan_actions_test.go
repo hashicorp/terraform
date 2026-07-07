@@ -634,47 +634,6 @@ resource "test_object" "a" {
 				expectPlanActionCalled: false,
 			},
 
-			"failing actions cancel next ones": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "failure" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure, action.test_action.failure]
-    }
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure]
-    }
-  }
-}
-`,
-				},
-
-				planActionFn: func(_ *testing.T, _ providers.PlanActionRequest) providers.PlanActionResponse {
-					t.Helper()
-					return providers.PlanActionResponse{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-						},
-					}
-				},
-
-				expectPlanActionCalled: true,
-				// We only expect a single diagnostic here, the other should not have been called because the first one failed.
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(
-						&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Planning failed",
-							Detail:   "Test case simulates an error while planning",
-						},
-					)
-				},
-			},
-
 			"actions with warnings don't cancel": {
 				module: map[string]string{
 					"main.tf": `
@@ -1652,7 +1611,7 @@ resource "test_object" "a" {
 					)
 				},
 				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Condition on destroy action",

@@ -3190,21 +3190,11 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 		// though because the event is set within a nested interface inside a
 		// pointer to the ActionInvocationInstance.
 		for _, event := range eventsForPlannedAction(trigger.config.Events, change.Action) {
-			if event.IsDestroy() && trigger.config.Condition != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Condition on destroy action",
-					Detail:   "Condition expression may not be used with a destroy action.",
-					Subject:  trigger.config.Condition.Range().Ptr(),
-				})
-				return diags
-			}
-
 			for _, action := range trigger.actionRefs {
 				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event, change)
 				diags = diags.Append(planDiags)
 				if diags.HasErrors() {
-					return diags
+					continue
 				}
 
 				if deferred {
