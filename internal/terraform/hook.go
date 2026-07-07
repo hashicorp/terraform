@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -43,7 +45,15 @@ type HookActionIdentity struct {
 }
 
 func (i *HookActionIdentity) String() string {
-	return i.Addr.String() + " (triggered by " + i.ActionTrigger.String() + ")"
+	caller := ""
+	if invoked, ok := i.ActionTrigger.(*plans.InvokeActionTrigger); ok {
+		if invoked.CallingResourceAddr != nil {
+			caller = ", called from " + invoked.CallingResourceAddr.String()
+		}
+	}
+
+	triggeredBy := "triggered by " + i.ActionTrigger.String()
+	return fmt.Sprintf("%s (%s%s)", i.Addr, triggeredBy, caller)
 }
 
 // Hook is the interface that must be implemented to hook into various

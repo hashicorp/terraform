@@ -22,6 +22,7 @@ type ChangeSummary struct {
 	Import           int       `json:"import"`
 	Remove           int       `json:"remove"`
 	ActionInvocation int       `json:"action_invocation"`
+	ActionFail       int       `json:"action_fail"`
 	Operation        Operation `json:"operation"`
 }
 
@@ -38,7 +39,12 @@ func (cs *ChangeSummary) String() string {
 		}
 		buf.WriteString(fmt.Sprintf("%d added, %d changed, %d destroyed.", cs.Add, cs.Change, cs.Remove))
 		if cs.ActionInvocation > 0 {
-			buf.WriteString(fmt.Sprintf(" Actions: %d invoked.", cs.ActionInvocation))
+			msg := fmt.Sprintf(" Actions: %d invoked", cs.ActionInvocation)
+			if cs.ActionFail > 0 {
+				msg = fmt.Sprintf("%s, %d failed", msg, cs.ActionFail)
+			}
+
+			buf.WriteString(msg + ".")
 		}
 	case OperationDestroyed:
 		buf.WriteString(fmt.Sprintf("Destroy complete! Resources: %d destroyed.", cs.Remove))

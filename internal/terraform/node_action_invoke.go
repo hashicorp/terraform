@@ -186,12 +186,20 @@ func (n *nodeActionPlanInvoke) planActions(ctx EvalContext) tfdiags.Diagnostics 
 func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Action, addr addrs.AbsActionInstance, configVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	var triggerAddr *addrs.AbsResourceInstance
+	if n.Caller != nil {
+		absCaller := n.Caller.(addrs.ResourceInstance).Absolute(ctx.Path())
+		triggerAddr = &absCaller
+	}
+
 	ai := plans.ActionInvocationInstance{
-		Addr:          addr,
-		ActionTrigger: new(plans.InvokeActionTrigger),
-		ProviderAddr:  n.ProviderAddr,
-		ConfigValue:   ephemeral.RemoveEphemeralValues(configVal),
-		Caller:        n.Caller,
+		Addr: addr,
+		ActionTrigger: &plans.InvokeActionTrigger{
+			CallingResourceAddr: triggerAddr,
+		},
+		ProviderAddr: n.ProviderAddr,
+		ConfigValue:  ephemeral.RemoveEphemeralValues(configVal),
+		Caller:       n.Caller,
 	}
 
 	provider, _, err := getProvider(ctx, n.ProviderAddr)
@@ -257,18 +265,36 @@ func (n *nodeActionInvokeApplyInstance) Name() string {
 }
 
 func (n *nodeActionInvokeApplyInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	// FIXME: caller!
-	return n.Invoke(ctx, n.ActionInvocation.Caller, cty.NilVal, true)
+	var caller addrs.Referenceable
+
+	switch trigger := n.ActionInvocation.ActionTrigger.(type) {
+	case *plans.ResourceActionTrigger:
+		caller = trigger.TriggeringResourceAddr.Resource
+	case *plans.InvokeActionTrigger:
+		if trigger.CallingResourceAddr != nil {
+			caller = trigger.CallingResourceAddr.Resource
+		}
+	}
+
+	return n.Invoke(ctx, caller, cty.DynamicVal, true)
 }
 
 func (n *nodeActionInvokeApplyInstance) References() []*addrs.Reference {
 	refs := n.actionTriggerApplyInstance.References()
 
 	// add any caller to ensure the resource expansion nodes remain in the graph
-	if n.actionTriggerApplyInstance.ActionInvocation.Caller != nil {
+	switch trigger := n.ActionInvocation.ActionTrigger.(type) {
+	case *plans.ResourceActionTrigger:
 		refs = append(refs, &addrs.Reference{
-			Subject: n.actionTriggerApplyInstance.ActionInvocation.Caller,
+			Subject: trigger.TriggeringResourceAddr.Resource,
 		})
+	case *plans.InvokeActionTrigger:
+		if trigger.CallingResourceAddr != nil {
+			refs = append(refs, &addrs.Reference{
+				Subject: trigger.CallingResourceAddr.Resource,
+			})
+		}
 	}
+
 	return refs
 }

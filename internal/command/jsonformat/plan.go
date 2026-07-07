@@ -510,6 +510,9 @@ func renderHumanActionInvocations(renderer Renderer, actionInvocations []actionI
 	var invocations []string
 	for _, invocation := range actionInvocations {
 		header := fmt.Sprintf(renderer.Colorize.Color("  [bold]# %s[reset] will be invoked"), invocation.invocation.Address)
+		if trigger := invocation.invocation.InvokeActionTrigger.CallingResourceAddress; trigger != "" {
+			header += fmt.Sprintf(" (called from %s)", trigger)
+		}
 		invocations = append(invocations, fmt.Sprintf("%s\n%s", header, renderActionInvocation(renderer, invocation)))
 	}
 	return strings.Join(invocations, "\n")
