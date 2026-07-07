@@ -10,6 +10,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -87,6 +89,7 @@ resource "test_resource" "b" {
 	ctx := &MockEvalContext{
 		StateState:     state,
 		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
 	}
 
 	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
@@ -149,6 +152,40 @@ resource "test_resource" "b" {
 			sort.Strings(wantNames)
 			if diff := cmp.Diff(wantNames, gotNames); diff != "" {
 				t.Fatalf("wrong matched resources (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestPolicyOperationForAction(t *testing.T) {
+	tests := []struct {
+		name      string
+		action    plans.Action
+		want      proto.Operation
+		wantValid bool
+	}{
+		{name: "create", action: plans.Create, want: proto.Operation_CREATE, wantValid: true},
+		{name: "update", action: plans.Update, want: proto.Operation_UPDATE, wantValid: true},
+		{name: "delete-then-create", action: plans.DeleteThenCreate, want: proto.Operation_UPDATE, wantValid: true},
+		{name: "create-then-delete", action: plans.CreateThenDelete, want: proto.Operation_UPDATE, wantValid: true},
+		{name: "create-then-forget", action: plans.CreateThenForget, want: proto.Operation_UPDATE, wantValid: true},
+		{name: "delete", action: plans.Delete, want: proto.Operation_DELETE, wantValid: true},
+		{name: "no-op", action: plans.NoOp, want: proto.Operation_NO_OP, wantValid: true},
+		{name: "read", action: plans.Read, wantValid: false},
+		{name: "forget", action: plans.Forget, wantValid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := policyOperationForAction(tt.action)
+			if ok != tt.wantValid {
+				t.Fatalf("wrong validity for %s\ngot:  %t\nwant: %t", tt.action, ok, tt.wantValid)
+			}
+			if !tt.wantValid {
+				return
+			}
+			if got != tt.want {
+				t.Fatalf("wrong operation for %s\ngot:  %s\nwant: %s", tt.action, got, tt.want)
 			}
 		})
 	}

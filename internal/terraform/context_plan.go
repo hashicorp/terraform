@@ -802,9 +802,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// Hold reference to this so we can store the table data in the plan file.
 	funcResults := lang.NewFunctionResultsTable(nil)
 
-	// Initialize the map to store policy evaluation results.
-	policyResults := plans.NewPolicyResults()
-
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
 		InputState:                 prevRunState,
@@ -819,7 +816,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Forget:                     opts.Forget,
 		ProviderLocks:              opts.ProviderLocks,
 		PolicyClient:               opts.PolicyClient,
-		PolicyResults:              policyResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -864,7 +860,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
-		if rc.Action == plans.Forget {
+		if rc.Action == plans.Forget || rc.Action == plans.CreateThenForget {
 			// TODO KEM display resource ids
 			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
 		}
@@ -899,10 +895,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
 		// Other fields get populated by Context.Plan after we return
-	}
-
-	if policyResults != nil {
-		plan.PolicyResults = policyResults
 	}
 
 	if !schemaDiags.HasErrors() {

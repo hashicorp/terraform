@@ -155,6 +155,17 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return h.PostListQuery(rId, results, identityVersion)
 	})
 
+	var policyInputs []listResourcePolicy
+	if ctx.PolicyClient() != nil {
+		var policyDiags tfdiags.Diagnostics
+		policyInputs, policyDiags = n.generateListResourcePolicyData(ctx, addr, resp.Result.GetAttr("data"))
+		diags = diags.Append(policyDiags)
+		// generateListResourcePolicyData only returns Warnings, so no HasErrors gate is needed.
+		// TODO: Fix if generateListResourcePolicyData is instrumented to return error diagnostics.
+	}
+	// TODO(CORE-3): iterate policyInputs to insert nodeQueryResourcePolicy nodes
+	_ = policyInputs
+
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,
 		ProviderAddr: n.ResolvedProvider,

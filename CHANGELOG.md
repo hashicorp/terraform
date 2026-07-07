@@ -1,4 +1,4 @@
-## 1.16.0 (Unreleased)
+## 1.16.0-alpha20260706 (July 06, 2026)
 
 
 NEW FEATURES:
@@ -28,7 +28,15 @@ ENHANCEMENTS:
 
 * Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
+* cloud: Render a summary of Terraform policy evaluation outcomes for plan and apply runs against HCP Terraform ([#38715](https://github.com/hashicorp/terraform/issues/38715))
+
 * policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
+
+* The 'terraform graph' command now accepts a -format flag, and can output graphs in Mermaid format ([#38719](https://github.com/hashicorp/terraform/issues/38719))
+
+* child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
+
+* contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
 BUG FIXES:
@@ -46,6 +54,8 @@ BUG FIXES:
 * init: Add warnings when unmanaged providers are in use and will impact provider installation processes. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
 
 * Actions are now invoked with respect to all resource dependencies. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* merge no longer panics with null objects ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
 NOTES:
@@ -71,6 +81,7 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 - `terraform test`: `backend` blocks and `skip_cleanup` attributes:
   - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
   - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
+- `terraform query`: The experimental `-policies` flag permits specifying one or more policy set directory paths to evaluate policies against resources discovered by list blocks during a query operation.
 
 ## Previous Releases
 

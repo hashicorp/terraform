@@ -27,7 +27,7 @@ func TestPolicyResults(t *testing.T) {
 		allow := policy.EvaluationResponse{Overall: policy.AllowResult}
 
 		pr.AddResource(resourceAddr, allow, resourceConfig)
-		pr.AddProvider(providerAddr, allow, providerConfig)
+		pr.AddProvider(providerAddr, allow, providerConfig.DeclRange)
 		pr.AddModule(moduleAddr, allow, moduleConfig)
 
 		// Empty results should be skipped, so the length should still be 0
@@ -43,7 +43,7 @@ func TestPolicyResults(t *testing.T) {
 		moduleResult := policy.EvaluationResponse{Overall: policy.DenyResult}
 
 		pr.AddResource(resourceAddr, resourceResult, resourceConfig)
-		pr.AddProvider(providerAddr, providerResult, providerConfig)
+		pr.AddProvider(providerAddr, providerResult, providerConfig.DeclRange)
 		pr.AddModule(moduleAddr, moduleResult, moduleConfig)
 
 		if got := pr.Len(); got != 3 {

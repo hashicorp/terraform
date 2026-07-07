@@ -125,6 +125,10 @@ func (h *stopHook) CompleteAction(id HookActionIdentity, err error) (HookAction,
 	return h.hook()
 }
 
+func (h *stopHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) hook() (HookAction, error) {
 	if h.Stopped() {
 		return HookActionHalt, errors.New("execution halted")

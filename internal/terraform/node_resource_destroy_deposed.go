@@ -275,8 +275,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	var change *plans.ResourceInstanceChange
-
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	if err != nil {
@@ -288,7 +286,14 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+	var change *plans.ResourceInstanceChange
+	var destroyPlanDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+	if resourceLifecycleForget(n.Config) {
+		change, destroyPlanDiags = n.planForget(ctx, state, n.DeposedKey)
+	} else {
+		change, deferred, destroyPlanDiags = n.planDestroy(ctx, state, n.DeposedKey)
+	}
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags

@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -241,10 +242,12 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		},
 	})
 
-	// if this was an "implicit provider", and we have no configuration
-	// for it, There's going to be no source information for these errors.
+	// Annotate the result diagnostics and enforcements with the local range of
+	// the provider config block.
+	var rng hcl.Range
 	if n.Config != nil {
-		ptr := n.Config.DeclRange.Ptr()
+		rng = n.Config.DeclRange
+		ptr := rng.Ptr()
 		for idx, diag := range result.Diagnostics {
 			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
 		}
@@ -253,9 +256,11 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 		}
 	}
 
-	// always add the result to the policy results
-	if ctx.PolicyResults() != nil {
-		ctx.PolicyResults().AddProvider(n.Addr, result, n.Config)
+	if !result.Empty() {
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			eval := plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng}
+			return h.PolicyResult(n.Addr.String(), eval)
+		})
 	}
 
 	return nil

@@ -6,17 +6,21 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -289,6 +293,78 @@ func TestQuery_varFileDuplicateAttr(t *testing.T) {
 
 	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
 		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+}
+
+func TestQueryCommand_Validate(t *testing.T) {
+	td := t.TempDir()
+	if err := os.WriteFile(filepath.Join(td, "main.policy.hcl"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+	td2 := t.TempDir()
+	if err := os.WriteFile(filepath.Join(td2, "allow.policy.hcl"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(t.TempDir(), "does-not-exist")
+
+	tests := []struct {
+		name             string
+		policyPaths      []string
+		allowExperiments bool
+		wantDiags        tfdiags.Diagnostics
+	}{
+		{
+			name:             "no policies, flag omitted",
+			policyPaths:      nil,
+			allowExperiments: true,
+		},
+		{
+			name:             "single valid path",
+			policyPaths:      []string{td},
+			allowExperiments: true,
+		},
+		{
+			name:             "multiple valid paths",
+			policyPaths:      []string{td, td2},
+			allowExperiments: true,
+		},
+		{
+			name:             "non-existent path",
+			policyPaths:      []string{missingPath},
+			allowExperiments: true,
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid policy path",
+					fmt.Sprintf("Terraform cannot find the policy path at %s. Please ensure the file or directory exists and the path is correct.", missingPath),
+				),
+			},
+		},
+		{
+			name:             "experiments disallowed",
+			policyPaths:      []string{td},
+			allowExperiments: false,
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to parse command-line flags",
+					"The -policies flag is only valid in experimental builds of Terraform.",
+				),
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := &QueryCommand{Meta: Meta{AllowExperimentalFeatures: tc.allowExperiments}}
+			got := cmd.Validate(&arguments.Query{PolicyPaths: tc.policyPaths})
+			if tc.wantDiags == nil {
+				tfdiags.AssertNoDiagnostics(t, got)
+				return
+			}
+			tfdiags.AssertDiagnosticsMatch(t, got, tc.wantDiags)
+		})
 	}
 }
 

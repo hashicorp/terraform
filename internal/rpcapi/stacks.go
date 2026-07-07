@@ -325,7 +325,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// Setup the policy client if the caller provides a plugin path, policies, and
 	// the plan request is the default mode (i.e. not refresh or destroy)
 	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && req.PlanMode == stacks.PlanMode_NORMAL {
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
@@ -660,7 +660,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// Setup the policy client if the caller provides a plugin path, policies, and
 	// the plan being applied is the default mode (i.e. not refresh or destroy)
 	var policyClient policy.Client
-	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 && plan.Mode == plans.NormalMode {
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
@@ -1077,13 +1077,25 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 	)
 
 	changeHooks.ReportComponentInstancePolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePolicyResults) {
-		if h.PolicyResults.Len() == 0 {
+		if len(h.PolicyResults) == 0 {
 			return
 		}
 
 		evts.Send(&stacks.PlanStackChanges_Event{
 			Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
 				ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
+	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.PlanStackChanges_Event{
+			Event: &stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}
@@ -1104,13 +1116,25 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 	)
 
 	changeHooks.ReportComponentInstancePolicyResults = func(ctx context.Context, h *hooks.ComponentInstancePolicyResults) {
-		if h.PolicyResults.Len() == 0 {
+		if len(h.PolicyResults) == 0 {
 			return
 		}
 
 		evts.Send(&stacks.ApplyStackChanges_Event{
 			Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
 				ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
+			},
+		})
+	}
+
+	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.PolicyResults.Len() == 0 {
+			return
+		}
+
+		evts.Send(&stacks.ApplyStackChanges_Event{
+			Event: &stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h.Addr, h.PolicyResults),
 			},
 		})
 	}

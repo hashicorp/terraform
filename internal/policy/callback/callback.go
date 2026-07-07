@@ -13,7 +13,7 @@ import (
 
 type Functions struct {
 	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
-	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, error)
+	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
 }
 
 // Registry is an interface for managing callback functions for resources and

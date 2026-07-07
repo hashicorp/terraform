@@ -97,5 +97,12 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 // sends policy results back to the client for a component instance.
 type ComponentInstancePolicyResults struct {
 	Addr          stackaddrs.AbsComponentInstance
+	PolicyResults map[string]plans.PolicyEvaluation
+}
+
+// ProviderInstancePolicyResults is the argument type for the hook callback which
+// sends policy results back to the client for a provider instance.
+type ProviderInstancePolicyResults struct {
+	Addr          stackaddrs.AbsProviderConfigInstance
 	PolicyResults *plans.PolicyResults
 }

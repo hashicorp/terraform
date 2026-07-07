@@ -79,6 +79,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParseQuery(rawArgs)
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -118,11 +119,23 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.GenerateConfigPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.GenerateConfigPath, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		// if there has been any errors when setting up the policy client, we log them but
+		// we still proceed with the operation, as a failure to set up the policy client
+		// should not prevent the query operation from running
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyDiagnostics(policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	// Collect variable value and add them to the operation request
@@ -156,6 +169,11 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
+func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
+	// validatePolicyPaths call ejects early if -policies flag was passed for non-experimental builds
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+}
+
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// Load the backend
 	be, diags := c.backend(".", viewType)
@@ -167,6 +185,7 @@ func (c *QueryCommand) OperationRequest(
 	view views.Query,
 	viewType arguments.ViewType,
 	generateConfigOut string,
+	policyPaths []string,
 ) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -178,6 +197,7 @@ func (c *QueryCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.View = view.Operation()
 	opReq.Query = true
+	opReq.PolicyPaths = policyPaths
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

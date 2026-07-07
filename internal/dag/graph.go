@@ -367,6 +367,11 @@ func (g *Graph) Dot(opts *DotOpts) []byte {
 	return newMarshalGraph("", g).Dot(opts)
 }
 
+// Mermaid returns a Mermaid flowchart formatted representation of the Graph.
+func (g *Graph) Mermaid(opts *DotOpts) []byte {
+	return newMarshalGraph("", g).Mermaid(opts)
+}
+
 // VertexName returns the name of a vertex.
 func VertexName(raw Vertex) string {
 	switch v := raw.(type) {

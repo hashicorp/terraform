@@ -303,9 +303,14 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 
 	// filter out any known import which already exist in state
 	for _, el := range knownImports.Elements() {
-		if state.ResourceInstance(el.Key) != nil {
-			log.Printf("[DEBUG] expandResourceImports: skipping import address %s already in state", el.Key)
-			knownImports.Remove(el.Key)
+		// if the resource exists in state, but not config, we will not remove
+		// the target and instead let validateImportTargets return the proper
+		// "missing config" error
+		if n.Config != nil {
+			if state.ResourceInstance(el.Key) != nil {
+				log.Printf("[DEBUG] expandResourceImports: skipping import address %s already in state", el.Key)
+				knownImports.Remove(el.Key)
+			}
 		}
 	}
 

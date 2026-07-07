@@ -319,6 +319,31 @@ func TestInit_PoliciesRequireExperimentalFeatures(t *testing.T) {
 	}
 }
 
+func TestQuery_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := queryFixtureProvider()
+	view, done := testView(t)
+	c := &QueryCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
+}
+
 func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
 	t.Helper()
 

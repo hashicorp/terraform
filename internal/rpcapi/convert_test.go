@@ -5,6 +5,7 @@ package rpcapi
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -194,7 +195,7 @@ func TestDiagnosticsToProto(t *testing.T) {
 	}
 }
 
-func TestPolicyEvaluationResponseProto(t *testing.T) {
+func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 	policyObj := &policy.Policy{
 		Result:           policy.AllowResult,
 		Address:          "policy_name",
@@ -218,14 +219,14 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 	testCases := map[string]struct {
 		componentAddr string
 		policyResults func() *plans.PolicyResults
-		want          *stacks.PolicyEvaluationResponse
+		want          *stacks.ComponentInstancePolicyEvaluation
 	}{
 		"no results": {
 			componentAddr: "component.test",
 			policyResults: func() *plans.PolicyResults {
 				return plans.NewPolicyResults()
 			},
-			want: &stacks.PolicyEvaluationResponse{},
+			want: &stacks.ComponentInstancePolicyEvaluation{},
 		},
 		"policy result with diagnostic": {
 			componentAddr: "component.test",
@@ -255,7 +256,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -320,7 +321,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -408,7 +409,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
@@ -490,7 +491,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -556,7 +557,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "test_instance.example",
@@ -633,7 +634,7 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				)
 				return results
 			},
-			want: &stacks.PolicyEvaluationResponse{
+			want: &stacks.ComponentInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "test_instance.example",
@@ -671,7 +672,288 @@ func TestPolicyEvaluationResponseProto(t *testing.T) {
 				ComponentInstanceAddr: componentAddr.String(),
 			}
 
-			got := componentInstancePolicyEvaluationProto(componentAddr, tc.policyResults())
+			got := componentInstancePolicyEvaluationProto(componentAddr, maps.Collect(tc.policyResults().Iter()))
+
+			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
+	policyObj := &policy.Policy{
+		Result:           policy.AllowResult,
+		Address:          "policy_name",
+		PolicySetName:    "some_policy_set",
+		Filename:         "policy_file.tfpolicy.hcl",
+		EnforcementLevel: "mandatory",
+	}
+
+	snippetContext := `provider_policy "example"`
+
+	exprValueBytes, err := msgpack.Marshal(cty.StringVal("bar"), cty.String)
+	if err != nil {
+		t.Fatalf("failed to marshal expression value: %s", err)
+	}
+
+	providerInstanceAddr := stackaddrs.AbsProviderConfigInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ProviderConfigInstance{
+			ProviderConfig: stackaddrs.ProviderConfig{
+				Provider: addrs.NewDefaultProvider("testing"),
+				Name:     "default",
+			},
+			Key: addrs.NoKey,
+		},
+	}
+
+	testCases := map[string]struct {
+		policyResults func() *plans.PolicyResults
+		want          *stacks.ProviderInstancePolicyEvaluation
+	}{
+		"no results": {
+			policyResults: func() *plans.PolicyResults {
+				return plans.NewPolicyResults()
+			},
+			want: &stacks.ProviderInstancePolicyEvaluation{},
+		},
+		"policy result with diagnostic": {
+			policyResults: func() *plans.PolicyResults {
+				results := plans.NewPolicyResults()
+				results.AddProvider(
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
+					},
+					policy.EvaluationResponse{
+						Overall: policy.DenyResult,
+						Diagnostics: policy.Diagnostics{
+							policy.NewErrorDiagnostic(
+								"provider policy denied",
+								"provider policy blocked usage",
+								policy.DenyResult,
+							),
+						},
+						Policies: []*policy.Policy{
+							{
+								Address:          "provider_policy.example",
+								Filename:         "policy_file.tfpolicy.hcl",
+								EnforcementLevel: "mandatory",
+								Result:           policy.DenyResult,
+							},
+						},
+					},
+					hcl.Range{},
+				)
+				return results
+			},
+			want: &stacks.ProviderInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{
+					{
+						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "provider_policy.example",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "provider policy denied",
+							Detail:   "provider policy blocked usage",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{},
+					},
+				},
+			},
+		},
+		"policy info with snippet and range": {
+			policyResults: func() *plans.PolicyResults {
+				results := plans.NewPolicyResults()
+				results.AddProvider(
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
+					},
+					policy.EvaluationResponse{
+						Overall:  policy.AllowResult,
+						Policies: []*policy.Policy{policyObj},
+						Enforcements: []policy.EnforcementResult{
+							{
+								Result:     policy.AllowResult,
+								Message:    "provider policy allowed usage",
+								BlockIndex: 1,
+								Policy:     policyObj,
+								Range: &hcl.Range{
+									Filename: "policy_file.tfpolicy.hcl",
+									Start:    hcl.Pos{Line: 3, Column: 5, Byte: 10},
+									End:      hcl.Pos{Line: 4, Column: 10, Byte: 30},
+								},
+								Snippet: &proto.Snippet{
+									Code:                 `key = attr.value == "foo"`,
+									Context:              &snippetContext,
+									StartLine:            3,
+									HighlightStartOffset: 0,
+									HighlightEndOffset:   5,
+								},
+							},
+							{
+								// Enforcements without a message are skipped.
+								Result: policy.AllowResult,
+								Policy: policyObj,
+							},
+						},
+					},
+					hcl.Range{},
+				)
+				return results
+			},
+			want: &stacks.ProviderInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{
+					{
+						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						Result: stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					},
+				},
+				Infos: []*stacks.PolicyInfo{
+					{
+						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
+						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Message:       "provider policy allowed usage",
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+							EnforceIndex:     1,
+						},
+						PolicySnippet: &stacks.PolicySnippet{
+							Code:                 `key = attr.value == "foo"`,
+							Context:              snippetContext,
+							StartLine:            3,
+							HighlightStartOffset: 0,
+							HighlightEndOffset:   5,
+						},
+						PolicyRange: &terraform1.SourceRange{
+							SourceAddr: "policy_file.tfpolicy.hcl",
+							Start:      &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
+							End:        &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
+						},
+					},
+				},
+			},
+		},
+		"policy diagnostic with extra data": {
+			policyResults: func() *plans.PolicyResults {
+				results := plans.NewPolicyResults()
+				results.AddProvider(
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/testing"),
+					},
+					policy.EvaluationResponse{
+						Overall: policy.DenyResult,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
+							{
+								Severity: proto.Severity_ERROR,
+								Summary:  "policy error",
+								Detail:   "the provider is not allowed",
+								Result: &proto.DiagnosticResult{
+									Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								},
+								Subject: &proto.Range{
+									Filename: "policy_file.tfpolicy.hcl",
+									Start:    &proto.Position{Byte: 10, Line: 2, Column: 3},
+									End:      &proto.Position{Byte: 20, Line: 2, Column: 13},
+								},
+								Snippet: &proto.Snippet{
+									Context:              &snippetContext,
+									Code:                 `key = attr.value == "foo"`,
+									StartLine:            2,
+									HighlightStartOffset: 6,
+									HighlightEndOffset:   11,
+								},
+								ExpressionValues: []*proto.ExpressionValue{
+									{
+										Traversal: &proto.AttributePath{
+											Steps: []*proto.AttributePath_Step{
+												{
+													Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
+												},
+											},
+										},
+										Value: exprValueBytes,
+									},
+								},
+							},
+						}, policyObj),
+					},
+					hcl.Range{},
+				)
+				return results
+			},
+			want: &stacks.ProviderInstancePolicyEvaluation{
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "policy error",
+							Detail:   "the provider is not allowed",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						PolicySnippet: &stacks.PolicySnippet{
+							Context:              snippetContext,
+							Code:                 `key = attr.value == "foo"`,
+							StartLine:            2,
+							HighlightStartOffset: 6,
+							HighlightEndOffset:   11,
+						},
+						PolicyRange: &terraform1.SourceRange{
+							SourceAddr: "policy_file.tfpolicy.hcl",
+							Start:      &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
+							End:        &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
+						},
+						ExpressionValues: []*stacks.ExpressionValue{
+							{
+								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Value:     exprValueBytes,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			want := tc.want
+			want.Addr = &stacks.ProviderInstanceInStackAddr{
+				ProviderAddr:         stackaddrs.ConfigProviderConfigForAbsInstance(providerInstanceAddr).String(),
+				ProviderInstanceAddr: providerInstanceAddr.String(),
+			}
+
+			got := providerInstancePolicyEvaluationProto(providerInstanceAddr, tc.policyResults())
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)

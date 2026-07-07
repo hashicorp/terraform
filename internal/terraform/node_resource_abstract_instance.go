@@ -428,9 +428,11 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return nil, deferred, diags
 	}
 
-	// If we are in a context where we forget instead of destroying, we can
-	// just return the forget change without consulting the provider.
-	if ctx.Forget() {
+	// If we have a destroy=false lifecycle rule or are in a context where we
+	// forget instead of destroying, we can just return the forget change
+	// without consulting the provider.
+	forget := resourceLifecycleForget(n.Config)
+	if ctx.Forget() || forget {
 		forget, diags := n.planForget(ctx, currentState, deposedKey)
 		return forget, deferred, diags
 	}
@@ -1319,10 +1321,14 @@ func (n *NodeAbstractResourceInstance) plan(
 	// If our prior value was tainted then we actually want this to appear
 	// as a replace change, even though so far we've been treating it as a
 	// create.
+	forget := resourceLifecycleForget(n.Config)
 	if action == plans.Create && !priorValTainted.IsNull() {
-		if createBeforeDestroy {
+		switch {
+		case forget:
+			action = plans.CreateThenForget
+		case createBeforeDestroy:
 			action = plans.CreateThenDelete
-		} else {
+		default:
 			action = plans.DeleteThenCreate
 		}
 		priorVal = priorValTainted
@@ -3441,4 +3447,13 @@ func (n *NodeAbstractResourceInstance) evalApplyActionCondition(ctx EvalContext,
 	}
 
 	return cond.True(), diags
+}
+
+func resourceLifecycleForget(config *configs.Resource) bool {
+	if config != nil && config.Managed != nil {
+		if config.Managed.DestroySet && !config.Managed.Destroy {
+			return true
+		}
+	}
+	return false
 }

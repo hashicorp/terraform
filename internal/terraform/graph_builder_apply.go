@@ -162,10 +162,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
 		&DiffTransformer{
-			Concrete: concreteResourceInstance,
-			State:    b.State,
-			Changes:  b.Changes,
-			Config:   b.Config,
+			Concrete:     concreteResourceInstance,
+			State:        b.State,
+			Changes:      b.Changes,
+			Config:       b.Config,
+			PolicyClient: b.PolicyClient,
 		},
 
 		&ActionDiffTransformer{

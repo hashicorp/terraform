@@ -54,19 +54,9 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
-	var policyOperation proto.Operation
-	switch action := n.Action; action {
-	case plans.Create:
-		policyOperation = proto.Operation_CREATE
-	case plans.Delete:
-		policyOperation = proto.Operation_DELETE
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
-		policyOperation = proto.Operation_UPDATE
-	default:
-		log.Printf("[DEBUG] Unsupported plan action %q, skipping policy evaluation", action)
+	policyOperation, ok := policyOperationForAction(n.Action)
+	if !ok {
+		log.Printf("[DEBUG] Unsupported plan action for policies %q, skipping policy evaluation", n.Action)
 		return nil
 	}
 
@@ -76,35 +66,48 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
-	providerRef := ProviderRef{
-		Addr:     providerAddr,
-		Resolved: true,
-	}
-
 	// the module config may be nil if the module call has been removed from the configuration
 	// in this case, we are fine with a nil resource config, as that would only mean
-	// that we do not have the terraform config's source information in the diagnostics
-	// and neither do we have provider meta information to include in the policy request.
+	// that we do not have the terraform config's source information in the diagnostics.
 	var resourceConfig *configs.Resource
-	var metaVal cty.Value
 	if modCfg != nil {
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-		var metaDiags tfdiags.Diagnostics
-		metaVal, metaDiags = providerRef.getProviderMeta(ctx, n.ResourceAddr.Resource, modCfg.Module.ProviderMetas)
-		diags = diags.Append(metaDiags)
-		if diags.HasErrors() {
-			return diags
-		}
 	}
 
 	callbacks := callback.Functions{
 		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema, metaVal),
+		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
-	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
+	if !result.Empty() {
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			eval := plans.PolicyEvaluation{EvaluationResponse: result}
+			if resourceConfig != nil {
+				eval.ConfigDeclRange = resourceConfig.DeclRange
+			}
+			return h.PolicyResult(n.ResourceAddr.String(), eval)
+		})
+	}
 	return diags
+}
+
+func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
+	switch action {
+	case plans.Create:
+		return proto.Operation_CREATE, true
+	case plans.Delete:
+		return proto.Operation_DELETE, true
+	case plans.NoOp:
+		return proto.Operation_NO_OP, true
+	case plans.Update,
+		plans.DeleteThenCreate,
+		plans.CreateThenDelete,
+		plans.CreateThenForget:
+		return proto.Operation_UPDATE, true
+	default:
+		return 0, false
+	}
 }
 
 // policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.

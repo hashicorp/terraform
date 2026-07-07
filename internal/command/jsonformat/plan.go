@@ -246,7 +246,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
 		buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.",
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]+counts[plans.CreateThenForget],
 			counts[plans.Update],
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]),
 		)

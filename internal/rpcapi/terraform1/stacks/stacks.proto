@@ -271,7 +271,10 @@ message PlanStackChanges {
       StackChangeProgress progress = 10;
       
       // Resources and modules evaluate policies for each component instance
-      PolicyEvaluationResponse component_instance_policy_evaluation = 11;
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 11;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -348,7 +351,10 @@ message ApplyStackChanges {
       StackChangeProgress progress = 3;
 
       // Resources and modules evaluate policies for each component instance
-      PolicyEvaluationResponse component_instance_policy_evaluation = 4;
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 4;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
     }
   }
 }
@@ -421,6 +427,14 @@ message AttributePath {
     }
   }
   repeated Step steps = 1;
+}
+
+// Represents the address of a specific provider instance within a stack.
+message ProviderInstanceInStackAddr {
+  // The address of the static provider config that this is an instance of.
+  string provider_addr = 1;
+  // The address of the provider instance config.
+  string provider_instance_addr = 2;
 }
 
 // Represents the address of a specific component instance within a stack.
@@ -1094,10 +1108,15 @@ message ListResourceIdentities {
   }
 }
 
-message PolicyEvaluationResponse {
-  // Policies are only evaluated for component instances
+message ComponentInstancePolicyEvaluation {
   ComponentInstanceInStackAddr addr = 1;
-  
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message ProviderInstancePolicyEvaluation {
+  ProviderInstanceInStackAddr addr = 1;
   repeated PolicyResult results = 2;
   repeated PolicyInfo infos = 3;
   repeated PolicyDiagnostic diagnostics = 4;

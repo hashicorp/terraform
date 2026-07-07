@@ -174,6 +174,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		PolicyClient:               c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
@@ -311,12 +312,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			// If a policy client is initialized, we only want to evaluate during
-			// normal plans (i.e. no evaluating policies for refresh or destroy plans)
-			if c.mode == plans.NormalMode {
-				opts.PolicyClient = c.main.PolicyClient()
-			}
-
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
@@ -362,14 +357,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			}, c)
 
 			if plan != nil {
-				// Report policy results if we have any
-				if plan.PolicyResults.Len() > 0 {
-					hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
-						Addr:          c.Addr(),
-						PolicyResults: plan.PolicyResults,
-					})
-				}
-
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {
 					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())

@@ -160,7 +160,29 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 	}, nil
 }
 
-func componentInstancePolicyEvaluationProto(componentAddr stackaddrs.AbsComponentInstance, policyResults *plans.PolicyResults) *stacks.PolicyEvaluationResponse {
+func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string]plans.PolicyEvaluation) *stacks.ComponentInstancePolicyEvaluation {
+	results := make([]*stacks.PolicyResult, 0)
+	infos := make([]*stacks.PolicyInfo, 0)
+	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
+
+	for addr, result := range policyResults {
+		results = append(results, policyResultsToProto(addr, result.EvaluationResponse.Policies)...)
+		infos = append(infos, policyInfosToProto(addr, result.EvaluationResponse.Enforcements)...)
+		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.EvaluationResponse.Diagnostics)...)
+	}
+
+	return &stacks.ComponentInstancePolicyEvaluation{
+		Addr: &stacks.ComponentInstanceInStackAddr{
+			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(componentInstanceAddr).String(),
+			ComponentInstanceAddr: componentInstanceAddr.String(),
+		},
+		Results:     results,
+		Infos:       infos,
+		Diagnostics: policyDiags,
+	}
+}
+
+func providerInstancePolicyEvaluationProto(providerInstanceAddr stackaddrs.AbsProviderConfigInstance, policyResults *plans.PolicyResults) *stacks.ProviderInstancePolicyEvaluation {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
@@ -171,10 +193,10 @@ func componentInstancePolicyEvaluationProto(componentAddr stackaddrs.AbsComponen
 		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.EvaluationResponse.Diagnostics)...)
 	}
 
-	return &stacks.PolicyEvaluationResponse{
-		Addr: &stacks.ComponentInstanceInStackAddr{
-			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(componentAddr).String(),
-			ComponentInstanceAddr: componentAddr.String(),
+	return &stacks.ProviderInstancePolicyEvaluation{
+		Addr: &stacks.ProviderInstanceInStackAddr{
+			ProviderAddr:         stackaddrs.ConfigProviderConfigForAbsInstance(providerInstanceAddr).String(),
+			ProviderInstanceAddr: providerInstanceAddr.String(),
 		},
 		Results:     results,
 		Infos:       infos,
