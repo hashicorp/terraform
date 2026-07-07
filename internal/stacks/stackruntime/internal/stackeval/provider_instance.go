@@ -303,12 +303,11 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					// policy source and the object being enforced.
 					rng := decl.DeclRange.ToHCL()
 					if !rng.Empty() {
-						ptr := rng.Ptr()
-						result = result.WithLocalRange(ptr)
+						result = result.WithLocalRange(rng.Ptr())
 					}
 					h := hooksFromContext(ctx)
 					// Report policy results if we have any
-					hookSingle(ctx, h.ReportProviderInstancePolicyResults, &hooks.ProviderInstancePolicyResults{
+					hookSingle(ctx, h.ReportProviderInstancePolicyResult, &hooks.ProviderInstancePolicyResults{
 						Addr:         p.addr,
 						ProviderAddr: providerConfigAddr.String(),
 						Result:       result,

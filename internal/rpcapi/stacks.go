@@ -1121,7 +1121,10 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		mainStackSource,
 	)
 
-	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+	changeHooks.ReportProviderInstancePolicyResult = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.Result.Empty() {
+			return
+		}
 		evts.Send(&stacks.PlanStackChanges_Event{
 			Event: &stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation{
 				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h),
@@ -1144,7 +1147,10 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		mainStackSource,
 	)
 
-	changeHooks.ReportProviderInstancePolicyResults = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+	changeHooks.ReportProviderInstancePolicyResult = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.Result.Empty() {
+			return
+		}
 		evts.Send(&stacks.ApplyStackChanges_Event{
 			Event: &stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation{
 				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h),

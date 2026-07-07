@@ -7635,7 +7635,7 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 
 			return a
 		},
-		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
+		ReportProviderInstancePolicyResult: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
 			gotPolicyResults[data.Addr.String()] = map[string]policy.EvaluationResponse{

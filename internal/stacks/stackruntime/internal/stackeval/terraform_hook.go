@@ -282,11 +282,13 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 }
 
 func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
-	hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
-		ComponentAddr: h.addr,
-		ResourceAddr:  addr,
-		Result:        resp,
-	})
+	if !resp.Empty() {
+		hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
+			ComponentAddr: h.addr,
+			ResourceAddr:  addr,
+			Result:        resp,
+		})
+	}
 	return terraform.HookActionContinue, nil
 }
 
