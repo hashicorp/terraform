@@ -23,11 +23,16 @@ import (
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	httpBackend "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -124,20 +129,19 @@ func TestInit_only_test_files(t *testing.T) {
 	}
 }
 
-func TestInit_two_step_provider_download(t *testing.T) {
+func TestInit_two_source_provider_download(t *testing.T) {
 	cases := map[string]struct {
 		workDirPath          string
 		flags                []string
 		expectedDownloadMsgs []string
 	}{
 		"providers required by only the state file": {
-			// TODO - should the output indicate that no providers were found in config?
 			workDirPath: "init-provider-download/state-file-only",
 			expectedDownloadMsgs: []string{
 				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
-				`Initializing provider plugins found in the configuration...
-				Initializing the backend...`, // No providers found in the configuration so next output is backend-related
-				`Initializing provider plugins found in the state...
+				`Initializing the backend...
+				Successfully configured the backend "local"!`, // No providers found in the configuration so next output is backend-related
+				`Initializing provider plugins...
 				- Finding latest version of hashicorp/random...
 				- Installing hashicorp/random v9.9.9...`, // The latest version is expected, as state has no version constraints
 			},
@@ -146,89 +150,63 @@ func TestInit_two_step_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download/config-and-state-different-providers",
 			expectedDownloadMsgs: []string{
 				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
-
-				// Config - this provider is affected by a version constraint
-				`Initializing provider plugins found in the configuration...
-				- Finding hashicorp/null versions matching "< 9.0.0"...
-				- Installing hashicorp/null v1.0.0...
+				"Initializing provider plugins...",
+				// Config - null provider is affected by a version constraint
+				`- Finding hashicorp/null versions matching "< 9.0.0"...`,
+				`- Installing hashicorp/null v1.0.0...
 				- Installed hashicorp/null v1.0.0`,
-
-				// State - the latest version of this provider is expected, as state has no version constraints
-				`Initializing provider plugins found in the state...
-				- Finding latest version of hashicorp/random...
-				- Installing hashicorp/random v9.9.9...`,
+				// State - the latest version of random provider is expected, as state has no version constraints
+				`- Finding latest version of hashicorp/random...`,
+				`- Installing hashicorp/random v9.9.9...
+				- Installed hashicorp/random v9.9.9`,
 			},
 		},
 		"does not re-download providers that are present in both config and state": {
 			workDirPath: "init-provider-download/config-and-state-same-providers",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "< 9.0.0"...
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		"reuses providers already represented in a dependency lock file": {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		"using the -upgrade flag causes provider download to ignore the lock file": {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			flags:       []string{"-upgrade"},
 			expectedDownloadMsgs: []string{
-				// Config - lock file is not mentioned due to the -upgrade flag
-				`Initializing provider plugins found in the configuration...
+				// lock file is not mentioned due to the -upgrade flag
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "< 9.0.0"...
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
-				// State - reuses the provider download from the config
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.0.0`,
 			},
 		},
 		// Same as some tests above, but now the version constraint in config specifies a pre-release
 		"pre-release not re-downloaded if present in both config and state": {
 			workDirPath: "init-provider-download-prerelease/config-and-state-same-providers",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Finding hashicorp/random versions matching "1.2.3-beta"...
 				- Installing hashicorp/random v1.2.3-beta...
-				- Installed hashicorp/random v1.2.3-beta`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.2.3-beta`,
+				- Installed hashicorp/random v1.2.3-beta (verified checksum)`,
 			},
 		},
 		"reuses pre-release provider already represented in a dependency lock file": {
 			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
-				// Config
-				`Initializing provider plugins found in the configuration...
+				`Initializing provider plugins...
 				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.2.3-beta...
 				- Installed hashicorp/random v1.2.3-beta`,
-				// State
-				`Initializing provider plugins found in the state...
-				- Reusing previous version of hashicorp/random
-				- Using previously-installed hashicorp/random v1.2.3-beta`,
 			},
 		},
 	}
@@ -263,10 +241,76 @@ func TestInit_two_step_provider_download(t *testing.T) {
 				t.Fatalf("bad: \n%s", done(t).All())
 			}
 
-			actual := cleanString(done(t).All())
+			actual := done(t).All()
 			for _, downloadMsg := range tc.expectedDownloadMsgs {
 				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
-					t.Fatalf("expected output to contain %q\n, got %q", cleanString(downloadMsg), cleanString(actual))
+					t.Fatalf("expected output to contain %q\n, got:\n%s", cleanString(downloadMsg), actual)
+				}
+			}
+		})
+	}
+}
+
+func TestInit_stateStoreProviderDownload(t *testing.T) {
+	cases := map[string]struct {
+		workDirPath          string
+		flags                []string
+		expectedDownloadMsgs []string
+	}{
+		"does not re-download the provider used for PSS in the second provider download step": {
+			workDirPath: "init-provider-download/state-store-config-only",
+			flags:       []string{"-enable-pluggable-state-storage-experiment"},
+			expectedDownloadMsgs: []string{
+				`Initializing provider plugin for the state store...
+				- Finding latest version of hashicorp/test...
+				- Installing hashicorp/test v1.2.3...
+				- Installed hashicorp/test v1.2.3`,
+				`Initializing the state store...`,
+				`Initializing provider plugins...
+				- Reusing previous version of hashicorp/test from the dependency lock file
+				- Using previously-installed hashicorp/test v1.2.3`,
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// Create a temporary working directory no tf configuration but has state
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.workDirPath), td)
+			os.MkdirAll(td, 0755)
+			t.Chdir(td)
+
+			// A provider source containing the random and null providers
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
+				"hashicorp/test":   {"1.2.3"},
+			})
+			t.Cleanup(close)
+
+			mockProvider := mockPluggableStateStorageProvider()
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides:          metaOverridesForProvider(mockProvider),
+					Ui:                        ui,
+					View:                      view,
+					ProviderSource:            providerSource,
+					AllowExperimentalFeatures: true,
+				},
+			}
+
+			if code := c.Run(tc.flags); code != 0 {
+				t.Fatalf("bad: \n%s", done(t).All())
+			}
+
+			actual := done(t).All()
+			for _, downloadMsg := range tc.expectedDownloadMsgs {
+				if !strings.Contains(cleanString(actual), cleanString(downloadMsg)) {
+					t.Fatalf("expected output to contain %q\n, got:\n%s", cleanString(downloadMsg), actual)
 				}
 			}
 		})
@@ -4536,76 +4580,6 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 	})
 }
 
-// Testing init's behaviors with `state_store` when the provider used for state storage in a previous init
-// command is updated.
-//
-// TODO: Add a test case showing that downgrading provider version is ok as long as the schema version hasn't
-// changed. We should also have a test demonstrating that downgrades when the schema version HAS changed will fail.
-func TestInit_stateStore_providerUpgrade(t *testing.T) {
-	t.Run("handling upgrading the provider used for state storage", func(t *testing.T) {
-		// Create a temporary working directory with state store configuration
-		// that doesn't match the backend state file
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-changed/provider-upgraded"), td)
-		t.Chdir(td)
-
-		mockProvider := mockPluggableStateStorageProvider()
-		// The previous init implied by this test scenario would have created the default workspace.
-		mockProvider.MockStates = map[string]any{
-			backend.DefaultStateName: []byte(`{"version":4,"terraform_version":"1.15.0","serial":1,"lineage":"91adaece-23b3-7bce-0695-5aea537d2fef","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
-		}
-		mockProviderAddress := addrs.NewDefaultProvider("test")
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"hashicorp/test": {"1.2.3", "9.9.9"}, // 1.2.3 is the version used in the backend state file, 9.9.9 is the version being upgraded to
-		})
-		defer close()
-
-		ui := new(cli.MockUi)
-		view, done := testView(t)
-		meta := Meta{
-			Ui:                        ui,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
-				},
-			},
-			ProviderSource: providerSource,
-		}
-		c := &InitCommand{
-			Meta: meta,
-		}
-
-		args := []string{
-			"-enable-pluggable-state-storage-experiment=true",
-			"-migrate-state=true",
-			"-upgrade",
-		}
-		code := c.Run(args)
-		testOutput := done(t)
-		if code != 0 {
-			t.Fatalf("expected 0 exit code, got %d, output: \n%s", code, testOutput.All())
-		}
-
-		// Check output
-		output := testOutput.All()
-		expectedMsg := "Terraform has been successfully initialized!"
-		if !strings.Contains(output, expectedMsg) {
-			t.Fatalf("expected output to include %q, but got':\n %s", expectedMsg, output)
-		}
-		expectedReason := "State store provider \"test\" (hashicorp/test) version changed from 1.2.3 to 9.9.9"
-		if !strings.Contains(output, expectedReason) {
-			t.Fatalf("expected output to include reason %q, but got':\n %s", expectedReason, output)
-		}
-
-		// check state remains accessible after migration
-		if _, exists := mockProvider.MockStates[backend.DefaultStateName]; !exists {
-			t.Fatal("expected the default workspace to exist after migration, but it is missing")
-		}
-	})
-}
-
 // Test a scenario where the configuration changes but the -backend-config CLI flags compensate for those changes
 // to result in the state store being configured in the same way. In this scenario the user isn't prompted to migrate
 // state but the backend state file is updated with a new hash to reflect the new configuration's values.
@@ -6526,4 +6500,137 @@ func mockPluggableStateStorageProvider() *testing_provider.MockProvider {
 		}
 	}
 	return &mock
+}
+
+// If provider installation runs first, discovery of a provider sourced from an aliased hostname
+// happens before the alias exists, so it resolves the real hostname (returning
+// HTML rather than a discovery document). For the case of "localterraform.com" it'll fail with:
+//
+//	discovery URL returned an unsupported Content-Type "text/html"
+//
+// This test asserts the ordering invariant. At the moment provider discovery happens for a provider
+// sourced from the aliased hostname, the backend-registered alias must already be present on the shared
+// service-discovery object.
+func TestInit_backendAliasesRegisteredBeforeProviderDiscovery(t *testing.T) {
+	aliasHost, err := svchost.ForComparison("localterraform.com")
+	if err != nil {
+		t.Fatalf("invalid alias hostname: %s", err)
+	}
+	targetHost, err := svchost.ForComparison("app.terraform.io")
+	if err != nil {
+		t.Fatalf("invalid target hostname: %s", err)
+	}
+
+	// The shared service-discovery object is given credentials for the alias target
+	// If the backend registers the alias before provider discovery
+	// (the correct ordering), a credentials lookup for the alias hostname resolves
+	// to the target and returns these credentials. If the alias is missing,
+	// the lookup for the alias hostname returns no credentials.
+	const sentinelToken = "sentinel-token"
+	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]any{
+		targetHost: {"token": sentinelToken},
+	})
+	services := disco.NewWithCredentialsSource(credsSrc)
+
+	const backendType = "alias"
+	previousBackend := backendInit.Backend(backendType)
+	backendInit.Set(backendType, func() backend.Backend {
+		return &aliasRegisteringBackend{
+			Local: backendLocal.New(),
+			alias: backendrun.HostAlias{From: aliasHost, To: targetHost},
+		}
+	})
+	t.Cleanup(func() { backendInit.Set(backendType, previousBackend) })
+
+	// Configuration using the alias-registering backend and requiring a provider
+	// sourced from the aliased hostname.
+	td := t.TempDir()
+	cfg := `terraform {
+  backend "alias" {}
+  required_providers {
+    foo = {
+      source = "localterraform.com/foo/bar"
+    }
+  }
+}
+`
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Chdir(td)
+
+	watchedProvider := addrs.MustParseProviderSourceString("localterraform.com/foo/bar")
+	baseSource, close := newMockProviderSource(t, map[string][]string{
+		"localterraform.com/foo/bar": {"1.0.0"},
+	})
+	defer close()
+	providerSource := &aliasAssertingProviderSource{
+		Source:    baseSource,
+		t:         t,
+		services:  services,
+		watch:     watchedProvider,
+		aliasHost: aliasHost,
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Services:         services,
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	code := c.Run(nil)
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful init, got exit %d:\n%s", code, testOutput.All())
+	}
+
+	if !providerSource.checked {
+		t.Fatalf("provider discovery for %s never happened; test did not exercise the ordering invariant", watchedProvider)
+	}
+}
+
+// aliasRegisteringBackend is a backend that advertises a
+// service-discovery alias during init, like the cloud/remote backends do.
+type aliasRegisteringBackend struct {
+	*backendLocal.Local
+	alias backendrun.HostAlias
+}
+
+func (b *aliasRegisteringBackend) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
+	return []backendrun.HostAlias{b.alias}, nil
+}
+
+// aliasAssertingProviderSource wraps a provider Source and, the first time it is
+// asked for the versions of a watched provider, asserts that a backend-registered
+// service-discovery alias for that provider's hostname is already resolvable on
+// the shared service-discovery object.
+type aliasAssertingProviderSource struct {
+	getproviders.Source
+
+	t         *testing.T
+	services  *disco.Disco
+	watch     addrs.Provider
+	aliasHost svchost.Hostname
+	checked   bool
+}
+
+func (s *aliasAssertingProviderSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (getproviders.VersionList, getproviders.Warnings, error) {
+	if provider == s.watch && !s.checked {
+		s.checked = true
+		creds, err := s.services.CredentialsForHost(s.aliasHost)
+		if err != nil {
+			s.t.Errorf("unexpected error resolving credentials for %q: %s", s.aliasHost, err)
+		}
+		if creds == nil {
+			s.t.Errorf("backend service-discovery alias for %q was not registered before provider discovery; "+
+				"providers must be installed after backend initialization (regression of #38227, fixed by #38648)", s.aliasHost)
+		}
+	}
+	return s.Source.AvailableVersions(ctx, provider)
 }

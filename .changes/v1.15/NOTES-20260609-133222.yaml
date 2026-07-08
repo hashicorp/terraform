@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'command/init: Provider installation was changed to enable future enhancements in the area. This partially reverses the init event order changes from v1.15; module installation will now occur after the backend is initialized. The change should not have any significant end-user impact aside from the command output.'
+time: 2026-06-09T13:32:22.033462+01:00
+custom:
+    Issue: "38838"
