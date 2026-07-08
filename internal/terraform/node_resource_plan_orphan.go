@@ -89,7 +89,7 @@ func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Refer
 }
 
 func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
-	return n.destroyActionReferences()
+	return n.destroyActionPlanReferences()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
@@ -140,6 +140,12 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 	for _, fm := range n.forgetModules {
 		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		if n.Config.Managed.DestroySet && !n.Config.Managed.Destroy {
 			forget = true
 		}
 	}

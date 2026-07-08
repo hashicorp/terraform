@@ -66,9 +66,8 @@ type ContextGraphWalker struct {
 
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
-	PolicyClient  policy.Client
-	PolicyResults *plans.PolicyResults // Used to store policy evaluation results
-	PolicyGraph   *policySubgraph      // Used for writing resource policy evaluation nodes
+	PolicyClient policy.Client
+	PolicyGraph  *policySubgraph // Used for writing resource policy evaluation nodes
 
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex
@@ -83,6 +82,14 @@ type ContextGraphWalker struct {
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
+
+// scopeEvalContextExists checks if the given scope has an associated eval context
+func (w *ContextGraphWalker) scopeEvalContextExists(scope evalContextScope) bool {
+	w.contextLock.Lock()
+	defer w.contextLock.Unlock()
+
+	return w.contexts.HasKey(scope)
+}
 
 // enterScope provides an EvalContext associated with the given scope.
 func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
@@ -152,7 +159,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		forget:                  w.Forget,
 		ProviderLocksValue:      w.ProviderLocks,
 		PolicyClientValue:       w.PolicyClient,
-		PolicyResultsValue:      w.PolicyResults,
 		DeprecationsValue:       w.Deprecations,
 	}
 

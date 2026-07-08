@@ -577,8 +577,6 @@ type ActionInvocationInstanceSrc struct {
 	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
-
-	Caller addrs.Referenceable
 }
 
 // Decode unmarshals the raw representation of actions.

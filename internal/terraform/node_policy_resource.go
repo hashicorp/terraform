@@ -54,19 +54,9 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
-	var policyOperation proto.Operation
-	switch action := n.Action; action {
-	case plans.Create:
-		policyOperation = proto.Operation_CREATE
-	case plans.Delete:
-		policyOperation = proto.Operation_DELETE
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
-		policyOperation = proto.Operation_UPDATE
-	default:
-		log.Printf("[DEBUG] Unsupported plan action %q, skipping policy evaluation", action)
+	policyOperation, ok := policyOperationForAction(n.Action)
+	if !ok {
+		log.Printf("[DEBUG] Unsupported plan action for policies %q, skipping policy evaluation", n.Action)
 		return nil
 	}
 
@@ -90,8 +80,34 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
-	ctx.PolicyResults().AddResource(n.ResourceAddr, result, resourceConfig)
+	if resourceConfig != nil {
+		result = result.WithLocalRange(resourceConfig.DeclRange.Ptr())
+	}
+	if !result.Empty() {
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.ResourceAddr.String(), result)
+		})
+		diags = diags.Append(hookErr)
+	}
 	return diags
+}
+
+func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
+	switch action {
+	case plans.Create:
+		return proto.Operation_CREATE, true
+	case plans.Delete:
+		return proto.Operation_DELETE, true
+	case plans.NoOp:
+		return proto.Operation_NO_OP, true
+	case plans.Update,
+		plans.DeleteThenCreate,
+		plans.CreateThenDelete,
+		plans.CreateThenForget:
+		return proto.Operation_UPDATE, true
+	default:
+		return 0, false
+	}
 }
 
 // policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.

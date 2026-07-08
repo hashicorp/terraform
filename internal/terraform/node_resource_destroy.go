@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -90,7 +89,7 @@ func (n *NodeDestroyResourceInstance) ReferenceableAddrs() []addrs.Referenceable
 func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	// destroyers don't reference, except when we need destroy actions to be
 	// reevaluated.
-	return n.destroyActionReferences()
+	return n.destroyActionPlanReferences()
 }
 
 // GraphNodeExecutable
@@ -182,21 +181,8 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		return diags.Append(err)
 	}
 
-	if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
-		after := cty.NilVal
-		if state != nil {
-			after = state.Value
-		}
-		// The resource has been destroyed, so we add a policy node to send its data
-		// for policy evaluation.
-		policyGraph.Add(&nodeResourcePolicy{
-			ResourceAddr: changeApply.Addr,
-			ProviderAddr: changeApply.ProviderAddr,
-			Before:       changeApply.Before,
-			After:        after,
-			Action:       changeApply.Action,
-		})
-	}
+	// add a policy node to send the resource data for policy evaluation
+	n.addPolicyNode(ctx, changeApply, state)
 
 	// after destroy we continue to use the before value, since there is no after
 	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))

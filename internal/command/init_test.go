@@ -24,11 +24,16 @@ import (
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	httpBackend "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -8354,4 +8359,136 @@ func assertLockfileContents(t *testing.T, path string, expected string) {
 	if diff := cmp.Diff(want, string(got)); diff != "" {
 		t.Errorf("unexpected difference in lock file (%q) content: %s", path, diff)
 	}
+}
+
+// If provider installation runs first, discovery of a provider sourced from an aliased hostname
+// happens before the alias exists, so it resolves the real hostname (returning
+// HTML rather than a discovery document). For the case of "localterraform.com" it'll fail with:
+//
+//	discovery URL returned an unsupported Content-Type "text/html"
+//
+// This test asserts the ordering invariant. At the moment provider discovery happens for a provider
+// sourced from the aliased hostname, the backend-registered alias must already be present on the shared
+// service-discovery object.
+func TestInit_backendAliasesRegisteredBeforeProviderDiscovery(t *testing.T) {
+	aliasHost, err := svchost.ForComparison("localterraform.com")
+	if err != nil {
+		t.Fatalf("invalid alias hostname: %s", err)
+	}
+	targetHost, err := svchost.ForComparison("app.terraform.io")
+	if err != nil {
+		t.Fatalf("invalid target hostname: %s", err)
+	}
+
+	// The shared service-discovery object is given credentials for the alias target
+	// If the backend registers the alias before provider discovery
+	// (the correct ordering), a credentials lookup for the alias hostname resolves
+	// to the target and returns these credentials. If the alias is missing,
+	// the lookup for the alias hostname returns no credentials.
+	const sentinelToken = "sentinel-token"
+	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]any{
+		targetHost: {"token": sentinelToken},
+	})
+	services := disco.NewWithCredentialsSource(credsSrc)
+
+	const backendType = "alias"
+	previousBackend := backendInit.Backend(backendType)
+	backendInit.Set(backendType, func() backend.Backend {
+		return &aliasRegisteringBackend{
+			Local: backendLocal.New(),
+			alias: backendrun.HostAlias{From: aliasHost, To: targetHost},
+		}
+	})
+	t.Cleanup(func() { backendInit.Set(backendType, previousBackend) })
+
+	// Configuration using the alias-registering backend and requiring a provider
+	// sourced from the aliased hostname.
+	td := t.TempDir()
+	cfg := `terraform {
+  backend "alias" {}
+  required_providers {
+    foo = {
+      source = "localterraform.com/foo/bar"
+    }
+  }
+}
+`
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Chdir(td)
+
+	watchedProvider := addrs.MustParseProviderSourceString("localterraform.com/foo/bar")
+	baseSource := newMockProviderSource(t, map[string][]string{
+		"localterraform.com/foo/bar": {"1.0.0"},
+	})
+	providerSource := &aliasAssertingProviderSource{
+		Source:    baseSource,
+		t:         t,
+		services:  services,
+		watch:     watchedProvider,
+		aliasHost: aliasHost,
+	}
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Services:         services,
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	code := c.Run(nil)
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful init, got exit %d:\n%s", code, testOutput.All())
+	}
+
+	if !providerSource.checked {
+		t.Fatalf("provider discovery for %s never happened; test did not exercise the ordering invariant", watchedProvider)
+	}
+}
+
+// aliasRegisteringBackend is a backend that advertises a
+// service-discovery alias during init, like the cloud/remote backends do.
+type aliasRegisteringBackend struct {
+	*backendLocal.Local
+	alias backendrun.HostAlias
+}
+
+func (b *aliasRegisteringBackend) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
+	return []backendrun.HostAlias{b.alias}, nil
+}
+
+// aliasAssertingProviderSource wraps a provider Source and, the first time it is
+// asked for the versions of a watched provider, asserts that a backend-registered
+// service-discovery alias for that provider's hostname is already resolvable on
+// the shared service-discovery object.
+type aliasAssertingProviderSource struct {
+	getproviders.Source
+
+	t         *testing.T
+	services  *disco.Disco
+	watch     addrs.Provider
+	aliasHost svchost.Hostname
+	checked   bool
+}
+
+func (s *aliasAssertingProviderSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (getproviders.VersionList, getproviders.Warnings, error) {
+	if provider == s.watch && !s.checked {
+		s.checked = true
+		creds, err := s.services.CredentialsForHost(s.aliasHost)
+		if err != nil {
+			s.t.Errorf("unexpected error resolving credentials for %q: %s", s.aliasHost, err)
+		}
+		if creds == nil {
+			s.t.Errorf("backend service-discovery alias for %q was not registered before provider discovery; "+
+				"providers must be installed after backend initialization (regression of #38227, fixed by #38648)", s.aliasHost)
+		}
+	}
+	return s.Source.AvailableVersions(ctx, provider)
 }

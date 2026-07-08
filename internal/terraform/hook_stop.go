@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -122,6 +123,10 @@ func (h *stopHook) ProgressAction(id HookActionIdentity, progress string) (HookA
 }
 
 func (h *stopHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	return h.hook()
 }
 

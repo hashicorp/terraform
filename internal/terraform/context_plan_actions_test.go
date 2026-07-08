@@ -1012,7 +1012,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   `The given key ["c"] does not identify an instance of action.test_action.hello`,
+						Detail:   `The address action.test_action.hello["c"] does not identify an instance of action.test_action.hello`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
@@ -1047,7 +1047,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
+						Detail:   "The address action.test_action.hello[2] does not identify an instance of action.test_action.hello",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
@@ -1603,7 +1603,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"destroy condition must be known": {
+			"destroy cannot use condition": {
 				module: map[string]string{
 					"main.tf": `
 resource "test_object" "new" {
@@ -1655,8 +1655,8 @@ resource "test_object" "a" {
 				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Unknown action trigger condition",
-						Detail:   "Condition expression must be known to plan a destroy action.",
+						Summary:  "Condition on destroy action",
+						Detail:   "Condition expression may not be used with a destroy action.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 14, Column: 19, Byte: 202},

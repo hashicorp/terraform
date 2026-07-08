@@ -221,6 +221,16 @@ func (r EvaluationResponse) Empty() bool {
 	return false
 }
 
+// WithLocalRange returns a copy of the response with the local range set to the given value.
+// This value typically comes from the range of the terraform object being evaluated.
+func (r EvaluationResponse) WithLocalRange(localRange *hcl.Range) EvaluationResponse {
+	r.Diagnostics = r.Diagnostics.WithLocalRange(localRange)
+	for idx := range r.Enforcements {
+		r.Enforcements[idx].LocalRange = localRange
+	}
+	return r
+}
+
 func ErrorEvalFromDiags(diags []*proto.Diagnostic) EvaluationResponse {
 	return EvaluationResponse{
 		Overall:     PolicyErrorResult,

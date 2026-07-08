@@ -43,13 +43,7 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
 	// for such errors.
 	if config != nil {
-		ptr := config.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(config.DeclRange.Ptr())
 	}
 
 	return result
@@ -152,10 +146,16 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 				return cty.NilVal, false, fmt.Errorf("failed to validate data source configuration: %s", err)
 			}
 
+			meta := cty.NilVal
+			if schema.ProviderMeta.Body != nil {
+				meta = cty.NullVal(schema.ProviderMeta.Body.ImpliedType())
+			}
+
 			readResp := provider.ReadDataSource(providers.ReadDataSourceRequest{
 				TypeName:           target,
 				Config:             configVal,
 				ClientCapabilities: ctx.ClientCapabilities(),
+				ProviderMeta:       meta,
 			})
 			if err := readResp.Diagnostics.Err(); err != nil {
 				return cty.NilVal, false, fmt.Errorf("failed to read data source: %s", err)

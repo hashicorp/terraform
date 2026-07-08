@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -18,10 +19,11 @@ import (
 // DiffTransformer is a GraphTransformer that adds graph nodes representing
 // each of the resource changes described in the given Changes object.
 type DiffTransformer struct {
-	Concrete ConcreteResourceInstanceNodeFunc
-	State    *states.State
-	Changes  *plans.ChangesSrc
-	Config   *configs.Config
+	Concrete     ConcreteResourceInstanceNodeFunc
+	State        *states.State
+	Changes      *plans.ChangesSrc
+	Config       *configs.Config
+	PolicyClient policy.Client
 }
 
 // return true if the given resource instance has either Preconditions or
@@ -100,13 +102,23 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// no reason to process conditions.
 			if dk == states.NotDeposed {
 				update = t.hasConfigConditions(addr)
+
+				// During apply we can also force a node for no-op managed resource changes so that
+				// policy evaluation can still run against unchanged objects.
+				if t.PolicyClient != nil && rc.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+					update = true
+				}
 			}
+
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			update = true
 			delete = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
+		case plans.CreateThenForget:
+			update = true
+			forget = true
 		case plans.Forget:
 			forget = true
 		default:

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -132,9 +131,8 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
 		policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Diagnostics: policy.Diagnostics{
@@ -153,10 +151,7 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 				},
 			},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -212,9 +207,8 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
 		policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Diagnostics: policy.Diagnostics{
@@ -225,10 +219,7 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 				),
 			},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	actual := done(t).All()
 	expected := "\nError: module policy denied\n\nmodule policy blocked installation\n"
@@ -245,9 +236,8 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	results := plans.NewPolicyResults()
-	results.AddModule(
-		addrs.RootModule.Child("example"),
+	newInit.PolicyResult(
+		addrs.RootModule.Child("example").String(),
 		policy.EvaluationResponse{
 			Overall: policy.AllowResult,
 			Enforcements: []policy.EnforcementResult{{
@@ -258,10 +248,7 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 				},
 			}},
 		},
-		nil,
 	)
-
-	newInit.PolicyResults(results, nil)
 
 	actual := done(t).Stdout()
 	if !strings.Contains(actual, "Policy Info:") {

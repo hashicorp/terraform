@@ -11,12 +11,11 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -73,9 +72,9 @@ func backendPolicyEntitlement(be backend.Backend) *policy.Entitlement {
 // policyModuleInstallHook enables policy evaluation during module installation.
 type policyModuleInstallHook struct {
 	initwd.ModuleInstallHookImpl
-	client        policy.Client
-	rootModule    *configs.Module
-	policyResults *plans.PolicyResults
+	client     policy.Client
+	rootModule *configs.Module
+	view       views.Init
 }
 
 // ModuleSourceResolved implements [initwd.ModuleInstallHook] and is called after a module source is resolved, and enables policy evaluation for the module before
@@ -106,15 +105,9 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 	}
 
 	if moduleCall != nil {
-		ptr := moduleCall.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(moduleCall.DeclRange.Ptr())
 	}
-	h.policyResults.AddModule(req.Path, result, moduleCall)
+	h.view.PolicyResult(req.Path.String(), result)
 
 	// Return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
@@ -137,9 +130,9 @@ var _ providercache.InstallerHook = &providerPolicyHook{}
 
 // providerPolicyHook enables policy evaluation during provider installation.
 type providerPolicyHook struct {
-	client        policy.Client
-	policyResults *plans.PolicyResults
-	rootModule    *configs.Module
+	client     policy.Client
+	rootModule *configs.Module
+	view       views.Init
 }
 
 // ProviderVersionSelected satisfies the [providers.InstallerHook] interface.
@@ -169,11 +162,12 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
 	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
-	var rng hcl.Range
 	if providerConfig != nil {
-		rng = providerConfig.DeclRange
+		// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
+		// policy source and the object being enforced.
+		result = result.WithLocalRange(providerConfig.DeclRange.Ptr())
 	}
-	p.policyResults.AddProvider(addr, result, rng)
+	p.view.PolicyResult(addr.String(), result)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	// Init uses diagnostics as the blocking signal because advisory policies
 	// may return deny without any error diagnostics.

@@ -240,13 +240,6 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	var newState *states.State
 
-	// Initialize policy results if we are evaluating policy
-	var policyResults *plans.PolicyResults
-	policyClient := main.PolicyClient()
-	if policyClient != nil {
-		policyResults = plans.NewPolicyResults()
-	}
-
 	if plan.Applyable {
 		// When our given context is cancelled, we want to instruct the
 		// modules runtime to stop the running operation. We use this
@@ -267,8 +260,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
-			PolicyClient:              policyClient,
-			PolicyResults:             policyResults,
+			PolicyClient:              main.PolicyClient(),
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -360,14 +352,6 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// must assume that the state is totally unchanged in that case.
 		newState = plan.PrevRunState
 		affectedResourceInstanceObjects = nil
-	}
-
-	// Report policy results if we have any
-	if policyResults.Len() > 0 {
-		hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
-			Addr:          inst.Addr(),
-			PolicyResults: policyResults,
-		})
 	}
 
 	return &ComponentInstanceApplyResult{

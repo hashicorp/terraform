@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"path"
 	"path/filepath"
 	"sort"
@@ -23,18 +22,15 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
-
 	"github.com/hashicorp/terraform/internal/addrs"
-
 	"github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -43,6 +39,7 @@ import (
 	default_testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -62,10 +59,6 @@ import (
 func TestPlan_valid(t *testing.T) {
 	for name, tc := range validConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
@@ -135,10 +128,6 @@ func TestPlan_valid(t *testing.T) {
 func TestPlan_invalid(t *testing.T) {
 	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
@@ -2471,12 +2460,10 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
-				mustAbsComponent("stack.sensitive.component.self"),
-			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			RequiredComponents:  collections.NewSet(mustAbsComponent("stack.sensitive.component.self")),
 			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"secret": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
@@ -2783,7 +2770,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item:  stackaddrs.Component{Name: "sensitive"},
@@ -2946,12 +2933,10 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
-				mustAbsComponent("stack.sensitive.component.self"),
-			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			RequiredComponents:  collections.NewSet(mustAbsComponent("stack.sensitive.component.self")),
 			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
@@ -3558,7 +3543,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  false,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item: stackaddrs.Component{
@@ -3815,7 +3800,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 			},
 			PlannedCheckResults: &states.CheckResults{},
 			PlanTimestamp:       fakePlanTimestamp,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				stackaddrs.AbsComponent{
 					Stack: stackaddrs.RootStackInstance,
 					Item: stackaddrs.Component{
@@ -4431,14 +4416,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr: mustAbsComponentInstance("component.self"),
-						Move: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr: mustAbsComponentInstance("component.self"),
+					Move: 1,
+				},
+			}),
 		},
 		"cross-type-moved": {
 			state: stackstate.NewStateBuilder().
@@ -4513,14 +4497,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr: mustAbsComponentInstance("component.self"),
-						Move: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr: mustAbsComponentInstance("component.self"),
+					Move: 1,
+				},
+			}),
 		},
 		"import": {
 			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
@@ -4604,14 +4587,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					RequiredOnApply: false,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr:   mustAbsComponentInstance("component.self"),
-						Import: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr:   mustAbsComponentInstance("component.self"),
+					Import: 1,
+				},
+			}),
 		},
 		"removed": {
 			state: stackstate.NewStateBuilder().
@@ -4684,14 +4666,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
-				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
-					K: mustAbsComponentInstance("component.self"),
-					V: &hooks.ComponentInstanceChange{
-						Addr:   mustAbsComponentInstance("component.self"),
-						Forget: 1,
-					},
-				}),
+			counts: collections.NewMap(collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+				K: mustAbsComponentInstance("component.self"),
+				V: &hooks.ComponentInstanceChange{
+					Addr:   mustAbsComponentInstance("component.self"),
+					Forget: 1,
+				},
+			}),
 			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
 		},
 	}
@@ -5065,7 +5046,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				mustAbsComponent("component.first"),
 				mustAbsComponent("stack.second.component.self"),
 			),
@@ -5113,7 +5094,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 			PlanApplyable: true,
 			PlanComplete:  true,
 			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+			RequiredComponents: collections.NewSet(
 				mustAbsComponent("component.first"),
 				mustAbsComponent("component.empty"),
 			),
@@ -6955,7 +6936,7 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -6991,7 +6972,7 @@ func TestPlan_WithPolicyResults_EmbeddedStack(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
@@ -7028,11 +7009,9 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		// The module runtime currently does not evaluate resource policies during refresh, only module policies
-		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
-		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
-
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7067,11 +7046,11 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Stacks runs multiple calls to the module runtime for planning a full destroy, one refresh and one destroy plan.
-		// The separate refresh plan will emit module policy evaluations, then the destroy plan will emit resource policy evaluations
-		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		// Only the destroy plan will emit resource policy evaluations
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7133,11 +7112,11 @@ func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Stacks runs a single call to the module runtime for planning a component destroy, a destroy plan.
-		// The refresh prior to destroy does evaluate module policies but it does not emit them. The destroy plan will emit resource policy evaluations.
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
+		// The plan emits modules and resources policy evaluations.
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
@@ -7225,31 +7204,28 @@ func TestPlan_NoPolicyResultsOnDeferredResource(t *testing.T) {
 		End:      hcl.Pos{Line: 14, Column: 48, Byte: 210},
 	}
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
-		`component.simple_component["comp1"]`: map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`component.simple_component["comp1"]`: map[string]policy.EvaluationResponse{
 			"testing_deferred_resource.resource": {
-				EvaluationResponse: policy.EvaluationResponse{
-					Overall: policy.DenyResult,
-					Policies: []*policy.Policy{&policy.Policy{
-						Result:           policy.DenyResult,
-						PolicySetName:    "some_policy_set",
-						Address:          "policy_name",
-						Directory:        "some/path/to",
-						Filename:         "policy_file.tfpolicy.hcl",
-						EnforcementLevel: "mandatory",
-					}},
-					Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-						{
-							Severity: policyproto.Severity_ERROR,
-							Summary:  "Resource violation",
-							Detail:   "testing_deferred_resource.resource violates policy",
-							Result: &policyproto.DiagnosticResult{
-								Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-							},
+				Overall: policy.DenyResult,
+				Policies: []*policy.Policy{&policy.Policy{
+					Result:           policy.DenyResult,
+					PolicySetName:    "some_policy_set",
+					Address:          "policy_name",
+					Directory:        "some/path/to",
+					Filename:         "policy_file.tfpolicy.hcl",
+					EnforcementLevel: "mandatory",
+				}},
+				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+					{
+						Severity: policyproto.Severity_ERROR,
+						Summary:  "Resource violation",
+						Detail:   "testing_deferred_resource.resource violates policy",
+						Result: &policyproto.DiagnosticResult{
+							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 						},
-					}, nil), wantResourceRange),
-				},
-				ConfigDeclRange: wantResourceRange,
+					},
+				}, nil), wantResourceRange),
 			},
 		},
 		// `component.simple_component["comp2"]` is not evaluated as the resource is deferred,
@@ -7361,7 +7337,7 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 			t.Fatalf(`unexpected resource evaluated, wanted: testing_resource, got: %q`, req.Target)
 		}
 
-		// If we're creating, validate the attr data
+		// validate the attr data if it exists
 		if req.PriorAttrs.Raw.IsNull() {
 			if req.Attrs.Raw == cty.NilVal || req.Attrs.Raw.IsNull() {
 				t.Fatal(`unexpected resource data, wanted: attr.value to start with "hello", attrs was <null>`)
@@ -7369,11 +7345,6 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 			val := req.Attrs.Raw.GetAttr("value")
 			if !strings.HasPrefix(val.AsString(), "hello") {
 				t.Fatalf(`unexpected resource data, wanted: attr.value to start with "hello", got: %q`, val.AsString())
-			}
-		} else {
-			// Otherwise, assume we're destroying (since we have no tests exercising updates)
-			if !req.Attrs.Raw.IsNull() {
-				t.Fatalf(`unexpected resource data, wanted: <null>, got: %s`, req.Attrs.Raw.GoString())
 			}
 		}
 
@@ -7470,36 +7441,33 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 }
 
 // This helper is used for tests that only expect module policies to be evaluated (refresh-only plans)
-func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string) map[string]policy.EvaluationResponse {
 	moduleCallRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 18, Column: 1, Byte: 259},
 		End:      hcl.Pos{Line: 18, Column: 15, Byte: 273},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"module.child": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module policy violation",
-						Detail:   "module.child violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), moduleCallRange),
-			},
-			ConfigDeclRange: moduleCallRange,
+				},
+			}, nil), moduleCallRange),
 		},
 	}
 }
 
 // This helper is used for tests that only expect resource policies to be evaluated (destroy apply, removed component plans)
-func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath string) map[string]policy.EvaluationResponse {
 	rootModuleRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
@@ -7511,44 +7479,38 @@ func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath stri
 		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"testing_resource.parent_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.AllowResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
-				Enforcements: []policy.EnforcementResult{
-					{
-						Result:     policy.AllowResult,
-						Message:    "just an advisory message",
-						BlockIndex: 1,
-						Policy:     mockPolicyObj(policy.AllowResult),
-						LocalRange: rootModuleRange.Ptr(),
-					},
+			Overall:  policy.AllowResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:     policy.AllowResult,
+					Message:    "just an advisory message",
+					BlockIndex: 1,
+					Policy:     mockPolicyObj(policy.AllowResult),
+					LocalRange: rootModuleRange.Ptr(),
 				},
 			},
-			ConfigDeclRange: rootModuleRange,
 		},
 		"module.child.testing_resource.child_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module resource violation",
-						Detail:   "module.child.testing_resource.child_resource violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), childResourceRange),
-			},
-			ConfigDeclRange: childResourceRange,
+				},
+			}, nil), childResourceRange),
 		},
 	}
 }
 
-func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
 	rootModuleRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
 		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
@@ -7565,84 +7527,72 @@ func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[stri
 		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		"testing_resource.parent_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.AllowResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
-				Enforcements: []policy.EnforcementResult{
-					{
-						Result:     policy.AllowResult,
-						Message:    "just an advisory message",
-						BlockIndex: 1,
-						Policy:     mockPolicyObj(policy.AllowResult),
-						LocalRange: rootModuleRange.Ptr(),
-					},
+			Overall:  policy.AllowResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:     policy.AllowResult,
+					Message:    "just an advisory message",
+					BlockIndex: 1,
+					Policy:     mockPolicyObj(policy.AllowResult),
+					LocalRange: rootModuleRange.Ptr(),
 				},
 			},
-			ConfigDeclRange: rootModuleRange,
 		},
 		"module.child": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module policy violation",
-						Detail:   "module.child violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), moduleCallRange),
-			},
-			ConfigDeclRange: moduleCallRange,
+				},
+			}, nil), moduleCallRange),
 		},
 		"module.child.testing_resource.child_resource": {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Child module resource violation",
-						Detail:   "module.child.testing_resource.child_resource violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), childResourceRange),
-			},
-			ConfigDeclRange: childResourceRange,
+				},
+			}, nil), childResourceRange),
 		},
 	}
 }
 
-func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[string]plans.PolicyEvaluation {
+func createExpectedProviderInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
 	providerRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tfcomponent.hcl", bundlePath),
 		Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
 		End:      hcl.Pos{Line: 8, Column: 29, Byte: 126},
 	}
 
-	return map[string]plans.PolicyEvaluation{
+	return map[string]policy.EvaluationResponse{
 		`provider["registry.terraform.io/hashicorp/testing"].default`: {
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall:  policy.DenyResult,
-				Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-				Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-					{
-						Severity: policyproto.Severity_ERROR,
-						Summary:  "Provider policy violation",
-						Detail:   "testing provider violates policy",
-						Result: &policyproto.DiagnosticResult{
-							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-						},
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Provider policy violation",
+					Detail:   "testing provider violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
-				}, nil), providerRange),
-			},
-			ConfigDeclRange: providerRange,
+				},
+			}, nil), providerRange),
 		},
 	}
 }
@@ -7655,7 +7605,7 @@ func withLocalRange(diags policy.Diagnostics, rng hcl.Range) policy.Diagnostics 
 	return out
 }
 
-func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequest) map[string]map[string]plans.PolicyEvaluation {
+func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequest) map[string]map[string]policy.EvaluationResponse {
 	t.Helper()
 
 	changesCh := make(chan stackplan.PlannedChange)
@@ -7666,29 +7616,31 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	}
 
 	var mu sync.Mutex
-	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
+	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
 	planHooks := &Hooks{
-		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
+		ReportComponentInstancePolicyResult: func(ctx context.Context, a any, data *hooks.ComponentInstancePolicyResult) any {
 			mu.Lock()
 			defer mu.Unlock()
 
-			results := maps.Collect(data.PolicyResults.Iter())
-			existingResults, ok := gotPolicyResults[data.Addr.String()]
+			existingResults, ok := gotPolicyResults[data.ComponentAddr.String()]
 			if !ok {
-				gotPolicyResults[data.Addr.String()] = results
-				return
+				gotPolicyResults[data.ComponentAddr.String()] = map[string]policy.EvaluationResponse{
+					data.ResourceAddr: data.Result,
+				}
+				return a
 			}
 
 			// Merge the two results together
-			for key, result := range results {
-				existingResults[key] = result
-			}
-			gotPolicyResults[data.Addr.String()] = existingResults
+			existingResults[data.ResourceAddr] = data.Result
+
+			return a
 		},
-		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
+		ReportProviderInstancePolicyResult: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
-			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+			gotPolicyResults[data.Addr.String()] = map[string]policy.EvaluationResponse{
+				data.ProviderAddr: data.Result,
+			}
 		},
 	}
 

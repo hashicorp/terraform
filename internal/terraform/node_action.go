@@ -436,7 +436,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Reference to non-existent action instance",
-			Detail:   fmt.Sprintf("The given key %s does not identify an instance of action.test_action.hello", inst.Action.Key),
+			Detail:   fmt.Sprintf("The address %s does not identify an instance of %s", inst, inst.ConfigAction()),
 			Subject:  callRange,
 		})
 		return cty.DynamicVal, diags

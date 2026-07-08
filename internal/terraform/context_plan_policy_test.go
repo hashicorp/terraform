@@ -36,6 +36,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 	type data struct {
 		config          *configs.Config
 		plan            *plans.Plan
+		viewHook        *testHook
 		state           *states.State
 		diags           tfdiags.Diagnostics
 		policy          *policy.MockClient
@@ -248,7 +249,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 		},
 		{
 			name:        "orphaned resource instance: policy is evaluated",
-			expectCalls: 1,
+			expectCalls: 2,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -331,10 +332,14 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						t.Errorf("Unexpected diff (-got +want):\n%s", diff)
 					}
 
-					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+					expectedMeta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
-						Operation:    proto.Operation_DELETE,
-					}, protocmp.Transform()); diff != "" {
+						Operation:    proto.Operation_NO_OP,
+					}
+					if req.Target == "test_instance" {
+						expectedMeta.Operation = proto.Operation_DELETE
+					}
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -1079,16 +1084,16 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				tfdiags.AssertNoDiagnostics(t, d.diags)
 
 				var gotResults int
-				for addr, result := range d.plan.PolicyResults.Iter() {
+				for addr, result := range d.viewHook.PolicyResults {
 					gotResults++
 					if addr != "module.child.test_resource.test" {
 						t.Fatalf("Expected policy result for module.child.test_resource.test, got %q", addr)
 					}
-					if result.ConfigDeclRange.Filename != "" {
-						t.Fatalf("Expected empty config declaration range for removed config, got %#v", result.ConfigDeclRange)
+					if len(result.Enforcements) != 1 {
+						t.Fatalf("Expected 1 enforcement result, got %d", len(result.Enforcements))
 					}
-					if len(result.EvaluationResponse.Enforcements) != 1 {
-						t.Fatalf("Expected 1 enforcement result, got %d", len(result.EvaluationResponse.Enforcements))
+					if result.Enforcements[0].LocalRange != nil {
+						t.Fatalf("Expected empty local range for removed config, got %#v", result.Enforcements[0].LocalRange)
 					}
 				}
 				if gotResults != 1 {
@@ -1129,9 +1134,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			// mock expectations
 			policyClient := policy.NewTestMockClient(t)
 			data := &data{
-				config: mod,
-				state:  state,
-				policy: policyClient,
+				config:   mod,
+				state:    state,
+				policy:   policyClient,
+				viewHook: &testHook{},
 			}
 			planMode := tc.planMode
 			if planMode == 0 {
@@ -1147,6 +1153,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					providerAddr: testProviderFuncFixed(provider),
 				},
 				Parallelism: 1,
+				Hooks:       []Hook{data.viewHook},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1167,8 +1174,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				t.Fatalf("expected %d resource policy evaluation call(s), got %d", tc.expectCalls, data.policyEvalCalls)
 			}
 
-			for _, result := range plan.PolicyResults.Iter() {
-				data.diags = data.diags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			for _, result := range data.viewHook.PolicyResults {
+				data.diags = data.diags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			if tc.assertPolicyResults != nil {
 				tc.assertPolicyResults(t, data)
@@ -1490,17 +1497,9 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 		}
 	`
 
-	policyConfig := `
-		resource_policy "test_instance" "policy_name" {
-			enforce {
-				condition = true
-			}
-		}
-	`
-
 	mod := testModuleInline(t, map[string]string{
 		"main.tf":           mainConfig,
-		"main.tfpolicy.hcl": policyConfig,
+		"main.tfpolicy.hcl": samplePolicyConfig,
 	})
 
 	providerAddr := addrs.NewDefaultProvider("test")
@@ -1537,11 +1536,13 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
 		Parallelism: 4,
+		Hooks:       []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -1561,8 +1562,8 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	for _, result := range h.PolicyResults {
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
@@ -1681,13 +1682,26 @@ resource_policy "test_resource" "policy_name" {
 						Type:     cty.String,
 						Required: true,
 					},
+					"imported_only": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
 			},
 		},
 	})
 	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		planned := req.ProposedNewState.AsValueMap()
+		if !req.PriorState.IsNull() {
+			if got := req.PriorState.GetAttr("id"); got.IsKnown() && !got.IsNull() {
+				planned["id"] = got
+			}
+			if got := req.PriorState.GetAttr("imported_only"); got.IsKnown() && !got.IsNull() {
+				planned["imported_only"] = got
+			}
+		}
 		return providers.PlanResourceChangeResponse{
-			PlannedState: req.ProposedNewState,
+			PlannedState: cty.ObjectVal(planned),
 		}
 	}
 	provider.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
@@ -1696,7 +1710,8 @@ resource_policy "test_resource" "policy_name" {
 				{
 					TypeName: "test_resource",
 					State: cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal("importable"),
+						"id":            cty.StringVal("importable"),
+						"imported_only": cty.StringVal("from-import"),
 					}),
 				},
 			},
@@ -1704,32 +1719,65 @@ resource_policy "test_resource" "policy_name" {
 	}
 
 	policyClient := policy.NewTestMockClient(t)
+	var evalCount int
 	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-		t.Fatalf("expected policy evaluation to be skipped for import block planning, got request for %s", req.Target)
-		return policy.EvaluationResponse{}
+		evalCount++
+		if req.Target != "test_resource" {
+			t.Fatalf("unexpected policy target %q", req.Target)
+		}
+
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Errorf("Invalid resource metadata: %s", diff)
+		}
+
+		if req.Attrs.Raw.IsNull() {
+			t.Fatal("expected non-null attrs for import policy evaluation")
+		}
+		if req.PriorAttrs.Raw.IsNull() {
+			t.Fatal("expected non-null prior attrs for import policy evaluation")
+		}
+		if got := req.Attrs.Raw.GetAttr("imported_only"); !got.RawEquals(cty.StringVal("from-import")) {
+			t.Fatalf("expected attrs.imported_only to come from imported state, got %#v", got)
+		}
+		if got := req.PriorAttrs.Raw.GetAttr("imported_only"); !got.RawEquals(cty.StringVal("from-import")) {
+			t.Fatalf("expected prior_attrs.imported_only to come from imported state, got %#v", got)
+		}
+
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Parallelism: 1,
+		Hooks:       []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	if policyClient.EvaluateCalled {
-		t.Fatal("expected policy evaluation not to be called for import block planning")
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected policy evaluation to be called for import block planning")
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	for _, result := range h.PolicyResults {
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 }
@@ -1754,17 +1802,9 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 		}
 		`
 
-	policyConfig := `
-		resource_policy "test_resource" "policy_name" {
-			enforce {
-				condition = true
-			}
-		}
-	`
-
 	mod := testModuleInline(t, map[string]string{
 		"main.tf":           mainConfig,
-		"main.tfpolicy.hcl": policyConfig,
+		"main.tfpolicy.hcl": samplePolicyConfig,
 	})
 
 	providerAddr := addrs.NewDefaultProvider("test")
@@ -1791,14 +1831,16 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
@@ -1808,8 +1850,8 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	}
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	for _, result := range h.PolicyResults {
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 
 	// now check that the policy evaluation results match our expectations
@@ -1820,6 +1862,154 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	}
 	if len(policyDiags) != 0 {
 		t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
+	}
+}
+
+func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			provider "test" {}
+
+			resource "test_object" "a" {
+				arg = "after"
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"arg":"before"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := simpleMockProvider()
+	provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Body: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	provider.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
+				return cty.StringVal("current"), nil
+			}
+			return v, nil
+		})
+		if err != nil {
+			t.Fatalf("ReadResourceFn transform failed: %s", err)
+		}
+		return providers.ReadResourceResponse{NewState: newVal}
+	}
+	provider.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"arg": cty.StringVal("before"),
+			}),
+		}
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	evalCount := 0
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evalCount++
+		if req.Target != "test_object" {
+			t.Fatalf("expected resource policy target %q, got %q", "test_object", req.Target)
+		}
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Fatalf("invalid resource metadata: %s", diff)
+		}
+		if req.Attrs.Raw.IsNull() {
+			t.Fatal("expected non-null attrs for refresh-only policy evaluation")
+		}
+		if req.PriorAttrs.Raw.IsNull() {
+			t.Fatal("expected non-null PriorAttrs for refresh-only policy evaluation")
+		}
+		if !req.Attrs.Raw.RawEquals(req.PriorAttrs.Raw) {
+			t.Fatalf("expected refresh-only policy attrs and prior attrs to match, got attrs=%#v prior=%#v", req.Attrs.Raw, req.PriorAttrs.Raw)
+		}
+		if got := req.Attrs.Raw.GetAttr("arg"); !got.RawEquals(cty.StringVal("current")) {
+			t.Fatalf("expected refreshed arg value %q, got %#v", "current", got)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		if req.Target != "test" {
+			t.Fatalf("expected provider policy target %q, got %q", "test", req.Target)
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result: policy.AllowResult,
+			}},
+		}
+	}
+
+	h := &testHook{}
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+		Hooks:       []Hook{h},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.RefreshOnlyMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if evalCount != 1 {
+		t.Fatalf("expected exactly 3 policy evaluations, got %d", evalCount)
+	}
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected resource policy evaluation during refresh-only planning")
+	}
+	if !policyClient.EvaluateProviderCalled {
+		t.Fatal("expected provider policy evaluation during refresh-only planning")
+	}
+
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("expected refresh-only plan to contain no resource changes, got %d", got)
+	}
+
+	if _, ok := h.PolicyResults[addr.String()]; !ok {
+		t.Fatalf("expected resource policy result for %s during refresh-only planning", addr)
+	}
+	if _, ok := h.PolicyResults[`provider["registry.terraform.io/hashicorp/test"]`]; !ok {
+		t.Fatal("expected provider policy result to be streamed through hooks")
+	}
+	if got := len(h.PolicyResults); got != 2 {
+		t.Fatalf("expected exactly 2 policy results (resource and provider), got %d", got)
 	}
 }
 
@@ -1855,17 +2045,9 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		}
 	`
 
-	policyConfig := `
-		resource_policy "test_instance" "policy_name" {
-			enforce {
-				condition = core::getresources("some_resource_type", {})[0].value != null
-			}
-		}
-	`
-
 	mod := testModuleInline(t, map[string]string{
 		"main.tf":           mainConfig,
-		"main.tfpolicy.hcl": policyConfig,
+		"main.tfpolicy.hcl": samplePolicyConfig,
 	})
 
 	providerAddr := addrs.NewDefaultProvider("test")
@@ -1952,14 +2134,16 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
+	h := &testHook{}
 	ctx, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			providerAddr: testProviderFuncFixed(provider),
 		},
+		Hooks: []Hook{h},
 	})
 	tfdiags.AssertNoDiagnostics(t, diags)
 
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 		Mode:         plans.NormalMode,
 		SetVariables: testInputValuesUnset(mod.Module.Variables),
 		PolicyClient: policyClient,
@@ -1967,8 +2151,8 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	var policyDiags tfdiags.Diagnostics
-	for _, result := range plan.PolicyResults.Iter() {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	for _, result := range h.PolicyResults {
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 	tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -2125,10 +2309,12 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 				}
 			}
 
+			h := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
 				},
+				Hooks: []Hook{h},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -2152,7 +2338,7 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 	`,
 				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
 			})
-			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: tc.deferralAllowed,
 				PolicyClient:    mockPolicyClient,
@@ -2160,8 +2346,8 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range plan.PolicyResults.Iter() {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			for _, result := range h.PolicyResults {
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -2169,6 +2355,103 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 				t.Errorf("unexpected policy callback results\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestContext2Plan_PolicyCallback_GetDataSource_ProviderMeta(t *testing.T) {
+	// This tests that we pass a null provider meta to the ReadDataSource callback
+	// when the provider schema defines a provider meta block.
+	// Policy callbacks do not need to report metadata to the provider.
+	t.Parallel()
+
+	providerMetaSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+	providerMetaType := providerMetaSchema.ImpliedType()
+
+	mockPolicyClient := policy.NewTestMockClient(t)
+	var gotResult cty.Value
+	mockPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		result, deferred, err := req.Callbacks.GetDataSource(t.Context(), "test_data_source", cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.NullVal(cty.String),
+			"foo": cty.StringVal("test val"),
+		}))
+		if err != nil {
+			t.Fatalf("unexpected GetDataSource error: %v", err)
+		}
+		if deferred {
+			t.Fatal("expected GetDataSource callback not to be deferred")
+		}
+		gotResult = result
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	testProvider := testProvider("test")
+	schema := getProviderSchema(testProvider)
+	schema.ProviderMeta = providerMetaSchema
+	testProvider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
+	testProvider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		if !req.ProviderMeta.IsNull() {
+			t.Fatalf("expected null ProviderMeta for policy GetDataSource callback, got %#v", req.ProviderMeta)
+		}
+		if got := req.ProviderMeta.Type(); !got.Equals(providerMetaType) {
+			t.Fatalf("unexpected ProviderMeta type: got %s, want %s", got.FriendlyName(), providerMetaType.FriendlyName())
+		}
+
+		stateVal := req.Config.AsValueMap()
+		stateVal["id"] = cty.StringVal("computed val")
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(stateVal),
+		}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "foo" {
+				value = "foo"
+				defer = false
+			}
+		`,
+		"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
+	})
+
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: mockPolicyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !testProvider.ReadDataSourceCalled {
+		t.Fatal("expected ReadDataSource to be called by policy callback")
+	}
+	wantResult := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("computed val"),
+		"foo": cty.StringVal("test val"),
+	})
+	if diff := cmp.Diff(gotResult, wantResult, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+		t.Fatalf("unexpected GetDataSource result (-got +want):\n%s", diff)
 	}
 }
 
@@ -2325,10 +2608,12 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}
 
+			h := &testHook{}
 			ctx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider("test")),
 				},
+				Hooks: []Hook{h},
 			})
 			tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -2336,7 +2621,7 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				"main.tf":           tc.config,
 				"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
 			})
-			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
 				Mode:            plans.NormalMode,
 				DeferralAllowed: true,
 				PolicyClient:    mockPolicyClient,
@@ -2344,8 +2629,8 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			var policyDiags tfdiags.Diagnostics
-			for _, result := range plan.PolicyResults.Iter() {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+			for _, result := range h.PolicyResults {
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -2353,6 +2638,231 @@ func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				t.Errorf("unexpected policy callback results\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestContext2Plan_PolicyEvaluation_NoOpOperation(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "test" {
+				sensitive_value = "same"
+			}
+		`,
+		"main.tfpolicy.hcl": `
+			resource_policy "test_resource" "policy_name" {
+				enforce {
+					condition = true
+				}
+			}
+		`,
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_resource.test"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"existing","sensitive_value":"same"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		planned := req.ProposedNewState.AsValueMap()
+		if priorID, ok := req.PriorState.AsValueMap()["id"]; ok && priorID.IsKnown() && !priorID.IsNull() {
+			planned["id"] = priorID
+		}
+		resp.PlannedState = cty.ObjectVal(planned)
+		return resp
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
+		}
+
+		actualAttrs := req.Attrs.Raw
+		if actualAttrs.IsNull() {
+			t.Fatal("expected non-null attrs for no-op evaluation")
+		}
+		actualAttrs = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualAttrs.GetAttr("id"),
+			"sensitive_value": actualAttrs.GetAttr("sensitive_value"),
+		})
+		wantAttrs := cty.ObjectVal(map[string]cty.Value{
+			"id":              cty.StringVal("existing"),
+			"sensitive_value": cty.StringVal("same"),
+		})
+		if diff := cmp.Diff(actualAttrs, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected attrs (-got +want):\n%s", diff)
+		}
+
+		actualPrior := req.PriorAttrs.Raw
+		if actualPrior.IsNull() {
+			t.Fatal("expected non-null prior attrs for no-op evaluation")
+		}
+		actualPrior = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualPrior.GetAttr("id"),
+			"sensitive_value": actualPrior.GetAttr("sensitive_value"),
+		})
+		if diff := cmp.Diff(actualPrior, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected prior attrs (-got +want):\n%s", diff)
+		}
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !policyClient.EvaluateCalled {
+		t.Fatal("expected policy evaluation to be called for no-op resource")
+	}
+}
+
+func TestContext2Plan_PolicyEvaluation_RefreshOnlyOperation(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "test" {
+				sensitive_value = "config"
+			}
+		`,
+		"main.tfpolicy.hcl": `
+			resource_policy "test_resource" "policy_name" {
+				enforce {
+					condition = true
+				}
+			}
+		`,
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_resource.test"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"existing","sensitive_value":"stale"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		resp.NewState = cty.ObjectVal(map[string]cty.Value{
+			"id":              cty.StringVal("existing"),
+			"value":           cty.NullVal(cty.String),
+			"sensitive_value": cty.StringVal("current"),
+			"defer":           cty.NullVal(cty.Bool),
+			"random":          cty.NullVal(cty.String),
+			"nesting_single": cty.NullVal(cty.Object(map[string]cty.Type{
+				"value":           cty.String,
+				"sensitive_value": cty.String,
+			})),
+		})
+		return resp
+	}
+
+	policyClient := policy.NewTestMockClient(t)
+	var evaluateCalls int
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		evaluateCalls++
+		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			ProviderType: "test",
+			Operation:    proto.Operation_NO_OP,
+		}, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
+		}
+
+		actualAttrs := req.Attrs.Raw
+		if actualAttrs.IsNull() {
+			t.Fatal("expected non-null attrs for refresh-only evaluation")
+		}
+		actualAttrs = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualAttrs.GetAttr("id"),
+			"sensitive_value": actualAttrs.GetAttr("sensitive_value"),
+		})
+		wantAttrs := cty.ObjectVal(map[string]cty.Value{
+			"id":              cty.StringVal("existing"),
+			"sensitive_value": cty.StringVal("current"),
+		})
+		if diff := cmp.Diff(actualAttrs, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected attrs (-got +want):\n%s", diff)
+		}
+
+		actualPrior := req.PriorAttrs.Raw
+		if actualPrior.IsNull() {
+			t.Fatal("expected non-null prior attrs for refresh-only evaluation")
+		}
+		actualPrior = cty.ObjectVal(map[string]cty.Value{
+			"id":              actualPrior.GetAttr("id"),
+			"sensitive_value": actualPrior.GetAttr("sensitive_value"),
+		})
+		if diff := cmp.Diff(actualPrior, wantAttrs, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+			t.Fatalf("unexpected prior attrs (-got +want):\n%s", diff)
+		}
+
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+		Parallelism: 1,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.RefreshOnlyMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: policyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("expected refresh-only plan to record no resource changes, got %d", got)
+	}
+	if evaluateCalls != 1 {
+		t.Fatalf("expected 1 policy evaluation call for refresh-only resource, got %d", evaluateCalls)
 	}
 }
 

@@ -481,10 +481,6 @@ message ActionInvocationInstance {
         ResourceActionTrigger resource_action_trigger = 6;
         InvokeActionTrigger invoke_action_trigger = 7;
     }
-
-    // If the action uses the caller symbol, we record the resource calling the
-    // action for evaluation.
-    string caller = 8;
 }
 
 // ResourceActionTrigger contains details on the conditions that led to the
@@ -498,7 +494,9 @@ message ResourceActionTrigger {
 
 // InvokeActionTrigger indicates the action was triggered by the invoke command
 // on the CLI.
-message InvokeActionTrigger {}
+message InvokeActionTrigger {
+      string calling_resource_addr = 1;
+}
 
 message ResourceInstanceActionChange {
     // addr is a string representation of the resource instance address that

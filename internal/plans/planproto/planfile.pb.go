@@ -1751,9 +1751,6 @@ type ActionInvocationInstance struct {
 	//	*ActionInvocationInstance_ResourceActionTrigger
 	//	*ActionInvocationInstance_InvokeActionTrigger
 	ActionTrigger isActionInvocationInstance_ActionTrigger `protobuf_oneof:"action_trigger"`
-	// If the action uses the caller symbol, we record the resource calling the
-	// action for evaluation.
-	Caller        string `protobuf:"bytes,8,opt,name=caller,proto3" json:"caller,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1839,13 +1836,6 @@ func (x *ActionInvocationInstance) GetInvokeActionTrigger() *InvokeActionTrigger
 		}
 	}
 	return nil
-}
-
-func (x *ActionInvocationInstance) GetCaller() string {
-	if x != nil {
-		return x.Caller
-	}
-	return ""
 }
 
 type isActionInvocationInstance_ActionTrigger interface {
@@ -1937,9 +1927,10 @@ func (x *ResourceActionTrigger) GetActionsListIndex() int64 {
 // InvokeActionTrigger indicates the action was triggered by the invoke command
 // on the CLI.
 type InvokeActionTrigger struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	CallingResourceAddr string                 `protobuf:"bytes,1,opt,name=calling_resource_addr,json=callingResourceAddr,proto3" json:"calling_resource_addr,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *InvokeActionTrigger) Reset() {
@@ -1970,6 +1961,13 @@ func (x *InvokeActionTrigger) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InvokeActionTrigger.ProtoReflect.Descriptor instead.
 func (*InvokeActionTrigger) Descriptor() ([]byte, []int) {
 	return file_planfile_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *InvokeActionTrigger) GetCallingResourceAddr() string {
+	if x != nil {
+		return x.CallingResourceAddr
+	}
+	return ""
 }
 
 type ResourceInstanceActionChange struct {
@@ -2359,22 +2357,22 @@ const file_planfile_proto_rawDesc = "" +
 	"\aunknown\x18\x02 \x01(\bR\aunknown\x120\n" +
 	"\bidentity\x18\x03 \x01(\v2\x14.tfplan.DynamicValueR\bidentity\":\n" +
 	"\bDeferred\x12.\n" +
-	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\x9d\x03\n" +
+	"\x06reason\x18\x01 \x01(\x0e2\x16.tfplan.DeferredReasonR\x06reason\"\x85\x03\n" +
 	"\x18ActionInvocationInstance\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x127\n" +
 	"\fconfig_value\x18\x04 \x01(\v2\x14.tfplan.DynamicValueR\vconfigValue\x12B\n" +
 	"\x16sensitive_config_paths\x18\x05 \x03(\v2\f.tfplan.PathR\x14sensitiveConfigPaths\x12W\n" +
 	"\x17resource_action_trigger\x18\x06 \x01(\v2\x1d.tfplan.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12Q\n" +
-	"\x15invoke_action_trigger\x18\a \x01(\v2\x1b.tfplan.InvokeActionTriggerH\x00R\x13invokeActionTrigger\x12\x16\n" +
-	"\x06caller\x18\b \x01(\tR\x06callerB\x10\n" +
+	"\x15invoke_action_trigger\x18\a \x01(\v2\x1b.tfplan.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
 	"\x0eaction_trigger\"\xfd\x01\n" +
 	"\x15ResourceActionTrigger\x128\n" +
 	"\x18triggering_resource_addr\x18\x01 \x01(\tR\x16triggeringResourceAddr\x12?\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e2\x1a.tfplan.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
-	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\"\x15\n" +
-	"\x13InvokeActionTrigger\"{\n" +
+	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\"I\n" +
+	"\x13InvokeActionTrigger\x122\n" +
+	"\x15calling_resource_addr\x18\x01 \x01(\tR\x13callingResourceAddr\"{\n" +
 	"\x1cResourceInstanceActionChange\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x1f\n" +
 	"\vdeposed_key\x18\x02 \x01(\tR\n" +
