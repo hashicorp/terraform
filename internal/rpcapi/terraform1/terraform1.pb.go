@@ -24,7 +24,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
+// Sourced from: /internal/policy/proto/types.proto#EvaluateResult
 type EvaluateResult int32
 
 const (
@@ -862,7 +862,7 @@ func (x *PolicyDiagnostic) GetExpressionValues() []*ExpressionValue {
 	return nil
 }
 
-// Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
+// Sourced from: /internal/policy/proto/diagnostics.proto#ExpressionValue
 type ExpressionValue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Traversal     *AttributePath         `protobuf:"bytes,1,opt,name=traversal,proto3" json:"traversal,omitempty"`
@@ -915,6 +915,7 @@ func (x *ExpressionValue) GetValue() []byte {
 	return nil
 }
 
+// Sourced from: /internal/rpcapi/terraform1/stacks.proto#AttributePath
 type AttributePath struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Steps         []*AttributePath_Step  `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
@@ -1100,14 +1101,10 @@ type isAttributePath_Step_Selector interface {
 }
 
 type AttributePath_Step_AttributeName struct {
-	// Set "attribute_name" to represent looking up an attribute
-	// in the current object value.
 	AttributeName string `protobuf:"bytes,1,opt,name=attribute_name,json=attributeName,proto3,oneof"`
 }
 
 type AttributePath_Step_ElementKeyString struct {
-	// Set "element_key_*" to represent looking up an element in
-	// an indexable collection type.
 	ElementKeyString string `protobuf:"bytes,2,opt,name=element_key_string,json=elementKeyString,proto3,oneof"`
 }
 
