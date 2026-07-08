@@ -1,4 +1,4 @@
-## 1.16.0-alpha20260706 (July 06, 2026)
+## 1.16.0-alpha20260708 (July 08, 2026)
 
 
 NEW FEATURES:
@@ -36,6 +36,8 @@ ENHANCEMENTS:
 
 * child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
 
+* Support destroy=false in resource lifecycle blocks. ([#38784](https://github.com/hashicorp/terraform/issues/38784))
+
 * contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
@@ -54,6 +56,8 @@ BUG FIXES:
 * init: Add warnings when unmanaged providers are in use and will impact provider installation processes. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
 
 * Actions are now invoked with respect to all resource dependencies. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+
+* return correct error when import target exists in state, but not config ([#38782](https://github.com/hashicorp/terraform/issues/38782))
 
 * merge no longer panics with null objects ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
