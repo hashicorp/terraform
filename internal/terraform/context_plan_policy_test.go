@@ -2161,6 +2161,103 @@ func TestContext2Plan_PolicyCallback_GetDataSource(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_PolicyCallback_GetDataSource_ProviderMeta(t *testing.T) {
+	// This tests that we pass a null provider meta to the ReadDataSource callback
+	// when the provider schema defines a provider meta block.
+	// Policy callbacks do not need to report metadata to the provider.
+	t.Parallel()
+
+	providerMetaSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+	providerMetaType := providerMetaSchema.ImpliedType()
+
+	mockPolicyClient := policy.NewTestMockClient(t)
+	var gotResult cty.Value
+	mockPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		result, deferred, err := req.Callbacks.GetDataSource(t.Context(), "test_data_source", cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.NullVal(cty.String),
+			"foo": cty.StringVal("test val"),
+		}))
+		if err != nil {
+			t.Fatalf("unexpected GetDataSource error: %v", err)
+		}
+		if deferred {
+			t.Fatal("expected GetDataSource callback not to be deferred")
+		}
+		gotResult = result
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+
+	testProvider := testProvider("test")
+	schema := getProviderSchema(testProvider)
+	schema.ProviderMeta = providerMetaSchema
+	testProvider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
+	testProvider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		if !req.ProviderMeta.IsNull() {
+			t.Fatalf("expected null ProviderMeta for policy GetDataSource callback, got %#v", req.ProviderMeta)
+		}
+		if got := req.ProviderMeta.Type(); !got.Equals(providerMetaType) {
+			t.Fatalf("unexpected ProviderMeta type: got %s, want %s", got.FriendlyName(), providerMetaType.FriendlyName())
+		}
+
+		stateVal := req.Config.AsValueMap()
+		stateVal["id"] = cty.StringVal("computed val")
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(stateVal),
+		}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "foo" {
+				value = "foo"
+				defer = false
+			}
+		`,
+		"main.tfpolicy.hcl": `# policy config is not read by Terraform`,
+	})
+
+	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		PolicyClient: mockPolicyClient,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if !testProvider.ReadDataSourceCalled {
+		t.Fatal("expected ReadDataSource to be called by policy callback")
+	}
+	wantResult := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("computed val"),
+		"foo": cty.StringVal("test val"),
+	})
+	if diff := cmp.Diff(gotResult, wantResult, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+		t.Fatalf("unexpected GetDataSource result (-got +want):\n%s", diff)
+	}
+}
+
 func TestContext2Plan_PolicyCallback_GetResources_Deferral(t *testing.T) {
 	t.Parallel()
 

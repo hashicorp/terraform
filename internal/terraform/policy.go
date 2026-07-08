@@ -152,10 +152,16 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 				return cty.NilVal, false, fmt.Errorf("failed to validate data source configuration: %s", err)
 			}
 
+			meta := cty.NilVal
+			if schema.ProviderMeta.Body != nil {
+				meta = cty.NullVal(schema.ProviderMeta.Body.ImpliedType())
+			}
+
 			readResp := provider.ReadDataSource(providers.ReadDataSourceRequest{
 				TypeName:           target,
 				Config:             configVal,
 				ClientCapabilities: ctx.ClientCapabilities(),
+				ProviderMeta:       meta,
 			})
 			if err := readResp.Diagnostics.Err(); err != nil {
 				return cty.NilVal, false, fmt.Errorf("failed to read data source: %s", err)
