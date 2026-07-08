@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -290,7 +291,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},

@@ -251,7 +251,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets, ActionTargets: b.ActionTargets},
+		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
