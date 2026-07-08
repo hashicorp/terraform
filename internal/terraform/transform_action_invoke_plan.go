@@ -12,9 +12,10 @@ import (
 )
 
 type ActionInvokePlanTransformer struct {
-	Config        *configs.Config
-	ActionTargets []addrs.Targetable
-	Operation     walkOperation
+	Config          *configs.Config
+	ActionTargets   []addrs.Targetable
+	ResourceTargets []addrs.Targetable
+	Operation       walkOperation
 
 	queryPlanMode bool
 }
@@ -96,11 +97,12 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 			}
 
 			g.Add(&nodeActionInvokeExpand{
-				Target:       target,
-				Module:       actionNode.Addr.Module,
-				Addr:         instAddr,
-				ActionConfig: actionNode,
-				Callers:      resourceCallers,
+				Target:          target,
+				ResourceTargets: t.ResourceTargets,
+				Module:          actionNode.Addr.Module,
+				Addr:            instAddr,
+				ActionConfig:    actionNode,
+				Callers:         resourceCallers,
 			})
 			targetSet.Remove(target)
 		}

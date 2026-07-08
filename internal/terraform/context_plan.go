@@ -282,17 +282,6 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	}
 
 	if len(opts.ActionTargets) > 0 {
-		if len(opts.Targets) != 0 {
-			// The CLI layer (and other similar callers) should prevent this
-			// combination of options.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Incompatible plan options",
-				"Cannot include both targets and action invocations. This is a bug in Terraform.",
-			))
-			return nil, nil, diags
-		}
-
 		if opts.Mode != plans.RefreshOnlyMode {
 			// The CLI layer (and other similar callers) should prevent this
 			// combination of options.
@@ -315,7 +304,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
-	if len(opts.Targets) > 0 {
+	if len(opts.Targets) > 0 && len(opts.ActionTargets) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Resource targeting is in effect",
@@ -1053,7 +1042,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues:        opts.SetVariables,
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
-			Targets:                   append(opts.Targets, opts.ActionTargets...),
+			Targets:                   opts.Targets,
 			ActionTargets:             opts.ActionTargets,
 			skipRefresh:               opts.SkipRefresh,
 			skipPlanChanges:           true, // this activates "refresh only" mode.

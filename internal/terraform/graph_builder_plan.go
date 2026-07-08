@@ -256,10 +256,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// AttachSchemaTransformer so we can get all references from the action
 		// configs.
 		&ActionInvokePlanTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			queryPlanMode: b.queryPlan,
+			Config:          b.Config,
+			Operation:       b.Operation,
+			ActionTargets:   b.ActionTargets,
+			ResourceTargets: b.Targets,
+			queryPlanMode:   b.queryPlan,
 		},
 
 		// Create expansion nodes for all of the module calls. This must
