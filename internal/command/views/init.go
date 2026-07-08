@@ -187,17 +187,13 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_provider_plugin_from_config_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins found in the configuration...",
-		JSONValue:  "Initializing provider plugins found in the configuration...",
-	},
-	"initializing_provider_plugin_from_state_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins found in the state...",
-		JSONValue:  "Initializing provider plugins found in the state...",
-	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store...",
 		JSONValue:  "Initializing the state store...",
+	},
+	"initializing_state_store_provider_plugin_message": {
+		HumanValue: "\n[reset][bold]Initializing provider plugin for the state store...",
+		JSONValue:  "Initializing provider plugin for the state store...",
 	},
 	"default_workspace_created_message": {
 		HumanValue: defaultWorkspaceCreatedInfo,
@@ -343,8 +339,8 @@ const (
 	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginFromConfigMessage InitMessageCode = "initializing_provider_plugin_from_config_message"
-	InitializingProviderPluginFromStateMessage  InitMessageCode = "initializing_provider_plugin_from_state_message"
+	InitializingStateStoreProviderPluginMessage InitMessageCode = "initializing_state_store_provider_plugin_message"
+	InitializingProviderPluginMessage           InitMessageCode = "initializing_provider_plugin_message"
 	ReusingVersionIdentifiedFromConfig          InitMessageCode = "reusing_version_during_state_provider_init"
 	DefaultWorkspaceCreatedMessage              InitMessageCode = "default_workspace_created_message"
 	LockInfo                                    InitMessageCode = "lock_info"
