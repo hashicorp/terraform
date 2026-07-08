@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -160,7 +161,7 @@ type Hook interface {
 	// the call has returned must copy the state.
 	PostStateUpdate(new *states.State) (HookAction, error)
 
-	PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error)
+	PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -273,6 +274,6 @@ func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+func (*NilHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	return HookActionContinue, nil
 }

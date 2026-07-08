@@ -109,6 +109,18 @@ func (d Diagnostics) HasErrors() bool {
 	return false
 }
 
+// WithLocalRange returns a copy of the response with the local range set to the given value.
+// This value typically comes from the range of the terraform object being evaluated.
+func (d Diagnostics) WithLocalRange(localRange *hcl.Range) Diagnostics {
+	if len(d) == 0 || localRange == nil {
+		return d
+	}
+	for i := range d {
+		d[i].localRange = localRange
+	}
+	return d
+}
+
 func (o Diagnostic) Severity() tfdiags.Severity {
 	return o.original.Severity()
 }

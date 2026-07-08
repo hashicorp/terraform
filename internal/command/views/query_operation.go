@@ -102,8 +102,8 @@ func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *QueryOperationHuman) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 type QueryOperationJSON struct {
@@ -149,6 +149,6 @@ func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *QueryOperationJSON) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }

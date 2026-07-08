@@ -80,14 +80,14 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+	if resourceConfig != nil {
+		result = result.WithLocalRange(resourceConfig.DeclRange.Ptr())
+	}
 	if !result.Empty() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result}
-			if resourceConfig != nil {
-				eval.ConfigDeclRange = resourceConfig.DeclRange
-			}
-			return h.PolicyResult(n.ResourceAddr.String(), eval)
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.ResourceAddr.String(), result)
 		})
+		diags = diags.Append(hookErr)
 	}
 	return diags
 }

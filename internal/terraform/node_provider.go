@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -244,26 +243,19 @@ func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfd
 
 	// Annotate the result diagnostics and enforcements with the local range of
 	// the provider config block.
-	var rng hcl.Range
 	if n.Config != nil {
-		rng = n.Config.DeclRange
-		ptr := rng.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(n.Config.DeclRange.Ptr())
 	}
 
+	var diags tfdiags.Diagnostics
 	if !result.Empty() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng}
-			return h.PolicyResult(n.Addr.String(), eval)
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.Addr.String(), result)
 		})
+		diags = diags.Append(hookErr)
 	}
 
-	return nil
+	return diags
 }
 
 // providerVersion returns the exact locked version for this provider from the

@@ -6,7 +6,6 @@ package stackruntime
 import (
 	"context"
 	"fmt"
-	"maps"
 	"path"
 	"path/filepath"
 	"sort"
@@ -30,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -4839,7 +4839,7 @@ func TestApply_WithPolicyResults(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -4888,7 +4888,7 @@ func TestApply_WithPolicyResults_EmbeddedStack(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
@@ -4958,7 +4958,7 @@ func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// The module runtime currently does not evaluate resource policies during refresh, only module policies
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
 		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
@@ -5010,7 +5010,7 @@ func TestApply_WithPolicyResultsOnDestroy(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
@@ -5088,7 +5088,7 @@ func TestApply_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 		PolicyClient:    policyEvaluationTestClient(t),
 	})
 
-	wantPolicyResults := map[string]map[string]plans.PolicyEvaluation{
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
@@ -5137,7 +5137,7 @@ func planForApplyTest(t *testing.T, ctx context.Context, req PlanRequest) *stack
 	return plan
 }
 
-func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRequest) map[string]map[string]plans.PolicyEvaluation {
+func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRequest) map[string]map[string]policy.EvaluationResponse {
 	t.Helper()
 
 	applyChangesCh := make(chan stackstate.AppliedChange)
@@ -5148,28 +5148,31 @@ func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRe
 	}
 
 	var mu sync.Mutex
-	gotPolicyResults := make(map[string]map[string]plans.PolicyEvaluation)
+	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
 	applyHooks := &Hooks{
-		ReportComponentInstancePolicyResults: func(ctx context.Context, data *hooks.ComponentInstancePolicyResults) {
+		ReportComponentInstancePolicyResult: func(ctx context.Context, a any, data *hooks.ComponentInstancePolicyResult) any {
 			mu.Lock()
 			defer mu.Unlock()
 
-			existingResults, ok := gotPolicyResults[data.Addr.String()]
+			existingResults, ok := gotPolicyResults[data.ComponentAddr.String()]
 			if !ok {
-				gotPolicyResults[data.Addr.String()] = data.PolicyResults
-				return
+				gotPolicyResults[data.ComponentAddr.String()] = map[string]policy.EvaluationResponse{
+					data.ResourceAddr: data.Result,
+				}
+				return a
 			}
 
 			// Merge the two results together
-			for key, result := range data.PolicyResults {
-				existingResults[key] = result
-			}
-			gotPolicyResults[data.Addr.String()] = existingResults
+			existingResults[data.ResourceAddr] = data.Result
+
+			return a
 		},
-		ReportProviderInstancePolicyResults: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
+		ReportProviderInstancePolicyResult: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
 			mu.Lock()
 			defer mu.Unlock()
-			gotPolicyResults[data.Addr.String()] = maps.Collect(data.PolicyResults.Iter())
+			gotPolicyResults[data.Addr.String()] = map[string]policy.EvaluationResponse{
+				data.ProviderAddr: data.Result,
+			}
 		},
 	}
 
