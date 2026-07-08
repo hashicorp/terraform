@@ -718,7 +718,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
 				Mode:         plans.NormalMode,
 				SetVariables: test.variables,
-			})
+			}, addrs.RootModuleInstance)
 			if diags.HasErrors() {
 				t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 			}
