@@ -24,3 +24,4 @@ RUN /bin/bash ./scripts/build.sh
 
 WORKDIR $GOPATH
 ENTRYPOINT ["terraform"]
+### this is one more important code line
