@@ -106,11 +106,16 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	}
 
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
-	if err != nil {
-		if !response.WasNotFound(blob.HttpResponse) {
-			return diags.Append(err)
-		}
-	}
+    if err != nil {
+        // Explicitly prevent passing a nil pointer into WasNotFound
+        if blob.HttpResponse == nil {
+            return diags.Append(err)
+        }
+        
+        if !response.WasNotFound(blob.HttpResponse) {
+            return diags.Append(err)
+        }
+    }
 
 	contentType := "application/json"
 	putOptions.Content = &data
