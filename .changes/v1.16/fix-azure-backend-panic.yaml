@@ -1,0 +1,2 @@
+﻿kind: BUG FIXES
+body: Fixed a nil pointer dereference panic in the Azure remote state backend when credentials time out.
