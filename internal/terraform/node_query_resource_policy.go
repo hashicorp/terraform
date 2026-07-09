@@ -24,7 +24,7 @@ type nodeQueryResourcePolicy struct {
 
 	// Identity and ListBlockAddr are passed to the policy client in a following revision.
 	// Correlates policy results to UI rows.
-	Identity      cty.Value
+	Identity cty.Value
 	// Groups results by the originating list block.
 	ListBlockAddr addrs.AbsResourceInstance
 }
