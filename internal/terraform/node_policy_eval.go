@@ -43,7 +43,10 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	finish := &nodePolicyEvalFinish{span: policyGraph.span}
 	policyGraph.graph.Add(finish)
 	for pn := range policyGraph.graph.VerticesSeq() {
-		if _, ok := pn.(*nodeResourcePolicy); !ok {
+		// Wire finish only to policy node types; all other vertices are skipped.
+		switch pn.(type) {
+		case *nodeResourcePolicy, *nodeQueryResourcePolicy:
+		default:
 			continue
 		}
 		// finish depends on pn, so pn runs first and finish runs after.
@@ -86,6 +89,9 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 // AllowUpstreamFailure tolerates failures from the policy nodes so the phase
 // span is always ended.
 func (n *nodePolicyEvalFinish) AllowUpstreamFailure(dep dag.Vertex) bool {
-	_, ok := dep.(*nodeResourcePolicy)
-	return ok
+	switch dep.(type) {
+	case *nodeResourcePolicy, *nodeQueryResourcePolicy:
+		return true
+	}
+	return false
 }
