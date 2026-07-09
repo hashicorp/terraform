@@ -22,7 +22,8 @@ import (
 )
 
 func TestStateMigrate_fromBackendToBackend(t *testing.T) {
-	wd := tempWorkingDirFixture(t, "state-migrate-backend-to-backend")
+	fixture := "state-migrate-backend-to-backend"
+	wd := tempWorkingDirFixture(t, fixture)
 	t.Chdir(wd.RootModuleDir())
 
 	ui := cli.NewMockUi()
@@ -47,11 +48,10 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 		t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := `Finished migrating state from backend "local" to backend "local".`
-	if !strings.Contains(out.Stdout(), expectedMsg) {
-		t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
-	}
+	// Assert expected human output is made
+	checkGoldenReferenceHumanOutput(t, out, fixture)
 
+	// Assert the migrated state contains expected content
 	f, err := os.Open("destination-backend.tfstate")
 	if err != nil {
 		t.Fatalf("failed to read migrated state: %s", err)
@@ -93,7 +93,8 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 }
 
 func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
-	wd := tempWorkingDirFixture(t, "state-migrate-backend-to-state-store")
+	fixture := "state-migrate-backend-to-state-store"
+	wd := tempWorkingDirFixture(t, fixture)
 	t.Chdir(wd.RootModuleDir())
 
 	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
@@ -126,16 +127,10 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 	}
 
-	expectedMsg := []string{
-		"Initializing provider plugin for state store \"test_store\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-		`Migrating state from backend "local" to state store "test_store" (hashicorp/test)...`,
-	}
-	for _, expectedMsg := range expectedMsg {
-		if !strings.Contains(out.Stdout(), expectedMsg) {
-			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
-		}
-	}
+	// Assert expected human output is made
+	checkGoldenReferenceHumanOutput(t, out, fixture)
 
+	// Assert the migrated state contains expected content
 	b, err := p.MockStates.Read("test_store", "default")
 	if err != nil {
 		t.Fatalf("unable to find migrated state in mock provider: %s", err)
@@ -432,7 +427,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 		}
 	}
 	t.Run("source provider already in the dependency lock file, destination is not", func(t *testing.T) {
-		wd := tempWorkingDirFixture(t, "state-store-changed/provider-used")
+		fixture := "state-store-changed/provider-used"
+		wd := tempWorkingDirFixture(t, fixture)
 		t.Chdir(wd.RootModuleDir())
 
 		b, err := os.ReadFile("source-pss.tfstate")
@@ -498,16 +494,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
 		}
 
-		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
-			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
-		}
-		for _, expectedMsg := range expectedMsg {
-			if !strings.Contains(out.Stdout(), expectedMsg) {
-				t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
-			}
-		}
+		// Assert expected human output is made
+		checkGoldenReferenceHumanOutput(t, out, fixture)
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
 		b, err = destinationProvider.MockStates.Read("test2_store", "default")
