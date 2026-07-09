@@ -366,6 +366,7 @@ type lifecycleActionTrigger struct {
 	TriggerIndex       int          `json:"trigger_index"`
 	ActionsIndex       int          `json:"actions_index"`
 	TriggerEvent       string       `json:"trigger_event"`
+	OnFailure          string       `json:"on_failure"`
 }
 
 type invokeActionTrigger struct{}
@@ -397,6 +398,7 @@ func NewActionStart(id terraform.HookActionIdentity) Hook {
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
 			ActionsIndex:       trigger.ActionsListIndex,
 			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+			OnFailure:          trigger.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		action.InvokeTrigger = new(invokeActionTrigger)
@@ -440,6 +442,7 @@ func NewActionProgress(id terraform.HookActionIdentity, message string) Hook {
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
 			ActionsIndex:       trigger.ActionsListIndex,
 			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+			OnFailure:          trigger.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		action.InvokeTrigger = new(invokeActionTrigger)
@@ -481,6 +484,7 @@ func NewActionComplete(id terraform.HookActionIdentity) Hook {
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
 			ActionsIndex:       trigger.ActionsListIndex,
 			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+			OnFailure:          trigger.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		action.InvokeTrigger = new(invokeActionTrigger)
@@ -524,6 +528,7 @@ func NewActionErrored(id terraform.HookActionIdentity, err error) Hook {
 			TriggerIndex:       trigger.ActionTriggerBlockIndex,
 			ActionsIndex:       trigger.ActionsListIndex,
 			TriggerEvent:       trigger.ActionTriggerEvent.String(),
+			OnFailure:          trigger.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		action.InvokeTrigger = new(invokeActionTrigger)

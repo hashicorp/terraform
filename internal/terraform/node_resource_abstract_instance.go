@@ -3194,6 +3194,7 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 				if diags.HasErrors() {
 					continue
 				}
+				ai.ActionTrigger.(*plans.ResourceActionTrigger).ActionOnFailure = trigger.config.OnFailure
 
 				if deferred {
 					log.Printf("[DEBUG] NodePlannableResourceInstance %s is being deferred due to action %s", n.Addr, action.actionNode.Addr)
@@ -3344,7 +3345,7 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true)
 
 		// a full destroy walk must never be blocked
-		onFailureContinue := op == walkDestroy || n.getApplyActionTriggerBlock(trigger).OnFailure == configs.ActionOnFailureContinue
+		onFailureContinue := op == walkDestroy || trigger.ActionInvocation.ActionTrigger.OnFailure() == configs.ActionOnFailureContinue
 
 		if onFailureContinue {
 			invokeDiags = tfdiags.OverrideAll(invokeDiags, tfdiags.Warning, nil)
@@ -3370,7 +3371,7 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 			continue
 		}
 
-		onFailure := n.getApplyActionTriggerBlock(trigger).OnFailure
+		onFailure := trigger.ActionInvocation.ActionTrigger.OnFailure()
 
 		condOK, condDiags := n.evalApplyActionCondition(ctx, trigger, repData)
 		diags = diags.Append(condDiags)

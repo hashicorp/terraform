@@ -3719,6 +3719,44 @@ resource "test_object" "a" {
 				expectPlanActionCalled: true,
 			},
 
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"old name"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: true,
+			},
+
 			"non-boolean condition": {
 				module: map[string]string{
 					"main.tf": `
