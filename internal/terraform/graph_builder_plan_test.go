@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -227,6 +228,54 @@ output "value" {
 		testGraphHappensBefore(t, g, "module.child.data.aws_data_source.a (expand)", "(evaluate policies)")
 		testGraphHappensBefore(t, g, "module.child (close)", "(evaluate policies)")
 	})
+}
+
+// TestPlanGraphBuilder_QueryPlan_PolicyWiring verifies that when queryPlan == true
+// and a PolicyClient is set, policyEvalTransformer wires nodePolicyEval to depend
+// only on list block nodes.
+func TestPlanGraphBuilder_QueryPlan_PolicyWiring(t *testing.T) {
+	provider := mockProviderWithResourceTypeSchema("test_resource", simpleTestSchema())
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
+	}, nil, nil)
+
+	config := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+`,
+		"main.tfquery.hcl": `
+list "test_resource" "mylist" {
+  provider = test
+}
+`,
+	}, configs.MatchQueryFiles())
+
+	b := &PlanGraphBuilder{
+		Config:       config,
+		Plugins:      plugins,
+		PolicyClient: policy.NewTestMockClient(t),
+		queryPlan:    true,
+		Operation:    walkPlan,
+	}
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("Build failed: %s", diags.Err())
+	}
+
+	nodes := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq()).Collect()
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 nodePolicyEval node in query plan graph, got %d", len(nodes))
+	}
+
+	// The list block node must be scheduled before policy evaluation.
+	testGraphHappensBefore(t, g, "list.test_resource.mylist (expand)", "(evaluate policies)")
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
