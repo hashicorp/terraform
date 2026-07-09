@@ -11,6 +11,12 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// Message text used in human output.
+const (
+	StateMigrationStartMessage     = "[reset][bold]Migrating state from %s to %s...[reset]"
+	StateMigrationCompletedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+)
+
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
