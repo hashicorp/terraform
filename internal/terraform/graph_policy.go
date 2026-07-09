@@ -30,3 +30,10 @@ func (ps *policySubgraph) Add(node *nodeResourcePolicy) {
 
 	ps.graph.Add(node)
 }
+
+func (ps *policySubgraph) AddQuery(node *nodeQueryResourcePolicy) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	ps.graph.Add(node)
+}
