@@ -127,11 +127,11 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 		},
 		{ // set lock file paths outside of automation
 			rawArgs: []string{
-				"-source-provider-lock-file", "/src/.terraform.lock.hcl",
-				"-destination-provider-lock-file", "/dst/.terraform.lock.hcl",
+				"-source-provider-lock-file", userLockFilePath,
+				"-destination-provider-lock-file", invalidLockFilePath,
 			},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
+				SourceLockFilePath:      userLockFilePath,
 				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            true,
@@ -147,6 +147,12 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 					tfdiags.Error,
 					"Conflicting command-line flags provided",
 					"-destination-provider-lock-file cannot be used outside of automation (with -input=true)",
+				),
+				// Diagnostic about invalid lock file regardless of this flag not being allow
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid destination-provider-lock-file",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
 				),
 			},
 		},
