@@ -354,6 +354,55 @@ func (ActionTriggerEvent) EnumDescriptor() ([]byte, []int) {
 	return file_planfile_proto_rawDescGZIP(), []int{4}
 }
 
+type ActionOnFailure int32
+
+const (
+	ActionOnFailure_ON_FAILURE_HALT     ActionOnFailure = 0
+	ActionOnFailure_ON_FAILURE_TAINT    ActionOnFailure = 1
+	ActionOnFailure_ON_FAILURE_CONTINUE ActionOnFailure = 2
+)
+
+// Enum value maps for ActionOnFailure.
+var (
+	ActionOnFailure_name = map[int32]string{
+		0: "ON_FAILURE_HALT",
+		1: "ON_FAILURE_TAINT",
+		2: "ON_FAILURE_CONTINUE",
+	}
+	ActionOnFailure_value = map[string]int32{
+		"ON_FAILURE_HALT":     0,
+		"ON_FAILURE_TAINT":    1,
+		"ON_FAILURE_CONTINUE": 2,
+	}
+)
+
+func (x ActionOnFailure) Enum() *ActionOnFailure {
+	p := new(ActionOnFailure)
+	*p = x
+	return p
+}
+
+func (x ActionOnFailure) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ActionOnFailure) Descriptor() protoreflect.EnumDescriptor {
+	return file_planfile_proto_enumTypes[5].Descriptor()
+}
+
+func (ActionOnFailure) Type() protoreflect.EnumType {
+	return &file_planfile_proto_enumTypes[5]
+}
+
+func (x ActionOnFailure) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ActionOnFailure.Descriptor instead.
+func (ActionOnFailure) EnumDescriptor() ([]byte, []int) {
+	return file_planfile_proto_rawDescGZIP(), []int{5}
+}
+
 // Status describes the status of a particular checkable object at the
 // completion of the plan.
 type CheckResults_Status int32
@@ -392,11 +441,11 @@ func (x CheckResults_Status) String() string {
 }
 
 func (CheckResults_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_planfile_proto_enumTypes[5].Descriptor()
+	return file_planfile_proto_enumTypes[6].Descriptor()
 }
 
 func (CheckResults_Status) Type() protoreflect.EnumType {
-	return &file_planfile_proto_enumTypes[5]
+	return &file_planfile_proto_enumTypes[6]
 }
 
 func (x CheckResults_Status) Number() protoreflect.EnumNumber {
@@ -447,11 +496,11 @@ func (x CheckResults_ObjectKind) String() string {
 }
 
 func (CheckResults_ObjectKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_planfile_proto_enumTypes[6].Descriptor()
+	return file_planfile_proto_enumTypes[7].Descriptor()
 }
 
 func (CheckResults_ObjectKind) Type() protoreflect.EnumType {
-	return &file_planfile_proto_enumTypes[6]
+	return &file_planfile_proto_enumTypes[7]
 }
 
 func (x CheckResults_ObjectKind) Number() protoreflect.EnumNumber {
@@ -1862,6 +1911,7 @@ type ResourceActionTrigger struct {
 	TriggerEvent            ActionTriggerEvent     `protobuf:"varint,2,opt,name=trigger_event,json=triggerEvent,proto3,enum=tfplan.ActionTriggerEvent" json:"trigger_event,omitempty"`
 	ActionTriggerBlockIndex int64                  `protobuf:"varint,3,opt,name=action_trigger_block_index,json=actionTriggerBlockIndex,proto3" json:"action_trigger_block_index,omitempty"`
 	ActionsListIndex        int64                  `protobuf:"varint,4,opt,name=actions_list_index,json=actionsListIndex,proto3" json:"actions_list_index,omitempty"`
+	OnFailure               ActionOnFailure        `protobuf:"varint,5,opt,name=on_failure,json=onFailure,proto3,enum=tfplan.ActionOnFailure" json:"on_failure,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -1922,6 +1972,13 @@ func (x *ResourceActionTrigger) GetActionsListIndex() int64 {
 		return x.ActionsListIndex
 	}
 	return 0
+}
+
+func (x *ResourceActionTrigger) GetOnFailure() ActionOnFailure {
+	if x != nil {
+		return x.OnFailure
+	}
+	return ActionOnFailure_ON_FAILURE_HALT
 }
 
 // InvokeActionTrigger indicates the action was triggered by the invoke command
@@ -2365,12 +2422,14 @@ const file_planfile_proto_rawDesc = "" +
 	"\x16sensitive_config_paths\x18\x05 \x03(\v2\f.tfplan.PathR\x14sensitiveConfigPaths\x12W\n" +
 	"\x17resource_action_trigger\x18\x06 \x01(\v2\x1d.tfplan.ResourceActionTriggerH\x00R\x15resourceActionTrigger\x12Q\n" +
 	"\x15invoke_action_trigger\x18\a \x01(\v2\x1b.tfplan.InvokeActionTriggerH\x00R\x13invokeActionTriggerB\x10\n" +
-	"\x0eaction_trigger\"\xfd\x01\n" +
+	"\x0eaction_trigger\"\xb5\x02\n" +
 	"\x15ResourceActionTrigger\x128\n" +
 	"\x18triggering_resource_addr\x18\x01 \x01(\tR\x16triggeringResourceAddr\x12?\n" +
 	"\rtrigger_event\x18\x02 \x01(\x0e2\x1a.tfplan.ActionTriggerEventR\ftriggerEvent\x12;\n" +
 	"\x1aaction_trigger_block_index\x18\x03 \x01(\x03R\x17actionTriggerBlockIndex\x12,\n" +
-	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\"I\n" +
+	"\x12actions_list_index\x18\x04 \x01(\x03R\x10actionsListIndex\x126\n" +
+	"\n" +
+	"on_failure\x18\x05 \x01(\x0e2\x17.tfplan.ActionOnFailureR\tonFailure\"I\n" +
 	"\x13InvokeActionTrigger\x122\n" +
 	"\x15calling_resource_addr\x18\x01 \x01(\tR\x13callingResourceAddr\"{\n" +
 	"\x1cResourceInstanceActionChange\x12\x12\n" +
@@ -2429,7 +2488,11 @@ const file_planfile_proto_rawDesc = "" +
 	"\x0eBEFORE_DESTROY\x10\x05\x12\x11\n" +
 	"\rAFTER_DESTROY\x10\x06\x12\n" +
 	"\n" +
-	"\x06INVOKE\x10\aB9Z7github.com/hashicorp/terraform/internal/plans/planprotob\x06proto3"
+	"\x06INVOKE\x10\a*U\n" +
+	"\x0fActionOnFailure\x12\x13\n" +
+	"\x0fON_FAILURE_HALT\x10\x00\x12\x14\n" +
+	"\x10ON_FAILURE_TAINT\x10\x01\x12\x17\n" +
+	"\x13ON_FAILURE_CONTINUE\x10\x02B9Z7github.com/hashicorp/terraform/internal/plans/planprotob\x06proto3"
 
 var (
 	file_planfile_proto_rawDescOnce sync.Once
@@ -2443,7 +2506,7 @@ func file_planfile_proto_rawDescGZIP() []byte {
 	return file_planfile_proto_rawDescData
 }
 
-var file_planfile_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_planfile_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
 var file_planfile_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_planfile_proto_goTypes = []any{
 	(Mode)(0),                              // 0: tfplan.Mode
@@ -2451,86 +2514,88 @@ var file_planfile_proto_goTypes = []any{
 	(ResourceInstanceActionReason)(0),      // 2: tfplan.ResourceInstanceActionReason
 	(DeferredReason)(0),                    // 3: tfplan.DeferredReason
 	(ActionTriggerEvent)(0),                // 4: tfplan.ActionTriggerEvent
-	(CheckResults_Status)(0),               // 5: tfplan.CheckResults.Status
-	(CheckResults_ObjectKind)(0),           // 6: tfplan.CheckResults.ObjectKind
-	(*Plan)(nil),                           // 7: tfplan.Plan
-	(*Backend)(nil),                        // 8: tfplan.Backend
-	(*StateStore)(nil),                     // 9: tfplan.StateStore
-	(*Provider)(nil),                       // 10: tfplan.Provider
-	(*Change)(nil),                         // 11: tfplan.Change
-	(*ResourceInstanceChange)(nil),         // 12: tfplan.ResourceInstanceChange
-	(*DeferredResourceInstanceChange)(nil), // 13: tfplan.DeferredResourceInstanceChange
-	(*DeferredActionInvocation)(nil),       // 14: tfplan.DeferredActionInvocation
-	(*OutputChange)(nil),                   // 15: tfplan.OutputChange
-	(*CheckResults)(nil),                   // 16: tfplan.CheckResults
-	(*FunctionCallHash)(nil),               // 17: tfplan.FunctionCallHash
-	(*DynamicValue)(nil),                   // 18: tfplan.DynamicValue
-	(*Path)(nil),                           // 19: tfplan.Path
-	(*Importing)(nil),                      // 20: tfplan.Importing
-	(*Deferred)(nil),                       // 21: tfplan.Deferred
-	(*ActionInvocationInstance)(nil),       // 22: tfplan.ActionInvocationInstance
-	(*ResourceActionTrigger)(nil),          // 23: tfplan.ResourceActionTrigger
-	(*InvokeActionTrigger)(nil),            // 24: tfplan.InvokeActionTrigger
-	(*ResourceInstanceActionChange)(nil),   // 25: tfplan.ResourceInstanceActionChange
-	nil,                                    // 26: tfplan.Plan.VariablesEntry
-	(*PlanResourceAttr)(nil),               // 27: tfplan.Plan.resource_attr
-	(*CheckResults_ObjectResult)(nil),      // 28: tfplan.CheckResults.ObjectResult
-	(*Path_Step)(nil),                      // 29: tfplan.Path.Step
+	(ActionOnFailure)(0),                   // 5: tfplan.ActionOnFailure
+	(CheckResults_Status)(0),               // 6: tfplan.CheckResults.Status
+	(CheckResults_ObjectKind)(0),           // 7: tfplan.CheckResults.ObjectKind
+	(*Plan)(nil),                           // 8: tfplan.Plan
+	(*Backend)(nil),                        // 9: tfplan.Backend
+	(*StateStore)(nil),                     // 10: tfplan.StateStore
+	(*Provider)(nil),                       // 11: tfplan.Provider
+	(*Change)(nil),                         // 12: tfplan.Change
+	(*ResourceInstanceChange)(nil),         // 13: tfplan.ResourceInstanceChange
+	(*DeferredResourceInstanceChange)(nil), // 14: tfplan.DeferredResourceInstanceChange
+	(*DeferredActionInvocation)(nil),       // 15: tfplan.DeferredActionInvocation
+	(*OutputChange)(nil),                   // 16: tfplan.OutputChange
+	(*CheckResults)(nil),                   // 17: tfplan.CheckResults
+	(*FunctionCallHash)(nil),               // 18: tfplan.FunctionCallHash
+	(*DynamicValue)(nil),                   // 19: tfplan.DynamicValue
+	(*Path)(nil),                           // 20: tfplan.Path
+	(*Importing)(nil),                      // 21: tfplan.Importing
+	(*Deferred)(nil),                       // 22: tfplan.Deferred
+	(*ActionInvocationInstance)(nil),       // 23: tfplan.ActionInvocationInstance
+	(*ResourceActionTrigger)(nil),          // 24: tfplan.ResourceActionTrigger
+	(*InvokeActionTrigger)(nil),            // 25: tfplan.InvokeActionTrigger
+	(*ResourceInstanceActionChange)(nil),   // 26: tfplan.ResourceInstanceActionChange
+	nil,                                    // 27: tfplan.Plan.VariablesEntry
+	(*PlanResourceAttr)(nil),               // 28: tfplan.Plan.resource_attr
+	(*CheckResults_ObjectResult)(nil),      // 29: tfplan.CheckResults.ObjectResult
+	(*Path_Step)(nil),                      // 30: tfplan.Path.Step
 }
 var file_planfile_proto_depIdxs = []int32{
 	0,  // 0: tfplan.Plan.ui_mode:type_name -> tfplan.Mode
-	26, // 1: tfplan.Plan.variables:type_name -> tfplan.Plan.VariablesEntry
-	12, // 2: tfplan.Plan.resource_changes:type_name -> tfplan.ResourceInstanceChange
-	12, // 3: tfplan.Plan.resource_drift:type_name -> tfplan.ResourceInstanceChange
-	13, // 4: tfplan.Plan.deferred_changes:type_name -> tfplan.DeferredResourceInstanceChange
-	14, // 5: tfplan.Plan.deferred_action_invocations:type_name -> tfplan.DeferredActionInvocation
-	15, // 6: tfplan.Plan.output_changes:type_name -> tfplan.OutputChange
-	16, // 7: tfplan.Plan.check_results:type_name -> tfplan.CheckResults
-	22, // 8: tfplan.Plan.action_invocations:type_name -> tfplan.ActionInvocationInstance
-	8,  // 9: tfplan.Plan.backend:type_name -> tfplan.Backend
-	9,  // 10: tfplan.Plan.state_store:type_name -> tfplan.StateStore
-	27, // 11: tfplan.Plan.relevant_attributes:type_name -> tfplan.Plan.resource_attr
-	17, // 12: tfplan.Plan.function_results:type_name -> tfplan.FunctionCallHash
-	18, // 13: tfplan.Backend.config:type_name -> tfplan.DynamicValue
-	18, // 14: tfplan.StateStore.config:type_name -> tfplan.DynamicValue
-	10, // 15: tfplan.StateStore.provider:type_name -> tfplan.Provider
-	18, // 16: tfplan.Provider.config:type_name -> tfplan.DynamicValue
+	27, // 1: tfplan.Plan.variables:type_name -> tfplan.Plan.VariablesEntry
+	13, // 2: tfplan.Plan.resource_changes:type_name -> tfplan.ResourceInstanceChange
+	13, // 3: tfplan.Plan.resource_drift:type_name -> tfplan.ResourceInstanceChange
+	14, // 4: tfplan.Plan.deferred_changes:type_name -> tfplan.DeferredResourceInstanceChange
+	15, // 5: tfplan.Plan.deferred_action_invocations:type_name -> tfplan.DeferredActionInvocation
+	16, // 6: tfplan.Plan.output_changes:type_name -> tfplan.OutputChange
+	17, // 7: tfplan.Plan.check_results:type_name -> tfplan.CheckResults
+	23, // 8: tfplan.Plan.action_invocations:type_name -> tfplan.ActionInvocationInstance
+	9,  // 9: tfplan.Plan.backend:type_name -> tfplan.Backend
+	10, // 10: tfplan.Plan.state_store:type_name -> tfplan.StateStore
+	28, // 11: tfplan.Plan.relevant_attributes:type_name -> tfplan.Plan.resource_attr
+	18, // 12: tfplan.Plan.function_results:type_name -> tfplan.FunctionCallHash
+	19, // 13: tfplan.Backend.config:type_name -> tfplan.DynamicValue
+	19, // 14: tfplan.StateStore.config:type_name -> tfplan.DynamicValue
+	11, // 15: tfplan.StateStore.provider:type_name -> tfplan.Provider
+	19, // 16: tfplan.Provider.config:type_name -> tfplan.DynamicValue
 	1,  // 17: tfplan.Change.action:type_name -> tfplan.Action
-	18, // 18: tfplan.Change.values:type_name -> tfplan.DynamicValue
-	19, // 19: tfplan.Change.before_sensitive_paths:type_name -> tfplan.Path
-	19, // 20: tfplan.Change.after_sensitive_paths:type_name -> tfplan.Path
-	20, // 21: tfplan.Change.importing:type_name -> tfplan.Importing
-	18, // 22: tfplan.Change.before_identity:type_name -> tfplan.DynamicValue
-	18, // 23: tfplan.Change.after_identity:type_name -> tfplan.DynamicValue
-	11, // 24: tfplan.ResourceInstanceChange.change:type_name -> tfplan.Change
-	19, // 25: tfplan.ResourceInstanceChange.required_replace:type_name -> tfplan.Path
+	19, // 18: tfplan.Change.values:type_name -> tfplan.DynamicValue
+	20, // 19: tfplan.Change.before_sensitive_paths:type_name -> tfplan.Path
+	20, // 20: tfplan.Change.after_sensitive_paths:type_name -> tfplan.Path
+	21, // 21: tfplan.Change.importing:type_name -> tfplan.Importing
+	19, // 22: tfplan.Change.before_identity:type_name -> tfplan.DynamicValue
+	19, // 23: tfplan.Change.after_identity:type_name -> tfplan.DynamicValue
+	12, // 24: tfplan.ResourceInstanceChange.change:type_name -> tfplan.Change
+	20, // 25: tfplan.ResourceInstanceChange.required_replace:type_name -> tfplan.Path
 	2,  // 26: tfplan.ResourceInstanceChange.action_reason:type_name -> tfplan.ResourceInstanceActionReason
-	21, // 27: tfplan.DeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
-	12, // 28: tfplan.DeferredResourceInstanceChange.change:type_name -> tfplan.ResourceInstanceChange
-	21, // 29: tfplan.DeferredActionInvocation.deferred:type_name -> tfplan.Deferred
-	22, // 30: tfplan.DeferredActionInvocation.action_invocation:type_name -> tfplan.ActionInvocationInstance
-	11, // 31: tfplan.OutputChange.change:type_name -> tfplan.Change
-	6,  // 32: tfplan.CheckResults.kind:type_name -> tfplan.CheckResults.ObjectKind
-	5,  // 33: tfplan.CheckResults.status:type_name -> tfplan.CheckResults.Status
-	28, // 34: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
-	29, // 35: tfplan.Path.steps:type_name -> tfplan.Path.Step
-	18, // 36: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
+	22, // 27: tfplan.DeferredResourceInstanceChange.deferred:type_name -> tfplan.Deferred
+	13, // 28: tfplan.DeferredResourceInstanceChange.change:type_name -> tfplan.ResourceInstanceChange
+	22, // 29: tfplan.DeferredActionInvocation.deferred:type_name -> tfplan.Deferred
+	23, // 30: tfplan.DeferredActionInvocation.action_invocation:type_name -> tfplan.ActionInvocationInstance
+	12, // 31: tfplan.OutputChange.change:type_name -> tfplan.Change
+	7,  // 32: tfplan.CheckResults.kind:type_name -> tfplan.CheckResults.ObjectKind
+	6,  // 33: tfplan.CheckResults.status:type_name -> tfplan.CheckResults.Status
+	29, // 34: tfplan.CheckResults.objects:type_name -> tfplan.CheckResults.ObjectResult
+	30, // 35: tfplan.Path.steps:type_name -> tfplan.Path.Step
+	19, // 36: tfplan.Importing.identity:type_name -> tfplan.DynamicValue
 	3,  // 37: tfplan.Deferred.reason:type_name -> tfplan.DeferredReason
-	18, // 38: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
-	19, // 39: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
-	23, // 40: tfplan.ActionInvocationInstance.resource_action_trigger:type_name -> tfplan.ResourceActionTrigger
-	24, // 41: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
+	19, // 38: tfplan.ActionInvocationInstance.config_value:type_name -> tfplan.DynamicValue
+	20, // 39: tfplan.ActionInvocationInstance.sensitive_config_paths:type_name -> tfplan.Path
+	24, // 40: tfplan.ActionInvocationInstance.resource_action_trigger:type_name -> tfplan.ResourceActionTrigger
+	25, // 41: tfplan.ActionInvocationInstance.invoke_action_trigger:type_name -> tfplan.InvokeActionTrigger
 	4,  // 42: tfplan.ResourceActionTrigger.trigger_event:type_name -> tfplan.ActionTriggerEvent
-	11, // 43: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
-	18, // 44: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
-	19, // 45: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
-	5,  // 46: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
-	18, // 47: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	5,  // 43: tfplan.ResourceActionTrigger.on_failure:type_name -> tfplan.ActionOnFailure
+	12, // 44: tfplan.ResourceInstanceActionChange.change:type_name -> tfplan.Change
+	19, // 45: tfplan.Plan.VariablesEntry.value:type_name -> tfplan.DynamicValue
+	20, // 46: tfplan.Plan.resource_attr.attr:type_name -> tfplan.Path
+	6,  // 47: tfplan.CheckResults.ObjectResult.status:type_name -> tfplan.CheckResults.Status
+	19, // 48: tfplan.Path.Step.element_key:type_name -> tfplan.DynamicValue
+	49, // [49:49] is the sub-list for method output_type
+	49, // [49:49] is the sub-list for method input_type
+	49, // [49:49] is the sub-list for extension type_name
+	49, // [49:49] is the sub-list for extension extendee
+	0,  // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_planfile_proto_init() }
@@ -2551,7 +2616,7 @@ func file_planfile_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_planfile_proto_rawDesc), len(file_planfile_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      8,
 			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,

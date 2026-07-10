@@ -45,6 +45,8 @@ type ActionTrigger interface {
 	Equals(to ActionTrigger) bool
 
 	Less(other ActionTrigger) bool
+
+	OnFailure() configs.ActionOnFailure
 }
 
 var (
@@ -62,6 +64,8 @@ type ResourceActionTrigger struct {
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
 	ActionsListIndex int
+	// ActionOnFailure indicates the configured on_failure mode
+	ActionOnFailure configs.ActionOnFailure
 }
 
 func (t *ResourceActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
@@ -99,6 +103,10 @@ func (t *ResourceActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionTriggerBlockIndex == o.ActionTriggerBlockIndex &&
 			t.ActionsListIndex < o.ActionsListIndex &&
 			t.ActionTriggerEvent < o.ActionTriggerEvent)
+}
+
+func (t *ResourceActionTrigger) OnFailure() configs.ActionOnFailure {
+	return t.ActionOnFailure
 }
 
 // InvokeActionTrigger contains the configuration for an action triggered
@@ -144,6 +152,10 @@ func (t *InvokeActionTrigger) Less(other ActionTrigger) bool {
 	return false
 }
 
+func (t *InvokeActionTrigger) OnFailure() configs.ActionOnFailure {
+	return configs.ActionOnFailureHalt
+}
+
 // Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
@@ -176,7 +188,6 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 	}
 
 	return ret, nil
-
 }
 
 type ActionInvocationInstances []*ActionInvocationInstance

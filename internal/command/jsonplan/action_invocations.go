@@ -47,6 +47,7 @@ type LifecycleActionTrigger struct {
 	ActionTriggerEvent        string `json:"action_trigger_event,omitempty"`
 	ActionTriggerBlockIndex   int    `json:"action_trigger_block_index"`
 	ActionsListIndex          int    `json:"actions_list_index"`
+	OnFailure                 string `json:"on_failure"`
 }
 
 type InvokeActionTrigger struct {
@@ -138,6 +139,7 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 			ActionTriggerEvent:        at.TriggerEvent().String(),
 			ActionTriggerBlockIndex:   at.ActionTriggerBlockIndex,
 			ActionsListIndex:          at.ActionsListIndex,
+			OnFailure:                 at.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		ai.InvokeActionTrigger = &InvokeActionTrigger{}

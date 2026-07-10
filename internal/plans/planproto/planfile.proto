@@ -461,6 +461,12 @@ enum ActionTriggerEvent {
     INVOKE = 7;
 }
 
+enum ActionOnFailure {
+    ON_FAILURE_HALT = 0;
+    ON_FAILURE_TAINT = 1;
+    ON_FAILURE_CONTINUE = 2;
+}
+
 // ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
 message ActionInvocationInstance {
     // addr is a string representation of the action invocation instance address of this change
@@ -490,6 +496,7 @@ message ResourceActionTrigger {
   ActionTriggerEvent trigger_event = 2;
   int64 action_trigger_block_index = 3;
   int64 actions_list_index = 4;
+  ActionOnFailure on_failure = 5;
 }
 
 // InvokeActionTrigger indicates the action was triggered by the invoke command

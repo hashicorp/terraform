@@ -1370,11 +1370,23 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		default:
 			return nil, fmt.Errorf("invalid action trigger event %s", at.ResourceActionTrigger.TriggerEvent)
 		}
+
+		var onFailure configs.ActionOnFailure
+		switch at.ResourceActionTrigger.OnFailure {
+		case planproto.ActionOnFailure_ON_FAILURE_HALT:
+			onFailure = configs.ActionOnFailureHalt
+		case planproto.ActionOnFailure_ON_FAILURE_TAINT:
+			onFailure = configs.ActionOnFailureTaint
+		case planproto.ActionOnFailure_ON_FAILURE_CONTINUE:
+			onFailure = configs.ActionOnFailureContinue
+		}
+
 		ret.ActionTrigger = &plans.ResourceActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddrs,
 			ActionTriggerBlockIndex: int(at.ResourceActionTrigger.ActionTriggerBlockIndex),
 			ActionsListIndex:        int(at.ResourceActionTrigger.ActionsListIndex),
 			ActionTriggerEvent:      ate,
+			ActionOnFailure:         onFailure,
 		}
 	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
 		var triggeringResourceAddr *addrs.AbsResourceInstance
@@ -1444,12 +1456,24 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		case configs.AfterDestroy:
 			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
 		}
+
+		var onFailure planproto.ActionOnFailure
+		switch at.ActionOnFailure {
+		case configs.ActionOnFailureHalt:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_HALT
+		case configs.ActionOnFailureTaint:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_TAINT
+		case configs.ActionOnFailureContinue:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_CONTINUE
+		}
+
 		ret.ActionTrigger = &planproto.ActionInvocationInstance_ResourceActionTrigger{
 			ResourceActionTrigger: &planproto.ResourceActionTrigger{
 				TriggerEvent:            triggerEvent,
 				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
 				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
 				ActionsListIndex:        int64(at.ActionsListIndex),
+				OnFailure:               onFailure,
 			},
 		}
 	case *plans.InvokeActionTrigger:
