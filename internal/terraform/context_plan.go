@@ -777,6 +777,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, nil, diags
 	}
 
+	if opts.PreDestroyRefresh {
+		// The pre-destroy refresh walk is an internal implementation detail used
+		// only to refresh state before producing the real destroy plan. Policy
+		// results should come only from the actual destroy plan walk.
+		opts.PolicyClient = nil
+	}
+
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
