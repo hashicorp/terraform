@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
@@ -825,6 +826,17 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 		if eq == -1 {
 			// The value is interpreted as a filename.
+			filename := filepath.Base(item.Value)
+			if filename == arguments.DefaultVarsFilename ||
+				filename == arguments.DefaultVarsFilename+".json" ||
+				strings.HasSuffix(filename, ".auto.tfvars") ||
+				strings.HasSuffix(filename, ".auto.tfvars.json") {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Unexpected backend configuration file",
+					fmt.Sprintf("The file %q is automatically loaded by Terraform as a root module variable values file. Using the same file for backend configuration may cause its contents to be interpreted unexpectedly.\n\nTo avoid this ambiguity, use the documented naming convention \"*.tfbackend\" for backend configuration files.", item.Value),
+				))
+			}
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
 			if fileDiags.HasErrors() {

@@ -993,6 +993,90 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigAutoLoadedVarFileWarning(t *testing.T) {
+	tests := map[string]struct {
+		filename    string
+		contents    string
+		wantWarning bool
+	}{
+		"terraform.tfvars": {
+			filename:    "terraform.tfvars",
+			contents:    `path = "hello"`,
+			wantWarning: true,
+		},
+		"terraform.tfvars.json": {
+			filename:    "terraform.tfvars.json",
+			contents:    `{"path":"hello"}`,
+			wantWarning: true,
+		},
+		"auto.tfvars": {
+			filename:    "example.auto.tfvars",
+			contents:    `path = "hello"`,
+			wantWarning: true,
+		},
+		"auto.tfvars.json": {
+			filename:    "example.auto.tfvars.json",
+			contents:    `{"path":"hello"}`,
+			wantWarning: true,
+		},
+		"regular.tfvars": {
+			filename: "backend.tfvars",
+			contents: `path = "hello"`,
+		},
+		"tfbackend": {
+			filename: "config.local.tfbackend",
+			contents: `path = "hello"`,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath("init-backend-config-file"), td)
+			t.Chdir(td)
+
+			if err := os.WriteFile(test.filename, []byte(test.contents), 0644); err != nil {
+				t.Fatalf("failed to write backend configuration file: %s", err)
+			}
+
+			ui := new(cli.MockUi)
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+				},
+			}
+
+			code := c.Run([]string{fmt.Sprintf("-backend-config=%s", test.filename)})
+			output := done(t)
+			if code != 0 {
+				t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+			}
+
+			got := output.All()
+			const warningSummary = "Unexpected backend configuration file"
+			if !test.wantWarning {
+				if strings.Contains(got, warningSummary) {
+					t.Fatalf("unexpected warning in output:\n%s", got)
+				}
+				state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+				if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
+					t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			for _, want := range []string{warningSummary, test.filename, "root module variable values file", "*.tfbackend"} {
+				if !strings.Contains(got, want) {
+					t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestInit_backendReconfigure(t *testing.T) {
 	// Create a temporary working directory and copy in test fixtures
 	td := t.TempDir()

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'init: Warn when a backend configuration file uses a name reserved for automatically-loaded root module variable values.'
+time: 2026-07-10T00:00:00Z
+custom:
+  Issue: "38720"
