@@ -30,18 +30,17 @@ type StateMigrate struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	migrate := &StateMigrate{
-		ViewType: ViewHuman,
-	}
+	migrate := &StateMigrate{}
 
 	var srcLockFilePath, dstLockFilePath string
-	var upgrade, inputEnabled, forceCopy bool
+	var upgrade, inputEnabled, forceCopy, json bool
 	cmdFlags := defaultFlagSet("state migrate")
 	cmdFlags.StringVar(&srcLockFilePath, "source-provider-lock-file", "", "Path to a provider lock file for the source provider.")
 	cmdFlags.StringVar(&dstLockFilePath, "destination-provider-lock-file", "", "Path to a provider lock file for the destination provider.")
 	cmdFlags.BoolVar(&upgrade, "upgrade", false, "Trigger upgrade of the provider.")
 	cmdFlags.BoolVar(&inputEnabled, "input", true, "Enable input for interactive prompts.")
 	cmdFlags.BoolVar(&forceCopy, "force-copy", false, "Suppress and auto-approve prompts about copying state data. Enables state migrations when interactive prompts are disabled via -input=false.")
+	cmdFlags.BoolVar(&json, "json", false, "Enable JSON output.")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -73,6 +72,14 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 			))
 		}
 
+		// JSON output is only to be used in automation, as input cannot be received
+		if json {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting command-line flags provided",
+				"-json cannot be used outside of automation (with -input=true)",
+			))
+		}
 	}
 
 	if srcLockFilePath == "" {
@@ -125,6 +132,12 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 		))
 	} else {
 		migrate.DestinationLockFilePath = dstLockFilePath
+	}
+
+	if json {
+		migrate.ViewType = ViewJSON
+	} else {
+		migrate.ViewType = ViewHuman
 	}
 
 	return migrate, diags

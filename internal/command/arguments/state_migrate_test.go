@@ -47,6 +47,7 @@ func TestStateMigrateArgs_valid(t *testing.T) {
 				"-source-provider-lock-file", userLockFilePath,
 				"-destination-provider-lock-file", userLockFilePath,
 				"-upgrade",
+				"-json",
 				"-input=false",
 			},
 			expectedArgs: &StateMigrate{
@@ -54,7 +55,7 @@ func TestStateMigrateArgs_valid(t *testing.T) {
 				DestinationLockFilePath: userLockFilePath,
 				Upgrade:                 true,
 				InputEnabled:            false,
-				ViewType:                ViewHuman,
+				ViewType:                ViewJSON,
 			},
 		},
 	}
@@ -153,6 +154,25 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 					tfdiags.Error,
 					"Invalid destination-provider-lock-file",
 					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
+				),
+			},
+		},
+		{ // JSON output outside of automation
+			rawArgs: []string{
+				"-json",
+			},
+			expectedArgs: &StateMigrate{
+				SourceLockFilePath:      ".terraform.lock.hcl",
+				DestinationLockFilePath: ".terraform.lock.hcl",
+				Upgrade:                 false,
+				InputEnabled:            true,
+				ViewType:                ViewJSON,
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Conflicting command-line flags provided",
+					"-json cannot be used outside of automation (with -input=true)",
 				),
 			},
 		},
