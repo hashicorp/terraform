@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -180,6 +181,85 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 	}
 }
 
+func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, currentAddr addrs.AbsResourceInstance, currentAttrs cty.Value) func(context.Context, string, []callback.RelatedAttributePair) ([]cty.Value, bool, error) {
+	return func(_ context.Context, target string, pairs []callback.RelatedAttributePair) ([]cty.Value, bool, error) {
+		found := make([]cty.Value, 0)
+		partial := false
+
+		// Consider an example where the terraform config is:
+		// resource "aws_s3_bucket" "example" {
+		//   bucket = "my-bucket"
+		// }
+		// resource "aws_s3_bucket_acl" "example" {
+		//   bucket = aws_s3_bucket.example.id
+		// }
+		// and the related attribute pair is
+		// { sourceAttribute: "id", relatedAttribute: "bucket" }
+		config.DeepEach(func(cfg *configs.Config) {
+			for _, resource := range cfg.Module.ManagedResources {
+				if resource.Type != target {
+					continue
+				}
+				relatedAddr := resource.Addr().InModule(cfg.Path)
+
+				// Skip the resource currently under evaluation, i.e aws_s3_bucket.example
+				if relatedAddr.Equal(currentAddr.ConfigResource()) {
+					continue
+				}
+
+				// Deferred candidates make the overall answer incomplete.
+				if ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{relatedAddr}) {
+					partial = true
+					continue
+				}
+
+				relatedAttrs, _ := resource.Config.JustAttributes()
+
+				var resourcesSeq iter.Seq[cty.Value]
+				if walkOperation == walkApply {
+					state := ctx.State()
+					resourceSchema := schema.SchemaForResourceAddr(relatedAddr.Resource)
+					// During apply, read the matching objects from state.
+					resourcesSeq = states.ReadEachConfigResourceInstance(state, relatedAddr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+						if inst.Current == nil {
+							return cty.NilVal, false
+						}
+						decoded, err := inst.Current.Decode(resourceSchema)
+						if err != nil || decoded == nil {
+							return cty.NilVal, false
+						}
+						return decoded.Value, true
+					})
+				} else {
+					// During plan, return the matching planned objects.
+					resourcesSeq = func(yield func(cty.Value) bool) {
+						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), relatedAddr) {
+							yield(change.After)
+						}
+					}
+				}
+
+				// If the current iteration is for aws_s3_bucket_acl.example, we will
+				// check for the given related attribute pair to match aws_s3_bucket.example.
+				// We do that by checking if the related attribute (e.g. bucket) is a literal value
+				// or a simple traversal. If it is a literal value, we check if it matches the source attribute
+				// in aws_s3_bucket.example.
+				// If it is a traversal, we check if the traversal points to the source attribute.
+				for resourceValue := range resourcesSeq {
+					matched := relatedResourceMatchesPairs(relatedAttrs, currentAddr, resourceValue, currentAttrs, pairs)
+					if matched.IsWhollyKnown() && matched.True() {
+						resourceValue, _ = resourceValue.UnmarkDeep()
+						found = append(found, resourceValue)
+					}
+					partial = partial || !matched.IsWhollyKnown()
+				}
+			}
+		})
+
+		return found, partial, nil
+	}
+}
+
 // resourceMatchesFilter returns whether the given resource matches the given filter attributes and/or if the filter attributes are unknown for the resource.
 func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block, filterAttrs map[string]cty.Value, resource cty.Value) (matches, unknown bool) {
 	if resource.IsNull() {
@@ -221,4 +301,95 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 	}
 
 	return true, false
+}
+
+func relatedResourceMatchesPairs(relatedAttrs hcl.Attributes, current addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, pairs []callback.RelatedAttributePair) cty.Value {
+	// we will return unknown if we cannot determine whether the resource matches
+	unknown := cty.UnknownVal(cty.Bool)
+
+	for _, pair := range pairs {
+		// If the current resource is null or does not have the source attribute,
+		// we cannot compare the literal to the current value.
+		if currentValue.IsNull() || !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SourceAttribute) {
+			// TODO: Is this unknown or false?
+			return unknown
+		}
+
+		// The changeset supercedes config, so we check it first.
+		// If we have enough information to verify equality, we can compare the related attribute
+		// to the source attribute directly, without re-evaluating the related attribute expression.
+		if relatedValue.Type().HasAttribute(pair.RelatedAttribute) {
+			relatedValue := relatedValue.GetAttr(pair.RelatedAttribute)
+			relatedValue, _ = relatedValue.UnmarkDeep()
+			sourceValue := currentValue.GetAttr(pair.SourceAttribute)
+			sourceValue, _ = sourceValue.UnmarkDeep()
+			equals := relatedValue.Equals(sourceValue)
+			if equals.IsKnown() {
+				if equals.False() { // we can return early if the values do not match
+					return cty.False
+				}
+
+				// otherwise, the values match, so we continue to the next pair
+				continue
+			}
+		}
+
+		relatedAttr, ok := relatedAttrs[pair.RelatedAttribute]
+		if !ok {
+			// TODO: What if the attribute is a block attribute?
+			panic("related attribute not found")
+		}
+
+		// We check that the related attribute expression is a plain traversal
+		// that refers to the source attribute in the current resource.
+		// Anything more complex than a plain traversal cannot be compared structurally,
+		// so we assume it to be unknown.
+		traversal, hclDiags := hcl.AbsTraversalForExpr(relatedAttr.Expr)
+		if hclDiags.HasErrors() {
+			log.Printf("[TRACE] invalid traversal: %s", hclDiags.Error())
+			return unknown
+		}
+
+		ref, diags := addrs.ParseRef(traversal)
+		if diags.HasErrors() {
+			log.Printf("[TRACE] invalid reference: %s", diags.Err())
+			return unknown
+		}
+
+		// compare the reference in the traversal to the source reference
+		sourceRef := &addrs.Reference{
+			Subject:   current.Resource,
+			Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
+		}
+		if !equalRef(sourceRef, ref) {
+			return unknown
+		}
+	}
+
+	return cty.True
+}
+
+func equalRef(r *addrs.Reference, other *addrs.Reference) bool {
+	if !addrs.Equivalent(r.Subject, other.Subject) {
+		return false
+	}
+	if len(r.Remaining) != len(other.Remaining) {
+		return false
+	}
+	for i := range r.Remaining {
+		ref := r.Remaining[i]
+		otherRef := other.Remaining[i]
+		refAttr, ok := ref.(hcl.TraverseAttr)
+		if !ok {
+			return false
+		}
+		otherRefAttr, ok := otherRef.(hcl.TraverseAttr)
+		if !ok {
+			return false
+		}
+		if refAttr.Name != otherRefAttr.Name {
+			return false
+		}
+	}
+	return true
 }

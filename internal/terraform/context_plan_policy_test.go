@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -2188,6 +2189,438 @@ func TestContext2Plan_PolicyCallback(t *testing.T) {
 		if len(cr.filteredResults) != filteredCount {
 			t.Errorf("evaluation[%s]: expected filtered count %d, got %d", ami, filteredCount, len(cr.filteredResults))
 		}
+	}
+}
+
+func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		config      string
+		pairs       []callback.RelatedAttributePair
+		wantRelated []string
+		wantPartial bool
+	}{
+		"direct traversal with pair conjunction": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			sensitive_value = "west"
+			random          = "source"
+		}
+
+		resource "test_resource" "direct" {
+			value           = test_resource.source.id
+			sensitive_value = test_resource.source.sensitive_value
+			random          = "direct"
+		}
+
+		resource "test_resource" "mismatch" {
+			value           = test_resource.source.id
+			sensitive_value = "east"
+			random          = "mismatch"
+		}
+		`,
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+				{SourceAttribute: "sensitive_value", RelatedAttribute: "sensitive_value"},
+			},
+			wantRelated: []string{"direct"},
+			wantPartial: false,
+		},
+		"literal static equality": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			value  = "literal-source"
+			random = "source"
+		}
+
+		resource "test_resource" "literal" {
+			value  = "literal-source"
+			random = "literal"
+		}
+		`,
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "value", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"literal"},
+			wantPartial: false,
+		},
+		"indirect local reference is partial": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		locals {
+			source_id = test_resource.source.id
+		}
+
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		resource "test_resource" "indirect" {
+			value  = local.source_id
+			random = "indirect"
+		}
+		`,
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{},
+			wantPartial: true,
+		},
+		"known match with indeterminate candidate returns partial": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		locals {
+			source_id = test_resource.source.id
+		}
+
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		resource "test_resource" "direct" {
+			value  = test_resource.source.id
+			random = "direct"
+		}
+
+		resource "test_resource" "indirect" {
+			value  = local.source_id
+			random = "indirect"
+		}
+		`,
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"direct"},
+			wantPartial: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			mod := testModuleInline(t, map[string]string{
+				"main.tf": tc.config,
+				"main.tfpolicy.hcl": `
+					resource_policy "test_resource" "policy_name" {
+						enforce {
+							condition = true
+						}
+					}
+				`,
+			})
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+
+			policyClient := policy.NewTestMockClient(t)
+			var mu sync.Mutex
+			callbackCalled := false
+			gotRelatedRandom := make([]string, 0)
+			gotPartial := false
+
+			policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				if req.Target != "test_resource" {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+				if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				random := req.Attrs.Raw.GetAttr("random")
+				if random.IsNull() || !random.IsKnown() || random.AsString() != "source" {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				if req.Callbacks.RelatedResources == nil {
+					t.Errorf("RelatedResources callback was nil")
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				related, partial, err := req.Callbacks.RelatedResources(t.Context(), "test_resource", tc.pairs)
+				if err != nil {
+					t.Errorf("RelatedResources callback failed: %v", err)
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				relatedRandom := make([]string, 0, len(related))
+				for _, result := range related {
+					if result.Type().HasAttribute("random") {
+						attr := result.GetAttr("random")
+						if attr.IsKnown() && !attr.IsNull() {
+							relatedRandom = append(relatedRandom, attr.AsString())
+						}
+					}
+				}
+				sort.Strings(relatedRandom)
+
+				mu.Lock()
+				callbackCalled = true
+				gotPartial = partial
+				gotRelatedRandom = relatedRandom
+				mu.Unlock()
+
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			h := &testHook{}
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+				Hooks: []Hook{h},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: testInputValuesUnset(mod.Module.Variables),
+				PolicyClient: policyClient,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range h.PolicyResults {
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
+			}
+			tfdiags.AssertNoDiagnostics(t, policyDiags)
+
+			mu.Lock()
+			defer mu.Unlock()
+			if !callbackCalled {
+				t.Fatal("expected RelatedResources callback to be called for source resource")
+			}
+
+			wantRelatedRandom := append([]string{}, tc.wantRelated...)
+			sort.Strings(wantRelatedRandom)
+			if diff := cmp.Diff(wantRelatedRandom, gotRelatedRandom); diff != "" {
+				t.Fatalf("unexpected related resources (-want +got):\n%s", diff)
+			}
+			if gotPartial != tc.wantPartial {
+				t.Fatalf("unexpected partial result: got %t, want %t", gotPartial, tc.wantPartial)
+			}
+		})
+	}
+}
+
+func TestContext2Plan_PolicyCallback_RelatedResources_KnownValuePrecedesTraversal(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		config              string
+		configurePlanChange func(*testing_provider.MockProvider)
+	}{
+		"ignore_changes preserves prior value": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			sensitive_value = "expected"
+			random          = "source"
+		}
+
+		resource "test_resource" "candidate" {
+			value  = test_resource.source.sensitive_value
+			random = "candidate"
+
+			lifecycle {
+				ignore_changes = [value]
+			}
+		}
+		`,
+		},
+		"provider plan preserves prior value": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			sensitive_value = "expected"
+			random          = "source"
+		}
+
+		resource "test_resource" "candidate" {
+			value  = test_resource.source.sensitive_value
+			random = "candidate"
+		}
+		`,
+			configurePlanChange: func(provider *testing_provider.MockProvider) {
+				provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return providers.PlanResourceChangeResponse{PlannedState: req.PriorState}
+				}
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			mod := testModuleInline(t, map[string]string{
+				"main.tf": tc.config,
+				"main.tfpolicy.hcl": `
+					resource_policy "test_resource" "policy_name" {
+						enforce {
+							condition = true
+						}
+					}
+				`,
+			})
+
+			priorState := states.BuildState(func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.source"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"source-id","sensitive_value":"expected","random":"source"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.candidate"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"candidate-id","value":"stale","random":"candidate"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			})
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			if tc.configurePlanChange != nil {
+				tc.configurePlanChange(provider)
+			}
+
+			policyClient := policy.NewTestMockClient(t)
+			var mu sync.Mutex
+			callbackCalled := false
+			gotRelatedRandom := make([]string, 0)
+			gotPartial := false
+
+			policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				if req.Target != "test_resource" {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+				if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				random := req.Attrs.Raw.GetAttr("random")
+				if random.IsNull() || !random.IsKnown() || random.AsString() != "source" {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				related, partial, err := req.Callbacks.RelatedResources(t.Context(), "test_resource", []callback.RelatedAttributePair{
+					{SourceAttribute: "sensitive_value", RelatedAttribute: "value"},
+				})
+				if err != nil {
+					t.Errorf("RelatedResources callback failed: %v", err)
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				relatedRandom := make([]string, 0, len(related))
+				for _, result := range related {
+					if result.Type().HasAttribute("random") {
+						attr := result.GetAttr("random")
+						if attr.IsKnown() && !attr.IsNull() {
+							relatedRandom = append(relatedRandom, attr.AsString())
+						}
+					}
+				}
+				sort.Strings(relatedRandom)
+
+				mu.Lock()
+				callbackCalled = true
+				gotRelatedRandom = relatedRandom
+				gotPartial = partial
+				mu.Unlock()
+
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			h := &testHook{}
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+				Hooks: []Hook{h},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(mod, priorState, &PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: testInputValuesUnset(mod.Module.Variables),
+				PolicyClient: policyClient,
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range h.PolicyResults {
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
+			}
+			tfdiags.AssertNoDiagnostics(t, policyDiags)
+
+			mu.Lock()
+			defer mu.Unlock()
+			if !callbackCalled {
+				t.Fatal("expected RelatedResources callback to be called for source resource")
+			}
+			if diff := cmp.Diff([]string{}, gotRelatedRandom); diff != "" {
+				t.Fatalf("unexpected related resources (-want +got):\n%s", diff)
+			}
+			if gotPartial {
+				t.Fatal("expected full result when planned literal mismatch is known")
+			}
+		})
 	}
 }
 
