@@ -3110,6 +3110,12 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 	switch action {
 	case Proceed:
 		// do nothing; provider is already trusted and there's no need to notify the user.
+
+		if flagLockfilePath != "" {
+			// If the user supplied a lock file path via CLI flag, we should notify them that it was used.
+			view.Output(views.StateStoreProviderAutomationApprovedMessage)
+			view.Spacer()
+		}
 	case RequireApproval:
 		if m.input {
 			// Prompt the user about trusting the provider used for state storage.
@@ -3172,9 +3178,6 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 				))
 				return diags
 			}
-
-			view.Output(views.StateStoreProviderAutomationApprovedMessage)
-			view.Spacer()
 		}
 	default:
 		// Handle Invalid or unexpected action types
