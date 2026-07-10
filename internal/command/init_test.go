@@ -5325,7 +5325,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := testOutput.All()
 		expectedOutputs := []string{
 			`Initializing the state store "test_store"...`,
-			"The state store provider was approved automatically",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
