@@ -95,7 +95,9 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	state := syncState.Lock()
 	defer syncState.Unlock()
 
-	found := false
+	// if there are callers, we assume the action already exists, otherwise
+	// there would be nothing to have set the callers
+	actionFound := len(n.Callers) != 0
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
 		if !mod.TargetContains(n.Target) {
@@ -109,9 +111,10 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 				ActionConfig: n.ActionConfig,
 				ProviderAddr: n.ActionConfig.ResolvedProvider,
 			})
-			found = true
+			actionFound = true
 		} else {
 			for _, caller := range n.Callers {
+				callerFound := false
 				for _, res := range state.Resources(caller) {
 					if !mod.TargetContains(res.Addr) {
 						// resource from the wrong module instance
@@ -132,15 +135,29 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 							Caller:          res.Addr.Resource.Instance(instKey),
 							ResourceTargets: n.ResourceTargets,
 						})
-						found = true
+
+						// all we need is at least one valid caller to invoke
+						// this action
+						callerFound = true
 					}
+				}
+
+				if !callerFound {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Partially applied configuration",
+						fmt.Sprintf("Caller %s not found for action %s. "+
+							"The resource instance calling the action has not yet been created. "+
+							"Please run a complete plan/apply cycle to ensure the state matches the configuration before using the -invoke argument.",
+							caller, n.Target),
+					))
 				}
 			}
 		}
 	}
 	addRootNodeToGraph(&g)
 
-	if !found {
+	if !actionFound {
 		diags = diags.Append(fmt.Errorf("invoke target %s not found", n.Target))
 	}
 
