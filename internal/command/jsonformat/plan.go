@@ -423,6 +423,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 
 func renderActionInvocation(renderer Renderer, ai actionInvocation) string {
 	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("    # %s\n", ai.invocation.Address))
 	buf.WriteString(fmt.Sprintf("    action %q %q {\n", ai.invocation.Type, ai.invocation.Name))
 	if len(ai.invocation.ConfigValues) > 0 {
 		buf.WriteString("        config ")
