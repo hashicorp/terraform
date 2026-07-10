@@ -1299,22 +1299,15 @@ func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal
 
 	got := output.Stdout()
 
-	// Split the output and the reference into lines so that we can compare
-	// messages
-	got = strings.TrimSuffix(got, "\n")
-	gotLines := strings.Split(got, "\n")
+	// Whereas JSON output is compared line by line, human output is compared as a single string.
+	// This is because the human output may have newlines inserted in different places depending
+	// on terminal width.
+	got = strings.ReplaceAll(got, "\n", " ")
 
-	want = strings.TrimSuffix(want, "\n")
-	wantLines := strings.Split(want, "\n")
+	want = strings.ReplaceAll(want, "\n", " ")
 
-	if len(gotLines) != len(wantLines) {
-		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
-			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on HCP Terraform.\n"+
-			"Please communicate with HCP Terraform team before resolving", len(gotLines), len(wantLines))
-	}
-
-	if diff := cmp.Diff(wantLines, gotLines); diff != "" {
-		t.Errorf("wrong output lines\n%s\n"+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong output\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
 			"Please communicate with HCP Terraform team before resolving", diff)
 	}
