@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -634,47 +635,6 @@ resource "test_object" "a" {
 				expectPlanActionCalled: false,
 			},
 
-			"failing actions cancel next ones": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "failure" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure, action.test_action.failure]
-    }
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure]
-    }
-  }
-}
-`,
-				},
-
-				planActionFn: func(_ *testing.T, _ providers.PlanActionRequest) providers.PlanActionResponse {
-					t.Helper()
-					return providers.PlanActionResponse{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-						},
-					}
-				},
-
-				expectPlanActionCalled: true,
-				// We only expect a single diagnostic here, the other should not have been called because the first one failed.
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(
-						&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Planning failed",
-							Detail:   "Test case simulates an error while planning",
-						},
-					)
-				},
-			},
-
 			"actions with warnings don't cancel": {
 				module: map[string]string{
 					"main.tf": `
@@ -1277,6 +1237,80 @@ resource "test_object" "a" {
 					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 				},
 			},
+
+			// Orphaned instances might not even be able to plan, if for example
+			// the entire module instance is gone. Make sure that we can still
+			// apply, and warn about failing actions.
+			"complex orphaned module instances": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "root" {
+}
+
+module "mod" {
+  // the last instance was removed
+  for_each = {}
+  source = "./mod"
+}
+`,
+					"./mod/main.tf": `
+resource "test_object" "common" {
+}
+
+resource "test_object" "test" {
+  lifecycle {
+    action_trigger {
+      events  = [after_destroy]
+      actions = [action.test_action.bye[0]]
+    }
+    create_before_destroy = true
+  }
+  depends_on = [test_object.common]
+}
+
+action "test_action" "bye" {
+  count = 1
+}
+`,
+				},
+				expectPlanActionCalled: false,
+
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.root"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectTainted,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`module.mod["orphaned"].test_object.common`), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`module.mod["orphaned"].test_object.test`), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if len(diags) != 2 {
+						t.Fatal("expected 2 diags, got", len(diags))
+					}
+
+					if diags.HasErrors() {
+						t.Fatal("expected no errors, got", diags.Err())
+					}
+
+					warnings := diags.ErrWithWarnings().Error()
+
+					if !strings.Contains(warnings, "Orphaned action failed to plan") {
+						t.Errorf("expected warning about action plan failure, got: %q", warnings)
+					}
+					if !strings.Contains(warnings, "Reference to non-existent action instance") {
+						t.Errorf("expected warning about invalid action ref, got: %q", warnings)
+					}
+				},
+			},
 		},
 
 		// ======== CONFIG ========
@@ -1652,7 +1686,7 @@ resource "test_object" "a" {
 					)
 				},
 				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Condition on destroy action",

@@ -27,7 +27,7 @@ var (
 	_ GraphNodeConfigResource      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
-	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeCreateBeforeDestroy = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
@@ -58,7 +58,12 @@ func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
-	// State takes precedence during destroy.
+	// this may be forced due to teh current graph structure
+	if n.forceCreateBeforeDestroy {
+		return true
+	}
+
+	// otherwise state takes precedence during destroy.
 	// If the resource was removed, there is no config to check.
 	// If CBD was forced from descendant, it should be saved in the state
 	// already.
@@ -76,8 +81,8 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 }
 
 // GraphNodeDestroyerCBD
-func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	return nil
+func (n *NodeDestroyResourceInstance) ForceCreateBeforeDestroy() {
+	n.forceCreateBeforeDestroy = true
 }
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
@@ -99,7 +104,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, op)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
 	default:
@@ -107,7 +112,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	}
 }
 
-func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -163,7 +168,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	}
 
 	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy, op))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -185,7 +190,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	n.addPolicyNode(ctx, changeApply, state)
 
 	// after destroy we continue to use the before value, since there is no after
-	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy))
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy, op))
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))

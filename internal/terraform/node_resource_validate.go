@@ -104,6 +104,17 @@ func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagn
 					}
 				}
 			}
+
+			if event.IsDestroy() {
+				if event.IsDestroy() && trigger.config.Condition != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Condition on destroy action",
+						Detail:   "Condition expression may not be used with a destroy action.",
+						Subject:  trigger.config.Condition.Range().Ptr(),
+					})
+				}
+			}
 		}
 
 		// check condition for full address self-refs

@@ -24,10 +24,10 @@ import (
 type nodeExpandPlannableResource struct {
 	*NodeAbstractResource
 
-	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
+	// forceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.
-	ForceCreateBeforeDestroy *bool
+	forceCreateBeforeDestroy bool
 
 	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
@@ -53,7 +53,7 @@ type nodeExpandPlannableResource struct {
 }
 
 var (
-	_ GraphNodeDestroyerCBD         = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeCreateBeforeDestroy  = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
@@ -75,8 +75,8 @@ func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigReso
 
 // GraphNodeDestroyerCBD
 func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
-	if n.ForceCreateBeforeDestroy != nil {
-		return *n.ForceCreateBeforeDestroy
+	if n.forceCreateBeforeDestroy {
+		return true
 	}
 
 	// If we have no config, we just assume no
@@ -88,9 +88,8 @@ func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
 }
 
 // GraphNodeDestroyerCBD
-func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
-	n.ForceCreateBeforeDestroy = &v
-	return nil
+func (n *nodeExpandPlannableResource) ForceCreateBeforeDestroy() {
+	n.forceCreateBeforeDestroy = true
 }
 
 func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
