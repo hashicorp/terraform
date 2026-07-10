@@ -228,3 +228,10 @@ func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any
 		v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
 	}
 }
+
+var _ Spacer = (*JSONView)(nil)
+
+// Spacer is a no-op for JSON view, as empty lines are not needed to space-out logs in machine-readable output.
+func (v *JSONView) Spacer() {
+	// do nothing
+}
