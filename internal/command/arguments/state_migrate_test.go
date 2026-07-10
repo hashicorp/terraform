@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestStateMigrateArgs(t *testing.T) {
+func TestStateMigrateArgs_valid(t *testing.T) {
 	t.Parallel()
 
 	// Create lock files to use in test, as validation will check for the existence of the
@@ -29,9 +29,8 @@ func TestStateMigrateArgs(t *testing.T) {
 	}
 
 	testCases := []struct {
-		rawArgs       []string
-		expectedArgs  *StateMigrate
-		expectedDiags tfdiags.Diagnostics
+		rawArgs      []string
+		expectedArgs *StateMigrate
 	}{
 		{
 			rawArgs: []string{""},
@@ -58,6 +57,40 @@ func TestStateMigrateArgs(t *testing.T) {
 				ViewType:                ViewHuman,
 			},
 		},
+	}
+
+	for i, tc := range testCases {
+		args, diags := ParseStateMigrate(tc.rawArgs)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if diff := cmp.Diff(tc.expectedArgs, args); diff != "" {
+			t.Fatalf("%d: supplied: %q, got unexpected arguments:\n%s", i, tc.rawArgs, diff)
+		}
+	}
+}
+
+func TestStateMigrateArgs_invalid(t *testing.T) {
+	t.Parallel()
+
+	// Create lock files to use in test, as validation will check for the existence of the
+	// file if a path is supplied via CLI flags.
+	td := t.TempDir()
+	userLockFilePath := filepath.Join(td, ".terraform.lock.hcl")
+	if err := os.WriteFile(userLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	invalidLockFilePath := filepath.Join(td, "invalid.lock.hcl")
+	if err := os.WriteFile(invalidLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	testCases := []struct {
+		rawArgs       []string
+		expectedArgs  *StateMigrate
+		expectedDiags tfdiags.Diagnostics
+	}{
 		{
 			rawArgs: []string{"-input=false", "-source-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
@@ -121,7 +154,12 @@ func TestStateMigrateArgs(t *testing.T) {
 
 	for i, tc := range testCases {
 		args, diags := ParseStateMigrate(tc.rawArgs)
+
+		if !diags.HasErrors() {
+			t.Fatalf("expected diagnostics, but got none")
+		}
 		tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
+
 		if diff := cmp.Diff(tc.expectedArgs, args); diff != "" {
 			t.Fatalf("%d: supplied: %q, got unexpected arguments:\n%s", i, tc.rawArgs, diff)
 		}
