@@ -391,6 +391,7 @@ const (
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
 	// InitConfigError indicates problems encountered during initialisation
+	// >>> Not used to create JSON output, can be removed.
 	InitConfigError InitMessageCode = "init_config_error"
 	// BackendConfiguredSuccessMessage indicates successful backend configuration
 	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"

@@ -1315,3 +1315,9 @@ The current .terraform.lock.hcl file only includes checksums for %s, so Terrafor
 To calculate additional checksums for another platform, run:
   terraform providers lock -platform=linux_amd64
 (where linux_amd64 is the platform to generate)`
+
+const errInitConfigError = `Terraform encountered problems during initialisation, including problems
+with the configuration, described below.
+
+The Terraform configuration must be valid before initialization so that
+Terraform can determine which modules and providers need to be installed.`

@@ -8491,3 +8491,32 @@ func (s *aliasAssertingProviderSource) AvailableVersions(ctx context.Context, pr
 	}
 	return s.Source.AvailableVersions(ctx, provider)
 }
+
+// Test shows that the original and refactored ways of producing the error message previously achieved using
+// views.InitConfigError create the same diagnostics, therefore they'll be rendered in the terminal the same way.
+func TestEquivalentDiagnostics_errInitConfigError(t *testing.T) {
+	var refactoredDiags tfdiags.Diagnostics
+	refactoredDiags = refactoredDiags.Append(errors.New(errInitConfigError))
+	// Note that refactoredDiags is equivalent to the diagnostics made through Human and JSON views,
+	// therefore view type had no impact on the error diagnostic despite the human view's string input to
+	// errors.New including a "[reset]" formatting instruction.
+
+	t.Run("human", func(t *testing.T) {
+		var originalDiags tfdiags.Diagnostics
+
+		v, _ := testView(t)
+		view := views.NewInit(arguments.ViewHuman, v)
+		originalDiags = originalDiags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+
+		tfdiags.AssertDiagnosticsMatch(t, originalDiags, refactoredDiags)
+	})
+	t.Run("json", func(t *testing.T) {
+		var originalDiags tfdiags.Diagnostics
+
+		v, _ := testView(t)
+		view := views.NewInit(arguments.ViewJSON, v)
+		originalDiags = originalDiags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+
+		tfdiags.AssertDiagnosticsMatch(t, originalDiags, refactoredDiags)
+	})
+}

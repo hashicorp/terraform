@@ -122,7 +122,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// be the first error displayed if that is an issue, but other operations are required
 	// before being able to check core version requirements.
 	if rootModEarly == nil {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		diags = diags.Append(errors.New(errInitConfigError), earlyConfDiags)
 		view.Diagnostics(diags)
 
 		return 1
@@ -370,7 +370,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -385,7 +385,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// 3. Show any errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
