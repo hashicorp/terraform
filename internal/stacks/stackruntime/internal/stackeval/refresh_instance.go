@@ -74,10 +74,6 @@ func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagno
 		// compatible with the destroy operation.
 		opts.PreDestroyRefresh = true
 
-		// In pre-destroy refresh, we want to prevent policy evaluation, so
-		// we disable the policy client
-		opts.PolicyClient = nil
-
 		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, nil, r.component)
 		return plan, diags.Append(moreDiags)
 	})

@@ -11,8 +11,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // Tests the output of a plan that includes a policy evaluation
@@ -785,6 +787,132 @@ func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	}
 
 	checkGoldenReference(t, output, "plan-policy")
+}
+
+func TestPlan_Policy_Destroy(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-policy"), td)
+	t.Chdir(td)
+
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile("policy.hcl", []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	policyObj := &policy.Policy{
+		Result:           policy.AllowResult,
+		PolicySetName:    "some_policy_set",
+		Address:          "provider_policy.example",
+		Directory:        "some/path/to",
+		Filename:         "provider_policy_file.tfpolicy.hcl",
+		EnforcementLevel: "mandatory",
+		Range: &hcl.Range{
+			Filename: "provider_policy_file.tfpolicy.hcl",
+			Start:    hcl.Pos{Line: 1, Column: 1},
+			End:      hcl.Pos{Line: 5, Column: 12},
+		},
+	}
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	policyClient := policy.NewTestMockClient(t)
+	overrides.PolicyClient = policyClient
+
+	providerEvalCount := 0
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		providerEvalCount++
+		return policy.EvaluationResponse{
+			Overall:  policy.AllowResult,
+			Policies: []*policy.Policy{policyObj},
+			Enforcements: []policy.EnforcementResult{{
+				Result:  policy.AllowResult,
+				Message: "Destroy provider enforcement message",
+				Policy:  policyObj,
+			}},
+		}
+	}
+
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides:          overrides,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	args := []string{"-destroy", "-state", statePath, "-policies", td, "-parallelism=1", "-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if providerEvalCount != 1 {
+		t.Fatalf("expected exactly 1 provider policy evaluation, got %d", providerEvalCount)
+	}
+
+	expectedStdout := `
+Warning: Deprecated flag: -state
+
+Use the "path" attribute within the "local" backend to specify a file for
+state storage
+data.test_data_source.a: Reading...
+data.test_data_source.a: Read complete after 0s [id=zzzzz]
+test_instance.foo: Refreshing state... [id=bar]
+
+Policy Info:
+in policy provider_policy.example
+"Destroy provider enforcement message"
+
+
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # test_instance.foo will be destroyed
+  - resource "test_instance" "foo" {
+      - id = "bar" -> null
+    }
+
+Plan: 0 to add, 0 to change, 1 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+`
+	if diff := cmp.Diff(expectedStdout, output.Stdout()); diff != "" {
+		t.Fatalf("unexpected stdout output:\n%s", diff)
+	}
+
 }
 
 func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
