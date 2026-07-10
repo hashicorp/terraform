@@ -22,6 +22,8 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
 
 // The Init view is used for the init command.
@@ -33,6 +35,8 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
 
 // NewInit returns Init implementation for the given ViewType.
@@ -64,6 +68,10 @@ var (
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *InitHuman) Spacer() {
+	v.view.Spacer()
 }
 
 func (v *InitHuman) PolicyDiagnostics(diags policy.Diagnostics) {
@@ -115,6 +123,10 @@ var (
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *InitJSON) Spacer() {
+	v.view.Spacer()
 }
 
 func (v *InitJSON) PolicyDiagnostics(diags policy.Diagnostics) {
