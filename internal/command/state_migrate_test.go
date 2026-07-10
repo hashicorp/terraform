@@ -561,7 +561,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 
 provider "registry.terraform.io/hashicorp/test2" {
   version = "3.2.1"
-}`
+  hashes = [
+    "h1:gv1gFnIZulslzchnaoyMJ5KoPvoRgVvSGb3tVS803iw=",
+  ]
+}
+`
 		if err := os.WriteFile(filepath.Join(wd.RootModuleDir(), dependencyLockFilename), []byte(lockFileContents), 0644); err != nil {
 			t.Fatalf("unable to overwrite dependency lock file as part of test setup: %s", err)
 		}

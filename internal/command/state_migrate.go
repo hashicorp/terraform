@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -296,13 +295,20 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, destinationLock, stateMigrate)
+
+		// Get the combination of locks
+		//
+		// Take the lock from the destination provider download and add in the original locks from the dependency lock file.
+		// This means the lock created from the destination provider download is authoritative (e.g. any hashes from the
+		// installation process are preserved)
+		newLocks := c.mergeLockedDependencies(destinationLock, originalLocks)
+
+		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, stateMigrate)
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
 			stateMigrate.Diagnostics(diags)
 			return 1
 		}
-
 		if output {
 			stateMigrate.LogInitMessage(views.EmptyMessage)
 		}
@@ -412,48 +418,13 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-// The calling code is expected to provide:
-// 1. the previous locks (if any)
-// 2. the lock for the destination state store provider (if any)
-func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, locksWithDstProvider *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
-	// Get the combination of locks from both potential provider download steps.
-	newLocks := c.mergeLockedDependencies(previousLocks, locksWithDstProvider)
+func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
+	// The state migrate command does not support the -lockfile=readonly flag
+	// This flag is specific to the init command, and can only take "" or "readonly" as values.
+	// As state migrate doesn't take this flag, we can safely set it to "" here.
+	flagLockfile := ""
 
-	// If the provider dependencies have changed since the last run then we'll
-	// say a little about that in case the reader wasn't expecting a change.
-	if !newLocks.Equal(previousLocks) {
-		// Jump in here and add a warning if any of the providers are incomplete.
-		if len(c.incompleteProviders) > 0 {
-			// We don't really care about the order here, we just want the
-			// output to be deterministic.
-			sort.Slice(c.incompleteProviders, func(i, j int) bool {
-				return c.incompleteProviders[i] < c.incompleteProviders[j]
-			})
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				incompleteLockFileInformationHeader,
-				fmt.Sprintf(
-					incompleteLockFileInformationBody,
-					strings.Join(c.incompleteProviders, "\n  - "),
-					getproviders.CurrentPlatform.String())))
-		}
-		if previousLocks.Empty() {
-			// A change from empty to non-empty is special because it suggests
-			// we're running "terraform init" for the first time against a
-			// new configuration. In that case we'll take the opportunity to
-			// say a little about what the dependency lock file is, for new
-			// users or those who are upgrading from a previous Terraform
-			// version that didn't have dependency lock files.
-			view.LogInitMessage(views.LockInfo)
-			output = true
-		} else {
-			view.LogInitMessage(views.DependenciesLockChangesInfo)
-			output = true
-		}
-		lockFileDiags := c.replaceLockedDependencies(newLocks)
-		diags = diags.Append(lockFileDiags)
-	}
-	return output, diags
+	return c.Meta.saveDependencyLockFile(previousLocks, newLocks, c.incompleteProviders, flagLockfile, view)
 }
 
 // getSingleProvider is used to download the source and/or destination state store providers during a state migration.

@@ -10,7 +10,6 @@ import (
 	"maps"
 	"reflect"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -374,17 +373,6 @@ the backend configuration is present and valid.
 	return diags
 }
 
-// SafeInitAction describes the action that should be taken by Terraform based on whether
-// pluggable state storage is in use, if the provider is going to be downloaded via HTTP or not,
-// and whether Terraform is being run in automation or not.
-type SafeInitAction rune
-
-const (
-	SafeInitActionInvalid         SafeInitAction = 0
-	SafeInitActionProceed         SafeInitAction = 'P'
-	SafeInitActionRequireApproval SafeInitAction = 'I'
-)
-
 // getProvidersFromPSSConfig determines what provider is required given state store configuration
 // and downloads the provider that isn't already downloaded and then returns
 // updated dependency lock data. The dependency lock file itself isn't updated here.
@@ -394,7 +382,7 @@ const (
 // to only download a single provider, and the method will only return a single lock.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInitAction SafeInitAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInstallAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -447,7 +435,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, SafeInitActionInvalid, nil, diags
+		return false, nil, Invalid, nil, diags
 	}
 
 	var inst *providercache.Installer
@@ -544,7 +532,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
 		view.Diagnostics(diags)
-		return true, nil, SafeInitActionInvalid, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -554,38 +542,13 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			diags = diags.Append(err)
 		}
 
-		return true, nil, SafeInitActionInvalid, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 
-	// Return advice to the calling code about what to do regarding safe init feature related to state storage providers
-	location, ok := providerLocations[rootModEarly.StateStore.ProviderAddr]
-	if !ok {
-		// The provider was not processed in the FetchPackageBegin callback.
-		// A provider that wasn't downloaded during this init could be because:
-		// * It was already present from a previous installation.
-		// * If upgrading, no newer version was available that matched version constraints.
-		// * Or, the provider is unmanaged/reattached and so download was skipped.
-		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-		safeInitAction = SafeInitActionProceed
-	} else {
-		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
-		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
+	// Return advice to the calling code about what to do regarding safe state store provider installation
+	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations)
 
-		switch location.(type) {
-		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
-			// If the provider is downloaded from a local source we assume it's safe.
-			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionProceed
-		case getproviders.PackageHTTPURL:
-			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr)
-			safeInitAction = SafeInitActionRequireApproval
-		default:
-			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", rootModEarly.StateStore.ProviderAddr, location))
-		}
-	}
-
-	return true, lock, safeInitAction, stateStoreProviderAuthResult, diags
+	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state
@@ -712,72 +675,6 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 
 	return true, newLocks, diags
-}
-
-// saveDependencyLockFile overwrites the contents of the dependency lock file.
-// The calling code is expected to provide the previous locks (if any) and the two sets of locks determined from
-// configuration and state data.
-func (c *InitCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
-	// If the provider dependencies have changed since the last run then we'll
-	// say a little about that in case the reader wasn't expecting a change.
-	// (When we later integrate module dependencies into the lock file we'll
-	// probably want to refactor this so that we produce one lock-file related
-	// message for all changes together, but this is here for now just because
-	// it's the smallest change relative to what came before it, which was
-	// a hidden JSON file specifically for tracking providers.)
-	if !newLocks.Equal(previousLocks) {
-		// if readonly mode
-		if flagLockfile == "readonly" {
-			// check if required provider dependencies change
-			if !newLocks.EqualProviderAddress(previousLocks) {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					`Provider dependency changes detected`,
-					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
-				))
-				return output, diags
-			}
-			// suppress updating the file to record any new information it learned,
-			// such as a hash using a new scheme.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				`Provider lock file not updated`,
-				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
-			))
-			return output, diags
-		}
-		// Jump in here and add a warning if any of the providers are incomplete.
-		if len(c.incompleteProviders) > 0 {
-			// We don't really care about the order here, we just want the
-			// output to be deterministic.
-			sort.Slice(c.incompleteProviders, func(i, j int) bool {
-				return c.incompleteProviders[i] < c.incompleteProviders[j]
-			})
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				incompleteLockFileInformationHeader,
-				fmt.Sprintf(
-					incompleteLockFileInformationBody,
-					strings.Join(c.incompleteProviders, "\n  - "),
-					getproviders.CurrentPlatform.String())))
-		}
-		if previousLocks.Empty() {
-			// A change from empty to non-empty is special because it suggests
-			// we're running "terraform init" for the first time against a
-			// new configuration. In that case we'll take the opportunity to
-			// say a little about what the dependency lock file is, for new
-			// users or those who are upgrading from a previous Terraform
-			// version that didn't have dependency lock files.
-			view.Output(views.LockInfo)
-			output = true
-		} else {
-			view.Output(views.DependenciesLockChangesInfo)
-			output = true
-		}
-		lockFileDiags := c.replaceLockedDependencies(newLocks)
-		diags = diags.Append(lockFileDiags)
-	}
-	return output, diags
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
