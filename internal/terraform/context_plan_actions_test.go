@@ -2966,6 +2966,86 @@ module "mod" {
 				},
 			},
 
+			"invalid action invoke in expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(1),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[1].action.test_action.one[1] not found") {
+						t.Fatalf("expected 'invoke target module.mod[1].action.test_action.one[1] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
+			"invalid action module invoke": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(3)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(0),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[3].action.test_action.one[0] not found") {
+						t.Fatalf("expected 'invoke target module.mod[3].action.test_action.one[0] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
 			"action invoke with count (all)": {
 				module: map[string]string{
 					"main.tf": `
@@ -3217,7 +3297,7 @@ action "test_action" "one" {
 				},
 				assertPlan: func(t *testing.T, plan *plans.Plan) {
 					if len(plan.Changes.ActionInvocations) != 2 {
-						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+						t.Fatalf("expected exactly 2 invocations, and found %d", len(plan.Changes.ActionInvocations))
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
@@ -3239,6 +3319,57 @@ action "test_action" "one" {
 
 					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
+			"invoke action with targeted caller": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  count = 2
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+	  actions = [action.test_action.one]
+	}
+  }
+}
+
+action "test_action" "one" {
+  config {
+    attr = caller.name
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsAction{
+							Action: addrs.Action{
+								Type: "test_action",
+								Name: "one",
+							},
+						},
+					},
+					Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[0]")},
+				},
+				expectPlanActionCalled: true,
+				buildState: func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
 					}
 				},
 			},

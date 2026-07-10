@@ -29,6 +29,9 @@ type nodeActionInvokeExpand struct {
 	// target here to ensure we only expand the targeted instances
 	Target addrs.Targetable
 
+	// There may be specific caller instances targeted for this action
+	ResourceTargets []addrs.Targetable
+
 	Module addrs.Module
 
 	// as we have used in other targeting situations, because a single instance
@@ -54,11 +57,7 @@ func (n *nodeActionInvokeExpand) ModulePath() addrs.Module {
 }
 
 func (n *nodeActionInvokeExpand) Name() string {
-	module := n.ModulePath().String()
-	if len(module) > 0 {
-		module = module + "."
-	}
-	return fmt.Sprintf("%sinvoke.%s", module, n.Addr)
+	return n.Addr.String()
 }
 
 func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
@@ -85,6 +84,7 @@ func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
 
 func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
+	var diags tfdiags.Diagnostics
 
 	expander := ctx.InstanceExpander()
 
@@ -94,6 +94,10 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	syncState := ctx.State()
 	state := syncState.Lock()
 	defer syncState.Unlock()
+
+	// if there are callers, we assume the action already exists, otherwise
+	// there would be nothing to have set the callers
+	actionFound := len(n.Callers) != 0
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
 		if !mod.TargetContains(n.Target) {
@@ -107,8 +111,10 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 				ActionConfig: n.ActionConfig,
 				ProviderAddr: n.ActionConfig.ResolvedProvider,
 			})
+			actionFound = true
 		} else {
 			for _, caller := range n.Callers {
+				callerFound := false
 				for _, res := range state.Resources(caller) {
 					if !mod.TargetContains(res.Addr) {
 						// resource from the wrong module instance
@@ -122,20 +128,40 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 
 						log.Printf("[TRACE] expanding %s invoke node for caller %s", n.Addr, res.Addr.Resource)
 						g.Add(&nodeActionPlanInvoke{
-							Module:       mod,
-							Addr:         n.Addr,
-							ActionConfig: n.ActionConfig,
-							ProviderAddr: n.ActionConfig.ResolvedProvider,
-							Caller:       res.Addr.Resource.Instance(instKey),
+							Module:          mod,
+							Addr:            n.Addr,
+							ActionConfig:    n.ActionConfig,
+							ProviderAddr:    n.ActionConfig.ResolvedProvider,
+							Caller:          res.Addr.Resource.Instance(instKey),
+							ResourceTargets: n.ResourceTargets,
 						})
+
+						// all we need is at least one valid caller to invoke
+						// this action
+						callerFound = true
 					}
+				}
+
+				if !callerFound {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Partially applied configuration",
+						fmt.Sprintf("Caller %s not found for action %s. "+
+							"The resource instance calling the action has not yet been created. "+
+							"Please run a complete plan/apply cycle to ensure the state matches the configuration before using the -invoke argument.",
+							caller, n.Target),
+					))
 				}
 			}
 		}
 	}
 	addRootNodeToGraph(&g)
 
-	return &g, nil
+	if !actionFound {
+		diags = diags.Append(fmt.Errorf("invoke target %s not found", n.Target))
+	}
+
+	return &g, diags
 }
 
 var (
@@ -144,11 +170,12 @@ var (
 )
 
 type nodeActionPlanInvoke struct {
-	Module       addrs.ModuleInstance
-	Addr         addrs.AbsActionInstance
-	ActionConfig *NodeActionConfig
-	ProviderAddr addrs.AbsProviderConfig
-	Caller       addrs.Referenceable
+	Module          addrs.ModuleInstance
+	Addr            addrs.AbsActionInstance
+	ActionConfig    *NodeActionConfig
+	ProviderAddr    addrs.AbsProviderConfig
+	Caller          addrs.Referenceable
+	ResourceTargets []addrs.Targetable
 }
 
 func (n *nodeActionPlanInvoke) Name() string {
@@ -160,6 +187,7 @@ func (n *nodeActionPlanInvoke) Path() addrs.ModuleInstance {
 }
 
 func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+
 	// for now each action instance will be invoked serially
 	return n.planActions(ctx)
 }
@@ -190,6 +218,19 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 	if n.Caller != nil {
 		absCaller := n.Caller.(addrs.ResourceInstance).Absolute(ctx.Path())
 		triggerAddr = &absCaller
+
+		// if we have resource targets, filter any unwanted callers
+		targeted := len(n.ResourceTargets) == 0
+		for _, resTgt := range n.ResourceTargets {
+			if resTgt.TargetContains(absCaller) {
+				targeted = true
+				break
+			}
+		}
+		if !targeted {
+			log.Printf("[DEBUG] nodeActionPlanInvoke: instance %s not targeted", absCaller)
+			return diags
+		}
 	}
 
 	ai := plans.ActionInvocationInstance{

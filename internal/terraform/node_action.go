@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -302,19 +303,27 @@ func (n *NodeActionConfig) SetProvider(p addrs.AbsProviderConfig) {
 // keys anyway.
 func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
-
-	var instances []addrs.AbsActionInstance
 
 	expander := ctx.InstanceExpander()
+	absAddr := addr.Absolute(ctx.Path())
+
+	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
+	allInstances := addrs.MakeSet[addrs.AbsActionInstance](expander.ExpandAction(absAddr.ContainingAction())...)
+
+	var instances []addrs.AbsActionInstance
 	if addr.Key == addrs.NoKey {
 		// this might be a single instance with no key, or all instances, so we
-		// must expand for both cases
-		instances = expander.ExpandAction(n.Addr.Absolute(ctx.Path()))
+		// just use everything
+		instances = slices.Collect(allInstances.Iter())
 	} else {
 		// definitely looking for a single instance because we have an index of
-		// some sort
-		instances = []addrs.AbsActionInstance{addr.Absolute(ctx.Path())}
+		// some sort, but check if it exists first, otherwise evaluation will
+		// panic
+		if !allInstances.Has(absAddr) {
+			diags = diags.Append(fmt.Errorf("invoked target %s not found", absAddr))
+			return all, diags
+		}
+		instances = []addrs.AbsActionInstance{absAddr}
 	}
 
 	for _, instAddr := range instances {
