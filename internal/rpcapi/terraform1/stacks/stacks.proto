@@ -1142,9 +1142,12 @@ message PolicyInfo {
   string target_address = 1;
   PolicyMetaData policy_metadata = 2;
   string message = 3;
-  terraform1.SourceRange policy_range = 4;
+  PolicyRange policy_range = 4;
   PolicySnippet policy_snippet = 5;
   EvaluateResult result = 6;
+
+  // Range related to the target_address
+  terraform1.SourceRange range = 7;
 }
 
 message PolicySnippet {
@@ -1161,7 +1164,7 @@ message PolicyDiagnostic {
   EvaluateResult result = 3;
   terraform1.Diagnostic diagnostic = 4;
   PolicySnippet policy_snippet = 5;
-  terraform1.SourceRange policy_range = 6;
+  PolicyRange policy_range = 6;
   repeated ExpressionValue expression_values = 7;
 }
 
@@ -1179,6 +1182,15 @@ enum EvaluateResult {
 message ExpressionValue {
   AttributePath traversal = 1;
   bytes value = 2;
+}
+
+// PolicyRange is similar to terraform1.SourceRange but is separated to avoid confusion because
+// policies are not included in the source bundle, which results in them having a file path rather
+// than a full source address.
+message PolicyRange {
+    string filename = 1;
+    terraform1.SourcePos start = 2;
+    terraform1.SourcePos end = 3;
 }
 
 message PolicyEntitlement { 
