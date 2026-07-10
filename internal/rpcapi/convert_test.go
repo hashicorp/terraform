@@ -342,10 +342,10 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							HighlightStartOffset: 0,
 							HighlightEndOffset:   5,
 						},
-						PolicyRange: &terraform1.SourceRange{
-							SourceAddr: "policy_file.tfpolicy.hcl",
-							Start:      &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
-							End:        &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
+							End:      &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
 						},
 					},
 				},
@@ -415,10 +415,10 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							HighlightStartOffset: 6,
 							HighlightEndOffset:   11,
 						},
-						PolicyRange: &terraform1.SourceRange{
-							SourceAddr: "policy_file.tfpolicy.hcl",
-							Start:      &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
-							End:        &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
+							End:      &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
 						},
 						ExpressionValues: []*stacks.ExpressionValue{
 							{
@@ -746,6 +746,11 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 									HighlightStartOffset: 0,
 									HighlightEndOffset:   5,
 								},
+								LocalRange: &hcl.Range{
+									Filename: "git::https://example.com/multiple-components.git//main.tf",
+									Start:    hcl.Pos{Line: 3, Column: 5, Byte: 10},
+									End:      hcl.Pos{Line: 4, Column: 10, Byte: 30},
+								},
 							},
 							{
 								// Enforcements without a message are skipped.
@@ -788,10 +793,15 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							HighlightStartOffset: 0,
 							HighlightEndOffset:   5,
 						},
-						PolicyRange: &terraform1.SourceRange{
-							SourceAddr: "policy_file.tfpolicy.hcl",
-							Start:      &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
-							End:        &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
+							End:      &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
+						},
+						Range: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+							Start:      &terraform1.SourcePos{Line: 3, Column: 5, Byte: 10},
+							End:        &terraform1.SourcePos{Line: 4, Column: 10, Byte: 30},
 						},
 					},
 				},
@@ -862,10 +872,10 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							HighlightStartOffset: 6,
 							HighlightEndOffset:   11,
 						},
-						PolicyRange: &terraform1.SourceRange{
-							SourceAddr: "policy_file.tfpolicy.hcl",
-							Start:      &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
-							End:        &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
+							End:      &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
 						},
 						ExpressionValues: []*stacks.ExpressionValue{
 							{
