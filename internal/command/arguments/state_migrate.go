@@ -72,9 +72,6 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 				"-destination-provider-lock-file cannot be used outside of automation (with -input=true)",
 			))
 		}
-		if len(diags) > 0 {
-			return migrate, diags
-		}
 
 	}
 
