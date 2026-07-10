@@ -22,7 +22,7 @@ calculate lock file checksums locally for the following providers:
   - hashicorp/test2
 
 The current .terraform.lock.hcl file only includes checksums for
-darwin_arm64, so Terraform running on another platform will fail to install
+%s, so Terraform running on another platform will fail to install
 these providers.
 
 To calculate additional checksums for another platform, run:

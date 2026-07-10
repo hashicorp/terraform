@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -495,7 +496,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 		}
 
 		// Assert expected human output is made
-		checkGoldenReferenceHumanOutput(t, out, fixture)
+		// Parameterized due to output referencing the current platform.
+		checkParameterizedGoldenReferenceHumanOutput(t, out, fixture, getproviders.CurrentPlatform.String())
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
 		b, err = destinationProvider.MockStates.Read("test2_store", "default")
