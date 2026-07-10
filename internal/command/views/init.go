@@ -138,11 +138,7 @@ func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
-	// don't add empty messages to json output
 	preppedMessage := v.PrepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -368,10 +364,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 		JSONValue:  "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 	},
-	"empty_message": {
-		HumanValue: "",
-		JSONValue:  "",
-	},
 }
 
 type InitMessageCode string
@@ -381,7 +373,6 @@ const (
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
 	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	EmptyMessage                                 InitMessageCode = "empty_message"
 	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
