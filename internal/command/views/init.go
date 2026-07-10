@@ -103,8 +103,7 @@ func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) s
 	}
 
 	if message.HumanValue == "" {
-		// no need to apply colorization if the message is empty
-		return message.HumanValue
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
@@ -176,6 +175,10 @@ func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) st
 	if !ok {
 		// display the message code as fallback if not found in the message registry
 		return string(messageCode)
+	}
+
+	if message.JSONValue == "" {
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
