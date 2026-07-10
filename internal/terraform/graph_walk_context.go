@@ -166,9 +166,16 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
-	// Acquire a lock on the semaphore
-	w.Context.parallelSem.Acquire()
-	defer w.Context.parallelSem.Release()
-
+	switch n.(type) {
+	case *nodeQueryResourcePolicy:
+		// Policy evaluation nodes use parallelPolicySem
+		// to avoid consuming provider rate-limit slots for policy client calls.
+		w.Context.parallelPolicySem.Acquire()
+		defer w.Context.parallelPolicySem.Release()
+	default:
+		// Acquire a lock on the semaphore
+		w.Context.parallelSem.Acquire()
+		defer w.Context.parallelSem.Release()
+	}
 	return n.Execute(ctx, w.Operation)
 }

@@ -104,6 +104,7 @@ type Context struct {
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
+	parallelPolicySem   Semaphore
 	providerInputConfig map[string]map[string]cty.Value
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -165,6 +166,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		plugins: plugins,
 
 		parallelSem:         NewSemaphore(par),
+		parallelPolicySem:   newPolicySemaphore(),
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		sh:                  sh,
 		tracingCtx:          opts.TracingContext,

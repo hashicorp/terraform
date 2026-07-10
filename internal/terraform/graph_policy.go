@@ -4,6 +4,10 @@
 package terraform
 
 import (
+	"log"
+	"os"
+	"runtime"
+	"strconv"
 	"sync"
 
 	"go.opentelemetry.io/otel/trace"
@@ -36,4 +40,18 @@ func (ps *policySubgraph) AddQuery(node *nodeQueryResourcePolicy) {
 	defer ps.lock.Unlock()
 
 	ps.graph.Add(node)
+}
+
+// newPolicySemaphore creates a Semaphore for policy evaluation with a default
+// capacity of GOMAXPROCS. TF_POLICY_PARALLELISM env variable override for debugging.
+func newPolicySemaphore() Semaphore {
+	n := runtime.GOMAXPROCS(0)
+	if v := os.Getenv("TF_POLICY_PARALLELISM"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			n = parsed
+		} else {
+			log.Printf("[WARN] TF_POLICY_PARALLELISM %q is not a valid positive integer, defaulting to GOMAXPROCS (%d)", v, n)
+		}
+	}
+	return NewSemaphore(n)
 }

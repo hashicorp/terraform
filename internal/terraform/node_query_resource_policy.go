@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -33,4 +34,9 @@ func (n *nodeQueryResourcePolicy) Name() string {
 	return n.ResourceAddr.String() + " (query policy evaluation)"
 }
 
-// TODO(CORE-6): implement Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics
+var _ GraphNodeExecutable = (*nodeQueryResourcePolicy)(nil)
+
+// TODO: implement policy evaluation via the policy client.
+func (n *nodeQueryResourcePolicy) Execute(_ EvalContext, _ walkOperation) tfdiags.Diagnostics {
+	return nil
+}
