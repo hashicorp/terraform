@@ -324,8 +324,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
-	// Setup the policy client if the caller provides a plugin path, policies, and
-	// the plan request is the default mode (i.e. not refresh or destroy)
+	// Setup the policy client if the caller provides a plugin path and policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
@@ -689,8 +688,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 	}
 
-	// Setup the policy client if the caller provides a plugin path, policies, and
-	// the plan being applied is the default mode (i.e. not refresh or destroy)
+	// Setup the policy client if the caller provides a plugin path and policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
