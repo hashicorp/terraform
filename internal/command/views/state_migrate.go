@@ -102,6 +102,26 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) InstalledProviderVersionInfo(params ...any) {
+	params = append(params, "") // add empty key id to the end
+	msg := s.PrepareMessage(InstalledProviderVersionInfo, params...)
+	s.Log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
+	key := params[len(params)-1]
+
+	// replace key id param with formatted version to the end of the message if it is not empty
+	if key != "" {
+		params[len(params)-1] = fmt.Sprintf("key_id: %s", key)
+	}
+
+	msg := s.PrepareMessage(InstalledProviderVersionInfo, params...)
+	s.Log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) PrepareMessage(code InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[code]
 	if !ok {
