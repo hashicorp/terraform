@@ -8553,3 +8553,142 @@ func (s *aliasAssertingProviderSource) AvailableVersions(ctx context.Context, pr
 	}
 	return s.Source.AvailableVersions(ctx, provider)
 }
+
+// Test_fetchPackageSuccessCallback asserts how the fetchPackageSuccessCallback function behaves when called with different authentication results.
+// This test will be used to check that refactoring how output is made doesn't introduce any unexpected changes.
+func Test_fetchPackageSuccessCallback(t *testing.T) {
+	const verifiedChecksum = 0
+	const officialProvider = 1
+	const partnerProvider = 2
+	const noKey = ""
+
+	t.Run("no auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		var authResult *getproviders.PackageAuthenticationResult = nil
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (unauthenticated)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (unauthenticated)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("verified checksum auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (verified checksum)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (verified checksum)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("official provider auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, noKey)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by HashiCorp)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by HashiCorp)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("third party signed partner provider with key id", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by a HashiCorp partner, key ID key-id-123)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partnerkey_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+}
