@@ -23,6 +23,9 @@ type ProviderInstaller interface {
 	Output(messageCode InitMessageCode, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
 
+	InstalledProviderVersionInfo(params ...any)
+	InstalledProviderVersionInfoWithKeyID(params ...any)
+
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
 
@@ -35,6 +38,9 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	InstalledProviderVersionInfo(params ...any)
+	InstalledProviderVersionInfoWithKeyID(params ...any)
 
 	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
@@ -88,6 +94,22 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 
 func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+}
+
+func (v *InitHuman) InstalledProviderVersionInfo(params ...any) {
+	params = append(params, "") // add empty key id to the end
+	v.view.streams.Println(v.PrepareMessage(InstalledProviderVersionInfo, params...))
+}
+
+func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
+	key := params[len(params)-1]
+	params = params[:len(params)-1]
+
+	// add key id to the end of the message if it is not empty
+	if key != "" {
+		params = append(params, fmt.Sprintf(", key ID [reset][bold]%s[reset]", key))
+	}
+	v.view.streams.Println(v.PrepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -157,6 +179,10 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
+	v.logInitMessage(messageCode, params...)
+}
+
+func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.PrepareMessage(messageCode, params...)
 	if preppedMessage == "" {
 		return
@@ -168,6 +194,27 @@ func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
 // this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
 func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitJSON) InstalledProviderVersionInfo(params ...any) {
+	params = append(params, "") // add empty key id to the end
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(InstalledProviderVersionInfo, params...)
+}
+
+func (v *InitJSON) InstalledProviderVersionInfoWithKeyID(params ...any) {
+	key := params[len(params)-1]
+
+	// replace key id param with formatted version to the end of the message if it is not empty
+	if key != "" {
+		params[len(params)-1] = fmt.Sprintf("key_id: %s", key)
+	}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(InstalledProviderVersionInfo, params...)
 }
 
 func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) string {
