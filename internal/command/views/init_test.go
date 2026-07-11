@@ -408,7 +408,7 @@ func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
 
 		want := "Initializing modules..."
 
-		actual := newInit.PrepareMessage(InitializingModulesMessage)
+		actual := newInit.prepareMessage(InitializingModulesMessage)
 		if !cmp.Equal(want, actual) {
 			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
 		}

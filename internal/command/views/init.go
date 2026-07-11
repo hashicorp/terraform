@@ -21,10 +21,11 @@ import (
 type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
-	PrepareMessage(messageCode InitMessageCode, params ...any) string
 
 	InstalledProviderVersionInfo(params ...any)
 	InstalledProviderVersionInfoWithKeyID(params ...any)
+
+	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
@@ -37,10 +38,11 @@ type Init interface {
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
-	PrepareMessage(messageCode InitMessageCode, params ...any) string
 
 	InstalledProviderVersionInfo(params ...any)
 	InstalledProviderVersionInfoWithKeyID(params ...any)
+
+	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
@@ -89,16 +91,16 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
 func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
 func (v *InitHuman) InstalledProviderVersionInfo(params ...any) {
 	params = append(params, "") // add empty key id to the end
-	v.view.streams.Println(v.PrepareMessage(InstalledProviderVersionInfo, params...))
+	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
@@ -109,7 +111,7 @@ func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
 	if key != "" {
 		params = append(params, fmt.Sprintf(", key ID [reset][bold]%s[reset]", key))
 	}
-	v.view.streams.Println(v.PrepareMessage(InstalledProviderVersionInfo, params...))
+	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -117,7 +119,7 @@ func (v *InitHuman) Log(message string, params ...any) {
 	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) string {
+func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
@@ -159,7 +161,7 @@ func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.PrepareMessage(messageCode, params...)
+	preppedMessage := v.prepareMessage(messageCode, params...)
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -183,7 +185,7 @@ func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.PrepareMessage(messageCode, params...)
+	preppedMessage := v.prepareMessage(messageCode, params...)
 	if preppedMessage == "" {
 		return
 	}
@@ -217,7 +219,7 @@ func (v *InitJSON) InstalledProviderVersionInfoWithKeyID(params ...any) {
 	v.logInitMessage(InstalledProviderVersionInfo, params...)
 }
 
-func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) string {
+func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
