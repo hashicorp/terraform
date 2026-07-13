@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -102,20 +104,16 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) InstalledProviderVersionInfo(params ...any) {
-	params = append(params, "") // add empty key id to the end
+func (s *StateMigrateHuman) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.Log(msg)
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
-	key := params[len(params)-1]
-
-	// replace key id param with formatted version to the end of the message if it is not empty
-	if key != "" {
-		params[len(params)-1] = fmt.Sprintf("key_id: %s", key)
-	}
+func (s *StateMigrateHuman) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.Log(msg)
