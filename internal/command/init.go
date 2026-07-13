@@ -947,7 +947,7 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
 func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-		view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+		view.UsingProviderFromCacheDirInfo(provider, version)
 	}
 }
 
