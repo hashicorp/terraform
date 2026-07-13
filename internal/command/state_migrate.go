@@ -489,7 +489,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	// are shimming our vt100 output to the legacy console API on Windows.
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitMessage(views.InitializingStateStoreProviderPluginMessage, storeName)
+			view.LogInitializingStateStoreProviderPlugin(storeName)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
