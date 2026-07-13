@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -634,47 +635,6 @@ resource "test_object" "a" {
 				expectPlanActionCalled: false,
 			},
 
-			"failing actions cancel next ones": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "failure" {}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure, action.test_action.failure]
-    }
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.failure]
-    }
-  }
-}
-`,
-				},
-
-				planActionFn: func(_ *testing.T, _ providers.PlanActionRequest) providers.PlanActionResponse {
-					t.Helper()
-					return providers.PlanActionResponse{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.Sourceless(tfdiags.Error, "Planning failed", "Test case simulates an error while planning"),
-						},
-					}
-				},
-
-				expectPlanActionCalled: true,
-				// We only expect a single diagnostic here, the other should not have been called because the first one failed.
-				expectPlanDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(
-						&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Planning failed",
-							Detail:   "Test case simulates an error while planning",
-						},
-					)
-				},
-			},
-
 			"actions with warnings don't cancel": {
 				module: map[string]string{
 					"main.tf": `
@@ -1012,7 +972,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   `The given key ["c"] does not identify an instance of action.test_action.hello`,
+						Detail:   `The address action.test_action.hello["c"] does not identify an instance of action.test_action.hello`,
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 224},
@@ -1047,7 +1007,7 @@ resource "test_object" "a" {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to non-existent action instance",
-						Detail:   "The given key [2] does not identify an instance of action.test_action.hello",
+						Detail:   "The address action.test_action.hello[2] does not identify an instance of action.test_action.hello",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 13, Column: 18, Byte: 208},
@@ -1275,6 +1235,80 @@ resource "test_object" "a" {
 						AttrsJSON: []byte(`{}`),
 						Status:    states.ObjectReady,
 					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+			},
+
+			// Orphaned instances might not even be able to plan, if for example
+			// the entire module instance is gone. Make sure that we can still
+			// apply, and warn about failing actions.
+			"complex orphaned module instances": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "root" {
+}
+
+module "mod" {
+  // the last instance was removed
+  for_each = {}
+  source = "./mod"
+}
+`,
+					"./mod/main.tf": `
+resource "test_object" "common" {
+}
+
+resource "test_object" "test" {
+  lifecycle {
+    action_trigger {
+      events  = [after_destroy]
+      actions = [action.test_action.bye[0]]
+    }
+    create_before_destroy = true
+  }
+  depends_on = [test_object.common]
+}
+
+action "test_action" "bye" {
+  count = 1
+}
+`,
+				},
+				expectPlanActionCalled: false,
+
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.root"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectTainted,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`module.mod["orphaned"].test_object.common`), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`module.mod["orphaned"].test_object.test`), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if len(diags) != 2 {
+						t.Fatal("expected 2 diags, got", len(diags))
+					}
+
+					if diags.HasErrors() {
+						t.Fatal("expected no errors, got", diags.Err())
+					}
+
+					warnings := diags.ErrWithWarnings().Error()
+
+					if !strings.Contains(warnings, "Orphaned action failed to plan") {
+						t.Errorf("expected warning about action plan failure, got: %q", warnings)
+					}
+					if !strings.Contains(warnings, "Reference to non-existent action instance") {
+						t.Errorf("expected warning about invalid action ref, got: %q", warnings)
+					}
 				},
 			},
 		},
@@ -1603,7 +1637,7 @@ resource "test_object" "a" {
 				},
 			},
 
-			"destroy condition must be known": {
+			"destroy cannot use condition": {
 				module: map[string]string{
 					"main.tf": `
 resource "test_object" "new" {
@@ -1652,11 +1686,11 @@ resource "test_object" "a" {
 					)
 				},
 				expectPlanActionCalled: false,
-				expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 					return diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Unknown action trigger condition",
-						Detail:   "Condition expression must be known to plan a destroy action.",
+						Summary:  "Condition on destroy action",
+						Detail:   "Condition expression may not be used with a destroy action.",
 						Subject: &hcl.Range{
 							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 							Start:    hcl.Pos{Line: 14, Column: 19, Byte: 202},
@@ -2932,6 +2966,86 @@ module "mod" {
 				},
 			},
 
+			"invalid action invoke in expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(1),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[1].action.test_action.one[1] not found") {
+						t.Fatalf("expected 'invoke target module.mod[1].action.test_action.one[1] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
+			"invalid action module invoke": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "two" {
+  count = 1
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsActionInstance{
+							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(3)),
+							Action: addrs.ActionInstance{
+								Action: addrs.Action{
+									Type: "test_action",
+									Name: "one",
+								},
+								Key: addrs.IntKey(0),
+							},
+						},
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoke target module.mod[3].action.test_action.one[0] not found") {
+						t.Fatalf("expected 'invoke target module.mod[3].action.test_action.one[0] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
 			"action invoke with count (all)": {
 				module: map[string]string{
 					"main.tf": `
@@ -3183,7 +3297,7 @@ action "test_action" "one" {
 				},
 				assertPlan: func(t *testing.T, plan *plans.Plan) {
 					if len(plan.Changes.ActionInvocations) != 2 {
-						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
+						t.Fatalf("expected exactly 2 invocations, and found %d", len(plan.Changes.ActionInvocations))
 					}
 
 					ais := plan.Changes.ActionInvocations[0]
@@ -3205,6 +3319,57 @@ action "test_action" "one" {
 
 					if !ai.Addr.Equal(mustActionInstanceAddr("action.test_action.one")) {
 						t.Fatalf("wrong address in plan: %s", ai.Addr)
+					}
+				},
+			},
+
+			"invoke action with targeted caller": {
+				module: map[string]string{
+					"main.tf": `
+resource "test_object" "a" {
+  count = 2
+  name = "hello"
+  lifecycle {
+    action_trigger {
+      events = [before_update]
+	  actions = [action.test_action.one]
+	}
+  }
+}
+
+action "test_action" "one" {
+  config {
+    attr = caller.name
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.Targetable{
+						addrs.AbsAction{
+							Action: addrs.Action{
+								Type: "test_action",
+								Name: "one",
+							},
+						},
+					},
+					Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[0]")},
+				},
+				expectPlanActionCalled: true,
+				buildState: func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[0]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+					state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a[1]"), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"name":"hello"}`),
+						Status:    states.ObjectReady,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				},
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					if len(plan.Changes.ActionInvocations) != 1 {
+						t.Fatalf("expected exactly one invocation, and found %d", len(plan.Changes.ActionInvocations))
 					}
 				},
 			},
@@ -3550,6 +3715,44 @@ resource "test_object" "a" {
   }
 }
 `,
+				},
+				expectPlanActionCalled: true,
+			},
+
+			"after_destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "test" {
+  config {
+    attr = caller.name
+  }
+}
+resource "test_object" "a" {
+  name = "new"
+  lifecycle {
+    action_trigger {
+      events = [after_destroy]
+      actions = [action.test_action.test]
+    }
+  }
+}
+`,
+				},
+				planResourceFn: func(t *testing.T, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("new"),
+					})
+					resp.RequiresReplace = []cty.Path{cty.GetAttrPath("name")}
+					return resp
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"old name"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
 				},
 				expectPlanActionCalled: true,
 			},

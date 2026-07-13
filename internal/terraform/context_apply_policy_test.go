@@ -496,7 +496,7 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, res := range hook.PolicyResults {
-		policyDiags = policyDiags.Append(res.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(res.Diagnostics.AsTerraformDiags())
 	}
 	var exp tfdiags.Diagnostics
 	exp = exp.Append(&hcl.Diagnostic{
@@ -1149,7 +1149,7 @@ func TestContext2Apply_PolicyEvaluation_PartialApply(t *testing.T) {
 
 	var policyDiags tfdiags.Diagnostics
 	for _, result := range hook.PolicyResults {
-		policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 	}
 
 	// now check that the policy evaluation results match our expectations
@@ -1609,7 +1609,7 @@ func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
 
 			var policyDiags tfdiags.Diagnostics
 			for _, result := range hook.PolicyResults {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 
@@ -1805,7 +1805,7 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 
 			var policyDiags tfdiags.Diagnostics
 			for _, result := range hook.PolicyResults {
-				policyDiags = policyDiags.Append(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 

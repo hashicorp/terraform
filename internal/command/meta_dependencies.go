@@ -4,10 +4,15 @@
 package command
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"sort"
+	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -59,6 +64,8 @@ func (m *Meta) readLockedDependenciesFromPath(filename string) (*depsfile.Locks,
 // replaceLockedDependencies creates or overwrites the lock file in the
 // current working directory to contain the information recorded in the given
 // locks object.
+//
+// See saveDependencyLockFile, an opinionated wrapper for this method.
 func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostics {
 	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
 }
@@ -131,4 +138,70 @@ func (m *Meta) annotateDependencyLocksWithOverrides(ret *depsfile.Locks) *depsfi
 	}
 
 	return ret
+}
+
+// saveDependencyLockFile can overwrite the contents of the dependency lock file.
+// If the locks match the previous locks, then the file is not updated and no output is produced.
+// If a "readonly" -lockfile flag is supplied then changing the file is blocked.
+func (m *Meta) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, incompleteProviders []string, flagLockfile string, view views.ProviderInstaller) (output bool, diags tfdiags.Diagnostics) {
+	// If the provider dependencies have changed since the last run then we'll
+	// say a little about that in case the reader wasn't expecting a change.
+	// (When we later integrate module dependencies into the lock file we'll
+	// probably want to refactor this so that we produce one lock-file related
+	// message for all changes together, but this is here for now just because
+	// it's the smallest change relative to what came before it, which was
+	// a hidden JSON file specifically for tracking providers.)
+	if !newLocks.Equal(previousLocks) {
+		// if readonly mode
+		if flagLockfile == "readonly" {
+			// check if required provider dependencies change
+			if !newLocks.EqualProviderAddress(previousLocks) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					`Provider dependency changes detected`,
+					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+				))
+				return output, diags
+			}
+			// suppress updating the file to record any new information it learned,
+			// such as a hash using a new scheme.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				`Provider lock file not updated`,
+				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
+			))
+			return output, diags
+		}
+		// Jump in here and add a warning if any of the providers are incomplete.
+		if len(incompleteProviders) > 0 {
+			// We don't really care about the order here, we just want the
+			// output to be deterministic.
+			sort.Slice(incompleteProviders, func(i, j int) bool {
+				return incompleteProviders[i] < incompleteProviders[j]
+			})
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				incompleteLockFileInformationHeader,
+				fmt.Sprintf(
+					incompleteLockFileInformationBody,
+					strings.Join(incompleteProviders, "\n  - "),
+					getproviders.CurrentPlatform.String())))
+		}
+		if previousLocks.Empty() {
+			// A change from empty to non-empty is special because it suggests
+			// we're running "terraform init" for the first time against a
+			// new configuration. In that case we'll take the opportunity to
+			// say a little about what the dependency lock file is, for new
+			// users or those who are upgrading from a previous Terraform
+			// version that didn't have dependency lock files.
+			view.Output(views.LockInfo)
+			output = true
+		} else {
+			view.Output(views.DependenciesLockChangesInfo)
+			output = true
+		}
+		lockFileDiags := m.replaceLockedDependencies(newLocks)
+		diags = diags.Append(lockFileDiags)
+	}
+	return output, diags
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -299,15 +298,19 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					Alias:    p.provider.addr.Item.Name,
 				}
 
-				policyResults := plans.NewPolicyResults()
-				policyResults.AddProvider(providerConfigAddr, result, decl.DeclRange.ToHCL())
-
-				// Report policy results if we have any
-				if policyResults.Len() > 0 {
+				if !result.Empty() {
+					// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
+					// policy source and the object being enforced.
+					rng := decl.DeclRange.ToHCL()
+					if !rng.Empty() {
+						result = result.WithLocalRange(rng.Ptr())
+					}
 					h := hooksFromContext(ctx)
-					hookSingle(ctx, h.ReportProviderInstancePolicyResults, &hooks.ProviderInstancePolicyResults{
-						Addr:          p.addr,
-						PolicyResults: policyResults,
+					// Report policy results if we have any
+					hookSingle(ctx, h.ReportProviderInstancePolicyResult, &hooks.ProviderInstancePolicyResults{
+						Addr:         p.addr,
+						ProviderAddr: providerConfigAddr.String(),
+						Result:       result,
 					})
 				}
 			}

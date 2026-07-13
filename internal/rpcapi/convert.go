@@ -13,13 +13,13 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -160,15 +160,15 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 	}, nil
 }
 
-func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string]plans.PolicyEvaluation) *stacks.ComponentInstancePolicyEvaluation {
+func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string]policy.EvaluationResponse) *stacks.ComponentInstancePolicyEvaluation {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
 
 	for addr, result := range policyResults {
-		results = append(results, policyResultsToProto(addr, result.EvaluationResponse.Policies)...)
-		infos = append(infos, policyInfosToProto(addr, result.EvaluationResponse.Enforcements)...)
-		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.EvaluationResponse.Diagnostics)...)
+		results = append(results, policyResultsToProto(addr, result.Policies)...)
+		infos = append(infos, policyInfosToProto(addr, result.Enforcements)...)
+		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.Diagnostics)...)
 	}
 
 	return &stacks.ComponentInstancePolicyEvaluation{
@@ -182,21 +182,16 @@ func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.Abs
 	}
 }
 
-func providerInstancePolicyEvaluationProto(providerInstanceAddr stackaddrs.AbsProviderConfigInstance, policyResults *plans.PolicyResults) *stacks.ProviderInstancePolicyEvaluation {
-	results := make([]*stacks.PolicyResult, 0)
-	infos := make([]*stacks.PolicyInfo, 0)
-	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
-
-	for addr, result := range policyResults.Iter() {
-		results = append(results, policyResultsToProto(addr, result.EvaluationResponse.Policies)...)
-		infos = append(infos, policyInfosToProto(addr, result.EvaluationResponse.Enforcements)...)
-		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.EvaluationResponse.Diagnostics)...)
-	}
+func providerInstancePolicyEvaluationProto(result *hooks.ProviderInstancePolicyResults) *stacks.ProviderInstancePolicyEvaluation {
+	resp := result.Result
+	results := policyResultsToProto(result.ProviderAddr, resp.Policies)
+	infos := policyInfosToProto(result.ProviderAddr, resp.Enforcements)
+	policyDiags := policyDiagsToProto(result.ProviderAddr, resp.Diagnostics)
 
 	return &stacks.ProviderInstancePolicyEvaluation{
 		Addr: &stacks.ProviderInstanceInStackAddr{
-			ProviderAddr:         stackaddrs.ConfigProviderConfigForAbsInstance(providerInstanceAddr).String(),
-			ProviderInstanceAddr: providerInstanceAddr.String(),
+			ProviderAddr:         stackaddrs.ConfigProviderConfigForAbsInstance(result.Addr).String(),
+			ProviderInstanceAddr: result.Addr.String(),
 		},
 		Results:     results,
 		Infos:       infos,

@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -117,9 +119,35 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	var scope *lang.Scope
+
+	// By default, we will use the root module scope for evaluating expressions.
+	moduleAddr := addrs.RootModuleInstance
+
+	// If an alternative scope has been provided by the user, parse and use that
+	if parsedArgs.Scope != "" {
+		traversalSrc := []byte(parsedArgs.Scope)
+		traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<module scope address>", hcl.Pos{Line: 1, Column: 1})
+		diags = diags.Append(travDiags)
+		if diags.HasErrors() {
+			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		scopeModuleAddr, addrDiags := addrs.ParseModuleInstance(traversal)
+		diags = diags.Append(addrDiags)
+		if diags.HasErrors() {
+			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		moduleAddr = scopeModuleAddr
+	}
+
 	if parsedArgs.EvalFromPlan {
 		var planDiags tfdiags.Diagnostics
-		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts)
+		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts, moduleAddr)
 		diags = diags.Append(planDiags)
 	} else {
 		evalOpts := &terraform.EvalOpts{}
@@ -134,7 +162,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		// derived values (input variables, local values, output values)
 		// that are not stored in the persistent state.
 		var scopeDiags tfdiags.Diagnostics
-		scope, scopeDiags = lr.Core.Eval(lr.Config, lr.InputState, addrs.RootModuleInstance, evalOpts)
+		scope, scopeDiags = lr.Core.Eval(lr.Config, lr.InputState, moduleAddr, evalOpts)
 		diags = diags.Append(scopeDiags)
 	}
 	if scope == nil {
@@ -224,6 +252,16 @@ Options:
                     instead of evaluating against the current state.
                     You can use this to inspect the effects of configuration
                     changes that haven't been applied yet.
+
+  -scope=module     Provide a module instance address which declares the scope to
+                    use when evaluating expressions against the planned or current
+                    state. Defaults to the root module.
+                    
+                    Examples of module instance addresses:
+                        module.child
+                        module.child.module.grandchild
+                        module.child["key"]
+                        module.child[0]
 
   -var 'foo=bar'    Set a variable in the Terraform configuration. This
                     flag can be set multiple times.

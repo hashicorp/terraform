@@ -244,7 +244,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		newState.PruneResourceHusks()
 	}
 
-	if len(plan.TargetAddrs) > 0 {
+	if len(plan.TargetAddrs) > 0 && len(plan.ActionTargetAddrs) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Applied changes may be incomplete",

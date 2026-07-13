@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -134,14 +133,15 @@ func (v *View) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.Diagnostics(diags.AsTerraformDiags())
 }
 
-func (v *View) PolicyResult(addr string, result plans.PolicyEvaluation) {
+func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	configSources := v.configSources()
 	var buf strings.Builder
 	var foundInfo bool
 
-	for _, enforcement := range result.EvaluationResponse.Enforcements {
+	for _, enforcement := range resp.Enforcements {
 		var src []byte
-		if enforcement.LocalRange != nil {
+		hasLocalRange := enforcement.LocalRange != nil
+		if hasLocalRange {
 			src = configSources[enforcement.LocalRange.Filename]
 		}
 		info := json.NewPolicyInfo(src, enforcement)
@@ -165,16 +165,15 @@ func (v *View) PolicyResult(addr string, result plans.PolicyEvaluation) {
 				)
 			}
 			fmt.Fprintf(&buf, "%q\n", info.Message)
-
-			if !result.ConfigDeclRange.Empty() {
-				cfgRange := result.ConfigDeclRange
-				resourceContext := string(cfgRange.SliceBytes(configSources[cfgRange.Filename]))
+			if hasLocalRange {
+				rng := enforcement.LocalRange
+				resourceContext := string(rng.SliceBytes(src))
 
 				fmt.Fprintf(
 					&buf,
 					"\non %s line %d, in %s\n",
-					cfgRange.Filename,
-					cfgRange.Start.Line,
+					rng.Filename,
+					rng.Start.Line,
 					resourceContext,
 				)
 			}
@@ -183,7 +182,7 @@ func (v *View) PolicyResult(addr string, result plans.PolicyEvaluation) {
 	}
 
 	// Print policy diagnostics
-	v.Diagnostics(result.EvaluationResponse.Diagnostics.AsTerraformDiags())
+	v.Diagnostics(resp.Diagnostics.AsTerraformDiags())
 
 	if foundInfo {
 		v.streams.Println()

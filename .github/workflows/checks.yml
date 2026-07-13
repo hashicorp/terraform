@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Determine Go version
         id: go
@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Determine Go version
         id: go
@@ -82,7 +82,7 @@ jobs:
       # it for select packages.
       - name: "Race detector"
         run: |
-          go test -race ./internal/terraform ./internal/command ./internal/states
+          go test -race ./internal/terraform ./internal/command ./internal/states ./internal/promising ./internal/stacks/...
 
   e2e-tests:
     # This is an intentionally-limited form of our E2E test run which only
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Determine Go version
         id: go
@@ -116,7 +116,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0 # We need to do comparisons against the main branch.
 
@@ -142,7 +142,7 @@ jobs:
           fi
 
       - name: Cache protobuf tools
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: "tools/protobuf-compile/.workdir"
           key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Determine Go version
         id: go
