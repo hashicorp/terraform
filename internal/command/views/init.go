@@ -96,6 +96,11 @@ func (v *InitHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provider, ver
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
+func (v *InitHuman) LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	v.view.streams.Println(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+}
+
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
 	v.view.streams.Println(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
@@ -228,6 +233,14 @@ func (v *InitJSON) LogProviderAlreadyInstalled(providerAddr addrs.Provider, vers
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
+}
+
+func (v *InitJSON) LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(UsingProviderFromCacheDirInfo, params...)
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {

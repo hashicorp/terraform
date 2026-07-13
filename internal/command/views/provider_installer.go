@@ -42,6 +42,9 @@ type ProviderInstaller interface {
 	// Log that the built-in provider is available in the current Terraform core binary
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
 
+	// Log that the provider version in use is being used from a local cache instead of being downloaded from an external source.
+	LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
