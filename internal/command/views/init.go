@@ -20,7 +20,6 @@ type Init interface {
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
-	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
 	ProviderInstaller
@@ -74,10 +73,6 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.prepareMessage(messageCode, params...))
-}
-
-func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
@@ -202,10 +197,17 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	)
 }
 
-func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
-	v.logInitMessage(messageCode, params...)
-}
-
+// logInitMessage is an internalised version of an old method `LogInitMessage`.
+// New methods have since been added that replace the old `LogInitMessage` method,
+// but to ensure that the same JSON output is produced we keep `logInitMessage` to
+// be reused by the newer methods.
+//
+// Logs produced via this method are not annotated with any extra data.
+// By default they contain:
+// * @level as "info"
+// * @module as "terraform.ui" (See NewJSONView)
+// * @timestamp formatted in the default way
+// * @message set as the string constructed from this method's arguments
 func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.prepareMessage(messageCode, params...)
 	if preppedMessage == "" {
