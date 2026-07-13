@@ -115,6 +115,13 @@ func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provide
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)

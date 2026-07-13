@@ -483,7 +483,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},
@@ -637,7 +637,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},
