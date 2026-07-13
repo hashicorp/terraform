@@ -76,6 +76,13 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) InitializingStateStoreProviderPlugin(storeType string) {
+	params := []any{storeType}
+	msg := s.prepareMessage(InitializingStateStoreProviderPluginMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
 	msg := s.prepareMessage(FindingMatchingVersionMessage, params...)

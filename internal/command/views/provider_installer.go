@@ -18,6 +18,8 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 
+	InitializingStateStoreProviderPlugin(storeType string)
+
 	FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
 	FindingLatestVersion(providerAddr addrs.Provider)
 
