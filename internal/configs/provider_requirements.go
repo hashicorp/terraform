@@ -6,7 +6,6 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
@@ -123,91 +122,30 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 			switch key.AsString() {
 			case "version":
 				versionExpr = kv.Value
-
-				// Store the version expression if it contains variable that
-				// needs to be evaluated.
-				//
-				// Skip the "legacy" pure string resolution of the version
-				// attribute.
-				if vars := kv.Value.Variables(); len(vars) > 0 {
-					providerExpr.VersionExpr = kv.Value
-					continue
-				}
-
-				vc := VersionConstraint{
-					DeclRange: attr.Range,
-				}
-
-				constraint, valDiags := kv.Value.Value(nil)
-				if valDiags.HasErrors() || !constraint.Type().Equals(cty.String) {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid version constraint",
-						Detail:   "Version must be specified as a string.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				constraintStr := constraint.AsString()
-				constraints, err := version.NewConstraint(constraintStr)
-				if err != nil {
-					// NewConstraint doesn't return user-friendly errors, so we'll just
-					// ignore the provided error and produce our own generic one.
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid version constraint",
-						Detail:   "This string does not use correct version constraint syntax.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				vc.Required = constraints
-				rp.Requirement = vc
+				providerExpr.VersionExpr = kv.Value
 
 			case "source":
 				sourceExpr = kv.Value
+				providerExpr.SourceExpr = kv.Value
 
-				// Store the source expression if it contains variable that
-				// needs to be evaluated.
-				//
-				// Skip the "legacy" pure string resolution of the source
-				// attribute.
-				if vars := kv.Value.Variables(); len(vars) > 0 {
-					providerExpr.SourceExpr = kv.Value
-					continue
-				}
-
-				source, err := kv.Value.Value(nil)
-				if err != nil || !source.Type().Equals(cty.String) {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid source",
-						Detail:   "Source must be specified as a string.",
-						Subject:  kv.Value.Range().Ptr(),
-					})
-					continue
-				}
-
-				fqn, sourceDiags := addrs.ParseProviderSourceString(source.AsString())
-				if sourceDiags.HasErrors() {
-					hclDiags := sourceDiags.ToHCL()
-					// The diagnostics from ParseProviderSourceString don't contain
-					// source location information because it has no context to compute
-					// them from, and so we'll add those in quickly here before we
-					// return.
-					for _, diag := range hclDiags {
-						if diag.Subject == nil {
-							diag.Subject = kv.Value.Range().Ptr()
+				// For static source strings (no variable references), validate the
+				// FQN at parse time so that errors are reported early. The actual
+				// resolution into RequiredProviders happens later via
+				// resolveStaticProviderExprs (called from NewModule).
+				if len(kv.Value.Variables()) == 0 {
+					if source, err := kv.Value.Value(nil); err == nil && source.Type().Equals(cty.String) {
+						if _, sourceDiags := addrs.ParseProviderSourceString(source.AsString()); sourceDiags.HasErrors() {
+							hclDiags := sourceDiags.ToHCL()
+							for _, d := range hclDiags {
+								if d.Subject == nil {
+									d.Subject = kv.Value.Range().Ptr()
+								}
+							}
+							diags = append(diags, hclDiags...)
+							continue
 						}
 					}
-					diags = append(diags, hclDiags...)
-					continue
 				}
-
-				rp.Source = source.AsString()
-				rp.Type = fqn
 
 			case "configuration_aliases":
 				exprs, listDiags := hcl.ExprList(kv.Value)
