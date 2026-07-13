@@ -954,7 +954,7 @@ func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addr
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+		view.LogInstallingProvider(provider, version)
 	}
 }
 

@@ -785,6 +785,30 @@ func TestNewInit_LogFindingLatestVersion_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInstallingProvider_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	initView.LogInstallingProvider(p, v)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installing provider version: hashicorp/test v1.0.0..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
