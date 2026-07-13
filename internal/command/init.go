@@ -922,7 +922,7 @@ func (c *InitCommand) Synopsis() string {
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
 func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
-		view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+		view.LogProviderAlreadyInstalled(provider, selectedVersion)
 	}
 }
 

@@ -24,6 +24,9 @@ type ProviderInstaller interface {
 	// Log details about a successfully fetched provider package, including details about the key used to sign it.
 	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
+	// Log details about a successfully fetched provider package
+	LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
