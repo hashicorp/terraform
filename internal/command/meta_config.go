@@ -238,32 +238,32 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 // loadSingleModuleWithTests matches loadSingleModule except it also loads any
 // tests for the target module.
-func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	dir = m.normalizePath(dir)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
-	diags = diags.Append(hclDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
-	diags = diags.Append(varDiags)
-	if varDiags.HasErrors() {
-		return nil, diags
-	}
-
-	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
-	diags = diags.Append(buildDiags)
-	return mod, diags
-}
+//func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
+//	var diags tfdiags.Diagnostics
+//	dir = m.normalizePath(dir)
+//
+//	loader, err := m.initConfigLoader()
+//	if err != nil {
+//		diags = diags.Append(err)
+//		return nil, diags
+//	}
+//
+//	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
+//	diags = diags.Append(hclDiags)
+//	if diags.HasErrors() {
+//		return nil, diags
+//	}
+//
+//	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+//	diags = diags.Append(varDiags)
+//	if varDiags.HasErrors() {
+//		return nil, diags
+//	}
+//
+//	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
+//	diags = diags.Append(buildDiags)
+//	return mod, diags
+//}
 
 // dirIsConfigPath checks if the given path is a directory that contains at
 // least one Terraform configuration file (.tf or .tf.json), returning true
