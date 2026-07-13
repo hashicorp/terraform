@@ -129,6 +129,13 @@ func (s *StateMigrateHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provi
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(BuiltInProviderAvailableMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(InstallingProviderMessage, params...)
