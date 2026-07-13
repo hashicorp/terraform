@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -22,8 +24,8 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 
-	InstalledProviderVersionInfo(params ...any)
-	InstalledProviderVersionInfoWithKeyID(params ...any)
+	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -39,8 +41,8 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
-	InstalledProviderVersionInfo(params ...any)
-	InstalledProviderVersionInfoWithKeyID(params ...any)
+	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -98,19 +100,14 @@ func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) InstalledProviderVersionInfo(params ...any) {
-	params = append(params, "") // add empty key id to the end
+func (v *InitHuman) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
-func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(params ...any) {
-	key := params[len(params)-1]
-	params = params[:len(params)-1]
-
-	// add key id to the end of the message if it is not empty
-	if key != "" {
-		params = append(params, fmt.Sprintf(", key ID [reset][bold]%s[reset]", key))
-	}
+func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
@@ -198,21 +195,17 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitJSON) InstalledProviderVersionInfo(params ...any) {
-	params = append(params, "") // add empty key id to the end
+func (v *InitJSON) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(InstalledProviderVersionInfo, params...)
 }
 
-func (v *InitJSON) InstalledProviderVersionInfoWithKeyID(params ...any) {
-	key := params[len(params)-1]
-
-	// replace key id param with formatted version to the end of the message if it is not empty
-	if key != "" {
-		params[len(params)-1] = fmt.Sprintf("key_id: %s", key)
-	}
+func (v *InitJSON) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
