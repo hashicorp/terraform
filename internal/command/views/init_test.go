@@ -661,6 +661,30 @@ func TestNewInit_InstalledProviderVersionInfo_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_ProviderAlreadyInstalled_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	initView.ProviderAlreadyInstalled(p, v)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test v1.0.0: Using previously-installed provider version"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 // Assert JSON log content, including log type and additional fields
 //
 // Note - in calling code this is only ever used for partner providers
