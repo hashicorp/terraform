@@ -511,7 +511,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
 					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}
