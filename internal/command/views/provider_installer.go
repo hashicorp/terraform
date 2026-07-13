@@ -15,6 +15,9 @@ import (
 type ProviderInstaller interface {
 	Output(messageCode InitMessageCode, params ...any)
 
+	// InitializingProviderPlugins indicates progress during installation of all provider plugins required by a project.
+	InitializingProviderPlugins()
+
 	// InitializingStateStoreProviderPlugin indicates progress during installation of a state store provider plugin.
 	InitializingStateStoreProviderPlugin(storeType string)
 

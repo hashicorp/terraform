@@ -625,7 +625,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginMessage)
+			view.InitializingProviderPlugins()
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),

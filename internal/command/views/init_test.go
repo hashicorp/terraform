@@ -273,7 +273,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.InitializingProviderPlugins()
 
 		version := tfversion.String()
 		want := []map[string]any{
@@ -375,7 +375,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.Output(InitializingProviderPluginMessage)
+	newInit.InitializingProviderPlugins()
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -427,7 +427,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		newInit.Output(InitializingProviderPluginMessage)
+		newInit.InitializingProviderPlugins()
 
 		actual := done(t).All()
 		expected := "Initializing provider plugins..."
@@ -943,6 +943,30 @@ func TestNewInit_LockfileUpdated_json(t *testing.T) {
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
 		`"message_code":"dependencies_lock_changes_info"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_InitializingProviderPlugins_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.InitializingProviderPlugins()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing provider plugins..."`,
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"message_code":"initializing_provider_plugin_message"`,
 		`"type":"init_output"`,
 	}
 	for _, snippet := range expectedOutputFields {

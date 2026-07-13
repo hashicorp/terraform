@@ -67,6 +67,11 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) InitializingProviderPlugins() {
+	panic("InitializingProviderPlugins is not supported in the state migrate command") // downloading all providers is an init-only task
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) InitializingStateStoreProviderPlugin(storeType string) {
 	params := []any{storeType}
 	msg := s.prepareMessage(InitializingStateStoreProviderPluginMessage, params...)

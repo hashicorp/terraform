@@ -76,6 +76,10 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
+func (v *InitHuman) InitializingProviderPlugins() {
+	v.view.streams.Println(v.prepareMessage(InitializingProviderPluginMessage))
+}
+
 func (v *InitHuman) InitializingStateStoreProviderPlugin(storeType string) {
 	params := []any{storeType}
 	v.view.streams.Println(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
@@ -228,6 +232,12 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 // this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
 func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitJSON) InitializingProviderPlugins() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(InitializingProviderPluginMessage)
 }
 
 func (v *InitJSON) InitializingStateStoreProviderPlugin(storeType string) {
