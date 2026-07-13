@@ -1200,11 +1200,11 @@ func fetchPackageSuccessCallback(view views.ProviderInstaller) func(provider add
 			keyID = authResult.KeyID
 		}
 		if keyID != "" {
-			view.InstalledProviderVersionInfoWithKeyID(provider.ForDisplay(), version, authResult, keyID)
+			view.InstalledProviderVersionInfoWithKeyID(provider, version, authResult, keyID)
 			return
 		}
 
-		view.InstalledProviderVersionInfo(provider.ForDisplay(), version, authResult)
+		view.InstalledProviderVersionInfo(provider, version, authResult)
 	}
 }
 
