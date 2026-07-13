@@ -98,7 +98,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 		span.End()
 
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If our directory is empty, then we're done. We can't get or set up
@@ -242,7 +242,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		if configProvidersOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 
 		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
@@ -276,7 +276,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if backendOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Set up the policy client now that the backend is configured, so the
@@ -343,7 +343,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		if modsOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 	}
 
@@ -418,7 +418,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if stateProvidersOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Update the dependency lock file, if it has changed.
@@ -438,7 +438,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if lockFileOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If we accumulated any warnings along the way that weren't accompanied
