@@ -26,6 +26,9 @@ type Init interface {
 	InitializingStateStore(storeType string)
 	InitializingBackend()
 
+	// Root module made by copying configuration from another module
+	CopyingConfiguration(sourceModulePath string)
+
 	ProviderInstaller
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
@@ -88,6 +91,11 @@ func (v *InitHuman) InitializingStateStore(storeType string) {
 func (v *InitHuman) InitializingBackend() {
 	params := []any{}
 	v.view.streams.Println(v.prepareMessage(InitializingBackendMessage, params...))
+}
+
+func (v *InitHuman) CopyingConfiguration(sourceModulePath string) {
+	params := []any{sourceModulePath}
+	v.view.streams.Println(v.prepareMessage(CopyingConfigurationMessage, params...))
 }
 
 func (v *InitHuman) InitializingProviderPlugins() {
@@ -262,6 +270,14 @@ func (v *InitJSON) InitializingBackend() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.Output(InitializingBackendMessage, params...)
+}
+
+func (v *InitJSON) CopyingConfiguration(sourceModulePath string) {
+	params := []any{sourceModulePath}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(CopyingConfigurationMessage, params...)
 }
 
 func (v *InitJSON) InitializingProviderPlugins() {

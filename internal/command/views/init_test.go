@@ -1025,6 +1025,31 @@ func TestNewInit_InitializingBackend_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_CopyingConfiguration_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	source := "/path/to/module"
+	initView.CopyingConfiguration(source)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Copying configuration from \"/path/to/module\"..."`,
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"message_code":"copying_configuration_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)

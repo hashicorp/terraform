@@ -76,7 +76,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			return 1
 		}
 
-		view.Output(views.CopyingConfigurationMessage, src)
+		view.CopyingConfiguration(src)
 
 		hooks := uiModuleInstallHooks{
 			Ui:             c.Ui,
