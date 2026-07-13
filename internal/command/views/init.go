@@ -86,6 +86,11 @@ func (v *InitHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provider, ver
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
+func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
+}
+
 func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
@@ -187,6 +192,14 @@ func (v *InitJSON) LogProviderAlreadyInstalled(providerAddr addrs.Provider, vers
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
+}
+
+func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(ReusingPreviousVersionInfo, params...)
 }
 
 func (v *InitJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {

@@ -27,6 +27,9 @@ type ProviderInstaller interface {
 	// Log details about a successfully fetched provider package
 	LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
+	// Log details about a provider being controlled by a pre-existing lock in a dependency lock file.
+	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines

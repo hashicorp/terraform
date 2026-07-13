@@ -115,6 +115,13 @@ func (s *StateMigrateHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provi
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
