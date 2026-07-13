@@ -131,6 +131,14 @@ func (v *InitHuman) PartnerAndCommunityProviders() {
 	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
+func (v *InitHuman) LockfileCreated() {
+	v.view.streams.Println(v.prepareMessage(LockInfo))
+}
+
+func (v *InitHuman) LockfileUpdated() {
+	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo))
+}
+
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
 func (v *InitHuman) Log(message string, params ...any) {
 	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
@@ -307,6 +315,18 @@ func (v *InitJSON) PartnerAndCommunityProviders() {
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(PartnerAndCommunityProvidersMessage)
+}
+
+func (v *InitJSON) LockfileCreated() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(LockInfo)
+}
+
+func (v *InitJSON) LockfileUpdated() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(DependenciesLockChangesInfo)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {

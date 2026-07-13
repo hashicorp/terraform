@@ -194,10 +194,10 @@ func (m *Meta) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, i
 			// say a little about what the dependency lock file is, for new
 			// users or those who are upgrading from a previous Terraform
 			// version that didn't have dependency lock files.
-			view.Output(views.LockInfo)
+			view.LockfileCreated()
 			output = true
 		} else {
-			view.Output(views.DependenciesLockChangesInfo)
+			view.LockfileUpdated()
 			output = true
 		}
 		lockFileDiags := m.replaceLockedDependencies(newLocks)

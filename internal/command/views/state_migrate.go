@@ -143,6 +143,24 @@ func (s *StateMigrateHuman) PartnerAndCommunityProviders() {
 	s.log(msg)
 }
 
+// LockfileCreated will be used in 'state migrate' if the command
+// needs to download a provider for the destination state location and
+// this is the first provider downloaded in the working directory.
+//
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LockfileCreated() {
+	s.view.streams.Println(s.prepareMessage(LockInfo))
+}
+
+// LockfileUpdated will be used in 'state migrate' if the command
+// needs to download a provider for the destination state location
+// and either the provider is not yet in the lockfile or it is being upgraded.
+//
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LockfileUpdated() {
+	s.view.streams.Println(s.prepareMessage(DependenciesLockChangesInfo))
+}
+
 // Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[code]

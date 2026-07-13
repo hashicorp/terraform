@@ -48,6 +48,12 @@ type ProviderInstaller interface {
 	// PartnerAndCommunityProviders is a message concerning partner and community providers and how these are signed
 	PartnerAndCommunityProviders()
 
+	// LockfileCreated indicates that a dependency lock file was created during installation
+	LockfileCreated()
+
+	// LockfileUpdated indicates that a dependency lock file was updated during installation
+	LockfileUpdated()
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
