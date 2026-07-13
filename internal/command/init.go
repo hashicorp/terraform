@@ -929,7 +929,7 @@ func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provide
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
 func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
-		view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+		view.LogBuiltInProviderAvailable(provider)
 	}
 }
 
