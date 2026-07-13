@@ -36,6 +36,9 @@ type ProviderInstaller interface {
 	// Log details about a provider installation not being controlled by a version constraint nor a dependency lock file; latest available version is used.
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
+	// Log details about a provider installation process that's starting.
+	LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
