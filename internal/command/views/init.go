@@ -303,10 +303,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: partnerAndCommunityProvidersInfo,
 		JSONValue:  partnerAndCommunityProvidersInfo,
 	},
-	"init_config_error": {
-		HumanValue: errInitConfigError,
-		JSONValue:  errInitConfigErrorJSON,
-	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
 		JSONValue:  "Successfully unset the state store %q. Terraform will now operate locally.",
@@ -396,9 +392,6 @@ const (
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
-	// InitConfigError indicates problems encountered during initialisation
-	// >>> Not used to create JSON output, can be removed.
-	InitConfigError InitMessageCode = "init_config_error"
 	// BackendConfiguredSuccessMessage indicates successful backend configuration
 	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
@@ -533,22 +526,6 @@ version control system if they represent changes you intended to make.`
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
 	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
-
-const errInitConfigError = `
-[reset]Terraform encountered problems during initialisation, including problems
-with the configuration, described below.
-
-The Terraform configuration must be valid before initialization so that
-Terraform can determine which modules and providers need to be installed.
-`
-
-const errInitConfigErrorJSON = `
-Terraform encountered problems during initialisation, including problems
-with the configuration, described below.
-
-The Terraform configuration must be valid before initialization so that
-Terraform can determine which modules and providers need to be installed.
-`
 
 const backendConfiguredSuccessHuman = `[reset][green]
 Successfully configured the backend %q! Terraform will automatically
