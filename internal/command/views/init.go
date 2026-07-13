@@ -430,10 +430,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Installing %s v%s...",
 		JSONValue:  "Installing provider version: %s v%s...",
 	},
-	"key_id": {
-		HumanValue: ", key ID [reset][bold]%s[reset]",
-		JSONValue:  "key_id: %s",
-	},
 	"installed_provider_version_info": {
 		HumanValue: "- Installed %s v%s (%s%s)",
 		JSONValue:  "Installed provider version: %s v%s (%s%s)",
@@ -567,8 +563,6 @@ const (
 	BuiltInProviderAvailableMessage InitMessageCode = "built_in_provider_available_message"
 	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
 	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
-	// KeyID indicates the key ID used to sign of a successfully installed provider
-	KeyID InitMessageCode = "key_id"
 	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
 	InstallingProviderMessage InitMessageCode = "installing_provider_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
