@@ -16,6 +16,7 @@ type StateMigrate interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	ProviderInstaller
+	Spacer // The `state migrate` command logs empty lines to space-out different sections of human-readable output
 }
 
 func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
@@ -30,6 +31,7 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 var (
 	_ StateMigrate      = (*StateMigrateHuman)(nil)
 	_ ProviderInstaller = (*StateMigrateHuman)(nil)
+	_ Spacer            = (*StateMigrateHuman)(nil)
 )
 
 type StateMigrateHuman struct {
@@ -42,6 +44,11 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
 	s.view.streams.Println(fmt.Sprintf(message, params...))
+}
+
+// Implements Spacer
+func (s *StateMigrateHuman) Spacer() {
+	s.view.Spacer()
 }
 
 // Implements ProviderInstaller interface.

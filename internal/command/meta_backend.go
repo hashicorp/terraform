@@ -3115,12 +3115,12 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 			diags = diags.Append(m.promptStateStorageProviderApproval(provider, stateStoreProviderLock, stateStoreProviderAuthResult))
 			if diags.HasErrors() {
 				view.Output(views.StateStoreProviderInteractiveRejectedMessage)
-				view.Output(views.EmptyMessage)
+				view.Spacer()
 				return diags
 			}
 
 			view.Output(views.StateStoreProviderInteractiveApprovedMessage)
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		} else {
 			// Confirm that a lock was used to control download.
 			// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
@@ -3173,7 +3173,7 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 			}
 
 			view.Output(views.StateStoreProviderAutomationApprovedMessage)
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 	default:
 		// Handle Invalid or unexpected action types

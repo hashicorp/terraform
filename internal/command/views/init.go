@@ -22,6 +22,8 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
 
 // The Init view is used for the init command.
@@ -33,6 +35,8 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
 
 // NewInit returns Init implementation for the given ViewType.
@@ -66,6 +70,10 @@ func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *InitHuman) Spacer() {
+	v.view.Spacer()
+}
+
 func (v *InitHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
@@ -95,8 +103,7 @@ func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) s
 	}
 
 	if message.HumanValue == "" {
-		// no need to apply colorization if the message is empty
-		return message.HumanValue
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
@@ -117,6 +124,10 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *InitJSON) Spacer() {
+	v.view.Spacer()
+}
+
 func (v *InitJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
@@ -126,11 +137,7 @@ func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
-	// don't add empty messages to json output
 	preppedMessage := v.PrepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -168,6 +175,10 @@ func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) st
 	if !ok {
 		// display the message code as fallback if not found in the message registry
 		return string(messageCode)
+	}
+
+	if message.JSONValue == "" {
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
@@ -356,10 +367,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 		JSONValue:  "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 	},
-	"empty_message": {
-		HumanValue: "",
-		JSONValue:  "",
-	},
 }
 
 type InitMessageCode string
@@ -369,7 +376,6 @@ const (
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
 	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	EmptyMessage                                 InitMessageCode = "empty_message"
 	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"

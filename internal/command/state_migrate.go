@@ -310,7 +310,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 		if output {
-			stateMigrate.LogInitMessage(views.EmptyMessage)
+			stateMigrate.Spacer()
 		}
 	}
 
