@@ -26,6 +26,10 @@ type Init interface {
 	InitializingStateStore(storeType string)
 	InitializingBackend()
 
+	// Modules-related
+	InitializingModules()
+	UpgradingModules()
+
 	// Root module made by copying configuration from another module
 	CopyingConfiguration(sourceModulePath string)
 
@@ -98,6 +102,16 @@ func (v *InitHuman) InitializingStateStore(storeType string) {
 func (v *InitHuman) InitializingBackend() {
 	params := []any{}
 	v.view.streams.Println(v.prepareMessage(InitializingBackendMessage, params...))
+}
+
+func (v *InitHuman) InitializingModules() {
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(InitializingModulesMessage, params...))
+}
+
+func (v *InitHuman) UpgradingModules() {
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(UpgradingModulesMessage, params...))
 }
 
 func (v *InitHuman) CopyingConfiguration(sourceModulePath string) {
@@ -297,6 +311,16 @@ func (v *InitJSON) InitializingBackend() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.Output(InitializingBackendMessage, params...)
+}
+
+func (v *InitJSON) InitializingModules() {
+	params := []any{}
+	v.Output(InitializingModulesMessage, params...)
+}
+
+func (v *InitJSON) UpgradingModules() {
+	params := []any{}
+	v.Output(UpgradingModulesMessage, params...)
 }
 
 func (v *InitJSON) CopyingConfiguration(sourceModulePath string) {
