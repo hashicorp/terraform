@@ -649,26 +649,27 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage                  InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage             InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage                      InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage            InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage                   InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage                   InitMessageCode = "initializing_backend_message"
+	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
+	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
+	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                          InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
+
+	//// Message codes below are ONLY used INTERNALLY (for now)
+
 	InitializingStateStoreMessage                InitMessageCode = "initializing_state_store_message"
 	InitializingStateStoreProviderPluginMessage  InitMessageCode = "initializing_state_store_provider_plugin_message"
 	StateStoreProviderInteractiveApprovedMessage InitMessageCode = "state_store_provider_interactive_approved_message"
 	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
 	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
-	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                                     InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
-
-	//// Message codes below are ONLY used INTERNALLY (for now)
 
 	// BackendConfiguredSuccessMessage indicates successful backend configuration
 	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
