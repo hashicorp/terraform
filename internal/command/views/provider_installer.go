@@ -11,43 +11,41 @@ import (
 // ProviderInstaller is an interface that describes the methods required by a view that's used
 // with provider installation methods.
 //
-// The method names here are constrained by the Init view interface, which is coupled to the
-// provider installation process. In a future major version of Terraform this could be improved.
-// See: https://github.com/hashicorp/terraform/issues/38763
+// The `Output` method is a constraint from the Init view interface, which will be refactored away soon.
 type ProviderInstaller interface {
 	Output(messageCode InitMessageCode, params ...any)
 
-	// Log details about a successfully fetched provider package.
+	// LogProviderVersionSuccess describes a successfully installed provider along with its version
 	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 
-	// Log details about a successfully fetched provider package, including details about the key used to sign it.
+	// LogProviderVersionSuccessWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
 	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
-	// Log details about a successfully fetched provider package
+	// LogProviderAlreadyInstalled indicates a provider that is already installed during installation
 	LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
-	// Log details about a provider being controlled by a pre-existing lock in a dependency lock file.
+	// LogReusingPreviousProviderVersion indicates a provider is locked to a specific version during installation
 	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
 
-	// Log details about a provider installation being controlled by a version constraint.
+	// LogFindingMatchingVersion indicates that Terraform is looking for a provider version that matches the constraint during installation.
 	LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
 
-	// Log details about a provider installation not being controlled by a version constraint nor a dependency lock file; latest available version is used.
+	// FindingLatestVersion indicates that Terraform is looking for the latest version of a provider during installation (no constraint nor prior lock was supplied)
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
-	// Log details about a provider installation process that's starting.
+	// LogInstallingProvider indicates that a provider is being installed (from a remote location)
 	LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version)
 
-	// Log that the built-in provider is available in the current Terraform core binary
+	// LogBuiltInProviderAvailable indicates a built-in provider is available in the current Terraform core binary and is in use during installation
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
 
-	// Log that the provider version in use is being used from a local cache instead of being downloaded from an external source.
+	// LogUsingProviderFromCacheDir indicates that a provider is being linked from a system-wide cache, instead of being downloaded from an external source.
 	LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version)
 
-	// Log that a provider successfully fetched in this operation is maintained by third-parties.
+	// Log that a provider successfully fetched in this operation is maintained by third-parties and describe how these are signed
 	LogPartnerAndCommunityProviders()
 
-	// Log that the command is begging installation and initialisation of a provider(s) for the purposes of managing resource state.
+	// LogInitializingStateStoreProviderPlugin indicates progress during installation of a state store provider plugin
 	LogInitializingStateStoreProviderPlugin(storeType string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
