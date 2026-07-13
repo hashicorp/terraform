@@ -82,6 +82,12 @@ func (s *StateMigrateHuman) ProviderAlreadyInstalled(providerAddr addrs.Provider
 	s.log(msg)
 }
 
+func (s *StateMigrateHuman) ReusingPreviousVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
+	s.log(msg)
+}
+
 // Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end

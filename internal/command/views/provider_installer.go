@@ -20,6 +20,8 @@ type ProviderInstaller interface {
 
 	ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
+	ReusingPreviousVersion(providerAddr addrs.Provider)
+
 	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
