@@ -19,6 +19,7 @@ type ProviderInstaller interface {
 	Output(messageCode InitMessageCode, params ...any)
 
 	FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
+	FindingLatestVersion(providerAddr addrs.Provider)
 
 	ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 

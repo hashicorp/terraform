@@ -480,7 +480,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 				if len(versionConstraints) > 0 {
 					view.FindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.FindingLatestVersion(provider)
 				}
 			}
 		},

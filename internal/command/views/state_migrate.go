@@ -83,6 +83,13 @@ func (s *StateMigrateHuman) FindingMatchingVersion(providerAddr addrs.Provider, 
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) FindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)

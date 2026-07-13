@@ -86,6 +86,11 @@ func (v *InitHuman) FindingMatchingVersion(providerAddr addrs.Provider, versionC
 	v.view.streams.Println(v.prepareMessage(FindingMatchingVersionMessage, params...))
 }
 
+func (v *InitHuman) FindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	v.view.streams.Println(v.prepareMessage(FindingLatestVersionMessage, params...))
+}
+
 func (v *InitHuman) ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
@@ -197,6 +202,14 @@ func (v *InitJSON) FindingMatchingVersion(providerAddr addrs.Provider, versionCo
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(FindingMatchingVersionMessage, params...)
+}
+
+func (v *InitJSON) FindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(FindingLatestVersionMessage, params...)
 }
 
 func (v *InitJSON) ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
