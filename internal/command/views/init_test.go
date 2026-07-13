@@ -375,7 +375,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginMessage)
+	newInit.Output(InitializingProviderPluginMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -388,10 +388,11 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 			"ui":        JSON_UI_VERSION,
 		},
 		{
-			"@level":   "info",
-			"@message": "Initializing provider plugins...",
-			"@module":  "terraform.ui",
-			"type":     "log",
+			"@level":       "info",
+			"@message":     "Initializing provider plugins...",
+			"@module":      "terraform.ui",
+			"message_code": "initializing_provider_plugin_message",
+			"type":         "init_output",
 		},
 	}
 
