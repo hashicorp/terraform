@@ -715,6 +715,29 @@ func TestNewInit_LogProviderVersionSuccessWithKeyID_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogReusingPreviousProviderVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	initView.LogReusingPreviousProviderVersion(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test: Reusing previous version from the dependency lock file"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)

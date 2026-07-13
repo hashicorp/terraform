@@ -508,7 +508,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
