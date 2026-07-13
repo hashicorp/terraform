@@ -14,27 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ProviderInstaller is an interface that describes the methods required by a view that's used
-// with provider installation methods.
-//
-// The method names here are constrained by the Init view interface, which is coupled to the
-// provider installation process. In a future major version of Terraform this could be improved.
-// See: https://github.com/hashicorp/terraform/issues/38763
-type ProviderInstaller interface {
-	LogInitMessage(messageCode InitMessageCode, params ...any)
-	Output(messageCode InitMessageCode, params ...any)
-
-	// Log details about a successfully fetched provider package.
-	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
-
-	// Log details about a successfully fetched provider package, including details about the key used to sign it.
-	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
-
-	prepareMessage(messageCode InitMessageCode, params ...any) string
-
-	Spacer // output from provider installation is spaced out from following human-readable output log lines
-}
-
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -44,8 +23,7 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
-	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
-	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	ProviderInstaller
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
