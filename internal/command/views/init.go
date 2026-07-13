@@ -96,6 +96,11 @@ func (v *InitHuman) ProviderAlreadyInstalled(providerAddr addrs.Provider, versio
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
+func (v *InitHuman) InstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
+}
+
 func (v *InitHuman) ReusingPreviousVersion(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
 	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
@@ -218,6 +223,14 @@ func (v *InitJSON) ProviderAlreadyInstalled(providerAddr addrs.Provider, version
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
+}
+
+func (v *InitJSON) InstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(InstallingProviderMessage, params...)
 }
 
 func (v *InitJSON) ReusingPreviousVersion(providerAddr addrs.Provider) {

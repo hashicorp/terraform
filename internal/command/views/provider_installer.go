@@ -21,6 +21,8 @@ type ProviderInstaller interface {
 	FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
 	FindingLatestVersion(providerAddr addrs.Provider)
 
+	InstallingProvider(providerAddr addrs.Provider, version getproviders.Version)
+
 	ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
 	ReusingPreviousVersion(providerAddr addrs.Provider)
