@@ -81,6 +81,11 @@ func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
+func (v *InitHuman) FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+	v.view.streams.Println(v.prepareMessage(FindingMatchingVersionMessage, params...))
+}
+
 func (v *InitHuman) ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
@@ -184,6 +189,14 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 // this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
 func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitJSON) FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(FindingMatchingVersionMessage, params...)
 }
 
 func (v *InitJSON) ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {

@@ -18,6 +18,8 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 
+	FindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
+
 	ProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
 	ReusingPreviousVersion(providerAddr addrs.Provider)
