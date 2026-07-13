@@ -8,11 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -338,7 +340,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
 		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		version := tfversion.String()
@@ -459,7 +461,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
+		packageName, packageVersion := "hashicorp/aws", "3.0.0"
 		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		actual := done(t).All()
@@ -469,3 +471,223 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 	})
 }
+
+// Assert message content
+func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
+	const verifiedChecksum = 0
+	const officialProvider = 1
+	const noKey = ""
+
+	t.Run("no auth result - human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewHuman, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		var authResult *getproviders.PackageAuthenticationResult = nil
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output
+		output := done(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (unauthenticated)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("no auth result - json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		var authResult *getproviders.PackageAuthenticationResult = nil
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output - human
+		output := done(t)
+		expectedOutput := `"@message":"Installed provider version: hashicorp/test v1.2.3 (unauthenticated)"`
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("verified checksum auth result - human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewHuman, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output
+		output := done(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (verified checksum)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("verified checksum auth result - json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output - human
+		output := done(t)
+		expectedOutput := `"@message":"Installed provider version: hashicorp/test v1.2.3 (verified checksum)"`
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("official provider auth result - human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewHuman, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output
+		output := done(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by HashiCorp)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("official provider auth result - json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
+
+		initView.InstalledProviderVersionInfo(p, ver, authResult)
+
+		// Assert output - human
+		output := done(t)
+		expectedOutput := `"@message":"Installed provider version: hashicorp/test v1.2.3 (signed by HashiCorp)"`
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+}
+
+// Assert message content
+func TestNewInit_InstalledProviderVersionInfoWithKeyID(t *testing.T) {
+	const partnerProvider = 2
+
+	t.Run("partner provider auth result - human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewHuman, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
+
+		initView.InstalledProviderVersionInfoWithKeyID(p, ver, authResult, key)
+
+		// Assert output - human
+		output := done(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by a HashiCorp partner, key ID key-id-123)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("partner provider auth result -json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
+
+		initView.InstalledProviderVersionInfoWithKeyID(p, ver, authResult, key)
+
+		// Assert output - human
+		output := done(t)
+		expectedOutput := `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partnerkey_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+}
+
+// Assert JSON log content, including log type and additional fields
+func TestNewInit_InstalledProviderVersionInfo_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	officialProvider := 1
+	authResult := getproviders.NewPackageAuthenticationResult(officialProvider, "key-id-123")
+	initView.InstalledProviderVersionInfo(p, v, authResult)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by HashiCorp)"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+// Assert JSON log content, including log type and additional fields
+//
+// Note - in calling code this is only ever used for partner providers
+func TestNewInit_InstalledProviderVersionInfoWithKeyID_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	partnerProvider := 2
+	keyID := "key-id-123"
+	authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, keyID)
+	initView.InstalledProviderVersionInfoWithKeyID(p, v, authResult, keyID)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
