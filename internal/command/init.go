@@ -1258,7 +1258,7 @@ func providersFetchedCallback(view views.ProviderInstaller) func(authResults map
 			}
 		}
 		if thirdPartySigned {
-			view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
+			view.PartnerAndCommunityProviders()
 		}
 	}
 }

@@ -140,6 +140,12 @@ func (s *StateMigrateHuman) InstalledProviderVersionInfoWithKeyID(providerAddr a
 }
 
 // Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) PartnerAndCommunityProviders() {
+	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[code]
 	if !ok {

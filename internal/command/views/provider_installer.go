@@ -30,6 +30,7 @@ type ProviderInstaller interface {
 	ReusingPreviousVersion(providerAddr addrs.Provider)
 	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	PartnerAndCommunityProviders()
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
