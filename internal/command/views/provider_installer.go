@@ -15,7 +15,6 @@ import (
 // provider installation process. In a future major version of Terraform this could be improved.
 // See: https://github.com/hashicorp/terraform/issues/38763
 type ProviderInstaller interface {
-	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 
 	InitializingStateStoreProviderPlugin(storeType string)

@@ -58,15 +58,6 @@ func (s *StateMigrateHuman) Spacer() {
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogInitMessage(code InitMessageCode, params ...any) {
-	msg, ok := MessageRegistry[code]
-	if !ok {
-		panic("missing message for InstallingProviderMessage init message code")
-	}
-	s.Log(msg.HumanValue, params...)
-}
-
-// Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 	msg, ok := MessageRegistry[code]
 	if !ok {
