@@ -456,11 +456,11 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
-		output := views.OutputInitSuccessCLIMessage
 		if cloud {
-			output = views.OutputInitSuccessCLICloudMessage
+			view.OutputInitSuccessCLICloud()
+		} else {
+			view.OutputInitSuccessCLI()
 		}
-		view.Output(output)
 	}
 	return 0
 }
