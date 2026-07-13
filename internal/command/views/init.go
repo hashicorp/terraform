@@ -80,13 +80,11 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-// Implements BackendInitializer.
 func (v *InitHuman) InitializingStateStore(storeType string) {
 	params := []any{storeType}
 	v.view.streams.Println(v.prepareMessage(InitializingStateStoreMessage, params...))
 }
 
-// Implements BackendInitializer.
 func (v *InitHuman) InitializingBackend() {
 	params := []any{}
 	v.view.streams.Println(v.prepareMessage(InitializingBackendMessage, params...))
@@ -250,7 +248,6 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-// Implements BackendInitializer.
 func (v *InitJSON) InitializingStateStore(storeType string) {
 	params := []any{storeType}
 
@@ -259,7 +256,6 @@ func (v *InitJSON) InitializingStateStore(storeType string) {
 	v.Output(InitializingStateStoreMessage, params...)
 }
 
-// Implements BackendInitializer.
 func (v *InitJSON) InitializingBackend() {
 	params := []any{}
 
