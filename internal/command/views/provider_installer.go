@@ -48,6 +48,9 @@ type ProviderInstaller interface {
 	// Log that a provider successfully fetched in this operation is maintained by third-parties.
 	LogPartnerAndCommunityProviders()
 
+	// Log that the command is begging installation and initialisation of a provider(s) for the purposes of managing resource state.
+	LogInitializingStateStoreProviderPlugin(storeType string)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
