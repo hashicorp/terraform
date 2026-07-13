@@ -29,9 +29,16 @@ type Init interface {
 	// Root module made by copying configuration from another module
 	CopyingConfiguration(sourceModulePath string)
 
-	ProviderInstaller
+	// Successful completion of init command in different contexts
+	OutputInitEmpty()
+	OutputInitSuccess()
+	OutputInitSuccessCloud()
+	OutputInitSuccessCLI()
+	OutputInitSuccessCLICloud()
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
+
+	ProviderInstaller
 
 	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
@@ -163,6 +170,26 @@ func (v *InitHuman) LockfileCreated() {
 
 func (v *InitHuman) LockfileUpdated() {
 	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo))
+}
+
+func (v *InitHuman) OutputInitEmpty() {
+	v.view.streams.Println(v.prepareMessage(OutputInitEmptyMessage))
+}
+
+func (v *InitHuman) OutputInitSuccess() {
+	v.view.streams.Println(v.prepareMessage(OutputInitSuccessMessage))
+}
+
+func (v *InitHuman) OutputInitSuccessCloud() {
+	v.view.streams.Println(v.prepareMessage(OutputInitSuccessCloudMessage))
+}
+
+func (v *InitHuman) OutputInitSuccessCLI() {
+	v.view.streams.Println(v.prepareMessage(OutputInitSuccessCLIMessage))
+}
+
+func (v *InitHuman) OutputInitSuccessCLICloud() {
+	v.view.streams.Println(v.prepareMessage(OutputInitSuccessCLICloudMessage))
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -374,15 +401,31 @@ func (v *InitJSON) PartnerAndCommunityProviders() {
 }
 
 func (v *InitJSON) LockfileCreated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
 	v.Output(LockInfo)
 }
 
 func (v *InitJSON) LockfileUpdated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
 	v.Output(DependenciesLockChangesInfo)
+}
+
+func (v *InitJSON) OutputInitEmpty() {
+	v.Output(OutputInitEmptyMessage)
+}
+
+func (v *InitJSON) OutputInitSuccess() {
+	v.Output(OutputInitSuccessMessage)
+}
+
+func (v *InitJSON) OutputInitSuccessCloud() {
+	v.Output(OutputInitSuccessCloudMessage)
+}
+
+func (v *InitJSON) OutputInitSuccessCLI() {
+	v.Output(OutputInitSuccessCLIMessage)
+}
+
+func (v *InitJSON) OutputInitSuccessCLICloud() {
+	v.Output(OutputInitSuccessCLICloudMessage)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
