@@ -45,7 +45,11 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.view.streams.Println(fmt.Sprintf(message, params...))
+	s.log(fmt.Sprintf(message, params...))
+}
+
+func (s *StateMigrateHuman) log(preparedMessage string) {
+	s.view.streams.Println(preparedMessage)
 }
 
 // Implements Spacer
@@ -75,7 +79,7 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 func (s *StateMigrateHuman) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
-	s.Log(msg)
+	s.log(msg)
 }
 
 // Implements ProviderInstaller interface.
@@ -84,7 +88,7 @@ func (s *StateMigrateHuman) InstalledProviderVersionInfoWithKeyID(providerAddr a
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
-	s.Log(msg)
+	s.log(msg)
 }
 
 // Implements ProviderInstaller interface.
