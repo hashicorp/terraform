@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -3175,6 +3177,255 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		schema := b.ConfigSchema()
 		if _, ok := schema.Attributes["value"]; !ok {
 			t.Fatalf("expected the operations backend to report the schema of the state_store, but got something unexpected: %#v", schema)
+		}
+	})
+}
+
+// If `state migrate` is run while Terraform in in automation (-input=false) then TF expects a pre-existing lock for the
+// state store provider(s) to be available. Users can give supplementary lock files via the -source-provider-lock-file and
+// -destination-provider-lock-file flags, but otherwise TF will use the working directory lock file by default.
+//
+// This test shows all the different error messages that can be returned when the necessary lock isn't present.
+// The user is told different things based on what inputs affect finding the lock.
+func Test_handleSafeProviderInstallAction_inAutomation(t *testing.T) {
+	// Reused in tests and unchanged
+	m := Meta{
+		input: false,
+	}
+	const action = RequireApproval
+	const flagLockfilePath = ""
+	p := addrs.NewDefaultProvider("test")
+	providerLock := depsfile.NewLocks()
+	providerLock.SetProvider(
+		p,
+		versions.MustParseVersion("1.0.0"),
+		nil,
+		nil,
+	)
+	auth := getproviders.NewPackageAuthenticationResult(1, "test-key-id")
+
+	t.Run("init command in automation, empty default lock file used", func(t *testing.T) {
+		// Scenario involves the init command, and using the working directory lock file by default.
+		c := &InitCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		initView := views.NewInit(arguments.ViewHuman, view)
+		workDirLocks := depsfile.NewLocks() // working directory lock file is empty
+
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, workDirLocks, flagLockfilePath, c, initView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+Terraform used the working directory's lock file by default, but it was empty or did not exist.
+
+When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.
+
+To fix this, create a minimal configuration containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform init -state-provider-lock-file=<path to lockfile>".
+`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
+		}
+	})
+
+	t.Run("state migrate command in automation, empty default lock file used", func(t *testing.T) {
+		// Scenario involves the state migrate command, and using the working directory lock file by default.
+		c := &StateMigrateCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		smView := views.NewStateMigrate(arguments.ViewHuman, view)
+		workDirLocks := depsfile.NewLocks() // working directory lock file is empty
+
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, workDirLocks, flagLockfilePath, c, smView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+Terraform used the working directory's lock file by default, but it was empty or did not exist.
+
+When performing a "terraform state migrate" command in automation, make sure to supply a lock file for the source and/or destination state store providers using -source-provider-lock-file and/or -destination-provider-lock-file flags.
+
+To fix this, create a minimal configuration(s) containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform state migrate -source-provider-lock-file=<path to lockfile> -destination-provider-lock-file=<path to lockfile>".`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
+		}
+	})
+
+	t.Run("init command in automation, default lock file lacks required lock", func(t *testing.T) {
+		// Scenario involves the init command, and using the working directory lock file by default
+		c := &InitCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		initView := views.NewInit(arguments.ViewHuman, view)
+		// working directory lock file isn't empty, but has no lock for hashicorp/test provider
+		workDirLocks := depsfile.NewLocks()
+		workDirLocks.SetProvider(
+			addrs.NewDefaultProvider("not-pss-provider"),
+			versions.MustParseVersion("1.0.0"),
+			nil,
+			nil,
+		)
+
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, workDirLocks, flagLockfilePath, c, initView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+Terraform used the working directory's lock file by default, but it did not contain a lock for the state store provider.
+
+When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.
+
+To fix this, create a minimal configuration containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform init -state-provider-lock-file=<path to lockfile>".
+`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
+		}
+	})
+
+	t.Run("state migrate command in automation, default lock file lacks required lock", func(t *testing.T) {
+		// Scenario involves the state migrate command, and using the working directory lock file by default
+		c := &StateMigrateCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		smView := views.NewStateMigrate(arguments.ViewHuman, view)
+		// working directory lock file isn't empty, but has no lock for hashicorp/test provider
+		workDirLocks := depsfile.NewLocks()
+		workDirLocks.SetProvider(
+			addrs.NewDefaultProvider("not-pss-provider"),
+			versions.MustParseVersion("1.0.0"),
+			nil,
+			nil,
+		)
+
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, workDirLocks, flagLockfilePath, c, smView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+Terraform used the working directory's lock file by default, but it did not contain a lock for the state store provider.
+
+When performing a "terraform state migrate" command in automation, make sure to supply a lock file for the source and/or destination state store providers using -source-provider-lock-file and/or -destination-provider-lock-file flags.
+
+To fix this, create a minimal configuration(s) containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform state migrate -source-provider-lock-file=<path to lockfile> -destination-provider-lock-file=<path to lockfile>".`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
+		}
+	})
+
+	t.Run("init command in automation, user-supplied lock file lacks required lock", func(t *testing.T) {
+		// Scenario involves the init command, and using a user-supplied lock file
+		c := &InitCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		initView := views.NewInit(arguments.ViewHuman, view)
+		// user-supplied lock file isn't empty, but has no lock for hashicorp/test provider
+		inputLocks := depsfile.NewLocks()
+		inputLocks.SetProvider(
+			addrs.NewDefaultProvider("not-pss-provider"),
+			versions.MustParseVersion("1.0.0"),
+			nil,
+			nil,
+		)
+
+		setFlagLockfilePath := "./user-supplied-lockfile/terraform.lock.hcl"
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, inputLocks, setFlagLockfilePath, c, initView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+The lock file at "./user-supplied-lockfile/terraform.lock.hcl" (supplied via CLI flag) was empty or did not contain a lock for the state store provider.
+
+When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.
+
+To fix this, create a minimal configuration containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform init -state-provider-lock-file=<path to lockfile>".
+`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
+		}
+	})
+
+	t.Run("state migrate command in automation, user-supplied lock file lacks required lock", func(t *testing.T) {
+		// Scenario involves the state migrate command, and using the working directory lock file by default
+		c := &StateMigrateCommand{
+			Meta: m,
+		}
+		view, _ := testView(t)
+		smView := views.NewStateMigrate(arguments.ViewHuman, view)
+		// user-supplied lock file isn't empty, but has no lock for hashicorp/test provider
+		inputLocks := depsfile.NewLocks()
+		inputLocks.SetProvider(
+			addrs.NewDefaultProvider("not-pss-provider"),
+			versions.MustParseVersion("1.0.0"),
+			nil,
+			nil,
+		)
+
+		setFlagLockfilePath := "./user-supplied-lockfile/terraform.lock.hcl"
+		gotDiags := m.handleSafeProviderInstallAction(action, p, auth, providerLock, inputLocks, setFlagLockfilePath, c, smView)
+
+		// Expect an error due to the provider download not being controlled by a pre-existing lock
+		if !gotDiags.HasErrors() {
+			t.Fatal("expected an error but got none")
+		}
+		errorDiag := gotDiags[0]
+
+		expectedSummary := "Missing lock for state store provider"
+		expectedDetail := `Terraform is initializing a state store for the first time in a non-interactive mode but no lock was found for the state store provider.
+The lock file at "./user-supplied-lockfile/terraform.lock.hcl" (supplied via CLI flag) was empty or did not contain a lock for the state store provider.
+
+When performing a "terraform state migrate" command in automation, make sure to supply a lock file for the source and/or destination state store providers using -source-provider-lock-file and/or -destination-provider-lock-file flags.
+
+To fix this, create a minimal configuration(s) containing the specific provider version(s) you need and then perform "terraform init" with input enabled. Check the contents of the lock file created by that command and then retry "terraform state migrate -source-provider-lock-file=<path to lockfile> -destination-provider-lock-file=<path to lockfile>".`
+		if errorDiag.Description().Summary != expectedSummary {
+			t.Fatalf("expected summary %q but got %q", expectedSummary, errorDiag.Description().Summary)
+		}
+		if diff := cmp.Diff(expectedDetail, errorDiag.Description().Detail); diff != "" {
+			t.Fatalf("didn't get expected error diagnostic detail\ndiff:\n%s\n got:\n%s\nwant:\n%s", diff, errorDiag.Description().Detail, expectedDetail)
 		}
 	})
 }

@@ -5,6 +5,7 @@ resource "test_instance" "foo" {
     device_index = 0
     description  = "Main network interface"
   }
+  depends_on = [data.test_data_source.a]
 }
 
 data "test_data_source" "a" {

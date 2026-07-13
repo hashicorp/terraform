@@ -25,7 +25,6 @@ type ActionInvocationInstance struct {
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
 
-	// FIXME: sensitive paths are missing
 	ConfigValue cty.Value
 
 	Caller addrs.Referenceable
@@ -46,6 +45,8 @@ type ActionTrigger interface {
 	Equals(to ActionTrigger) bool
 
 	Less(other ActionTrigger) bool
+
+	OnFailure() configs.ActionOnFailure
 }
 
 var (
@@ -63,6 +64,8 @@ type ResourceActionTrigger struct {
 	ActionTriggerBlockIndex int
 	// The index of the action in the events list of the action_trigger block
 	ActionsListIndex int
+	// ActionOnFailure indicates the configured on_failure mode
+	ActionOnFailure configs.ActionOnFailure
 }
 
 func (t *ResourceActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
@@ -102,9 +105,19 @@ func (t *ResourceActionTrigger) Less(other ActionTrigger) bool {
 			t.ActionTriggerEvent < o.ActionTriggerEvent)
 }
 
+func (t *ResourceActionTrigger) OnFailure() configs.ActionOnFailure {
+	return t.ActionOnFailure
+}
+
 // InvokeActionTrigger contains the configuration for an action triggered
 // (invoked) directly via CLI command.
-type InvokeActionTrigger struct{}
+type InvokeActionTrigger struct {
+	// There may be an associated triggering resource to fill in the caller
+	// object. Since we need an optional address here, but resource addresses
+	// are not handled as pointers, one must always check for a nil pointer here
+	// before using the value.
+	CallingResourceAddr *addrs.AbsResourceInstance
+}
 
 func (t *InvokeActionTrigger) actionTriggerSigil() {}
 
@@ -117,18 +130,30 @@ func (t *InvokeActionTrigger) TriggerEvent() configs.ActionTriggerEvent {
 }
 
 func (t *InvokeActionTrigger) Equals(other ActionTrigger) bool {
-	_, ok := other.(*InvokeActionTrigger)
-	if !ok {
-		return false
+	if other, ok := other.(*InvokeActionTrigger); ok {
+		if t.CallingResourceAddr == nil || other.CallingResourceAddr == nil {
+			return t.CallingResourceAddr == other.CallingResourceAddr
+		}
+
+		return addrs.Equivalent(*t.CallingResourceAddr, *other.CallingResourceAddr)
 	}
 
-	return true // InvokeActionTriggers are always considered equal
+	return false
 }
 
 func (t *InvokeActionTrigger) Less(other ActionTrigger) bool {
-	// always return true, actions that are equal are already ordered by
-	// address externally. these actions should go first anyway.
-	return true
+	if other, ok := other.(*InvokeActionTrigger); ok {
+		if t.CallingResourceAddr == nil || other.CallingResourceAddr == nil {
+			return t.CallingResourceAddr == nil
+		}
+		return t.CallingResourceAddr.String() < other.CallingResourceAddr.String()
+	}
+
+	return false
+}
+
+func (t *InvokeActionTrigger) OnFailure() configs.ActionOnFailure {
+	return configs.ActionOnFailureHalt
 }
 
 // Encode produces a variant of the receiver that has its change values
@@ -140,7 +165,6 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 		Addr:          ai.Addr,
 		ActionTrigger: ai.ActionTrigger,
 		ProviderAddr:  ai.ProviderAddr,
-		Caller:        ai.Caller,
 	}
 
 	if ai.ConfigValue != cty.NilVal {
@@ -164,7 +188,6 @@ func (ai *ActionInvocationInstance) Encode(schema *providers.ActionSchema) (*Act
 	}
 
 	return ret, nil
-
 }
 
 type ActionInvocationInstances []*ActionInvocationInstance

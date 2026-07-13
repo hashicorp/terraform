@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -409,7 +410,7 @@ func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
 }
 
-func (h *MockHook) PolicyResult(addr string, result plans.PolicyEvaluation) (HookAction, error) {
+func (h *MockHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 	return HookActionContinue, nil

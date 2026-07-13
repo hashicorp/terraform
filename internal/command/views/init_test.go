@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -134,23 +133,21 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 
 	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
-		plans.PolicyEvaluation{
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall: policy.DenyResult,
-				Diagnostics: policy.Diagnostics{
-					policy.NewErrorDiagnostic(
-						"module policy denied",
-						"module policy blocked installation",
-						policy.DenyResult,
-					),
-				},
-				Policies: []*policy.Policy{
-					{
-						Address:          "module_policy.example",
-						Filename:         "policy_file.tfpolicy.hcl",
-						EnforcementLevel: "mandatory",
-						Result:           policy.DenyResult,
-					},
+		policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"module policy denied",
+					"module policy blocked installation",
+					policy.DenyResult,
+				),
+			},
+			Policies: []*policy.Policy{
+				{
+					Address:          "module_policy.example",
+					Filename:         "policy_file.tfpolicy.hcl",
+					EnforcementLevel: "mandatory",
+					Result:           policy.DenyResult,
 				},
 			},
 		},
@@ -212,16 +209,14 @@ func TestNewInit_humanViewPolicyResults(t *testing.T) {
 
 	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
-		plans.PolicyEvaluation{
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall: policy.DenyResult,
-				Diagnostics: policy.Diagnostics{
-					policy.NewErrorDiagnostic(
-						"module policy denied",
-						"module policy blocked installation",
-						policy.DenyResult,
-					),
-				},
+		policy.EvaluationResponse{
+			Overall: policy.DenyResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"module policy denied",
+					"module policy blocked installation",
+					policy.DenyResult,
+				),
 			},
 		},
 	)
@@ -243,17 +238,15 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 
 	newInit.PolicyResult(
 		addrs.RootModule.Child("example").String(),
-		plans.PolicyEvaluation{
-			EvaluationResponse: policy.EvaluationResponse{
-				Overall: policy.AllowResult,
-				Enforcements: []policy.EnforcementResult{{
-					Result:  policy.AllowResult,
-					Message: "module policy allowed installation",
-					Policy: &policy.Policy{
-						Address: "module_policy.example",
-					},
-				}},
-			},
+		policy.EvaluationResponse{
+			Overall: policy.AllowResult,
+			Enforcements: []policy.EnforcementResult{{
+				Result:  policy.AllowResult,
+				Message: "module policy allowed installation",
+				Policy: &policy.Policy{
+					Address: "module_policy.example",
+				},
+			}},
 		},
 	)
 

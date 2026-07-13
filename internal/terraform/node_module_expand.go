@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -376,24 +375,16 @@ func (n *nodeExpandModule) EvalPolicy(ctx EvalContext, op walkOperation) tfdiags
 
 	// add local range to diagnostics if the module call has a config body.
 	if n.ModuleCall.Config != nil {
-		ptr := n.ModuleCall.DeclRange.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(n.ModuleCall.DeclRange.Ptr())
 	}
 
+	var diags tfdiags.Diagnostics
 	if !result.Empty() {
-		ctx.Hook(func(h Hook) (HookAction, error) {
-			eval := plans.PolicyEvaluation{EvaluationResponse: result}
-			if n.ModuleCall != nil {
-				eval.ConfigDeclRange = n.ModuleCall.DeclRange
-			}
-			return h.PolicyResult(n.Addr.String(), eval)
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.Addr.String(), result)
 		})
+		diags = diags.Append(hookErr)
 	}
 
-	return nil
+	return diags
 }

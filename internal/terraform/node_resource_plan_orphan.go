@@ -89,7 +89,7 @@ func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Refer
 }
 
 func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
-	return n.destroyActionReferences()
+	return n.destroyActionPlanReferences()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
@@ -140,6 +140,12 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 	for _, fm := range n.forgetModules {
 		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		if n.Config.Managed.DestroySet && !n.Config.Managed.Destroy {
 			forget = true
 		}
 	}
@@ -224,7 +230,22 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
-	diags = diags.Append(n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change))
+
+	actionDiags := n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change)
+	if actionDiags.HasErrors() {
+		// Orphaned destroy actions may not have enough configuration
+		// information to plan, but we can't block their progress since the
+		// config no longer exists. We'll still keep the original diags as
+		// warnings, but add an additional message to help explain the failure
+		// mode.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Orphaned action failed to plan",
+			fmt.Sprintf("One or more actions for the orphaned instance %s does not have enough configuration information to complete a plan, and will not be invoked", n.Addr),
+		))
+	}
+	diags = diags.Append(tfdiags.OverrideAll(actionDiags, tfdiags.Warning, nil))
+
 	return diags
 }
 

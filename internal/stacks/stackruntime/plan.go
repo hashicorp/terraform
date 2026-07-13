@@ -5,6 +5,7 @@ package stackruntime
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -40,7 +41,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
 
-	var errored bool
+	var errored atomic.Bool
 
 	planTimestamp := time.Now().UTC()
 	if req.ForcePlanTimestamp != nil {
@@ -64,7 +65,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
 				if diag.Severity() == tfdiags.Error {
-					errored = true
+					errored.Store(true)
 				}
 				resp.Diagnostics <- diag
 			}
@@ -80,7 +81,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	}
 
 	// An overall stack plan is applyable if it has no error diagnostics.
-	resp.Applyable = !errored
+	resp.Applyable = !errored.Load()
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be

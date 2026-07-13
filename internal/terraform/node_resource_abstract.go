@@ -121,7 +121,7 @@ var (
 	_ GraphNodeTargetable                  = (*NodeAbstractResource)(nil)
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
-	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
+	_ GraphNodeCreateBeforeDestroy         = (*NodeAbstractResource)(nil)
 	_ GraphNodeActionProviderConsumer      = (*NodeAbstractResource)(nil)
 	_ GraphNodeActionCaller                = (*NodeAbstractResource)(nil)
 )
@@ -161,9 +161,8 @@ func (n *NodeAbstractResource) CreateBeforeDestroy() bool {
 	return false
 }
 
-func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
-	n.forceCreateBeforeDestroy = v
-	return nil
+func (n *NodeAbstractResource) ForceCreateBeforeDestroy() {
+	n.forceCreateBeforeDestroy = true
 }
 
 // GraphNodeReferencer

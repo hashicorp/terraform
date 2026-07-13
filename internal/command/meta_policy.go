@@ -11,13 +11,11 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -106,21 +104,10 @@ func (h *policyModuleInstallHook) ModuleSourceResolved(ctx context.Context, req 
 		moduleCall = req.Parent.Module.ModuleCalls[req.Name]
 	}
 
-	var rng hcl.Range
 	if moduleCall != nil {
-		rng = moduleCall.DeclRange
-		ptr := rng.Ptr()
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(ptr)
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = ptr
-		}
+		result = result.WithLocalRange(moduleCall.DeclRange.Ptr())
 	}
-	h.view.PolicyResult(
-		req.Path.String(),
-		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
-	)
+	h.view.PolicyResult(req.Path.String(), result)
 
 	// Return a generic error here that the init command returns to the CLI.
 	// The detailed policy diagnostics are included in the policy results
@@ -175,22 +162,12 @@ func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provid
 	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
 	providerConfig := p.rootModule.ProviderConfigs[provider.Type]
 
-	var rng hcl.Range
 	if providerConfig != nil {
-		rng = providerConfig.DeclRange
 		// Annotate the result diagnostics with the local range so that diagnostics can be rendered with both the
 		// policy source and the object being enforced.
-		for idx, diag := range result.Diagnostics {
-			result.Diagnostics[idx] = diag.WithLocalRange(rng.Ptr())
-		}
-		for idx := range result.Enforcements {
-			result.Enforcements[idx].LocalRange = rng.Ptr()
-		}
+		result = result.WithLocalRange(providerConfig.DeclRange.Ptr())
 	}
-	p.view.PolicyResult(
-		addr.String(),
-		plans.PolicyEvaluation{EvaluationResponse: result, ConfigDeclRange: rng},
-	)
+	p.view.PolicyResult(addr.String(), result)
 	log.Println("[DEBUG] init: policy result for provider", provider.String(), version, "overall", result.Overall)
 	// Init uses diagnostics as the blocking signal because advisory policies
 	// may return deny without any error diagnostics.
