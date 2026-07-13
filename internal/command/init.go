@@ -176,9 +176,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	defer span.End()
 
 	if root.StateStore != nil {
-		view.Output(views.InitializingStateStoreMessage, root.StateStore.Type)
+		view.InitializingStateStore(root.StateStore.Type)
 	} else {
-		view.Output(views.InitializingBackendMessage)
+		view.InitializingBackend()
 	}
 
 	earlyBdiags := c.earlyValidateBackend(root, initArgs)

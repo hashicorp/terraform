@@ -22,6 +22,10 @@ type Init interface {
 	Output(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
+	// Backend-related
+	InitializingStateStore(storeType string)
+	InitializingBackend()
+
 	ProviderInstaller
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
@@ -74,6 +78,18 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
+}
+
+// Implements BackendInitializer.
+func (v *InitHuman) InitializingStateStore(storeType string) {
+	params := []any{storeType}
+	v.view.streams.Println(v.prepareMessage(InitializingStateStoreMessage, params...))
+}
+
+// Implements BackendInitializer.
+func (v *InitHuman) InitializingBackend() {
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(InitializingBackendMessage, params...))
 }
 
 func (v *InitHuman) InitializingProviderPlugins() {
@@ -232,6 +248,24 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 // this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
 func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+// Implements BackendInitializer.
+func (v *InitJSON) InitializingStateStore(storeType string) {
+	params := []any{storeType}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(InitializingStateStoreMessage, params...)
+}
+
+// Implements BackendInitializer.
+func (v *InitJSON) InitializingBackend() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(InitializingBackendMessage, params...)
 }
 
 func (v *InitJSON) InitializingProviderPlugins() {
