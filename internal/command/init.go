@@ -481,7 +481,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
 					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}
@@ -635,7 +635,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
 					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}

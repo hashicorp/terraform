@@ -30,6 +30,9 @@ type ProviderInstaller interface {
 	// Log details about a provider being controlled by a pre-existing lock in a dependency lock file.
 	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
 
+	// Log details about a provider installation being controlled by a version constraint.
+	LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
