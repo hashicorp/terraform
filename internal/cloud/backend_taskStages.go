@@ -38,7 +38,7 @@ type taskStageSummarizer interface {
 
 func isTerminalTaskStageStatus(status tfe.TaskStageStatus) bool {
 	switch status {
-	case tfe.TaskStageFailed, tfe.TaskStageCanceled, tfe.TaskStageErrored:
+	case tfe.TaskStagePassed, tfe.TaskStageFailed, tfe.TaskStageCanceled, tfe.TaskStageErrored:
 		return true
 	default:
 		return false
