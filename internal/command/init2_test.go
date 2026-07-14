@@ -802,6 +802,13 @@ func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
 				"hashicorp2/test": {"1.0.0"},
 			},
 		},
+		"const with extra resource and provider local name": {
+			fixture: "provider-source-with-resources-and-provider-local-name",
+			args:    []string{},
+			providers: map[string][]string{
+				"hashicorp2/test": {"1.0.0"},
+			},
+		},
 	}
 
 	for name, tc := range tests {
