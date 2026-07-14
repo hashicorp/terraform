@@ -34,6 +34,18 @@ type Reference struct {
 	LocalRef *addrs.Reference
 }
 
+func ParseRef(module addrs.ModuleInstance, traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	localRef, diags := addrs.ParseRef(traversal)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return &Reference{
+		ContainerAddr: module,
+		LocalRef:      localRef,
+	}, nil
+}
+
 func absoluteRef(containerAddr addrs.Targetable, localRef *addrs.Reference) Reference {
 	ret := Reference{
 		ContainerAddr: containerAddr,

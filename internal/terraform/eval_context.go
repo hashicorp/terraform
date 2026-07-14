@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -139,6 +140,10 @@ type EvalContext interface {
 	// config, and returns the evaluated *addrs.Reference along with a boolean
 	// indicating if that reference forces replacement.
 	EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics)
+
+	// ReferenceTree returns the object that tracks simple traversal
+	// relationships discovered during evaluation.
+	ReferenceTree() *simplerefs.SimpleReferenceTree
 
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
