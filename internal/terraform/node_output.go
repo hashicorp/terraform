@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -551,6 +552,27 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
 		n.setValue(nil, state, nil, ctx.Deferrals(), val)
+	}
+
+	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "output"}, hcl.TraverseAttr{Name: n.Addr.OutputValue.Name}}
+	// Set the expression as a simple traversal if it is one.
+	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
+	diags = diags.Append(refDiags)
+	if ref != nil {
+		ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+	}
+
+	if !n.Addr.Module.IsRoot() {
+		traversal := hcl.Traversal{hcl.TraverseRoot{Name: "module"}}
+		for _, step := range n.Addr.Module {
+			traversal = append(traversal, hcl.TraverseAttr{Name: step.Name})
+		}
+		traversal = append(traversal, hcl.TraverseAttr{Name: n.Addr.OutputValue.Name})
+		ref, refDiags := globalref.ParseRef(n.Addr.Module.Parent(), traversal)
+		diags = diags.Append(refDiags)
+		if ref != nil {
+			ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+		}
 	}
 
 	return diags

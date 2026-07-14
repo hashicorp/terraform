@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -267,6 +268,16 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	// Custom validation rules are handled by a separate graph node of type
 	// nodeVariableValidation, added by variableValidationTransformer.
 
+	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "var"}, hcl.TraverseAttr{Name: n.Addr.Variable.Name}}
+	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
+	if refDiags.HasErrors() {
+		diags = diags.Append(refDiags)
+	}
+	if ref != nil {
+		// The traversal source is in the callee module (var.x), while the
+		// value expression is authored/evaluated in the caller module.
+		ctx.ReferenceTree().SetReference(ref, n.Expr, ctx.Path())
+	}
 	return diags
 }
 

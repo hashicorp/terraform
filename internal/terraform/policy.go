@@ -14,9 +14,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/dynblock"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -87,7 +90,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				var resourcesSeq iter.Seq[cty.Value]
 				if walkOperation == walkApply {
 					// Read each config resource instance from the state, decoding it into a cty.Value
-					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+					seq := states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
 						if inst.Current == nil {
 							return cty.NilVal, false
 						}
@@ -98,6 +101,11 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 						}
 						return rsc.Value, true
 					})
+					resourcesSeq = func(yield func(cty.Value) bool) {
+						for _, value := range seq {
+							yield(value)
+						}
+					}
 				} else {
 					// Read each config resource change from the plan, returning the corresponding cty.Value
 					resourcesSeq = func(yield func(cty.Value) bool) {
@@ -213,14 +221,19 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 					continue
 				}
 
-				relatedAttrs, _ := resource.Config.JustAttributes()
+				// Parse the resource config to extract attribute and block expressions.
+				relatedExprs, parseDiags := dynblock.ParseBodyExpression(resource.Config)
+				if parseDiags.HasErrors() || relatedExprs == nil {
+					partial = true
+					continue
+				}
 
-				var resourcesSeq iter.Seq[cty.Value]
+				var resourcesSeq iter.Seq2[addrs.AbsResourceInstance, cty.Value]
 				if walkOperation == walkApply {
 					state := ctx.State()
 					resourceSchema := schema.SchemaForResourceAddr(relatedAddr.Resource)
 					// During apply, read the matching objects from state.
-					resourcesSeq = states.ReadEachConfigResourceInstance(state, relatedAddr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+					seq := states.ReadEachConfigResourceInstance(state, relatedAddr, func(inst *states.ResourceInstance) (cty.Value, bool) {
 						if inst.Current == nil {
 							return cty.NilVal, false
 						}
@@ -230,11 +243,17 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 						}
 						return decoded.Value, true
 					})
+
+					resourcesSeq = func(yield func(addrs.AbsResourceInstance, cty.Value) bool) {
+						for addr, value := range seq {
+							yield(addr, value)
+						}
+					}
 				} else {
 					// During plan, return the matching planned objects.
-					resourcesSeq = func(yield func(cty.Value) bool) {
+					resourcesSeq = func(yield func(addrs.AbsResourceInstance, cty.Value) bool) {
 						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), relatedAddr) {
-							yield(change.After)
+							yield(change.Addr, change.After)
 						}
 					}
 				}
@@ -245,8 +264,8 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 				// or a simple traversal. If it is a literal value, we check if it matches the source attribute
 				// in aws_s3_bucket.example.
 				// If it is a traversal, we check if the traversal points to the source attribute.
-				for resourceValue := range resourcesSeq {
-					matched := relatedResourceMatchesPairs(relatedAttrs, currentAddr, resourceValue, currentAttrs, pairs)
+				for addr, resourceValue := range resourcesSeq {
+					matched := relatedResourceMatchesPairs(ctx, relatedExprs, currentAddr, addr, resourceValue, currentAttrs, pairs)
 					if matched.IsWhollyKnown() && matched.True() {
 						resourceValue, _ = resourceValue.UnmarkDeep()
 						found = append(found, resourceValue)
@@ -303,7 +322,7 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 	return true, false
 }
 
-func relatedResourceMatchesPairs(relatedAttrs hcl.Attributes, current addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, pairs []callback.RelatedAttributePair) cty.Value {
+func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExpression, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, pairs []callback.RelatedAttributePair) cty.Value {
 	// we will return unknown if we cannot determine whether the resource matches
 	unknown := cty.UnknownVal(cty.Bool)
 
@@ -334,34 +353,70 @@ func relatedResourceMatchesPairs(relatedAttrs hcl.Attributes, current addrs.AbsR
 			}
 		}
 
-		relatedAttr, ok := relatedAttrs[pair.RelatedAttribute]
-		if !ok {
-			// TODO: What if the attribute is a block attribute?
-			panic("related attribute not found")
+		// Parse the related attribute path to extract the expression it refers to.
+		traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(pair.RelatedAttribute), "", hcl.Pos{Line: 1, Column: 1})
+		if parseDiags.HasErrors() {
+			return unknown
+		}
+		path, _ := traversalToPath(traversal)
+		relatedExpr, found := getAttributeExpression(bodyExpr, path)
+		if !found {
+			panic("related attribute or block not found")
+		}
+
+		// If the expression is a literal, try a direct comparison against
+		// source value so we can make an early decision if the values do not match.
+		if relatedExpr.Literal && relatedExpr.RawExpr != nil {
+			litVal, litDiags := relatedExpr.RawExpr.Value(nil)
+			if !litDiags.HasErrors() {
+				litVal, _ = litVal.UnmarkDeep()
+				sourceValue := currentValue.GetAttr(pair.SourceAttribute)
+				sourceValue, _ = sourceValue.UnmarkDeep()
+				equals := litVal.Equals(sourceValue)
+				if equals.IsKnown() {
+					if equals.False() {
+						return cty.False
+					}
+					continue
+				}
+			}
+			return unknown
 		}
 
 		// We check that the related attribute expression is a plain traversal
 		// that refers to the source attribute in the current resource.
 		// Anything more complex than a plain traversal cannot be compared structurally,
 		// so we assume it to be unknown.
-		traversal, hclDiags := hcl.AbsTraversalForExpr(relatedAttr.Expr)
-		if hclDiags.HasErrors() {
-			log.Printf("[TRACE] invalid traversal: %s", hclDiags.Error())
+		traversal = relatedExpr.SimpleTraversal
+		if len(traversal) == 0 {
 			return unknown
 		}
 
-		ref, diags := addrs.ParseRef(traversal)
-		if diags.HasErrors() {
-			log.Printf("[TRACE] invalid reference: %s", diags.Err())
+		// Walk the reference tree to resolve the related attribute reference to a
+		// resource attribute reference.
+		relatedRef, refDiags := globalref.ParseRef(related.Module, traversal)
+		if refDiags.HasErrors() {
+			return unknown
+		}
+		tree := evalCtx.ReferenceTree()
+		attrRef, found := tree.ResolveReference(relatedRef)
+		if !found {
 			return unknown
 		}
 
-		// compare the reference in the traversal to the source reference
-		sourceRef := &addrs.Reference{
-			Subject:   current.Resource,
-			Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
+		// Compare the resolved attribute reference to the source reference, including
+		// the module instance where both are resolved.
+		sourceRef := &globalref.Reference{
+			ContainerAddr: current.Module,
+			LocalRef: &addrs.Reference{
+				Subject:   current.Resource,
+				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
+			},
 		}
-		if !equalRef(sourceRef, ref) {
+		if !equalRef(sourceRef, attrRef) {
+			srcStr := sourceRef.DebugString()
+			resStr := attrRef.DebugString()
+			log.Printf("[TRACE] global ref comparison failed: source=%s resolved=%s", srcStr, resStr)
 			return unknown
 		}
 	}
@@ -369,16 +424,28 @@ func relatedResourceMatchesPairs(relatedAttrs hcl.Attributes, current addrs.AbsR
 	return cty.True
 }
 
-func equalRef(r *addrs.Reference, other *addrs.Reference) bool {
-	if !addrs.Equivalent(r.Subject, other.Subject) {
+func equalRef(ref *globalref.Reference, other *globalref.Reference) bool {
+	if ref == nil || other == nil {
 		return false
 	}
-	if len(r.Remaining) != len(other.Remaining) {
+	if ref.ContainerAddr == nil || other.ContainerAddr == nil {
 		return false
 	}
-	for i := range r.Remaining {
-		ref := r.Remaining[i]
-		otherRef := other.Remaining[i]
+	if !addrs.Equivalent(ref.ContainerAddr, other.ContainerAddr) {
+		return false
+	}
+
+	localRef1 := ref.LocalRef
+	localRef2 := other.LocalRef
+	if !addrs.Equivalent(localRef1.Subject, localRef2.Subject) {
+		return false
+	}
+	if len(localRef1.Remaining) != len(localRef2.Remaining) {
+		return false
+	}
+	for i := range localRef1.Remaining {
+		ref := localRef1.Remaining[i]
+		otherRef := localRef2.Remaining[i]
 		refAttr, ok := ref.(hcl.TraverseAttr)
 		if !ok {
 			return false
@@ -392,4 +459,32 @@ func equalRef(r *addrs.Reference, other *addrs.Reference) bool {
 		}
 	}
 	return true
+}
+
+func getAttributeExpression(bodyExpr *dynblock.BodyExpression, path cty.Path) (dynblock.AttributeExpression, bool) {
+	var attr dynblock.AttributeExpression
+	if len(path) == 0 {
+		return attr, false
+	}
+
+	if len(path) == 1 {
+		root := path[0].(cty.GetAttrStep)
+		attr, ok := bodyExpr.Attributes[root.Name]
+		return attr, ok
+	}
+
+	first := path[0].(cty.GetAttrStep)
+	remaining := path[1:]
+	for _, block := range bodyExpr.Blocks {
+		if block.Type == first.Name {
+			// TODO: handle ambiguous references due to repeated block types
+			final, ok := getAttributeExpression(block.Body, remaining)
+			if ok {
+				return final, true
+			}
+			continue
+		}
+	}
+
+	return attr, false
 }

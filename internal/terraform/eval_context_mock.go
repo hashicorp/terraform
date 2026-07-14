@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -123,6 +124,9 @@ type MockEvalContext struct {
 	) (cty.Value, tfdiags.Diagnostics) // overrides the other values below, if set
 	EvaluateExprResult cty.Value
 	EvaluateExprDiags  tfdiags.Diagnostics
+
+	ReferenceTreeCalled bool
+	ReferenceTreeValue  *simplerefs.SimpleReferenceTree
 
 	EvaluationScopeCalled  bool
 	EvaluationScopeSelf    addrs.Referenceable
@@ -303,6 +307,11 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 
 func (c *MockEvalContext) EvaluateReplaceTriggeredBy(hcl.Expression, instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
 	return nil, false, nil
+}
+
+func (c *MockEvalContext) ReferenceTree() *simplerefs.SimpleReferenceTree {
+	c.ReferenceTreeCalled = true
+	return c.ReferenceTreeValue
 }
 
 // installSimpleEval is a helper to install a simple mock implementation of

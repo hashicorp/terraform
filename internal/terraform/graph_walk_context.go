@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -73,6 +74,7 @@ type ContextGraphWalker struct {
 	contextLock        sync.Mutex
 	providerCache      map[string]providers.Interface
 	providerFuncCache  map[string]providers.Interface
+	ReferenceTree      *simplerefs.SimpleReferenceTree
 	functionResults    *lang.FunctionResults
 	providerSchemas    map[string]providers.ProviderSchema
 	providerLock       sync.Mutex
@@ -123,35 +125,36 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	}
 
 	ctx := &BuiltinEvalContext{
-		StopContext:             w.StopContext,
-		Hooks:                   w.Context.hooks,
-		InputValue:              w.Context.uiInput,
-		EphemeralResourcesValue: w.EphemeralResources,
-		InstanceExpanderValue:   w.InstanceExpander,
-		Plugins:                 w.Context.plugins,
-		ExternalProviderConfigs: w.ExternalProviderConfigs,
-		MoveResultsValue:        w.MoveResults,
-		ProviderCache:           w.providerCache,
-		ProviderFuncCache:       w.providerFuncCache,
-		FunctionResults:         w.functionResults,
-		ProviderInputConfig:     w.Context.providerInputConfig,
-		ProviderLock:            &w.providerLock,
-		ProvisionerCache:        w.provisionerCache,
-		ProvisionerLock:         &w.provisionerLock,
-		ChangesValue:            w.Changes,
-		ChecksValue:             w.Checks,
-		NamedValuesValue:        w.NamedValues,
-		DeferralsValue:          w.Deferrals,
-		StateValue:              w.State,
-		RefreshStateValue:       w.RefreshState,
-		PrevRunStateValue:       w.PrevRunState,
-		PolicyGraphValue:        w.PolicyGraph,
-		Evaluator:               evaluator,
-		OverrideValues:          w.Overrides,
-		forget:                  w.Forget,
-		ProviderLocksValue:      w.ProviderLocks,
-		PolicyClientValue:       w.PolicyClient,
-		DeprecationsValue:       w.Deprecations,
+		StopContext:              w.StopContext,
+		Hooks:                    w.Context.hooks,
+		InputValue:               w.Context.uiInput,
+		EphemeralResourcesValue:  w.EphemeralResources,
+		InstanceExpanderValue:    w.InstanceExpander,
+		Plugins:                  w.Context.plugins,
+		ExternalProviderConfigs:  w.ExternalProviderConfigs,
+		MoveResultsValue:         w.MoveResults,
+		SimpleReferenceTreeValue: w.ReferenceTree,
+		ProviderCache:            w.providerCache,
+		ProviderFuncCache:        w.providerFuncCache,
+		FunctionResults:          w.functionResults,
+		ProviderInputConfig:      w.Context.providerInputConfig,
+		ProviderLock:             &w.providerLock,
+		ProvisionerCache:         w.provisionerCache,
+		ProvisionerLock:          &w.provisionerLock,
+		ChangesValue:             w.Changes,
+		ChecksValue:              w.Checks,
+		NamedValuesValue:         w.NamedValues,
+		DeferralsValue:           w.Deferrals,
+		StateValue:               w.State,
+		RefreshStateValue:        w.RefreshState,
+		PrevRunStateValue:        w.PrevRunState,
+		PolicyGraphValue:         w.PolicyGraph,
+		Evaluator:                evaluator,
+		OverrideValues:           w.Overrides,
+		forget:                   w.Forget,
+		ProviderLocksValue:       w.ProviderLocks,
+		PolicyClientValue:        w.PolicyClient,
+		DeprecationsValue:        w.Deprecations,
 	}
 
 	return ctx

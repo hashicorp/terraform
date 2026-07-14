@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -76,28 +77,29 @@ type BuiltinEvalContext struct {
 	// only allowd in the context of a destroy plan.
 	forget bool
 
-	Hooks                   []Hook
-	InputValue              UIInput
-	ProviderCache           map[string]providers.Interface
-	ProviderFuncCache       map[string]providers.Interface
-	FunctionResults         *lang.FunctionResults
-	ProviderInputConfig     map[string]map[string]cty.Value
-	ProviderLock            *sync.Mutex
-	ProvisionerCache        map[string]provisioners.Interface
-	ProvisionerLock         *sync.Mutex
-	ChangesValue            *plans.ChangesSync
-	StateValue              *states.SyncState
-	ChecksValue             *checks.State
-	EphemeralResourcesValue *ephemeral.Resources
-	RefreshStateValue       *states.SyncState
-	PrevRunStateValue       *states.SyncState
-	PolicyGraphValue        *policySubgraph
-	InstanceExpanderValue   *instances.Expander
-	MoveResultsValue        refactoring.MoveResults
-	OverrideValues          *mocking.Overrides
-	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
-	PolicyClientValue       policy.Client
-	DeprecationsValue       *deprecation.Deprecations
+	Hooks                    []Hook
+	InputValue               UIInput
+	ProviderCache            map[string]providers.Interface
+	ProviderFuncCache        map[string]providers.Interface
+	FunctionResults          *lang.FunctionResults
+	ProviderInputConfig      map[string]map[string]cty.Value
+	ProviderLock             *sync.Mutex
+	ProvisionerCache         map[string]provisioners.Interface
+	ProvisionerLock          *sync.Mutex
+	ChangesValue             *plans.ChangesSync
+	StateValue               *states.SyncState
+	ChecksValue              *checks.State
+	EphemeralResourcesValue  *ephemeral.Resources
+	RefreshStateValue        *states.SyncState
+	PrevRunStateValue        *states.SyncState
+	PolicyGraphValue         *policySubgraph
+	InstanceExpanderValue    *instances.Expander
+	MoveResultsValue         refactoring.MoveResults
+	OverrideValues           *mocking.Overrides
+	SimpleReferenceTreeValue *simplerefs.SimpleReferenceTree
+	ProviderLocksValue       map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue        policy.Client
+	DeprecationsValue        *deprecation.Deprecations
 }
 
 func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
@@ -477,6 +479,10 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	replace := !attrBefore.RawEquals(attrAfter)
 
 	return ref, replace, diags
+}
+
+func (ctx *BuiltinEvalContext) ReferenceTree() *simplerefs.SimpleReferenceTree {
+	return ctx.SimpleReferenceTreeValue
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {

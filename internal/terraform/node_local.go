@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -148,6 +149,14 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	diags = diags.Append(deprecationDiags)
 
 	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
+
+	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "local"}, hcl.TraverseAttr{Name: n.Addr.LocalValue.Name}}
+	// Set the expression as a simple traversal if it is one.
+	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
+	diags = diags.Append(refDiags)
+	if ref != nil {
+		ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+	}
 	return diags
 }
 

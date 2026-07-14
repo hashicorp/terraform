@@ -4,6 +4,9 @@ go 1.26.4
 
 godebug winsymlink=0
 
+// replace github.com/hashicorp/hcl => /Users/sams/hashicorp/hcl/v2
+replace github.com/hashicorp/hcl/v2 => /Users/sams/hashicorp/hcl
+
 require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/ProtonMail/go-crypto v1.1.3
