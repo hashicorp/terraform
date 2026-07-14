@@ -86,6 +86,16 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		))
 	}
 
+	// TODO:@austinvalle: we should probably add this rather than returning an error :P
+	if op.PlanLight {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Light plan mode is currently not supported",
+			fmt.Sprintf("%s does not support -light mode for ", b.appName)+
+				"plans at this time.",
+		))
+	}
+
 	if len(op.GenerateConfigOut) > 0 {
 		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
 	}

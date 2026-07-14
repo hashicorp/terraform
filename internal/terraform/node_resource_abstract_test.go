@@ -214,7 +214,7 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 
 			ctx.ProviderProvider = providers.Interface(mockProvider)
 
-			got, readDiags := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+			got, _, readDiags := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
 			if readDiags.HasErrors() {
 				t.Fatalf("[%s] Got err: %#v", k, readDiags.Err())
 			}

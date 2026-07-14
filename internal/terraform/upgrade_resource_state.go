@@ -24,13 +24,13 @@ import (
 //
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
-func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, bool, tfdiags.Diagnostics) {
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		// We only do state upgrading for managed resources.
 		// This was a part of the normal workflow in older versions and
 		// returned early, so we are only going to log the error for now.
 		log.Printf("[ERROR] data resource %s should not require state upgrade", addr)
-		return src, nil
+		return src, false, nil
 	}
 
 	// Remove any attributes from state that are not present in the schema.
@@ -59,8 +59,11 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			// version might be required here. :(
 			fmt.Sprintf("The current state of %s was created by a newer provider version than is currently selected. Upgrade the %s provider to work with this state.", addr, providerType),
 		))
-		return nil, diags
+		return nil, false, diags
 	}
+
+	// This indicates to the caller that the call to UpgradeResourceState was caused by a schema version upgrade
+	schemaStateUpgrade := false
 
 	// If we get down here then we need to upgrade the state, with the
 	// provider's help.
@@ -70,6 +73,12 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// understand a flatmap built against an older schema.
 	if src.SchemaVersion != uint64(currentSchema.Version) {
 		log.Printf("[TRACE] upgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentSchema.Version, providerType)
+
+		// TODO:@austinvalle: if upgrade is called to "fix up" the state, should we still call refresh?
+		// The old SDK had this behavior but I'm not sure how prevelant this is + whether refreshing is expected
+		//
+		// TODO:@austinvalle: if we do want to detect if a fixup caused a change, we could decode the value prior + compare to after to determine how to set "schemaStateUpgrade"
+		schemaStateUpgrade = true
 	} else {
 		log.Printf("[TRACE] upgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentSchema.Version, providerType)
 	}
@@ -94,7 +103,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	resp := provider.UpgradeResourceState(req)
 	diags := resp.Diagnostics
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	if !resp.UpgradedState.IsWhollyKnown() {
@@ -118,7 +127,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 				fmt.Sprintf("The %s provider upgraded the state for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
 			))
 		}
-		return nil, diags
+		return nil, false, diags
 	}
 
 	// Check for any write-only attributes that have non-null values
@@ -136,7 +145,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	new, err := src.CompleteUpgrade(newValue, currentSchema.Body.ImpliedType(), uint64(currentSchema.Version))
@@ -149,7 +158,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			fmt.Sprintf("Failed to encode state for %s after resource schema upgrade: %s.", addr, tfdiags.FormatError(err)),
 		))
 	}
-	return new, diags
+	return new, schemaStateUpgrade, diags
 }
 
 func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {

@@ -63,6 +63,9 @@ type Operation struct {
 	// state before proceeding. Default is true.
 	Refresh bool
 
+	// TODO:@austinvalle: docs + probably rename this :P
+	Light bool
+
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
 	Targets []addrs.Targetable
@@ -230,6 +233,16 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
+	// TODO:@austinvalle: this error msg should probably be more specific w/ each flag combination
+	// TODO:@austinvalle: error in ParseApplyDestroy?
+	if o.Light && o.PlanMode != plans.NormalMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan mode options",
+			fmt.Sprintf("The -light plan flag option can only be used in normal plan mode. Current mode: %s", o.PlanMode),
+		))
+	}
+
 	return diags
 }
 
@@ -257,6 +270,8 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
+		// TODO:@austinvalle: pick a better name
+		f.BoolVar(&operation.Light, "light", false, "light")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")

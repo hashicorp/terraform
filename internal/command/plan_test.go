@@ -1911,6 +1911,66 @@ func TestPlan_QueryFiles(t *testing.T) {
 	})
 }
 
+func TestPlan_targeted_refresh(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-targeted-refresh"), td)
+	t.Chdir(td)
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{},
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	}).DeepCopy()
+
+	statePath := testStateFile(t, originalState)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-light",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	// Verify that the provider was called with the existing state
+	actual := p.PlanResourceChangeRequest.PriorState
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("bar"),
+		"ami": cty.NullVal(cty.String),
+		"network_interface": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+			"device_index": cty.String,
+			"description":  cty.String,
+		})),
+	})
+	if !expected.RawEquals(actual) {
+		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
+	}
+}
+
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".

@@ -76,6 +76,9 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
+	// TODO:@austinvalle: document
+	planLight bool
+
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
 	ConcreteDestroyResourceInstance ConcreteResourceInstanceNodeFunc
@@ -336,6 +339,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
+			planLight:            b.planLight,
 		}
 	}
 
@@ -347,6 +351,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:              b.skipPlanChanges,
 			forgetResources:              b.forgetResources,
 			forgetModules:                b.forgetModules,
+			// TODO:@austinvalle: should this also get plan light?
 		}
 	}
 
@@ -360,6 +365,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
+			// TODO:@austinvalle: should this also get plan light?
 		}
 	}
 }

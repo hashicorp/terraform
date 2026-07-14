@@ -169,6 +169,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.ActionTargets = args.ActionTargets
+	opReq.PlanLight = args.Light
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {

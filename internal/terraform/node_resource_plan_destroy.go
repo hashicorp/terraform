@@ -86,7 +86,7 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	state, err := n.readResourceInstanceState(ctx, addr)
+	state, _, err := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags

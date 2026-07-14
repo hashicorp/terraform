@@ -44,6 +44,9 @@ type NodePlannableResourceInstance struct {
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
 
+	// TODO:@austinvalle: docs
+	planLight bool
+
 	// replaceTriggeredBy stores references from replace_triggered_by which
 	// triggered this instance to be replaced.
 	replaceTriggeredBy []*addrs.Reference
@@ -212,6 +215,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
+	stateUpgraded := false
 	if importing {
 		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
@@ -258,7 +262,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	} else {
 		var readDiags tfdiags.Diagnostics
-		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
+		instanceRefreshState, stateUpgraded, readDiags = n.readResourceInstanceState(ctx, addr)
 		diags = diags.Append(readDiags)
 		if diags.HasErrors() {
 			// Pre-Diff error hook
@@ -308,6 +312,93 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// This is the state of the resource before we refresh the value, we need to keep track
 	// of this to report this as the before value if the refresh is deferred.
 	priorInstanceRefreshState := instanceRefreshState
+
+	var forEach map[string]cty.Value
+	if n.Config != nil {
+		// these diagnostics would be caught earlier, and adding them here only
+		// causes duplicates
+		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	}
+
+	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	// The practitioner indicated that they don't want to refresh the instance if the configuration provided doesn't produce a change
+	// on it's own, which we will confirm by running an initial plan. If a change is detected with this plan, we will refresh then plan again.
+	if n.planLight && !stateUpgraded {
+		// If we end up running a follow-up refresh/plan, we don't want to duplicate any warning diagnostics
+		planLightDiags := diags
+
+		// add this instance to n.forceReplace if replacement is triggered by another change
+		planLightDiags = planLightDiags.Append(n.replaceTriggered(ctx, repData))
+		if planLightDiags.HasErrors() {
+			// Pre-Diff error hook
+			planLightDiags = planLightDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, planLightDiags.Err())
+			}))
+			return planLightDiags
+		}
+
+		change, instancePlanState, planDeferred, planDiags := n.plan(
+			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData,
+		)
+		planLightDiags = planLightDiags.Append(planDiags)
+		if planLightDiags.HasErrors() {
+			// If we are importing and generating a configuration, we need to
+			// ensure the change is written out so the configuration can be
+			// captured.
+			if planDeferred == nil && len(n.generateConfigPath) > 0 {
+				// Update our return plan
+				change := &plans.ResourceInstanceChange{
+					Addr:         n.Addr,
+					PrevRunAddr:  n.prevRunAddr(ctx),
+					ProviderAddr: n.ResolvedProvider,
+					Change: plans.Change{
+						// we only need a placeholder, so this will be a NoOp
+						Action:          plans.NoOp,
+						Before:          instanceRefreshState.Value,
+						After:           instanceRefreshState.Value,
+						GeneratedConfig: n.generatedConfigHCL,
+					},
+				}
+				planLightDiags = planLightDiags.Append(n.writeChange(ctx, change, states.NotDeposed))
+			}
+
+			return planLightDiags
+		}
+
+		if change.Action == plans.NoOp {
+			// TODO:@austinvalle: better log msg
+			log.Printf("[DEBUG] Plan light mode: Skipping refresh as config-only plan indicates no changes for %s", addr)
+
+			// TODO:@austinvalle: Does this need to happen during plan light? I think so but is it okay to do this after planning?
+			// See: https://github.com/hashicorp/terraform/pull/35261
+			if !importing && updatedCBD {
+				// CreateBeforeDestroy must be set correctly in the state which is used
+				// to create the apply graph, so if we did not refresh the state make
+				// sure we still update any changes to CreateBeforeDestroy.
+				diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+				if diags.HasErrors() {
+					// Pre-Diff error hook
+					diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+						return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, diags.Err())
+					}))
+					return diags
+				}
+			}
+
+			// Since the plan was a no-op and the practitioner indicated they don't want to refresh,
+			// we can go through the process of reporting the relevant changes, deferrals, state, etc.
+			return planLightDiags.Append(n.reportPlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
+		} else {
+			// TODO:@austinvalle: is this log msg too noisy?
+			log.Printf("[DEBUG] Plan light mode: Forcing refresh as config-only plan indicates %s change %s", change.Action, addr)
+		}
+	}
+
+	if n.planLight && stateUpgraded {
+		// TODO:@austinvalle: is this log msg too noisy?
+		log.Printf("[DEBUG] Plan light mode: Forcing refresh as the state has been upgraded for %s", addr)
+	}
 
 	// Refresh, maybe
 	// The import process handles its own refresh
@@ -359,15 +450,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	var forEach map[string]cty.Value
-	if n.Config != nil {
-		// these diagnostics would be caught earlier, and adding them here only
-		// causes duplicates
-		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
-	}
-
-	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
-
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
 		// add this instance to n.forceReplace if replacement is triggered by
@@ -409,102 +491,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		if deferred == nil && planDeferred != nil {
-			deferred = planDeferred
-		}
-
-		if importing {
-			// There is a subtle difference between the import by identity
-			// and the import by ID. When importing by identity, we need to
-			// make sure to use the complete identity return by the provider
-			// instead of the (potential) incomplete one from the configuration.
-			if n.importTarget.target.Type().IsObjectType() {
-				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
-			} else {
-				change.Importing = &plans.Importing{Target: n.importTarget.target}
-			}
-		}
-
-		// FIXME: here we update the change to reflect the reason for
-		// replacement, but we still overload forceReplace to get the correct
-		// change planned.
-		if len(n.replaceTriggeredBy) > 0 {
-			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
-		}
-
-		deferrals := ctx.Deferrals()
-		if deferred != nil {
-			// Then this resource has been deferred either during the import,
-			// refresh or planning stage. We'll report the deferral and
-			// store what we could produce in the deferral tracker.
-			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
-			n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
-
-		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
-			// We intentionally write the change before the subsequent checks, because
-			// all of the checks below this point are for problems caused by the
-			// context surrounding the change, rather than the change itself, and
-			// so it's helpful to still include the valid-in-isolation change as
-			// part of the plan as additional context in our error output.
-			diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
-			if diags.HasErrors() {
-				return diags
-			}
-			diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
-			if diags.HasErrors() {
-				return diags
-			}
-
-			diags = diags.Append(n.checkPreventDestroy(change))
-			if diags.HasErrors() {
-				return diags
-			}
-
-			// If this plan resulted in a NoOp, then apply won't have a chance to make
-			// any changes to the stored dependencies. Since this is a NoOp we know
-			// that the stored dependencies will have no effect during apply, and we can
-			// write them out now.
-			if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
-				// the refresh state will be the final state for this resource, so
-				// finalize the dependencies here if they need to be updated.
-				instanceRefreshState.Dependencies = n.Dependencies
-				diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
-				if diags.HasErrors() {
-					return diags
-				}
-			}
-
-			// Post-conditions might block completion. We intentionally do this
-			// _after_ writing the state/diff because we want to check against
-			// the result of the operation, and to fail on future operations
-			// until the user makes the condition succeed.
-			// (Note that some preconditions will end up being skipped during
-			// planning, because their conditions depend on values not yet known.)
-			checkDiags := evalCheckRules(
-				addrs.ResourcePostcondition,
-				n.Config.Postconditions,
-				ctx, n.ResourceInstanceAddr(), repData,
-				checkRuleSeverity,
-			)
-			diags = diags.Append(checkDiags)
-		} else {
-			// The deferrals tracker says that we must defer changes for
-			// this resource instance, presumably due to a dependency on an
-			// upstream object that was already deferred. Therefore we just
-			// report our own deferral (capturing a placeholder value in the
-			// deferral tracker) and don't add anything to the plan or
-			// working state.
-			// In this case, the expression evaluator should use the placeholder
-			// value registered here as the value of this resource instance,
-			// instead of using the plan.
-			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
-			n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
-		}
-
-		// Now that the instance is planned we can plan any triggered actions.
-		// Note that these may also result in resource deferral, so we can't
-		// count in having a plan yet.
-		diags = diags.Append(n.planActionTriggers(ctx, repData, change))
+		// The plan was successful so now we can go through the process of reporting the relevant changes, deferrals, state, etc.
+		diags = diags.Append(n.reportPlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
 
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
@@ -583,12 +571,123 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	return diags
 }
 
+func (n *NodePlannableResourceInstance) reportPlan(ctx EvalContext, deferred, planDeferred *providers.Deferred, importing bool, change *plans.ResourceInstanceChange, instanceRefreshState, instancePlanState *states.ResourceInstanceObject, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	addr := n.ResourceInstanceAddr()
+
+	checkRuleSeverity := tfdiags.Error
+	if n.skipPlanChanges || n.preDestroyRefresh {
+		checkRuleSeverity = tfdiags.Warning
+	}
+
+	if deferred == nil && planDeferred != nil {
+		deferred = planDeferred
+	}
+
+	if importing {
+		// There is a subtle difference between the import by identity
+		// and the import by ID. When importing by identity, we need to
+		// make sure to use the complete identity return by the provider
+		// instead of the (potential) incomplete one from the configuration.
+		if n.importTarget.target.Type().IsObjectType() {
+			change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
+		} else {
+			change.Importing = &plans.Importing{Target: n.importTarget.target}
+		}
+	}
+
+	// FIXME: here we update the change to reflect the reason for
+	// replacement, but we still overload forceReplace to get the correct
+	// change planned.
+	if len(n.replaceTriggeredBy) > 0 {
+		change.ActionReason = plans.ResourceInstanceReplaceByTriggers
+	}
+
+	deferrals := ctx.Deferrals()
+	if deferred != nil {
+		// Then this resource has been deferred either during the import,
+		// refresh or planning stage. We'll report the deferral and
+		// store what we could produce in the deferral tracker.
+		deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
+		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+
+	} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+		// We intentionally write the change before the subsequent checks, because
+		// all of the checks below this point are for problems caused by the
+		// context surrounding the change, rather than the change itself, and
+		// so it's helpful to still include the valid-in-isolation change as
+		// part of the plan as additional context in our error output.
+		diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
+		if diags.HasErrors() {
+			return diags
+		}
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// If this plan resulted in a NoOp, then apply won't have a chance to make
+		// any changes to the stored dependencies. Since this is a NoOp we know
+		// that the stored dependencies will have no effect during apply, and we can
+		// write them out now.
+		if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
+			// the refresh state will be the final state for this resource, so
+			// finalize the dependencies here if they need to be updated.
+			instanceRefreshState.Dependencies = n.Dependencies
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+			if diags.HasErrors() {
+				return diags
+			}
+		}
+
+		// Post-conditions might block completion. We intentionally do this
+		// _after_ writing the state/diff because we want to check against
+		// the result of the operation, and to fail on future operations
+		// until the user makes the condition succeed.
+		// (Note that some preconditions will end up being skipped during
+		// planning, because their conditions depend on values not yet known.)
+		checkDiags := evalCheckRules(
+			addrs.ResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, n.ResourceInstanceAddr(), repData,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
+	} else {
+		// The deferrals tracker says that we must defer changes for
+		// this resource instance, presumably due to a dependency on an
+		// upstream object that was already deferred. Therefore we just
+		// report our own deferral (capturing a placeholder value in the
+		// deferral tracker) and don't add anything to the plan or
+		// working state.
+		// In this case, the expression evaluator should use the placeholder
+		// value registered here as the value of this resource instance,
+		// instead of using the plan.
+		deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+	}
+
+	// Now that the instance is planned we can plan any triggered actions.
+	// Note that these may also result in resource deferral, so we can't
+	// count in having a plan yet.
+	diags = diags.Append(n.planActionTriggers(ctx, repData, change))
+
+	return diags
+}
+
 // replaceTriggered checks if this instance needs to be replace due to a change
 // in a replace_triggered_by reference. If replacement is required, the
 // instance address is added to forceReplace
 func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	if n.Config == nil {
+
+	// If there is no config or we've already evaluated replacement triggers, return early
+	if n.Config == nil || len(n.replaceTriggeredBy) > 0 {
 		return diags
 	}
 

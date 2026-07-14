@@ -38,6 +38,9 @@ type nodeExpandPlannableResource struct {
 	// for any instances.
 	skipPlanChanges bool
 
+	// TODO:@austinvalle: docs
+	planLight bool
+
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
 	// it might contain addresses that have nothing to do with the resource
@@ -602,6 +605,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
+			planLight:                n.planLight,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
 		}
 
@@ -650,6 +654,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 		NodeAbstractResourceInstance: a,
 		skipRefresh:                  n.skipRefresh,
 		skipPlanChanges:              n.skipPlanChanges,
+		// TODO:@austinvalle: should this get plan light?
 	}
 }
 

@@ -176,6 +176,15 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		}
 	}
 
+	if op.PlanLight {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Light plan mode is currently not supported",
+			`The "remote" backend does not support -light mode for `+
+				`remote plans at this time.`,
+		))
+	}
+
 	// Return if there are any errors.
 	if diags.HasErrors() {
 		return nil, diags.Err()

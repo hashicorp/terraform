@@ -169,6 +169,9 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
+
+	// TODO:@austinvalle: docs
+	PlanLight bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -293,6 +296,8 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			return nil, nil, diags
 		}
 	}
+
+	// TODO:@austinvalle: add more validation here for -light?
 
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
@@ -1028,6 +1033,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
+			planLight:                 opts.PlanLight,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1044,15 +1050,17 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			ActionTargets:             opts.ActionTargets,
-			skipRefresh:               opts.SkipRefresh,
-			skipPlanChanges:           true, // this activates "refresh only" mode.
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			ActionTargets:           opts.ActionTargets,
+			skipRefresh:             opts.SkipRefresh,
+			skipPlanChanges:         true, // this activates "refresh only" mode.
+
+			planLight:                 false, // TODO:@austinvalle: this should always be false + validated?
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1070,6 +1078,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			skipRefresh:               opts.SkipRefresh,
+			planLight:                 false, // TODO:@austinvalle: this should always be false + validated?
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
