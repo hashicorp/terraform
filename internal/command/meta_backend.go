@@ -3080,23 +3080,23 @@ func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, provi
 		//  - the provider isn't already downloaded to the cache BUT installation is controlled by a lock file.
 		//
 		// In both cases trust is already established; skip requesting approval.
-		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) was present in a dependency lock file during provider installation, so we consider it safe", provider.Type, provider)
+		log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) was present in a dependency lock file during provider installation, so we consider it safe", provider.Type, provider)
 		return Proceed
 	} else {
 		// The provider wasn't in the dependency lock file so it's being download for the first time
 		// (we block upgrading the state store provider in this method).
-		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", provider.Type, provider)
+		log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", provider.Type, provider)
 		switch location.(type) {
 		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
 			// If the provider is downloaded from a local source we assume it's safe.
 			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", provider.Type, provider)
+			log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", provider.Type, provider)
 			return Proceed
 		case getproviders.PackageHTTPURL:
-			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", provider.Type, provider)
+			log.Printf("[DEBUG] init (determineSafeProviderInstallAction): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", provider.Type, provider)
 			return RequireApproval
 		default:
-			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", provider, location))
+			panic(fmt.Sprintf("init (determineSafeProviderInstallAction): unexpected provider location type for state storage provider %q: %T", provider, location))
 		}
 	}
 }

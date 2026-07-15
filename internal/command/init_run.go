@@ -229,17 +229,17 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			}
 		}
 
-		var configProvidersOutput bool
+		var getPSSProviderOutput bool
 		var safeInstallAction SafeStateStoreProviderInstallAction
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var configProviderDiags tfdiags.Diagnostics
-		configProvidersOutput, pssLock, safeInstallAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-		diags = diags.Append(configProviderDiags)
-		if configProviderDiags.HasErrors() {
+		var getPSSProviderDiags tfdiags.Diagnostics
+		getPSSProviderOutput, pssLock, safeInstallAction, stateStoreProviderAuthResult, getPSSProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		diags = diags.Append(getPSSProviderDiags)
+		if getPSSProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
-		if configProvidersOutput {
+		if getPSSProviderOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
 			view.Spacer()
@@ -409,13 +409,13 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// `getProviders`, else that method could download the PSS provider a second time, or download a different version.
 		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLock, previousLocksWithPSSOverride)
 	}
-	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
-	diags = diags.Append(stateProvidersDiags)
-	if stateProvidersDiags.HasErrors() {
+	getProvidersOutput, finalLocks, getProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
+	diags = diags.Append(getProvidersDiags)
+	if getProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
-	if stateProvidersOutput {
+	if getProvidersOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
 		view.Spacer()
