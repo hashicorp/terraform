@@ -180,8 +180,7 @@ func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[code]
 	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(code)
+		panic("missing message for init message code " + string(code))
 	}
 
 	if message.HumanValue == "" {
