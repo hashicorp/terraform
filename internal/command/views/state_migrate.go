@@ -55,9 +55,13 @@ type StateMigrate interface {
 func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 	switch viewType {
 	case arguments.ViewHuman:
-		return &StateMigrateHuman{view: view}
+		return &StateMigrateHuman{
+			view: view,
+		}
 	default:
-		panic(fmt.Sprintf("unsupported view type: %s", viewType))
+		return &StateMigrateJSON{
+			view: NewJSONView(view),
+		}
 	}
 }
 
@@ -189,4 +193,15 @@ func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) 
 	}
 
 	return s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
+}
+
+var _ Spacer = (*StateMigrateJSON)(nil)
+
+type StateMigrateJSON struct {
+	view *JSONView
+}
+
+// Implements Spacer
+func (s *StateMigrateJSON) Spacer() {
+	// no-op for JSON output, since we don't want to log empty messages in JSON
 }
