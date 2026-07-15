@@ -1,4 +1,4 @@
-## 1.16.0-alpha20260708 (July 08, 2026)
+## 1.16.0-alpha20260715 (July 15, 2026)
 
 
 NEW FEATURES:
@@ -40,6 +40,10 @@ ENHANCEMENTS:
 
 * contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
+* The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be used to evaluate expressions within the scope of a module or a specific module instance. ([#31861](https://github.com/hashicorp/terraform/issues/31861))
+
+* If `-invoke` results in multiple resource calls triggering the action, it can now be combined with `-target` to specify the calling resource instance ([#38845](https://github.com/hashicorp/terraform/issues/38845))
+
 
 BUG FIXES:
 
@@ -65,10 +69,6 @@ BUG FIXES:
 NOTES:
 
 * init: Errors due to incompatible `-upgrade` and `-lockfile=readonly` flags are now raised earlier in the init process. ([#38561](https://github.com/hashicorp/terraform/issues/38561))
-
-* command/init: Provider installation was changed to enable future enhancements in the area. This effectively reverses the log message changes from v1.15. `initializing_provider_plugin_message` is being re-introduced to replace the short-lived two message types `initializing_provider_plugin_from_config_message` & `initializing_provider_plugin_from_state_message`. The change should not have any significant end-user impact aside from the command output. ([#38648](https://github.com/hashicorp/terraform/issues/38648))
-
-* command/init: Provider installation was changed to enable future enhancements in the area. This partially reverses the init event order changes from v1.15; module installation will now occur after the backend is initialized. The change should not have any significant end-user impact aside from the command output. ([#38699](https://github.com/hashicorp/terraform/issues/38699))
 
 
 UPGRADE NOTES:
