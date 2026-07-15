@@ -4706,7 +4706,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -8491,7 +8491,7 @@ func TestInit_backendAliasesRegisteredBeforeProviderDiscovery(t *testing.T) {
 		aliasHost: aliasHost,
 	}
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
