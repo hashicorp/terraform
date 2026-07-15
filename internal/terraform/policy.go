@@ -14,7 +14,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -221,9 +220,14 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 					continue
 				}
 
-				// Parse the resource config to extract attribute and block expressions.
-				relatedExprs, parseDiags := dynblock.ParseBodyExpression(resource.Config)
-				if parseDiags.HasErrors() || relatedExprs == nil {
+				// Parse the resource config as a simple body that contains only attributes that are either
+				// simple traversals or literal values.
+				cfg, ok := resource.Config.(*hclsyntax.Body)
+				if !ok {
+					continue
+				}
+				relatedBody, parseDiags := cfg.AsSimpleBody()
+				if parseDiags.HasErrors() {
 					partial = true
 					continue
 				}
@@ -265,7 +269,7 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 				// in aws_s3_bucket.example.
 				// If it is a traversal, we check if the traversal points to the source attribute.
 				for addr, resourceValue := range resourcesSeq {
-					matched := relatedResourceMatchesPairs(ctx, relatedExprs, currentAddr, addr, resourceValue, currentAttrs, pairs)
+					matched := relatedResourceMatchesPairs(ctx, relatedBody, currentAddr, addr, resourceValue, currentAttrs, pairs)
 					if matched.IsWhollyKnown() && matched.True() {
 						resourceValue, _ = resourceValue.UnmarkDeep()
 						found = append(found, resourceValue)
@@ -322,14 +326,14 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 	return true, false
 }
 
-func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExpression, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, pairs []callback.RelatedAttributePair) cty.Value {
+func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, pairs []callback.RelatedAttributePair) cty.Value {
 	// we will return unknown if we cannot determine whether the resource matches
 	unknown := cty.UnknownVal(cty.Bool)
 
 	for _, pair := range pairs {
 		// If the current resource is null or does not have the source attribute,
 		// we cannot compare the literal to the current value.
-		if currentValue.IsNull() || !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SourceAttribute) {
+		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SourceAttribute) {
 			// TODO: Is this unknown or false?
 			return unknown
 		}
@@ -358,13 +362,9 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 			}
 		}
 
-		// Parse the related attribute path to extract the expression it refers to.
-		traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(pair.RelatedAttribute), "", hcl.Pos{Line: 1, Column: 1})
-		if parseDiags.HasErrors() {
-			return unknown
-		}
-		path, _ := traversalToPath(traversal)
-		relatedExpr, found := getAttributeExpression(bodyExpr, path)
+		// get the attribute's expression from the body
+		path, _ := traversalToPath(relatedTraversal)
+		relatedExpr, found := getAttributeFromBody(body, path)
 		if !found {
 			// related attribute or block not found
 			return unknown
@@ -372,8 +372,8 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 
 		// If the expression is a literal, try a direct comparison against
 		// source value so we can make an early decision if the values do not match.
-		if relatedExpr.Literal && relatedExpr.RawExpr != nil {
-			litVal, litDiags := relatedExpr.RawExpr.Value(nil)
+		if relatedExpr.IsLiteral() && relatedExpr.Expr != nil {
+			litVal, litDiags := relatedExpr.Expr.Value(nil)
 			if !litDiags.HasErrors() {
 				litVal, _ = litVal.UnmarkDeep()
 				sourceValue := currentValue.GetAttr(pair.SourceAttribute)
@@ -389,19 +389,17 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 			return unknown
 		}
 
-		// We check that the related attribute expression is a plain traversal
-		// that refers to the source attribute in the current resource.
 		// Anything more complex than a plain traversal cannot be compared structurally,
-		// so we assume it to be unknown.
-		traversal = relatedExpr.SimpleTraversal
-		if len(traversal) == 0 {
+		// so we assume it to be unknown if the related attribute expression is not a plain traversal.
+		if relatedExpr.Kind != hclsyntax.AttributeKindOther {
 			return unknown
 		}
 
 		// Walk the reference tree to resolve the related attribute reference to a
 		// resource attribute reference.
-		relatedRef, refDiags := globalref.ParseRef(related.Module, traversal)
+		relatedRef, refDiags := globalref.ParseRef(related.Module, relatedExpr.Traversal)
 		if refDiags.HasErrors() {
+			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
 			return unknown
 		}
 		tree := evalCtx.ResourceAttrRefTree()
@@ -419,6 +417,7 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
 			},
 		}
+
 		if !equalRef(sourceRef, attrRef) {
 			srcStr := sourceRef.DebugString()
 			resStr := attrRef.DebugString()
@@ -467,24 +466,44 @@ func equalRef(ref *globalref.Reference, other *globalref.Reference) bool {
 	return true
 }
 
-func getAttributeExpression(bodyExpr *dynblock.BodyExpression, path cty.Path) (dynblock.AttributeExpression, bool) {
-	var attr dynblock.AttributeExpression
+// getAttributeFromBody looks up an attribute expression inside a parsed restricted body
+// tree using a block/attribute path.
+//
+// A block instance is addressed by its block type followed by each of its
+// labels. Once an attribute is selected, any remaining path steps are resolved
+// recursively through object and tuple constructor expressions stored in the
+// returned RestrictedAttribute.
+//
+// For example, given:
+//
+//	resource "aws_vpc" "foo" {
+//	  config = {
+//	    vpc_id = local.ids["primary"]
+//	  }
+//	}
+//
+// the path to the nested "vpc_id" expression is:
+//
+//	resource.aws_vpc.foo.config.vpc_id
+func getAttributeFromBody(simpleBody *hclsyntax.SimpleBody, path cty.Path) (hclsyntax.SimpleAttribute, bool) {
+	var attr hclsyntax.SimpleAttribute
 	if len(path) == 0 {
 		return attr, false
 	}
 
 	if len(path) == 1 {
 		root := path[0].(cty.GetAttrStep)
-		attr, ok := bodyExpr.Attributes[root.Name]
+		attr, ok := simpleBody.Attributes[root.Name]
 		return attr, ok
 	}
 
 	first := path[0].(cty.GetAttrStep)
 	remaining := path[1:]
-	for _, block := range bodyExpr.Blocks {
+	for _, block := range simpleBody.Blocks {
 		if block.Type == first.Name {
 			// TODO: handle ambiguous references due to repeated block types
-			final, ok := getAttributeExpression(block.Body, remaining)
+			// TODO: DO we need to handle labels?
+			final, ok := getAttributeFromBody(block.Body, remaining)
 			if ok {
 				return final, true
 			}

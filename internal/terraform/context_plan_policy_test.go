@@ -2406,7 +2406,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			wantRelated: []string{"block_related"},
 			wantPartial: false,
 		},
-		"reference chain through child output to child2 local": {
+		"direct module output traversal match": {
 			config: `
 		terraform {
 			required_providers {
@@ -2418,7 +2418,45 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 		}
 
 		module "child" {
-		count = 1
+			count  = 1
+			source = "./child"
+		}
+
+		resource "test_instance" "from_output" {
+			value  = module.child[0].result
+			random = "from_output"
+		}
+		`,
+			childConfig: `
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		output "result" {
+			value = test_resource.source.id
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"from_output"},
+			wantPartial: false,
+		},
+		"reference chain through child output to sibling": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		module "child" {
+			count  = 1
 			source = "./child"
 		}
 
@@ -2456,6 +2494,180 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 				{SourceAttribute: "id", RelatedAttribute: "value"},
 			},
 			wantRelated: []string{"indirect"},
+			wantPartial: false,
+		},
+		"reference chain through module output": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		module "child" {
+			count  = 1
+			source = "./child"
+		}
+
+		locals {
+			source_id = module.child[0].result
+		}
+
+		resource "test_instance" "indirect" {
+			value  = local.source_id
+			random = "indirect"
+		}
+		`,
+			childConfig: `
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		output "result" {
+			value = test_resource.source.id
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"indirect"},
+			wantPartial: false,
+		},
+		"no match: for_each candidate from resource-derived collection": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		locals {
+			randoms = ["source", "not_source"]
+		}
+
+		resource "test_resource" "source" {
+			count  = 2
+			value  = "expected"
+			random = local.randoms[count.index]
+		}
+
+		resource "test_instance" "from_each" {
+			for_each = { for r in test_resource.source : r.random => r.id }
+			value    = each.value
+			random   = each.value
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{},
+			wantPartial: false,
+		},
+		"conditional expression with known selected value": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		variable "enabled" {
+			type    = bool
+			default = true
+		}
+
+		resource "test_resource" "source" {
+			sensitive_value = "expected"
+			random          = "source"
+		}
+
+		resource "test_resource" "other" {
+			sensitive_value = "other"
+			random          = "other"
+		}
+
+		resource "test_instance" "conditional" {
+			value  = var.enabled ? test_resource.source.sensitive_value : test_resource.other.sensitive_value
+			random = "conditional"
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "sensitive_value", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"conditional"},
+			wantPartial: false,
+		},
+		"function expression with known result": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			value  = "EXPECTED"
+			random = "source"
+		}
+
+		resource "test_instance" "transformed" {
+			value  = upper(test_resource.source.value)
+			random = "transformed"
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "value", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"transformed"},
+			wantPartial: false,
+		},
+		"function expression with unknown result": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			value  = "EXPECTED"
+			random = "source"
+		}
+
+		resource "test_instance" "transformed" {
+			value  = upper(test_resource.source.id)
+			random = "transformed"
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{},
 			wantPartial: false,
 		},
 		"known nested block value should precede traversal": {
@@ -2546,6 +2758,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 				if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+
+				random := req.Attrs.Raw.GetAttr("random")
+				if random.IsNull() || !random.IsKnown() || random.AsString() != "source" {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 

@@ -5,6 +5,7 @@ go 1.26.4
 godebug winsymlink=0
 
 // replace github.com/hashicorp/hcl => /Users/sams/hashicorp/hcl/v2
+// replace github.com/hashicorp/hcl/v2/hcl => /Users/sams/hashicorp/hcl
 replace github.com/hashicorp/hcl/v2 => /Users/sams/hashicorp/hcl
 
 require (
