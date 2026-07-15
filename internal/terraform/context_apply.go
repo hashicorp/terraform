@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -192,6 +193,16 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	diags = diags.Append(schemaDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
+	}
+
+	// Validate the loaded policies against the run's provider schemas before the
+	// walk evaluates them, so a policy that references an attribute a provider
+	// does not have fails here rather than partway through applying.
+	if opts.PolicyClient != nil {
+		diags = diags.Append(validateProviderSchemas(context.Background(), opts.PolicyClient, config, schemas))
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
 	}
 
 	changes, err := plan.Changes.Decode(schemas)

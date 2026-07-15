@@ -21,6 +21,10 @@ type Client interface {
 	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+	// ValidateProviderSchemas validates the loaded policies against the run's
+	// provider schemas, so a policy that references an attribute a provider does
+	// not have fails early. Called after Setup, once schemas are resolved.
+	ValidateProviderSchemas(context.Context, ValidateProviderSchemasRequest) ValidateProviderSchemasResponse
 	Stop()
 }
 
@@ -28,6 +32,31 @@ type Client interface {
 type CallbackService interface {
 	RegisterCallbackService(context.Context) (*callback.Server, Diagnostics)
 }
+
+type (
+	// ValidateProviderSchemasRequest carries the provider schemas to validate the
+	// loaded policies against.
+	ValidateProviderSchemasRequest struct {
+		ProviderSchemas []ProviderSchema
+	}
+
+	// ProviderSchema is one provider's schema as cty object types: its
+	// configuration and the object type of each resource and data source it
+	// offers, plus the local names it is known by in configuration.
+	ProviderSchema struct {
+		Type        string
+		LocalNames  []string
+		Config      cty.Type
+		Resources   map[string]cty.Type
+		DataSources map[string]cty.Type
+	}
+
+	// ValidateProviderSchemasResponse carries the diagnostics from validating the
+	// loaded policies against the schemas.
+	ValidateProviderSchemasResponse struct {
+		Diagnostics Diagnostics
+	}
+)
 
 type (
 	SetupResponse struct {

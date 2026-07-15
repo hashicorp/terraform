@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -270,6 +271,81 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 		serverCapabilities: response.ServerCapabilities,
 		Diagnostics:        DiagsFromProto(response.Diagnostics, nil),
 	}
+}
+
+// ValidateProviderSchemas validates the loaded policies against the run's
+// provider schemas. It serialises each provider's config/resource/data-source
+// object types as cty JSON type encodings, calls the plugin, and returns the
+// diagnostics — errors when a policy references something a provider lacks.
+func (c *client) ValidateProviderSchemas(ctx context.Context, req ValidateProviderSchemasRequest) ValidateProviderSchemasResponse {
+	ctx, span := tracer().Start(ctx, "policy.client.validate_provider_schemas",
+		trace.WithAttributes(attribute.Int("policy.provider_schemas.count", len(req.ProviderSchemas))),
+	)
+	defer span.End()
+
+	protoReq := &proto.ValidateProviderSchemasRequest{}
+	for _, ps := range req.ProviderSchemas {
+		protoPS, err := providerSchemaToProto(ps)
+		if err != nil {
+			return ValidateProviderSchemasResponse{Diagnostics: Diagnostics{
+				NewErrorDiagnostic("Failed to encode provider schema",
+					fmt.Sprintf("Failed to encode the schema for provider %q: %v.", ps.Type, err),
+					SetupErrorResult,
+				),
+			}}
+		}
+		protoReq.ProviderSchemas = append(protoReq.ProviderSchemas, protoPS)
+	}
+
+	response, err := c.client.ValidateProviderSchemas(ctx, protoReq)
+	if err != nil {
+		return ValidateProviderSchemasResponse{Diagnostics: Diagnostics{
+			NewErrorDiagnostic("Failed to validate policies against provider schemas",
+				fmt.Sprintf("Failed to validate policies against provider schemas: %v.", err),
+				SetupErrorResult,
+			),
+		}}
+	}
+	return ValidateProviderSchemasResponse{Diagnostics: DiagsFromProto(response.Diagnostics, nil)}
+}
+
+// providerSchemaToProto encodes a provider schema's cty object types as cty JSON
+// type encodings for the wire.
+func providerSchemaToProto(ps ProviderSchema) (*proto.ProviderSchema, error) {
+	config, err := ctyjson.MarshalType(ps.Config)
+	if err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+	resources, err := marshalTypeMap(ps.Resources)
+	if err != nil {
+		return nil, fmt.Errorf("resources: %w", err)
+	}
+	dataSources, err := marshalTypeMap(ps.DataSources)
+	if err != nil {
+		return nil, fmt.Errorf("data sources: %w", err)
+	}
+	return &proto.ProviderSchema{
+		Type:        ps.Type,
+		LocalNames:  ps.LocalNames,
+		Config:      config,
+		Resources:   resources,
+		DataSources: dataSources,
+	}, nil
+}
+
+func marshalTypeMap(in map[string]cty.Type) (map[string][]byte, error) {
+	if len(in) == 0 {
+		return nil, nil
+	}
+	out := make(map[string][]byte, len(in))
+	for name, ty := range in {
+		raw, err := ctyjson.MarshalType(ty)
+		if err != nil {
+			return nil, fmt.Errorf("%q: %w", name, err)
+		}
+		out[name] = raw
+	}
+	return out, nil
 }
 
 func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {

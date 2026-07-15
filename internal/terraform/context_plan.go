@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -797,6 +798,22 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// Initialize the results table to validate provider function calls.
 	// Hold reference to this so we can store the table data in the plan file.
 	funcResults := lang.NewFunctionResultsTable(nil)
+
+	// Validate the loaded policies against the run's provider schemas before the
+	// walk evaluates them, so a policy that references an attribute a provider
+	// does not have fails here rather than partway through planning. Schemas are
+	// already loaded at this point (a cache hit after graph build).
+	if opts.PolicyClient != nil {
+		schemas, schemaDiags := c.Schemas(config, prevRunState)
+		diags = diags.Append(schemaDiags)
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+		diags = diags.Append(validateProviderSchemas(context.Background(), opts.PolicyClient, config, schemas))
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+	}
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,

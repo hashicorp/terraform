@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
@@ -221,4 +222,61 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 	}
 
 	return true, false
+}
+
+// validateProviderSchemas asks the policy plugin to validate the loaded policies
+// against the run's provider schemas, so a policy that references an attribute a
+// provider does not have fails early rather than partway through evaluation. It
+// is a no-op when policy enforcement is off or there are no schemas. Any error
+// diagnostics it returns should block the run.
+func validateProviderSchemas(ctx context.Context, client policy.Client, config *configs.Config, schemas *Schemas) tfdiags.Diagnostics {
+	if client == nil || schemas == nil || config == nil {
+		return nil
+	}
+
+	var req policy.ValidateProviderSchemasRequest
+	for providerAddr, providerSchema := range schemas.Providers {
+		req.ProviderSchemas = append(req.ProviderSchemas, policy.ProviderSchema{
+			Type:        providerAddr.Type,
+			LocalNames:  providerLocalNames(config, providerAddr),
+			Config:      providerSchema.Provider.Body.ImpliedType(),
+			Resources:   blockImpliedTypes(providerSchema.ResourceTypes),
+			DataSources: blockImpliedTypes(providerSchema.DataSources),
+		})
+	}
+	if len(req.ProviderSchemas) == 0 {
+		return nil
+	}
+
+	return client.ValidateProviderSchemas(ctx, req).Diagnostics.AsTerraformDiags()
+}
+
+// blockImpliedTypes maps each schema's config block to its implied cty object
+// type, the form the policy engine validates against.
+func blockImpliedTypes(schemas map[string]providers.Schema) map[string]cty.Type {
+	if len(schemas) == 0 {
+		return nil
+	}
+	out := make(map[string]cty.Type, len(schemas))
+	for name, schema := range schemas {
+		if schema.Body == nil {
+			continue
+		}
+		out[name] = schema.Body.ImpliedType()
+	}
+	return out
+}
+
+// providerLocalNames returns the configuration's local name for a provider when
+// it differs from the provider type, so a provider policy labelled by an alias
+// resolves. The provider type is already carried separately.
+func providerLocalNames(config *configs.Config, provider addrs.Provider) []string {
+	if config.Module == nil {
+		return nil
+	}
+	local := config.Module.LocalNameForProvider(provider)
+	if local == "" || local == provider.Type {
+		return nil
+	}
+	return []string{local}
 }
