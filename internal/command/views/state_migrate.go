@@ -220,3 +220,26 @@ func (s *StateMigrateJSON) Log(message string, params ...any) {
 	msg := strings.TrimSpace(fmt.Sprintf(message, params...))
 	s.view.log.Info(msg)
 }
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
+	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
+	s.view.log.Info(
+		msg,
+		"type", InstalledProviderVersionInfo,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
+
+	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
+	s.view.log.Info(
+		msg,
+		"type", InstalledProviderVersionInfo,
+	)
+}
+
