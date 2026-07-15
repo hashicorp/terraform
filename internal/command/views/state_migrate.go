@@ -10,6 +10,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -231,10 +232,18 @@ func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) 
 	return s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
 }
 
-var _ Spacer = (*StateMigrateJSON)(nil)
+var (
+	_ StateMigrate               = (*StateMigrateJSON)(nil)
+	_ ProviderInstallationLogger = (*StateMigrateJSON)(nil)
+	_ Spacer                     = (*StateMigrateJSON)(nil)
+)
 
 type StateMigrateJSON struct {
 	view *JSONView
+}
+
+func (s *StateMigrateJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	s.view.Diagnostics(diags)
 }
 
 // Implements Spacer
@@ -256,7 +265,101 @@ func (s *StateMigrateJSON) Log(message string, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateJSON) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+func (s *StateMigrateJSON) Output(code InitMessageCode, params ...any) {
+	msg, ok := MessageRegistry[code]
+	if !ok || msg.JSONValue == "" {
+		panic(fmt.Sprintf("missing message for init message code %s, got: %s", string(code), msg.JSONValue))
+	}
+	s.Log(msg.JSONValue, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInitializingStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{providerAddr.ForDisplay(), consSuffix, storeType}
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
+
+	s.view.log.Info(
+		msg,
+		"type", json.InitializingStateStoreProviderStart,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+	msg := s.prepareMessage(FindingMatchingVersionMessage, params...)
+	s.view.log.Info(
+		msg,
+		"type", FindingMatchingVersionMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
+	s.view.log.Info(
+		msg,
+		"type", FindingLatestVersionMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)
+	s.view.log.Info(
+		msg,
+		"type", ProviderAlreadyInstalledMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(UsingProviderFromCacheDirInfo, params...)
+	s.view.log.Info(
+		msg,
+		"type", UsingProviderFromCacheDirInfo,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(BuiltInProviderAvailableMessage, params...)
+	s.view.log.Info(
+		msg,
+		"type", BuiltInProviderAvailableMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(InstallingProviderMessage, params...)
+	s.view.log.Info(
+		msg,
+		"type", InstallingProviderMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version.String()}
+	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
+	s.view.log.Info(
+		msg,
+		"type", ReusingPreviousVersionInfo,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.view.log.Info(
@@ -266,7 +369,7 @@ func (s *StateMigrateJSON) InstalledProviderVersionInfo(providerAddr addrs.Provi
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateJSON) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+func (s *StateMigrateJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
@@ -277,3 +380,24 @@ func (s *StateMigrateJSON) InstalledProviderVersionInfoWithKeyID(providerAddr ad
 	)
 }
 
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
+	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
+	s.view.log.Info(
+		msg,
+		"type", PartnerAndCommunityProvidersMessage,
+	)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateJSON) prepareMessage(code InitMessageCode, params ...any) string {
+	message, ok := MessageRegistry[code]
+	if !ok || message.JSONValue == "" {
+		// We neither want to log a non-existent message code, nor an empty message in JSON.
+		// Empty messages should only be intentionally logged via the Spacer method, which is a no-op in the JSON view.
+
+		panic(fmt.Sprintf("missing message for init message code %s, got: %s", string(code), message.JSONValue))
+	}
+
+	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
+}
