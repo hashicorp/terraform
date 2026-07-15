@@ -98,6 +98,27 @@ func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 	})
 }
 
+func TestNewStateMigrate_Log_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := NewStateMigrate(arguments.ViewJSON, view)
+
+	templateMessage := "This is a test log message with a parameter (%s), and both trailing whitespace and newline.    \n"
+	parameter := "test_parameter"
+	smView.Log(templateMessage, parameter)
+
+	// Assert output
+	output := done(t)
+	expected := fmt.Sprintf(
+		`"@message":"%s"`,
+		strings.TrimSpace(fmt.Sprintf(templateMessage, parameter)),
+	)
+
+	if !strings.Contains(output.Stdout(), expected) {
+		t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expected, output.Stdout())
+	}
+}
+
 func TestNewStateMigrate_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)

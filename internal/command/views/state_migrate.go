@@ -79,10 +79,12 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)
 }
 
+// Plain logging of messages, without using message codes
 func (s *StateMigrateHuman) Log(message string, params ...any) {
 	s.log(fmt.Sprintf(message, params...))
 }
 
+// log is reused to ensure human output is always trimmed and colourised before printing to the output stream.
 func (s *StateMigrateHuman) log(preparedMessage string) {
 	msg := s.view.colorize.Color(strings.TrimSpace(preparedMessage))
 	s.view.streams.Println(msg)
@@ -204,4 +206,17 @@ type StateMigrateJSON struct {
 // Implements Spacer
 func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
+}
+
+// Plain logging of messages
+// Logged data includes by default:
+// @level as "info"
+// @module as "terraform.ui" (See NewJSONView)
+// @timestamp formatted in the default way
+// type as "log".
+//
+// No additional fields supplied.
+func (s *StateMigrateJSON) Log(message string, params ...any) {
+	msg := strings.TrimSpace(fmt.Sprintf(message, params...))
+	s.view.log.Info(msg)
 }
