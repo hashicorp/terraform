@@ -155,7 +155,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
 	diags = diags.Append(refDiags)
 	if ref != nil {
-		ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+		ctx.ResourceAttrRefTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
 	}
 	return diags
 }

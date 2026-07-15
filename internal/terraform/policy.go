@@ -337,10 +337,15 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 		// The changeset supercedes config, so we check it first.
 		// If we have enough information to verify equality, we can compare the related attribute
 		// to the source attribute directly, without re-evaluating the related attribute expression.
-		if relatedValue.Type().HasAttribute(pair.RelatedAttribute) {
-			relatedValue := relatedValue.GetAttr(pair.RelatedAttribute)
+		relatedTraversal, _ := hclsyntax.ParseTraversalAbs([]byte(pair.RelatedAttribute), "", hcl.Pos{Line: 1, Column: 1})
+		if relatedValue.Type().HasAttribute(relatedTraversal.RootName()) {
+			relatedPath, _ := traversalToPath(relatedTraversal)
+			relatedValue, _ := relatedPath.Apply(relatedValue)
 			relatedValue, _ = relatedValue.UnmarkDeep()
-			sourceValue := currentValue.GetAttr(pair.SourceAttribute)
+
+			sourceTraversal, _ := hclsyntax.ParseTraversalAbs([]byte(pair.SourceAttribute), "", hcl.Pos{Line: 1, Column: 1})
+			sourcePath, _ := traversalToPath(sourceTraversal)
+			sourceValue, _ := sourcePath.Apply(currentValue)
 			sourceValue, _ = sourceValue.UnmarkDeep()
 			equals := relatedValue.Equals(sourceValue)
 			if equals.IsKnown() {
@@ -361,7 +366,8 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 		path, _ := traversalToPath(traversal)
 		relatedExpr, found := getAttributeExpression(bodyExpr, path)
 		if !found {
-			panic("related attribute or block not found")
+			// related attribute or block not found
+			return unknown
 		}
 
 		// If the expression is a literal, try a direct comparison against
@@ -398,7 +404,7 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, bodyExpr *dynblock.BodyExp
 		if refDiags.HasErrors() {
 			return unknown
 		}
-		tree := evalCtx.ReferenceTree()
+		tree := evalCtx.ResourceAttrRefTree()
 		attrRef, found := tree.ResolveReference(relatedRef)
 		if !found {
 			return unknown

@@ -554,25 +554,19 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		n.setValue(nil, state, nil, ctx.Deferrals(), val)
 	}
 
-	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "output"}, hcl.TraverseAttr{Name: n.Addr.OutputValue.Name}}
-	// Set the expression as a simple traversal if it is one.
-	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
-	diags = diags.Append(refDiags)
-	if ref != nil {
-		ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+	// The globalref is built with the output's own module as the container.
+	// In config, this output may be referenced as `output.value` within its module,
+	//  or `module.<container_addr>.value` within a parent module.
+	// Such references have to be able to produce a similar globalref.Reference.
+	// See internal/lang/globalref/reference.go
+	ref := &globalref.Reference{
+		ContainerAddr: n.Addr.Module,
+		LocalRef: &addrs.Reference{
+			Subject: n.Addr.OutputValue,
+		},
 	}
-
-	if !n.Addr.Module.IsRoot() {
-		traversal := hcl.Traversal{hcl.TraverseRoot{Name: "module"}}
-		for _, step := range n.Addr.Module {
-			traversal = append(traversal, hcl.TraverseAttr{Name: step.Name})
-		}
-		traversal = append(traversal, hcl.TraverseAttr{Name: n.Addr.OutputValue.Name})
-		ref, refDiags := globalref.ParseRef(n.Addr.Module.Parent(), traversal)
-		diags = diags.Append(refDiags)
-		if ref != nil {
-			ctx.ReferenceTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
-		}
+	if ref != nil {
+		ctx.ResourceAttrRefTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
 	}
 
 	return diags

@@ -309,7 +309,7 @@ func (c *MockEvalContext) EvaluateReplaceTriggeredBy(hcl.Expression, instances.R
 	return nil, false, nil
 }
 
-func (c *MockEvalContext) ReferenceTree() *simplerefs.SimpleReferenceTree {
+func (c *MockEvalContext) ResourceAttrRefTree() *simplerefs.SimpleReferenceTree {
 	c.ReferenceTreeCalled = true
 	return c.ReferenceTreeValue
 }

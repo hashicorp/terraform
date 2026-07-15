@@ -211,6 +211,12 @@ func (co ModuleCallInstanceOutput) AbsOutputValue(caller ModuleInstance) AbsOutp
 	return moduleAddr.OutputValue(co.Name)
 }
 
+func (co ModuleCallInstanceOutput) AbsOutputValueInCall() AbsOutputValue {
+	inst := make(ModuleInstance, 0)
+	inst = append(inst, ModuleInstanceStep{Name: co.Call.Call.Name, InstanceKey: co.Call.Key})
+	return inst.OutputValue(co.Name)
+}
+
 type AbsModuleCallOutput struct {
 	Call AbsModuleCall
 	Name string

@@ -70,17 +70,17 @@ type ContextGraphWalker struct {
 	PolicyClient policy.Client
 	PolicyGraph  *policySubgraph // Used for writing resource policy evaluation nodes
 
-	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
-	contextLock        sync.Mutex
-	providerCache      map[string]providers.Interface
-	providerFuncCache  map[string]providers.Interface
-	ReferenceTree      *simplerefs.SimpleReferenceTree
-	functionResults    *lang.FunctionResults
-	providerSchemas    map[string]providers.ProviderSchema
-	providerLock       sync.Mutex
-	provisionerCache   map[string]provisioners.Interface
-	provisionerSchemas map[string]*configschema.Block
-	provisionerLock    sync.Mutex
+	contexts            collections.Map[evalContextScope, *BuiltinEvalContext]
+	contextLock         sync.Mutex
+	providerCache       map[string]providers.Interface
+	providerFuncCache   map[string]providers.Interface
+	ResourceAttrRefTree *simplerefs.SimpleReferenceTree
+	functionResults     *lang.FunctionResults
+	providerSchemas     map[string]providers.ProviderSchema
+	providerLock        sync.Mutex
+	provisionerCache    map[string]provisioners.Interface
+	provisionerSchemas  map[string]*configschema.Block
+	provisionerLock     sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -133,7 +133,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Plugins:                  w.Context.plugins,
 		ExternalProviderConfigs:  w.ExternalProviderConfigs,
 		MoveResultsValue:         w.MoveResults,
-		SimpleReferenceTreeValue: w.ReferenceTree,
+		ResourceAttrRefTreeValue: w.ResourceAttrRefTree,
 		ProviderCache:            w.providerCache,
 		ProviderFuncCache:        w.providerFuncCache,
 		FunctionResults:          w.functionResults,

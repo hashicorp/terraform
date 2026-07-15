@@ -96,7 +96,7 @@ type BuiltinEvalContext struct {
 	InstanceExpanderValue    *instances.Expander
 	MoveResultsValue         refactoring.MoveResults
 	OverrideValues           *mocking.Overrides
-	SimpleReferenceTreeValue *simplerefs.SimpleReferenceTree
+	ResourceAttrRefTreeValue *simplerefs.SimpleReferenceTree
 	ProviderLocksValue       map[addrs.Provider]*depsfile.ProviderLock
 	PolicyClientValue        policy.Client
 	DeprecationsValue        *deprecation.Deprecations
@@ -481,8 +481,8 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	return ref, replace, diags
 }
 
-func (ctx *BuiltinEvalContext) ReferenceTree() *simplerefs.SimpleReferenceTree {
-	return ctx.SimpleReferenceTreeValue
+func (ctx *BuiltinEvalContext) ResourceAttrRefTree() *simplerefs.SimpleReferenceTree {
+	return ctx.ResourceAttrRefTreeValue
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {

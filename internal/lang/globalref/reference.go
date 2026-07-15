@@ -34,10 +34,26 @@ type Reference struct {
 	LocalRef *addrs.Reference
 }
 
+// ParseRef parses a reference traversal into a Reference, using the given
+// module instance as the container address.
 func ParseRef(module addrs.ModuleInstance, traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 	localRef, diags := addrs.ParseRef(traversal)
 	if diags.HasErrors() {
 		return nil, diags
+	}
+
+	// If the subject is a ModuleCallInstanceOutput, we need to resolve it
+	// to an AbsOutputValue before returning.
+	// This is a special case that only applies to module call outputs.
+	// e.g module.child.value is output.value within the child module
+	if callOutput, ok := localRef.Subject.(addrs.ModuleCallInstanceOutput); ok {
+		absOutput := callOutput.AbsOutputValue(module)
+		return &Reference{
+			ContainerAddr: absOutput.Module,
+			LocalRef: &addrs.Reference{
+				Subject: absOutput.OutputValue,
+			},
+		}, nil
 	}
 
 	return &Reference{

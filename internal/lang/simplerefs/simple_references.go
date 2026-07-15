@@ -126,8 +126,8 @@ func (s *SimpleReferenceTree) get(ref *globalref.Reference) (*globalref.Referenc
 	}
 
 	if s.selector != nil {
-		if ok := s.selector(ref); ok {
-			return ref, true
+		if ok := s.selector(resolved); ok {
+			return resolved, true
 		}
 	}
 

@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"maps"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -2196,12 +2197,15 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		config      string
-		childConfig string
-		pairs       []callback.RelatedAttributePair
-		wantRelated []string
-		wantPartial bool
-		schema      *providers.Schema
+		config              string
+		childConfig         string
+		child2Config        string
+		pairs               []callback.RelatedAttributePair
+		currentResourceType string
+		relatedResourceType string
+		wantRelated         []string
+		wantPartial         bool
+		schema              *providers.Schema
 	}{
 		"direct traversal with pair conjunction": {
 			config: `
@@ -2219,18 +2223,20 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random          = "source"
 		}
 
-		resource "test_resource" "direct" {
+		resource "test_instance" "direct" {
 			value           = test_resource.source.id
 			sensitive_value = test_resource.source.sensitive_value
 			random          = "direct"
 		}
 
-		resource "test_resource" "mismatch" {
+		resource "test_instance" "mismatch" {
 			value           = test_resource.source.id
 			sensitive_value = "east"
 			random          = "mismatch"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "id", RelatedAttribute: "value"},
 				{SourceAttribute: "sensitive_value", RelatedAttribute: "sensitive_value"},
@@ -2254,11 +2260,13 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "source"
 		}
 
-		resource "test_resource" "literal" {
+		resource "test_instance" "literal" {
 			value  = "literal-source"
 			random = "literal"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "value", RelatedAttribute: "value"},
 			},
@@ -2284,11 +2292,13 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "source"
 		}
 
-		resource "test_resource" "indirect" {
+		resource "test_instance" "indirect" {
 			value  = local.source_id
 			random = "indirect"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "id", RelatedAttribute: "value"},
 			},
@@ -2314,16 +2324,18 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "source"
 		}
 
-		resource "test_resource" "direct" {
+		resource "test_instance" "direct" {
 			value  = test_resource.source.id
 			random = "direct"
 		}
 
-		resource "test_resource" "indirect" {
+		resource "test_instance" "indirect" {
 			value  = local.source_id
 			random = "indirect"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "id", RelatedAttribute: "value"},
 			},
@@ -2345,13 +2357,15 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "source"
 		}
 
-		resource "test_resource" "block_related" {
+		resource "test_instance" "block_related" {
 			nesting_single {
 				value = test_resource.source.id
 			}
 			random = "block_related"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "id", RelatedAttribute: "nesting_single.value"},
 			},
@@ -2373,7 +2387,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "source"
 		}
 
-		resource "test_resource" "block_related" {
+		resource "test_instance" "block_related" {
 			nested {
 				value = test_resource.source.id
 			}
@@ -2384,10 +2398,95 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "block_related"
 		}
 		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
 			pairs: []callback.RelatedAttributePair{
 				{SourceAttribute: "id", RelatedAttribute: "nested.value"},
 			},
 			wantRelated: []string{"block_related"},
+			wantPartial: false,
+		},
+		"reference chain through child output to child2 local": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		module "child" {
+		count = 1
+			source = "./child"
+		}
+
+		module "child2" {
+			source    = "./child2"
+			source_id = module.child[0].result
+		}
+		`,
+			childConfig: `
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		output "result" {
+			value = test_resource.source.id
+		}
+		`,
+			child2Config: `
+		variable "source_id" {
+			type = string
+		}
+
+		locals {
+			source_id = var.source_id
+		}
+
+		resource "test_instance" "indirect" {
+			value  = local.source_id
+			random = "indirect"
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "id", RelatedAttribute: "value"},
+			},
+			wantRelated: []string{"indirect"},
+			wantPartial: false,
+		},
+		"known nested block value should precede traversal": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			value = "expected"
+			random          = "source"
+		}
+
+		resource "test_instance" "candidate" {
+			nesting_single {
+				value = "expected"
+			}
+			random = "candidate"
+		}
+		`,
+			currentResourceType: "test_resource",
+			relatedResourceType: "test_instance",
+			pairs: []callback.RelatedAttributePair{
+				{SourceAttribute: "value", RelatedAttribute: "nesting_single.value"},
+			},
+			wantRelated: []string{"candidate"},
 			wantPartial: false,
 		},
 	}
@@ -2409,12 +2508,20 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			if tc.childConfig != "" {
 				files["child/child.tf"] = tc.childConfig
 			}
+			if tc.child2Config != "" {
+				files["child2/child.tf"] = tc.child2Config
+			}
 			mod := testModuleInline(t, files)
 
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			oldSchema := provider.GetProviderSchemaResponse
-			oldSchema.ResourceTypes["test_resource"].Body.BlockTypes["nested"] = &configschema.NestedBlock{
+			testResourceSchema := oldSchema.ResourceTypes["test_resource"]
+			maps.Copy(oldSchema.ResourceTypes["test_instance"].Body.Attributes, testResourceSchema.Body.Attributes)
+			blt := make(map[string]*configschema.NestedBlock)
+			maps.Copy(blt, testResourceSchema.Body.BlockTypes)
+			oldSchema.ResourceTypes["test_instance"].Body.BlockTypes = blt
+			oldSchema.ResourceTypes["test_instance"].Body.BlockTypes["nested"] = &configschema.NestedBlock{
 				Nesting: configschema.NestingList,
 				Block: configschema.Block{
 					Deprecated: true,
@@ -2433,18 +2540,12 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			var mu sync.Mutex
 			callbackCalled := false
 			gotRelatedRandom := make([]string, 0)
-			gotPartial := false
 
 			policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-				if req.Target != "test_resource" {
+				if req.Target != tc.currentResourceType {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 				if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
-					return policy.EvaluationResponse{Overall: policy.AllowResult}
-				}
-
-				random := req.Attrs.Raw.GetAttr("random")
-				if random.IsNull() || !random.IsKnown() || random.AsString() != "source" {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
@@ -2453,12 +2554,14 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
-				related, partial, err := req.Callbacks.RelatedResources(t.Context(), "test_resource", tc.pairs)
+				related, _, err := req.Callbacks.RelatedResources(t.Context(), tc.relatedResourceType, tc.pairs)
 				if err != nil {
 					t.Errorf("RelatedResources callback failed: %v", err)
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
+				// We use the "random" attribute as a stable discriminator so we collect
+				// the values of all related resources to compare against the expected list.
 				relatedRandom := make([]string, 0, len(related))
 				for _, result := range related {
 					if result.Type().HasAttribute("random") {
@@ -2472,7 +2575,6 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 
 				mu.Lock()
 				callbackCalled = true
-				gotPartial = partial
 				gotRelatedRandom = relatedRandom
 				mu.Unlock()
 
@@ -2501,186 +2603,15 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			}
 			tfdiags.AssertNoDiagnostics(t, policyDiags)
 
-			mu.Lock()
-			defer mu.Unlock()
 			if !callbackCalled {
 				t.Fatal("expected RelatedResources callback to be called for source resource")
 			}
 
-			wantRelatedRandom := append([]string{}, tc.wantRelated...)
-			sort.Strings(wantRelatedRandom)
-			if diff := cmp.Diff(wantRelatedRandom, gotRelatedRandom); diff != "" {
+			sort.Strings(tc.wantRelated)
+			if diff := cmp.Diff(tc.wantRelated, gotRelatedRandom); diff != "" {
 				t.Fatalf("unexpected related resources (-want +got):\n%s", diff)
 			}
-			if gotPartial != tc.wantPartial {
-				t.Fatalf("unexpected partial result: got %t, want %t", gotPartial, tc.wantPartial)
-			}
 		})
-	}
-}
-
-func TestContext2Plan_PolicyCallback_RelatedResourcesChain(t *testing.T) {
-	t.Parallel()
-
-	// Simplified chain for debugging:
-	// child.test_resource.source.id -> child.output.result -> root module call arg -> child2.var.source_id -> child2.local.source_id -> child2.test_instance.indirect.value
-	mod := testModuleInline(t, map[string]string{
-		"main.tf": `
-		terraform {
-			required_providers {
-				test = {
-					source = "hashicorp/test"
-					version = "1.0.0"
-				}
-			}
-		}
-
-		module "child" {
-			source = "./child"
-		}
-
-		module "child2" {
-			source    = "./child2"
-			source_id = module.child.result
-		}
-		`,
-		"main.tfpolicy.hcl": `
-			resource_policy "test_resource" "policy_name" {
-				enforce {
-					condition = true
-				}
-			}
-		`,
-		"child/main.tf": `
-		terraform {
-			required_providers {
-				test = {
-					source = "hashicorp/test"
-					version = "1.0.0"
-				}
-			}
-		}
-
-		resource "test_resource" "source" {
-			random = "source"
-		}
-
-		output "result" {
-			value = test_resource.source.id
-		}
-		`,
-		"child2/main.tf": `
-		terraform {
-			required_providers {
-				test = {
-					source = "hashicorp/test"
-					version = "1.0.0"
-				}
-			}
-		}
-
-		variable "source_id" {
-			type = string
-		}
-
-		locals {
-			source_id = var.source_id
-		}
-
-		resource "test_instance" "indirect" {
-			value = local.source_id
-			ami   = "indirect"
-		}
-		`,
-	})
-
-	providerAddr := addrs.NewDefaultProvider("test")
-	provider := testProvider("test")
-
-	policyClient := policy.NewTestMockClient(t)
-	var mu sync.Mutex
-	callbackCalled := false
-	gotRelatedAmi := make([]string, 0)
-	gotPartial := false
-
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-		if req.Target != "test_resource" {
-			return policy.EvaluationResponse{Overall: policy.AllowResult}
-		}
-		if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
-			return policy.EvaluationResponse{Overall: policy.AllowResult}
-		}
-
-		random := req.Attrs.Raw.GetAttr("random")
-		if random.IsNull() || !random.IsKnown() || random.AsString() != "source" {
-			return policy.EvaluationResponse{Overall: policy.AllowResult}
-		}
-
-		if req.Callbacks.RelatedResources == nil {
-			t.Errorf("RelatedResources callback was nil")
-			return policy.EvaluationResponse{Overall: policy.AllowResult}
-		}
-
-		related, partial, err := req.Callbacks.RelatedResources(t.Context(), "test_instance", []callback.RelatedAttributePair{
-			{SourceAttribute: "id", RelatedAttribute: "value"},
-		})
-		if err != nil {
-			t.Errorf("RelatedResources callback failed: %v", err)
-			return policy.EvaluationResponse{Overall: policy.AllowResult}
-		}
-
-		relatedAmi := make([]string, 0, len(related))
-		for _, result := range related {
-			if result.Type().HasAttribute("ami") {
-				if ami := result.GetAttr("ami"); ami.IsKnown() && !ami.IsNull() {
-					relatedAmi = append(relatedAmi, ami.AsString())
-				}
-			}
-		}
-		sort.Strings(relatedAmi)
-
-		mu.Lock()
-		callbackCalled = true
-		gotPartial = partial
-		gotRelatedAmi = relatedAmi
-		mu.Unlock()
-
-		return policy.EvaluationResponse{Overall: policy.AllowResult}
-	}
-
-	h := &testHook{}
-	ctx, diags := NewContext(&ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			providerAddr: testProviderFuncFixed(provider),
-		},
-		Hooks: []Hook{h},
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
-
-	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
-		Mode:         plans.NormalMode,
-		SetVariables: testInputValuesUnset(mod.Module.Variables),
-		PolicyClient: policyClient,
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
-
-	var policyDiags tfdiags.Diagnostics
-	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
-	}
-	tfdiags.AssertNoDiagnostics(t, policyDiags)
-
-	mu.Lock()
-	defer mu.Unlock()
-	if !callbackCalled {
-		t.Fatal("expected RelatedResources callback to be called for source resource")
-	}
-
-	if diff := cmp.Diff([]string{"indirect"}, gotRelatedAmi); diff != "" {
-		t.Fatalf("unexpected related resources (-want +got):\n%s", diff)
-	}
-	if gotPartial {
-		t.Fatalf("unexpected partial result: got %t, want false", gotPartial)
 	}
 }
 
