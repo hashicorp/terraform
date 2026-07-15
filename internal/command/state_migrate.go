@@ -86,9 +86,16 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// When configuring the source and destination backends,
 	// we prepare options for the migration action.
+	//
+	// If input is disabled, we "force" the migration. This stops the migration logic shared
+	// with the init command failing when it discovers that input is disabled.
+	// In "terraform init" the force field is controlled by the -force-copy flag.
+	// In contrast, "terraform state migrate" assumes that if input is disabled the user wants to force the migration.
 	migrateOpts := &backendMigrateOpts{
 		ViewType: args.ViewType,
+		force:    args.ForceCopy,
 	}
+	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
 	// Load the source backend
 	var source string
