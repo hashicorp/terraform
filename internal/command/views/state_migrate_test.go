@@ -97,3 +97,21 @@ func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 		}
 	})
 }
+
+func TestNewStateMigrate_Spacer_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := NewStateMigrate(arguments.ViewJSON, view)
+
+	smView.Spacer()
+
+	// Assert output
+	output := done(t)
+
+	// We cannot simply assert no output as the JSON view logs the version message on initialization
+	// Splitting on \n when there's only the version log will get an array of the log and an empty string.
+	// If there are more logs there'll be >2 elements.
+	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
+		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
+	}
+}
