@@ -224,7 +224,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PolicyClient:            opts.PolicyClient,
 		Deprecations:            deprecation.NewDeprecations(),
 		contexts:                collections.NewMap[evalContextScope, *BuiltinEvalContext](),
-		ReferenceTree:           refTree,
+		ResourceAttrRefTree:     refTree,
 		providerCache:           make(map[string]providers.Interface),
 		providerFuncCache:       make(map[string]providers.Interface),
 		providerSchemas:         make(map[string]providers.ProviderSchema),

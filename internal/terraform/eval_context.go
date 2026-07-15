@@ -141,9 +141,9 @@ type EvalContext interface {
 	// indicating if that reference forces replacement.
 	EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics)
 
-	// ReferenceTree returns the object that tracks simple traversal
-	// relationships discovered during evaluation.
-	ReferenceTree() *simplerefs.SimpleReferenceTree
+	// ResourceAttrRefTree returns a reference tree that tracks simple traversal
+	// references to resource attributes.
+	ResourceAttrRefTree() *simplerefs.SimpleReferenceTree
 
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
