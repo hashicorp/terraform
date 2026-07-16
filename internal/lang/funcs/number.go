@@ -4,6 +4,7 @@
 package funcs
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 
@@ -37,7 +38,11 @@ var LogFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), err
 		}
 
-		return cty.NumberFloatVal(math.Log(num) / math.Log(base)), nil
+		result := math.Log(num) / math.Log(base)
+		if math.IsNaN(result) {
+			return cty.UnknownVal(cty.Number), fmt.Errorf("log(%v, %v) produces an undefined (NaN) result", num, base)
+		}
+		return cty.NumberFloatVal(result), nil
 	},
 })
 
@@ -66,7 +71,11 @@ var PowFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), err
 		}
 
-		return cty.NumberFloatVal(math.Pow(num, power)), nil
+		result := math.Pow(num, power)
+		if math.IsNaN(result) {
+			return cty.UnknownVal(cty.Number), fmt.Errorf("pow(%v, %v) produces an undefined (NaN) result", num, power)
+		}
+		return cty.NumberFloatVal(result), nil
 	},
 })
 

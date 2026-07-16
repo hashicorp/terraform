@@ -43,6 +43,20 @@ func TestLog(t *testing.T) {
 			cty.NumberFloatVal(-0),
 			false,
 		},
+		// NaN results (e.g. log of a negative number, or base 1 giving 0/0)
+		// must surface a clean error, not leak an internal big.Float panic.
+		{
+			cty.NumberFloatVal(-1),
+			cty.NumberFloatVal(10),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.NumberFloatVal(1),
+			cty.NumberFloatVal(1),
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
@@ -120,6 +134,14 @@ func TestPow(t *testing.T) {
 			cty.NumberFloatVal(2),
 			cty.NumberFloatVal(0),
 			false,
+		},
+		// A NaN result (e.g. a negative base raised to a fractional power)
+		// must surface a clean error, not leak an internal big.Float panic.
+		{
+			cty.NumberFloatVal(-2),
+			cty.NumberFloatVal(0.5),
+			cty.NilVal,
+			true,
 		},
 	}
 
