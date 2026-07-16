@@ -1281,8 +1281,62 @@ func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput)
 	return views.NewView(streams), done
 }
 
-// checkGoldenReference compares the given test output with a known "golden" output log
-// located under the specified fixture path.
+// checkGoldenReferenceHumanOutput compares a test fixture's log output with the given test output.
+// The log is expected to be in a file called "output.log" located under the specified fixture path.
+func checkGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
+	t.Helper()
+
+	// No params
+	checkParameterizedGoldenReferenceHumanOutput(t, output, fixturePathName)
+}
+
+// checkParameterizedGoldenReferenceHumanOutput compares a test fixture's log output with the given test output.
+// The log is expected to be in a file called "output.log" or "output-parameterized.log" located under the specified fixture path.
+//
+// The log can contain format specifiers that will be replaced with the given params, and these are only intended
+// for use when output references values like current platform or Terraform version.
+func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, fixturePathName string, params ...interface{}) {
+	t.Helper()
+
+	var expectedFilePath string
+
+	if len(params) > 0 {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output-parameterized.log")
+	} else {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output.log")
+	}
+
+	// Load the golden reference fixture
+	wantFile, err := os.Open(expectedFilePath)
+	if err != nil {
+		t.Fatalf("failed to open output file: %s", err)
+	}
+	defer wantFile.Close()
+	wantBytes, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("failed to read output file: %s", err)
+	}
+	wantTemplate := string(wantBytes)
+	want := fmt.Sprintf(wantTemplate, params...)
+
+	got := output.Stdout()
+
+	// Whereas JSON output is compared line by line, human output is compared as a single string.
+	// This is because the human output may have newlines inserted in different places depending
+	// on terminal width.
+	got = strings.ReplaceAll(got, "\n", " ")
+
+	want = strings.ReplaceAll(want, "\n", " ")
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong output\n%s\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
+			"Please communicate with HCP Terraform team before resolving", diff)
+	}
+}
+
+// checkGoldenReference compares the given test output with a known "golden" output JSON log
+// with the name "output.jsonlog" located under the specified fixture path.
 //
 // If any of these tests fail, please communicate with HCP Terraform folks before resolving,
 // as changes to UI output may also affect the behavior of HCP Terraform's structured run output.
@@ -1301,78 +1355,13 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	}
 	want := string(wantBytes)
 
-	got := output.Stdout()
-
-	// Split the output and the reference into lines so that we can compare
-	// messages
-	got = strings.TrimSuffix(got, "\n")
-	gotLines := strings.Split(got, "\n")
-
-	want = strings.TrimSuffix(want, "\n")
-	wantLines := strings.Split(want, "\n")
-
-	if len(gotLines) != len(wantLines) {
-		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
-			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on HCP Terraform.\n"+
-			"Please communicate with HCP Terraform team before resolving", len(gotLines), len(wantLines))
-	}
-
-	// Verify that the log starts with a version message
-	type versionMessage struct {
-		Level     string `json:"@level"`
-		Message   string `json:"@message"`
-		Type      string `json:"type"`
-		Terraform string `json:"terraform"`
-		UI        string `json:"ui"`
-	}
-	var gotVersion versionMessage
-	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
-		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
-	}
-	wantVersion := versionMessage{
-		"info",
-		fmt.Sprintf("Terraform %s", version.String()),
-		"version",
-		version.String(),
-		views.JSON_UI_VERSION,
-	}
-	if !cmp.Equal(wantVersion, gotVersion) {
-		t.Errorf("unexpected first message:\n%s", cmp.Diff(wantVersion, gotVersion))
-	}
-
-	// Compare the rest of the lines against the golden reference
-	var gotLineMaps []map[string]interface{}
-	for i, line := range gotLines[1:] {
-		index := i + 1
-		var gotMap map[string]interface{}
-		if err := json.Unmarshal([]byte(line), &gotMap); err != nil {
-			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[index])
-		}
-		if _, ok := gotMap["@timestamp"]; !ok {
-			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
-		}
-		delete(gotMap, "@timestamp")
-		gotLineMaps = append(gotLineMaps, gotMap)
-	}
-	var wantLineMaps []map[string]interface{}
-	for i, line := range wantLines[1:] {
-		index := i + 1
-		var wantMap map[string]interface{}
-		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
-			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
-		}
-		wantLineMaps = append(wantLineMaps, wantMap)
-	}
-	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
-		t.Errorf("wrong output lines\n%s\n"+
-			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with HCP Terraform team before resolving", diff)
-	}
+	checkGoldenReferenceStr(t, output, want)
 }
 
-func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, out string) {
+// checkGoldenReferenceStr allows comparison of a test's output with a string provided by the caller.
+// If you want to compare against a known "golden" output JSON log, use checkGoldenReference instead.
+func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want string) {
 	t.Helper()
-	want := out
 
 	got := output.Stdout()
 
@@ -1402,6 +1391,9 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, out stri
 	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
 		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
 	}
+	// Note: we assemble a 'want' version log here instead of reading it from the golden reference because
+	// the version string is dynamic and will change with each release. Loops below skip the first element,
+	// so golden references are expected to include a version log but it is ALWAYS ignored in the comparison.
 	wantVersion := versionMessage{
 		"info",
 		fmt.Sprintf("Terraform %s", version.String()),
