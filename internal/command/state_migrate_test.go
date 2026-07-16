@@ -844,7 +844,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
