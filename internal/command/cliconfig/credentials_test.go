@@ -435,6 +435,121 @@ func TestCredentialsStoreForget(t *testing.T) {
 	}
 }
 
+func TestReadCredentialHostsInOrder(t *testing.T) {
+	t.Run("missing credentials file", func(t *testing.T) {
+		dir := t.TempDir()
+
+		got, err := ReadCredentialHostsInOrder(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if diff := cmp.Diff([]svchost.Hostname(nil), got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("empty credentials object", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		err := os.WriteFile(filename, []byte(`{"credentials":{}}`), 0600)
+		if err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got, err := ReadCredentialHostsInOrder(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if diff := cmp.Diff([]svchost.Hostname{}, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("one host", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		err := os.WriteFile(filename, []byte(`{"credentials":{"tfe.company.com":{"token":"x"}}}`), 0600)
+		if err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got, err := ReadCredentialHostsInOrder(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		want := []svchost.Hostname{svchost.Hostname("tfe.company.com")}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("multiple hosts preserve order", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		contents := `{
+		  "credentials": {
+		    "third.example.com": {"token":"1"},
+		    "first.example.com": {"token":"2"},
+		    "second.example.com": {"token":"3"}
+		  }
+		}`
+		err := os.WriteFile(filename, []byte(contents), 0600)
+		if err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got, err := ReadCredentialHostsInOrder(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		want := []svchost.Hostname{
+			svchost.Hostname("third.example.com"),
+			svchost.Hostname("first.example.com"),
+			svchost.Hostname("second.example.com"),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("invalid hosts are ignored", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		contents := `{
+		  "credentials": {
+		    "valid.example.com": {"token":"1"},
+		    "not a hostname": {"token":"2"},
+		    "another.valid.example.com": {"token":"3"}
+		  }
+		}`
+		err := os.WriteFile(filename, []byte(contents), 0600)
+		if err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got, err := ReadCredentialHostsInOrder(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		want := []svchost.Hostname{
+			svchost.Hostname("valid.example.com"),
+			svchost.Hostname("another.valid.example.com"),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+}
+
 type mockCredentialsHelperChange struct {
 	Host   svchost.Hostname
 	Action string
