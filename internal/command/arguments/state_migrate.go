@@ -19,6 +19,7 @@ type StateMigrate struct {
 	SourceLockFilePath      string
 	DestinationLockFilePath string
 	Upgrade                 bool
+	ForceCopy               bool
 	InputEnabled            bool
 
 	ViewType ViewType
@@ -34,12 +35,13 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 	}
 
 	var srcLockFilePath, dstLockFilePath string
-	var upgrade, inputEnabled bool
+	var upgrade, inputEnabled, forceCopy bool
 	cmdFlags := defaultFlagSet("state migrate")
 	cmdFlags.StringVar(&srcLockFilePath, "source-provider-lock-file", "", "Path to a provider lock file for the source provider.")
 	cmdFlags.StringVar(&dstLockFilePath, "destination-provider-lock-file", "", "Path to a provider lock file for the destination provider.")
 	cmdFlags.BoolVar(&upgrade, "upgrade", false, "Trigger upgrade of the provider.")
 	cmdFlags.BoolVar(&inputEnabled, "input", true, "Enable input for interactive prompts.")
+	cmdFlags.BoolVar(&forceCopy, "force-copy", false, "Suppress and auto-approve prompts about copying state data. Enables state migrations when interactive prompts are disabled via -input=false.")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -52,6 +54,7 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 
 	migrate.Upgrade = upgrade
 	migrate.InputEnabled = inputEnabled
+	migrate.ForceCopy = forceCopy
 
 	if inputEnabled {
 		// lock file paths are only to be used in automation

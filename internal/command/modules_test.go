@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
@@ -27,7 +26,7 @@ func TestModules_noJsonFlag(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
@@ -77,7 +76,7 @@ func TestModules_noJsonFlag_noModules(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
@@ -107,7 +106,7 @@ func TestModules_fullCmd(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
@@ -134,7 +133,7 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-unreferenced-entries"), dir)
 	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
@@ -160,7 +159,7 @@ func TestModules_uninstalledModules(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-uninstalled-entries"), dir)
 	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
@@ -191,7 +190,7 @@ func TestModules_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{
@@ -219,7 +218,7 @@ func TestModules_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{
@@ -271,7 +270,7 @@ Modules declared by configuration:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{

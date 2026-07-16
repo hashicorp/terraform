@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -260,7 +259,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	provider := testing_command.NewProvider(nil)
 
@@ -446,7 +445,7 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	provider := testing_command.NewProvider(nil)
 
@@ -650,7 +649,7 @@ The first step in the traversal for a list resource must be an attribute
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			provider := queryFixtureProvider()
 			providerSource := newMockProviderSource(t, map[string][]string{

@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -59,7 +57,7 @@ func TestStateRm(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -163,7 +161,7 @@ func TestStateRm_stateStore(t *testing.T) {
 		return providers.WriteStateBytesResponse{}
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
@@ -227,7 +225,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -315,7 +313,7 @@ func TestStateRmNoArgs(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -376,7 +374,7 @@ func TestStateRmNonExist(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -434,7 +432,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	backupPath := statePath + ".backup.test"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -467,7 +465,7 @@ func TestStateRm_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -490,7 +488,7 @@ func TestStateRm_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateRmCommand{
 			StateMeta{
@@ -518,7 +516,7 @@ func TestStateRm_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateRmCommand{
 			StateMeta{
@@ -553,7 +551,7 @@ func TestStateRm_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateRmCommand{
 			StateMeta{
@@ -585,7 +583,7 @@ func TestStateRm_needsInit(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -660,7 +658,7 @@ func TestStateRm_backendState(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
@@ -728,7 +726,7 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{

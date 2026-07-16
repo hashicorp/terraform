@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/command/ui"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -359,7 +360,7 @@ func (c *testCommandCLI) Help() string     { return "" }
 
 func TestWarnOutput(t *testing.T) {
 	mock := cli.NewMockUi()
-	wrapped := &ui{mock}
+	wrapped := &ui.WrappedUi{Ui: mock}
 	wrapped.Warn("WARNING")
 
 	stderr := mock.ErrorWriter.String()

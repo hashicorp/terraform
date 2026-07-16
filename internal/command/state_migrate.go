@@ -40,10 +40,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	args, diags := arguments.ParseStateMigrate(rawArgs)
 
-	stateMigrate := views.NewStateMigrate(args.ViewType, c.View)
+	view := views.NewStateMigrate(args.ViewType, c.View)
 
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -57,7 +57,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// return validation errors early if there are any
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -66,7 +66,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	cfg, mDiags := c.Meta.loadConfig(dir)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if cfg.Module.StateStore != nil {
@@ -80,15 +80,22 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"No state migration instructions found",
 			"No instructions were found in the configuration files. Please ensure that a file with a .tfmigrate.hcl extension is present and contains valid state migration instructions.",
 		))
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// When configuring the source and destination backends,
 	// we prepare options for the migration action.
+	//
+	// If input is disabled, we "force" the migration. This stops the migration logic shared
+	// with the init command failing when it discovers that input is disabled.
+	// In "terraform init" the force field is controlled by the -force-copy flag.
+	// In contrast, "terraform state migrate" assumes that if input is disabled the user wants to force the migration.
 	migrateOpts := &backendMigrateOpts{
 		ViewType: args.ViewType,
+		force:    args.ForceCopy,
 	}
+	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
 	// Load the source backend
 	var source string
@@ -110,17 +117,22 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(args.SourceLockFilePath)
 		diags = diags.Append(srcLockDiags)
 		if srcLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
 		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
-		_, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
+		var output bool
+		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
+		}
+		if output {
+			// Space out provider download output from the migration output below.
+			view.Spacer()
 		}
 
 		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
@@ -152,7 +164,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			})
 			diags = diags.Append(bcDiags)
 			if bcDiags.HasErrors() {
-				stateMigrate.Diagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 			bsf.Backend = &workdir.BackendConfigState{
@@ -162,7 +174,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			err := bsf.Backend.SetConfig(dstConfig, dstB.ConfigSchema())
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-				stateMigrate.Diagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 		}
@@ -174,7 +186,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
 		if dstReqDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -182,7 +194,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(args.DestinationLockFilePath)
 		diags = diags.Append(dstLockDiags)
 		if dstLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -207,11 +219,16 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// returned. This will be added the dependency lock file after a successful migration.
 		upgrade := false // TODO - control this by -upgrade flag
 		var dstProviderDiags tfdiags.Diagnostics
-		_, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, stateMigrate)
+		var output bool
+		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
+		}
+		if output {
+			// Space out provider download output from the migration output below.
+			view.Spacer()
 		}
 
 		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
@@ -228,14 +245,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		})
 		diags = diags.Append(sscDiags)
 		if sscDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
 		version, err := providerreqs.GoVersionFromVersion(v)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -251,14 +268,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
 		err = bsf.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -272,17 +289,18 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// present all errors from above together so user can fix them all at once
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	stateMigrate.Log("Migrating state from %s to %s...", source, destination)
+	view.Log(views.StateMigrationStartMessage, source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("migration failed: %w", err))
-		stateMigrate.Diagnostics(diags)
+		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
+		view.Diagnostics(diags)
+		view.Log(views.StateMigrationFailureMessage, source, destination)
 		return 1
 	}
 
@@ -292,7 +310,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		originalLocks, originalLockDiags := c.lockedDependencies()
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -303,14 +321,16 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// installation process are preserved)
 		newLocks := c.mergeLockedDependencies(destinationLock, originalLocks)
 
-		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, stateMigrate)
+		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, view)
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
+			view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
 			return 1
 		}
 		if output {
-			stateMigrate.Spacer()
+			// Space out lock file creation/update output from the final outputs below.
+			view.Spacer()
 		}
 	}
 
@@ -318,13 +338,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	bsfDiags := c.updateBackendStateFile(bsf)
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
+		view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
 		return 1
 	}
 
-	stateMigrate.Diagnostics(diags) // Log any warnings
+	view.Diagnostics(diags) // Log any warnings
 
-	stateMigrate.Log("Finished migrating state from %s to %s...", source, destination)
+	view.Log(views.StateMigrationCompletedMessage, source, destination)
 
 	return 0
 }

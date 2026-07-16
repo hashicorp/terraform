@@ -3071,31 +3071,32 @@ const (
 
 // determineSafeProviderInstallAction returns a `SafeProviderInstallAction` rune that instructs calling code about what to do following download of the state store provider.
 // The `providerLocations` map parameter is expected to be created by the `FetchPackageBegin` callback, which is called during provider download.
-func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, providerLocations map[addrs.Provider]getproviders.PackageLocation) SafeStateStoreProviderInstallAction {
+func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, providerLocations map[addrs.Provider]getproviders.PackageLocation, previousLocks *depsfile.Locks) SafeStateStoreProviderInstallAction {
 	location, ok := providerLocations[provider]
-	if !ok {
-		// The provider was not processed in the FetchPackageBegin callback.
-		// A provider that wasn't downloaded during this init could be because:
-		// * It was already present from a previous installation.
-		// * If upgrading, no newer version was available that matched version constraints.
-		// * Or, the provider is unmanaged/reattached and so download was skipped.
-		log.Printf("[TRACE] init (getProvidersFromPSSConfig): the state storage provider %s (%q) will not be changed in the dependency lock file after provider installation. Either it was already present and/or there was no available upgrade version that matched version constraints.", provider.Type, provider)
+	if !ok || previousLocks.AllProviders()[provider] != nil {
+		// Either:
+		//  - the provider was already downloaded to the cache (ok == false, due to FetchPackageBegin callback not being invoked)
+		// or:
+		//  - the provider isn't already downloaded to the cache BUT installation is controlled by a lock file.
+		//
+		// In both cases trust is already established; skip requesting approval.
+		log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) was present in a dependency lock file during provider installation, so we consider it safe", provider.Type, provider)
 		return Proceed
 	} else {
-		// The provider was processed in the FetchPackageBegin callback, so either it's being downloaded for the first time, or upgraded.
-		log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", provider.Type, provider)
-
+		// The provider wasn't in the dependency lock file so it's being download for the first time
+		// (we block upgrading the state store provider in this method).
+		log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) will be changed in the dependency lock file during provider installation.", provider.Type, provider)
 		switch location.(type) {
 		case getproviders.PackageLocalArchive, getproviders.PackageLocalDir:
 			// If the provider is downloaded from a local source we assume it's safe.
 			// We don't require presence of the -safe-init flag, or require input from the user to approve its usage.
-			log.Printf("[TRACE] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", provider.Type, provider)
+			log.Printf("[TRACE] init (determineSafeProviderInstallAction): the state storage provider %s (%q) is downloaded from a local source, so we consider it safe.", provider.Type, provider)
 			return Proceed
 		case getproviders.PackageHTTPURL:
-			log.Printf("[DEBUG] init (getProvidersFromConfig): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", provider.Type, provider)
+			log.Printf("[DEBUG] init (determineSafeProviderInstallAction): the state storage provider %s (%q) is downloaded via HTTP, so we consider it potentially unsafe.", provider.Type, provider)
 			return RequireApproval
 		default:
-			panic(fmt.Sprintf("init (getProvidersFromConfig): unexpected provider location type for state storage provider %q: %T", provider, location))
+			panic(fmt.Sprintf("init (determineSafeProviderInstallAction): unexpected provider location type for state storage provider %q: %T", provider, location))
 		}
 	}
 }
@@ -3109,6 +3110,12 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 	switch action {
 	case Proceed:
 		// do nothing; provider is already trusted and there's no need to notify the user.
+
+		if flagLockfilePath != "" {
+			// If the user supplied a lock file path via CLI flag, we should notify them that it was used.
+			view.Output(views.StateStoreProviderAutomationApprovedMessage)
+			view.Spacer()
+		}
 	case RequireApproval:
 		if m.input {
 			// Prompt the user about trusting the provider used for state storage.
@@ -3171,9 +3178,6 @@ func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInst
 				))
 				return diags
 			}
-
-			view.Output(views.StateStoreProviderAutomationApprovedMessage)
-			view.Spacer()
 		}
 	default:
 		// Handle Invalid or unexpected action types

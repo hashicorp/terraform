@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -28,7 +27,7 @@ func TestImport(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -85,7 +84,7 @@ func TestImport_providerConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -178,7 +177,7 @@ func TestImport_remoteState(t *testing.T) {
 	})
 
 	// init our backend
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -198,7 +197,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -289,7 +288,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	})
 
 	// init our backend
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -312,7 +311,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	copy.CopyFile(filepath.Join(testFixturePath("import-provider-invalid"), "main.tf"), filepath.Join(td, "main.tf"))
 
 	p := testProvider()
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -353,7 +352,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -435,7 +434,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -502,7 +501,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -583,7 +582,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -665,7 +664,7 @@ func TestImport_emptyConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -699,7 +698,7 @@ func TestImport_missingResourceConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -733,7 +732,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -784,7 +783,7 @@ func TestImportModuleVarFile(t *testing.T) {
 	})
 
 	// init to install the module
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -801,7 +800,7 @@ func TestImportModuleVarFile(t *testing.T) {
 	}
 
 	// import
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -857,7 +856,7 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	})
 
 	// init to install the module
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -874,7 +873,7 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	}
 
 	// import
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -901,7 +900,7 @@ func TestImport_dataResource(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -935,7 +934,7 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
@@ -969,7 +968,7 @@ func TestImport_targetIsModule(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{

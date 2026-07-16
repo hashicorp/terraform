@@ -508,7 +508,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			// 1. Capture auth result if this provider is used for state storage.
 			if rootModEarly.StateStore != nil && provider.Equals(rootModEarly.StateStore.ProviderAddr) {
-				log.Printf("[TRACE] getProvidersFromConfig: state storage provider %s (%q) auth result: %q", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr.ForDisplay(), stateStoreProviderAuthResult.String())
+				log.Printf("[TRACE] getProvidersFromPSSConfig: state storage provider %s (%q) auth result: %q", rootModEarly.StateStore.ProviderAddr.Type, rootModEarly.StateStore.ProviderAddr.ForDisplay(), stateStoreProviderAuthResult.String())
 				stateStoreProviderAuthResult = authResult
 			}
 
@@ -546,7 +546,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	}
 
 	// Return advice to the calling code about what to do regarding safe state store provider installation
-	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations)
+	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
 
 	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
 }
