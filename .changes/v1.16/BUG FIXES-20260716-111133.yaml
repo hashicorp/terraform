@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`log` and `pow` now return a clean error instead of leaking an internal panic when the result is NaN (e.g. `log(-1, 10)`, `pow(-2, 0.5)`)'
+time: 2026-07-16T08:11:33.000000Z
+custom:
+  Issue: "38883"
