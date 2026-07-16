@@ -25,12 +25,12 @@ import (
 func TestConfigureDiscoveryRetry(t *testing.T) {
 	t.Run("default retry", func(t *testing.T) {
 		if discoveryRetry != defaultRetry {
-			t.Fatalf("expected retry %q, got %q", defaultRetry, discoveryRetry)
+			t.Fatalf("expected retry %d, got %d", defaultRetry, discoveryRetry)
 		}
 
 		rc := newRegistryClient(nil, nil)
 		if rc.httpClient.RetryMax != defaultRetry {
-			t.Fatalf("expected client retry %q, got %q",
+			t.Fatalf("expected client retry %d, got %d",
 				defaultRetry, rc.httpClient.RetryMax)
 		}
 	})
@@ -45,13 +45,13 @@ func TestConfigureDiscoveryRetry(t *testing.T) {
 		configureDiscoveryRetry()
 		expected := 2
 		if discoveryRetry != expected {
-			t.Fatalf("expected retry %q, got %q",
+			t.Fatalf("expected retry %d, got %d",
 				expected, discoveryRetry)
 		}
 
 		rc := newRegistryClient(nil, nil)
 		if rc.httpClient.RetryMax != expected {
-			t.Fatalf("expected client retry %q, got %q",
+			t.Fatalf("expected client retry %d, got %d",
 				expected, rc.httpClient.RetryMax)
 		}
 	})

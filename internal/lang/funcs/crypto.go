@@ -175,7 +175,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 			default:
 				errStr = fmt.Sprintf("invalid private key: %s", e)
 			}
-			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, errStr)
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "%s", errStr)
 		}
 		privateKey, ok := rawKey.(*rsa.PrivateKey)
 		if !ok {

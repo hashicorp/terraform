@@ -217,7 +217,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
 		target, diags := addrs.ParseTargetStr(rawTargetAddr)
 		if diags.HasErrors() {
-			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
+			return nil, fmt.Errorf("plan contains invalid target address %q: %s", rawTargetAddr, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
 	}

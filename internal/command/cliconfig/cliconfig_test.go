@@ -222,7 +222,7 @@ func TestMakeEnvMap(t *testing.T) {
 func TestLoadConfig_hosts(t *testing.T) {
 	got, diags := loadConfigFile(filepath.Join(fixtureDir, "hosts"))
 	if len(diags) != 0 {
-		t.Fatalf("%s", diags.Err())
+		t.Fatal(diags.Err())
 	}
 
 	want := &Config{

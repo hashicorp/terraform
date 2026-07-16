@@ -241,7 +241,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new TFC workspace requested by the user (%s)", name)
 			return m.SetWorkspace(name)
 		} else {
-			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+			return fmt.Errorf("%s", strings.TrimSpace(errBackendNoExistingWorkspaces))
 		}
 	}
 

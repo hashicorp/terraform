@@ -233,7 +233,7 @@ func TestSaveLocksToFile(t *testing.T) {
 
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	if mode := fileInfo.Mode(); mode&0111 != 0 {
 		t.Fatalf("Expected lock file to be non-executable: %o", mode)
@@ -241,7 +241,7 @@ func TestSaveLocksToFile(t *testing.T) {
 
 	gotContentBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	gotContent := string(gotContentBytes)
 	wantContent := `# This file is maintained automatically by "terraform init".

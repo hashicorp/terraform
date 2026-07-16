@@ -6958,12 +6958,12 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 
 			beforeDynamicValue, err := plans.NewDynamicValue(beforeVal, ty)
 			if err != nil {
-				t.Fatalf("failed to create dynamic before value: " + err.Error())
+				t.Fatalf("failed to create dynamic before value: %s", err.Error())
 			}
 
 			afterDynamicValue, err := plans.NewDynamicValue(afterVal, ty)
 			if err != nil {
-				t.Fatalf("failed to create dynamic after value: " + err.Error())
+				t.Fatalf("failed to create dynamic after value: %s", err.Error())
 			}
 
 			src := &plans.ResourceInstanceChangeSrc{
@@ -7004,7 +7004,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 			jsonchanges, err := jsonplan.MarshalResourceChanges([]*plans.ResourceInstanceChangeSrc{src}, tfschemas)
 			if err != nil {
-				t.Errorf("failed to marshal resource changes: " + err.Error())
+				t.Errorf("failed to marshal resource changes: %s", err.Error())
 				return
 			}
 

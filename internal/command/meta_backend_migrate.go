@@ -569,7 +569,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if sourceTFC && !destinationTFC {
 		// From Terraform Cloud to another backend. This is not yet implemented, and
 		// we recommend people to use the TFC API.
-		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
+		return fmt.Errorf("%s", strings.TrimSpace(errTFCMigrateNotYetImplemented))
 	}
 
 	// Everything below, by the above two conditionals, now assumes that the

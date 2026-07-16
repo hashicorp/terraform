@@ -177,9 +177,7 @@ func (b *Cloud) processStageOverrides(context *IntegrationContext, output Integr
 	runUrl := fmt.Sprintf(taskStageHeader, b.hostname, b.organization, context.Op.Workspace, context.Run.ID)
 	err := b.confirm(context.StopContext, context.Op, opts, context.Run, "override")
 	if err != nil && err != errRunOverridden {
-		return false, fmt.Errorf(
-			fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
-		)
+		return false, fmt.Errorf("Failed to override: %s\n%s\n", err.Error(), runUrl)
 	}
 
 	if err != errRunOverridden {
