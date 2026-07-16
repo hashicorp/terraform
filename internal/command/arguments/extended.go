@@ -233,13 +233,19 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
-	// TODO:@austinvalle: this error msg should probably be more specific w/ each flag combination
-	// TODO:@austinvalle: error in ParseApplyDestroy?
 	if o.Light && o.PlanMode != plans.NormalMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Incompatible plan mode options",
-			fmt.Sprintf("The -light plan flag option can only be used in normal plan mode. Current mode: %s", o.PlanMode),
+			fmt.Sprintf("The -light option can only be used in normal planning mode, but the current mode is %s.", o.PlanMode),
+		))
+	}
+
+	if o.Light && !o.Refresh {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible refresh options",
+			"The -light and -refresh=false options are mutually-exclusive, because -light only affects whether Terraform refreshes.",
 		))
 	}
 
@@ -270,7 +276,6 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
-		// TODO:@austinvalle: pick a better name
 		f.BoolVar(&operation.Light, "light", false, "light")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")

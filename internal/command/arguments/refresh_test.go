@@ -69,6 +69,16 @@ func TestParseRefresh_invalid(t *testing.T) {
 	}
 }
 
+func TestParseRefresh_light(t *testing.T) {
+	_, diags := ParseRefresh([]string{"-light"})
+	if len(diags) == 0 {
+		t.Fatal("expected diags but got none")
+	}
+	if got, want := diags.Err().Error(), "Invalid mode option"; !strings.Contains(got, want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
+	}
+}
+
 func TestParseRefresh_tooManyArguments(t *testing.T) {
 	got, diags := ParseRefresh([]string{"saved.tfplan"})
 	if len(diags) == 0 {

@@ -215,7 +215,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
-	stateUpgraded := false
+	schemaVersionUpgraded := false
 	if importing {
 		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
@@ -262,7 +262,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	} else {
 		var readDiags tfdiags.Diagnostics
-		instanceRefreshState, stateUpgraded, readDiags = n.readResourceInstanceState(ctx, addr)
+		instanceRefreshState, schemaVersionUpgraded, readDiags = n.readResourceInstanceState(ctx, addr)
 		diags = diags.Append(readDiags)
 		if diags.HasErrors() {
 			// Pre-Diff error hook
@@ -322,9 +322,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
-	// The practitioner indicated that they don't want to refresh the instance if the configuration provided doesn't produce a change
-	// on it's own, which we will confirm by running an initial plan. If a change is detected with this plan, we will refresh then plan again.
-	if n.planLight && !stateUpgraded {
+	// The practitioner indicated that they don't want to refresh the instance if the configuration
+	// provided doesn't produce a change on it's own, which we will confirm by running an initial plan
+	// prior to refreshing the state. If that plan is a no-op we skip refreshing the state entirely by returning;
+	// otherwise we discard the plan, refresh, and plan again below.
+	if n.planLight && !schemaVersionUpgraded && !importing {
 		// If we end up running a follow-up refresh/plan, we don't want to duplicate any warning diagnostics
 		planLightDiags := diags
 
@@ -338,6 +340,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return planLightDiags
 		}
 
+		// TODO:@austinvalle: This will eval check rules + call pre/post diff hooks twice, need to fix that.
+		// I think the best bet is to clear the status of the check
+
+		// TODO: skip the precondition check if we already ran it because it can't reference state
 		change, instancePlanState, planDeferred, planDiags := n.plan(
 			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData,
 		)
@@ -367,12 +373,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if change.Action == plans.NoOp {
-			// TODO:@austinvalle: better log msg
-			log.Printf("[DEBUG] Plan light mode: Skipping refresh as config-only plan indicates no changes for %s", addr)
+			log.Printf("[DEBUG] Plan light mode: skipping refresh as the initial plan is a no-op for %s", addr)
 
-			// TODO:@austinvalle: Does this need to happen during plan light? I think so but is it okay to do this after planning?
-			// See: https://github.com/hashicorp/terraform/pull/35261
-			if !importing && updatedCBD {
+			if updatedCBD {
 				// CreateBeforeDestroy must be set correctly in the state which is used
 				// to create the apply graph, so if we did not refresh the state make
 				// sure we still update any changes to CreateBeforeDestroy.
@@ -389,15 +392,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// Since the plan was a no-op and the practitioner indicated they don't want to refresh,
 			// we can go through the process of reporting the relevant changes, deferrals, state, etc.
 			return planLightDiags.Append(n.reportPlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
-		} else {
-			// TODO:@austinvalle: is this log msg too noisy?
-			log.Printf("[DEBUG] Plan light mode: Forcing refresh as config-only plan indicates %s change %s", change.Action, addr)
 		}
+
+		log.Printf("[DEBUG] Plan light mode: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
 	}
 
-	if n.planLight && stateUpgraded {
-		// TODO:@austinvalle: is this log msg too noisy?
-		log.Printf("[DEBUG] Plan light mode: Forcing refresh as the state has been upgraded for %s", addr)
+	if n.planLight && schemaVersionUpgraded {
+		log.Printf("[DEBUG] Plan light mode: refreshing resource as the schema version has been updated for %s", addr)
 	}
 
 	// Refresh, maybe

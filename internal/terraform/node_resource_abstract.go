@@ -564,7 +564,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, false, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, stateUpgraded, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
+	src, schemaVersionUpgraded, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -584,7 +584,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		diags = diags.Append(err)
 	}
 
-	return obj, stateUpgraded, diags
+	return obj, schemaVersionUpgraded, diags
 }
 
 // readResourceInstanceStateDeposed reads the deposed object for a specific

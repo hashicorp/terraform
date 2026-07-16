@@ -73,6 +73,14 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 			"Actions cannot be specified during refresh operations."))
 	}
 
+	if refresh.Operation.Light {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid mode option",
+			"The -light option is not valid for \"terraform refresh\".",
+		))
+	}
+
 	// JSON view currently does not support input, so we disable it here
 	if json {
 		refresh.InputEnabled = false

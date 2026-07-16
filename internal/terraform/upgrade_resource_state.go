@@ -63,7 +63,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	}
 
 	// This indicates to the caller that the call to UpgradeResourceState was caused by a schema version upgrade
-	schemaStateUpgrade := false
+	schemaVersionUpgraded := false
 
 	// If we get down here then we need to upgrade the state, with the
 	// provider's help.
@@ -74,11 +74,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	if src.SchemaVersion != uint64(currentSchema.Version) {
 		log.Printf("[TRACE] upgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentSchema.Version, providerType)
 
-		// TODO:@austinvalle: if upgrade is called to "fix up" the state, should we still call refresh?
-		// The old SDK had this behavior but I'm not sure how prevelant this is + whether refreshing is expected
-		//
-		// TODO:@austinvalle: if we do want to detect if a fixup caused a change, we could decode the value prior + compare to after to determine how to set "schemaStateUpgrade"
-		schemaStateUpgrade = true
+		schemaVersionUpgraded = true
 	} else {
 		log.Printf("[TRACE] upgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentSchema.Version, providerType)
 	}
@@ -158,7 +154,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			fmt.Sprintf("Failed to encode state for %s after resource schema upgrade: %s.", addr, tfdiags.FormatError(err)),
 		))
 	}
-	return new, schemaStateUpgrade, diags
+	return new, schemaVersionUpgraded, diags
 }
 
 func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {

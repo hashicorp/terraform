@@ -654,7 +654,6 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 		NodeAbstractResourceInstance: a,
 		skipRefresh:                  n.skipRefresh,
 		skipPlanChanges:              n.skipPlanChanges,
-		// TODO:@austinvalle: should this get plan light?
 	}
 }
 

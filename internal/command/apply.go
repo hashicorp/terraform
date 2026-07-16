@@ -286,6 +286,7 @@ func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view vi
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
 	opReq.ActionTargets = args.ActionTargets
 	opReq.PolicyPaths = policyPaths
+	opReq.PlanLight = args.Light
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {

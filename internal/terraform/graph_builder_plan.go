@@ -351,7 +351,6 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:              b.skipPlanChanges,
 			forgetResources:              b.forgetResources,
 			forgetModules:                b.forgetModules,
-			// TODO:@austinvalle: should this also get plan light?
 		}
 	}
 
@@ -365,7 +364,6 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
-			// TODO:@austinvalle: should this also get plan light?
 		}
 	}
 }

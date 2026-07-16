@@ -96,6 +96,52 @@ func TestParsePlan_invalid(t *testing.T) {
 	}
 }
 
+func TestParsePlan_light(t *testing.T) {
+	testCases := map[string]struct {
+		args    []string
+		wantErr string
+	}{
+		"light": {
+			args:    []string{"-light"},
+			wantErr: "",
+		},
+		"light with destroy": {
+			args:    []string{"-light", "-destroy"},
+			wantErr: "Incompatible plan mode options",
+		},
+		"light with refresh-only": {
+			args:    []string{"-light", "-refresh-only"},
+			wantErr: "Incompatible plan mode options",
+		},
+		"light with refresh=false": {
+			args:    []string{"-light", "-refresh=false"},
+			wantErr: "Incompatible refresh options",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParsePlan(tc.args)
+			switch {
+			case tc.wantErr == "":
+				if diags.HasErrors() {
+					t.Fatalf("unexpected diags: %v", diags)
+				}
+				if !got.Operation.Light {
+					t.Fatal("expected Light to be set")
+				}
+			default:
+				if !diags.HasErrors() {
+					t.Fatal("expected diags but got none")
+				}
+				if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
+					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
+				}
+			}
+		})
+	}
+}
+
 func TestParsePlan_tooManyArguments(t *testing.T) {
 	got, diags := ParsePlan([]string{"saved.tfplan"})
 	if len(diags) == 0 {

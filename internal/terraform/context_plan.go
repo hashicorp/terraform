@@ -297,7 +297,28 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		}
 	}
 
-	// TODO:@austinvalle: add more validation here for -light?
+	if opts.PlanLight {
+		if opts.Mode != plans.NormalMode {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				fmt.Sprintf("The -light planning option is only allowed in normal planning mode, got %s. This is a bug in Terraform.", opts.Mode),
+			))
+			return nil, nil, diags
+		}
+		if opts.SkipRefresh {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The -light planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
 
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
@@ -1060,7 +1081,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:             opts.SkipRefresh,
 			skipPlanChanges:         true, // this activates "refresh only" mode.
 
-			planLight:                 false, // TODO:@austinvalle: this should always be false + validated?
+			planLight:                 false,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1078,7 +1099,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			skipRefresh:               opts.SkipRefresh,
-			planLight:                 false, // TODO:@austinvalle: this should always be false + validated?
+			planLight:                 false,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
