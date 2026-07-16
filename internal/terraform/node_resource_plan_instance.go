@@ -343,7 +343,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// TODO:@austinvalle: This will eval check rules + call pre/post diff hooks twice, need to fix that.
 		// I think the best bet is to clear the status of the check
 
-		// TODO: skip the precondition check if we already ran it because it can't reference state
+		// TODO:@austinvalle: skip the precondition check if we already ran it because it can't reference state
 		change, instancePlanState, planDeferred, planDiags := n.plan(
 			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData,
 		)

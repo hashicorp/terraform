@@ -76,7 +76,7 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
-	// TODO:@austinvalle: document
+	// TODO:@austinvalle: docs
 	planLight bool
 
 	ConcreteProvider                ConcreteProviderNodeFunc
