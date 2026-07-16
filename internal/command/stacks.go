@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/pluginshared"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksplugin1"
@@ -147,6 +148,58 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	return stacks1.Execute(args, stdout, stderr)
 }
 
+func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	displayHostname := strings.TrimSpace(os.Getenv("TF_STACKS_HOSTNAME"))
+	if displayHostname != "" {
+		return displayHostname, diags
+	}
+
+	displayHostname = strings.TrimSpace(os.Getenv("TF_CLOUD_HOSTNAME"))
+	if displayHostname != "" {
+		return displayHostname, diags
+	}
+
+	hosts, err := cliconfig.ReadCredentialHostsInOrder(c.CLIConfigDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Could not inspect credentials file for stacks hostname, using default hostname",
+			err.Error(),
+		))
+		log.Printf("[TRACE] stacksplugin hostname inference failed, falling back to %q", defaultHostname)
+		return defaultHostname, diags
+	}
+
+	if len(hosts) == 1 {
+		displayHostname = hosts[0].ForDisplay()
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"No hostname environment variable set, using hostname from credentials file",
+			fmt.Sprintf("No hostname environment variable set. Using %q from your credentials file. Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.", displayHostname),
+		))
+		return displayHostname, diags
+	}
+
+	if len(hosts) > 1 {
+		hostnames := make([]string, 0, len(hosts))
+		for _, host := range hosts {
+			hostnames = append(hostnames, fmt.Sprintf("%q", host.ForDisplay()))
+		}
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Multiple hostnames found in credentials file",
+			fmt.Sprintf("Multiple hostnames found in credentials file: %s. Cannot determine which to use. Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to specify the intended host.", strings.Join(hostnames, ", ")),
+		))
+		return "", diags
+	}
+
+	log.Printf("[TRACE] stacksplugin hostname not set, falling back to %q", defaultHostname)
+	return defaultHostname, diags
+}
+
 // discoverAndConfigure is an implementation detail of initPlugin. It fills in the
 // pluginService and pluginConfig fields on a StacksCommand struct.
 func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
@@ -184,10 +237,10 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags
 	}
 
-	displayHostname := os.Getenv("TF_STACKS_HOSTNAME")
-	if strings.TrimSpace(displayHostname) == "" {
-		log.Printf("[TRACE] stacksplugin hostname not set, falling back to %q", defaultHostname)
-		displayHostname = defaultHostname
+	displayHostname, hostnameDiags := c.resolveDisplayHostname()
+	diags = diags.Append(hostnameDiags)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	hostname, err := svchost.ForComparison(displayHostname)
@@ -210,7 +263,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Hostname discovery failed",
-			err.Error(),
+			fmt.Sprintf("%s\n\nSet TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to specify the intended host.", err.Error()),
 		))
 	}
 
@@ -223,7 +276,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		token, err = cloud.CliConfigToken(hostname, cb.Services())
 		if err != nil {
 			// some commands like stacks init and validate could be run without a token so allow it without errors
-			diags.Append(tfdiags.Sourceless(
+			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Could not read token from credentials file, proceeding without a token",
 				err.Error(),

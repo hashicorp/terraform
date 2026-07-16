@@ -4,7 +4,10 @@
 package command
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"google.golang.org/grpc/metadata"
@@ -37,5 +40,98 @@ func TestStacksPluginConfig_ToMetadata(t *testing.T) {
 	result := inputStruct.ToMetadata()
 	if !reflect.DeepEqual(expected, result) {
 		t.Fatalf("Expected: %#v\nGot: %#v\n", expected, result)
+	}
+}
+
+func TestStacks_resolveDisplayHostname(t *testing.T) {
+	tests := []struct {
+		name             string
+		tfStacksHostname string
+		tfCloudHostname  string
+		credentialsJSON  string
+		wantHostname     string
+		wantErrContains  string
+		wantWarnContains string
+	}{
+		{
+			name:             "uses TF_STACKS_HOSTNAME first",
+			tfStacksHostname: "stacks.example.com",
+			tfCloudHostname:  "cloud.example.com",
+			credentialsJSON:  `{"credentials":{"cred.example.com":{"token":"x"}}}`,
+			wantHostname:     "stacks.example.com",
+		},
+		{
+			name:            "uses TF_CLOUD_HOSTNAME when stacks hostname missing",
+			tfCloudHostname: "cloud.example.com",
+			credentialsJSON: `{"credentials":{"cred.example.com":{"token":"x"}}}`,
+			wantHostname:    "cloud.example.com",
+		},
+		{
+			name:             "uses single credentials hostname with warning",
+			credentialsJSON:  `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
+			wantHostname:     "tfe.company.com",
+			wantWarnContains: "Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.",
+		},
+		{
+			name:            "multiple credentials hostnames returns error",
+			credentialsJSON: `{"credentials":{"app.terraform.io":{"token":"x"},"tfe.company.com":{"token":"y"}}}`,
+			wantErrContains: "Multiple hostnames found in credentials file",
+		},
+		{
+			name:         "missing credentials file falls back to default",
+			wantHostname: defaultHostname,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if test.credentialsJSON != "" {
+				filename := filepath.Join(dir, "credentials.tfrc.json")
+				err := os.WriteFile(filename, []byte(test.credentialsJSON), 0600)
+				if err != nil {
+					t.Fatalf("failed to write credentials file: %s", err)
+				}
+			}
+
+			t.Setenv("TF_STACKS_HOSTNAME", test.tfStacksHostname)
+			t.Setenv("TF_CLOUD_HOSTNAME", test.tfCloudHostname)
+
+			c := &StacksCommand{Meta: Meta{CLIConfigDir: dir}}
+			hostname, diags := c.resolveDisplayHostname()
+
+			if test.wantErrContains != "" {
+				if !diags.HasErrors() {
+					t.Fatalf("expected error diagnostics")
+				}
+				if got := diags.Err().Error(); !strings.Contains(got, test.wantErrContains) {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, test.wantErrContains)
+				}
+				return
+			}
+
+			if diags.HasErrors() {
+				t.Fatalf("unexpected error diagnostics: %s", diags.Err().Error())
+			}
+
+			if hostname != test.wantHostname {
+				t.Fatalf("wrong hostname\ngot:  %q\nwant: %q", hostname, test.wantHostname)
+			}
+
+			if test.wantWarnContains == "" {
+				if diags.HasWarnings() {
+					t.Fatalf("unexpected warnings: %s", diags.ErrWithWarnings().Error())
+				}
+				return
+			}
+
+			if !diags.HasWarnings() {
+				t.Fatalf("expected warning diagnostics")
+			}
+			if got := diags.ErrWithWarnings().Error(); !strings.Contains(got, test.wantWarnContains) {
+				t.Fatalf("wrong warning\ngot:  %s\nwant: %s", got, test.wantWarnContains)
+			}
+		})
 	}
 }
