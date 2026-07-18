@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/moduleref"
 )
 
 func TestModules_noJsonFlag(t *testing.T) {
@@ -150,7 +149,7 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 		t.Fatalf("Got a non-zero exit code: %d\n", code)
 	}
 	output := done(t).All()
-	compareJSONOutput(t, output, expectedOutputJSON)
+	compareJSONOutput(t, output, expectedOutputJSON_unreferencedEntries)
 }
 
 func TestModules_uninstalledModules(t *testing.T) {
@@ -312,8 +311,21 @@ Modules declared by configuration:
 	})
 }
 
+// jsonModuleRecord and jsonManifest mirror the shape produced by
+// flattenManifest, which is not the same shape as moduleref.Manifest.
+type jsonModuleRecord struct {
+	Key     string `json:"key"`
+	Source  string `json:"source"`
+	Version string `json:"version"`
+}
+
+type jsonManifest struct {
+	FormatVersion string             `json:"format_version"`
+	Modules       []jsonModuleRecord `json:"modules"`
+}
+
 func compareJSONOutput(t *testing.T, got string, want string) {
-	var expected, actual moduleref.Manifest
+	var expected, actual jsonManifest
 
 	if err := json.Unmarshal([]byte(got), &actual); err != nil {
 		t.Fatalf("Failed to unmarshal actual JSON: %v", err)
@@ -323,11 +335,11 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 		t.Fatalf("Failed to unmarshal expected JSON: %v", err)
 	}
 
-	sort.Slice(actual.Records, func(i, j int) bool {
-		return actual.Records[i].Key < actual.Records[j].Key
+	sort.Slice(actual.Modules, func(i, j int) bool {
+		return actual.Modules[i].Key < actual.Modules[j].Key
 	})
-	sort.Slice(expected.Records, func(i, j int) bool {
-		return expected.Records[i].Key < expected.Records[j].Key
+	sort.Slice(expected.Modules, func(i, j int) bool {
+		return expected.Modules[i].Key < expected.Modules[j].Key
 	})
 
 	if !reflect.DeepEqual(expected, actual) {
@@ -335,4 +347,6 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	}
 }
 
-var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
+var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test.test2","source":"./test2","version":""},{"key":"test.test2.test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
+
+var expectedOutputJSON_unreferencedEntries = `{"format_version":"1.0","modules":[{"key":"child","source":"./child","version":""},{"key":"count_child","source":"./child","version":""}]}`

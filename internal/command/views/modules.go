@@ -100,31 +100,41 @@ func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
 // a flattened format with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
 func flattenManifest(m moduleref.Manifest) map[string]interface{} {
-	var flatten func(records []*moduleref.Record)
+	var flatten func(records []*moduleref.Record, keyPrefix string)
 	var recordList []map[string]string
-	flatten = func(records []*moduleref.Record) {
+	flatten = func(records []*moduleref.Record, keyPrefix string) {
 		for _, record := range records {
+			// Key is only unique to a record's siblings, so it must be
+			// qualified with the keys of its ancestors to form a key that
+			// uniquely identifies the module's position in the tree, and
+			// disambiguates it from other modules sharing the same local
+			// name at a different nesting level.
+			key := record.Key
+			if keyPrefix != "" {
+				key = keyPrefix + "." + key
+			}
+
 			if record.Version != nil {
 				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
+					"key":     key,
 					"source":  record.Source.String(),
 					"version": record.Version.String(),
 				})
 			} else {
 				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
+					"key":     key,
 					"source":  record.Source.String(),
 					"version": "",
 				})
 			}
 
 			if len(record.Children) > 0 {
-				flatten(record.Children)
+				flatten(record.Children, key)
 			}
 		}
 	}
 
-	flatten(m.Records)
+	flatten(m.Records, "")
 	ret := map[string]interface{}{
 		"format_version": m.FormatVersion,
 		"modules":        recordList,
