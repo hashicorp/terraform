@@ -24,6 +24,7 @@ type Providers struct {
 
 type Provider struct {
 	Provider                 *Schema                                    `json:"provider,omitempty"`
+	ProviderMeta             *Schema                                    `json:"provider_meta,omitempty"`
 	ResourceSchemas          map[string]*Schema                         `json:"resource_schemas,omitempty"`
 	DataSourceSchemas        map[string]*Schema                         `json:"data_source_schemas,omitempty"`
 	EphemeralResourceSchemas map[string]*Schema                         `json:"ephemeral_resource_schemas,omitempty"`
@@ -64,6 +65,7 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 func marshalProvider(tps providers.ProviderSchema) *Provider {
 	p := &Provider{
 		Provider:                 marshalSchema(tps.Provider),
+		ProviderMeta:             marshalProviderMetaSchema(tps.ProviderMeta),
 		ResourceSchemas:          marshalSchemas(tps.ResourceTypes),
 		DataSourceSchemas:        marshalSchemas(tps.DataSources),
 		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),

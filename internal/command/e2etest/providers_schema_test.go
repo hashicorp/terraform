@@ -75,6 +75,12 @@ func TestProvidersSchema(t *testing.T) {
                     "description_kind": "plain"
                 }
             },
+            "provider_meta": {
+                "version": 0,
+                "block": {
+                    "description_kind": "plain"
+                }
+            },
             "resource_schemas": {
                 "simple_resource": {
                     "version": 0,
@@ -167,6 +173,12 @@ func TestProvidersSchema(t *testing.T) {
                 "version": 0,
                 "block": {
                     "description": "This is terraform-provider-simple v6",
+                    "description_kind": "plain"
+                }
+            },
+            "provider_meta": {
+                "version": 0,
+                "block": {
                     "description_kind": "plain"
                 }
             },

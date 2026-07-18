@@ -26,6 +26,17 @@ func marshalSchema(schema providers.Schema) *Schema {
 	return &ret
 }
 
+// marshalProviderMetaSchema is like marshalSchema, but returns nil when the
+// provider defines no provider_meta schema so that the "provider_meta" key
+// is omitted entirely from the JSON output, rather than rendered as an
+// empty schema.
+func marshalProviderMetaSchema(schema providers.Schema) *Schema {
+	if schema.Body == nil {
+		return nil
+	}
+	return marshalSchema(schema)
+}
+
 func marshalSchemas(schemas map[string]providers.Schema) map[string]*Schema {
 	if schemas == nil {
 		return map[string]*Schema{}
