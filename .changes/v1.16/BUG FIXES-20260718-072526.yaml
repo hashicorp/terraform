@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'modules: Fix `terraform modules -json` reporting a flat key for nested modules, making it impossible to tell which parent directory the module resolves to'
+time: 2026-07-18T07:25:26.000000+00:00
+custom:
+    Issue: "38890"
