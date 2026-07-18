@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'command/jsonprovider: `terraform providers schema -json` now exposes the `provider_meta` schema as a sibling of `provider`'
+time: 2026-07-18T21:58:51.000000+05:30
+custom:
+    Issue: "38891"
