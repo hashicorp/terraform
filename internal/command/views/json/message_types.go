@@ -65,3 +65,9 @@ const (
 	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
 	MessagePolicyEvaluationResult MessageType = "policy_result"
 )
+
+// Init related message types
+const (
+	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
+	InstalledProviderVersionInfo MessageType = "installed_provider_version_info"
+)

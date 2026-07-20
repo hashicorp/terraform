@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -206,9 +207,10 @@ func (v *InitJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, versio
 	template := "Installed provider version: %s v%s (%s)"
 	message := fmt.Sprintf(template, params...)
 
-	// This was previously logged via LogInitMessage, which produces 'plain' JSON logs with "type": "log"
-	// So we match that here to avoid breaking changes:
-	v.view.Log(message)
+	v.view.log.Info(
+		message,
+		"type", viewsjson.InstalledProviderVersionInfo,
+	)
 }
 
 func (v *InitJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
@@ -216,9 +218,10 @@ func (v *InitJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provide
 	template := "Installed provider version: %s v%s (%skey_id: %s)" // lack of whitespace is in JSON output prior to refactoring.
 	message := fmt.Sprintf(template, params...)
 
-	// This was previously logged via LogInitMessage, which produces 'plain' JSON logs with "type": "log"
-	// So we match that here to avoid breaking changes:
-	v.view.Log(message)
+	v.view.log.Info(
+		message,
+		"type", viewsjson.InstalledProviderVersionInfo,
+	)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {

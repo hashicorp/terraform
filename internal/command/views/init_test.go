@@ -652,7 +652,7 @@ func TestNewInit_LogProviderVersionSuccess_json(t *testing.T) {
 		`"@level":"info"`,
 		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by HashiCorp)"`,
 		`"@module":"terraform.ui"`,
-		`"type":"log"`,
+		`"type":"installed_provider_version_info"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {
@@ -682,7 +682,7 @@ func TestNewInit_LogProviderVersionSuccessWithKeyID_json(t *testing.T) {
 		`"@level":"info"`,
 		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
 		`"@module":"terraform.ui"`,
-		`"type":"log"`,
+		`"type":"installed_provider_version_info"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {
