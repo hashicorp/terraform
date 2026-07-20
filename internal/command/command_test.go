@@ -1424,8 +1424,9 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 		index := i + 1
 		var wantMap map[string]interface{}
 		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
-			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, wantLines[index])
 		}
+		delete(wantMap, "@timestamp") // If the test fixture includes timestamps ignore and don't compare them, since they will always differ
 		wantLineMaps = append(wantLineMaps, wantMap)
 	}
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
