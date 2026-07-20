@@ -324,8 +324,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// The practitioner indicated that they don't want to refresh the instance if the configuration
 	// provided doesn't produce a change on it's own, which we will confirm by running an initial plan
-	// prior to refreshing the state. If that plan is a no-op we skip refreshing the state entirely by returning;
-	// otherwise we discard the plan, refresh, and plan again below.
+	// prior to refreshing the state. If that plan is a no-op we skip refreshing the state before the normal plan runs.
+	//
+	// In light mode we will always run two plans, where the first plan will suppress any side effects (hooks/preconditions/etc).
+	// This is done because hooks in pre/post plan receive the prior state and we should not call those hooks multiple times with
+	// different state values.
 	if n.planLight && !schemaVersionUpgraded && !importing {
 		// If we end up running a follow-up refresh/plan, we don't want to duplicate any warning diagnostics
 		planLightDiags := diags
@@ -340,8 +343,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return planLightDiags
 		}
 
-		// Run an initial plan to determine if we need to refresh, all side effects (hooks, precondition evaluation, etc.)
-		// are suppressed as we will run a normal plan below.
 		change, _, planDeferred, planDiags := n.plan(
 			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData, true,
 		)
