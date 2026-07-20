@@ -21,8 +21,8 @@ type ProviderInstaller interface {
 	// LogProviderVersionSuccessWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
 	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
-	// LogProviderAlreadyInstalled indicates a provider that is already installed during installation
-	LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
+	// LogProviderVersionAlreadyInstalled indicates a provider that is already installed during installation
+	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogReusingPreviousProviderVersion indicates a provider is locked to a specific version during installation
 	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
@@ -33,14 +33,14 @@ type ProviderInstaller interface {
 	// FindingLatestVersion indicates that Terraform is looking for the latest version of a provider during installation (no constraint nor prior lock was supplied)
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
-	// LogInstallingProvider indicates that a provider is being installed (from a remote location)
-	LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version)
+	// LogInstallingProviderVersion indicates that a provider is being installed (from a remote location)
+	LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogBuiltInProviderAvailable indicates a built-in provider is available in the current Terraform core binary and is in use during installation
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
 
-	// LogUsingProviderFromCacheDir indicates that a provider is being linked from a system-wide cache, instead of being downloaded from an external source.
-	LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version)
+	// LogUsingProviderVersionFromCacheDir indicates that a provider is being linked from a system-wide cache, instead of being downloaded from an external source.
+	LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version)
 
 	// Log that a provider successfully fetched in this operation is maintained by third-parties and describe how these are signed
 	LogPartnerAndCommunityProviders()
