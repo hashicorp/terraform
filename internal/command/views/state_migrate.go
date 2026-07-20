@@ -110,6 +110,7 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 // Implements ProviderInstaller interface.
 func (s *StateMigrateHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
+	var InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.log(msg)
 }
@@ -119,6 +120,7 @@ func (s *StateMigrateHuman) LogProviderVersionSuccessWithKeyID(providerAddr addr
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
+	var InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.log(msg)
 }

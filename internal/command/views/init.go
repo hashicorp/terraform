@@ -104,14 +104,17 @@ func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	params := []any{providerAddr.ForDisplay(), version, auth}
+	template := "- Installed %s v%s (%s)"
+	message := v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(template, params...)))
+	v.view.streams.Println(message)
 }
 
 func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
-	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	params := []any{providerAddr.ForDisplay(), version, auth, keyID}
+	template := "- Installed %s v%s (%s, key ID [reset][bold]%s[reset])"
+	message := v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(template, params...)))
+	v.view.streams.Println(message)
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -199,20 +202,23 @@ func (v *InitJSON) Log(message string, params ...any) {
 }
 
 func (v *InitJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
+	params := []any{providerAddr.ForDisplay(), version, auth}
+	template := "Installed provider version: %s v%s (%s)"
+	message := fmt.Sprintf(template, params...)
 
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	// This was previously logged via LogInitMessage, which produces 'plain' JSON logs with "type": "log"
+	// So we match that here to avoid breaking changes:
+	v.view.Log(message)
 }
 
 func (v *InitJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
-	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
+	params := []any{providerAddr.ForDisplay(), version, auth, keyID}
+	template := "Installed provider version: %s v%s (%skey_id: %s)" // lack of whitespace is in JSON output prior to refactoring.
+	message := fmt.Sprintf(template, params...)
 
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	// This was previously logged via LogInitMessage, which produces 'plain' JSON logs with "type": "log"
+	// So we match that here to avoid breaking changes:
+	v.view.Log(message)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
@@ -336,10 +342,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Installing %s v%s...",
 		JSONValue:  "Installing provider version: %s v%s...",
 	},
-	"installed_provider_version_info": {
-		HumanValue: "- Installed %s v%s (%s%s)",
-		JSONValue:  "Installed provider version: %s v%s (%s%s)",
-	},
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,
 		JSONValue:  partnerAndCommunityProvidersInfo,
@@ -461,8 +463,6 @@ const (
 	StateStoreMigrationMessage InitMessageCode = "state_store_migrate_state_store"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
-	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
-	InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
 	// ReusingPreviousVersionInfo indicates a provider which is locked to a specific version during installation
 	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
 	// BuiltInProviderAvailableMessage indicates a built-in provider in use during installation
