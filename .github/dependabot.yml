@@ -8,6 +8,8 @@ updates:
       - dependencies
       - go
       - security
+    cooldown:
+      default-days: 7
     # Disable regular version updates and only use Dependabot for security updates
     open-pull-requests-limit: 0
   - package-ecosystem: github-actions
@@ -18,6 +20,8 @@ updates:
       - dependencies
       - build
       - security
+    cooldown:
+      default-days: 7
     groups:
       github-actions-breaking:
         update-types:
