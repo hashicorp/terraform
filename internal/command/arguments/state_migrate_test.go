@@ -35,8 +35,8 @@ func TestStateMigrateArgs_valid(t *testing.T) {
 		{
 			rawArgs: []string{""},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      ".terraform.lock.hcl",
-				DestinationLockFilePath: ".terraform.lock.hcl",
+				SourceLockFilePath:      "",
+				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            true,
 				ViewType:                ViewHuman,
@@ -95,8 +95,8 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 		{
 			rawArgs: []string{"-input=false", "-source-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
-				DestinationLockFilePath: ".terraform.lock.hcl",
+				SourceLockFilePath:      invalidLockFilePath,
+				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            false,
 				ViewType:                ViewHuman,
@@ -112,8 +112,8 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 		{
 			rawArgs: []string{"-input=false", "-destination-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      ".terraform.lock.hcl",
-				DestinationLockFilePath: "",
+				SourceLockFilePath:      "",
+				DestinationLockFilePath: invalidLockFilePath,
 				Upgrade:                 false,
 				InputEnabled:            false,
 				ViewType:                ViewHuman,
@@ -133,7 +133,7 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 			},
 			expectedArgs: &StateMigrate{
 				SourceLockFilePath:      userLockFilePath,
-				DestinationLockFilePath: "",
+				DestinationLockFilePath: invalidLockFilePath,
 				Upgrade:                 false,
 				InputEnabled:            true,
 				ViewType:                ViewHuman,
@@ -162,8 +162,8 @@ func TestStateMigrateArgs_invalid(t *testing.T) {
 				"-json",
 			},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      ".terraform.lock.hcl",
-				DestinationLockFilePath: ".terraform.lock.hcl",
+				SourceLockFilePath:      "",
+				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            true,
 				ViewType:                ViewJSON,

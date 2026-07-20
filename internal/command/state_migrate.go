@@ -114,7 +114,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			smi.StateStore.ProviderAddr.ForDisplay())
 
 		// Load any pre-existing source provider lock file.
-		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(args.SourceLockFilePath)
+		var lockfilePath string
+		if args.SourceLockFilePath != "" {
+			lockfilePath = args.SourceLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(srcLockDiags)
 		if srcLockDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -191,7 +197,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 
 		// Load any pre-existing destination provider lock file.
-		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(args.DestinationLockFilePath)
+		var lockfilePath string
+		if args.DestinationLockFilePath != "" {
+			lockfilePath = args.DestinationLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(dstLockDiags)
 		if dstLockDiags.HasErrors() {
 			view.Diagnostics(diags)
