@@ -922,7 +922,7 @@ func (c *InitCommand) Synopsis() string {
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
 func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
-		view.LogProviderAlreadyInstalled(provider, selectedVersion)
+		view.LogProviderVersionAlreadyInstalled(provider, selectedVersion)
 	}
 }
 
@@ -947,14 +947,14 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
 func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-		view.LogUsingProviderFromCacheDir(provider, version)
+		view.LogUsingProviderVersionFromCacheDir(provider, version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInstallingProvider(provider, version)
+		view.LogInstallingProviderVersion(provider, version)
 	}
 }
 

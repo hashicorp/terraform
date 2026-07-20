@@ -91,12 +91,12 @@ func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	v.view.streams.Println(v.prepareMessage(FindingLatestVersionMessage, params...))
 }
 
-func (v *InitHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
-func (v *InitHuman) LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.view.streams.Println(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
 }
@@ -106,7 +106,7 @@ func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	v.view.streams.Println(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
 }
 
-func (v *InitHuman) LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
 }
@@ -246,7 +246,7 @@ func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	v.logInitMessage(FindingLatestVersionMessage, params...)
 }
 
-func (v *InitJSON) LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
@@ -254,7 +254,7 @@ func (v *InitJSON) LogProviderAlreadyInstalled(providerAddr addrs.Provider, vers
 	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
 }
 
-func (v *InitJSON) LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
@@ -270,7 +270,7 @@ func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	v.logInitMessage(BuiltInProviderAvailableMessage, params...)
 }
 
-func (v *InitJSON) LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method

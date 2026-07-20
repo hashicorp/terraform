@@ -120,14 +120,14 @@ func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider)
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogProviderAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)
 	s.log(msg)
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogUsingProviderFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(UsingProviderFromCacheDirInfo, params...)
 	s.log(msg)
@@ -141,7 +141,7 @@ func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provi
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogInstallingProvider(providerAddr addrs.Provider, version getproviders.Version) {
+func (s *StateMigrateHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(InstallingProviderMessage, params...)
 	s.log(msg)

@@ -662,14 +662,14 @@ func TestNewInit_LogProviderVersionSuccess_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_ProviderAlreadyInstalled_json(t *testing.T) {
+func TestNewInit_LogProviderVersionAlreadyInstalled_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
-	initView.LogProviderAlreadyInstalled(p, v)
+	initView.LogProviderVersionAlreadyInstalled(p, v)
 
 	// Assert output
 	output := done(t)
@@ -786,14 +786,14 @@ func TestNewInit_LogFindingLatestVersion_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogInstallingProvider_json(t *testing.T) {
+func TestNewInit_LogInstallingProviderVersion_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
-	initView.LogInstallingProvider(p, v)
+	initView.LogInstallingProviderVersion(p, v)
 
 	// Assert output
 	output := done(t)
@@ -833,14 +833,14 @@ func TestNewInit_LogBuiltInProviderAvailable_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogUsingProviderFromCacheDir_json(t *testing.T) {
+func TestNewInit_LogUsingProviderVersionFromCacheDir_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
-	initView.LogUsingProviderFromCacheDir(p, v)
+	initView.LogUsingProviderVersionFromCacheDir(p, v)
 
 	// Assert output
 	output := done(t)
