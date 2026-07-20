@@ -423,6 +423,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 
 func renderActionInvocation(renderer Renderer, ai actionInvocation) string {
 	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("    # %s\n", ai.invocation.Address))
 	buf.WriteString(fmt.Sprintf("    action %q %q {\n", ai.invocation.Type, ai.invocation.Name))
 	if len(ai.invocation.ConfigValues) > 0 {
 		buf.WriteString("        config ")
@@ -510,6 +511,9 @@ func renderHumanActionInvocations(renderer Renderer, actionInvocations []actionI
 	var invocations []string
 	for _, invocation := range actionInvocations {
 		header := fmt.Sprintf(renderer.Colorize.Color("  [bold]# %s[reset] will be invoked"), invocation.invocation.Address)
+		if trigger := invocation.invocation.InvokeActionTrigger.CallingResourceAddress; trigger != "" {
+			header += fmt.Sprintf(" (called from %s)", trigger)
+		}
 		invocations = append(invocations, fmt.Sprintf("%s\n%s", header, renderActionInvocation(renderer, invocation)))
 	}
 	return strings.Join(invocations, "\n")

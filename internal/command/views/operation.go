@@ -37,8 +37,7 @@ type Operation interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	PolicyDiagnostics(diags policy.Diagnostics)
-
-	PolicyResult(addr string, result plans.PolicyEvaluation)
+	PolicyResult(addr string, resp policy.EvaluationResponse)
 }
 
 func NewOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
@@ -140,8 +139,8 @@ func (v *OperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationHuman) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *OperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -307,8 +306,8 @@ func (v *OperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *OperationJSON) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *OperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 const fatalInterrupt = `

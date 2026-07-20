@@ -139,7 +139,7 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 
 	waiter.update(tfCtx, moduletest.Running, nil)
 	log.Printf("[DEBUG] TestFileRunner: starting plan for %s", run.Name)
-	plan, scope, planDiags := tfCtx.PlanAndEval(module, state, planOpts)
+	plan, scope, planDiags := tfCtx.PlanAndEval(module, state, planOpts, addrs.RootModuleInstance)
 	log.Printf("[DEBUG] TestFileRunner: completed plan for %s", run.Name)
 	diags = diags.Append(planDiags)
 

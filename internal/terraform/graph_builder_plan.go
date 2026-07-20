@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -255,10 +256,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// AttachSchemaTransformer so we can get all references from the action
 		// configs.
 		&ActionInvokePlanTransformer{
-			Config:        b.Config,
-			Operation:     b.Operation,
-			ActionTargets: b.ActionTargets,
-			queryPlanMode: b.queryPlan,
+			Config:          b.Config,
+			Operation:       b.Operation,
+			ActionTargets:   b.ActionTargets,
+			ResourceTargets: b.Targets,
+			queryPlanMode:   b.queryPlan,
 		},
 
 		// Create expansion nodes for all of the module calls. This must
@@ -290,7 +292,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
@@ -306,15 +308,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 
 		// Request policy evaluation for resources.
-		&policyEvalTransformer{
-			PolicyClient: func() policy.Client {
-				// Skip policy evaluation during predestroy refresh.
-				if b.preDestroyRefresh {
-					return nil
-				}
-				return b.PolicyClient
-			}(),
-		},
+		&policyEvalTransformer{PolicyClient: b.PolicyClient},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},

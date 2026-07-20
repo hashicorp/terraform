@@ -21,14 +21,18 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	httpBackend "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -74,7 +78,7 @@ func TestInit_empty(t *testing.T) {
 	os.MkdirAll(td, 0755)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -105,7 +109,7 @@ func TestInit_only_test_files(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -221,7 +225,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
 			})
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
@@ -285,7 +289,7 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 
 			mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
@@ -326,7 +330,7 @@ func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
 		"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -392,7 +396,7 @@ func TestInit_migrateStateAndJSON(t *testing.T) {
 	os.MkdirAll(td, 0755)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -422,7 +426,7 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 	os.MkdirAll(td, os.ModePerm)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -474,7 +478,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -527,7 +531,7 @@ func TestInit_get(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -555,7 +559,7 @@ func TestInit_json(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -581,7 +585,7 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -614,7 +618,7 @@ func TestInit_backend_initFromConfig(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -640,7 +644,7 @@ func TestInit_backend_initFromState(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-to-s3"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -682,7 +686,7 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		applyView, done := testView(t)
 		applyCmd := &ApplyCommand{
 			Meta: Meta{
@@ -721,7 +725,7 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		initView, done := testView(t)
 		initCmd := &InitCommand{
 			Meta: Meta{
@@ -755,7 +759,7 @@ func TestInit_backendUnset(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_backendUnset: beginning first init")
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -789,7 +793,7 @@ func TestInit_backendUnset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -823,7 +827,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	t.Chdir(td)
 
 	t.Run("good-config-file", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -846,7 +850,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// the backend config file must not be a full terraform block
 	t.Run("full-backend-config-file", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -866,7 +870,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// the backend config file must match the schema for the backend
 	t.Run("invalid-config-file", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -886,7 +890,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// missing file is an error
 	t.Run("missing-config-file", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -906,7 +910,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// blank filename clears the backend config
 	t.Run("blank-config-file", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -958,7 +962,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -998,7 +1002,7 @@ func TestInit_backendReconfigure(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1040,7 +1044,7 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1072,7 +1076,7 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1120,7 +1124,7 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-migrate-existing"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &InitCommand{
@@ -1157,7 +1161,7 @@ func TestInit_backendConfigKV(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1185,7 +1189,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1200,7 +1204,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1248,7 +1252,7 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1263,7 +1267,7 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1296,7 +1300,7 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	testCopyDir(t, testFixturePath("init"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1335,7 +1339,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1379,7 +1383,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1487,7 +1491,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 		// operations and state work in that case, and so the Cloud
 		// configuration is only about which workspaces we'll be working
 		// with.
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1525,7 +1529,7 @@ Cloud configuration block in the root module.
 		// steps to take care of more details automatically, and so
 		// -reconfigure doesn't really make sense in that context, particularly
 		// with its design bug with the handling of the implicit local backend.
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1563,7 +1567,7 @@ Cloud configuration settings.
 			t.Fatal(err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1593,7 +1597,7 @@ because activating HCP Terraform involves some additional steps.
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1631,7 +1635,7 @@ storage location is not configurable.
 			t.Fatal(err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1664,7 +1668,7 @@ prompts.
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1702,7 +1706,7 @@ storage location is not configurable.
 			t.Fatal(err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -1743,7 +1747,7 @@ func TestInit_cloudConfigColorTokensProcessed(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-cloud-no-workspaces"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1802,7 +1806,7 @@ func TestInit_inputFalse(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -1839,7 +1843,7 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1858,7 +1862,7 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatal("expected input disabled error, got", errMsg)
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1881,7 +1885,7 @@ func TestInit_getProvider(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
@@ -1959,7 +1963,7 @@ func TestInit_getProvider(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m.Ui = ui
 		m.View = view
@@ -1987,7 +1991,7 @@ func TestInit_getProviderSource(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
@@ -2036,7 +2040,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"acme/alpha": {"1.2.3"},
@@ -2077,7 +2081,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	// create a provider source which allows installing an invalid package
@@ -2155,7 +2159,7 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 		{Source: registrySource},
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		Ui:             ui,
@@ -2214,7 +2218,7 @@ func TestInit_providerSource(t *testing.T) {
 		"source":    {"1.2.2", "1.2.3", "1.2.1"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2323,7 +2327,7 @@ func TestInit_cancelModules(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2366,7 +2370,7 @@ func TestInit_cancelProviders(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2412,7 +2416,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			"between": {"3.4.5", "2.9.9", "2.3.4", "1.2.3"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2532,7 +2536,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2683,7 +2687,7 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
@@ -2839,7 +2843,7 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
@@ -2964,7 +2968,7 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
@@ -3096,7 +3100,7 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
@@ -3231,7 +3235,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3262,7 +3266,7 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-check-required-version"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -3293,7 +3297,7 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-check-required-version-first"), td)
 		t.Chdir(td)
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -3317,7 +3321,7 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-check-required-version-first-module"), td)
 		t.Chdir(td)
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -3350,7 +3354,7 @@ func TestInit_providerLockFile(t *testing.T) {
 		"test": {"1.2.3"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3534,7 +3538,7 @@ provider "registry.terraform.io/hashicorp/test" {
 
 			providerSource := newMockProviderSource(t, tc.providers)
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3581,7 +3585,7 @@ func TestInit_pluginDirReset(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -3615,7 +3619,7 @@ func TestInit_pluginDirReset(t *testing.T) {
 		t.Fatalf(`expected plugin dir ["a"], got %q`, pluginDirs)
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3650,7 +3654,7 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3750,7 +3754,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 		"between": {"2.3.4"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3824,7 +3828,7 @@ func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3863,7 +3867,7 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -3896,7 +3900,7 @@ func TestInit_invalidSyntaxNoBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-no-backend"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
@@ -3927,7 +3931,7 @@ func TestInit_invalidSyntaxWithBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-with-backend"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
@@ -3958,7 +3962,7 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-invalid"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
@@ -3992,7 +3996,7 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-attribute-invalid"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
@@ -4036,7 +4040,7 @@ func TestInit_testsWithExternalProviders(t *testing.T) {
 	testingConfigureProviderAddress := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "testing", "configure")
 	testingConfigureProvider := new(testing_provider.MockProvider)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4070,7 +4074,7 @@ func TestInit_tests(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4099,7 +4103,7 @@ func TestInit_testsWithProvider(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4145,7 +4149,7 @@ func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4174,7 +4178,7 @@ func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4204,7 +4208,7 @@ func TestInit_testsWithModule(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4246,7 +4250,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4272,8 +4276,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutputs := []string{
-			`Initializing provider plugin for state store "test_store"...
+		expectedOutput := `Initializing provider plugin for state store "test_store"...
 - Finding latest version of hashicorp/test...
 - Installing hashicorp/test v1.2.3...
 - Installed hashicorp/test v1.2.3 (verified checksum)
@@ -4282,12 +4285,9 @@ Initializing the state store "test_store"...
 
 Initializing provider plugins...
 - Reusing previous version of hashicorp/test from the dependency lock file
-- Using previously-installed hashicorp/test v1.2.3`,
-		}
-		for _, expected := range expectedOutputs {
-			if !strings.Contains(output, expected) {
-				t.Fatalf("expected output to include %q, but got:\n%s", expected, output)
-			}
+- Using previously-installed hashicorp/test v1.2.3`
+		if !strings.Contains(output, expectedOutput) {
+			t.Fatalf("expected output to include %q, but got:\n%s", expectedOutput, output)
 		}
 
 		// Assert the default workspace was not created
@@ -4347,7 +4347,7 @@ Initializing provider plugins...
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4426,7 +4426,7 @@ Initializing provider plugins...
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4500,7 +4500,7 @@ Initializing provider plugins...
 			"select-workspace": "1", // foobar1 in numbered list
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4555,7 +4555,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4622,7 +4622,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve": "yes",
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4681,6 +4681,70 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 	})
 
+	t.Run("not prompted to approve a state store provider downloaded via HTTP if the provider is in the dependency lock file.", func(t *testing.T) {
+		// This scenario is distinct from using the -state-store-provider-override flag, which is specific to non-interactive/automation mode.
+		// Here, we assert that users aren't prompted for approval if the provider hasn't been downloaded yet but it's described in the working directory's lock file.
+		// This will happen when a user git clones a Terraform project from version control, or a lock file is copied from elsewhere when starting a project.
+
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+		t.Chdir(td)
+
+		// The dependency lock file already exists.
+		lockFile := filepath.Join(td, depsfile.LockFilePath)
+		_, err := os.Stat(lockFile)
+		if os.IsNotExist(err) {
+			t.Fatal("expected dependency lock file to exist, but it doesn't")
+		}
+
+		// Set up mock provider source that mocks out downloading hashicorp/test v1.2.3 via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Check output via view
+		output := testOutput.All()
+		expectedOutputs := []string{
+			`Initializing the state store "test_store"...`,
+			"Terraform has been successfully initialized!",
+		}
+		for _, expected := range expectedOutputs {
+			if !strings.Contains(output, expected) {
+				t.Fatalf("expected output to include %q, but got':\n %s", expected, output)
+			}
+		}
+	})
+
 	t.Run("approval prompt reports provider as unauthorized if no hashes returned from the HTTP mirror", func(t *testing.T) {
 		// Create a temporary, uninitialized working directory with configuration including a state store
 		td := t.TempDir()
@@ -4704,7 +4768,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve": "yes",
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4784,7 +4848,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve": "no",
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4814,6 +4878,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"The state store provider was rejected",
+			`Error: State store provider "test" (registry.terraform.io/hashicorp/test) was not approved, so init cannot continue.`,
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
@@ -4858,7 +4923,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Set up providers for use in the second init attempt.
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -4890,6 +4955,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		output := testOutput.All()
 		expectedOutputs := []string{
 			"The state store provider was rejected",
+			`Error: State store provider "test" (registry.terraform.io/hashicorp/test) was not approved, so init cannot continue.`,
 		}
 		for _, expectedOutput := range expectedOutputs {
 			if !strings.Contains(output, expectedOutput) {
@@ -4923,7 +4989,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		args = []string{
 			"-enable-pluggable-state-storage-experiment=true",
 		}
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		view, done = testView(t)
 		c.Ui = ui
 		c.View = view
@@ -4964,7 +5030,7 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	meta := Meta{
 		Ui:                        ui,
@@ -5061,7 +5127,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5123,7 +5189,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5212,7 +5278,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5258,7 +5324,6 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := testOutput.All()
 		expectedOutputs := []string{
 			`Initializing the state store "test_store"...`,
-			"The state store provider was approved automatically",
 			"Terraform has been successfully initialized!",
 		}
 		for _, expected := range expectedOutputs {
@@ -5285,7 +5350,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5335,7 +5400,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
 			"Error: State store provider not described in dependency lock file supplied via -state-provider-lock-file flag",
-			fmt.Sprintf("Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider", lockFileName),
+			fmt.Sprintf(`Terraform checked the lock file at %q, supplied via the -state-provider-lock-file flag, but could not find the state store provider "test" (hashicorp/test).`, lockFileName),
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
@@ -5359,7 +5424,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5398,7 +5463,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		output := cleanString(testOutput.All())
 		expectedOutputs := []string{
 			"Error: Missing lock for state store provider",
-			"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
+			`Terraform used the working directory's lock file by default, but it was empty or did not exist.`,
+			`When performing a "terraform init" command in automation, make sure to supply a lock file for the state store provider using the -state-provider-lock-file flag.`,
 		}
 		for _, expected := range expectedOutputs {
 			if !strings.Contains(output, expected) {
@@ -5468,7 +5534,7 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	meta := Meta{
 		Ui:                        ui,
@@ -5547,7 +5613,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5643,7 +5709,7 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5752,7 +5818,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5845,7 +5911,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5901,7 +5967,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -5942,7 +6008,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		// 2) When flag is present
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		view, done = testView(t)
 		meta.Ui = ui
 		meta.View = view
@@ -5980,7 +6046,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
 			Ui:                        ui,
@@ -6047,7 +6113,7 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6091,7 +6157,7 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6156,7 +6222,7 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6199,7 +6265,7 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test2": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6249,7 +6315,7 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			},
 		})
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6308,7 +6374,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: beginning first init")
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6359,7 +6425,7 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6418,7 +6484,7 @@ func TestInit_stateStore_unset(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6460,7 +6526,7 @@ func TestInit_stateStore_unset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6518,7 +6584,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset_withoutProviderRequirements: beginning first init")
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6561,7 +6627,7 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6622,7 +6688,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning first init")
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6653,7 +6719,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		// run apply to ensure state isn't empty
 		// to bypass edge case handling which causes empty state to stop migration
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning apply")
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -6686,7 +6752,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -6730,7 +6796,7 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6798,7 +6864,7 @@ func TestInit_uninitialized_stateStore(t *testing.T) {
 		}
 		t.Chdir(td)
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -6864,7 +6930,7 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6905,7 +6971,7 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -6966,7 +7032,7 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7043,7 +7109,7 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7090,7 +7156,7 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7157,7 +7223,7 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with local backend", t.Name())
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7191,7 +7257,7 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -7251,7 +7317,7 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7319,7 +7385,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7353,7 +7419,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -7387,7 +7453,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		}
 	}
 	{
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cSelect := &WorkspaceSelectCommand{
 			Meta: Meta{
@@ -7404,7 +7470,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		t.Logf("Select workspace output:\n%s", aTestOutput.All())
 	}
 	{
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
@@ -7456,7 +7522,7 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7559,7 +7625,7 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7600,7 +7666,7 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7659,7 +7725,7 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -7703,7 +7769,7 @@ func TestInit_varValueWithoutConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -7733,7 +7799,7 @@ func TestInit_invalidConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -8354,4 +8420,275 @@ func assertLockfileContents(t *testing.T, path string, expected string) {
 	if diff := cmp.Diff(want, string(got)); diff != "" {
 		t.Errorf("unexpected difference in lock file (%q) content: %s", path, diff)
 	}
+}
+
+// If provider installation runs first, discovery of a provider sourced from an aliased hostname
+// happens before the alias exists, so it resolves the real hostname (returning
+// HTML rather than a discovery document). For the case of "localterraform.com" it'll fail with:
+//
+//	discovery URL returned an unsupported Content-Type "text/html"
+//
+// This test asserts the ordering invariant. At the moment provider discovery happens for a provider
+// sourced from the aliased hostname, the backend-registered alias must already be present on the shared
+// service-discovery object.
+func TestInit_backendAliasesRegisteredBeforeProviderDiscovery(t *testing.T) {
+	aliasHost, err := svchost.ForComparison("localterraform.com")
+	if err != nil {
+		t.Fatalf("invalid alias hostname: %s", err)
+	}
+	targetHost, err := svchost.ForComparison("app.terraform.io")
+	if err != nil {
+		t.Fatalf("invalid target hostname: %s", err)
+	}
+
+	// The shared service-discovery object is given credentials for the alias target
+	// If the backend registers the alias before provider discovery
+	// (the correct ordering), a credentials lookup for the alias hostname resolves
+	// to the target and returns these credentials. If the alias is missing,
+	// the lookup for the alias hostname returns no credentials.
+	const sentinelToken = "sentinel-token"
+	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]any{
+		targetHost: {"token": sentinelToken},
+	})
+	services := disco.NewWithCredentialsSource(credsSrc)
+
+	const backendType = "alias"
+	previousBackend := backendInit.Backend(backendType)
+	backendInit.Set(backendType, func() backend.Backend {
+		return &aliasRegisteringBackend{
+			Local: backendLocal.New(),
+			alias: backendrun.HostAlias{From: aliasHost, To: targetHost},
+		}
+	})
+	t.Cleanup(func() { backendInit.Set(backendType, previousBackend) })
+
+	// Configuration using the alias-registering backend and requiring a provider
+	// sourced from the aliased hostname.
+	td := t.TempDir()
+	cfg := `terraform {
+  backend "alias" {}
+  required_providers {
+    foo = {
+      source = "localterraform.com/foo/bar"
+    }
+  }
+}
+`
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Chdir(td)
+
+	watchedProvider := addrs.MustParseProviderSourceString("localterraform.com/foo/bar")
+	baseSource := newMockProviderSource(t, map[string][]string{
+		"localterraform.com/foo/bar": {"1.0.0"},
+	})
+	providerSource := &aliasAssertingProviderSource{
+		Source:    baseSource,
+		t:         t,
+		services:  services,
+		watch:     watchedProvider,
+		aliasHost: aliasHost,
+	}
+
+	ui := testUiWrapped(t)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Services:         services,
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	code := c.Run(nil)
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful init, got exit %d:\n%s", code, testOutput.All())
+	}
+
+	if !providerSource.checked {
+		t.Fatalf("provider discovery for %s never happened; test did not exercise the ordering invariant", watchedProvider)
+	}
+}
+
+// aliasRegisteringBackend is a backend that advertises a
+// service-discovery alias during init, like the cloud/remote backends do.
+type aliasRegisteringBackend struct {
+	*backendLocal.Local
+	alias backendrun.HostAlias
+}
+
+func (b *aliasRegisteringBackend) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
+	return []backendrun.HostAlias{b.alias}, nil
+}
+
+// aliasAssertingProviderSource wraps a provider Source and, the first time it is
+// asked for the versions of a watched provider, asserts that a backend-registered
+// service-discovery alias for that provider's hostname is already resolvable on
+// the shared service-discovery object.
+type aliasAssertingProviderSource struct {
+	getproviders.Source
+
+	t         *testing.T
+	services  *disco.Disco
+	watch     addrs.Provider
+	aliasHost svchost.Hostname
+	checked   bool
+}
+
+func (s *aliasAssertingProviderSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (getproviders.VersionList, getproviders.Warnings, error) {
+	if provider == s.watch && !s.checked {
+		s.checked = true
+		creds, err := s.services.CredentialsForHost(s.aliasHost)
+		if err != nil {
+			s.t.Errorf("unexpected error resolving credentials for %q: %s", s.aliasHost, err)
+		}
+		if creds == nil {
+			s.t.Errorf("backend service-discovery alias for %q was not registered before provider discovery; "+
+				"providers must be installed after backend initialization (regression of #38227, fixed by #38648)", s.aliasHost)
+		}
+	}
+	return s.Source.AvailableVersions(ctx, provider)
+}
+
+// Test_fetchPackageSuccessCallback asserts how the fetchPackageSuccessCallback function behaves when called with different authentication results.
+// This test will be used to check that refactoring how output is made doesn't introduce any unexpected changes.
+func Test_fetchPackageSuccessCallback(t *testing.T) {
+	const verifiedChecksum = 0
+	const officialProvider = 1
+	const partnerProvider = 2
+	const noKey = ""
+
+	t.Run("no auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		var authResult *getproviders.PackageAuthenticationResult = nil
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (unauthenticated)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (unauthenticated)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("verified checksum auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (verified checksum)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (verified checksum)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("official provider auth result", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, noKey)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by HashiCorp)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by HashiCorp)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
+	t.Run("third party signed partner provider with key id", func(t *testing.T) {
+		viewH, doneH := testView(t)
+		viewJ, doneJ := testView(t)
+		initViewHuman := views.NewInit(arguments.ViewHuman, viewH)
+		initViewJSON := views.NewInit(arguments.ViewJSON, viewJ)
+
+		cbHuman := fetchPackageSuccessCallback(initViewHuman)
+		cbJSON := fetchPackageSuccessCallback(initViewJSON)
+
+		p := addrs.MustParseProviderSourceString("hashicorp/test")
+		ver := getproviders.MustParseVersion("1.2.3")
+		localDir := "."
+
+		key := "key-id-123"
+		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
+
+		// Use callback to log output
+		cbHuman(p, ver, localDir, authResult)
+		cbJSON(p, ver, localDir, authResult)
+
+		// Assert output - human
+		output := doneH(t)
+		expectedOutput := "- Installed hashicorp/test v1.2.3 (signed by a HashiCorp partner, key ID key-id-123)\n"
+		if output.Stdout() != expectedOutput {
+			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
+		}
+		// Assert output - json
+		output = doneJ(t)
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partnerkey_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		if !strings.Contains(output.Stdout(), expectedOutput) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
+		}
+	})
 }

@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -23,7 +22,7 @@ func TestStateIdentities(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -65,7 +64,7 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -104,7 +103,7 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -146,7 +145,7 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -177,7 +176,7 @@ func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -201,7 +200,7 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -251,7 +250,7 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -294,7 +293,7 @@ func TestStateIdentities_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -315,7 +314,7 @@ func TestStateIdentities_modules(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -452,7 +451,7 @@ func TestStateIdentities_stateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,

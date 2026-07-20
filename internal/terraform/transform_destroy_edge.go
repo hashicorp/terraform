@@ -125,17 +125,17 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
 	// the list of destroyers.
-	destroyers := make(map[string][]GraphNodeDestroyer)
+	destroyers := addrs.MakeMap[addrs.AbsResourceInstance, []GraphNodeDestroyer]()
 
 	// Record the creators, which will need to depend on the destroyers if they
 	// are only being updated.
-	creators := make(map[string][]GraphNodeCreator)
+	creators := addrs.MakeMap[addrs.ConfigResource, []GraphNodeCreator]()
 
 	// destroyersByResource records each destroyer by the ConfigResource
 	// address.  We use this because dependencies are only referenced as
 	// resources and have no index or module instance information, but we will
 	// want to connect all the individual instances for correct ordering.
-	destroyersByResource := make(map[string][]GraphNodeDestroyer)
+	destroyersByResource := addrs.MakeMap[addrs.ConfigResource, []GraphNodeDestroyer]()
 	for _, v := range g.Vertices() {
 		switch n := v.(type) {
 		case GraphNodeDestroyer:
@@ -148,62 +148,57 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 			key := addr.String()
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
-			destroyers[key] = append(destroyers[key], n)
+			destroyers.Put(addr, append(destroyers.Get(addr), n))
 
-			resAddr := addr.ContainingResource().Config().String()
-			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
+			resAddr := addr.ContainingResource().Config()
+			destroyersByResource.Put(resAddr, append(destroyersByResource.Get(resAddr), n))
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
-			cfgAddr := addr.ContainingResource().Config().String()
+			cfgAddr := addr.ContainingResource().Config()
 
 			if t.Changes == nil {
 				// unit tests may not have changes
-				creators[cfgAddr] = append(creators[cfgAddr], n)
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
 				break
 			}
 
 			// NoOp changes should not participate in the destroy dependencies.
 			rc := t.Changes.ResourceInstance(*addr)
 			if rc != nil && rc.Action != plans.NoOp {
-				creators[cfgAddr] = append(creators[cfgAddr], n)
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
 			}
 		}
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
 	// so just exit early and avoid future work.
-	if len(destroyers) == 0 {
+	if destroyers.Len() == 0 {
 		return nil
 	}
 
-	// Go through and connect creators to destroyers. Going along with
-	// our example, this makes: A_d => A
+	// Go through and connect creators to destroyers.
 	for _, v := range g.Vertices() {
-		cn, ok := v.(GraphNodeCreator)
+		creator, ok := v.(GraphNodeCreator)
 		if !ok {
 			continue
 		}
 
-		addr := cn.CreateAddr()
+		addr := creator.CreateAddr()
 		if addr == nil {
 			continue
 		}
 
-		for _, d := range destroyers[addr.String()] {
-			// For illustrating our example
-			a_d := d.(dag.Vertex)
-			a := v
-
+		for _, destroyer := range destroyers.Get(*addr) {
 			log.Printf(
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
-				dag.VertexName(a), dag.VertexName(a_d))
+				dag.VertexName(creator), dag.VertexName(destroyer))
 
-			g.Connect(dag.BasicEdge(a, a_d))
+			g.Connect(dag.BasicEdge(creator, destroyer))
 		}
 	}
 
 	// connect creators to any destroyers on which they may depend
-	for _, cs := range creators {
+	for _, cs := range creators.Iter() {
 		for _, c := range cs {
 			ri, ok := c.(GraphNodeResourceInstance)
 			if !ok {
@@ -211,7 +206,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			for _, resAddr := range ri.StateDependencies() {
-				for _, desDep := range destroyersByResource[resAddr.String()] {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
 						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
 						g.Connect(dag.BasicEdge(c, desDep))
@@ -224,7 +219,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	}
 
 	// Connect destroy dependencies as stored in the state
-	for _, ds := range destroyers {
+	for _, ds := range destroyers.Iter() {
 		for _, des := range ds {
 			ri, ok := des.(GraphNodeResourceInstance)
 			if !ok {
@@ -232,7 +227,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			for _, resAddr := range ri.StateDependencies() {
-				for _, desDep := range destroyersByResource[resAddr.String()] {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
 						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
 						t.tryInterProviderDestroyEdge(g, desDep, des)
@@ -244,12 +239,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				// We can have some create or update nodes which were
 				// dependents of the destroy node. If they have no destroyer
 				// themselves, make the connection directly from the creator.
-				for _, createDep := range creators[resAddr.String()] {
+				for _, createDep := range creators.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
-						log.Printf("[DEBUG] DestroyEdgeTransformer2: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
+						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
 						t.tryInterProviderDestroyEdge(g, createDep, des)
 					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer2: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
 					}
 				}
 			}

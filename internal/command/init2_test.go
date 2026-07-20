@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/cli"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
@@ -108,7 +106,7 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 				"hashicorp/test": {"1.0.0"},
 			})
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
@@ -191,7 +189,7 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 				"hashicorp/test": {"1.0.0"},
 			})
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
@@ -217,7 +215,7 @@ func TestInit2_getFalseWithDynamicSource(t *testing.T) {
 	t.Chdir(td)
 
 	// First, run init normally to install the module
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -235,7 +233,7 @@ func TestInit2_getFalseWithDynamicSource(t *testing.T) {
 	}
 
 	// Now run init with -get=false; should succeed since modules are already installed
-	ui2 := new(cli.MockUi)
+	ui2 := testUiWrapped(t)
 	view2, done2 := testView(t)
 	c2 := &InitCommand{
 		Meta: Meta{
@@ -258,7 +256,7 @@ func TestInit2_getFalseWithDynamicSourceNotInstalled(t *testing.T) {
 	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "get-false-with-dynamic-source")), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -283,7 +281,7 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 	t.Chdir(td)
 
 	// First init with default variable (example)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -300,7 +298,7 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 	}
 
 	// Re-init with different variable
-	ui2 := new(cli.MockUi)
+	ui2 := testUiWrapped(t)
 	view2, done2 := testView(t)
 	c2 := &InitCommand{
 		Meta: Meta{
@@ -326,7 +324,7 @@ func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -369,7 +367,7 @@ func TestPlan_dynamicModuleSource(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -387,7 +385,7 @@ func TestPlan_dynamicModuleSource(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
@@ -420,7 +418,7 @@ func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
 	})
 	args := []string{"-var", "module_name=example"}
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -438,7 +436,7 @@ func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
 	}
 
 	// Now run plan with a different variable value
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
@@ -467,7 +465,7 @@ func TestApply_dynamicModuleSource(t *testing.T) {
 	})
 	args := []string{"-var", "module_name=example"}
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -484,7 +482,7 @@ func TestApply_dynamicModuleSource(t *testing.T) {
 		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
 	}
 
-	applyUi := new(cli.MockUi)
+	applyUi := testUiWrapped(t)
 	applyView, applyDone := testView(t)
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
@@ -517,7 +515,7 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -536,7 +534,7 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 
 	// Run plan with -out
 	planPath := filepath.Join(td, "saved.plan")
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
@@ -559,7 +557,7 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 	}
 
 	// Apply the saved plan
-	applyUi := new(cli.MockUi)
+	applyUi := testUiWrapped(t)
 	applyView, applyDone := testView(t)
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
@@ -594,7 +592,7 @@ func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -612,7 +610,7 @@ func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
@@ -646,7 +644,7 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := new(cli.MockUi)
+	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
@@ -664,7 +662,7 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
@@ -695,7 +693,7 @@ func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
 
 	// Plan should fail because the installed module version (0.0.1 in
 	// modules.json) doesn't satisfy the constraint we provide.
-	planUi := new(cli.MockUi)
+	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{

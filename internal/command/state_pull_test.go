@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -27,7 +25,7 @@ func TestStatePull(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -113,7 +111,7 @@ func TestStatePull_stateStore(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	streams, _ := terminal.StreamsForTesting(t)
 	c := &StatePullCommand{
 		Meta: Meta{
@@ -167,7 +165,7 @@ func TestStatePull_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -191,7 +189,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -215,7 +213,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -262,7 +260,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -307,7 +305,7 @@ func TestStatePull_checkRequiredVersion(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),

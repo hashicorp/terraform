@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -49,8 +50,8 @@ type jsonHook struct {
 	periodicUiTimer time.Duration
 }
 
-func (h *jsonHook) PolicyResult(addr string, result plans.PolicyEvaluation) (terraform.HookAction, error) {
-	h.view.PolicyResult(addr, result)
+func (h *jsonHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.view.PolicyResult(addr, resp)
 	return terraform.HookActionContinue, nil
 }
 

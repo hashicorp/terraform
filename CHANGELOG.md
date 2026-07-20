@@ -1,4 +1,4 @@
-## 1.16.0-alpha20260706 (July 06, 2026)
+## 1.16.0 (Unreleased)
 
 
 NEW FEATURES:
@@ -36,7 +36,13 @@ ENHANCEMENTS:
 
 * child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
 
+* Support destroy=false in resource lifecycle blocks. ([#38784](https://github.com/hashicorp/terraform/issues/38784))
+
 * contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
+
+* The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be used to evaluate expressions within the scope of a module or a specific module instance. ([#31861](https://github.com/hashicorp/terraform/issues/31861))
+
+* If `-invoke` results in multiple resource calls triggering the action, it can now be combined with `-target` to specify the calling resource instance ([#38845](https://github.com/hashicorp/terraform/issues/38845))
 
 
 BUG FIXES:
@@ -55,16 +61,14 @@ BUG FIXES:
 
 * Actions are now invoked with respect to all resource dependencies. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
+* return correct error when import target exists in state, but not config ([#38782](https://github.com/hashicorp/terraform/issues/38782))
+
 * merge no longer panics with null objects ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
 NOTES:
 
 * init: Errors due to incompatible `-upgrade` and `-lockfile=readonly` flags are now raised earlier in the init process. ([#38561](https://github.com/hashicorp/terraform/issues/38561))
-
-* command/init: Provider installation was changed to enable future enhancements in the area. This effectively reverses the log message changes from v1.15. `initializing_provider_plugin_message` is being re-introduced to replace the short-lived two message types `initializing_provider_plugin_from_config_message` & `initializing_provider_plugin_from_state_message`. The change should not have any significant end-user impact aside from the command output. ([#38648](https://github.com/hashicorp/terraform/issues/38648))
-
-* command/init: Provider installation was changed to enable future enhancements in the area. This partially reverses the init event order changes from v1.15; module installation will now occur after the backend is initialized. The change should not have any significant end-user impact aside from the command output. ([#38699](https://github.com/hashicorp/terraform/issues/38699))
 
 
 UPGRADE NOTES:

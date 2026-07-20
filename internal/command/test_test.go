@@ -22,7 +22,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -495,7 +494,7 @@ func TestTest_Runs(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides: &testingOverrides{
@@ -996,7 +995,7 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -1084,7 +1083,7 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -1163,7 +1162,7 @@ func TestTest_SharedState_Order(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -1234,7 +1233,7 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -1310,7 +1309,7 @@ func TestTest_Parallel(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -1672,7 +1671,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			// create a new provider instance for each test run, so that we can
 			// ensure that the test provider locks do not interfere between runs.
@@ -1841,7 +1840,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -1906,7 +1905,7 @@ func TestTest_ComplexCondition(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -2075,7 +2074,7 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -2411,7 +2410,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2486,7 +2485,7 @@ func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2544,7 +2543,7 @@ func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2602,7 +2601,7 @@ func TestTest_DynamicSourceNested(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2675,7 +2674,7 @@ func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2989,7 +2988,7 @@ can remove the provider configuration again.
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -3055,7 +3054,7 @@ func TestTest_NestedSetupModules(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -3109,7 +3108,7 @@ func TestTest_StatePropagation(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -3246,7 +3245,7 @@ func TestTest_SkipCleanup(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -3350,7 +3349,7 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -3483,7 +3482,7 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -3614,7 +3613,7 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -3745,7 +3744,7 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -3879,7 +3878,7 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -4741,7 +4740,7 @@ func TestTest_InvalidOverrides(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -4840,7 +4839,7 @@ func TestTest_InvalidConfig(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		Ui:             ui,
@@ -4983,7 +4982,7 @@ There is no backend type named "foobar".
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5062,7 +5061,7 @@ test_resource_id = 12345`
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5169,7 +5168,7 @@ test_resource_id = %s`, resourceId, resourceId)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5288,7 +5287,7 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5387,7 +5386,7 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5447,7 +5446,7 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
@@ -5529,7 +5528,7 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -5597,7 +5596,7 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -5762,7 +5761,7 @@ func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -5831,7 +5830,7 @@ func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -5885,7 +5884,7 @@ func TestTest_TeardownOrder(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),

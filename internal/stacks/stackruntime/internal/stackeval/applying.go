@@ -354,14 +354,6 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		affectedResourceInstanceObjects = nil
 	}
 
-	// Report policy results if we have any
-	if len(tfHook.policyResults) > 0 {
-		hookSingle(ctx, h.ReportComponentInstancePolicyResults, &hooks.ComponentInstancePolicyResults{
-			Addr:          inst.Addr(),
-			PolicyResults: tfHook.policyResults,
-		})
-	}
-
 	return &ComponentInstanceApplyResult{
 		FinalState:                      newState,
 		AffectedResourceInstanceObjects: affectedResourceInstanceObjects,

@@ -39,7 +39,7 @@ func TestVersion(t *testing.T) {
 		nil,
 	)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &VersionCommand{
 		Meta: Meta{
 			Ui: ui,
@@ -66,7 +66,7 @@ func TestVersion(t *testing.T) {
 // This is because whenever a user runs `terraform <any command name> -version`, etc, main.go
 // will call the version command with all of the supplied flags and arguments.
 func TestVersion_flags(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	m := Meta{
 		Ui: ui,
 	}
@@ -92,7 +92,7 @@ func TestVersion_flags(t *testing.T) {
 
 func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 	t.Run("unexpected positional arguments are ignored without error", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		m := Meta{
 			Ui: ui,
 		}
@@ -127,7 +127,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 		}
 
 		// Machine-readable / JSON output
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		c.Meta = Meta{
 			Ui: ui,
 		}
@@ -161,7 +161,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 	})
 
 	t.Run("incorrect flag", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		m := Meta{
 			Ui: ui,
 		}
@@ -202,7 +202,7 @@ Error parsing command-line flags: flag provided but not defined: -foobar`
 		}
 
 		// Machine-readable / JSON output
-		ui = new(cli.MockUi)
+		ui = testUiWrapped(t)
 		c.Meta = Meta{
 			Ui: ui,
 		}
@@ -237,7 +237,7 @@ Error parsing command-line flags: flag provided but not defined: -foobar`
 }
 
 func TestVersion_outdated(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	m := Meta{
 		Ui: ui,
 	}
@@ -264,7 +264,7 @@ func TestVersion_json(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	meta := Meta{
 		Ui: ui,
 	}
@@ -344,7 +344,7 @@ func TestVersion_json(t *testing.T) {
 }
 
 func TestVersion_jsonoutdated(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	m := Meta{
 		Ui: ui,
 	}

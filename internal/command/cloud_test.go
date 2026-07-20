@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -130,7 +129,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(disco) })
 	defer backendInit.Set("cloud", previousBackend)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	// Initialize the backend
@@ -149,7 +148,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	}
 
 	// Run the cloud command
-	ui = cli.NewMockUi()
+	ui = testUiWrapped(t)
 	c := &CloudCommand{
 		Meta: Meta{
 			Ui:               ui,
@@ -186,7 +185,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 	defer os.Unsetenv("TF_CLOUD_HOSTNAME")
 
 	// Run the cloud command
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &CloudCommand{
 		Meta: Meta{
 			Ui:               ui,

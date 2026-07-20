@@ -25,23 +25,16 @@ type GraphNodeTargetable interface {
 type TargetsTransformer struct {
 	// List of targeted resource names specified by the user.
 	Targets []addrs.Targetable
-
-	// List of targeted actions specified by the user.
-	ActionTargets []addrs.Targetable
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) == 0 && len(t.ActionTargets) == 0 {
+	if len(t.Targets) == 0 {
 		return nil
 	}
 
-	// in practice, these are mutually exclusive so only one of these function
-	// calls will do any work
-
 	targetedNodes := t.selectTargetedNodes(g, t.Targets)
-	targetedActions := t.selectTargetedNodes(g, t.ActionTargets)
 	for _, v := range g.Vertices() {
-		if !targetedNodes.Include(v) && !targetedActions.Include(v) {
+		if !targetedNodes.Include(v) {
 			log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
 			g.Remove(v)
 		}

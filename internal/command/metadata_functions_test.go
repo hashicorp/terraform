@@ -6,13 +6,11 @@ package command
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/hashicorp/cli"
 )
 
 func TestMetadataFunctions_error(t *testing.T) {
 	t.Parallel()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &MetadataFunctionsCommand{
 		Meta: Meta{
 			Ui: ui,
@@ -27,7 +25,7 @@ func TestMetadataFunctions_error(t *testing.T) {
 
 func TestMetadataFunctions_output(t *testing.T) {
 	t.Parallel()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	m := Meta{Ui: ui}
 	c := &MetadataFunctionsCommand{Meta: m}
 

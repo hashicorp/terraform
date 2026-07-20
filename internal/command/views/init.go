@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -22,18 +23,33 @@ import (
 type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
-	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	// Log details about a successfully fetched provider package.
+	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+
+	// Log details about a successfully fetched provider package, including details about the key used to sign it.
+	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+
+	prepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
 
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
-	PolicyResult(addr string, result plans.PolicyEvaluation)
+	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
-	PrepareMessage(messageCode InitMessageCode, params ...any) string
+
+	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+
+	prepareMessage(messageCode InitMessageCode, params ...any) string
+
+	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
 
 // NewInit returns Init implementation for the given ViewType.
@@ -67,20 +83,35 @@ func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *InitHuman) Spacer() {
+	v.view.Spacer()
+}
+
 func (v *InitHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *InitHuman) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
 func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+	v.view.streams.Println(v.prepareMessage(messageCode, params...))
+}
+
+func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
+	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+}
+
+func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
+	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -88,7 +119,7 @@ func (v *InitHuman) Log(message string, params ...any) {
 	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) string {
+func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
@@ -96,8 +127,7 @@ func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) s
 	}
 
 	if message.HumanValue == "" {
-		// no need to apply colorization if the message is empty
-		return message.HumanValue
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
@@ -118,20 +148,20 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *InitJSON) Spacer() {
+	v.view.Spacer()
+}
+
 func (v *InitJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 	v.view.PolicyDiagnostics(diags)
 }
 
-func (v *InitJSON) PolicyResult(addr string, result plans.PolicyEvaluation) {
-	v.view.PolicyResult(addr, result)
+func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
-	// don't add empty messages to json output
-	preppedMessage := v.PrepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
+	preppedMessage := v.prepareMessage(messageCode, params...)
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -151,7 +181,11 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.PrepareMessage(messageCode, params...)
+	v.logInitMessage(messageCode, params...)
+}
+
+func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
+	preppedMessage := v.prepareMessage(messageCode, params...)
 	if preppedMessage == "" {
 		return
 	}
@@ -164,11 +198,32 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) string {
+func (v *InitJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(InstalledProviderVersionInfo, params...)
+}
+
+func (v *InitJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
+	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
+
+	// This was previously logged via LogInitMessage, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.logInitMessage(InstalledProviderVersionInfo, params...)
+}
+
+func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
 		return string(messageCode)
+	}
+
+	if message.JSONValue == "" {
+		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
@@ -281,10 +336,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "- Installing %s v%s...",
 		JSONValue:  "Installing provider version: %s v%s...",
 	},
-	"key_id": {
-		HumanValue: ", key ID [reset][bold]%s[reset]",
-		JSONValue:  "key_id: %s",
-	},
 	"installed_provider_version_info": {
 		HumanValue: "- Installed %s v%s (%s%s)",
 		JSONValue:  "Installed provider version: %s v%s (%s%s)",
@@ -292,10 +343,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,
 		JSONValue:  partnerAndCommunityProvidersInfo,
-	},
-	"init_config_error": {
-		HumanValue: errInitConfigError,
-		JSONValue:  errInitConfigErrorJSON,
 	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
@@ -357,10 +404,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 		JSONValue:  "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
 	},
-	"empty_message": {
-		HumanValue: "",
-		JSONValue:  "",
-	},
 }
 
 type InitMessageCode string
@@ -370,7 +413,6 @@ const (
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
 	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	EmptyMessage                                 InitMessageCode = "empty_message"
 	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
@@ -391,8 +433,6 @@ const (
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
-	// InitConfigError indicates problems encountered during initialisation
-	InitConfigError InitMessageCode = "init_config_error"
 	// BackendConfiguredSuccessMessage indicates successful backend configuration
 	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
@@ -429,8 +469,6 @@ const (
 	BuiltInProviderAvailableMessage InitMessageCode = "built_in_provider_available_message"
 	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
 	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
-	// KeyID indicates the key ID used to sign of a successfully installed provider
-	KeyID InitMessageCode = "key_id"
 	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
 	InstallingProviderMessage InitMessageCode = "installing_provider_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
@@ -527,22 +565,6 @@ version control system if they represent changes you intended to make.`
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
 	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
-
-const errInitConfigError = `
-[reset]Terraform encountered problems during initialisation, including problems
-with the configuration, described below.
-
-The Terraform configuration must be valid before initialization so that
-Terraform can determine which modules and providers need to be installed.
-`
-
-const errInitConfigErrorJSON = `
-Terraform encountered problems during initialisation, including problems
-with the configuration, described below.
-
-The Terraform configuration must be valid before initialization so that
-Terraform can determine which modules and providers need to be installed.
-`
 
 const backendConfiguredSuccessHuman = `[reset][green]
 Successfully configured the backend %q! Terraform will automatically

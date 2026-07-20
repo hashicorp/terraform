@@ -57,7 +57,7 @@ func TestFmt_MockDataFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := cli.NewMockUi()
+			ui := testUiWrapped(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
@@ -123,7 +123,7 @@ func TestFmt_TestFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := cli.NewMockUi()
+			ui := testUiWrapped(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
@@ -189,7 +189,7 @@ func TestFmt_QueryFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := cli.NewMockUi()
+			ui := testUiWrapped(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
@@ -255,7 +255,7 @@ func TestFmt(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := cli.NewMockUi()
+			ui := testUiWrapped(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
@@ -284,7 +284,7 @@ func TestFmt_nonexist(t *testing.T) {
 
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -318,7 +318,7 @@ a = 1 +
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -349,7 +349,7 @@ func TestFmt_snippetInError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -386,7 +386,7 @@ func TestFmt_manyArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -426,7 +426,7 @@ func TestFmt_workingDirectory(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -449,7 +449,7 @@ func TestFmt_directoryArg(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -477,7 +477,7 @@ func TestFmt_fileArg(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -506,7 +506,7 @@ func TestFmt_stdinArg(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -530,7 +530,7 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -558,7 +558,7 @@ func TestFmt_check(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -588,7 +588,7 @@ func TestFmt_checkStdin(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),

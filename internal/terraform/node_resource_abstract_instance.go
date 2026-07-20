@@ -120,10 +120,10 @@ func (n *NodeAbstractResourceInstance) ReferenceableAddrs() []addrs.Referenceabl
 	}
 }
 
-// destroyActionReferences are used by destroy nodes to ensure that only actions
+// destroyActionPlanReferences are used by destroy nodes to ensure that only actions
 // are connected by references, since a destroy node cannot reference anything
 // else from the config.
-func (n *NodeAbstractResourceInstance) destroyActionReferences() []*addrs.Reference {
+func (n *NodeAbstractResourceInstance) destroyActionPlanReferences() []*addrs.Reference {
 	var refs []*addrs.Reference
 	// Resources are destroyed using their state, but we do need to evaluate any
 	// potential destroy actions.
@@ -3148,6 +3148,7 @@ func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalCont
 					ActionTriggerBlockIndex: blockIdx,
 					ActionsListIndex:        listIdx,
 				},
+				Caller: n.Addr.Resource,
 			}, reason)
 		}
 	}
@@ -3168,10 +3169,8 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 
 	for _, trigger := range n.actionTriggers {
 		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
-		cond := cty.True
 		if trigger.config.Condition != nil {
-			var conditionEvalDiags tfdiags.Diagnostics
-			cond, conditionEvalDiags = scope.EvalExpr(trigger.config.Condition, cty.Bool)
+			cond, conditionEvalDiags := scope.EvalExpr(trigger.config.Condition, cty.Bool)
 			diags = diags.Append(conditionEvalDiags)
 			if diags.HasErrors() {
 				continue
@@ -3189,22 +3188,13 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 		// though because the event is set within a nested interface inside a
 		// pointer to the ActionInvocationInstance.
 		for _, event := range eventsForPlannedAction(trigger.config.Events, change.Action) {
-			if event.IsDestroy() && !cond.IsKnown() {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unknown action trigger condition",
-					Detail:   "Condition expression must be known to plan a destroy action.",
-					Subject:  trigger.config.Condition.Range().Ptr(),
-				})
-				return diags
-			}
-
 			for _, action := range trigger.actionRefs {
 				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event, change)
 				diags = diags.Append(planDiags)
 				if diags.HasErrors() {
-					return diags
+					continue
 				}
+				ai.ActionTrigger.(*plans.ResourceActionTrigger).ActionOnFailure = trigger.config.OnFailure
 
 				if deferred {
 					log.Printf("[DEBUG] NodePlannableResourceInstance %s is being deferred due to action %s", n.Addr, action.actionNode.Addr)
@@ -3249,6 +3239,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 			ActionTriggerEvent:      event,
 		},
 		ProviderAddr: actionRef.actionNode.ResolvedProvider,
+		Caller:       n.Addr.Resource,
 	}
 
 	// check if this action was previously deferred
@@ -3341,7 +3332,7 @@ func (n *NodeAbstractResourceInstance) planActionTrigger(ctx EvalContext, resRep
 // being able to order dependencies without causing cycles. The entire config
 // and condition must be known at plan time, so if we have a planned action we
 // simply decode and call invoke.
-func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, forEvent configs.ActionTriggerEvent) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, forEvent configs.ActionTriggerEvent, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for _, trigger := range n.actionApplyTriggers {
@@ -3351,7 +3342,16 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 		}
 
 		log.Printf("[DEBUG] NodeAbstractResourceInstance: invoking destroy action %s", trigger.ActionInvocation.Addr)
-		diags = diags.Append(trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true))
+		invokeDiags := trigger.Invoke(ctx, n.Addr.Resource, cty.DynamicVal, true)
+
+		// a full destroy walk must never be blocked
+		onFailureContinue := op == walkDestroy || trigger.ActionInvocation.ActionTrigger.OnFailure() == configs.ActionOnFailureContinue
+
+		if onFailureContinue {
+			invokeDiags = tfdiags.OverrideAll(invokeDiags, tfdiags.Warning, nil)
+		}
+		diags = diags.Append(invokeDiags)
+
 		if diags.HasErrors() {
 			break
 		}
@@ -3371,7 +3371,7 @@ func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData in
 			continue
 		}
 
-		onFailure := n.getApplyActionTriggerBlock(trigger).OnFailure
+		onFailure := trigger.ActionInvocation.ActionTrigger.OnFailure()
 
 		condOK, condDiags := n.evalApplyActionCondition(ctx, trigger, repData)
 		diags = diags.Append(condDiags)

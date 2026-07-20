@@ -78,8 +78,13 @@ func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 	}
 	v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\n" + summary))
 	if v.countHook.ActionInvocation > 0 {
-		v.view.streams.Print(v.view.colorize.Color(fmt.Sprintf("[reset][bold][green] Actions: %d invoked.", v.countHook.ActionInvocation)))
+		msg := fmt.Sprintf("[reset][bold][green] Actions: %d invoked", v.countHook.ActionInvocation)
+		if v.countHook.ActionFail > 0 {
+			msg = fmt.Sprintf("%s, %d failed", msg, v.countHook.ActionFail)
+		}
+		v.view.streams.Print(v.view.colorize.Color(msg + "."))
 	}
+
 	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
 		v.view.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.view.outputColumns()))
@@ -142,6 +147,7 @@ func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 		Remove:           v.countHook.Removed,
 		Import:           v.countHook.Imported,
 		ActionInvocation: v.countHook.ActionInvocation,
+		ActionFail:       v.countHook.ActionFail,
 		Operation:        operation,
 	})
 }

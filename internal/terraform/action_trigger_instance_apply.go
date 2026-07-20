@@ -25,7 +25,7 @@ type actionTriggerApplyInstance struct {
 
 var (
 	// this doesn't operate as an independent node in the graph, but we obtain
-	// the relevant information for evaluataion via these interfaces
+	// the relevant information for evaluation via these interfaces
 	_ GraphNodeReferencer       = (*actionTriggerApplyInstance)(nil)
 	_ GraphNodeProviderConsumer = (*actionTriggerApplyInstance)(nil)
 )

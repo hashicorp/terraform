@@ -577,8 +577,6 @@ type ActionInvocationInstanceSrc struct {
 	SensitiveConfigPaths []cty.Path
 
 	ProviderAddr addrs.AbsProviderConfig
-
-	Caller addrs.Referenceable
 }
 
 // Decode unmarshals the raw representation of actions.
@@ -617,30 +615,4 @@ func (acs *ActionInvocationInstanceSrc) Less(other *ActionInvocationInstanceSrc)
 		return acs.Addr.Less(other.Addr)
 	}
 	return acs.ActionTrigger.Less(other.ActionTrigger)
-}
-
-// FilterLaterActionInvocations returns the list of action invocations that
-// should be triggered after this one. This function assumes the supplied list
-// of action invocations has already been filtered to invocations against the
-// same resource as the current invocation.
-func (acs *ActionInvocationInstanceSrc) FilterLaterActionInvocations(actionInvocations []*ActionInvocationInstanceSrc) []*ActionInvocationInstanceSrc {
-	needleLat := acs.ActionTrigger.(*ResourceActionTrigger)
-
-	var laterInvocations []*ActionInvocationInstanceSrc
-	for _, invocation := range actionInvocations {
-		if lat, ok := invocation.ActionTrigger.(*ResourceActionTrigger); ok {
-			if sameTriggerEvent(lat, needleLat) && triggersLater(lat, needleLat) {
-				laterInvocations = append(laterInvocations, invocation)
-			}
-		}
-	}
-	return laterInvocations
-}
-
-func sameTriggerEvent(one, two *ResourceActionTrigger) bool {
-	return one.ActionTriggerEvent == two.ActionTriggerEvent
-}
-
-func triggersLater(one, two *ResourceActionTrigger) bool {
-	return one.ActionTriggerBlockIndex > two.ActionTriggerBlockIndex || (one.ActionTriggerBlockIndex == two.ActionTriggerBlockIndex && one.ActionsListIndex > two.ActionsListIndex)
 }

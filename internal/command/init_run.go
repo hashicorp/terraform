@@ -4,13 +4,11 @@
 package command
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -100,7 +98,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 		span.End()
 
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If our directory is empty, then we're done. We can't get or set up
@@ -124,7 +122,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// be the first error displayed if that is an issue, but other operations are required
 	// before being able to check core version requirements.
 	if rootModEarly == nil {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		diags = diags.Append(errors.New(errInitConfigError), earlyConfDiags)
 		view.Diagnostics(diags)
 
 		return 1
@@ -231,54 +229,28 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			}
 		}
 
-		var configProvidersOutput bool
-		var safeInitAction SafeInitAction
+		var getPSSProviderOutput bool
+		var safeInstallAction SafeStateStoreProviderInstallAction
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var configProviderDiags tfdiags.Diagnostics
-		configProvidersOutput, pssLock, safeInitAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-		diags = diags.Append(configProviderDiags)
-		if configProviderDiags.HasErrors() {
+		var getPSSProviderDiags tfdiags.Diagnostics
+		getPSSProviderOutput, pssLock, safeInstallAction, stateStoreProviderAuthResult, getPSSProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		diags = diags.Append(getPSSProviderDiags)
+		if getPSSProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
-		if configProvidersOutput {
+		if getPSSProviderOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 
-		// Course of action depends on the safeInitAction returned from getProvidersFromPSSConfig
-		switch safeInitAction {
-		case SafeInitActionProceed:
-			// do nothing; provider is already trusted and there's no need to notify the user.
-		case SafeInitActionRequireApproval:
-			if c.input {
-				// Prompt the user about trusting the provider used for state storage.
-				diags = diags.Append(c.promptStateStorageProviderApproval(rootModEarly.StateStore.ProviderAddr, pssLock, stateStoreProviderAuthResult))
-				if diags.HasErrors() {
-					view.Output(views.StateStoreProviderInteractiveRejectedMessage)
-					view.Diagnostics(diags)
-					return 1
-				}
-				view.Output(views.StateStoreProviderInteractiveApprovedMessage)
-			} else {
-				// Confirm that a lock was used to control download.
-				// Note: we have to wait and do that here because at this point we know the provider was downloaded from a source that requires additional info about trust.
-				if alteredPreviousLocks.Provider(rootModEarly.StateStore.ProviderAddr) == nil {
-					// No lock was provided for the state store provider either through pre-existing locks or through the -state-provider-lock-file flag.
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Missing lock for state store provider",
-						"Terraform is initializing a state store for the first time in a non-interactive mode. In this scenario Terraform needs a pre-existing dependency lock for the state store provider to be present in the working directory's dependency lock file, or present in another file supplied via the -state-provider-lock-file flag. No lock was found for the state store provider. Please re-run the command using the -state-provider-lock-file flag.",
-					))
-					view.Diagnostics(diags)
-					return 1
-				}
-				view.Output(views.StateStoreProviderAutomationApprovedMessage)
-			}
-		default:
-			// Handle SafeInitActionInvalid or unexpected action types
-			panic(fmt.Sprintf("When installing providers described in the config Terraform couldn't determine what 'safe init' action should be taken and returned action type %T. This is a bug in Terraform and should be reported.", safeInitAction))
+		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
+		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
+		diags = diags.Append(safeDiags)
+		if safeDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
 		}
 
 		// Record how the state store provider is supplied to Terraform
@@ -304,7 +276,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if backendOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Set up the policy client now that the backend is configured, so the
@@ -371,7 +343,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		if modsOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 	}
 
@@ -398,7 +370,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -413,7 +385,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// 3. Show any errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -437,16 +409,16 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// `getProviders`, else that method could download the PSS provider a second time, or download a different version.
 		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLock, previousLocksWithPSSOverride)
 	}
-	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
-	diags = diags.Append(stateProvidersDiags)
-	if stateProvidersDiags.HasErrors() {
+	getProvidersOutput, finalLocks, getProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
+	diags = diags.Append(getProvidersDiags)
+	if getProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
-	if stateProvidersOutput {
+	if getProvidersOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Update the dependency lock file, if it has changed.
@@ -457,7 +429,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// will not use it due to the lock file being unchanged.
 		finalLocks = c.mergeLockedDependencies(pssLock, finalLocks)
 	}
-	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, initArgs.Lockfile, view)
+	lockFileOutput, lockFileDiags := c.saveDependencyLockFile(previousLocks, finalLocks, c.incompleteProviders, initArgs.Lockfile, view)
 	diags = diags.Append(lockFileDiags)
 	if lockFileDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -466,7 +438,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if lockFileOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If we accumulated any warnings along the way that weren't accompanied
@@ -492,56 +464,4 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		view.Output(output)
 	}
 	return 0
-}
-
-// promptStateStorageProviderApproval is used when Terraform is unsure about the safety of the provider downloaded for state storage
-// purposes, and we need to prompt the user to approve or reject using it.
-func (c *InitCommand) promptStateStorageProviderApproval(stateStorageProvider addrs.Provider, configLocks *depsfile.Locks, authResult *getproviders.PackageAuthenticationResult) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// If we can receive input then we prompt for ok from the user
-	lock := configLocks.Provider(stateStorageProvider)
-
-	var hashList strings.Builder
-	for _, hash := range lock.PreferredHashes() {
-		hashList.WriteString(fmt.Sprintf("- %s\n", hash))
-	}
-
-	var authentication string
-	if authResult != nil && authResult.KeyID != "" {
-		authentication = fmt.Sprintf("%s, key ID %s", authResult.String(), authResult.KeyID)
-	} else {
-		authentication = authResult.String()
-	}
-
-	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "approve",
-		Query: fmt.Sprintf(`Do you want to use provider %q (%s), version %s, for managing state?
-Platform: %s
-Authentication: %s
-Hashes:
-%s
-`,
-			lock.Provider().Type,
-			lock.Provider(),
-			lock.Version(),
-			getproviders.CurrentPlatform.String(),
-			authentication,
-			hashList.String(),
-		),
-		Description: fmt.Sprintf(`Check the details above for provider %q and confirm that you trust the provider.
-	Only 'yes' will be accepted to confirm.`, lock.Provider().Type),
-	})
-	if err != nil {
-		return diags.Append(fmt.Errorf("Failed to approve use of state storage provider: %s", err))
-	}
-	if v != "yes" {
-		return diags.Append(
-			fmt.Errorf("State store provider %q (%s) was not approved, so init cannot continue.",
-				lock.Provider().Type,
-				lock.Provider(),
-			),
-		)
-	}
-	return diags
 }
