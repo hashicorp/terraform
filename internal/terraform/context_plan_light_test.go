@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -66,10 +68,12 @@ resource "test_object" "changed" {
 		)
 	})
 
+	hook := &testHook{}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
+		Hooks: []Hook{hook},
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
@@ -92,6 +96,27 @@ resource "test_object" "changed" {
 	changed := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.changed"))
 	if got, want := changed.Action, plans.Update; got != want {
 		t.Errorf("test_object.changed: wrong plan action - got: %s, want: %s", got, want)
+	}
+
+	// Assert that the correct hooks are called + no duplicates
+	wantHookCalls := []*testHookCall{
+		{"PreRefresh", "test_object.changed"},
+		{"PostRefresh", "test_object.changed"},
+		{"PreDiff", "test_object.changed"},
+		{"PostDiff", "test_object.changed"},
+		{"PreDiff", "test_object.noop"},
+		{"PostDiff", "test_object.noop"},
+	}
+
+	sortHookCalls := cmpopts.SortSlices(func(a, b *testHookCall) bool {
+		if a.InstanceID == b.InstanceID {
+			return a.Action > b.Action
+		}
+		return a.InstanceID > b.InstanceID
+	})
+
+	if diff := cmp.Diff(wantHookCalls, hook.Calls, sortHookCalls); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
 	}
 }
 
@@ -323,7 +348,6 @@ func TestContext2Plan_light_lifecycle_conditions_noop(t *testing.T) {
 	}
 }
 
-// TODO:@austinvalle: This test will panic until I update the logic to avoid evaluating the precondition twice
 func TestContext2Plan_light_lifecycle_conditions_update(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": lightPlanConditionsConfig("new"),
