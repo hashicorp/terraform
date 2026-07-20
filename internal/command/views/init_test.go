@@ -473,7 +473,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 }
 
 // Assert message content
-func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
+func TestNewInit_LogProviderVersionSuccess(t *testing.T) {
 	const verifiedChecksum = 0
 	const officialProvider = 1
 	const noKey = ""
@@ -487,7 +487,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		var authResult *getproviders.PackageAuthenticationResult = nil
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -505,7 +505,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		var authResult *getproviders.PackageAuthenticationResult = nil
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output - human
 		output := done(t)
@@ -523,7 +523,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -541,7 +541,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output - human
 		output := done(t)
@@ -560,7 +560,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -579,7 +579,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
 
-		initView.InstalledProviderVersionInfo(p, ver, authResult)
+		initView.LogProviderVersionSuccess(p, ver, authResult)
 
 		// Assert output - human
 		output := done(t)
@@ -591,7 +591,7 @@ func TestNewInit_InstalledProviderVersionInfo(t *testing.T) {
 }
 
 // Assert message content
-func TestNewInit_InstalledProviderVersionInfoWithKeyID(t *testing.T) {
+func TestNewInit_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 	const partnerProvider = 2
 
 	t.Run("partner provider auth result - human view", func(t *testing.T) {
@@ -604,7 +604,7 @@ func TestNewInit_InstalledProviderVersionInfoWithKeyID(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
 
-		initView.InstalledProviderVersionInfoWithKeyID(p, ver, authResult, key)
+		initView.LogProviderVersionSuccessWithKeyID(p, ver, authResult, key)
 
 		// Assert output - human
 		output := done(t)
@@ -623,7 +623,7 @@ func TestNewInit_InstalledProviderVersionInfoWithKeyID(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
 
-		initView.InstalledProviderVersionInfoWithKeyID(p, ver, authResult, key)
+		initView.LogProviderVersionSuccessWithKeyID(p, ver, authResult, key)
 
 		// Assert output - human
 		output := done(t)
@@ -635,7 +635,7 @@ func TestNewInit_InstalledProviderVersionInfoWithKeyID(t *testing.T) {
 }
 
 // Assert JSON log content, including log type and additional fields
-func TestNewInit_InstalledProviderVersionInfo_json(t *testing.T) {
+func TestNewInit_LogProviderVersionSuccess_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
@@ -644,7 +644,7 @@ func TestNewInit_InstalledProviderVersionInfo_json(t *testing.T) {
 	v := versions.MustParseVersion("1.0.0")
 	officialProvider := 1
 	authResult := getproviders.NewPackageAuthenticationResult(officialProvider, "key-id-123")
-	initView.InstalledProviderVersionInfo(p, v, authResult)
+	initView.LogProviderVersionSuccess(p, v, authResult)
 
 	// Assert output
 	output := done(t)
@@ -664,7 +664,7 @@ func TestNewInit_InstalledProviderVersionInfo_json(t *testing.T) {
 // Assert JSON log content, including log type and additional fields
 //
 // Note - in calling code this is only ever used for partner providers
-func TestNewInit_InstalledProviderVersionInfoWithKeyID_json(t *testing.T) {
+func TestNewInit_LogProviderVersionSuccessWithKeyID_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
@@ -674,7 +674,7 @@ func TestNewInit_InstalledProviderVersionInfoWithKeyID_json(t *testing.T) {
 	partnerProvider := 2
 	keyID := "key-id-123"
 	authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, keyID)
-	initView.InstalledProviderVersionInfoWithKeyID(p, v, authResult, keyID)
+	initView.LogProviderVersionSuccessWithKeyID(p, v, authResult, keyID)
 
 	// Assert output
 	output := done(t)

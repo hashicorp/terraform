@@ -24,8 +24,11 @@ type ProviderInstaller interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Output(messageCode InitMessageCode, params ...any)
 
-	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
-	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	// Log details about a successfully fetched provider package.
+	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+
+	// Log details about a successfully fetched provider package, including details about the key used to sign it.
+	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -41,8 +44,8 @@ type Init interface {
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
-	InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
-	InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -100,12 +103,12 @@ func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
-func (v *InitHuman) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
@@ -195,7 +198,7 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitJSON) InstalledProviderVersionInfo(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+func (v *InitJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
@@ -203,7 +206,7 @@ func (v *InitJSON) InstalledProviderVersionInfo(providerAddr addrs.Provider, ver
 	v.logInitMessage(InstalledProviderVersionInfo, params...)
 }
 
-func (v *InitJSON) InstalledProviderVersionInfoWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+func (v *InitJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
