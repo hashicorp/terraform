@@ -88,7 +88,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		// validate each part
 		// The legacy provider namespace is a special case.
 		if namespace != addrs.LegacyProviderNamespace {
-			_, err = addrs.ParseProviderPart(namespace)
+			_, err = addrs.ParseProviderNamespace(namespace)
 			if err != nil {
 				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
 				return nil

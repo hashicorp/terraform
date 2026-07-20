@@ -172,7 +172,7 @@ func ParseMultiSourceMatchingPatterns(strs []string) (MultiSourceMatchingPattern
 		if err != nil {
 			return nil, fmt.Errorf("invalid provider type %q in provider matching pattern %q: must either be the wildcard * or a provider type name", parts[1], str)
 		}
-		namespace, err := normalizeProviderNameOrWildcard(parts[0])
+		namespace, err := normalizeProviderNamespaceOrWildcard(parts[0])
 		if err != nil {
 			return nil, fmt.Errorf("invalid registry namespace %q in provider matching pattern %q: must either be the wildcard * or a literal namespace", parts[1], str)
 		}
@@ -239,6 +239,13 @@ func normalizeProviderNameOrWildcard(s string) (string, error) {
 		return s, nil
 	}
 	return addrs.ParseProviderPart(s)
+}
+
+func normalizeProviderNamespaceOrWildcard(s string) (string, error) {
+	if s == Wildcard {
+		return s, nil
+	}
+	return addrs.ParseProviderNamespace(s)
 }
 
 func (s MultiSource) ForDisplay(provider addrs.Provider) string {
