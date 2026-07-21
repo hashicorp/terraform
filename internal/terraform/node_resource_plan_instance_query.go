@@ -159,7 +159,11 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	if ctx.PolicyClient() != nil {
 		var policyDiags tfdiags.Diagnostics
 		policyInputs, policyDiags = n.generateListResourcePolicyData(ctx, addr, resp.Result.GetAttr("data"))
-		// Will only include warning diags so no need to check for HasErrors
+		// generateListResourcePolicyData should only return warnings, never errors.
+		// If it returns errors, this is a bug that must be fixed in that function.
+		if policyDiags.HasErrors() {
+			panic(fmt.Sprintf("generateListResourcePolicyData returned errors for %s. This is a bug in Terraform and should be reported. Errors: %s", addr, policyDiags.Err()))
+		}
 		diags = diags.Append(policyDiags)
 	}
 	if ctx.PolicyGraph() != nil {
