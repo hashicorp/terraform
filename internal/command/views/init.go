@@ -482,22 +482,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from HCP Terraform or Terraform Enterprise to local state.",
 		JSONValue:  "Migrating from HCP Terraform or Terraform Enterprise to local state.",
 	},
-	"backend_cloud_migrate_state_store": {
-		HumanValue: "Migrating from HCP Terraform Terraform Enterprise to state store %q.",
-		JSONValue:  "Migrating from HCP Terraform Terraform Enterprise to state store %q.",
-	},
-	"backend_migrate_state_store": {
-		HumanValue: "Migrating from backend %q to state store %q.",
-		JSONValue:  "Migrating from backend %q to state store %q.",
-	},
-	"state_store_migrate_local": {
-		HumanValue: stateMigrateLocalHuman,
-		JSONValue:  stateMigrateLocalJSON,
-	},
-	"state_store_migrate_state_store": {
-		HumanValue: "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
-		JSONValue:  "Migrating from state store %q (%s) to %q (%s). Reason: %s.",
-	},
 }
 
 type InitMessageCode string
@@ -545,14 +529,6 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-	// BackendCloudMigrateStateStoreMessage indicates migration from cloud to a state store
-	BackendCloudMigrateStateStoreMessage InitMessageCode = "backend_cloud_migrate_state_store"
-	// BackendMigrateStateStoreMessage indicates migration from a backend to a state store
-	BackendMigrateStateStoreMessage InitMessageCode = "backend_migrate_state_store"
-	// StateMigrateLocalMessage indicates migration from state store to local
-	StateMigrateLocalMessage InitMessageCode = "state_store_migrate_local"
-	// StateStoreMigrationMessage indicates migration from state store to state store
-	StateStoreMigrationMessage InitMessageCode = "state_store_migrate_state_store"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
 	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
@@ -692,7 +668,3 @@ has changed. Terraform will now check for existing state in the backends.`
 const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
 
 const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
-
-const stateMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q state store.`
-
-const stateMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q state store.`
