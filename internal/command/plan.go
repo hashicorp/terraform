@@ -222,10 +222,10 @@ Plan Customization Options:
                       actions to undo any changes made outside of Terraform.
 
   -refresh-on-change  Skips refreshing remote objects managed by this configuration
-					  when an initial plan indicates that the object has not changed
-					  since the most recent Terraform apply. This can potentially make
+                      when an initial plan indicates that the object has not changed
+                      since the most recent Terraform apply. This can potentially make
                       planning faster, but at the expense of possibly planning against
-					  a stale record of the remote system state.
+                      a stale record of the remote system state.
 
   -refresh=false      Skip checking for external changes to remote objects
                       while creating the plan. This can potentially make
