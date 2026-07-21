@@ -53,6 +53,11 @@ type PlanOpts struct {
 	// pre-destroy plan removed entirely.
 	PreDestroyRefresh bool
 
+	// RefreshOnChange will run an initial plan for each resource prior to refreshing:
+	//   - If the plan returns a no-op, then the resource won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the resource will be refreshed and another plan will be run.
+	RefreshOnChange bool
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
@@ -169,9 +174,6 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
-
-	// TODO:@austinvalle: docs
-	PlanLight bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -297,14 +299,15 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		}
 	}
 
-	if opts.PlanLight {
+	if opts.RefreshOnChange {
+		// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
 		if opts.Mode != plans.NormalMode {
 			// The CLI layer (and other similar callers) should prevent this
 			// combination of options.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
-				fmt.Sprintf("The -light planning option is only allowed in normal planning mode, got %s. This is a bug in Terraform.", opts.Mode),
+				fmt.Sprintf("The -refresh-on-change planning option is only allowed in normal planning mode, got %s. This is a bug in Terraform.", opts.Mode),
 			))
 			return nil, nil, diags
 		}
@@ -314,7 +317,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
-				"The -light planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
+				"The -refresh-on-change planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
 			))
 			return nil, nil, diags
 		}
@@ -1054,7 +1057,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
-			planLight:                 opts.PlanLight,
+			refreshOnChange:           opts.RefreshOnChange,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1081,7 +1084,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:             opts.SkipRefresh,
 			skipPlanChanges:         true, // this activates "refresh only" mode.
 
-			planLight:                 false,
+			refreshOnChange:           false,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1092,14 +1095,15 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			skipRefresh:               opts.SkipRefresh,
-			planLight:                 false,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			skipRefresh:             opts.SkipRefresh,
+			// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
+			refreshOnChange:           false,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,

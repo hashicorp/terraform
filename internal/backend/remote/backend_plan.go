@@ -176,11 +176,11 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		}
 	}
 
-	if op.PlanLight {
+	if op.PlanRefreshOnChange {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Light plan mode is currently not supported",
-			`The "remote" backend does not support -light mode for `+
+			"Refresh on change mode is currently not supported",
+			`The "remote" backend does not support -refresh-on-change mode for `+
 				`remote plans at this time.`,
 		))
 	}

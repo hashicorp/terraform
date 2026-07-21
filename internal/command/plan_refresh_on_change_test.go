@@ -13,9 +13,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestApply_light(t *testing.T) {
+func TestPlan_refresh_on_change(t *testing.T) {
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("apply-light"), td)
+	testCopyDir(t, testFixturePath("plan-refresh-on-change"), td)
 	t.Chdir(td)
 
 	testState := states.BuildState(func(s *states.SyncState) {
@@ -27,7 +27,7 @@ func TestApply_light(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				// No refresh should occur because the state + config will produce a no-op
-				AttrsJSON: []byte(`{"id":"bar","ami": "bar"}`),
+				AttrsJSON: []byte(`{"id":"bar","ami": "bar", "network_interface":[]}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
@@ -43,7 +43,7 @@ func TestApply_light(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				// Will prompt a refresh since the config value (ami) has changed
-				AttrsJSON: []byte(`{"id":"quux","ami": "old-value"}`),
+				AttrsJSON: []byte(`{"id":"quux","ami": "old-value", "network_interface":[]}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
@@ -55,7 +55,7 @@ func TestApply_light(t *testing.T) {
 
 	statePath := testStateFile(t, testState)
 
-	p := applyFixtureProvider()
+	p := planFixtureProvider()
 	fooRefreshed := false
 	bazRefreshed := false
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -70,9 +70,8 @@ func TestApply_light(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-
 	view, done := testView(t)
-	c := &ApplyCommand{
+	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			View:             view,
@@ -81,8 +80,7 @@ func TestApply_light(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		"-auto-approve",
-		"-light",
+		"-refresh-on-change",
 	}
 	code := c.Run(args)
 	output := done(t)
@@ -92,18 +90,18 @@ func TestApply_light(t *testing.T) {
 
 	if fooRefreshed {
 		t.Error(`Unexpected call to ReadResource for the "foo" resource. This resource should not be refreshed with ` +
-			`the -light flag as the configuration did not change from prior state.`)
+			`the -refresh-on-change flag as the configuration did not change from prior state.`)
 	}
 
 	if !bazRefreshed {
 		t.Error(`Expected a call to ReadResource for the "baz" resource but received none. This resource should be refreshed with ` +
-			`the -light flag as the configuration changed from prior state.`)
+			`the -refresh-on-change flag as the configuration changed from prior state.`)
 	}
 }
 
-func TestApply_light_invalid_flags(t *testing.T) {
+func TestPlan_refresh_on_change_invalid_flags(t *testing.T) {
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("apply-light"), td)
+	testCopyDir(t, testFixturePath("plan-refresh-on-change"), td)
 	t.Chdir(td)
 
 	testCases := map[string]struct {
@@ -111,24 +109,24 @@ func TestApply_light_invalid_flags(t *testing.T) {
 		wantErr string
 	}{
 		"destroy": {
-			args:    []string{"-light", "-destroy"},
+			args:    []string{"-refresh-on-change", "-destroy"},
 			wantErr: "Incompatible plan mode options",
 		},
 		"refresh-only": {
-			args:    []string{"-light", "-refresh-only"},
+			args:    []string{"-refresh-on-change", "-refresh-only"},
 			wantErr: "Incompatible plan mode options",
 		},
 		"refresh-false": {
-			args:    []string{"-light", "-refresh=false"},
+			args:    []string{"-refresh-on-change", "-refresh=false"},
 			wantErr: "Incompatible refresh options",
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			p := applyFixtureProvider()
+			p := planFixtureProvider()
 			view, done := testView(t)
-			c := &ApplyCommand{
+			c := &PlanCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
 					View:             view,

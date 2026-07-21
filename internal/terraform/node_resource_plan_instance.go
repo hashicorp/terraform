@@ -44,8 +44,10 @@ type NodePlannableResourceInstance struct {
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
 
-	// TODO:@austinvalle: docs
-	planLight bool
+	// refreshOnChange indicates that we should run an initial plan for the resource instance prior to refreshing:
+	//   - If the plan returns a no-op, then the resource won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the resource will be refreshed and another plan will be run.
+	refreshOnChange bool
 
 	// replaceTriggeredBy stores references from replace_triggered_by which
 	// triggered this instance to be replaced.
@@ -326,28 +328,28 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// provided doesn't produce a change on it's own, which we will confirm by running an initial plan
 	// prior to refreshing the state. If that plan is a no-op we skip refreshing the state before the normal plan runs.
 	//
-	// In light mode we will always run two plans, where the first plan will suppress any side effects (hooks/preconditions/etc).
+	// In -refresh-on-change mode we will always run two plans, where the first plan will suppress any side effects (hooks/preconditions/etc).
 	// This is done because hooks in pre/post plan receive the prior state and we should not call those hooks multiple times with
 	// different state values.
-	if n.planLight && !schemaVersionUpgraded && !importing {
+	if n.refreshOnChange && !schemaVersionUpgraded && !importing {
 		// If we end up running a follow-up refresh/plan, we don't want to duplicate any warning diagnostics
-		planLightDiags := diags
+		initialPlanDiags := diags
 
 		// add this instance to n.forceReplace if replacement is triggered by another change
-		planLightDiags = planLightDiags.Append(n.replaceTriggered(ctx, repData))
-		if planLightDiags.HasErrors() {
+		initialPlanDiags = initialPlanDiags.Append(n.replaceTriggered(ctx, repData))
+		if initialPlanDiags.HasErrors() {
 			// Pre-Diff error hook
-			planLightDiags = planLightDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, planLightDiags.Err())
+			initialPlanDiags = initialPlanDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, cty.DynamicVal, cty.DynamicVal, initialPlanDiags.Err())
 			}))
-			return planLightDiags
+			return initialPlanDiags
 		}
 
 		change, _, planDeferred, planDiags := n.plan(
 			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, repData, true,
 		)
-		planLightDiags = planLightDiags.Append(planDiags)
-		if planLightDiags.HasErrors() {
+		initialPlanDiags = initialPlanDiags.Append(planDiags)
+		if initialPlanDiags.HasErrors() {
 			// If we are importing and generating a configuration, we need to
 			// ensure the change is written out so the configuration can be
 			// captured.
@@ -365,22 +367,22 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 						GeneratedConfig: n.generatedConfigHCL,
 					},
 				}
-				planLightDiags = planLightDiags.Append(n.writeChange(ctx, change, states.NotDeposed))
+				initialPlanDiags = initialPlanDiags.Append(n.writeChange(ctx, change, states.NotDeposed))
 			}
 
-			return planLightDiags
+			return initialPlanDiags
 		}
 
 		if change.Action == plans.NoOp {
-			log.Printf("[DEBUG] Plan light mode: skipping refresh as the initial plan is a no-op for %s", addr)
+			log.Printf("[DEBUG] Refresh on change mode: skipping refresh as the initial plan is a no-op for %s", addr)
 			n.skipRefresh = true
 		} else {
-			log.Printf("[DEBUG] Plan light mode: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
+			log.Printf("[DEBUG] Refresh on change mode: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
 		}
 	}
 
-	if n.planLight && schemaVersionUpgraded {
-		log.Printf("[DEBUG] Plan light mode: refreshing resource as the schema version has been updated for %s", addr)
+	if n.refreshOnChange && schemaVersionUpgraded {
+		log.Printf("[DEBUG] Refresh on change mode: refreshing resource as the schema version has been updated for %s", addr)
 	}
 
 	// Refresh, maybe

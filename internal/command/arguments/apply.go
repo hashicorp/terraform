@@ -153,11 +153,12 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 		))
 	}
 
-	if apply.Operation.Light {
+	// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
+	if apply.Operation.RefreshOnChange {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid mode option",
-			"The -light option is not valid for \"terraform destroy\".",
+			"The -refresh-on-change option is not valid for \"terraform destroy\".",
 		))
 	}
 

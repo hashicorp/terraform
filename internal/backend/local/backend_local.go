@@ -190,7 +190,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		Query:              op.Query,
 		ProviderLocks:      providerLocksSnapshot(op.DependencyLocks),
 		PolicyClient:       run.PolicyClient,
-		PlanLight:          op.PlanLight,
+		RefreshOnChange:    op.PlanRefreshOnChange,
 	}
 	run.PlanOpts = planOpts
 

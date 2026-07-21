@@ -69,8 +69,8 @@ func TestParseRefresh_invalid(t *testing.T) {
 	}
 }
 
-func TestParseRefresh_light(t *testing.T) {
-	_, diags := ParseRefresh([]string{"-light"})
+func TestParseRefresh_refresh_on_change(t *testing.T) {
+	_, diags := ParseRefresh([]string{"-refresh-on-change"})
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}

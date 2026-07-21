@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestContext2Plan_light(t *testing.T) {
+func TestContext2Plan_refresh_on_change(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "noop" {
@@ -35,7 +35,7 @@ resource "test_object" "changed" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 
 	var mu sync.Mutex
 	refreshedIDs := map[string]bool{}
@@ -77,8 +77,8 @@ resource "test_object" "changed" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
@@ -120,7 +120,7 @@ resource "test_object" "changed" {
 	}
 }
 
-func TestContext2Plan_light_for_each(t *testing.T) {
+func TestContext2Plan_refresh_on_change_for_each(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -133,7 +133,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 
 	var mu sync.Mutex
 	refreshedIDs := map[string]bool{}
@@ -173,8 +173,8 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
@@ -195,7 +195,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_provider_update_will_refresh(t *testing.T) {
+func TestContext2Plan_refresh_on_change_provider_update_will_refresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -204,7 +204,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		// The provider always plans "computed" as "forced", which differs from the
 		// value in state, producing a change even though "arg" is unchanged in the config.
@@ -212,7 +212,7 @@ resource "test_object" "a" {
 		planned["computed"] = cty.StringVal("forced")
 		return providers.PlanResourceChangeResponse{PlannedState: cty.ObjectVal(planned)}
 	}
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"old"}`, 0, false)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"old"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -221,14 +221,14 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.ReadResourceCalled {
 		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
-			`the -light flag as the provider produced a change.`)
+			`the -refresh-on-change flag as the provider produced a change.`)
 	}
 
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
@@ -237,7 +237,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_schema_upgrade_will_refresh(t *testing.T) {
+func TestContext2Plan_refresh_on_change_schema_upgrade_will_refresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -248,8 +248,8 @@ resource "test_object" "a" {
 
 	// Provider schema is at version 1, but the stored state is at version 0, so
 	// reading the state performs a schema version upgrade, which will prompt a refresh
-	p := lightPlanTestProvider(1)
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(1)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -258,8 +258,8 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
@@ -268,7 +268,7 @@ resource "test_object" "a" {
 	}
 	if !p.ReadResourceCalled {
 		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
-			`the -light flag as the provider schema version was upgraded.`)
+			`the -refresh-on-change flag as the provider schema version was upgraded.`)
 	}
 
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
@@ -277,7 +277,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_ignore_changes_noop(t *testing.T) {
+func TestContext2Plan_refresh_on_change_ignore_changes_noop(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -289,8 +289,8 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
-	state := lightPlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(0)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -299,14 +299,14 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as ignore_changes should make the plan a no-op.`)
+			`the -refresh-on-change flag as ignore_changes should make the plan a no-op.`)
 	}
 
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
@@ -315,13 +315,13 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_lifecycle_conditions_noop(t *testing.T) {
+func TestContext2Plan_refresh_on_change_lifecycle_conditions_noop(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
-		"main.tf": lightPlanConditionsConfig("foo"),
+		"main.tf": refreshOnChangePlanConditionsConfig("foo"),
 	})
 
-	p := lightPlanTestProvider(0)
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(0)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -330,16 +330,16 @@ func TestContext2Plan_light_lifecycle_conditions_noop(t *testing.T) {
 	})
 
 	opts := &PlanOpts{
-		Mode:         plans.NormalMode,
-		PlanLight:    true,
-		SetVariables: testInputValuesUnset(m.Module.Variables),
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
+		SetVariables:    testInputValuesUnset(m.Module.Variables),
 	}
 	plan, diags := ctx.Plan(m, state, opts)
 	tfdiags.AssertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as the configuration did not change from prior state.`)
+			`the -refresh-on-change flag as the configuration did not change from prior state.`)
 	}
 
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
@@ -348,14 +348,14 @@ func TestContext2Plan_light_lifecycle_conditions_noop(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_light_lifecycle_conditions_update(t *testing.T) {
+func TestContext2Plan_refresh_on_change_lifecycle_conditions_update(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
-		"main.tf": lightPlanConditionsConfig("new"),
+		"main.tf": refreshOnChangePlanConditionsConfig("new"),
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	// Will prompt a refresh since the config value (arg) has changed
-	state := lightPlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -364,9 +364,9 @@ func TestContext2Plan_light_lifecycle_conditions_update(t *testing.T) {
 	})
 
 	opts := &PlanOpts{
-		Mode:         plans.NormalMode,
-		PlanLight:    true,
-		SetVariables: testInputValuesUnset(m.Module.Variables),
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
+		SetVariables:    testInputValuesUnset(m.Module.Variables),
 	}
 
 	plan, diags := ctx.Plan(m, state, opts)
@@ -374,7 +374,7 @@ func TestContext2Plan_light_lifecycle_conditions_update(t *testing.T) {
 
 	if !p.ReadResourceCalled {
 		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
-			`the -light flag as the configuration changed from prior state.`)
+			`the -refresh-on-change flag as the configuration changed from prior state.`)
 	}
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
 	if got, want := change.Action, plans.Update; got != want {
@@ -382,13 +382,13 @@ func TestContext2Plan_light_lifecycle_conditions_update(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_light_precondition_error(t *testing.T) {
+func TestContext2Plan_refresh_on_change_precondition_error(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
-		"main.tf": lightPlanConditionsConfig("foo"),
+		"main.tf": refreshOnChangePlanConditionsConfig("foo"),
 	})
 
-	p := lightPlanTestProvider(0)
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(0)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -397,8 +397,8 @@ func TestContext2Plan_light_precondition_error(t *testing.T) {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 		SetVariables: InputValues{
 			"precond": &InputValue{Value: cty.False, SourceType: ValueFromCaller},
 		},
@@ -411,11 +411,11 @@ func TestContext2Plan_light_precondition_error(t *testing.T) {
 	}
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as the configuration did not change from prior state.`)
+			`the -refresh-on-change flag as the configuration did not change from prior state.`)
 	}
 }
 
-func TestContext2Plan_light_postcondition_error(t *testing.T) {
+func TestContext2Plan_refresh_on_change_postcondition_error(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -430,8 +430,8 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(0)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -440,8 +440,8 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	if !diags.HasErrors() {
 		t.Fatal("expected postcondition failure, got none")
@@ -451,11 +451,11 @@ resource "test_object" "a" {
 	}
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as the configuration did not change from prior state.`)
+			`the -refresh-on-change flag as the configuration did not change from prior state.`)
 	}
 }
 
-func TestContext2Plan_light_create_before_destroy_no_refresh(t *testing.T) {
+func TestContext2Plan_refresh_on_change_create_before_destroy_no_refresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -467,9 +467,9 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	// The state matches the config (no-op) but is not yet marked create_before_destroy.
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -478,14 +478,14 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as the configuration did not change from prior state.`)
+			`the -refresh-on-change flag as the configuration did not change from prior state.`)
 	}
 
 	newState, diags := ctx.Apply(plan, m, nil)
@@ -500,7 +500,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_force_replace(t *testing.T) {
+func TestContext2Plan_refresh_on_change_force_replace(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -509,8 +509,8 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
-	state := lightPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
+	p := refreshOnChangePlanTestProvider(0)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -519,9 +519,9 @@ resource "test_object" "a" {
 	})
 
 	opts := &PlanOpts{
-		Mode:         plans.NormalMode,
-		PlanLight:    true,
-		ForceReplace: []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_object.a")},
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
+		ForceReplace:    []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_object.a")},
 	}
 	plan, diags := ctx.Plan(m, state, opts)
 	tfdiags.AssertNoErrors(t, diags)
@@ -535,7 +535,7 @@ resource "test_object" "a" {
 		t.Fatalf("wrong plan action - got: %s, wanted a replace action", change.Action)
 	}
 }
-func TestContext2Plan_light_replace_triggered_by(t *testing.T) {
+func TestContext2Plan_refresh_on_change_replace_triggered_by(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -551,7 +551,7 @@ resource "test_object" "b" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 
 	var mu sync.Mutex
 	refreshedIDs := map[string]bool{}
@@ -591,8 +591,8 @@ resource "test_object" "b" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
@@ -609,7 +609,7 @@ resource "test_object" "b" {
 	}
 }
 
-func TestContext2Plan_light_tainted(t *testing.T) {
+func TestContext2Plan_refresh_on_change_tainted(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -618,7 +618,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("test_object.a"),
@@ -637,14 +637,14 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.ReadResourceCalled {
 		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
-			`the -light flag as the resource was tainted.`)
+			`the -refresh-on-change flag as the resource was tainted.`)
 	}
 
 	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
@@ -653,7 +653,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_no_duplicate_warnings(t *testing.T) {
+func TestContext2Plan_refresh_on_change_no_duplicate_warnings(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -662,7 +662,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	planCallCount := 0
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		planCallCount++
@@ -676,7 +676,7 @@ resource "test_object" "a" {
 		}
 	}
 
-	state := lightPlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -685,8 +685,8 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 
 	if len(diags.Warnings()) != 1 {
@@ -697,7 +697,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_light_initial_plan_error(t *testing.T) {
+func TestContext2Plan_refresh_on_change_initial_plan_error(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -706,7 +706,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	p := lightPlanTestProvider(0)
+	p := refreshOnChangePlanTestProvider(0)
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		var d tfdiags.Diagnostics
 		d = d.Append(fmt.Errorf("plan error!"))
@@ -716,7 +716,7 @@ resource "test_object" "a" {
 		}
 	}
 
-	state := lightPlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
+	state := refreshOnChangePlanTestState(t, `{"id":"a","arg":"old","computed":"boop"}`, 0, false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -725,19 +725,19 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:      plans.NormalMode,
-		PlanLight: true,
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
 	})
 	if !diags.HasErrors() {
 		t.Fatal("expected an error from the plan")
 	}
 	if p.ReadResourceCalled {
 		t.Fatal(`Unexpected call to ReadResource. The resource in this test should not be refreshed with ` +
-			`the -light flag as the initial plan should error.`)
+			`the -refresh-on-change flag as the initial plan should error.`)
 	}
 }
 
-func TestContext2Plan_light_validation_errors(t *testing.T) {
+func TestContext2Plan_refresh_on_change_validation_errors(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -751,22 +751,22 @@ resource "test_object" "a" {
 		wantErr string
 	}{
 		"destroy mode": {
-			opts:    &PlanOpts{Mode: plans.DestroyMode, PlanLight: true},
-			wantErr: "The -light planning option is only allowed in normal planning mode, got DestroyMode. This is a bug in Terraform.",
+			opts:    &PlanOpts{Mode: plans.DestroyMode, RefreshOnChange: true},
+			wantErr: "The -refresh-on-change planning option is only allowed in normal planning mode, got DestroyMode. This is a bug in Terraform.",
 		},
 		"refresh-only mode": {
-			opts:    &PlanOpts{Mode: plans.RefreshOnlyMode, PlanLight: true},
-			wantErr: "The -light planning option is only allowed in normal planning mode, got RefreshOnlyMode. This is a bug in Terraform.",
+			opts:    &PlanOpts{Mode: plans.RefreshOnlyMode, RefreshOnChange: true},
+			wantErr: "The -refresh-on-change planning option is only allowed in normal planning mode, got RefreshOnlyMode. This is a bug in Terraform.",
 		},
 		"skip refresh": {
-			opts:    &PlanOpts{Mode: plans.NormalMode, PlanLight: true, SkipRefresh: true},
-			wantErr: "The -light planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
+			opts:    &PlanOpts{Mode: plans.NormalMode, RefreshOnChange: true, SkipRefresh: true},
+			wantErr: "The -refresh-on-change planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			p := lightPlanTestProvider(0)
+			p := refreshOnChangePlanTestProvider(0)
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
@@ -784,7 +784,7 @@ resource "test_object" "a" {
 	}
 }
 
-func lightPlanConditionsConfig(arg string) string {
+func refreshOnChangePlanConditionsConfig(arg string) string {
 	return fmt.Sprintf(`
 variable "precond" {
   type    = bool
@@ -807,7 +807,7 @@ resource "test_object" "a" {
 `, arg)
 }
 
-func lightPlanTestProvider(version uint64) *testing_provider.MockProvider {
+func refreshOnChangePlanTestProvider(version uint64) *testing_provider.MockProvider {
 	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
@@ -833,7 +833,7 @@ func lightPlanTestProvider(version uint64) *testing_provider.MockProvider {
 	return p
 }
 
-func lightPlanTestState(t *testing.T, attrsJSON string, schemaVersion uint64, createBeforeDestroy bool) *states.State {
+func refreshOnChangePlanTestState(t *testing.T, attrsJSON string, schemaVersion uint64, createBeforeDestroy bool) *states.State {
 	t.Helper()
 	return states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(

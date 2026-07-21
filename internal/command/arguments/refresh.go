@@ -73,11 +73,11 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 			"Actions cannot be specified during refresh operations."))
 	}
 
-	if refresh.Operation.Light {
+	if refresh.Operation.RefreshOnChange {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid mode option",
-			"The -light option is not valid for \"terraform refresh\".",
+			"The -refresh-on-change option is not valid for \"terraform refresh\".",
 		))
 	}
 

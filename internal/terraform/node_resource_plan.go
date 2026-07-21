@@ -38,8 +38,10 @@ type nodeExpandPlannableResource struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// TODO:@austinvalle: docs
-	planLight bool
+	// refreshOnChange indicates that we should run an initial plan for each instance prior to refreshing:
+	//   - If the plan returns a no-op, then the instance won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the instance will be refreshed and another plan will be run.
+	refreshOnChange bool
 
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
@@ -605,7 +607,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
-			planLight:                n.planLight,
+			refreshOnChange:          n.refreshOnChange,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
 		}
 

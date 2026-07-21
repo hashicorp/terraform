@@ -96,25 +96,25 @@ func TestParsePlan_invalid(t *testing.T) {
 	}
 }
 
-func TestParsePlan_light(t *testing.T) {
+func TestParsePlan_refresh_on_change(t *testing.T) {
 	testCases := map[string]struct {
 		args    []string
 		wantErr string
 	}{
-		"light": {
-			args:    []string{"-light"},
+		"refresh-on-change": {
+			args:    []string{"-refresh-on-change"},
 			wantErr: "",
 		},
-		"light with destroy": {
-			args:    []string{"-light", "-destroy"},
+		"refresh-on-change with destroy": {
+			args:    []string{"-refresh-on-change", "-destroy"},
 			wantErr: "Incompatible plan mode options",
 		},
-		"light with refresh-only": {
-			args:    []string{"-light", "-refresh-only"},
+		"refresh-on-change with refresh-only": {
+			args:    []string{"-refresh-on-change", "-refresh-only"},
 			wantErr: "Incompatible plan mode options",
 		},
-		"light with refresh=false": {
-			args:    []string{"-light", "-refresh=false"},
+		"refresh-on-change with refresh=false": {
+			args:    []string{"-refresh-on-change", "-refresh=false"},
 			wantErr: "Incompatible refresh options",
 		},
 	}
@@ -127,8 +127,8 @@ func TestParsePlan_light(t *testing.T) {
 				if diags.HasErrors() {
 					t.Fatalf("unexpected diags: %v", diags)
 				}
-				if !got.Operation.Light {
-					t.Fatal("expected Light to be set")
+				if !got.Operation.RefreshOnChange {
+					t.Fatal("expected RefreshOnChange to be set")
 				}
 			default:
 				if !diags.HasErrors() {

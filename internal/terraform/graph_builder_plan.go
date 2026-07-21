@@ -76,8 +76,10 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
-	// TODO:@austinvalle: docs
-	planLight bool
+	// refreshOnChange indicates that we should run an initial plan for each resource prior to refreshing:
+	//   - If the plan returns a no-op, then the resource won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the resource will be refreshed and another plan will be run.
+	refreshOnChange bool
 
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
@@ -339,7 +341,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
-			planLight:            b.planLight,
+			refreshOnChange:      b.refreshOnChange,
 		}
 	}
 

@@ -63,8 +63,12 @@ type Operation struct {
 	// state before proceeding. Default is true.
 	Refresh bool
 
-	// TODO:@austinvalle: docs + probably rename this :P
-	Light bool
+	// RefreshOnChange will run an initial plan for each resource prior to refreshing:
+	//   - If the plan returns a no-op, then the resource won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the resource will be refreshed and another plan will be run.
+	//
+	// Default is false.
+	RefreshOnChange bool
 
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
@@ -233,19 +237,20 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
-	if o.Light && o.PlanMode != plans.NormalMode {
+	// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
+	if o.RefreshOnChange && o.PlanMode != plans.NormalMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Incompatible plan mode options",
-			fmt.Sprintf("The -light option can only be used in normal planning mode, but the current mode is %s.", o.PlanMode),
+			fmt.Sprintf("The -refresh-on-change option can only be used in normal planning mode, but the current mode is %s.", o.PlanMode),
 		))
 	}
 
-	if o.Light && !o.Refresh {
+	if o.RefreshOnChange && !o.Refresh {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Incompatible refresh options",
-			"The -light and -refresh=false options are mutually-exclusive, because -light only affects whether Terraform refreshes.",
+			"The -refresh-on-change and -refresh=false options are mutually-exclusive, because -refresh-on-change only affects whether Terraform refreshes.",
 		))
 	}
 
@@ -276,7 +281,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
-		f.BoolVar(&operation.Light, "light", false, "light")
+		f.BoolVar(&operation.RefreshOnChange, "refresh-on-change", false, "refresh-on-change")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")

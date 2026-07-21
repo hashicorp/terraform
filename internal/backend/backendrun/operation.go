@@ -78,6 +78,11 @@ type Operation struct {
 	PlanRefresh bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath string // PlanOutPath is the path to save the plan
 
+	// PlanRefreshOnChange will run an initial plan for each resource prior to refreshing:
+	//   - If the plan returns a no-op, then the resource won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the resource will be refreshed and another plan will be run.
+	PlanRefreshOnChange bool
+
 	// PlanOutBackend is the backend to store with the plan. This is the
 	// backend that will be used when applying the plan.
 	// Only one of PlanOutBackend or PlanOutStateStore may be set.
@@ -171,9 +176,6 @@ type Operation struct {
 	// paths.
 	PolicyPaths  []string
 	PolicyClient policy.Client
-
-	// TODO:@austinvalle: docs
-	PlanLight bool
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value
