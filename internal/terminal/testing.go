@@ -34,6 +34,8 @@ import (
 // any setup errors by logging a message to the given testing.T object and
 // then failing the test, preventing any later code from running.
 func StreamsForTesting(t *testing.T) (streams *Streams, close func(*testing.T) *TestOutput) {
+	t.Helper()
+
 	stdinR, err := os.Open(os.DevNull)
 	if err != nil {
 		t.Fatalf("failed to open /dev/null to represent stdin: %s", err)
@@ -99,6 +101,8 @@ func StreamsForTesting(t *testing.T) (streams *Streams, close func(*testing.T) *
 	go consume(stderrR, true)
 
 	close = func(t *testing.T) *TestOutput {
+		t.Helper()
+
 		err := stdinR.Close()
 		if err != nil {
 			t.Errorf("failed to close stdin handle: %s", err)
