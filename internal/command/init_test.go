@@ -4619,7 +4619,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve": "yes",
+			"approve-provider-test-1.2.3": "yes",
 		})
 
 		ui := testUiWrapped(t)
@@ -4765,7 +4765,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve": "yes",
+			"approve-provider-test-1.2.3": "yes",
 		})
 
 		ui := testUiWrapped(t)
@@ -4845,7 +4845,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve": "no",
+			"approve-provider-test-1.2.3": "no",
 		})
 
 		ui := testUiWrapped(t)
@@ -4942,7 +4942,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Init number 1 - reject the provider
 		_ = testInputMap(t, map[string]string{
-			"approve": "no",
+			"approve-provider-test-1.2.3": "no",
 		})
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
@@ -4984,7 +4984,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Init number 2 - re-prompted for approval
 		_ = testInputMap(t, map[string]string{
-			"approve": "yes",
+			"approve-provider-test-1.2.3": "yes",
 		})
 		args = []string{
 			"-enable-pluggable-state-storage-experiment=true",
@@ -6271,8 +6271,8 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			Meta: Meta{
 				testingOverrides: &testingOverrides{
 					Providers: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))),
-						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_store"))),
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_src"))),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_dst"))),
 					},
 				},
 				ProviderSource:            providerSource,
