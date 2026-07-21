@@ -48,6 +48,7 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 		name             string
 		tfStacksHostname string
 		tfCloudHostname  string
+		tfCLIConfigFile  string
 		credentialsJSON  string
 		wantHostname     string
 		wantErrContains  string
@@ -81,6 +82,18 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 			name:         "missing credentials file falls back to default",
 			wantHostname: defaultHostname,
 		},
+		{
+			name:             "TF_CLI_CONFIG_FILE set, uses credentials from its directory",
+			tfCLIConfigFile:  "custom.tfrc",
+			credentialsJSON:  `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
+			wantHostname:     "tfe.company.com",
+			wantWarnContains: "Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.",
+		},
+		{
+			name:            "TF_CLI_CONFIG_FILE set, no credentials file falls back to default",
+			tfCLIConfigFile: "custom.tfrc",
+			wantHostname:    defaultHostname,
+		},
 	}
 
 	for _, test := range tests {
@@ -97,6 +110,15 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 
 			t.Setenv("TF_STACKS_HOSTNAME", test.tfStacksHostname)
 			t.Setenv("TF_CLOUD_HOSTNAME", test.tfCloudHostname)
+
+			if test.tfCLIConfigFile != "" {
+				overridePath := filepath.Join(dir, test.tfCLIConfigFile)
+				if err := os.WriteFile(overridePath, []byte(""), 0600); err != nil {
+					t.Fatalf("failed to write override config file: %s", err)
+				}
+				t.Setenv("TF_CLI_CONFIG_FILE", overridePath)
+				dir = t.TempDir()
+			}
 
 			c := &StacksCommand{Meta: Meta{CLIConfigDir: dir}}
 			hostname, diags := c.resolveDisplayHostname()

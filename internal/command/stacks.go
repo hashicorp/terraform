@@ -150,7 +150,6 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 
 func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	displayHostname := strings.TrimSpace(os.Getenv("TF_STACKS_HOSTNAME"))
 	if displayHostname != "" {
 		return displayHostname, diags
@@ -161,7 +160,13 @@ func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
 		return displayHostname, diags
 	}
 
-	hosts, err := cliconfig.ReadCredentialHostsInOrder(c.CLIConfigDir)
+	credentialsDirectory := c.CLIConfigDir
+	if override := cliconfig.CLIConfigFileOverride(); override != "" {
+		credentialsDirectory = path.Dir(override)
+		log.Printf("[TRACE] stacksplugin reading credentials from override config directory %q", credentialsDirectory)
+	}
+
+	hosts, err := cliconfig.ReadCredentialHostsInOrder(credentialsDirectory)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
