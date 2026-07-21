@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -809,7 +808,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		if diags.HasErrors() {
 			return nil, nil, diags
 		}
-		diags = diags.Append(validateProviderSchemas(context.Background(), opts.PolicyClient, config, schemas))
+		diags = diags.Append(validateProviderSchemas(c.runContext, opts.PolicyClient, schemas))
 		if diags.HasErrors() {
 			return nil, nil, diags
 		}

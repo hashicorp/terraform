@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"iter"
 	"log"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
@@ -229,20 +230,44 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 // provider does not have fails early rather than partway through evaluation. It
 // is a no-op when policy enforcement is off or there are no schemas. Any error
 // diagnostics it returns should block the run.
-func validateProviderSchemas(ctx context.Context, client policy.Client, config *configs.Config, schemas *Schemas) tfdiags.Diagnostics {
-	if client == nil || schemas == nil || config == nil {
+func validateProviderSchemas(ctx context.Context, client policy.Client, schemas *Schemas) tfdiags.Diagnostics {
+	if client == nil || schemas == nil {
 		return nil
 	}
 
+	providerAddrs := make([]addrs.Provider, 0, len(schemas.Providers))
+	for providerAddr := range schemas.Providers {
+		providerAddrs = append(providerAddrs, providerAddr)
+	}
+	sort.Slice(providerAddrs, func(i, j int) bool {
+		if providerAddrs[i].Type != providerAddrs[j].Type {
+			return providerAddrs[i].Type < providerAddrs[j].Type
+		}
+		return providerAddrs[i].ForDisplay() < providerAddrs[j].ForDisplay()
+	})
+
+	var diags tfdiags.Diagnostics
 	var req policy.ValidateProviderSchemasRequest
-	for providerAddr, providerSchema := range schemas.Providers {
+	for i, providerAddr := range providerAddrs {
+		if i > 0 && providerAddrs[i-1].Type == providerAddr.Type {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Ambiguous provider schemas for policy validation",
+				fmt.Sprintf("The provider type %q identifies both %s and %s. Terraform policies identify providers by type, so these schemas cannot be validated safely in the same run.", providerAddr.Type, providerAddrs[i-1].ForDisplay(), providerAddr.ForDisplay()),
+			))
+			continue
+		}
+
+		providerSchema := schemas.Providers[providerAddr]
 		req.ProviderSchemas = append(req.ProviderSchemas, policy.ProviderSchema{
 			Type:        providerAddr.Type,
-			LocalNames:  providerLocalNames(config, providerAddr),
-			Config:      providerSchema.Provider.Body.ImpliedType(),
+			Config:      blockImpliedType(providerSchema.Provider.Body),
 			Resources:   blockImpliedTypes(providerSchema.ResourceTypes),
 			DataSources: blockImpliedTypes(providerSchema.DataSources),
 		})
+	}
+	if diags.HasErrors() {
+		return diags
 	}
 	if len(req.ProviderSchemas) == 0 {
 		return nil
@@ -259,24 +284,14 @@ func blockImpliedTypes(schemas map[string]providers.Schema) map[string]cty.Type 
 	}
 	out := make(map[string]cty.Type, len(schemas))
 	for name, schema := range schemas {
-		if schema.Body == nil {
-			continue
-		}
-		out[name] = schema.Body.ImpliedType()
+		out[name] = blockImpliedType(schema.Body)
 	}
 	return out
 }
 
-// providerLocalNames returns the configuration's local name for a provider when
-// it differs from the provider type, so a provider policy labelled by an alias
-// resolves. The provider type is already carried separately.
-func providerLocalNames(config *configs.Config, provider addrs.Provider) []string {
-	if config.Module == nil {
-		return nil
+func blockImpliedType(block *configschema.Block) cty.Type {
+	if block == nil {
+		return cty.EmptyObject
 	}
-	local := config.Module.LocalNameForProvider(provider)
-	if local == "" || local == provider.Type {
-		return nil
-	}
-	return []string{local}
+	return block.ImpliedType()
 }

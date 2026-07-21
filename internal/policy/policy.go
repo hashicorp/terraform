@@ -42,10 +42,10 @@ type (
 
 	// ProviderSchema is one provider's schema as cty object types: its
 	// configuration and the object type of each resource and data source it
-	// offers, plus the local names it is known by in configuration.
+	// offers. Policy-language aliases are resolved by the policy plugin from the
+	// policy configuration; Terraform configuration local names are unrelated.
 	ProviderSchema struct {
 		Type        string
-		LocalNames  []string
 		Config      cty.Type
 		Resources   map[string]cty.Type
 		DataSources map[string]cty.Type

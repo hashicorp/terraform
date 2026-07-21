@@ -312,7 +312,7 @@ func (c *client) ValidateProviderSchemas(ctx context.Context, req ValidateProvid
 // providerSchemaToProto encodes a provider schema's cty object types as cty JSON
 // type encodings for the wire.
 func providerSchemaToProto(ps ProviderSchema) (*proto.ProviderSchema, error) {
-	config, err := ctyjson.MarshalType(ps.Config)
+	config, err := marshalType(ps.Config)
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
@@ -326,7 +326,6 @@ func providerSchemaToProto(ps ProviderSchema) (*proto.ProviderSchema, error) {
 	}
 	return &proto.ProviderSchema{
 		Type:        ps.Type,
-		LocalNames:  ps.LocalNames,
 		Config:      config,
 		Resources:   resources,
 		DataSources: dataSources,
@@ -339,13 +338,20 @@ func marshalTypeMap(in map[string]cty.Type) (map[string][]byte, error) {
 	}
 	out := make(map[string][]byte, len(in))
 	for name, ty := range in {
-		raw, err := ctyjson.MarshalType(ty)
+		raw, err := marshalType(ty)
 		if err != nil {
 			return nil, fmt.Errorf("%q: %w", name, err)
 		}
 		out[name] = raw
 	}
 	return out, nil
+}
+
+func marshalType(ty cty.Type) ([]byte, error) {
+	if ty == cty.NilType {
+		ty = cty.EmptyObject
+	}
+	return ctyjson.MarshalType(ty)
 }
 
 func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {
