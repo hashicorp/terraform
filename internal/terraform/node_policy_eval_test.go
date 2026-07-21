@@ -125,3 +125,77 @@ func TestNodePolicyEval_DynamicExpand_FinishWiring(t *testing.T) {
 	testGraphNotContains(t, &ps.graph, "(policy evaluation complete)")
 	testGraphNotContains(t, &ps.graph, rootNodeName)
 }
+
+// TestNodePolicyEval_DynamicExpand_ConcurrentExecution verifies that when
+// DynamicExpand returns a graph with multiple nodeQueryResourcePolicy nodes,
+// those nodes have no dependency edges between them, allowing the graph walker
+// to execute them concurrently.
+func TestNodePolicyEval_DynamicExpand_ConcurrentExecution(t *testing.T) {
+	const count = 10
+
+	ps := newPolicySubgraph()
+
+	// Add multiple nodeQueryResourcePolicy nodes to simulate a list block
+	// returning multiple resources
+	for i := 0; i < count; i++ {
+		qrp := &nodeQueryResourcePolicy{
+			ResourceAddr: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "discovered",
+			}.Instance(addrs.IntKey(i)).Absolute(addrs.RootModuleInstance),
+		}
+		ps.AddQuery(qrp)
+	}
+
+	ctx := &MockEvalContext{
+		PolicyGraphValue: ps,
+		ChangesChanges:   plans.NewChanges().SyncWrapper(),
+		StateState:       states.NewState().SyncWrapper(),
+		StopCtxValue:     context.Background(),
+	}
+
+	n := &nodePolicyEval{}
+	g, diags := n.DynamicExpand(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("DynamicExpand returned errors: %s", diags.Err())
+	}
+	if g == nil {
+		t.Fatal("DynamicExpand returned nil graph")
+	}
+
+	// Collect all nodeQueryResourcePolicy nodes in the expanded graph
+	policyNodes := dag.SelectSeq[*nodeQueryResourcePolicy](g.VerticesSeq()).Collect()
+	if len(policyNodes) != count {
+		t.Fatalf("expected %d policy nodes in expanded graph, got %d", count, len(policyNodes))
+	}
+
+	// The critical requirement for concurrent execution: verify no edges exist
+	// between any pair of nodeQueryResourcePolicy nodes. This allows the graph
+	// walker to execute all policy nodes in parallel.
+	for _, node := range policyNodes {
+		// Check upstream edges (what this node depends on)
+		upEdges := g.UpEdges(node)
+		for _, dep := range upEdges {
+			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
+				t.Errorf("policy node %s has upstream dependency on another policy node %s; nodes must be independent for concurrent execution",
+					node.Name(), otherPolicy.Name())
+			}
+		}
+
+		// Check downstream edges (what depends on this node)
+		downEdges := g.DownEdges(node)
+		for _, dep := range downEdges {
+			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
+				t.Errorf("policy node %s has downstream dependency on another policy node %s; nodes must be independent for concurrent execution",
+					node.Name(), otherPolicy.Name())
+			}
+		}
+	}
+
+	// Verify finish node exists (wiring is tested in TestNodePolicyEval_DynamicExpand_FinishWiring)
+	finishNodes := dag.SelectSeq[*nodePolicyEvalFinish](g.VerticesSeq()).Collect()
+	if len(finishNodes) != 1 {
+		t.Errorf("expected 1 finish node in expanded graph, got %d", len(finishNodes))
+	}
+}

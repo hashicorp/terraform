@@ -217,3 +217,74 @@ func TestQueryPolicyNodeInsertion_NilPolicyGraph(t *testing.T) {
 	// Should not panic with nil PolicyGraph.
 	insertQueryPolicyNodes(t, inputs, ctx, n)
 }
+
+// TestQueryPolicyNodeInsertion_NodeIndependence verifies that multiple
+// nodeQueryResourcePolicy nodes added to the policy subgraph have no edges
+// between them, ensuring they can be executed concurrently by the graph walker.
+func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
+	const count = 5
+
+	p := &testing_provider.MockProvider{}
+	schema := listPolicyTestProviderSchema(false)
+	n := listPolicyTestNode("test_resource", "mylist")
+	listBlockAddr := n.Addr
+
+	ctx := listPolicyTestContext(listBlockAddr, p, schema)
+	ps := newPolicySubgraph()
+	ctx.PolicyClientValue = policy.NewTestMockClient(t)
+	ctx.PolicyGraphValue = ps
+
+	stateVal := cty.ObjectVal(map[string]cty.Value{
+		"instance_type": cty.StringVal("t2.micro"),
+		"ami":           cty.StringVal("ami-12345"),
+	})
+	identityVal := cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("i-1")})
+
+	elements := make([]cty.Value, count)
+	for i := range elements {
+		elements[i] = listPolicyTestElement(stateVal, identityVal)
+	}
+	data := cty.TupleVal(elements)
+
+	inputs, diags := n.generateListResourcePolicyData(ctx, listBlockAddr, data)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors generating policy data: %s", diags.Err())
+	}
+
+	insertQueryPolicyNodes(t, inputs, ctx, n)
+
+	// Collect all nodeQueryResourcePolicy nodes
+	nodes := dag.SelectSeq[*nodeQueryResourcePolicy](ps.graph.VerticesSeq()).Collect()
+	if len(nodes) != count {
+		t.Fatalf("expected %d policy nodes, got %d", count, len(nodes))
+	}
+
+	// Verify no edges exist between any pair of nodeQueryResourcePolicy nodes
+	for _, node := range nodes {
+		downEdges := ps.graph.DownEdges(node)
+		for _, dep := range downEdges {
+			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
+				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
+					node.Name(), dag.VertexName(dep))
+			}
+		}
+
+		upEdges := ps.graph.UpEdges(node)
+		for _, dep := range upEdges {
+			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
+				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
+					dag.VertexName(dep), node.Name())
+			}
+		}
+	}
+
+	// Verify the total number of edges in the subgraph is zero
+	// (before finish node is added by DynamicExpand)
+	edges := ps.graph.Edges()
+	if len(edges) != 0 {
+		t.Errorf("expected 0 edges between policy nodes in subgraph, got %d edges", len(edges))
+		for _, edge := range edges {
+			t.Logf("  edge: %s -> %s", dag.VertexName(edge.Source()), dag.VertexName(edge.Target()))
+		}
+	}
+}
