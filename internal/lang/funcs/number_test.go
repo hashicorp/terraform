@@ -135,6 +135,13 @@ func TestPow(t *testing.T) {
 			cty.NumberFloatVal(0),
 			false,
 		},
+		// Infinity is representable by cty and must not be treated like NaN.
+		{
+			cty.NumberFloatVal(10),
+			cty.NumberFloatVal(1e10),
+			cty.PositiveInfinity,
+			false,
+		},
 		// A NaN result (e.g. a negative base raised to a fractional power)
 		// must surface a clean error, not leak an internal big.Float panic.
 		{
