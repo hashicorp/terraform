@@ -248,10 +248,19 @@ terraform {
     }
   }
 }
+
+resource "test_resource" "example" {
+  id = "example"
+}
+
+provider "test" {
+  alias = "example"
+  id = resource.test_resource.example.id
+}
 `,
 		"main.tfquery.hcl": `
 list "test_resource" "mylist" {
-  provider = test
+  provider = test.example
 }
 `,
 	}, configs.MatchQueryFiles())
@@ -263,6 +272,7 @@ list "test_resource" "mylist" {
 		queryPlan:    true,
 		Operation:    walkPlan,
 	}
+	assertPlanGraphBuilderPolicyTransformerQueryPlan(t, b)
 
 	g, diags := b.Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
@@ -276,6 +286,30 @@ list "test_resource" "mylist" {
 
 	// The list block node must be scheduled before policy evaluation.
 	testGraphHappensBefore(t, g, "list.test_resource.mylist (expand)", "(evaluate policies)")
+
+	policyNode := nodes[0]
+	for _, dep := range g.DownEdges(policyNode) {
+		if res, ok := dep.(GraphNodeConfigResource); ok && res.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
+			t.Errorf("policy node should not directly depend on non-list resource %q in query mode", dag.VertexName(dep))
+		}
+	}
+}
+
+func assertPlanGraphBuilderPolicyTransformerQueryPlan(t *testing.T, b *PlanGraphBuilder) {
+	t.Helper()
+
+	for _, step := range b.Steps() {
+		tr, ok := step.(*policyEvalTransformer)
+		if !ok {
+			continue
+		}
+		if !tr.QueryPlan {
+			t.Fatal("expected PlanGraphBuilder to propagate queryPlan to policyEvalTransformer")
+		}
+		return
+	}
+
+	t.Fatal("expected PlanGraphBuilder to include policyEvalTransformer")
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {

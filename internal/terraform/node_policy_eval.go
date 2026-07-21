@@ -36,26 +36,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.State().Close()
 
 	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
-	policyGraph.span = span
-
-	// Add a finish node that depends on every policy node, so it runs last and
-	// ends the phase span once all policy evaluation has completed.
-	finish := &nodePolicyEvalFinish{span: policyGraph.span}
-	policyGraph.graph.Add(finish)
-	for pn := range policyGraph.graph.VerticesSeq() {
-		// Wire finish only to policy node types; all other vertices are skipped.
-		switch pn.(type) {
-		case *nodeResourcePolicy, *nodeQueryResourcePolicy:
-		default:
-			continue
-		}
-		// finish depends on pn, so pn runs first and finish runs after.
-		policyGraph.graph.Connect(dag.BasicEdge(finish, pn))
-	}
-
-	// ensure the graph has a single root
-	addRootNodeToGraph(&policyGraph.graph)
-	return &policyGraph.graph, nil
+	return policyGraph.evalGraph(span), nil
 }
 
 // AllowUpstreamFailure allows failures from upstream nodes to be tolerated
