@@ -46,6 +46,11 @@ type ModuleInstaller struct {
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
 
 	initializer Initializer
+
+	// requireInitializer identifies installers that must use graph-based
+	// configuration loading. The legacy constructor leaves this false only for
+	// callers that have not yet migrated.
+	requireInitializer bool
 }
 
 type moduleVersion struct {
@@ -62,6 +67,14 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
 		initializer:             initializer,
 	}
+}
+
+// NewGraphModuleInstaller constructs a module installer that requires its
+// initializer to build the configuration using the init graph.
+func NewGraphModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client, initializer Initializer) *ModuleInstaller {
+	ret := NewModuleInstaller(modsDir, loader, reg, initializer)
+	ret.requireInitializer = true
+	return ret
 }
 
 // InstallModules analyses the root module in the given directory and installs
@@ -141,11 +154,32 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		Dir: rootDir,
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, fetcher, hooks...)
+	if i.requireInitializer && i.initializer == nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Missing module installer initializer",
+			"The graph-based module installer requires a configuration initializer. This is a bug in Terraform.",
+		))
+		return nil, diags
+	}
 
 	var cfg *configs.Config
 	var instDiags tfdiags.Diagnostics
 	if i.initializer != nil {
-		cfg, instDiags = i.initializer(rootMod, walker)
+		var installDiags hcl.Diagnostics
+		initWalker := walker
+		if installErrsOnly {
+			initWalker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+				mod, version, diags := walker.LoadModule(req)
+				installDiags = installDiags.Extend(diags)
+				return mod, version, diags
+			})
+		}
+
+		cfg, instDiags = i.initializer(rootMod, initWalker)
+		if installErrsOnly && !installDiags.HasErrors() {
+			instDiags = tfdiags.OverrideAll(instDiags, tfdiags.Warning, nil)
+		}
 		diags = diags.Append(instDiags)
 	} else {
 		cfg, instDiags = i.installDescendantModules(rootMod, walker, installErrsOnly)
