@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -245,7 +246,7 @@ func normalizeProviderNamespaceOrWildcard(s string) (string, error) {
 	if s == Wildcard {
 		return s, nil
 	}
-	return addrs.ParseProviderNamespace(s)
+	return tfaddr.ParseProviderNamespace(s)
 }
 
 func (s MultiSource) ForDisplay(provider addrs.Provider) string {

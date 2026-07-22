@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -88,7 +89,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		// validate each part
 		// The legacy provider namespace is a special case.
 		if namespace != addrs.LegacyProviderNamespace {
-			_, err = addrs.ParseProviderNamespace(namespace)
+			_, err = tfaddr.ParseProviderNamespace(namespace)
 			if err != nil {
 				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
 				return nil
