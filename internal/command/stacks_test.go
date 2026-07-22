@@ -48,7 +48,6 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 		name             string
 		tfStacksHostname string
 		tfCloudHostname  string
-		tfCLIConfigFile  string
 		credentialsJSON  string
 		wantHostname     string
 		wantErrContains  string
@@ -81,27 +80,25 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 			name:         "missing credentials file falls back to default",
 			wantHostname: defaultHostname,
 		},
-		{
-			name:            "TF_CLI_CONFIG_FILE set, uses credentials from its directory",
-			tfCLIConfigFile: "custom.tfrc",
-			credentialsJSON: `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
-			wantHostname:    "tfe.company.com",
-		},
-		{
-			name:            "TF_CLI_CONFIG_FILE set, no credentials file falls back to default",
-			tfCLIConfigFile: "custom.tfrc",
-			wantHostname:    defaultHostname,
-		},
 	}
 
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			dir := t.TempDir()
+			// Override HOME so cliconfig.ConfigDir() resolves to a temp dir
+			// we control, avoiding interference from real credentials on the
+			// developer's machine.
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+
 			if test.credentialsJSON != "" {
-				filename := filepath.Join(dir, "credentials.tfrc.json")
-				err := os.WriteFile(filename, []byte(test.credentialsJSON), 0600)
-				if err != nil {
+				// CredentialsConfigFile() returns $HOME/.terraform.d/credentials.tfrc.json
+				configDir := filepath.Join(home, ".terraform.d")
+				if err := os.MkdirAll(configDir, 0700); err != nil {
+					t.Fatalf("failed to create config dir: %s", err)
+				}
+				filename := filepath.Join(configDir, "credentials.tfrc.json")
+				if err := os.WriteFile(filename, []byte(test.credentialsJSON), 0600); err != nil {
 					t.Fatalf("failed to write credentials file: %s", err)
 				}
 			}
@@ -109,16 +106,7 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 			t.Setenv("TF_STACKS_HOSTNAME", test.tfStacksHostname)
 			t.Setenv("TF_CLOUD_HOSTNAME", test.tfCloudHostname)
 
-			if test.tfCLIConfigFile != "" {
-				overridePath := filepath.Join(dir, test.tfCLIConfigFile)
-				if err := os.WriteFile(overridePath, []byte(""), 0600); err != nil {
-					t.Fatalf("failed to write override config file: %s", err)
-				}
-				t.Setenv("TF_CLI_CONFIG_FILE", overridePath)
-				dir = t.TempDir()
-			}
-
-			c := &StacksCommand{Meta: Meta{CLIConfigDir: dir}}
+			c := &StacksCommand{Meta: Meta{}}
 			hostname, diags := c.resolveDisplayHostname()
 
 			if test.wantErrContains != "" {

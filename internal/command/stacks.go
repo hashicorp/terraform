@@ -160,13 +160,17 @@ func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
 		return displayHostname, diags
 	}
 
-	credentialsDirectory := c.CLIConfigDir
-	if override := cliconfig.CLIConfigFileOverride(); override != "" {
-		credentialsDirectory = path.Dir(override)
-		log.Printf("[TRACE] stacksplugin reading credentials from override config directory %q", credentialsDirectory)
+	credentialsFile, err := cliconfig.CredentialsConfigFile()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Could not inspect credentials file for stacks hostname, using default hostname",
+			err.Error(),
+		))
+		log.Printf("[TRACE] stacksplugin hostname inference failed, falling back to %q", defaultHostname)
+		return defaultHostname, diags
 	}
 
-	credentialsFile := path.Join(credentialsDirectory, "credentials.tfrc.json")
 	hosts := cliconfig.ReadHostsInCredentialsFile(credentialsFile)
 
 	if len(hosts) == 1 {
