@@ -48,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, initializer Initializer, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg, nil)
+	inst := NewGraphModuleInstaller(instDir, loader, reg, initializer)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -139,6 +139,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
 				SourceExpr: hcl.StaticExpr(cty.StringVal(sourceAddrStr), fakeRange),
+				Config:     hcl.EmptyBody(),
 				DeclRange:  fakeRange,
 			},
 		},
@@ -160,9 +161,23 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	fetcher := getmodules.NewPackageFetcher()
 
 	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher, wrapHooks)
-	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
-	if cDiags.HasErrors() {
-		return diags.Append(cDiags)
+	if initializer == nil {
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Missing module installer initializer",
+			"Module installation from a source requires a configuration initializer. This is a bug in Terraform.",
+		))
+	}
+
+	var installDiags hcl.Diagnostics
+	initWalker := configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+		mod, version, moreDiags := walker.LoadModule(req)
+		installDiags = installDiags.Extend(moreDiags)
+		return mod, version, moreDiags
+	})
+	_, initDiags := initializer(fakeRootModule, initWalker)
+	if installDiags.HasErrors() {
+		return diags.Append(initDiags)
 	}
 
 	err = instManifest.WriteSnapshotToDir(instDir)
