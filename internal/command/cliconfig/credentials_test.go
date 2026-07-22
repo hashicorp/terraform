@@ -294,7 +294,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 			t.Fatalf("wrong header value for stored-locally\ngot:  %s\nwant: %s", got, want)
 		}
 
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{
 			svchost.Hostname("stored-locally.example.com"): struct{}{},
 		}
@@ -343,7 +343,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 		}
 
 		// Nothing should have changed in the saved credentials file
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{
 			svchost.Hostname("stored-locally.example.com"): struct{}{},
 		}
@@ -391,7 +391,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 		}
 
 		// Should not be present in the credentials file anymore
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Fatalf("wrong credentials file content\n%s", diff)
@@ -435,16 +435,14 @@ func TestCredentialsStoreForget(t *testing.T) {
 	}
 }
 
-func TestReadCredentialHostsInOrder(t *testing.T) {
+func TestReadHostsInCredentialsFile(t *testing.T) {
 	t.Run("missing credentials file", func(t *testing.T) {
 		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
 
-		got, err := ReadCredentialHostsInOrder(dir)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		got := ReadHostsInCredentialsFile(filename)
 
-		if diff := cmp.Diff([]svchost.Hostname(nil), got); diff != "" {
+		if diff := cmp.Diff(map[svchost.Hostname]struct{}(nil), got); diff != "" {
 			t.Fatalf("wrong hosts returned\n%s", diff)
 		}
 	})
@@ -453,17 +451,13 @@ func TestReadCredentialHostsInOrder(t *testing.T) {
 		dir := t.TempDir()
 		filename := filepath.Join(dir, "credentials.tfrc.json")
 
-		err := os.WriteFile(filename, []byte(`{"credentials":{}}`), 0600)
-		if err != nil {
+		if err := os.WriteFile(filename, []byte(`{"credentials":{}}`), 0600); err != nil {
 			t.Fatalf("failed to write credentials file: %s", err)
 		}
 
-		got, err := ReadCredentialHostsInOrder(dir)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		got := ReadHostsInCredentialsFile(filename)
 
-		if diff := cmp.Diff([]svchost.Hostname{}, got); diff != "" {
+		if diff := cmp.Diff(map[svchost.Hostname]struct{}{}, got); diff != "" {
 			t.Fatalf("wrong hosts returned\n%s", diff)
 		}
 	})
@@ -472,23 +466,21 @@ func TestReadCredentialHostsInOrder(t *testing.T) {
 		dir := t.TempDir()
 		filename := filepath.Join(dir, "credentials.tfrc.json")
 
-		err := os.WriteFile(filename, []byte(`{"credentials":{"tfe.company.com":{"token":"x"}}}`), 0600)
-		if err != nil {
+		if err := os.WriteFile(filename, []byte(`{"credentials":{"tfe.company.com":{"token":"x"}}}`), 0600); err != nil {
 			t.Fatalf("failed to write credentials file: %s", err)
 		}
 
-		got, err := ReadCredentialHostsInOrder(dir)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		got := ReadHostsInCredentialsFile(filename)
 
-		want := []svchost.Hostname{svchost.Hostname("tfe.company.com")}
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("tfe.company.com"): {},
+		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Fatalf("wrong hosts returned\n%s", diff)
 		}
 	})
 
-	t.Run("multiple hosts preserve order", func(t *testing.T) {
+	t.Run("multiple hosts", func(t *testing.T) {
 		dir := t.TempDir()
 		filename := filepath.Join(dir, "credentials.tfrc.json")
 
@@ -499,20 +491,16 @@ func TestReadCredentialHostsInOrder(t *testing.T) {
 		    "second.example.com": {"token":"3"}
 		  }
 		}`
-		err := os.WriteFile(filename, []byte(contents), 0600)
-		if err != nil {
+		if err := os.WriteFile(filename, []byte(contents), 0600); err != nil {
 			t.Fatalf("failed to write credentials file: %s", err)
 		}
 
-		got, err := ReadCredentialHostsInOrder(dir)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		got := ReadHostsInCredentialsFile(filename)
 
-		want := []svchost.Hostname{
-			svchost.Hostname("third.example.com"),
-			svchost.Hostname("first.example.com"),
-			svchost.Hostname("second.example.com"),
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("third.example.com"):  {},
+			svchost.Hostname("first.example.com"):  {},
+			svchost.Hostname("second.example.com"): {},
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Fatalf("wrong hosts returned\n%s", diff)
@@ -530,19 +518,15 @@ func TestReadCredentialHostsInOrder(t *testing.T) {
 		    "another.valid.example.com": {"token":"3"}
 		  }
 		}`
-		err := os.WriteFile(filename, []byte(contents), 0600)
-		if err != nil {
+		if err := os.WriteFile(filename, []byte(contents), 0600); err != nil {
 			t.Fatalf("failed to write credentials file: %s", err)
 		}
 
-		got, err := ReadCredentialHostsInOrder(dir)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
+		got := ReadHostsInCredentialsFile(filename)
 
-		want := []svchost.Hostname{
-			svchost.Hostname("valid.example.com"),
-			svchost.Hostname("another.valid.example.com"),
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("valid.example.com"):         {},
+			svchost.Hostname("another.valid.example.com"): {},
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Fatalf("wrong hosts returned\n%s", diff)

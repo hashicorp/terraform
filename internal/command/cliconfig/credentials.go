@@ -100,7 +100,7 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 		configured[host] = credsV
 	}
 
-	writableLocal := readHostsInCredentialsFile(credentialsFilePath)
+	writableLocal := ReadHostsInCredentialsFile(credentialsFilePath)
 	unwritableLocal := map[svchost.Hostname]cty.Value{}
 	for host, v := range configured {
 		if _, exists := writableLocal[host]; !exists {
@@ -445,14 +445,14 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 	return nil
 }
 
-// readHostsInCredentialsFile discovers which hosts have credentials configured
+// ReadHostsInCredentialsFile discovers which hosts have credentials configured
 // in the credentials file specifically, as opposed to in any other CLI
 // config file.
 //
 // If the credentials file isn't present or is unreadable for any reason then
 // this returns an empty set, reflecting that effectively no credentials are
 // stored there.
-func readHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
+func ReadHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
 	src, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil
@@ -484,124 +484,6 @@ func readHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
 		ret[host] = struct{}{}
 	}
 	return ret
-}
-
-// ReadCredentialHostsInOrder returns the hostnames declared in the local
-// credentials file (credentials.tfrc.json) in the same order they appear in
-// the file.
-//
-// Invalid hostnames are ignored. If the credentials file is absent then this
-// returns an empty result and no error.
-func ReadCredentialHostsInOrder(configDir string) ([]svchost.Hostname, error) {
-	if strings.TrimSpace(configDir) == "" {
-		return nil, nil
-	}
-
-	filename := filepath.Join(configDir, "credentials.tfrc.json")
-	return readCredentialHostsInOrderFile(filename)
-}
-
-func readCredentialHostsInOrderFile(filename string) ([]svchost.Hostname, error) {
-	src, err := ioutil.ReadFile(filename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	dec := json.NewDecoder(bytes.NewReader(src))
-
-	openTok, err := dec.Token()
-	if err != nil {
-		return nil, err
-	}
-	open, ok := openTok.(json.Delim)
-	if !ok || open != '{' {
-		return nil, fmt.Errorf("credentials file %s is invalid: expected top-level object", filename)
-	}
-
-	hosts := make([]svchost.Hostname, 0)
-	seen := make(map[svchost.Hostname]struct{})
-
-	for dec.More() {
-		keyTok, err := dec.Token()
-		if err != nil {
-			return nil, err
-		}
-
-		key, ok := keyTok.(string)
-		if !ok {
-			return nil, fmt.Errorf("credentials file %s is invalid: expected string key", filename)
-		}
-
-		if key != "credentials" {
-			var discard json.RawMessage
-			if err := dec.Decode(&discard); err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		credsOpenTok, err := dec.Token()
-		if err != nil {
-			return nil, err
-		}
-		credsOpen, ok := credsOpenTok.(json.Delim)
-		if !ok || credsOpen != '{' {
-			return nil, fmt.Errorf("credentials file %s has invalid value for \"credentials\" property: must be a JSON object", filename)
-		}
-
-		for dec.More() {
-			hostTok, err := dec.Token()
-			if err != nil {
-				return nil, err
-			}
-
-			givenHost, ok := hostTok.(string)
-			if !ok {
-				return nil, fmt.Errorf("credentials file %s is invalid: expected hostname key", filename)
-			}
-
-			// Consume the credentials object before proceeding.
-			var discard json.RawMessage
-			if err := dec.Decode(&discard); err != nil {
-				return nil, err
-			}
-
-			host, err := svchost.ForComparison(givenHost)
-			if err != nil {
-				continue
-			}
-
-			if _, exists := seen[host]; exists {
-				continue
-			}
-
-			seen[host] = struct{}{}
-			hosts = append(hosts, host)
-		}
-
-		credsCloseTok, err := dec.Token()
-		if err != nil {
-			return nil, err
-		}
-		credsClose, ok := credsCloseTok.(json.Delim)
-		if !ok || credsClose != '}' {
-			return nil, fmt.Errorf("credentials file %s is invalid: expected credentials object to end", filename)
-		}
-	}
-
-	closeTok, err := dec.Token()
-	if err != nil {
-		return nil, err
-	}
-	close, ok := closeTok.(json.Delim)
-	if !ok || close != '}' {
-		return nil, fmt.Errorf("credentials file %s is invalid: expected top-level object to end", filename)
-	}
-
-	return hosts, nil
 }
 
 // ErrUnwritableHostCredentials is an error type that is returned when a caller
