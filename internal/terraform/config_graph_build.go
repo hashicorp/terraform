@@ -4,6 +4,11 @@
 package terraform
 
 import (
+	"slices"
+
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -35,8 +40,39 @@ func BuildConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, 
 		return cfg, diags
 	}
 
-	finalDiags := configs.FinalizeConfig(cfg, walker, loader)
+	testModuleLoader := func(root *configs.Config, req *configs.ModuleRequest) (*configs.Config, hcl.Diagnostics) {
+		rootMod, _, loadDiags := walker.LoadModule(req)
+		if loadDiags.HasErrors() || rootMod == nil {
+			return nil, loadDiags
+		}
+
+		prefix := slices.Clone(req.Path)
+		prefixedWalker := configs.ModuleWalkerFunc(func(childReq *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			prefixedReq := *childReq
+			prefixedReq.Path = append(slices.Clone(prefix), childReq.Path...)
+			if childReq.Parent != nil {
+				parent := *childReq.Parent
+				parent.Path = append(slices.Clone(prefix), childReq.Parent.Path...)
+				prefixedReq.Parent = &parent
+			}
+			return walker.LoadModule(&prefixedReq)
+		})
+
+		testCfg, testDiags := initConfigWithGraph(rootMod, prefixedWalker, vars)
+		loadDiags = append(loadDiags, testDiags.ToHCL()...)
+		return testCfg, loadDiags
+	}
+
+	finalDiags := configs.FinalizeConfigWithTestModuleLoader(cfg, walker, loader, testModuleLoader)
 	diags = diags.Append(finalDiags)
 
 	return cfg, diags
+}
+
+func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues) (*configs.Config, tfdiags.Diagnostics) {
+	ctx, ctxDiags := NewContext(&ContextOpts{Parallelism: 1})
+	if ctxDiags.HasErrors() {
+		return nil, ctxDiags
+	}
+	return ctx.Init(rootMod, InitOpts{Walker: walker, SetVariables: vars})
 }

@@ -1,0 +1,24 @@
+{
+  "Modules": [
+    {
+      "Key": "",
+      "Source": "",
+      "Dir": "testdata/config-graph/test-module-dynamic-source"
+    },
+    {
+      "Key": "const_var_source",
+      "Source": "./modules/simple",
+      "Dir": "testdata/config-graph/test-module-dynamic-source/modules/simple"
+    },
+    {
+      "Key": "test.simple.test",
+      "Source": "./",
+      "Dir": "testdata/config-graph/test-module-dynamic-source"
+    },
+    {
+      "Key": "test.simple.test.const_var_source",
+      "Source": "./modules/simple",
+      "Dir": "testdata/config-graph/test-module-dynamic-source/modules/simple"
+    }
+  ]
+}
