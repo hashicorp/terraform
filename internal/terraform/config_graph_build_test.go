@@ -209,6 +209,35 @@ func TestBuildConfigWithGraph_okay(t *testing.T) {
 	})
 }
 
+func TestBuildConfigWithGraph_testModuleWithDynamicSource(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/test-module-dynamic-source")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	config, diags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	assertNoDiagnostics(t, diags)
+
+	run := config.Module.Tests["simple.tftest.hcl"].Runs[0]
+	if run.ConfigUnderTest == nil {
+		t.Fatal("test run configuration was not loaded")
+	}
+	if run.ConfigUnderTest.Children["const_var_source"] == nil {
+		t.Fatal("dynamic module source was not loaded in the test run configuration")
+	}
+}
+
 func TestBuildConfigWithGraph_loadDiags(t *testing.T) {
 	// building a config which didn't load correctly may cause configs to panic
 	fixtureDir := filepath.Clean("testdata/config-graph/invalid-names")

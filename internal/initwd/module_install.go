@@ -152,8 +152,10 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		diags = diags.Append(instDiags)
 	}
 
-	finalDiags := configs.FinalizeConfig(cfg, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-	diags = diags.Append(finalDiags)
+	if i.initializer == nil {
+		finalDiags := configs.FinalizeConfig(cfg, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
+		diags = diags.Append(finalDiags)
+	}
 
 	if diags.HasErrors() {
 		return nil, diags
