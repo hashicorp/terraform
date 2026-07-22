@@ -26,3 +26,4 @@ coverage.txt
 # IDEs
 .vscode/
 .zed/
+.bob/
