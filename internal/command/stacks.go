@@ -180,6 +180,7 @@ func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
 		for host := range hosts {
 			hostnames = append(hostnames, fmt.Sprintf("%q", host.ForDisplay()))
 		}
+		slices.Sort(hostnames)
 
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
