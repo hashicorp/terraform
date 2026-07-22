@@ -3,67 +3,67 @@
 
 NEW FEATURES:
 
-* Store PlannedPrivate data for providers ([#37986](https://github.com/hashicorp/terraform/issues/37986))
+* Terraform now stores planned private data for providers, allowing provider-specific state to be preserved across plan and apply. ([#37986](https://github.com/hashicorp/terraform/issues/37986))
 
-* New store block in terraform_data that can handle ephemeral and sensitive values ([#38298](https://github.com/hashicorp/terraform/issues/38298))
+* `terraform_data`: The new `store` block can hold ephemeral and sensitive values across plan and apply. ([#38298](https://github.com/hashicorp/terraform/issues/38298))
 
 * Providers can now use nested blocks as computed values ([#38305](https://github.com/hashicorp/terraform/issues/38305))
 
-* import: add support for import blocks inside modules ([#38352](https://github.com/hashicorp/terraform/issues/38352))
+* import: `import` blocks inside modules are now supported. ([#38352](https://github.com/hashicorp/terraform/issues/38352))
 
-* We now produce builds for Linux s390x (zLinux) ([#38384](https://github.com/hashicorp/terraform/issues/38384))
+* Terraform is now available as a pre-built binary for Linux s390x (zLinux). ([#38384](https://github.com/hashicorp/terraform/issues/38384))
 
-* workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag ([#38397](https://github.com/hashicorp/terraform/issues/38397))
-
-* Resource action triggers can now use `on_failure` modes of `halt`, `taint`, or `continue` ([#38722](https://github.com/hashicorp/terraform/issues/38722))
+* Resource action triggers can now use `on_failure` modes of `halt`, `taint`, or `continue`. ([#38722](https://github.com/hashicorp/terraform/issues/38722))
 
 
 ENHANCEMENTS:
 
-* feat(cli): terraform state show accepts a -json flag ([#23940](https://github.com/hashicorp/terraform/issues/23940))
+* state show: The `state show` command can now produce machine-readable output when supplied with the `-json` flag ([#23940](https://github.com/hashicorp/terraform/issues/23940))
 
-* Show info when resources are left behind due to skip_cleanup ([#38449](https://github.com/hashicorp/terraform/issues/38449))
+* workspace: The `workspace list` command can now produce machine-readable output when supplied with the `-json` flag ([#38397](https://github.com/hashicorp/terraform/issues/38397))
 
-* Action configuration now has a new `caller` symbol which contains the object value from the calling resource. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+* test: Terraform now reports which resources were left behind when `skip_cleanup` is set. ([#38449](https://github.com/hashicorp/terraform/issues/38449))
 
-* Actions can now use before_destroy and after_destroy events ([#38668](https://github.com/hashicorp/terraform/issues/38668))
+* stacks: Action configurations now have access to a `caller` symbol containing the object value of the calling resource. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
-* cloud: Render a summary of Terraform policy evaluation outcomes for plan and apply runs against HCP Terraform ([#38715](https://github.com/hashicorp/terraform/issues/38715))
+* Actions can now use `before_destroy` and `after_destroy` events. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
-* policy: Resolve the policy plugin entitlement (host, token, organization) from the configured cloud/remote backend for init, plan, and apply, instead of the plugin reading credentials itself ([#38716](https://github.com/hashicorp/terraform/issues/38716))
+* cloud: Terraform now displays a summary of policy evaluation outcomes for `plan` and `apply` runs against HCP Terraform. ([#38715](https://github.com/hashicorp/terraform/issues/38715))
 
-* The 'terraform graph' command now accepts a -format flag, and can output graphs in Mermaid format ([#38719](https://github.com/hashicorp/terraform/issues/38719))
+* policy: Terraform now resolves policy plugin credentials from the configured cloud or remote backend during `init`, `plan`, and `apply`, rather than requiring the plugin to read credentials itself. ([#38716](https://github.com/hashicorp/terraform/issues/38716))
 
-* child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
+* graph: The `terraform graph` command can now output graphs in Mermaid format using the `-format=mermaid` flag. ([#38719](https://github.com/hashicorp/terraform/issues/38719))
 
-* Support destroy=false in resource lifecycle blocks. ([#38784](https://github.com/hashicorp/terraform/issues/38784))
+* Child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings. ([#38778](https://github.com/hashicorp/terraform/issues/38778))
 
-* contains() function can now test for null ([#38792](https://github.com/hashicorp/terraform/issues/38792))
+* Resource `lifecycle` blocks now support `destroy = false` to prevent a resource from being destroyed. ([#38784](https://github.com/hashicorp/terraform/issues/38784))
 
-* The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be used to evaluate expressions within the scope of a module or a specific module instance. ([#31861](https://github.com/hashicorp/terraform/issues/31861))
+* The `contains()` function can now test for `null` values. ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
-* If `-invoke` results in multiple resource calls triggering the action, it can now be combined with `-target` to specify the calling resource instance ([#38845](https://github.com/hashicorp/terraform/issues/38845))
+* console: The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be used to evaluate expressions within the scope of a module or a specific module instance. ([#31861](https://github.com/hashicorp/terraform/issues/31861))
+
+* `-invoke` can now be combined with `-target` to specify the calling resource instance when multiple resources trigger the same action. ([#38845](https://github.com/hashicorp/terraform/issues/38845))
 
 
 BUG FIXES:
 
-* import blocks no longer ignore provider local names ([#38338](https://github.com/hashicorp/terraform/issues/38338))
+* `import` blocks now correctly respect provider local names. ([#38338](https://github.com/hashicorp/terraform/issues/38338))
 
-* Fix a `terraform apply` panic when the plan contained a no-op change for a deposed object on a resource whose configuration declared a `lifecycle.precondition` or `lifecycle.postcondition` ([#38586](https://github.com/hashicorp/terraform/issues/38586))
+* `terraform apply` no longer panics when the plan contains a no-op change for a deposed resource that has `lifecycle.precondition` or `lifecycle.postcondition` blocks. ([#38586](https://github.com/hashicorp/terraform/issues/38586))
 
-* workspace: Terraform will now error if an invalid workspace name becomes selected due to actions performed out-of-band ([#38594](https://github.com/hashicorp/terraform/issues/38594))
+* workspace: Terraform now raises an error if an invalid workspace name becomes selected due to out-of-band changes. ([#38594](https://github.com/hashicorp/terraform/issues/38594))
 
-* test: Terraform will now raise a warning when a file referenced via `-filter` flag does not exist. ([#38603](https://github.com/hashicorp/terraform/issues/38603))
+* test: Terraform now raises a warning when a file referenced via the `-filter` flag does not exist. ([#38603](https://github.com/hashicorp/terraform/issues/38603))
 
-* init: Stop removing locks from the dependency lock file corresponding to providers configured as a dev_override ([#38634](https://github.com/hashicorp/terraform/issues/38634))
+* init: Terraform no longer removes locks from the dependency lock file for providers configured as `dev_override`. ([#38634](https://github.com/hashicorp/terraform/issues/38634))
 
-* init: Add warnings when unmanaged providers are in use and will impact provider installation processes. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
+* init: Terraform now warns when unmanaged providers are in use and may impact provider installation. ([#38656](https://github.com/hashicorp/terraform/issues/38656))
 
 * Actions are now invoked with respect to all resource dependencies. ([#38668](https://github.com/hashicorp/terraform/issues/38668))
 
-* return correct error when import target exists in state, but not config ([#38782](https://github.com/hashicorp/terraform/issues/38782))
+* Terraform now returns the correct error when an `import` target exists in state but has no corresponding configuration. ([#38782](https://github.com/hashicorp/terraform/issues/38782))
 
-* merge no longer panics with null objects ([#38792](https://github.com/hashicorp/terraform/issues/38792))
+* The `merge()` function no longer panics when passed `null` objects. ([#38792](https://github.com/hashicorp/terraform/issues/38792))
 
 
 NOTES:
@@ -73,7 +73,7 @@ NOTES:
 
 UPGRADE NOTES:
 
-* Provisioner bastion_host_key is now correctly applied. Existing usage of bastion_host_key should verify the configured key is correct. ([#38318](https://github.com/hashicorp/terraform/issues/38318))
+* `bastion_host_key` is now correctly applied by provisioners. Review your provisioner configurations to verify the configured key is correct before upgrading. ([#38318](https://github.com/hashicorp/terraform/issues/38318))
 
 
 EXPERIMENTS:
