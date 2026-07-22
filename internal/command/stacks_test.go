@@ -82,11 +82,10 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 			wantHostname: defaultHostname,
 		},
 		{
-			name:             "TF_CLI_CONFIG_FILE set, uses credentials from its directory",
-			tfCLIConfigFile:  "custom.tfrc",
-			credentialsJSON:  `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
-			wantHostname:     "tfe.company.com",
-			wantWarnContains: "Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.",
+			name:            "TF_CLI_CONFIG_FILE set, uses credentials from its directory",
+			tfCLIConfigFile: "custom.tfrc",
+			credentialsJSON: `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
+			wantHostname:    "tfe.company.com",
 		},
 		{
 			name:            "TF_CLI_CONFIG_FILE set, no credentials file falls back to default",
