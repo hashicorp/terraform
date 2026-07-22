@@ -306,7 +306,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 		}
 		return terraform.BuildConfigWithGraph(rootMod, walker, variables, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
 	}
-	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
+	inst := initwd.NewGraphModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
 	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks...)
 	diags = diags.Append(moreDiags)
