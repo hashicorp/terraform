@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )

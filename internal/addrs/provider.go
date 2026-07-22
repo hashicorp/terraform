@@ -185,7 +185,6 @@ func ParseProviderPart(given string) (string, error) {
 	return tfaddr.ParseProviderPart(given)
 }
 
-
 // MustParseProviderPart is a wrapper around ParseProviderPart that panics if
 // it returns an error.
 func MustParseProviderPart(given string) string {
