@@ -26,7 +26,7 @@ import (
 // credentialsConfigFile returns the path for the special configuration file
 // that the credentials source will use when asked to save or forget credentials
 // and when a "credentials helper" program is not active.
-func credentialsConfigFile() (string, error) {
+func CredentialsConfigFile() (string, error) {
 	configDir, err := ConfigDir()
 	if err != nil {
 		return "", err
@@ -38,7 +38,7 @@ func credentialsConfigFile() (string, error) {
 // behavior depends on which "credentials" and "credentials_helper" blocks,
 // if any, are present in the receiving config.
 func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) (*CredentialsSource, error) {
-	credentialsFilePath, err := credentialsConfigFile()
+	credentialsFilePath, err := CredentialsConfigFile()
 	if err != nil {
 		// If we managed to load a Config object at all then we would already
 		// have located this file, so this error is very unlikely.
@@ -100,7 +100,7 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 		configured[host] = credsV
 	}
 
-	writableLocal := readHostsInCredentialsFile(credentialsFilePath)
+	writableLocal := ReadHostsInCredentialsFile(credentialsFilePath)
 	unwritableLocal := map[svchost.Hostname]cty.Value{}
 	for host, v := range configured {
 		if _, exists := writableLocal[host]; !exists {
@@ -445,14 +445,14 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 	return nil
 }
 
-// readHostsInCredentialsFile discovers which hosts have credentials configured
+// ReadHostsInCredentialsFile discovers which hosts have credentials configured
 // in the credentials file specifically, as opposed to in any other CLI
 // config file.
 //
 // If the credentials file isn't present or is unreadable for any reason then
 // this returns an empty set, reflecting that effectively no credentials are
 // stored there.
-func readHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
+func ReadHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
 	src, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil

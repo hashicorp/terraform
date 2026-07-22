@@ -125,7 +125,7 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 	// being set as an intention to ignore the default set of CLI config
 	// files because we're doing something special, like running Terraform
 	// in automation with a locally-customized configuration.
-	if cliConfigFileOverride() == "" {
+	if CLIConfigFileOverride() == "" {
 		if configDir, err := ConfigDir(); err == nil {
 			if info, err := os.Stat(configDir); err == nil && info.IsDir() {
 				dirConfig, dirDiags := loadConfigDir(configDir)
@@ -403,7 +403,7 @@ func cliConfigFile() (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	mustExist := true
 
-	configFilePath := cliConfigFileOverride()
+	configFilePath := CLIConfigFileOverride()
 	if configFilePath == "" {
 		var err error
 		configFilePath, err = ConfigFile()
@@ -435,7 +435,7 @@ func cliConfigFile() (string, tfdiags.Diagnostics) {
 	return "", diags
 }
 
-func cliConfigFileOverride() string {
+func CLIConfigFileOverride() string {
 	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
 	if configFilePath == "" {
 		configFilePath = os.Getenv("TERRAFORM_CONFIG")
