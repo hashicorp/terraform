@@ -45,7 +45,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	reg := registry.NewClient(nil, nil)
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-	diags := DirFromModule(context.Background(), loader, dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
+	diags := DirFromModule(context.Background(), loader, dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, testFromModuleInitializer(loader), hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
@@ -169,7 +169,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, testFromModuleInitializer(loader), hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -265,7 +265,7 @@ func TestDirFromModule_submodulesWithProvider(t *testing.T) {
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, testFromModuleInitializer(loader), hooks)
 
 	for _, d := range diags {
 		if d.Severity() != tfdiags.Warning {
@@ -317,7 +317,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	sourceDir := "../local-modules"
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, hooks)
+	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, testFromModuleInitializer(loader), hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -409,7 +409,7 @@ func TestDirFromModule_submodulesWithDynamicSources(t *testing.T) {
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, testFromModuleInitializer(loader), hooks)
 
 	wantDiags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
@@ -422,4 +422,10 @@ func TestDirFromModule_submodulesWithDynamicSources(t *testing.T) {
 		},
 	})
 	tfdiags.AssertDiagnosticsMatch(t, diags, wantDiags)
+}
+
+func testFromModuleInitializer(loader *configload.Loader) Initializer {
+	return func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
 }
