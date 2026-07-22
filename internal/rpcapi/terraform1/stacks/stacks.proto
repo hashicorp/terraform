@@ -276,6 +276,9 @@ message PlanStackChanges {
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 13;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -357,6 +360,9 @@ message ApplyStackChanges {
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 6;
     }
   }
 }
@@ -1122,6 +1128,10 @@ message ProviderInstancePolicyEvaluation {
   repeated PolicyResult results = 2;
   repeated PolicyInfo infos = 3;
   repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message PolicySetupDiagnostics {
+  repeated PolicyDiagnostic diagnostics = 1;
 }
 
 message PolicyMetaData {
