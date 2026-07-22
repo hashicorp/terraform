@@ -5275,12 +5275,12 @@ resource "test_object" "forget_too" {
 	)
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
-	assertNoDiagnostics(t, diags)
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
 
 	state, applyDiags := ctx.Apply(plan, m, nil)
-	if len(diags) > 0 {
-		fmt.Printf("%v\n", diags.ErrWithWarnings())
-	}
 	assertNoDiagnostics(t, applyDiags)
 	if !state.Empty() {
 		t.Fatal("unexpected resources in state")
