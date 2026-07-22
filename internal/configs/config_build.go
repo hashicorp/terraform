@@ -44,22 +44,11 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 //
 // Callers must ensure cfg.Root is set correctly before calling this function.
 func FinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoader) hcl.Diagnostics {
-	return FinalizeConfigWithTestModuleLoader(cfg, walker, loader, nil)
-}
-
-// TestModuleLoader loads the configuration selected by a test run's module
-// block. If nil, test modules are loaded using the standard configuration
-// loader.
-type TestModuleLoader func(root *Config, req *ModuleRequest) (*Config, hcl.Diagnostics)
-
-// FinalizeConfigWithTestModuleLoader is FinalizeConfig with an optional custom
-// loader for configurations selected by test run module blocks.
-func FinalizeConfigWithTestModuleLoader(cfg *Config, walker ModuleWalker, loader MockDataLoader, testModuleLoader TestModuleLoader) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 	if cfg == nil {
 		return diags
 	}
-	diags = append(diags, buildTestModules(cfg, walker, testModuleLoader)...)
+	diags = append(diags, buildTestModules(cfg, walker)...)
 
 	// Skip provider resolution if there are any errors, since the provider
 	// configurations themselves may not be valid.
@@ -108,12 +97,12 @@ func installMockDataFiles(root *Config, loader MockDataLoader) hcl.Diagnostics {
 	return diags
 }
 
-func buildTestModules(root *Config, walker ModuleWalker, loader TestModuleLoader) hcl.Diagnostics {
+func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	for name, file := range root.Module.Tests {
 		for _, run := range file.Runs {
-			if run.Module == nil {
+			if run.Module == nil || run.ConfigUnderTest != nil {
 				continue
 			}
 
@@ -144,13 +133,7 @@ func buildTestModules(root *Config, walker ModuleWalker, loader TestModuleLoader
 				CallRange:         run.Module.DeclRange,
 			}
 
-			var cfg *Config
-			var modDiags hcl.Diagnostics
-			if loader != nil {
-				cfg, modDiags = loader(root, &req)
-			} else {
-				cfg, modDiags = loadModule(root, &req, walker)
-			}
+			cfg, modDiags := loadModule(root, &req, walker)
 			diags = append(diags, modDiags...)
 
 			if cfg != nil {

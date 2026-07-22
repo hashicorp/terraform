@@ -4,11 +4,14 @@
 package terraform
 
 import (
+	"path"
 	"slices"
+	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -40,33 +43,69 @@ func BuildConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, 
 		return cfg, diags
 	}
 
-	testModuleLoader := func(root *configs.Config, req *configs.ModuleRequest) (*configs.Config, hcl.Diagnostics) {
-		rootMod, _, loadDiags := walker.LoadModule(req)
-		if loadDiags.HasErrors() || rootMod == nil {
-			return nil, loadDiags
-		}
+	testDiags := loadTestModulesWithGraph(cfg, walker, vars)
+	diags = diags.Append(testDiags)
 
-		prefix := slices.Clone(req.Path)
-		prefixedWalker := configs.ModuleWalkerFunc(func(childReq *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-			prefixedReq := *childReq
-			prefixedReq.Path = append(slices.Clone(prefix), childReq.Path...)
-			if childReq.Parent != nil {
-				parent := *childReq.Parent
-				parent.Path = append(slices.Clone(prefix), childReq.Parent.Path...)
-				prefixedReq.Parent = &parent
-			}
-			return walker.LoadModule(&prefixedReq)
-		})
-
-		testCfg, testDiags := initConfigWithGraph(rootMod, prefixedWalker, vars)
-		loadDiags = append(loadDiags, testDiags.ToHCL()...)
-		return testCfg, loadDiags
-	}
-
-	finalDiags := configs.FinalizeConfigWithTestModuleLoader(cfg, walker, loader, testModuleLoader)
+	finalDiags := configs.FinalizeConfig(cfg, walker, loader)
 	diags = diags.Append(finalDiags)
 
 	return cfg, diags
+}
+
+func loadTestModulesWithGraph(root *configs.Config, walker configs.ModuleWalker, vars InputValues) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for name, file := range root.Module.Tests {
+		for _, run := range file.Runs {
+			if run.Module == nil {
+				continue
+			}
+
+			dir := path.Dir(name)
+			base := path.Base(name)
+			modulePath := addrs.Module{"test"}
+			if dir != "." {
+				modulePath = append(modulePath, strings.Split(dir, "/")...)
+			}
+			modulePath = append(modulePath, strings.TrimSuffix(base, ".tftest.hcl"), run.Name)
+
+			req := &configs.ModuleRequest{
+				Name:              run.Name,
+				Path:              modulePath,
+				SourceAddr:        run.Module.Source,
+				SourceAddrRange:   run.Module.SourceDeclRange,
+				VersionConstraint: run.Module.Version,
+				Parent:            root,
+				CallRange:         run.Module.DeclRange,
+			}
+
+			rootMod, _, loadDiags := walker.LoadModule(req)
+			diags = diags.Append(loadDiags)
+			if loadDiags.HasErrors() || rootMod == nil {
+				continue
+			}
+
+			prefix := slices.Clone(req.Path)
+			prefixedWalker := configs.ModuleWalkerFunc(func(childReq *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+				prefixedReq := *childReq
+				prefixedReq.Path = append(slices.Clone(prefix), childReq.Path...)
+				if childReq.Parent != nil {
+					parent := *childReq.Parent
+					parent.Path = append(slices.Clone(prefix), childReq.Parent.Path...)
+					prefixedReq.Parent = &parent
+				}
+				return walker.LoadModule(&prefixedReq)
+			})
+
+			testCfg, testDiags := initConfigWithGraph(rootMod, prefixedWalker, vars)
+			diags = diags.Append(testDiags)
+			if testCfg != nil {
+				run.ConfigUnderTest = testCfg
+			}
+		}
+	}
+
+	return diags
 }
 
 func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues) (*configs.Config, tfdiags.Diagnostics) {
