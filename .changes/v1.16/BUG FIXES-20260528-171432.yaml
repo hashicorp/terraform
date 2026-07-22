@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: 'init: Add warnings when unmanaged providers are in use and will impact provider installation processes.'
+body: "init: Terraform now warns when unmanaged providers are in use and may impact provider installation."
 time: 2026-05-28T17:14:32.881514+01:00
 custom:
     Issue: "38656"

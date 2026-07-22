@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: merge no longer panics with null objects
+body: "The `merge()` function no longer panics when passed `null` objects."
 time: 2026-06-26T13:06:26.78064-04:00
 custom:
   Issue: "38792"

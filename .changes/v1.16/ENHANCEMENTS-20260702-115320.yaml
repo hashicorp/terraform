@@ -1,6 +1,5 @@
 kind: ENHANCEMENTS
-body: 'The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be
-    used to evaluate expressions within the scope of a module or a specific module instance.'
+body: "console: The `terraform console` command now accepts an optional `-scope=<module address>` flag, which can be used to evaluate expressions within the scope of a module or a specific module instance."
 time: 2026-07-02T11:53:20.352299-04:00
 custom:
-    Issue: "31861"
+  Issue: "31861"

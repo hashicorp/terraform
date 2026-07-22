@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: Show info when resources are left behind due to skip_cleanup
+body: "test: Terraform now reports which resources were left behind when `skip_cleanup` is set."
 time: 2026-04-27T11:26:04.782451-04:00
 custom:
-    Issue: "38449"
+  Issue: "38449"

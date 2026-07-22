@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: 'feat(cli): terraform state show accepts a -json flag'
+body: "state show: The `state show` command can now produce machine-readable output when supplied with the `-json` flag"
 time: 2026-04-08T08:25:43.767443-04:00
 custom:
-    Issue: "23940"
+  Issue: "23940"

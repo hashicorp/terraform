@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: return correct error when import target exists in state, but not config
+body: "Terraform now returns the correct error when an `import` target exists in state but has no corresponding configuration."
 time: 2026-06-25T10:30:56.385054-04:00
 custom:
     Issue: "38782"

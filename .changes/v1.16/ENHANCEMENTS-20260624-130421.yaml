@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings.
+body: "Child module outputs with unreferenced deprecated nested attributes no longer return deprecation warnings."
 time: 2026-06-24T13:04:21.373803-04:00
 custom:
     Issue: "38778"

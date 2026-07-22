@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: 'cloud: Render a summary of Terraform policy evaluation outcomes for plan and apply runs against HCP Terraform'
+body: "cloud: Terraform now displays a summary of policy evaluation outcomes for `plan` and `apply` runs against HCP Terraform."
 time: 2026-06-12T12:46:03.000000-04:00
 custom:
     Issue: "38715"
