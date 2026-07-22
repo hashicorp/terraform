@@ -36,6 +36,22 @@ Multi-word kinds include a space: `BUG FIXES-20260401-152120.yaml`, `UPGRADE NOT
 
 ---
 
+## Choosing the correct `kind`
+
+Make sure to select the correct kind of change:
+
+
+| Change kind      | When to use |
+|------------------|-------------|
+| `NEW FEATURES`     | Use this when adding new, separate functionality to Terraform. For example, introduction of ephemeral resources. |
+| `ENHANCEMENTS`     | Use this when improving existing functionality in Terraform. Examples include: adding a new field to a remote-state backend, or adding a new environment variable to use when configuring Terraform. |
+| `BUG FIXES`        | Use this when fixing a user-facing issue. Examples include: crash fixes, improvements to error feedback, regression fixes. |
+| `NOTES`            | Use this for changes that are unlikely to cause user-facing issues but might have edge cases. For example, changes to how the Terraform binary is built. |
+| `UPGRADE NOTES`    | Use this when introducing a change that forces users to take action when upgrading, or changes Terraform's behaviour notably. For example, deprecating a field on a remote-state backend or changing the output of Terraform operations. |
+| `BREAKING CHANGES` | Use this when introducing a change that could make a valid Terraform configuration stop working after a user upgrades Terraform versions. This might be paired with an upgrade note change file. Examples include: removing a field on a remote-state backend, changing a builtin function's behavior, making validation stricter. |
+
+---
+
 ## Core principles for `body`
 
 1. **User-focused, not implementation-focused.** Describe what the user can now do, or what they will now experience. Do not describe what changed internally.
