@@ -154,6 +154,8 @@ This is different if you are backporting your changes to an earlier release vers
 
 #### Create a change file using `changie`
 
+For more in-depth guidance, or guidance to be consumed by an agent, see our separate [style guide doc](../.changes/STYLE-GUIDE.md).
+
 If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to:
 1. Select which kind of change you're introducing.
 2. Provide a short description.
