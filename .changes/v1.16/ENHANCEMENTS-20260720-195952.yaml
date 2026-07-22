@@ -4,4 +4,4 @@ body: The `terraform stacks` command now automatically infers the target hostnam
   nor `TF_CLOUD_HOSTNAME` is set
 time: 2026-07-20T19:59:52.000000-04:00
 custom:
-  Issue: "34724"
+  Issue: "38896"
