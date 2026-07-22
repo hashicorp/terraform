@@ -116,8 +116,7 @@ type TestFileModuleRequirements struct {
 }
 
 // NewEmptyConfig constructs a single-node configuration tree with an empty
-// root module. This is generally a pretty useless thing to do, so most callers
-// should instead use BuildConfig.
+// root module. This is generally a pretty useless thing to do.
 func NewEmptyConfig() *Config {
 	ret := &Config{}
 	ret.Root = ret

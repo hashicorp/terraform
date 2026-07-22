@@ -46,11 +46,6 @@ type ModuleInstaller struct {
 	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
 
 	initializer Initializer
-
-	// requireInitializer identifies installers that must use graph-based
-	// configuration loading. The legacy constructor leaves this false only for
-	// callers that have not yet migrated.
-	requireInitializer bool
 }
 
 type moduleVersion struct {
@@ -67,14 +62,6 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
 		initializer:             initializer,
 	}
-}
-
-// NewGraphModuleInstaller constructs a module installer that requires its
-// initializer to build the configuration using the init graph.
-func NewGraphModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client, initializer Initializer) *ModuleInstaller {
-	ret := NewModuleInstaller(modsDir, loader, reg, initializer)
-	ret.requireInitializer = true
-	return ret
 }
 
 // InstallModules analyses the root module in the given directory and installs
@@ -154,42 +141,30 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		Dir: rootDir,
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, fetcher, hooks...)
-	if i.requireInitializer && i.initializer == nil {
+	if i.initializer == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Missing module installer initializer",
-			"The graph-based module installer requires a configuration initializer. This is a bug in Terraform.",
+			"The module installer requires a configuration initializer. This is a bug in Terraform.",
 		))
 		return nil, diags
 	}
 
-	var cfg *configs.Config
-	var instDiags tfdiags.Diagnostics
-	if i.initializer != nil {
-		var installDiags hcl.Diagnostics
-		initWalker := walker
-		if installErrsOnly {
-			initWalker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-				mod, version, diags := walker.LoadModule(req)
-				installDiags = installDiags.Extend(diags)
-				return mod, version, diags
-			})
-		}
-
-		cfg, instDiags = i.initializer(rootMod, initWalker)
-		if installErrsOnly && !installDiags.HasErrors() {
-			instDiags = tfdiags.OverrideAll(instDiags, tfdiags.Warning, nil)
-		}
-		diags = diags.Append(instDiags)
-	} else {
-		cfg, instDiags = i.installDescendantModules(rootMod, walker, installErrsOnly)
-		diags = diags.Append(instDiags)
+	var installDiags hcl.Diagnostics
+	initWalker := walker
+	if installErrsOnly {
+		initWalker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			mod, version, diags := walker.LoadModule(req)
+			installDiags = installDiags.Extend(diags)
+			return mod, version, diags
+		})
 	}
 
-	if i.initializer == nil {
-		finalDiags := configs.FinalizeConfig(cfg, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-		diags = diags.Append(finalDiags)
+	cfg, instDiags := i.initializer(rootMod, initWalker)
+	if installErrsOnly && !installDiags.HasErrors() && installedConfigComplete(cfg) {
+		instDiags = tfdiags.OverrideAll(instDiags, tfdiags.Warning, nil)
 	}
+	diags = diags.Append(instDiags)
 
 	if diags.HasErrors() {
 		return nil, diags
@@ -205,6 +180,26 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 
 	return cfg, diags
+}
+
+func installedConfigComplete(cfg *configs.Config) bool {
+	if cfg == nil || cfg.Module == nil {
+		return false
+	}
+	for name := range cfg.Module.ModuleCalls {
+		child := cfg.Children[name]
+		if !installedConfigComplete(child) {
+			return false
+		}
+	}
+	for _, file := range cfg.Module.Tests {
+		for _, run := range file.Runs {
+			if run.Module != nil && !installedConfigComplete(run.ConfigUnderTest) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, fetcher *getmodules.PackageFetcher, hooks ...ModuleInstallHook) configs.ModuleWalker {
@@ -367,49 +362,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 			}
 		},
 	)
-}
-
-func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// When attempting to initialize the current directory with a module
-	// source, some use cases may want to ignore configuration errors from the
-	// building of the entire configuration structure, but we still need to
-	// capture installation errors. Because the actual module installation
-	// happens in the ModuleWalkFunc callback while building the config, we
-	// need to create a closure to capture the installation diagnostics
-	// separately.
-	var instDiags hcl.Diagnostics
-	walker := installWalker
-	if installErrsOnly {
-		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-			mod, version, diags := installWalker.LoadModule(req)
-			instDiags = instDiags.Extend(diags)
-			return mod, version, diags
-		})
-	}
-
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-	diags = diags.Append(cDiags)
-	if installErrsOnly {
-		// We can't continue if there was an error during installation, but
-		// return all diagnostics in case there happens to be anything else
-		// useful when debugging the problem. Any instDiags will be included in
-		// diags already.
-		if instDiags.HasErrors() {
-			return cfg, diags
-		}
-
-		// If there are any errors here, they must be only from building the
-		// config structures. We don't want to block initialization at this
-		// point, so convert these into warnings. Any actual errors in the
-		// configuration will be raised as soon as the config is loaded again.
-		// We continue below because writing the manifest is required to finish
-		// module installation.
-		diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
-	}
-
-	return cfg, diags
 }
 
 func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ...ModuleInstallHook) (*configs.Module, hcl.Diagnostics) {

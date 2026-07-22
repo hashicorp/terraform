@@ -46,7 +46,7 @@ func BuildConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, 
 	testDiags := loadTestModulesWithGraph(cfg, walker, vars)
 	diags = diags.Append(testDiags)
 
-	finalDiags := configs.FinalizeConfig(cfg, walker, loader)
+	finalDiags := configs.FinalizeConfig(cfg, loader)
 	diags = diags.Append(finalDiags)
 
 	return cfg, diags

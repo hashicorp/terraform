@@ -110,7 +110,7 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 
 	cfg, v, modDiags := n.Walker.LoadModule(req)
 	diags = diags.Append(modDiags)
-	if diags.HasErrors() {
+	if diags.HasErrors() || cfg == nil {
 		return diags
 	}
 

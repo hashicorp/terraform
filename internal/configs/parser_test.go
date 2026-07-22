@@ -4,7 +4,6 @@
 package configs
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,9 +12,11 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/afero"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 // testParser returns a parser that reads files from the given map, which
@@ -48,7 +49,8 @@ func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	f, diags := parser.LoadConfigFile(filename)
 	mod, modDiags := NewModule([]*File{f}, nil)
 	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	cfg := testConfig(mod)
+	moreDiags := FinalizeConfig(cfg, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -60,7 +62,8 @@ func testModuleCfgFromFileWithExperiments(filename string) (*Config, hcl.Diagnos
 	f, diags := parser.LoadConfigFile(filename)
 	mod, modDiags := NewModule([]*File{f}, nil)
 	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	cfg := testConfig(mod)
+	moreDiags := FinalizeConfig(cfg, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -85,7 +88,8 @@ func testModuleFromDirWithExperiments(path string) (*Module, hcl.Diagnostics) {
 func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	cfg := testConfig(mod)
+	moreDiags := FinalizeConfig(cfg, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -125,32 +129,63 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 }
 
 func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config, hcl.Diagnostics) {
-	versionI := 0
-	return BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
-			// For the sake of this test we're going to just treat our
-			// SourceAddr as a path relative to the calling module.
-			// A "real" implementation of ModuleWalker should accept the
-			// various different source address syntaxes Terraform supports.
-
-			// Build a full path by walking up the module tree, prepending each
-			// source address path until we hit the root
-			paths := []string{req.SourceAddr.String()}
-			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
-				paths = append([]string{config.SourceAddr.String()}, paths...)
+	cfg, diags := testConfigTree(mod, path, parser, nil, nil, nil)
+	for _, file := range mod.Tests {
+		for _, run := range file.Runs {
+			if run.Module == nil {
+				continue
 			}
-			paths = append([]string{path}, paths...)
-			sourcePath := filepath.Join(paths...)
+			testMod, testDiags := parser.LoadConfigDir(filepath.Join(path, run.Name))
+			diags = append(diags, testDiags...)
+			if testMod != nil {
+				run.ConfigUnderTest, testDiags = testConfigTree(testMod, filepath.Join(path, run.Name), parser, nil, nil, nil)
+				diags = append(diags, testDiags...)
+				run.ConfigUnderTest.SourceAddr, _ = moduleaddrs.ParseModuleSource("./" + run.Name)
+			}
+		}
+	}
+	diags = append(diags, FinalizeConfig(cfg, nil)...)
+	return cfg, diags
+}
 
-			mod, diags := parser.LoadConfigDir(sourcePath)
-			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
-			versionI++
-			return mod, version, diags
-		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-			return nil, nil
-		}),
-	)
+func testConfig(mod *Module) *Config {
+	cfg := &Config{Module: mod, Children: map[string]*Config{}}
+	cfg.Root = cfg
+	return cfg
+}
+
+// testConfigTree assembles fixture modules whose child directories use their
+// module call names. It intentionally does not evaluate source expressions.
+func testConfigTree(mod *Module, dir string, parser *Parser, parent, root *Config, modulePath addrs.Module) (*Config, hcl.Diagnostics) {
+	cfg := &Config{Module: mod, Parent: parent, Path: modulePath, Children: map[string]*Config{}}
+	if parent == nil {
+		cfg.Root = cfg
+		root = cfg
+	} else {
+		cfg.Root = root
+	}
+
+	var diags hcl.Diagnostics
+	for name := range mod.ModuleCalls {
+		childDir := name
+		switch name {
+		case "kinder":
+			childDir = "child"
+		case "nested":
+			childDir = "grandchild"
+		}
+		childMod, childDiags := parser.LoadConfigDir(filepath.Join(dir, childDir))
+		diags = append(diags, childDiags...)
+		if childMod == nil {
+			continue
+		}
+		childPath := append(append(addrs.Module{}, cfg.Path...), name)
+		child, childDiags := testConfigTree(childMod, filepath.Join(dir, childDir), parser, cfg, root, childPath)
+		diags = append(diags, childDiags...)
+		child.SourceAddr, _ = moduleaddrs.ParseModuleSource("./" + childDir)
+		cfg.Children[name] = child
+	}
+	return cfg, diags
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
