@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // loadRefactoringFixture reads a configuration from the given directory and
@@ -27,7 +28,10 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())

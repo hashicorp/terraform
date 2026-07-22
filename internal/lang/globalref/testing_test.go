@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // testAnalyzer creates an analyzer for testing by loading a configuration
@@ -29,7 +30,10 @@ func testAnalyzer(t *testing.T, fixtureName string) *globalref.Analyzer {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 	_, instDiags := inst.InstallModules(context.Background(), configDir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatalf("unexpected module installation errors: %s", instDiags.Err().Error())

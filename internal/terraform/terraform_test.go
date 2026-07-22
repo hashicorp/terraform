@@ -71,7 +71,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
 		return BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
 	}
-	inst := initwd.NewGraphModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -170,7 +170,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
 		return BuildConfigWithGraph(rootMod, walker, vars, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
 	}
-	inst := initwd.NewGraphModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())

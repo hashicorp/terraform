@@ -2,5 +2,5 @@ output "hello" {
   value = "hello"
 }
 
-invalid "block" "type " {
+invalid "block" "type" {
 }

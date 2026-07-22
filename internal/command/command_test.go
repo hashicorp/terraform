@@ -53,6 +53,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -181,7 +182,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -209,6 +210,12 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	}
 
 	return config, snap
+}
+
+func testModuleInstallerInitializer(loader *configload.Loader) initwd.Initializer {
+	return func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
 }
 
 // testPlan returns a non-nil noop plan.

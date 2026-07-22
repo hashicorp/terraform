@@ -62,7 +62,7 @@ func TestGraph_resourcesOnly_mermaid(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())

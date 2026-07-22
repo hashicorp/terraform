@@ -29,7 +29,7 @@ func BuildConfig(root *configs.Module, walker configs.ModuleWalker) (*configs.Co
 	}
 	cfg.Root = cfg
 	cfg.Children, diags = buildChildModules(cfg, walker)
-	diags = append(diags, configs.FinalizeConfig(cfg, walker, nil)...)
+	diags = append(diags, configs.FinalizeConfig(cfg, nil)...)
 	return cfg, diags
 }
 

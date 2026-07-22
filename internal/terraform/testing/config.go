@@ -49,7 +49,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 			configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 		)
 	}
-	inst := initwd.NewGraphModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 
 	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false)
 	diags = diags.Append(moreDiags)
