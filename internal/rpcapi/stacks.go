@@ -326,6 +326,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 
 	// Setup the policy client if the caller provides a plugin path and policies
 	var policyClient policy.Client
+	var policySetupDiags policy.Diagnostics
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
@@ -343,12 +344,14 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 			var diags policy.Diagnostics
 			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
 			if diags.HasErrors() {
-				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+				// We will emit this diagnostic later and allow the plan to run
+				policySetupDiags = diags
+				policyClient = nil
+			} else {
+				log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+				defer policyClient.Stop()
 			}
 		}
-
-		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
-		defer policyClient.Stop()
 	}
 
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
@@ -503,6 +506,14 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 				},
 			})
 		}
+	}
+
+	// TODO: These are policy diags and if we're going to emit them, we should probably emit a top-level policy event? (they can't be associated with
+	// the existing events because they aren't component instances or provider instances :P)
+	//
+	// For now this should actually emit a diagnostic rather than tfc-agent ignoring the RPC error :)
+	for _, d := range policySetupDiags {
+		emitDiag(d)
 	}
 
 	// There is no strong ordering between the planned changes and the
