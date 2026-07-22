@@ -68,10 +68,9 @@ func TestStacks_resolveDisplayHostname(t *testing.T) {
 			wantHostname:    "cloud.example.com",
 		},
 		{
-			name:             "uses single credentials hostname with warning",
-			credentialsJSON:  `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
-			wantHostname:     "tfe.company.com",
-			wantWarnContains: "Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.",
+			name:            "uses single credentials hostname",
+			credentialsJSON: `{"credentials":{"tfe.company.com":{"token":"x"}}}`,
+			wantHostname:    "tfe.company.com",
 		},
 		{
 			name:            "multiple credentials hostnames returns error",

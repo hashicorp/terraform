@@ -178,13 +178,7 @@ func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
 	}
 
 	if len(hosts) == 1 {
-		displayHostname = hosts[0].ForDisplay()
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"No hostname environment variable set, using hostname from credentials file",
-			fmt.Sprintf("No hostname environment variable set. Using %q from your credentials file. Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to override.", displayHostname),
-		))
-		return displayHostname, diags
+		return hosts[0].ForDisplay(), diags
 	}
 
 	if len(hosts) > 1 {
