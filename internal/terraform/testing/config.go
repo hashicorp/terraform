@@ -41,7 +41,15 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 	var diags tfdiags.Diagnostics
 
 	loader, cleanup := configload.NewLoaderForTests(t)
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(
+			rootMod,
+			walker,
+			nil,
+			configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+		)
+	}
+	inst := initwd.NewGraphModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 
 	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false)
 	diags = diags.Append(moreDiags)
