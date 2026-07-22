@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/staticmodule"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -103,7 +104,7 @@ func (c *Component) ModuleConfig(bundle *sourcebundle.Bundle) (*configs.Config, 
 
 	if module != nil {
 		walker := stackparser.NewSourceBundleModuleWalker(c.FinalSourceAddr, bundle, parser)
-		config, moreDiags := configs.BuildConfig(module, walker, nil)
+		config, moreDiags := staticmodule.BuildConfig(module, walker)
 		diags = diags.Append(moreDiags)
 		return config, diags
 	}

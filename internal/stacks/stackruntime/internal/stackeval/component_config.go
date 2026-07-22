@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/staticmodule"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -119,7 +120,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 			}
 
 			walker := stackparser.NewSourceBundleModuleWalker(rootModuleSource, sources, parser)
-			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
+			configRoot, hclDiags := staticmodule.BuildConfig(rootMod, walker)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
