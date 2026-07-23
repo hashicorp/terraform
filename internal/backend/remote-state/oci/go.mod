@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
-	github.com/oracle/oci-go-sdk/v65 v65.89.1
+	github.com/oracle/oci-go-sdk/v65 v65.120.0
 	github.com/zclconf/go-cty v1.18.1
 )
 
@@ -34,7 +34,7 @@ require (
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/sony/gobreaker v0.5.0 // indirect
+	github.com/sony/gobreaker/v2 v2.4.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
