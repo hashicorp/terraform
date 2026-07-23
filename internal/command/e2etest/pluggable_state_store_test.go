@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/states"
@@ -280,6 +281,134 @@ resource "terraform_data" "my-data" {
 `
 	if diff := cmp.Diff(stdout, expectedMsg); diff != "" {
 		t.Errorf("wrong result, diff:\n%s", diff)
+	}
+}
+
+// Test using `terraform state migrate` subcommand
+func TestPrimary_stateStore_stateMigrateCmd_upgrade(t *testing.T) {
+	t.Parallel()
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	fixturePath := filepath.Join("testdata", "state-migrate-upgrade")
+
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+
+	// Load old state for comparison
+	oldStatePath := filepath.Join(tf.WorkDir(), "v1.tfstate.d", "default", "terraform.tfstate")
+	oldStateFile, err := os.Open(oldStatePath)
+	t.Cleanup(func() { oldStateFile.Close() })
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldState, err := statefile.Read(oldStateFile)
+	oldStateFile.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// setup FS mirror
+	tmpDir := t.TempDir()
+	mirrorPath := filepath.Join(tmpDir, "mirror")
+	cliCfgFilePath := filepath.Join(tmpDir, "test.tfrc")
+	cfgBody := fmt.Sprintf(`provider_installation {
+  filesystem_mirror {
+    path    = %q
+    include = ["registry.terraform.io/hashicorp/simple6"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/hashicorp/simple6"]
+  }
+}
+`, mirrorPath)
+	os.WriteFile(cliCfgFilePath, []byte(cfgBody), 0o700)
+	tf.AddEnv("TF_CLI_CONFIG_FILE=" + cliCfgFilePath)
+
+	// In order to test integration with PSS we need two provider plugins implementing a state store
+	// which we can tell apart to be able to verify successful upgrade between them.
+	platform := getproviders.CurrentPlatform.String()
+	// Build v1.0.0 plugin
+	simpleProviderv1 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
+	simpleProviderv1Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
+		simpleProviderv1, "-ldflags", "-X 'main.fsStatesDir=v1.tfstate.d'")
+	providerv1MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "1.0.0")
+	if err := os.MkdirAll(filepath.Join(providerv1MirrorPath, platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simpleProviderv1Exe, filepath.Join(providerv1MirrorPath, platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+	// Build v2.0.0 plugin
+	simpleProviderv2 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
+	simpleProviderv2Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
+		simpleProviderv2, "-ldflags", "-X 'main.fsStatesDir=v2.tfstate.d'")
+	providerv2MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "2.0.0")
+	if err := os.MkdirAll(filepath.Join(providerv2MirrorPath, platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simpleProviderv2Exe, filepath.Join(providerv2MirrorPath, platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, stderr, err := tf.Run("state", "migrate", "-upgrade", "-input=false", "-force-copy", "-no-color")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	expectedMsg := []string{
+		`Initializing provider hashicorp/simple6 (1.0.0) for state store "simple6_fs"...
+- Reusing version 1.0.0 of hashicorp/simple6 from the dependency lock file
+- Installing hashicorp/simple6 v1.0.0...`,
+		`Initializing provider hashicorp/simple6 (2.0.0) for state store "simple6_fs"...
+- Finding hashicorp/simple6 versions matching "2.0.0"...
+- Installing hashicorp/simple6 v2.0.0...`,
+		`Migrating state from state store "simple6_fs" (hashicorp/simple6 1.0.0) to state store "simple6_fs" (hashicorp/simple6 2.0.0)...`,
+		`Finished migrating state from state store "simple6_fs" (hashicorp/simple6 1.0.0) to state store "simple6_fs" (hashicorp/simple6 2.0.0).`,
+	}
+	for _, expectedMsg := range expectedMsg {
+		if !strings.Contains(stdout, expectedMsg) {
+			t.Fatalf("expected output %q, got %q", expectedMsg, stdout)
+		}
+	}
+
+	// verify state exists in the new location
+	newStatePath := filepath.Join(tf.WorkDir(), "v2.tfstate.d", "default", "terraform.tfstate")
+	newStateFile, err := os.Open(newStatePath)
+	t.Cleanup(func() { newStateFile.Close() })
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Load new state for comparison
+	newState, err := statefile.Read(newStateFile)
+	newStateFile.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// verify state contents
+	if diff := cmp.Diff(oldState.State.String(), newState.State.String()); diff != "" {
+		t.Fatalf("unexpected state: %s", diff)
+	}
+
+	// verify lockfile was updated
+	lockPath := filepath.Join(tf.WorkDir(), depsfile.LockFilePath)
+	updatedLocks, diags := depsfile.LoadLocksFromFile(lockPath)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %s", diags)
+	}
+	pAddr := addrs.MustParseProviderSourceString("hashicorp/simple6")
+	pLock := updatedLocks.Provider(pAddr)
+
+	expectedVersion := getproviders.MustParseVersion("2.0.0")
+	givenVersion := pLock.Version()
+	if expectedVersion.String() != givenVersion.String() {
+		t.Fatalf("mismatching version, expected %s, given %s", expectedVersion, givenVersion)
 	}
 }
 
