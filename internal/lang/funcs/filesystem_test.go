@@ -339,7 +339,7 @@ func TestFileExists(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("FileExists(\".\", %#v)", test.Path), func(t *testing.T) {
-			got, err := FileExists(".", test.Path)
+			got, err := testFileExists(".", test.Path)
 
 			if test.Err != "" {
 				if err == nil {
@@ -573,7 +573,7 @@ func TestFileSet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("FileSet(\".\", %#v, %#v)", test.Path, test.Pattern), func(t *testing.T) {
-			got, err := FileSet(".", test.Path, test.Pattern)
+			got, err := testFileSet(".", test.Path, test.Pattern)
 
 			if test.Err != "" {
 				if err == nil {
@@ -619,7 +619,7 @@ func TestFileBase64(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("FileBase64(\".\", %#v)", test.Path), func(t *testing.T) {
-			got, err := FileBase64(".", test.Path)
+			got, err := testFileBase64(".", test.Path)
 
 			if test.Err {
 				if err == nil {
@@ -662,7 +662,7 @@ func TestBasename(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Basename(%#v)", test.Path), func(t *testing.T) {
-			got, err := Basename(test.Path)
+			got, err := BasenameFunc.Call([]cty.Value{test.Path})
 
 			if test.Err {
 				if err == nil {
@@ -710,7 +710,7 @@ func TestDirname(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Dirname(%#v)", test.Path), func(t *testing.T) {
-			got, err := Dirname(test.Path)
+			got, err := DirnameFunc.Call([]cty.Value{test.Path})
 
 			if test.Err {
 				if err == nil {
@@ -763,7 +763,7 @@ func TestPathExpand(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Dirname(%#v)", test.Path), func(t *testing.T) {
-			got, err := Pathexpand(test.Path)
+			got, err := PathExpandFunc.Call([]cty.Value{test.Path})
 
 			if test.Err {
 				if err == nil {
@@ -779,4 +779,19 @@ func TestPathExpand(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testFileExists(baseDir string, path cty.Value) (cty.Value, error) {
+	fn := MakeFileExistsFunc(baseDir, noopWrapper)
+	return fn.Call([]cty.Value{path})
+}
+
+func testFileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
+	fn := MakeFileSetFunc(baseDir, noopWrapper)
+	return fn.Call([]cty.Value{path, pattern})
+}
+
+func testFileBase64(baseDir string, path cty.Value) (cty.Value, error) {
+	fn := MakeFileFunc(baseDir, true, noopWrapper)
+	return fn.Call([]cty.Value{path})
 }

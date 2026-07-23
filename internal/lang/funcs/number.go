@@ -6,7 +6,6 @@ package funcs
 import (
 	"fmt"
 	"math"
-	"math/big"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -107,92 +106,3 @@ var SignumFunc = function.New(&function.Spec{
 		}
 	},
 })
-
-// ParseIntFunc contructs a function that parses a string argument and returns an integer of the specified base.
-var ParseIntFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name:         "number",
-			Type:         cty.DynamicPseudoType,
-			AllowMarked:  true,
-			AllowUnknown: true,
-		},
-		{
-			Name:         "base",
-			Type:         cty.Number,
-			AllowMarked:  true,
-			AllowUnknown: true,
-		},
-	},
-
-	Type: func(args []cty.Value) (cty.Type, error) {
-		if !args[0].Type().Equals(cty.String) {
-			return cty.Number, function.NewArgErrorf(0, "first argument must be a string, not %s", args[0].Type().FriendlyName())
-		}
-		return cty.Number, nil
-	},
-	RefineResult: refineNotNull,
-
-	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		var numstr string
-		var base int
-		var err error
-
-		numArg, numMarks := args[0].Unmark()
-		baseArg, baseMarks := args[1].Unmark()
-
-		if !numArg.IsKnown() || !baseArg.IsKnown() {
-			return cty.UnknownVal(retType).WithMarks(numMarks, baseMarks), nil
-		}
-
-		if err = gocty.FromCtyValue(numArg, &numstr); err != nil {
-			return cty.UnknownVal(cty.String), function.NewArgError(0, err)
-		}
-
-		if err = gocty.FromCtyValue(baseArg, &base); err != nil {
-			return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
-		}
-
-		if base < 2 || base > 62 {
-			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
-				1,
-				"base must be a whole number between 2 and 62 inclusive",
-			)
-		}
-
-		num, ok := (&big.Int{}).SetString(numstr, base)
-		if !ok {
-			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
-				0,
-				"cannot parse %s as a base %s integer",
-				redactIfSensitive(numstr, numMarks),
-				redactIfSensitive(base, baseMarks),
-			)
-		}
-
-		parsedNum := cty.NumberVal((&big.Float{}).SetInt(num)).WithMarks(numMarks, baseMarks)
-
-		return parsedNum, nil
-	},
-})
-
-// Log returns returns the logarithm of a given number in a given base.
-func Log(num, base cty.Value) (cty.Value, error) {
-	return LogFunc.Call([]cty.Value{num, base})
-}
-
-// Pow returns the logarithm of a given number in a given base.
-func Pow(num, power cty.Value) (cty.Value, error) {
-	return PowFunc.Call([]cty.Value{num, power})
-}
-
-// Signum determines the sign of a number, returning a number between -1 and
-// 1 to represent the sign.
-func Signum(num cty.Value) (cty.Value, error) {
-	return SignumFunc.Call([]cty.Value{num})
-}
-
-// ParseInt parses a string argument and returns an integer of the specified base.
-func ParseInt(num cty.Value, base cty.Value) (cty.Value, error) {
-	return ParseIntFunc.Call([]cty.Value{num, base})
-}

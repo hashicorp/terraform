@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 func TestLog(t *testing.T) {
@@ -60,7 +58,7 @@ func TestLog(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("log(%#v, %#v)", test.Num, test.Base), func(t *testing.T) {
-			got, err := Log(test.Num, test.Base)
+			got, err := LogFunc.Call([]cty.Value{test.Num, test.Base})
 
 			if test.Err {
 				if err == nil {
@@ -144,7 +142,7 @@ func TestPow(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("pow(%#v, %#v)", test.Num, test.Power), func(t *testing.T) {
-			got, err := Pow(test.Num, test.Power)
+			got, err := PowFunc.Call([]cty.Value{test.Num, test.Power})
 
 			if test.Err {
 				if err == nil {
@@ -187,217 +185,11 @@ func TestSignum(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("signum(%#v)", test.Num), func(t *testing.T) {
-			got, err := Signum(test.Num)
+			got, err := SignumFunc.Call([]cty.Value{test.Num})
 
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")
-				}
-				return
-			} else if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-			}
-		})
-	}
-}
-
-func TestParseInt(t *testing.T) {
-	tests := []struct {
-		Num  cty.Value
-		Base cty.Value
-		Want cty.Value
-		Err  string
-	}{
-		{
-			cty.StringVal("128"),
-			cty.NumberIntVal(10),
-			cty.NumberIntVal(128),
-			``,
-		},
-		{
-			cty.StringVal("128").Mark(marks.Sensitive),
-			cty.NumberIntVal(10),
-			cty.NumberIntVal(128).Mark(marks.Sensitive),
-			``,
-		},
-		{
-			cty.StringVal("128"),
-			cty.NumberIntVal(10).Mark(marks.Sensitive),
-			cty.NumberIntVal(128).Mark(marks.Sensitive),
-			``,
-		},
-		{
-			cty.StringVal("128").Mark(marks.Sensitive),
-			cty.NumberIntVal(10).Mark(marks.Sensitive),
-			cty.NumberIntVal(128).Mark(marks.Sensitive),
-			``,
-		},
-		{
-			cty.StringVal("128").Mark(marks.Sensitive),
-			cty.UnknownVal(cty.Number).Mark(marks.Sensitive),
-			cty.UnknownVal(cty.Number).RefineNotNull().Mark(marks.Sensitive),
-			``,
-		},
-		{
-			cty.StringVal("128").Mark("boop"),
-			cty.NumberIntVal(10).Mark(marks.Sensitive),
-			cty.NumberIntVal(128).WithMarks(cty.NewValueMarks("boop", marks.Sensitive)),
-			``,
-		},
-		{
-			cty.StringVal("-128"),
-			cty.NumberIntVal(10),
-			cty.NumberIntVal(-128),
-			``,
-		},
-		{
-			cty.StringVal("00128"),
-			cty.NumberIntVal(10),
-			cty.NumberIntVal(128),
-			``,
-		},
-		{
-			cty.StringVal("-00128"),
-			cty.NumberIntVal(10),
-			cty.NumberIntVal(-128),
-			``,
-		},
-		{
-			cty.StringVal("FF00"),
-			cty.NumberIntVal(16),
-			cty.NumberIntVal(65280),
-			``,
-		},
-		{
-			cty.StringVal("ff00"),
-			cty.NumberIntVal(16),
-			cty.NumberIntVal(65280),
-			``,
-		},
-		{
-			cty.StringVal("-FF00"),
-			cty.NumberIntVal(16),
-			cty.NumberIntVal(-65280),
-			``,
-		},
-		{
-			cty.StringVal("00FF00"),
-			cty.NumberIntVal(16),
-			cty.NumberIntVal(65280),
-			``,
-		},
-		{
-			cty.StringVal("-00FF00"),
-			cty.NumberIntVal(16),
-			cty.NumberIntVal(-65280),
-			``,
-		},
-		{
-			cty.StringVal("1011111011101111"),
-			cty.NumberIntVal(2),
-			cty.NumberIntVal(48879),
-			``,
-		},
-		{
-			cty.StringVal("aA"),
-			cty.NumberIntVal(62),
-			cty.NumberIntVal(656),
-			``,
-		},
-		{
-			cty.StringVal("Aa"),
-			cty.NumberIntVal(62),
-			cty.NumberIntVal(2242),
-			``,
-		},
-		{
-			cty.StringVal("999999999999999999999999999999999999999999999999999999999999"),
-			cty.NumberIntVal(10),
-			cty.MustParseNumberVal("999999999999999999999999999999999999999999999999999999999999"),
-			``,
-		},
-		{
-			cty.StringVal("FF"),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`cannot parse "FF" as a base 10 integer`,
-		},
-		{
-			cty.StringVal("FF").Mark(marks.Sensitive),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`cannot parse (sensitive value) as a base 10 integer`,
-		},
-		{
-			cty.StringVal("FF").Mark(marks.Sensitive),
-			cty.NumberIntVal(10).Mark(marks.Sensitive),
-			cty.UnknownVal(cty.Number),
-			`cannot parse (sensitive value) as a base (sensitive value) integer`,
-		},
-		{
-			cty.StringVal("00FF"),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`cannot parse "00FF" as a base 10 integer`,
-		},
-		{
-			cty.StringVal("-00FF"),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`cannot parse "-00FF" as a base 10 integer`,
-		},
-		{
-			cty.NumberIntVal(2),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`first argument must be a string, not number`,
-		},
-		{
-			cty.StringVal("1"),
-			cty.NumberIntVal(63),
-			cty.UnknownVal(cty.Number),
-			`base must be a whole number between 2 and 62 inclusive`,
-		},
-		{
-			cty.StringVal("1"),
-			cty.NumberIntVal(-1),
-			cty.UnknownVal(cty.Number),
-			`base must be a whole number between 2 and 62 inclusive`,
-		},
-		{
-			cty.StringVal("1"),
-			cty.NumberIntVal(1),
-			cty.UnknownVal(cty.Number),
-			`base must be a whole number between 2 and 62 inclusive`,
-		},
-		{
-			cty.StringVal("1"),
-			cty.NumberIntVal(0),
-			cty.UnknownVal(cty.Number),
-			`base must be a whole number between 2 and 62 inclusive`,
-		},
-		{
-			cty.StringVal("1.2"),
-			cty.NumberIntVal(10),
-			cty.UnknownVal(cty.Number),
-			`cannot parse "1.2" as a base 10 integer`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("parseint(%#v, %#v)", test.Num, test.Base), func(t *testing.T) {
-			got, err := ParseInt(test.Num, test.Base)
-
-			if test.Err != "" {
-				if err == nil {
-					t.Fatal("succeeded; want error")
-				}
-				if got, want := err.Error(), test.Err; got != want {
-					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {

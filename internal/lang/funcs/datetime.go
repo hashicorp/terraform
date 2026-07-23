@@ -12,6 +12,10 @@ import (
 )
 
 // TimestampFunc constructs a function that returns a string representation of the current date and time.
+//
+// In the Terraform language, timestamps are conventionally represented as
+// strings using RFC 3339 "Date and Time format" syntax, and so timestamp()
+// returns a string in this format.
 var TimestampFunc = function.New(&function.Spec{
 	Params:       []function.Parameter{},
 	Type:         function.StaticReturnType(cty.String),
@@ -37,6 +41,18 @@ func MakeStaticTimestampFunc(static time.Time) function.Function {
 }
 
 // TimeAddFunc constructs a function that adds a duration to a timestamp, returning a new timestamp.
+//
+// In the Terraform language, timestamps are conventionally represented as
+// strings using RFC 3339 "Date and Time format" syntax. Timeadd requires
+// the timestamp argument to be a string conforming to this syntax.
+//
+// `duration` is a string representation of a time difference, consisting of
+// sequences of number and unit pairs, like `"1.5h"` or `1h30m`. The accepted
+// units are `ns`, `us` (or `µs`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
+// number may be negative to indicate a negative duration, like `"-2h5m"`.
+//
+// The result is a string, also in RFC 3339 format, representing the result
+// of adding the given direction to the given timestamp.
 var TimeAddFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -64,7 +80,19 @@ var TimeAddFunc = function.New(&function.Spec{
 	},
 })
 
-// TimeCmpFunc is a function that compares two timestamps.
+// TimeCmpFunc compares two timestamps, indicating whether they are equal or
+// if one is before the other.
+//
+// TimTimeCmpFunceCmp considers the UTC offset of each given timestamp when making its
+// decision, so for example 6:00 +0200 and 4:00 UTC are equal.
+//
+// In the Terraform language, timestamps are conventionally represented as
+// strings using RFC 3339 "Date and Time format" syntax. TimeCmp requires
+// the timestamp argument to be a string conforming to this syntax.
+//
+// The result is always a number between -1 and 1. -1 indicates that
+// timestampA is earlier than timestampB. 1 indicates that timestampA is
+// later. 0 indicates that the two timestamps represent the same instant.
 var TimeCmpFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -99,49 +127,6 @@ var TimeCmpFunc = function.New(&function.Spec{
 		}
 	},
 })
-
-// Timestamp returns a string representation of the current date and time.
-//
-// In the Terraform language, timestamps are conventionally represented as
-// strings using RFC 3339 "Date and Time format" syntax, and so timestamp
-// returns a string in this format.
-func Timestamp() (cty.Value, error) {
-	return TimestampFunc.Call([]cty.Value{})
-}
-
-// TimeAdd adds a duration to a timestamp, returning a new timestamp.
-//
-// In the Terraform language, timestamps are conventionally represented as
-// strings using RFC 3339 "Date and Time format" syntax. Timeadd requires
-// the timestamp argument to be a string conforming to this syntax.
-//
-// `duration` is a string representation of a time difference, consisting of
-// sequences of number and unit pairs, like `"1.5h"` or `1h30m`. The accepted
-// units are `ns`, `us` (or `µs`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
-// number may be negative to indicate a negative duration, like `"-2h5m"`.
-//
-// The result is a string, also in RFC 3339 format, representing the result
-// of adding the given direction to the given timestamp.
-func TimeAdd(timestamp cty.Value, duration cty.Value) (cty.Value, error) {
-	return TimeAddFunc.Call([]cty.Value{timestamp, duration})
-}
-
-// TimeCmp compares two timestamps, indicating whether they are equal or
-// if one is before the other.
-//
-// TimeCmp considers the UTC offset of each given timestamp when making its
-// decision, so for example 6:00 +0200 and 4:00 UTC are equal.
-//
-// In the Terraform language, timestamps are conventionally represented as
-// strings using RFC 3339 "Date and Time format" syntax. TimeCmp requires
-// the timestamp argument to be a string conforming to this syntax.
-//
-// The result is always a number between -1 and 1. -1 indicates that
-// timestampA is earlier than timestampB. 1 indicates that timestampA is
-// later. 0 indicates that the two timestamps represent the same instant.
-func TimeCmp(timestampA, timestampB cty.Value) (cty.Value, error) {
-	return TimeCmpFunc.Call([]cty.Value{timestampA, timestampB})
-}
 
 func parseTimestamp(ts string) (time.Time, error) {
 	t, err := time.Parse(time.RFC3339, ts)

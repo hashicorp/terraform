@@ -4,9 +4,10 @@
 package funcs
 
 import (
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // SensitiveFunc returns a value identical to its argument except that
@@ -80,15 +81,3 @@ var IssensitiveFunc = function.New(&function.Spec{
 		}
 	},
 })
-
-func Sensitive(v cty.Value) (cty.Value, error) {
-	return SensitiveFunc.Call([]cty.Value{v})
-}
-
-func Nonsensitive(v cty.Value) (cty.Value, error) {
-	return NonsensitiveFunc.Call([]cty.Value{v})
-}
-
-func Issensitive(v cty.Value) (cty.Value, error) {
-	return IssensitiveFunc.Call([]cty.Value{v})
-}
