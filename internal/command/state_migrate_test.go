@@ -262,8 +262,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 
 		expectedMsg := []string{
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
-			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_dst\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -350,8 +350,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 
 		expectedMsg := []string{
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file\n- Using previously-installed hashicorp/test v1.2.3",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_dst\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file\n- Using previously-installed hashicorp/test v1.2.3",
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -623,8 +623,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Reusing version 3.2.1 of hashicorp/test2 from the dependency lock file",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -734,8 +734,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -874,8 +874,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Reusing version 3.2.1 of hashicorp/test2 from the dependency lock file",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -963,7 +963,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	}
 
 	expectedMsg := []string{
-		"Initializing provider plugin for state store \"test_store\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		"Initializing provider hashicorp/test (1.2.3) for state store \"test_store\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
 		`Migrating state from state store "test_store" (hashicorp/test) to backend "local"...`,
 	}
 	for _, expectedMsg := range expectedMsg {

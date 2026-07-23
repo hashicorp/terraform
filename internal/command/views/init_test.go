@@ -722,13 +722,14 @@ func TestNewInit_LogReusingPreviousProviderVersion_json(t *testing.T) {
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
-	initView.LogReusingPreviousProviderVersion(p)
+	version := getproviders.MustParseVersion("1.0.0")
+	initView.LogReusingPreviousProviderVersion(p, version)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"hashicorp/test: Reusing previous version from the dependency lock file"`,
+		`"@message":"Reusing version 1.0.0 of hashicorp/test from the dependency lock file"`,
 		`"@module":"terraform.ui"`,
 		`"type":"log"`,
 	}
@@ -884,14 +885,16 @@ func TestNewInit_LogInitializingStateStoreProviderPlugin_json(t *testing.T) {
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
+	pAddr := addrs.NewDefaultProvider("test")
+	cons := getproviders.MustParseVersionConstraints("~> 1.0")
 	storeType := "test_store"
-	initView.LogInitializingStateStoreProviderPlugin(storeType)
+	initView.LogInitializingStateStoreProviderPlugin(pAddr, cons, storeType)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initializing provider plugin for state store \"test_store\"..."`,
+		`"@message":"Initializing provider hashicorp/test (~\u003e 1.0) for state store \"test_store\"..."`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
 		`"message_code":"initializing_state_store_provider_plugin_message"`,
