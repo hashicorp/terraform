@@ -25,7 +25,7 @@ type ProviderInstaller interface {
 	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogReusingPreviousProviderVersion indicates a provider is locked to a specific version during installation
-	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
+	LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogFindingMatchingVersion indicates that Terraform is looking for a provider version that matches the constraint during installation.
 	LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
@@ -46,7 +46,7 @@ type ProviderInstaller interface {
 	LogPartnerAndCommunityProviders()
 
 	// LogInitializingStateStoreProviderPlugin indicates progress during installation of a state store provider plugin
-	LogInitializingStateStoreProviderPlugin(storeType string)
+	LogInitializingStateStoreProviderPlugin(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -99,8 +100,12 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(storeType string) {
-	params := []any{storeType}
+func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 	msg := s.prepareMessage(InitializingStateStoreProviderPluginMessage, params...)
 	s.log(msg)
 }
@@ -148,8 +153,8 @@ func (s *StateMigrateHuman) LogInstallingProviderVersion(providerAddr addrs.Prov
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
+func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{version, providerAddr.ForDisplay()}
 	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
 	s.log(msg)
 }
