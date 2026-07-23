@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'cli: Fixed race condition in terraform login OAuth callback handler that could cause the success message to not display in browser'
+time: 2026-07-23T14:48:24.923936-07:00
+custom:
+    Issue: "38922"
