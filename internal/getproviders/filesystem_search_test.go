@@ -57,14 +57,11 @@ func TestSearchLocalDirectory(t *testing.T) {
 		t.Run(test.Fixture, func(t *testing.T) {
 			fullDir := filepath.Join("testdata/search-local-directory", test.Fixture, test.Subdir)
 			got, err := SearchLocalDirectory(fullDir)
-			t.Logf("got: \n %#v", got)
 
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
 			want := test.Want
-
-			t.Logf("want: \n %#v", want)
 
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
