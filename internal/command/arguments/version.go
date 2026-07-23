@@ -13,7 +13,7 @@ type Version struct {
 	ViewType ViewType
 }
 
-func ParseVersion(args []string, usageFunc func()) (*Version, tfdiags.Diagnostics) {
+func ParseVersion(args []string) (*Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	var jsonOutput bool
@@ -27,7 +27,6 @@ func ParseVersion(args []string, usageFunc func()) (*Version, tfdiags.Diagnostic
 	cmdFlags.Bool("v", true, "version")
 	cmdFlags.Bool("version", true, "version")
 
-	cmdFlags.Usage = usageFunc
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

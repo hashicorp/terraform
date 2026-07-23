@@ -64,7 +64,7 @@ func (c *VersionCommand) Run(rawArgs []string) int {
 	var latest string
 	var versionString bytes.Buffer
 
-	args, argDiags := arguments.ParseVersion(rawArgs, func() { c.Ui.Error(c.Help()) })
+	args, argDiags := arguments.ParseVersion(rawArgs)
 	if argDiags.HasErrors() {
 		c.showDiagnostics(argDiags)
 		return 1

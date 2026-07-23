@@ -40,9 +40,7 @@ func TestParseVersion_valid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseVersion(tc.args, func() {
-				t.Fatal("unexpected error parsing command flags")
-			})
+			got, diags := ParseVersion(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -78,7 +76,7 @@ func TestParseVersion_invalid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, gotDiags := ParseVersion(tc.args, func() {})
+			got, gotDiags := ParseVersion(tc.args)
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
