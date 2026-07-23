@@ -17,7 +17,7 @@ import (
 func TestInMemStoreLocked(t *testing.T) {
 	// backend.TestBackendStateLocks assumes the "default" state exists
 	// by default, so we need to make it exist using the method below.
-	provider := ProviderWithDefaultState()
+	provider := ProviderWithInMemDefaultState()
 
 	plug1, err := pluggable.NewPluggable(provider, inMemStoreName)
 	if err != nil {

@@ -34,10 +34,16 @@ func Provider() providers.Interface {
 	return provider()
 }
 
-// ProviderWithDefaultState returns an instance of providers.Interface,
+func ProviderWithFsStatesDir(statesDir string) providers.Interface {
+	p := provider()
+	p.fs.statesDir = statesDir
+	return p
+}
+
+// ProviderWithInMemDefaultState returns an instance of providers.Interface,
 // where the underlying simple struct has been changed to indicate that the
 // 'default' state has already been created as an empty state file.
-func ProviderWithDefaultState() providers.Interface {
+func ProviderWithInMemDefaultState() providers.Interface {
 	// Get the empty state file as bytes
 	f := statefile.New(nil, "", 0)
 
