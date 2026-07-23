@@ -1,6 +1,5 @@
 kind: ENHANCEMENTS
-body: If `-invoke` results in multiple resource calls triggering the action, it can
-  now be combined with `-target` to specify the calling resource instance
+body: "`-invoke` can now be combined with `-target` to specify the calling resource instance when multiple resources trigger the same action."
 time: 2026-07-08T09:51:11.784345-04:00
 custom:
   Issue: "38845"

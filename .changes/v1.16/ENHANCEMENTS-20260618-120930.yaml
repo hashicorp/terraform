@@ -1,6 +1,5 @@
 kind: ENHANCEMENTS
-body: The 'terraform graph' command now accepts a -format flag, and can output graphs
-  in Mermaid format
+body: "graph: The `terraform graph` command can now output graphs in Mermaid format using the `-format=mermaid` flag."
 time: 2026-06-18T12:09:30.518397+01:00
 custom:
   Issue: "38719"
