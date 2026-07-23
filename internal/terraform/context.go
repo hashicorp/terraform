@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"runtime"
 	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -104,6 +107,8 @@ type Context struct {
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
+	policySem           Semaphore
+	policySemOnce       sync.Once
 	providerInputConfig map[string]map[string]cty.Value
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -197,6 +202,36 @@ type ContextGraphOpts struct {
 
 	// Legacy graphs only: won't prune the graph
 	Verbose bool
+}
+
+// policySemaphore returns the semaphore used to limit concurrent policy
+// evaluations. It is initialized lazily on first access with a capacity
+// determined by GOMAXPROCS or the TF_POLICY_PARALLELISM environment variable.
+func (c *Context) policySemaphore() Semaphore {
+	c.policySemOnce.Do(func() {
+		capacity := getPolicyParallelism()
+		c.policySem = NewSemaphore(capacity)
+		log.Printf("[DEBUG] Policy evaluation semaphore initialized with capacity %d", capacity)
+	})
+	return c.policySem
+}
+
+// getPolicyParallelism determines the parallelism level for policy evaluations.
+// It checks the TF_POLICY_PARALLELISM environment variable first, and falls back
+// to GOMAXPROCS if the variable is not set or contains an invalid value.
+func getPolicyParallelism() int {
+	if envVal := os.Getenv("TF_POLICY_PARALLELISM"); envVal != "" {
+		if n, err := strconv.Atoi(envVal); err == nil && n > 0 {
+			log.Printf("[DEBUG] Using TF_POLICY_PARALLELISM=%d for policy evaluation parallelism", n)
+			return n
+		}
+		log.Printf("[WARN] Invalid TF_POLICY_PARALLELISM value %q, falling back to GOMAXPROCS", envVal)
+	}
+
+	// Default to GOMAXPROCS
+	n := runtime.GOMAXPROCS(0)
+	log.Printf("[DEBUG] Using GOMAXPROCS=%d for policy evaluation parallelism", n)
+	return n
 }
 
 // Stop stops the running task.
