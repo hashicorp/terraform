@@ -141,9 +141,9 @@ func (x *GetResourcesResponse) GetPartial() bool {
 }
 
 type RelatedResourcesRequest struct {
-	state          protoimpl.MessageState                   `protogen:"open.v1"`
-	Type           string                                   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	AttributePairs []*RelatedResourcesRequest_AttributePair `protobuf:"bytes,2,rep,name=attribute_pairs,json=attributePairs,proto3" json:"attribute_pairs,omitempty"`
+	state      protoimpl.MessageState              `protogen:"open.v1"`
+	Type       string                              `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Connection *RelatedResourcesRequest_Connection `protobuf:"bytes,2,opt,name=connection,proto3" json:"connection,omitempty"`
 	// evaluation_request_id is the ID of the policy evaluation request that is
 	// making this callback request.
 	EvaluationRequestId uint32 `protobuf:"varint,3,opt,name=evaluation_request_id,json=evaluationRequestId,proto3" json:"evaluation_request_id,omitempty"`
@@ -188,9 +188,9 @@ func (x *RelatedResourcesRequest) GetType() string {
 	return ""
 }
 
-func (x *RelatedResourcesRequest) GetAttributePairs() []*RelatedResourcesRequest_AttributePair {
+func (x *RelatedResourcesRequest) GetConnection() *RelatedResourcesRequest_Connection {
 	if x != nil {
-		return x.AttributePairs
+		return x.Connection
 	}
 	return nil
 }
@@ -371,6 +371,66 @@ func (x *GetDataSourceResponse) GetDeferred() bool {
 	return false
 }
 
+type RelatedResourcesRequest_Connection struct {
+	state          protoimpl.MessageState                   `protogen:"open.v1"`
+	Type           string                                   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	AttributePairs []*RelatedResourcesRequest_AttributePair `protobuf:"bytes,2,rep,name=attribute_pairs,json=attributePairs,proto3" json:"attribute_pairs,omitempty"`
+	Connection     *RelatedResourcesRequest_Connection      `protobuf:"bytes,3,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RelatedResourcesRequest_Connection) Reset() {
+	*x = RelatedResourcesRequest_Connection{}
+	mi := &file_callback_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RelatedResourcesRequest_Connection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RelatedResourcesRequest_Connection) ProtoMessage() {}
+
+func (x *RelatedResourcesRequest_Connection) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RelatedResourcesRequest_Connection.ProtoReflect.Descriptor instead.
+func (*RelatedResourcesRequest_Connection) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *RelatedResourcesRequest_Connection) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RelatedResourcesRequest_Connection) GetAttributePairs() []*RelatedResourcesRequest_AttributePair {
+	if x != nil {
+		return x.AttributePairs
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest_Connection) GetConnection() *RelatedResourcesRequest_Connection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
 type RelatedResourcesRequest_AttributePair struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	SourceAttribute  string                 `protobuf:"bytes,1,opt,name=source_attribute,json=sourceAttribute,proto3" json:"source_attribute,omitempty"`
@@ -381,7 +441,7 @@ type RelatedResourcesRequest_AttributePair struct {
 
 func (x *RelatedResourcesRequest_AttributePair) Reset() {
 	*x = RelatedResourcesRequest_AttributePair{}
-	mi := &file_callback_proto_msgTypes[6]
+	mi := &file_callback_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -393,7 +453,7 @@ func (x *RelatedResourcesRequest_AttributePair) String() string {
 func (*RelatedResourcesRequest_AttributePair) ProtoMessage() {}
 
 func (x *RelatedResourcesRequest_AttributePair) ProtoReflect() protoreflect.Message {
-	mi := &file_callback_proto_msgTypes[6]
+	mi := &file_callback_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -406,7 +466,7 @@ func (x *RelatedResourcesRequest_AttributePair) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RelatedResourcesRequest_AttributePair.ProtoReflect.Descriptor instead.
 func (*RelatedResourcesRequest_AttributePair) Descriptor() ([]byte, []int) {
-	return file_callback_proto_rawDescGZIP(), []int{2, 0}
+	return file_callback_proto_rawDescGZIP(), []int{2, 1}
 }
 
 func (x *RelatedResourcesRequest_AttributePair) GetSourceAttribute() string {
@@ -436,11 +496,20 @@ const file_callback_proto_rawDesc = "" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"J\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
 	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
-	"\apartial\x18\x02 \x01(\bR\apartial\"\xa1\x02\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\"\xda\x03\n" +
 	"\x17RelatedResourcesRequest\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12I\n" +
+	"\n" +
+	"connection\x18\x02 \x01(\v2).proto.RelatedResourcesRequest.ConnectionR\n" +
+	"connection\x122\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\x1a\xc2\x01\n" +
+	"\n" +
+	"Connection\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12U\n" +
-	"\x0fattribute_pairs\x18\x02 \x03(\v2,.proto.RelatedResourcesRequest.AttributePairR\x0eattributePairs\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\x1ag\n" +
+	"\x0fattribute_pairs\x18\x02 \x03(\v2,.proto.RelatedResourcesRequest.AttributePairR\x0eattributePairs\x12I\n" +
+	"\n" +
+	"connection\x18\x03 \x01(\v2).proto.RelatedResourcesRequest.ConnectionR\n" +
+	"connection\x1ag\n" +
 	"\rAttributePair\x12)\n" +
 	"\x10source_attribute\x18\x01 \x01(\tR\x0fsourceAttribute\x12+\n" +
 	"\x11related_attribute\x18\x02 \x01(\tR\x10relatedAttribute\"N\n" +
@@ -471,7 +540,7 @@ func file_callback_proto_rawDescGZIP() []byte {
 	return file_callback_proto_rawDescData
 }
 
-var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_callback_proto_goTypes = []any{
 	(*GetResourcesRequest)(nil),                   // 0: proto.GetResourcesRequest
 	(*GetResourcesResponse)(nil),                  // 1: proto.GetResourcesResponse
@@ -479,21 +548,24 @@ var file_callback_proto_goTypes = []any{
 	(*RelatedResourcesResponse)(nil),              // 3: proto.RelatedResourcesResponse
 	(*GetDataSourceRequest)(nil),                  // 4: proto.GetDataSourceRequest
 	(*GetDataSourceResponse)(nil),                 // 5: proto.GetDataSourceResponse
-	(*RelatedResourcesRequest_AttributePair)(nil), // 6: proto.RelatedResourcesRequest.AttributePair
+	(*RelatedResourcesRequest_Connection)(nil),    // 6: proto.RelatedResourcesRequest.Connection
+	(*RelatedResourcesRequest_AttributePair)(nil), // 7: proto.RelatedResourcesRequest.AttributePair
 }
 var file_callback_proto_depIdxs = []int32{
-	6, // 0: proto.RelatedResourcesRequest.attribute_pairs:type_name -> proto.RelatedResourcesRequest.AttributePair
-	0, // 1: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
-	2, // 2: proto.CallbackService.RelatedResources:input_type -> proto.RelatedResourcesRequest
-	4, // 3: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
-	1, // 4: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
-	3, // 5: proto.CallbackService.RelatedResources:output_type -> proto.RelatedResourcesResponse
-	5, // 6: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	6, // 0: proto.RelatedResourcesRequest.connection:type_name -> proto.RelatedResourcesRequest.Connection
+	7, // 1: proto.RelatedResourcesRequest.Connection.attribute_pairs:type_name -> proto.RelatedResourcesRequest.AttributePair
+	6, // 2: proto.RelatedResourcesRequest.Connection.connection:type_name -> proto.RelatedResourcesRequest.Connection
+	0, // 3: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
+	2, // 4: proto.CallbackService.RelatedResources:input_type -> proto.RelatedResourcesRequest
+	4, // 5: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
+	1, // 6: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
+	3, // 7: proto.CallbackService.RelatedResources:output_type -> proto.RelatedResourcesResponse
+	5, // 8: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_callback_proto_init() }
@@ -507,7 +579,7 @@ func file_callback_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_callback_proto_rawDesc), len(file_callback_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

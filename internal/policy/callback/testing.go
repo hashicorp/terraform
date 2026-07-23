@@ -3,7 +3,10 @@
 
 package callback
 
-import "sync"
+import (
+	"math/rand/v2"
+	"sync"
+)
 
 var _ Registry = (*MockRegistry)(nil)
 
@@ -20,7 +23,8 @@ type MockRegistry struct {
 	GetCalled        bool
 }
 
-func (m *MockRegistry) Register(id uint32, fns Functions) {
+func (m *MockRegistry) Register(resource string, fns Functions) uint32 {
+	id := rand.Uint32()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.RegisterCalled = true
@@ -28,6 +32,7 @@ func (m *MockRegistry) Register(id uint32, fns Functions) {
 		m.FunctionsStore = make(map[uint32]Functions)
 	}
 	m.FunctionsStore[id] = fns
+	return id
 }
 
 func (m *MockRegistry) Unregister(id uint32) {
@@ -39,23 +44,14 @@ func (m *MockRegistry) Unregister(id uint32) {
 	}
 }
 
-func (m *MockRegistry) Get(id uint32) (Functions, bool) {
+func (m *MockRegistry) Get(id uint32) (ResourceFunction, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.GetCalled = true
 	if m.FunctionsStore == nil {
-		return Functions{}, false
+		return ResourceFunction{}, false
 	}
 	fns, ok := m.FunctionsStore[id]
-	return fns, ok
-}
-
-func (m *MockRegistry) NextID() uint32 {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.NextIDCalled = true
-	m.NextIDValue++
-	return m.NextIDValue
+	return ResourceFunction{Functions: fns}, ok
 }
