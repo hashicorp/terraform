@@ -416,6 +416,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	// codeCh will allow our temporary HTTP server to transmit the OAuth code
 	// to the main execution path that follows.
 	codeCh := make(chan string)
+	responseDone := make(chan struct{})
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			log.Printf("[TRACE] login: request to callback server")
@@ -445,12 +446,15 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 			codeCh <- gotCode
 			close(codeCh)
 
-			log.Printf("[TRACE] login: returning response from callback server")
+		log.Printf("[TRACE] login: returning response from callback server")
 
-			resp.Header().Add("Content-Type", "text/html")
-			resp.WriteHeader(200)
-			resp.Write([]byte(callbackSuccessMessage))
-		}),
+		resp.Header().Add("Content-Type", "text/html")
+		resp.WriteHeader(200)
+		resp.Write([]byte(callbackSuccessMessage))
+
+		// Signal that response is complete
+		close(responseDone)
+	}),
 	}
 	go func() {
 		defer logging.PanicHandler()
@@ -508,7 +512,13 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		return nil, diags
 	}
 
-	if err := server.Close(); err != nil {
+	// Wait for response to complete before shutting down
+	<-responseDone
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
 		// The server will close soon enough when our process exits anyway,
 		// so we won't fuss about it for right now.
 		log.Printf("[WARN] login: callback server can't shut down: %s", err)
