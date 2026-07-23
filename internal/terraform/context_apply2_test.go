@@ -243,7 +243,7 @@ resource "test_instance" "a" {
 		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
 			AttrsJSON:    []byte(`{"id":"b"}`),
 			Status:       states.ObjectReady,
-			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+			Dependencies: []addrs.ConfigResource{addrA.ConfigResource()},
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
@@ -5219,4 +5219,70 @@ resource test_object default {}
 			t.Fatalf("wrong number of resources remaining in state")
 		}
 	})
+}
+
+func TestContext2Apply_forget_cycle(t *testing.T) {
+	// three cheers for users who test alpha releases!
+	// https://github.com/hashicorp/terraform/issues/38898
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = test_object.forget_too.test_string
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource "test_object" "forget_too" {
+	test_string = "hi"
+	lifecycle {
+		destroy = false
+	}
+}
+`})
+
+	p := simpleMockProvider()
+
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	forget2 := mustResourceInstanceAddr("test_object.forget_too")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		forget.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"hi"}`),
+			Dependencies: []addrs.ConfigResource{forget2.ConfigResource()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		forget2.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"hi"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
+
+	state, applyDiags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, applyDiags)
+	if !state.Empty() {
+		t.Fatal("unexpected resources in state")
+	}
 }
