@@ -127,7 +127,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 
-		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
+		upgrade := false // The source provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
 		var output bool
 		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
@@ -229,7 +229,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		//
 		// We only pass in a single required provider, so we expect a single lock to be
 		// returned. This will be added the dependency lock file after a successful migration.
-		upgrade := false // TODO - control this by -upgrade flag
+		upgrade := args.Upgrade
 		var dstProviderDiags tfdiags.Diagnostics
 		var output bool
 		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
