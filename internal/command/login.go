@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -419,6 +420,8 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	responseDone := make(chan struct{})
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			defer close(responseDone)
+
 			log.Printf("[TRACE] login: request to callback server")
 			err := req.ParseForm()
 			if err != nil {
@@ -451,9 +454,6 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 			resp.Header().Add("Content-Type", "text/html")
 			resp.WriteHeader(200)
 			resp.Write([]byte(callbackSuccessMessage))
-
-			// Signal that response is complete
-			close(responseDone)
 		}),
 	}
 	go func() {
@@ -515,10 +515,10 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	// Wait for response to complete before shutting down
 	<-responseDone
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		// The server will close soon enough when our process exits anyway,
 		// so we won't fuss about it for right now.
 		log.Printf("[WARN] login: callback server can't shut down: %s", err)
