@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 func TestLog(t *testing.T) {
@@ -42,6 +43,18 @@ func TestLog(t *testing.T) {
 			cty.NumberFloatVal(0),
 			cty.NumberFloatVal(-0),
 			false,
+		},
+		{
+			cty.NumberFloatVal(1),
+			cty.NumberFloatVal(1),
+			cty.NumberFloatVal(1),
+			true,
+		},
+		{
+			cty.NumberFloatVal(-1),
+			cty.NumberFloatVal(10),
+			cty.NumberFloatVal(1),
+			true,
 		},
 	}
 
@@ -120,6 +133,12 @@ func TestPow(t *testing.T) {
 			cty.NumberFloatVal(2),
 			cty.NumberFloatVal(0),
 			false,
+		},
+		{
+			cty.NumberFloatVal(-2),
+			cty.NumberFloatVal(0.5),
+			cty.NumberFloatVal(0),
+			true,
 		},
 	}
 
