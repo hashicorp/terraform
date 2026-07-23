@@ -31,13 +31,19 @@ message GetResourcesResponse {
 }
 
 message RelatedResourcesRequest {
+  message Connection {
+    string type = 1;
+    repeated AttributePair attribute_pairs = 2;
+    Connection connection = 3;
+  }
+
   message AttributePair {
     string source_attribute = 1;
     string related_attribute = 2;
   }
 
   string type = 1;
-  repeated AttributePair attribute_pairs = 2;
+  Connection connection = 2;
   // evaluation_request_id is the ID of the policy evaluation request that is
   // making this callback request.
   uint32 evaluation_request_id = 3;

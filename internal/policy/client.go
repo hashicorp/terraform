@@ -301,7 +301,10 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	evalID := c.callbackRegistry.NextID()
+	// Register the callback functions with the callback service, so that they are available
+	// for use during evaluation.
+	evalID := c.callbackRegistry.Register(req.Target, req.Callbacks)
+
 	request := &proto.PolicyEvaluateResourceRequest{
 		EvaluationId: evalID,
 		Resource:     req.Target,
@@ -309,11 +312,6 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		PriorAttrs:   priorAttrs,
 		Metadata:     req.Meta,
 	}
-
-	// Register the callback functions with the callback service, so that they are available
-	// for use during evaluation.
-	c.callbackRegistry.Register(evalID, req.Callbacks)
-
 	// We can unregister the callback functions after the evaluation is complete.
 	defer c.callbackRegistry.Unregister(evalID)
 
