@@ -1,7 +1,0 @@
-kind: ENHANCEMENTS
-body: The `terraform stacks` command now automatically infers the target hostname
-  from the local credentials file (`credentials.tfrc.json`) when neither `TF_STACKS_HOSTNAME`
-  nor `TF_CLOUD_HOSTNAME` is set
-time: 2026-07-20T19:59:52.000000-04:00
-custom:
-  Issue: "38896"

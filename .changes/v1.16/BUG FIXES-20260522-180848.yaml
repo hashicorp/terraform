@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: "init: Terraform no longer removes locks from the dependency lock file for providers configured as `dev_override`."
-time: 2026-05-22T18:08:48.823127+01:00
-custom:
-    Issue: "38634"
