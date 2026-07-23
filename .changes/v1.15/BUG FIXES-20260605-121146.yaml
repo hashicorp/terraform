@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Fix exit code for plan, query, and refresh commands for variable-related errors
-time: 2026-06-05T12:11:46.24682+02:00
-custom:
-    Issue: "38685"

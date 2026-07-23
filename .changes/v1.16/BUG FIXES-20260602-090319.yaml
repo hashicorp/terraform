@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Actions are now invoked with respect to all resource dependencies.
-time: 2026-06-02T09:03:19.545007-04:00
-custom:
-    Issue: "38668"

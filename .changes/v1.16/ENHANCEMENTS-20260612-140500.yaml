@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "policy: Terraform now resolves policy plugin credentials from the configured cloud or remote backend during `init`, `plan`, and `apply`, rather than requiring the plugin to read credentials itself."
-time: 2026-06-12T14:05:00.000000-04:00
-custom:
-    Issue: "38716"

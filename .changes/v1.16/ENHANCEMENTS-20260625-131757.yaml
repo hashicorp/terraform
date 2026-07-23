@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "Resource `lifecycle` blocks now support `destroy = false` to prevent a resource from being destroyed."
-time: 2026-06-25T13:17:57.053523-04:00
-custom:
-    Issue: "38784"

@@ -1,5 +1,0 @@
-kind: UPGRADE NOTES
-body: "`bastion_host_key` is now correctly applied by provisioners. Review your provisioner configurations to verify the configured key is correct before upgrading."
-time: 2026-03-30T14:52:27.996705-04:00
-custom:
-    Issue: "38318"

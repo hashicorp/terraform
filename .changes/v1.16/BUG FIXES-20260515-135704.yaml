@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: "workspace: Terraform now raises an error if an invalid workspace name becomes selected due to out-of-band changes."
-time: 2026-05-15T13:57:04.484645+01:00
-custom:
-    Issue: "38594"
