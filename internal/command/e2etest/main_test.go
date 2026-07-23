@@ -59,9 +59,8 @@ func setup() func() {
 	terraformBin = tmpFilename
 
 	// Make an experimental TF executable available for use in tests
-	os.Setenv(e2e.TestExperimentFlag, "true")
-	defer os.Unsetenv(e2e.TestExperimentFlag)
-	tmpExperimentalFilename := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
+	tmpExperimentalFilename := e2e.GoBuild("github.com/hashicorp/terraform", "terraform",
+		e2e.TestExperimentsAllowedArgs...)
 	experimentalTerraformBin = tmpExperimentalFilename
 
 	// Tests running in the ad-hoc testing mode are allowed to use "go build"
