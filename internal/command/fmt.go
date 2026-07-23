@@ -160,7 +160,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			}
 
 			if !fmtd {
-				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, and .tftest.hcl files can be processed with terraform fmt"))
+				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, .tftest.hcl, .tfmock.hcl, and .tfquery.hcl files can be processed with terraform fmt"))
 				continue
 			}
 		}
@@ -551,8 +551,9 @@ func (c *FmtCommand) Help() string {
 Usage: terraform [global options] fmt [options] [target...]
 
   Rewrites all Terraform configuration files to a canonical format. All
-  configuration files (.tf), variables files (.tfvars), and testing files
-  (.tftest.hcl) are updated. JSON files (.tf.json, .tfvars.json, or
+  configuration files (.tf), variables files (.tfvars), testing files
+  (.tftest.hcl), mock data files (.tfmock.hcl), and query files
+  (.tfquery.hcl) are updated. JSON files (.tf.json, .tfvars.json, or
   .tftest.json) are not modified.
 
   By default, fmt scans the current directory for configuration files. If you
