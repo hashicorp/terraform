@@ -446,15 +446,15 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 			codeCh <- gotCode
 			close(codeCh)
 
-		log.Printf("[TRACE] login: returning response from callback server")
+			log.Printf("[TRACE] login: returning response from callback server")
 
-		resp.Header().Add("Content-Type", "text/html")
-		resp.WriteHeader(200)
-		resp.Write([]byte(callbackSuccessMessage))
+			resp.Header().Add("Content-Type", "text/html")
+			resp.WriteHeader(200)
+			resp.Write([]byte(callbackSuccessMessage))
 
-		// Signal that response is complete
-		close(responseDone)
-	}),
+			// Signal that response is complete
+			close(responseDone)
+		}),
 	}
 	go func() {
 		defer logging.PanicHandler()
