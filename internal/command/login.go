@@ -417,11 +417,8 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	// codeCh will allow our temporary HTTP server to transmit the OAuth code
 	// to the main execution path that follows.
 	codeCh := make(chan string)
-	responseDone := make(chan struct{})
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			defer close(responseDone)
-
 			log.Printf("[TRACE] login: request to callback server")
 			err := req.ParseForm()
 			if err != nil {
@@ -444,10 +441,11 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 
 			log.Printf("[TRACE] login: request contains an authorization code")
 
-			// Send the code to our blocking wait below, so that the token
-			// fetching process can continue.
-			codeCh <- gotCode
-			close(codeCh)
+			// Defer sending the code to ensure response is written first
+			defer func() {
+				codeCh <- gotCode
+				close(codeCh)
+			}()
 
 			log.Printf("[TRACE] login: returning response from callback server")
 
@@ -511,9 +509,6 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		// up, so we'll just give up.
 		return nil, diags
 	}
-
-	// Wait for response to complete before shutting down
-	<-responseDone
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
