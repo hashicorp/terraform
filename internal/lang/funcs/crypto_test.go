@@ -12,7 +12,7 @@ import (
 )
 
 func TestUUID(t *testing.T) {
-	result, err := UUID()
+	result, err := UUIDFunc.Call(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestUUIDV5(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("uuidv5(%#v, %#v)", test.Namespace, test.Name), func(t *testing.T) {
-			got, err := UUIDV5(test.Namespace, test.Name)
+			got, err := UUIDV5Func.Call([]cty.Value{test.Namespace, test.Name})
 
 			if test.Err {
 				if err == nil {
@@ -106,7 +106,7 @@ func TestBase64Sha256(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("base64sha256(%#v)", test.String), func(t *testing.T) {
-			got, err := Base64Sha256(test.String)
+			got, err := Base64Sha256Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {
@@ -187,7 +187,7 @@ func TestBase64Sha512(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("base64sha512(%#v)", test.String), func(t *testing.T) {
-			got, err := Base64Sha512(test.String)
+			got, err := Base64Sha512Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {
@@ -252,7 +252,7 @@ func TestFileBase64Sha512(t *testing.T) {
 
 func TestBcrypt(t *testing.T) {
 	// single variable test
-	p, err := Bcrypt(cty.StringVal("test"))
+	p, err := BcryptFunc.Call([]cty.Value{cty.StringVal("test")})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -263,7 +263,7 @@ func TestBcrypt(t *testing.T) {
 	}
 
 	// testing with two parameters
-	p, err = Bcrypt(cty.StringVal("test"), cty.NumberIntVal(5))
+	p, err = BcryptFunc.Call([]cty.Value{cty.StringVal("test"), cty.NumberIntVal(5)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -274,7 +274,7 @@ func TestBcrypt(t *testing.T) {
 	}
 
 	// Negative test for more than two parameters
-	_, err = Bcrypt(cty.StringVal("test"), cty.NumberIntVal(10), cty.NumberIntVal(11))
+	_, err = BcryptFunc.Call([]cty.Value{cty.StringVal("test"), cty.NumberIntVal(10), cty.NumberIntVal(11)})
 	if err == nil {
 		t.Fatal("succeeded; want error")
 	}
@@ -305,7 +305,7 @@ func TestMd5(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("md5(%#v)", test.String), func(t *testing.T) {
-			got, err := Md5(test.String)
+			got, err := Md5Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {
@@ -427,7 +427,7 @@ func TestRsaDecrypt(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("RsaDecrypt(%#v, %#v)", test.Ciphertext, test.Privatekey), func(t *testing.T) {
-			got, err := RsaDecrypt(test.Ciphertext, test.Privatekey)
+			got, err := RsaDecryptFunc.Call([]cty.Value{test.Ciphertext, test.Privatekey})
 
 			if test.Err != "" {
 				if err == nil {
@@ -462,7 +462,7 @@ func TestSha1(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("sha1(%#v)", test.String), func(t *testing.T) {
-			got, err := Sha1(test.String)
+			got, err := Sha1Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {
@@ -540,7 +540,7 @@ func TestSha256(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("sha256(%#v)", test.String), func(t *testing.T) {
-			got, err := Sha256(test.String)
+			got, err := Sha256Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {
@@ -618,7 +618,7 @@ func TestSha512(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("sha512(%#v)", test.String), func(t *testing.T) {
-			got, err := Sha512(test.String)
+			got, err := Sha512Func.Call([]cty.Value{test.String})
 
 			if test.Err {
 				if err == nil {

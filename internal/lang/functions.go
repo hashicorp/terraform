@@ -221,7 +221,7 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"formatdate":       stdlib.FormatDateFunc,
 		"formatlist":       stdlib.FormatListFunc,
 		"indent":           stdlib.IndentFunc,
-		"index":            funcs.IndexFunc, // stdlib.IndexFunc is not compatible
+		"index":            funcs.IndexFunc,
 		"join":             stdlib.JoinFunc,
 		"jsondecode":       stdlib.JSONDecodeFunc,
 		"jsonencode":       stdlib.JSONEncodeFunc,
