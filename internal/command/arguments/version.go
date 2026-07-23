@@ -24,6 +24,10 @@ func ParseVersion(args []string) (*Version, tfdiags.Diagnostics) {
 	// arguments are -v, -version, or --version, the version command will be called
 	// with the rest of the arguments, so we need to be able to cope with
 	// those.
+	//
+	// If the user runs `terraform init -v` then the `-v` flag is never parsed,
+	// however if the user runs `terraform -v` or `terraform version -v` then the flag IS
+	// parsed here.
 	cmdFlags.Bool("v", true, "version")
 	cmdFlags.Bool("version", true, "version")
 
@@ -35,10 +39,14 @@ func ParseVersion(args []string) (*Version, tfdiags.Diagnostics) {
 		))
 	}
 
+	// We purposefully ignore any remaining arguments (flags or positional args) instead of checking them and returning an error.
+	// This is because in main.go the CLI re-routes all commands run with a `-version` flag to the version command (see above).
+	// This enables `terraform -version`, `terraform init -version`, `terraform plan -version` etc. to all work the same as `terraform version`.
+	// All arguments (including the original non-"version" command) are passed to the version command, so we ignore them here.
+	//
+	// For example if a user runs `terraform init -version -upgrade -get=false`, then it's turned into a `terraform version init -version -upgrade -get=false` command.
+	// If we used cmdFlags.Args() to check for remaining arguments in that example there would be extra arguments ["init", "-version", "-upgrade", "-get=false"].
 	_ = cmdFlags.Args()
-	// If this method call returned >0 values it means a user has supplied unexpected positional arguments
-	// But we don't return an error here to preserve the original behavior of the version command.
-	// In future we could return a warning, or an error if we're able to introduce breaking changes.
 
 	var viewType ViewType
 	if jsonOutput {

@@ -28,8 +28,32 @@ func TestParseVersion_valid(t *testing.T) {
 				ViewType: ViewJSON,
 			},
 		},
-		"too many arguments": { // Old behavior is to tolerate this, but we don't want to break it yet.
-			[]string{"bar", "baz"},
+		// User may run `terraform -v` which becomes `terraform version -v` due to command rerouting.
+		"-v": {
+			[]string{"-v"},
+			&Version{
+				ViewType: ViewHuman,
+			},
+		},
+		// User may run `terraform -version` which becomes `terraform version -version` due to command rerouting.
+		"-version": {
+			[]string{"-version"},
+			&Version{
+				ViewType: ViewHuman,
+			},
+		},
+		// User may run `terraform --version` which becomes `terraform version --version` due to command rerouting.
+		"--version": {
+			[]string{"--version"},
+			&Version{
+				ViewType: ViewHuman,
+			},
+		},
+		// Old behavior we need to preserve (or address in calling code)
+		// The version command could receive this if a user ran `terraform init -version -upgrade -get=false`
+		// and the CLI rerouted it to the version command: `terraform version init -version -upgrade -get=false`
+		"too many arguments, e.g. due to command rerouting": {
+			[]string{"init", "-version", "-upgrade", "-get=false"},
 			&Version{
 				ViewType: ViewHuman,
 			},
@@ -57,7 +81,7 @@ func TestParseVersion_invalid(t *testing.T) {
 		want      *Version
 		wantDiags tfdiags.Diagnostics
 	}{
-		"unknown flag": {
+		"unknown flag": { // This would happen specifically if the user supplied the non existent flag via `terraform -version -boop` or `terraform version -boop`.
 			[]string{"-boop"},
 			&Version{
 				ViewType: ViewHuman,
