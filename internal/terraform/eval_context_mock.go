@@ -61,11 +61,6 @@ type MockEvalContext struct {
 	ProviderSchemaSchema providers.ProviderSchema
 	ProviderSchemaError  error
 
-	ResourceIdentitySchemasCalled  bool
-	ResourceIdentitySchemasAddr    addrs.AbsProviderConfig
-	ResourceIdentitySchemasSchemas providers.ResourceIdentitySchemas
-	ResourceIdentitySchemasError   error
-
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.AbsProviderConfig
 	CloseProviderProvider providers.Interface
@@ -173,11 +168,12 @@ type MockEvalContext struct {
 	ForgetCalled bool
 	ForgetValues bool
 
-	ProviderLocksValue map[addrs.Provider]*depsfile.ProviderLock
-	PolicyClientValue  policy.Client
-	ConfigValue        *configs.Config
-	DeprecationCalled  bool
-	DeprecationState   *deprecation.Deprecations
+	ProviderLocksValue   map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue    policy.Client
+	PolicySemaphoreValue Semaphore
+	ConfigValue          *configs.Config
+	DeprecationCalled    bool
+	DeprecationState     *deprecation.Deprecations
 }
 
 // MockEvalContext implements EvalContext
@@ -224,12 +220,6 @@ func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (provider
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
 	return c.ProviderSchemaSchema, c.ProviderSchemaError
-}
-
-func (c *MockEvalContext) ResourceIdentitySchemas(addr addrs.AbsProviderConfig) (providers.ResourceIdentitySchemas, error) {
-	c.ResourceIdentitySchemasCalled = true
-	c.ResourceIdentitySchemasAddr = addr
-	return c.ResourceIdentitySchemasSchemas, c.ProviderSchemaError
 }
 
 func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -468,6 +458,10 @@ func (c *MockEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderL
 
 func (c *MockEvalContext) PolicyClient() policy.Client {
 	return c.PolicyClientValue
+}
+
+func (c *MockEvalContext) PolicySemaphore() Semaphore {
+	return c.PolicySemaphoreValue
 }
 
 func (c *MockEvalContext) Config() *configs.Config {

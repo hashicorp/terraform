@@ -159,12 +159,28 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	if ctx.PolicyClient() != nil {
 		var policyDiags tfdiags.Diagnostics
 		policyInputs, policyDiags = n.generateListResourcePolicyData(ctx, addr, resp.Result.GetAttr("data"))
+		// generateListResourcePolicyData should only return warnings, never errors.
+		// If it returns errors, this is a bug that must be fixed in that function.
+		if policyDiags.HasErrors() {
+			panic(fmt.Sprintf("generateListResourcePolicyData returned errors for %s. This is a bug in Terraform and should be reported. Errors: %s", addr, policyDiags.Err()))
+		}
 		diags = diags.Append(policyDiags)
-		// generateListResourcePolicyData only returns Warnings, so no HasErrors gate is needed.
-		// TODO: Fix if generateListResourcePolicyData is instrumented to return error diagnostics.
 	}
-	// TODO(CORE-3): iterate policyInputs to insert nodeQueryResourcePolicy nodes
-	_ = policyInputs
+	if ctx.PolicyGraph() != nil {
+		for _, input := range policyInputs {
+			if input.Unknown {
+				continue
+			}
+			ctx.PolicyGraph().AddQuery(&nodeQueryResourcePolicy{
+				ResourceAddr:    input.SyntheticAddr,
+				ProviderAddr:    n.ResolvedProvider,
+				GeneratedConfig: input.GeneratedConfig,
+				Identity:        input.Identity,
+				ResourceConfig:  input.ResourceConfig,
+				ListBlockAddr:   input.ListBlockAddr,
+			})
+		}
+	}
 
 	query := &plans.QueryInstance{
 		Addr:         n.Addr,

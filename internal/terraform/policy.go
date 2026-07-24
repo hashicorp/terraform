@@ -28,8 +28,10 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
-	if phaseSpan := ctx.PolicyGraph().span; phaseSpan != nil {
-		evalCtx = trace.ContextWithSpan(evalCtx, phaseSpan)
+	if pg := ctx.PolicyGraph(); pg != nil {
+		if phaseSpan := pg.span; phaseSpan != nil {
+			evalCtx = trace.ContextWithSpan(evalCtx, phaseSpan)
+		}
 	}
 
 	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{

@@ -155,6 +155,16 @@ type (
 
 		// A combination of Policy- and Enforcement-level diagnostics.
 		Diagnostics Diagnostics
+
+		// Identity is a structured map of the identity attributes for the resource that
+		// was evaluated. It is only populated for query (list block) resources and is used
+		// by downstream consumers to correlate results to rows in the UI.
+		Identity map[string]string
+
+		// ListBlockAddr is the string address of the list block that originated this
+		// evaluation. It is only populated for query (list block) resources and is used
+		// to group results by their originating list block.
+		ListBlockAddr string
 	}
 )
 
@@ -228,6 +238,15 @@ func (r EvaluationResponse) WithLocalRange(localRange *hcl.Range) EvaluationResp
 	for idx := range r.Enforcements {
 		r.Enforcements[idx].LocalRange = localRange
 	}
+	return r
+}
+
+// WithQueryMetadata returns a copy of the response annotated with the identity map and list
+// block address. These fields are used by downstream consumers (UI, cloud backend) to correlate
+// policy results to the specific query row that produced them.
+func (r EvaluationResponse) WithQueryMetadata(identity map[string]string, listBlockAddr string) EvaluationResponse {
+	r.Identity = identity
+	r.ListBlockAddr = listBlockAddr
 	return r
 }
 

@@ -80,9 +80,6 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
-	if resourceConfig != nil {
-		result = result.WithLocalRange(resourceConfig.DeclRange.Ptr())
-	}
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)
