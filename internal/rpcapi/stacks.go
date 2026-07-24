@@ -324,24 +324,42 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
-	// Setup the policy client if the caller provides a plugin path, policies, and
-	// the plan request is the default mode (i.e. not refresh or destroy)
+	// Setup the policy client if the caller provides a plugin path and policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
 		} else {
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
+			}
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, nil)
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
 			if diags.HasErrors() {
-				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+				// Send the policy diagnostics back to the client
+				syncEvts.Send(&stacks.PlanStackChanges_Event{
+					Event: &stacks.PlanStackChanges_Event_PolicySetupDiagnostics{
+						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
+							// TODO: there is no target address here, since the diagnostics are at the top-level
+							Diagnostics: policyDiagsToProto("", diags),
+						},
+					},
+				})
+
+				// Still allow the plan to run, which lets tfc-agent determine what to do with the policy diagnostics
+				policyClient = nil
+			} else {
+				log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+				defer policyClient.Stop()
 			}
 		}
-
-		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
-		defer policyClient.Stop()
 	}
 
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
@@ -681,19 +699,40 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 	}
 
-	// Setup the policy client if the caller provides a plugin path, policies, and
-	// the plan being applied is the default mode (i.e. not refresh or destroy)
+	// Setup the policy client if the caller provides a plugin path and policies
 	var policyClient policy.Client
 	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
 		if s.policyClientOverride != nil {
 			// Tests use a mock policy client
 			policyClient = s.policyClientOverride
 		} else {
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
+			}
 			// Normal code path for connecting to a policy client
 			var diags policy.Diagnostics
-			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, nil)
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
 			if diags.HasErrors() {
-				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+				// Send the policy diagnostics back to the client
+				syncEvts.Send(&stacks.ApplyStackChanges_Event{
+					Event: &stacks.ApplyStackChanges_Event_PolicySetupDiagnostics{
+						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
+							// TODO: there is no target address here, since the diagnostics are at the top-level
+							Diagnostics: policyDiagsToProto("", diags),
+						},
+					},
+				})
+
+				// Still allow the apply to run, which lets tfc-agent determine what to do with the policy diagnostics
+				policyClient = nil
+			} else {
+				log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+				defer policyClient.Stop()
 			}
 		}
 
