@@ -64,14 +64,14 @@ func TestPlan_valid(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lock.SetProvider(
 				addrs.NewDefaultProvider("other"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -133,8 +133,8 @@ func TestPlan_invalid(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -1422,8 +1422,8 @@ func TestPlan(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -1660,8 +1660,8 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -2542,8 +2542,8 @@ func TestPlanWithProviderConfig(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		providerAddr,
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("1.0.0"),
+		providerreqs.MustParseVersionConstraints("1.0.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -2730,8 +2730,8 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -2895,8 +2895,8 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3056,8 +3056,8 @@ func TestPlanWithForEach(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3106,8 +3106,8 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3339,8 +3339,8 @@ func TestPlanWithDeferredResource(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3493,8 +3493,8 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3732,8 +3732,8 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3990,8 +3990,8 @@ func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -4052,8 +4052,8 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -4267,8 +4267,8 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -4333,8 +4333,8 @@ func TestPlanWithStateManipulation(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -4958,8 +4958,8 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -5201,8 +5201,8 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6148,8 +6148,8 @@ func TestPlanWithResourceIdentities(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6248,8 +6248,8 @@ func TestPlanInvalidLocalValue(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6499,8 +6499,8 @@ func TestPlanWithDeferredActionInvocation(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -6562,8 +6562,8 @@ func TestPlan_variableValidationAdvanced(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6919,8 +6919,8 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6955,8 +6955,8 @@ func TestPlan_WithPolicyResults_EmbeddedStack(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -6991,8 +6991,8 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -7028,8 +7028,8 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -7067,8 +7067,8 @@ func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -7144,8 +7144,8 @@ func TestPlan_NoPolicyResultsOnDeferredResource(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -7410,7 +7410,7 @@ func policyEvaluationTestClient(t *testing.T) *policy.MockClient {
 			Alias:     "default",
 			Namespace: "hashicorp",
 			Source:    "registry.terraform.io/hashicorp/testing",
-			Version:   "0.0.0",
+			Version:   "0.1.0",
 		}
 		if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
 			t.Fatalf("unexpected provider metadata\n%s", diff)
