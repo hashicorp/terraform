@@ -116,3 +116,124 @@ on linux_amd64
 		})
 	}
 }
+
+func TestVersionJSON_LogVersion(t *testing.T) {
+	testCases := map[string]struct {
+		version            string
+		platform           string
+		providerSelections map[addrs.Provider]*depsfile.ProviderLock
+		outdated           bool
+		latest             string
+		diags              tfdiags.Diagnostics
+
+		wantOutput string
+	}{
+		"basic": {
+			version:  "1.0.0",
+			platform: "linux_amd64",
+			wantOutput: `{
+  "terraform_version": "1.0.0",
+  "platform": "linux_amd64",
+  "provider_selections": {},
+  "terraform_outdated": false
+}
+`,
+		},
+		"with providers": {
+			version:  "1.0.0",
+			platform: "linux_amd64",
+			providerSelections: map[addrs.Provider]*depsfile.ProviderLock{
+				addrs.NewDefaultProvider("test1"): depsfile.NewProviderLock(
+					addrs.NewDefaultProvider("test1"),
+					getproviders.MustParseVersion("1.2.3"),
+					// No constraint or hashes
+					nil,
+					nil,
+				),
+				addrs.NewDefaultProvider("test2"): depsfile.NewProviderLock(
+					addrs.NewDefaultProvider("test2"),
+					getproviders.MustParseVersion("0.0.0"), // Not sure how this would happen, but the output is special here.
+					// No constraint or hashes
+					nil,
+					nil,
+				),
+			},
+			wantOutput: `{
+  "terraform_version": "1.0.0",
+  "platform": "linux_amd64",
+  "provider_selections": {
+    "registry.terraform.io/hashicorp/test1": "1.2.3",
+    "registry.terraform.io/hashicorp/test2": "0.0.0"
+  },
+  "terraform_outdated": false
+}
+`,
+		},
+		"with outdated + latest": {
+			version:            "1.0.0",
+			platform:           "linux_amd64",
+			providerSelections: map[addrs.Provider]*depsfile.ProviderLock{},
+			outdated:           true,
+			latest:             "1.16.0",
+			diags:              nil,
+			wantOutput: `{
+  "terraform_version": "1.0.0",
+  "platform": "linux_amd64",
+  "provider_selections": {},
+  "terraform_outdated": true
+}
+`,
+		},
+		"with warning": {
+			version:            "1.0.0",
+			platform:           "linux_amd64",
+			providerSelections: map[addrs.Provider]*depsfile.ProviderLock{},
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Your shoelaces are untied",
+					"Watch out, or you'll trip!",
+				),
+			},
+			wantOutput: `
+Warning: Your shoelaces are untied
+
+Watch out, or you'll trip!
+{
+  "terraform_version": "1.0.0",
+  "platform": "linux_amd64",
+  "provider_selections": {},
+  "terraform_outdated": false
+}
+`,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewVersion(arguments.ViewJSON, view)
+
+			v.LogVersion(
+				tc.version,
+				tc.platform,
+				tc.providerSelections,
+				tc.outdated,
+				tc.latest,
+				tc.diags,
+			)
+
+			output := done(t)
+			gotErr := output.Stderr()
+			if gotErr != "" {
+				t.Errorf("unexpected stderr output:\n%s", gotErr)
+			}
+
+			got := output.Stdout()
+			if diff := cmp.Diff(tc.wantOutput, got); diff != "" {
+				t.Errorf("unexpected output diff:\n%s", diff)
+			}
+		})
+	}
+}
