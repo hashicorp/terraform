@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -440,10 +441,11 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 
 			log.Printf("[TRACE] login: request contains an authorization code")
 
-			// Send the code to our blocking wait below, so that the token
-			// fetching process can continue.
-			codeCh <- gotCode
-			close(codeCh)
+			// Defer sending the code to ensure response is written first
+			defer func() {
+				codeCh <- gotCode
+				close(codeCh)
+			}()
 
 			log.Printf("[TRACE] login: returning response from callback server")
 
@@ -508,7 +510,10 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		return nil, diags
 	}
 
-	if err := server.Close(); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		// The server will close soon enough when our process exits anyway,
 		// so we won't fuss about it for right now.
 		log.Printf("[WARN] login: callback server can't shut down: %s", err)
