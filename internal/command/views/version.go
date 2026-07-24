@@ -91,6 +91,9 @@ type VersionJSON struct {
 }
 
 func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	if len(diags) == 0 {
+		return
+	}
 	v.view.Diagnostics(diags)
 }
 
