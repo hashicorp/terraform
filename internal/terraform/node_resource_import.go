@@ -261,7 +261,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			tfdiags.Error,
 			"Cannot import deferred remote object",
 			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
+				"While attempting to import an existing object to %s, "+
 					"the provider deferred reading the resource. "+
 					"This is a bug in the provider since deferrals are not supported when importing through the CLI, please file an issue."+
 					"Please either use an import block for importing this resource "+
@@ -279,7 +279,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 				tfdiags.Error,
 				"Cannot import non-existent remote object",
 				fmt.Sprintf(
-					"While attempting to import an existing object to %q, "+
+					"While attempting to import an existing object to %s, "+
 						"the provider detected that no object exists with the given id. "+
 						"Only pre-existing objects can be imported; check that the id "+
 						"is correct and that it is associated with the provider's "+
