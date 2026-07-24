@@ -189,14 +189,9 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 		}
 
 		actual = strings.TrimSpace(ui.ErrorWriter.String())
-		expected = `Usage: terraform [global options] version [options]
+		expected = `Error: Failed to parse command-line flags
 
-  Displays the version of Terraform and all installed plugins
-
-Options:
-
-  -json       Output the version information as a JSON object.
-Error parsing command-line flags: flag provided but not defined: -foobar`
+flag provided but not defined: -foobar`
 		if actual != expected {
 			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
 		}
@@ -222,14 +217,9 @@ Error parsing command-line flags: flag provided but not defined: -foobar`
 
 		// Human error output is rendered despite -json flag when an error occurs
 		actual = strings.TrimSpace(ui.ErrorWriter.String())
-		expected = `Usage: terraform [global options] version [options]
+		expected = `Error: Failed to parse command-line flags
 
-  Displays the version of Terraform and all installed plugins
-
-Options:
-
-  -json       Output the version information as a JSON object.
-Error parsing command-line flags: flag provided but not defined: -foobar`
+flag provided but not defined: -foobar`
 		if actual != expected {
 			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
 		}
