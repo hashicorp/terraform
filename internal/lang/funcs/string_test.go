@@ -64,7 +64,7 @@ func TestReplace(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("replace(%#v, %#v, %#v)", test.String, test.Substr, test.Replace), func(t *testing.T) {
-			got, err := Replace(test.String, test.Substr, test.Replace)
+			got, err := ReplaceFunc.Call([]cty.Value{test.String, test.Substr, test.Replace})
 
 			if test.Err {
 				if err == nil {
@@ -123,7 +123,7 @@ func TestStrContains(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("includes(%#v, %#v)", test.String, test.Substr), func(t *testing.T) {
-			got, err := StrContains(test.String, test.Substr)
+			got, err := StrContainsFunc.Call([]cty.Value{test.String, test.Substr})
 
 			if test.Err {
 				if err == nil {

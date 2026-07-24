@@ -13,7 +13,7 @@ import (
 
 func TestTimestamp(t *testing.T) {
 	currentTime := time.Now().UTC()
-	result, err := Timestamp()
+	result, err := TimestampFunc.Call([]cty.Value{})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -69,7 +69,7 @@ func TestTimeadd(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TimeAdd(%#v, %#v)", test.Time, test.Duration), func(t *testing.T) {
-			got, err := TimeAdd(test.Time, test.Duration)
+			got, err := TimeAddFunc.Call([]cty.Value{test.Time, test.Duration})
 
 			if test.Err {
 				if err == nil {
@@ -163,7 +163,7 @@ func TestTimeCmp(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TimeCmp(%#v, %#v)", test.TimeA, test.TimeB), func(t *testing.T) {
-			got, err := TimeCmp(test.TimeA, test.TimeB)
+			got, err := TimeCmpFunc.Call([]cty.Value{test.TimeA, test.TimeB})
 
 			if test.Err != "" {
 				if err == nil {

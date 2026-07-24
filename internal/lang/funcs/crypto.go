@@ -27,6 +27,12 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// UUIDFunc generates and returns a Type-4 UUID in the standard hexadecimal string
+// format.
+//
+// This is not a pure function: it will generate a different result for each
+// call. It must therefore be registered as an impure function in the function
+// table in the "lang" package.
 var UUIDFunc = function.New(&function.Spec{
 	Params:       []function.Parameter{},
 	Type:         function.StaticReturnType(cty.String),
@@ -40,6 +46,8 @@ var UUIDFunc = function.New(&function.Spec{
 	},
 })
 
+// UUIDV5Func generates and returns a Type-5 UUID in the standard hexadecimal string
+// format.
 var UUIDV5Func = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -269,76 +277,4 @@ func makeFileHashFunction(baseDir string, hf func() hash.Hash, enc func([]byte) 
 			return cty.StringVal(rv), nil
 		}),
 	})
-}
-
-// UUID generates and returns a Type-4 UUID in the standard hexadecimal string
-// format.
-//
-// This is not a pure function: it will generate a different result for each
-// call. It must therefore be registered as an impure function in the function
-// table in the "lang" package.
-func UUID() (cty.Value, error) {
-	return UUIDFunc.Call(nil)
-}
-
-// UUIDV5 generates and returns a Type-5 UUID in the standard hexadecimal string
-// format.
-func UUIDV5(namespace cty.Value, name cty.Value) (cty.Value, error) {
-	return UUIDV5Func.Call([]cty.Value{namespace, name})
-}
-
-// Base64Sha256 computes the SHA256 hash of a given string and encodes it with
-// Base64.
-//
-// The given string is first encoded as UTF-8 and then the SHA256 algorithm is applied
-// as defined in RFC 4634. The raw hash is then encoded with Base64 before returning.
-// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
-func Base64Sha256(str cty.Value) (cty.Value, error) {
-	return Base64Sha256Func.Call([]cty.Value{str})
-}
-
-// Base64Sha512 computes the SHA512 hash of a given string and encodes it with
-// Base64.
-//
-// The given string is first encoded as UTF-8 and then the SHA256 algorithm is applied
-// as defined in RFC 4634. The raw hash is then encoded with Base64 before returning.
-// Terraform uses the "standard" Base64  alphabet as defined in RFC 4648 section 4
-func Base64Sha512(str cty.Value) (cty.Value, error) {
-	return Base64Sha512Func.Call([]cty.Value{str})
-}
-
-// Bcrypt computes a hash of the given string using the Blowfish cipher,
-// returning a string in the Modular Crypt Format
-// usually expected in the shadow password file on many Unix systems.
-func Bcrypt(str cty.Value, cost ...cty.Value) (cty.Value, error) {
-	args := make([]cty.Value, len(cost)+1)
-	args[0] = str
-	copy(args[1:], cost)
-	return BcryptFunc.Call(args)
-}
-
-// Md5 computes the MD5 hash of a given string and encodes it with hexadecimal digits.
-func Md5(str cty.Value) (cty.Value, error) {
-	return Md5Func.Call([]cty.Value{str})
-}
-
-// RsaDecrypt decrypts an RSA-encrypted ciphertext, returning the corresponding
-// cleartext.
-func RsaDecrypt(ciphertext, privatekey cty.Value) (cty.Value, error) {
-	return RsaDecryptFunc.Call([]cty.Value{ciphertext, privatekey})
-}
-
-// Sha1 computes the SHA1 hash of a given string and encodes it with hexadecimal digits.
-func Sha1(str cty.Value) (cty.Value, error) {
-	return Sha1Func.Call([]cty.Value{str})
-}
-
-// Sha256 computes the SHA256 hash of a given string and encodes it with hexadecimal digits.
-func Sha256(str cty.Value) (cty.Value, error) {
-	return Sha256Func.Call([]cty.Value{str})
-}
-
-// Sha512 computes the SHA512 hash of a given string and encodes it with hexadecimal digits.
-func Sha512(str cty.Value) (cty.Value, error) {
-	return Sha512Func.Call([]cty.Value{str})
 }
