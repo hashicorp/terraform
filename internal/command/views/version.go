@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -27,6 +28,8 @@ type VersionOutput struct {
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
+
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 func NewVersion(vt arguments.ViewType, view *View) Version {
@@ -90,25 +93,50 @@ type VersionJSON struct {
 	view *View
 }
 
+// Diagnostics is basically the same as LogVersion but only the diagnostics data is populated.
 func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		return
 	}
-	v.view.Diagnostics(diags)
+
+	output := VersionOutput{
+		// Make sure this appears as an empty object.
+		ProviderSelections: make(map[string]string),
+
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
+	}
+
+	configSources := v.view.configSources()
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
+	}
+
+	v.view.streams.Println(v.marshal(&output))
 }
 
 func (v *VersionJSON) LogVersion(version string, platform string, providerSelections map[addrs.Provider]*depsfile.ProviderLock, outdated bool, latest string, diags tfdiags.Diagnostics) {
-	v.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
-
 	output := VersionOutput{
 		Version:            version,
 		Platform:           platform,
 		ProviderSelections: make(map[string]string),
 		Outdated:           outdated,
+
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
 	}
 
+	// Add providers, if present
 	for provider, lock := range providerSelections {
 		output.ProviderSelections[provider.String()] = lock.Version().String()
+	}
+
+	// Add diagnostics, if present
+	configSources := v.view.configSources()
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
 	}
 
 	v.view.streams.Println(v.marshal(&output))
