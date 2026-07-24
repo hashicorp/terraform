@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Allow underscores in provider source address namespaces, so private registry provider addresses are no longer rejected as invalid
+time: 2026-07-21T10:52:45.227476-04:00
+custom:
+    Issue: "38894"
