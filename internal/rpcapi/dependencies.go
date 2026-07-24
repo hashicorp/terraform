@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -27,6 +29,8 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
 	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -40,6 +44,9 @@ type dependenciesServer struct {
 
 	handles  *handleTable
 	services *disco.Disco
+
+	// policyClientOverride is an in-memory override of the policy client used for testing.
+	policyClientOverride policy.Client
 }
 
 func newDependenciesServer(handles *handleTable, services *disco.Disco) *dependenciesServer {
@@ -196,6 +203,33 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *dependencies.BuildPro
 	locks := s.handles.DependencyLocks(hnd)
 	if locks == nil {
 		return status.Error(codes.InvalidArgument, "invalid dependency locks handle")
+	}
+
+	// Setup the policy client if the caller provides a plugin path and policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
+			}
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
+			if diags.HasErrors() {
+				return status.Errorf(codes.FailedPrecondition, "failed to connect to policy client: %s", diags.AsTerraformDiags().Err())
+			}
+		}
+
+		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+		defer policyClient.Stop()
 	}
 
 	selectors := make([]getproviders.MultiSourceSelector, 0, len(req.InstallationMethods))
@@ -422,7 +456,40 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *dependencies.BuildPro
 	}
 	ctx = instEvts.OnContext(ctx)
 
-	_, err := inst.EnsureProviderVersions(ctx, locks, reqd, providercache.InstallNewProvidersOnly)
+	providerPolicyInstallHook := &providerPolicyHook{
+		client: policyClient,
+		sendEventCb: func(provider addrs.Provider, result policy.EvaluationResponse) error {
+			// Send the policy result back to the client
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation{
+					ProviderInstallPolicyEvaluation: providerInstallPolicyEvaluationProto(provider, result),
+				},
+			})
+
+			if result.Diagnostics.HasErrors() {
+				evts.Send(&dependencies.BuildProviderPluginCache_Event{
+					Event: &dependencies.BuildProviderPluginCache_Event_Diagnostic{
+						Diagnostic: diagnosticToProto(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Provider download blocked due to policy violations",
+							fmt.Sprintf(
+								"Download blocked due to policy violations for provider %s v%s. Please review the policy results for details.",
+								provider.ForDisplay(), version.String(),
+							),
+						)),
+					},
+				})
+
+				// We still return an error here to prevent the installation
+				sentErrorDiags = true
+				return fmt.Errorf("Provider download blocked due to policy violations. Please review the policy results for details")
+			}
+
+			return nil
+		},
+	}
+
+	_, err := inst.EnsureProviderVersions(ctx, locks, reqd, providercache.InstallNewProvidersOnly, providerPolicyInstallHook)
 	if err != nil {
 		// If we already emitted errors in the form of diagnostics then
 		// err will typically just duplicate them, so we'll skip emitting
@@ -449,6 +516,46 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *dependencies.BuildPro
 	// bugs in the calling program, rather than problems with the installation
 	// process.
 	return nil
+}
+
+var _ providercache.InstallerHook = &providerPolicyHook{}
+
+// providerPolicyHook enables policy evaluation during provider installation.
+type providerPolicyHook struct {
+	client      policy.Client
+	sendEventCb func(provider addrs.Provider, result policy.EvaluationResponse) error
+}
+
+// ProviderVersionSelected satisfies the [providers.InstallerHook] interface.
+// When a provider version is selected, this method performs policy evaluation for the provider,
+// and aborts the installation if the policy evaluation fails.
+func (p *providerPolicyHook) ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error {
+	// If the client is nil, then policy evaluation is disabled, so we can skip.
+	if p.client == nil {
+		return nil
+	}
+	log.Println("[DEBUG] rpcapi: evaluating policy for provider", provider.String(), version)
+	result := p.client.EvaluateProvider(ctx, policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
+		Target: provider.Type,
+
+		// Configuration attributes are not available when building the provider cache, so we will send an unknown
+		// dynamic value to the policy client.
+		Attrs: policy.CtyToPolicyValue(cty.DynamicVal),
+		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:      provider.Type,
+			Namespace: provider.Namespace,
+			Source:    provider.String(),
+			Version:   version,
+		},
+	})
+
+	// If there were no policy evaluations reported then return with no error
+	if result.Empty() {
+		return nil
+	}
+
+	log.Println("[DEBUG] rpcapi: policy result for provider", provider.String(), version, "overall", result.Overall)
+	return p.sendEventCb(provider, result)
 }
 
 func (s *dependenciesServer) OpenProviderPluginCache(ctx context.Context, req *dependencies.OpenProviderPluginCache_Request) (*dependencies.OpenProviderPluginCache_Response, error) {

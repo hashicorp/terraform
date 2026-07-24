@@ -12,10 +12,12 @@ import (
 	msgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
@@ -161,9 +163,9 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 }
 
 func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string]policy.EvaluationResponse) *stacks.ComponentInstancePolicyEvaluation {
-	results := make([]*stacks.PolicyResult, 0)
-	infos := make([]*stacks.PolicyInfo, 0)
-	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
+	results := make([]*terraform1.PolicyResult, 0)
+	infos := make([]*terraform1.PolicyInfo, 0)
+	policyDiags := make([]*terraform1.PolicyDiagnostic, 0)
 
 	for addr, result := range policyResults {
 		results = append(results, policyResultsToProto(addr, result.Policies)...)
@@ -199,30 +201,48 @@ func providerInstancePolicyEvaluationProto(result *hooks.ProviderInstancePolicyR
 	}
 }
 
-func policyEvaluateResultToProto(result policy.EvaluateResult) stacks.EvaluateResult {
+func providerInstallPolicyEvaluationProto(provider addrs.Provider, result policy.EvaluationResponse) *dependencies.ProviderInstallPolicyEvaluation {
+	// The RPC which produces this policy evaluation event does not have access to the source bundle / configuration
+	// so we use a root module as a default.
+	addr := addrs.AbsProviderConfig{Provider: provider, Module: addrs.RootModule}
+	providerAddr := addr.String()
+
+	results := policyResultsToProto(providerAddr, result.Policies)
+	infos := policyInfosToProto(providerAddr, result.Enforcements)
+	policyDiags := policyDiagsToProto(providerAddr, result.Diagnostics)
+
+	return &dependencies.ProviderInstallPolicyEvaluation{
+		Addr:        addr.String(),
+		Results:     results,
+		Infos:       infos,
+		Diagnostics: policyDiags,
+	}
+}
+
+func policyEvaluateResultToProto(result policy.EvaluateResult) terraform1.EvaluateResult {
 	switch result {
 	case policy.InvalidResult:
-		return stacks.EvaluateResult_INVALID_EVALUATE_RESULT
+		return terraform1.EvaluateResult_INVALID_EVALUATE_RESULT
 	case policy.UnknownResult:
-		return stacks.EvaluateResult_UNKNOWN_EVALUATE_RESULT
+		return terraform1.EvaluateResult_UNKNOWN_EVALUATE_RESULT
 	case policy.PolicyErrorResult:
-		return stacks.EvaluateResult_ERROR_EVALUATE_RESULT
+		return terraform1.EvaluateResult_ERROR_EVALUATE_RESULT
 	case policy.AllowResult:
-		return stacks.EvaluateResult_ALLOW_EVALUATE_RESULT
+		return terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT
 	case policy.DenyResult:
-		return stacks.EvaluateResult_DENY_EVALUATE_RESULT
+		return terraform1.EvaluateResult_DENY_EVALUATE_RESULT
 	case policy.SetupErrorResult:
-		return stacks.EvaluateResult_SETUP_ERROR_EVALUATE_RESULT
+		return terraform1.EvaluateResult_SETUP_ERROR_EVALUATE_RESULT
 	default:
 		// should be exhaustive
 		panic(fmt.Errorf("unhandled policy.EvaluateResult type: %T", result))
 	}
 }
 
-func policyResultsToProto(addr string, policies []*policy.Policy) []*stacks.PolicyResult {
-	protoPolicyResults := make([]*stacks.PolicyResult, len(policies))
+func policyResultsToProto(addr string, policies []*policy.Policy) []*terraform1.PolicyResult {
+	protoPolicyResults := make([]*terraform1.PolicyResult, len(policies))
 	for i, policy := range policies {
-		result := stacks.PolicyResult{
+		result := terraform1.PolicyResult{
 			TargetAddress:  addr,
 			PolicyMetadata: policyMetadataToProto(policy, nil),
 			Result:         policyEvaluateResultToProto(policy.Result),
@@ -232,11 +252,11 @@ func policyResultsToProto(addr string, policies []*policy.Policy) []*stacks.Poli
 	return protoPolicyResults
 }
 
-func policyMetadataToProto(policyObj *policy.Policy, enforceIndex *int32) *stacks.PolicyMetaData {
+func policyMetadataToProto(policyObj *policy.Policy, enforceIndex *int32) *terraform1.PolicyMetaData {
 	if policyObj == nil {
 		return nil
 	}
-	metadata := &stacks.PolicyMetaData{
+	metadata := &terraform1.PolicyMetaData{
 		PolicySetName:    policyObj.PolicySetName,
 		PolicyName:       policyObj.Address,
 		FileName:         policyObj.Filename,
@@ -250,8 +270,8 @@ func policyMetadataToProto(policyObj *policy.Policy, enforceIndex *int32) *stack
 	return metadata
 }
 
-func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []*stacks.PolicyInfo {
-	protoPolicyInfos := make([]*stacks.PolicyInfo, 0)
+func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []*terraform1.PolicyInfo {
+	protoPolicyInfos := make([]*terraform1.PolicyInfo, 0)
 
 	for _, enforcement := range enforcements {
 		if enforcement.Message == "" {
@@ -259,9 +279,9 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 		}
 		protoPolicyMetadata := policyMetadataToProto(enforcement.Policy, &enforcement.BlockIndex)
 
-		var protoPolicySnippet *stacks.PolicySnippet
+		var protoPolicySnippet *terraform1.PolicySnippet
 		if snippet := enforcement.Snippet; snippet != nil {
-			protoPolicySnippet = &stacks.PolicySnippet{
+			protoPolicySnippet = &terraform1.PolicySnippet{
 				Code:                 snippet.Code,
 				StartLine:            snippet.StartLine,
 				HighlightStartOffset: snippet.HighlightStartOffset,
@@ -282,7 +302,7 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 			}
 		}
 
-		protoPolicyInfos = append(protoPolicyInfos, &stacks.PolicyInfo{
+		protoPolicyInfos = append(protoPolicyInfos, &terraform1.PolicyInfo{
 			TargetAddress:  addr,
 			Result:         policyEvaluateResultToProto(enforcement.Result),
 			Message:        enforcement.Message,
@@ -295,14 +315,14 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 	return protoPolicyInfos
 }
 
-func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.PolicyDiagnostic {
-	protoPolicyDiags := make([]*stacks.PolicyDiagnostic, len(policyDiags))
+func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*terraform1.PolicyDiagnostic {
+	protoPolicyDiags := make([]*terraform1.PolicyDiagnostic, len(policyDiags))
 
 	for i, diag := range policyDiags {
 		desc := diag.Description()
 		extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
 
-		policyDiag := stacks.PolicyDiagnostic{
+		policyDiag := terraform1.PolicyDiagnostic{
 			TargetAddress: addr,
 			Diagnostic: &terraform1.Diagnostic{
 				Severity: terraform1.Diagnostic_ERROR,
@@ -320,7 +340,7 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 			policyDiag.PolicyMetadata = policyMetadataToProto(&extra.Policy, extra.EnforceIndex)
 
 			if snippet := extra.Snippet; snippet != nil {
-				policyDiag.PolicySnippet = &stacks.PolicySnippet{
+				policyDiag.PolicySnippet = &terraform1.PolicySnippet{
 					Code:                 snippet.Code,
 					StartLine:            snippet.StartLine,
 					HighlightStartOffset: snippet.HighlightStartOffset,
@@ -367,12 +387,12 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 	return protoPolicyDiags
 }
 
-func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionValue) []*stacks.ExpressionValue {
+func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionValue) []*terraform1.ExpressionValue {
 	if len(policyExpressionValues) == 0 {
 		return nil
 	}
 
-	expressionValues := make([]*stacks.ExpressionValue, 0, len(policyExpressionValues))
+	expressionValues := make([]*terraform1.ExpressionValue, 0, len(policyExpressionValues))
 	seen := make(map[string]struct{}, len(policyExpressionValues))
 
 	for _, val := range policyExpressionValues {
@@ -381,8 +401,8 @@ func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionVal
 			continue // then we can't display this value
 		}
 
-		exprValue := &stacks.ExpressionValue{
-			Traversal: stacks.NewAttributePath(path),
+		exprValue := &terraform1.ExpressionValue{
+			Traversal: terraform1.NewAttributePath(path),
 		}
 
 		strPath := ctyPathStr(path)

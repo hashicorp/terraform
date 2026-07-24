@@ -24,6 +24,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Sourced from: /internal/policy/proto/types.proto#EvaluateResult
+type EvaluateResult int32
+
+const (
+	EvaluateResult_INVALID_EVALUATE_RESULT     EvaluateResult = 0
+	EvaluateResult_UNKNOWN_EVALUATE_RESULT     EvaluateResult = 1
+	EvaluateResult_ERROR_EVALUATE_RESULT       EvaluateResult = 2
+	EvaluateResult_ALLOW_EVALUATE_RESULT       EvaluateResult = 3
+	EvaluateResult_DENY_EVALUATE_RESULT        EvaluateResult = 4
+	EvaluateResult_SETUP_ERROR_EVALUATE_RESULT EvaluateResult = 5
+)
+
+// Enum value maps for EvaluateResult.
+var (
+	EvaluateResult_name = map[int32]string{
+		0: "INVALID_EVALUATE_RESULT",
+		1: "UNKNOWN_EVALUATE_RESULT",
+		2: "ERROR_EVALUATE_RESULT",
+		3: "ALLOW_EVALUATE_RESULT",
+		4: "DENY_EVALUATE_RESULT",
+		5: "SETUP_ERROR_EVALUATE_RESULT",
+	}
+	EvaluateResult_value = map[string]int32{
+		"INVALID_EVALUATE_RESULT":     0,
+		"UNKNOWN_EVALUATE_RESULT":     1,
+		"ERROR_EVALUATE_RESULT":       2,
+		"ALLOW_EVALUATE_RESULT":       3,
+		"DENY_EVALUATE_RESULT":        4,
+		"SETUP_ERROR_EVALUATE_RESULT": 5,
+	}
+)
+
+func (x EvaluateResult) Enum() *EvaluateResult {
+	p := new(EvaluateResult)
+	*p = x
+	return p
+}
+
+func (x EvaluateResult) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EvaluateResult) Descriptor() protoreflect.EnumDescriptor {
+	return file_terraform1_proto_enumTypes[0].Descriptor()
+}
+
+func (EvaluateResult) Type() protoreflect.EnumType {
+	return &file_terraform1_proto_enumTypes[0]
+}
+
+func (x EvaluateResult) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EvaluateResult.Descriptor instead.
+func (EvaluateResult) EnumDescriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{0}
+}
+
 type Diagnostic_Severity int32
 
 const (
@@ -57,11 +116,11 @@ func (x Diagnostic_Severity) String() string {
 }
 
 func (Diagnostic_Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_terraform1_proto_enumTypes[0].Descriptor()
+	return file_terraform1_proto_enumTypes[1].Descriptor()
 }
 
 func (Diagnostic_Severity) Type() protoreflect.EnumType {
-	return &file_terraform1_proto_enumTypes[0]
+	return &file_terraform1_proto_enumTypes[1]
 }
 
 func (x Diagnostic_Severity) Number() protoreflect.EnumNumber {
@@ -415,6 +474,650 @@ func (x *SourcePos) GetColumn() int64 {
 	return 0
 }
 
+type PolicyMetaData struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	PolicyName       string                 `protobuf:"bytes,1,opt,name=policy_name,json=policyName,proto3" json:"policy_name,omitempty"`
+	PolicySetName    string                 `protobuf:"bytes,2,opt,name=policy_set_name,json=policySetName,proto3" json:"policy_set_name,omitempty"`
+	EnforcementLevel string                 `protobuf:"bytes,3,opt,name=enforcement_level,json=enforcementLevel,proto3" json:"enforcement_level,omitempty"`
+	FileName         string                 `protobuf:"bytes,4,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	EnforceIndex     int32                  `protobuf:"varint,5,opt,name=enforce_index,json=enforceIndex,proto3" json:"enforce_index,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PolicyMetaData) Reset() {
+	*x = PolicyMetaData{}
+	mi := &file_terraform1_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyMetaData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyMetaData) ProtoMessage() {}
+
+func (x *PolicyMetaData) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyMetaData.ProtoReflect.Descriptor instead.
+func (*PolicyMetaData) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PolicyMetaData) GetPolicyName() string {
+	if x != nil {
+		return x.PolicyName
+	}
+	return ""
+}
+
+func (x *PolicyMetaData) GetPolicySetName() string {
+	if x != nil {
+		return x.PolicySetName
+	}
+	return ""
+}
+
+func (x *PolicyMetaData) GetEnforcementLevel() string {
+	if x != nil {
+		return x.EnforcementLevel
+	}
+	return ""
+}
+
+func (x *PolicyMetaData) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *PolicyMetaData) GetEnforceIndex() int32 {
+	if x != nil {
+		return x.EnforceIndex
+	}
+	return 0
+}
+
+type PolicyResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TargetAddress  string                 `protobuf:"bytes,1,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
+	PolicyMetadata *PolicyMetaData        `protobuf:"bytes,2,opt,name=policy_metadata,json=policyMetadata,proto3" json:"policy_metadata,omitempty"`
+	Result         EvaluateResult         `protobuf:"varint,3,opt,name=result,proto3,enum=terraform1.EvaluateResult" json:"result,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PolicyResult) Reset() {
+	*x = PolicyResult{}
+	mi := &file_terraform1_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyResult) ProtoMessage() {}
+
+func (x *PolicyResult) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyResult.ProtoReflect.Descriptor instead.
+func (*PolicyResult) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PolicyResult) GetTargetAddress() string {
+	if x != nil {
+		return x.TargetAddress
+	}
+	return ""
+}
+
+func (x *PolicyResult) GetPolicyMetadata() *PolicyMetaData {
+	if x != nil {
+		return x.PolicyMetadata
+	}
+	return nil
+}
+
+func (x *PolicyResult) GetResult() EvaluateResult {
+	if x != nil {
+		return x.Result
+	}
+	return EvaluateResult_INVALID_EVALUATE_RESULT
+}
+
+type PolicyInfo struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TargetAddress  string                 `protobuf:"bytes,1,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
+	PolicyMetadata *PolicyMetaData        `protobuf:"bytes,2,opt,name=policy_metadata,json=policyMetadata,proto3" json:"policy_metadata,omitempty"`
+	Message        string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	PolicyRange    *SourceRange           `protobuf:"bytes,4,opt,name=policy_range,json=policyRange,proto3" json:"policy_range,omitempty"`
+	PolicySnippet  *PolicySnippet         `protobuf:"bytes,5,opt,name=policy_snippet,json=policySnippet,proto3" json:"policy_snippet,omitempty"`
+	Result         EvaluateResult         `protobuf:"varint,6,opt,name=result,proto3,enum=terraform1.EvaluateResult" json:"result,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PolicyInfo) Reset() {
+	*x = PolicyInfo{}
+	mi := &file_terraform1_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyInfo) ProtoMessage() {}
+
+func (x *PolicyInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyInfo.ProtoReflect.Descriptor instead.
+func (*PolicyInfo) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PolicyInfo) GetTargetAddress() string {
+	if x != nil {
+		return x.TargetAddress
+	}
+	return ""
+}
+
+func (x *PolicyInfo) GetPolicyMetadata() *PolicyMetaData {
+	if x != nil {
+		return x.PolicyMetadata
+	}
+	return nil
+}
+
+func (x *PolicyInfo) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *PolicyInfo) GetPolicyRange() *SourceRange {
+	if x != nil {
+		return x.PolicyRange
+	}
+	return nil
+}
+
+func (x *PolicyInfo) GetPolicySnippet() *PolicySnippet {
+	if x != nil {
+		return x.PolicySnippet
+	}
+	return nil
+}
+
+func (x *PolicyInfo) GetResult() EvaluateResult {
+	if x != nil {
+		return x.Result
+	}
+	return EvaluateResult_INVALID_EVALUATE_RESULT
+}
+
+type PolicySnippet struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Context              string                 `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Code                 string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	StartLine            int64                  `protobuf:"varint,3,opt,name=start_line,json=startLine,proto3" json:"start_line,omitempty"`
+	HighlightStartOffset int64                  `protobuf:"varint,4,opt,name=highlight_start_offset,json=highlightStartOffset,proto3" json:"highlight_start_offset,omitempty"`
+	HighlightEndOffset   int64                  `protobuf:"varint,5,opt,name=highlight_end_offset,json=highlightEndOffset,proto3" json:"highlight_end_offset,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *PolicySnippet) Reset() {
+	*x = PolicySnippet{}
+	mi := &file_terraform1_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicySnippet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicySnippet) ProtoMessage() {}
+
+func (x *PolicySnippet) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicySnippet.ProtoReflect.Descriptor instead.
+func (*PolicySnippet) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PolicySnippet) GetContext() string {
+	if x != nil {
+		return x.Context
+	}
+	return ""
+}
+
+func (x *PolicySnippet) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *PolicySnippet) GetStartLine() int64 {
+	if x != nil {
+		return x.StartLine
+	}
+	return 0
+}
+
+func (x *PolicySnippet) GetHighlightStartOffset() int64 {
+	if x != nil {
+		return x.HighlightStartOffset
+	}
+	return 0
+}
+
+func (x *PolicySnippet) GetHighlightEndOffset() int64 {
+	if x != nil {
+		return x.HighlightEndOffset
+	}
+	return 0
+}
+
+type PolicyDiagnostic struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TargetAddress    string                 `protobuf:"bytes,1,opt,name=target_address,json=targetAddress,proto3" json:"target_address,omitempty"`
+	PolicyMetadata   *PolicyMetaData        `protobuf:"bytes,2,opt,name=policy_metadata,json=policyMetadata,proto3" json:"policy_metadata,omitempty"`
+	Result           EvaluateResult         `protobuf:"varint,3,opt,name=result,proto3,enum=terraform1.EvaluateResult" json:"result,omitempty"`
+	Diagnostic       *Diagnostic            `protobuf:"bytes,4,opt,name=diagnostic,proto3" json:"diagnostic,omitempty"`
+	PolicySnippet    *PolicySnippet         `protobuf:"bytes,5,opt,name=policy_snippet,json=policySnippet,proto3" json:"policy_snippet,omitempty"`
+	PolicyRange      *SourceRange           `protobuf:"bytes,6,opt,name=policy_range,json=policyRange,proto3" json:"policy_range,omitempty"`
+	ExpressionValues []*ExpressionValue     `protobuf:"bytes,7,rep,name=expression_values,json=expressionValues,proto3" json:"expression_values,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PolicyDiagnostic) Reset() {
+	*x = PolicyDiagnostic{}
+	mi := &file_terraform1_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyDiagnostic) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyDiagnostic) ProtoMessage() {}
+
+func (x *PolicyDiagnostic) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyDiagnostic.ProtoReflect.Descriptor instead.
+func (*PolicyDiagnostic) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *PolicyDiagnostic) GetTargetAddress() string {
+	if x != nil {
+		return x.TargetAddress
+	}
+	return ""
+}
+
+func (x *PolicyDiagnostic) GetPolicyMetadata() *PolicyMetaData {
+	if x != nil {
+		return x.PolicyMetadata
+	}
+	return nil
+}
+
+func (x *PolicyDiagnostic) GetResult() EvaluateResult {
+	if x != nil {
+		return x.Result
+	}
+	return EvaluateResult_INVALID_EVALUATE_RESULT
+}
+
+func (x *PolicyDiagnostic) GetDiagnostic() *Diagnostic {
+	if x != nil {
+		return x.Diagnostic
+	}
+	return nil
+}
+
+func (x *PolicyDiagnostic) GetPolicySnippet() *PolicySnippet {
+	if x != nil {
+		return x.PolicySnippet
+	}
+	return nil
+}
+
+func (x *PolicyDiagnostic) GetPolicyRange() *SourceRange {
+	if x != nil {
+		return x.PolicyRange
+	}
+	return nil
+}
+
+func (x *PolicyDiagnostic) GetExpressionValues() []*ExpressionValue {
+	if x != nil {
+		return x.ExpressionValues
+	}
+	return nil
+}
+
+// Sourced from: /internal/policy/proto/diagnostics.proto#ExpressionValue
+type ExpressionValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Traversal     *AttributePath         `protobuf:"bytes,1,opt,name=traversal,proto3" json:"traversal,omitempty"`
+	Value         []byte                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExpressionValue) Reset() {
+	*x = ExpressionValue{}
+	mi := &file_terraform1_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExpressionValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExpressionValue) ProtoMessage() {}
+
+func (x *ExpressionValue) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExpressionValue.ProtoReflect.Descriptor instead.
+func (*ExpressionValue) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ExpressionValue) GetTraversal() *AttributePath {
+	if x != nil {
+		return x.Traversal
+	}
+	return nil
+}
+
+func (x *ExpressionValue) GetValue() []byte {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+// Sourced from: /internal/rpcapi/terraform1/stacks.proto#AttributePath
+type AttributePath struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Steps         []*AttributePath_Step  `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AttributePath) Reset() {
+	*x = AttributePath{}
+	mi := &file_terraform1_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttributePath) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttributePath) ProtoMessage() {}
+
+func (x *AttributePath) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttributePath.ProtoReflect.Descriptor instead.
+func (*AttributePath) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AttributePath) GetSteps() []*AttributePath_Step {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+type PolicyEntitlement struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	Org           string                 `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PolicyEntitlement) Reset() {
+	*x = PolicyEntitlement{}
+	mi := &file_terraform1_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PolicyEntitlement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PolicyEntitlement) ProtoMessage() {}
+
+func (x *PolicyEntitlement) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PolicyEntitlement.ProtoReflect.Descriptor instead.
+func (*PolicyEntitlement) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PolicyEntitlement) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *PolicyEntitlement) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *PolicyEntitlement) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+type AttributePath_Step struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Selector:
+	//
+	//	*AttributePath_Step_AttributeName
+	//	*AttributePath_Step_ElementKeyString
+	//	*AttributePath_Step_ElementKeyInt
+	Selector      isAttributePath_Step_Selector `protobuf_oneof:"selector"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AttributePath_Step) Reset() {
+	*x = AttributePath_Step{}
+	mi := &file_terraform1_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttributePath_Step) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttributePath_Step) ProtoMessage() {}
+
+func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttributePath_Step.ProtoReflect.Descriptor instead.
+func (*AttributePath_Step) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{11, 0}
+}
+
+func (x *AttributePath_Step) GetSelector() isAttributePath_Step_Selector {
+	if x != nil {
+		return x.Selector
+	}
+	return nil
+}
+
+func (x *AttributePath_Step) GetAttributeName() string {
+	if x != nil {
+		if x, ok := x.Selector.(*AttributePath_Step_AttributeName); ok {
+			return x.AttributeName
+		}
+	}
+	return ""
+}
+
+func (x *AttributePath_Step) GetElementKeyString() string {
+	if x != nil {
+		if x, ok := x.Selector.(*AttributePath_Step_ElementKeyString); ok {
+			return x.ElementKeyString
+		}
+	}
+	return ""
+}
+
+func (x *AttributePath_Step) GetElementKeyInt() int64 {
+	if x != nil {
+		if x, ok := x.Selector.(*AttributePath_Step_ElementKeyInt); ok {
+			return x.ElementKeyInt
+		}
+	}
+	return 0
+}
+
+type isAttributePath_Step_Selector interface {
+	isAttributePath_Step_Selector()
+}
+
+type AttributePath_Step_AttributeName struct {
+	AttributeName string `protobuf:"bytes,1,opt,name=attribute_name,json=attributeName,proto3,oneof"`
+}
+
+type AttributePath_Step_ElementKeyString struct {
+	ElementKeyString string `protobuf:"bytes,2,opt,name=element_key_string,json=elementKeyString,proto3,oneof"`
+}
+
+type AttributePath_Step_ElementKeyInt struct {
+	ElementKeyInt int64 `protobuf:"varint,3,opt,name=element_key_int,json=elementKeyInt,proto3,oneof"`
+}
+
+func (*AttributePath_Step_AttributeName) isAttributePath_Step_Selector() {}
+
+func (*AttributePath_Step_ElementKeyString) isAttributePath_Step_Selector() {}
+
+func (*AttributePath_Step_ElementKeyInt) isAttributePath_Step_Selector() {}
+
 var File_terraform1_proto protoreflect.FileDescriptor
 
 const file_terraform1_proto_rawDesc = "" +
@@ -448,7 +1151,65 @@ const file_terraform1_proto_rawDesc = "" +
 	"\tSourcePos\x12\x12\n" +
 	"\x04byte\x18\x01 \x01(\x03R\x04byte\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\x03R\x04line\x12\x16\n" +
-	"\x06column\x18\x03 \x01(\x03R\x06columnb\x06proto3"
+	"\x06column\x18\x03 \x01(\x03R\x06column\"\xc8\x01\n" +
+	"\x0ePolicyMetaData\x12\x1f\n" +
+	"\vpolicy_name\x18\x01 \x01(\tR\n" +
+	"policyName\x12&\n" +
+	"\x0fpolicy_set_name\x18\x02 \x01(\tR\rpolicySetName\x12+\n" +
+	"\x11enforcement_level\x18\x03 \x01(\tR\x10enforcementLevel\x12\x1b\n" +
+	"\tfile_name\x18\x04 \x01(\tR\bfileName\x12#\n" +
+	"\renforce_index\x18\x05 \x01(\x05R\fenforceIndex\"\xae\x01\n" +
+	"\fPolicyResult\x12%\n" +
+	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12C\n" +
+	"\x0fpolicy_metadata\x18\x02 \x01(\v2\x1a.terraform1.PolicyMetaDataR\x0epolicyMetadata\x122\n" +
+	"\x06result\x18\x03 \x01(\x0e2\x1a.terraform1.EvaluateResultR\x06result\"\xc4\x02\n" +
+	"\n" +
+	"PolicyInfo\x12%\n" +
+	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12C\n" +
+	"\x0fpolicy_metadata\x18\x02 \x01(\v2\x1a.terraform1.PolicyMetaDataR\x0epolicyMetadata\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12:\n" +
+	"\fpolicy_range\x18\x04 \x01(\v2\x17.terraform1.SourceRangeR\vpolicyRange\x12@\n" +
+	"\x0epolicy_snippet\x18\x05 \x01(\v2\x19.terraform1.PolicySnippetR\rpolicySnippet\x122\n" +
+	"\x06result\x18\x06 \x01(\x0e2\x1a.terraform1.EvaluateResultR\x06result\"\xc4\x01\n" +
+	"\rPolicySnippet\x12\x18\n" +
+	"\acontext\x18\x01 \x01(\tR\acontext\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1d\n" +
+	"\n" +
+	"start_line\x18\x03 \x01(\x03R\tstartLine\x124\n" +
+	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
+	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset\"\xb2\x03\n" +
+	"\x10PolicyDiagnostic\x12%\n" +
+	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12C\n" +
+	"\x0fpolicy_metadata\x18\x02 \x01(\v2\x1a.terraform1.PolicyMetaDataR\x0epolicyMetadata\x122\n" +
+	"\x06result\x18\x03 \x01(\x0e2\x1a.terraform1.EvaluateResultR\x06result\x126\n" +
+	"\n" +
+	"diagnostic\x18\x04 \x01(\v2\x16.terraform1.DiagnosticR\n" +
+	"diagnostic\x12@\n" +
+	"\x0epolicy_snippet\x18\x05 \x01(\v2\x19.terraform1.PolicySnippetR\rpolicySnippet\x12:\n" +
+	"\fpolicy_range\x18\x06 \x01(\v2\x17.terraform1.SourceRangeR\vpolicyRange\x12H\n" +
+	"\x11expression_values\x18\a \x03(\v2\x1b.terraform1.ExpressionValueR\x10expressionValues\"`\n" +
+	"\x0fExpressionValue\x127\n" +
+	"\ttraversal\x18\x01 \x01(\v2\x19.terraform1.AttributePathR\ttraversal\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\xdd\x01\n" +
+	"\rAttributePath\x124\n" +
+	"\x05steps\x18\x01 \x03(\v2\x1e.terraform1.AttributePath.StepR\x05steps\x1a\x95\x01\n" +
+	"\x04Step\x12'\n" +
+	"\x0eattribute_name\x18\x01 \x01(\tH\x00R\rattributeName\x12.\n" +
+	"\x12element_key_string\x18\x02 \x01(\tH\x00R\x10elementKeyString\x12(\n" +
+	"\x0felement_key_int\x18\x03 \x01(\x03H\x00R\relementKeyIntB\n" +
+	"\n" +
+	"\bselector\"O\n" +
+	"\x11PolicyEntitlement\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org*\xbb\x01\n" +
+	"\x0eEvaluateResult\x12\x1b\n" +
+	"\x17INVALID_EVALUATE_RESULT\x10\x00\x12\x1b\n" +
+	"\x17UNKNOWN_EVALUATE_RESULT\x10\x01\x12\x19\n" +
+	"\x15ERROR_EVALUATE_RESULT\x10\x02\x12\x19\n" +
+	"\x15ALLOW_EVALUATE_RESULT\x10\x03\x12\x18\n" +
+	"\x14DENY_EVALUATE_RESULT\x10\x04\x12\x1f\n" +
+	"\x1bSETUP_ERROR_EVALUATE_RESULT\x10\x05b\x06proto3"
 
 var (
 	file_terraform1_proto_rawDescOnce sync.Once
@@ -462,27 +1223,51 @@ func file_terraform1_proto_rawDescGZIP() []byte {
 	return file_terraform1_proto_rawDescData
 }
 
-var file_terraform1_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_terraform1_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_terraform1_proto_goTypes = []any{
-	(Diagnostic_Severity)(0), // 0: terraform1.Diagnostic.Severity
-	(*ProviderPackage)(nil),  // 1: terraform1.ProviderPackage
-	(*SourceAddress)(nil),    // 2: terraform1.SourceAddress
-	(*Diagnostic)(nil),       // 3: terraform1.Diagnostic
-	(*SourceRange)(nil),      // 4: terraform1.SourceRange
-	(*SourcePos)(nil),        // 5: terraform1.SourcePos
+	(EvaluateResult)(0),        // 0: terraform1.EvaluateResult
+	(Diagnostic_Severity)(0),   // 1: terraform1.Diagnostic.Severity
+	(*ProviderPackage)(nil),    // 2: terraform1.ProviderPackage
+	(*SourceAddress)(nil),      // 3: terraform1.SourceAddress
+	(*Diagnostic)(nil),         // 4: terraform1.Diagnostic
+	(*SourceRange)(nil),        // 5: terraform1.SourceRange
+	(*SourcePos)(nil),          // 6: terraform1.SourcePos
+	(*PolicyMetaData)(nil),     // 7: terraform1.PolicyMetaData
+	(*PolicyResult)(nil),       // 8: terraform1.PolicyResult
+	(*PolicyInfo)(nil),         // 9: terraform1.PolicyInfo
+	(*PolicySnippet)(nil),      // 10: terraform1.PolicySnippet
+	(*PolicyDiagnostic)(nil),   // 11: terraform1.PolicyDiagnostic
+	(*ExpressionValue)(nil),    // 12: terraform1.ExpressionValue
+	(*AttributePath)(nil),      // 13: terraform1.AttributePath
+	(*PolicyEntitlement)(nil),  // 14: terraform1.PolicyEntitlement
+	(*AttributePath_Step)(nil), // 15: terraform1.AttributePath.Step
 }
 var file_terraform1_proto_depIdxs = []int32{
-	0, // 0: terraform1.Diagnostic.severity:type_name -> terraform1.Diagnostic.Severity
-	4, // 1: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
-	4, // 2: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
-	5, // 3: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
-	5, // 4: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1,  // 0: terraform1.Diagnostic.severity:type_name -> terraform1.Diagnostic.Severity
+	5,  // 1: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
+	5,  // 2: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
+	6,  // 3: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
+	6,  // 4: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
+	7,  // 5: terraform1.PolicyResult.policy_metadata:type_name -> terraform1.PolicyMetaData
+	0,  // 6: terraform1.PolicyResult.result:type_name -> terraform1.EvaluateResult
+	7,  // 7: terraform1.PolicyInfo.policy_metadata:type_name -> terraform1.PolicyMetaData
+	5,  // 8: terraform1.PolicyInfo.policy_range:type_name -> terraform1.SourceRange
+	10, // 9: terraform1.PolicyInfo.policy_snippet:type_name -> terraform1.PolicySnippet
+	0,  // 10: terraform1.PolicyInfo.result:type_name -> terraform1.EvaluateResult
+	7,  // 11: terraform1.PolicyDiagnostic.policy_metadata:type_name -> terraform1.PolicyMetaData
+	0,  // 12: terraform1.PolicyDiagnostic.result:type_name -> terraform1.EvaluateResult
+	4,  // 13: terraform1.PolicyDiagnostic.diagnostic:type_name -> terraform1.Diagnostic
+	10, // 14: terraform1.PolicyDiagnostic.policy_snippet:type_name -> terraform1.PolicySnippet
+	5,  // 15: terraform1.PolicyDiagnostic.policy_range:type_name -> terraform1.SourceRange
+	12, // 16: terraform1.PolicyDiagnostic.expression_values:type_name -> terraform1.ExpressionValue
+	13, // 17: terraform1.ExpressionValue.traversal:type_name -> terraform1.AttributePath
+	15, // 18: terraform1.AttributePath.steps:type_name -> terraform1.AttributePath.Step
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_terraform1_proto_init() }
@@ -490,13 +1275,18 @@ func file_terraform1_proto_init() {
 	if File_terraform1_proto != nil {
 		return
 	}
+	file_terraform1_proto_msgTypes[13].OneofWrappers = []any{
+		(*AttributePath_Step_AttributeName)(nil),
+		(*AttributePath_Step_ElementKeyString)(nil),
+		(*AttributePath_Step_ElementKeyInt)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_terraform1_proto_rawDesc), len(file_terraform1_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
