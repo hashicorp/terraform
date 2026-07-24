@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Optional skipping of the validation of the KMS key ID in the S3 backends.
+time: 2025-03-20T12:03:04.152186-03:00
+custom:
+    Issue: "36730"
