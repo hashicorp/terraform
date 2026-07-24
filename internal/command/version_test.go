@@ -4,6 +4,7 @@
 package command
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -265,6 +266,75 @@ func TestVersion_outdated(t *testing.T) {
 	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://developer.hashicorp.com/terraform/install"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
+	}
+}
+
+func TestVersion_outdated_errorCheckingLatestVersion(t *testing.T) {
+	view, done := testView(t)
+	m := Meta{
+		View: view,
+	}
+
+	c := &VersionCommand{
+		Meta:    m,
+		Version: "4.5.6",
+		CheckFunc: func() (VersionCheckInfo, error) {
+			return VersionCheckInfo{}, fmt.Errorf("error from test setup")
+		},
+		Platform: getproviders.Platform{OS: "aros", Arch: "riscv64"},
+	}
+
+	// Human output
+	args := []string{"-no-color"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	output := done(t)
+	actualErr := strings.TrimSpace(output.Stderr())
+	expectedErr := "Error: \nError checking latest version: error from test setup"
+	if actualErr != expectedErr {
+		t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actualErr, expectedErr)
+	}
+	actualOut := strings.TrimSpace(output.Stdout())
+	expectedOut := "Terraform v4.5.6\non aros_riscv64"
+	if actualOut != expectedOut {
+		t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actualOut, expectedOut)
+	}
+
+	// JSON output
+	view, done = testView(t)
+	c.Meta.View = view
+	args = []string{
+		"-no-color",
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+
+	output = done(t)
+	actualErr = strings.TrimSpace(output.Stderr())
+	expectedErr = ""
+	if actualErr != expectedErr {
+		t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actualErr, expectedErr)
+	}
+	actualOut = strings.TrimSpace(output.Stdout())
+	expectedOut = `{
+  "terraform_version": "4.5.6",
+  "platform": "aros_riscv64",
+  "provider_selections": {},
+  "terraform_outdated": false,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "\nError checking latest version: error from test setup",
+      "detail": ""
+    }
+  ]
+}`
+	if diff := cmp.Diff(expectedOut, actualOut); diff != "" {
+		t.Fatalf("wrong output\n%s", diff)
 	}
 }
 
