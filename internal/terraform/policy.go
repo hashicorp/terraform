@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"iter"
 	"log"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
@@ -221,4 +223,75 @@ func resourceMatchesFilter(addr addrs.ConfigResource, schema *configschema.Block
 	}
 
 	return true, false
+}
+
+// validateProviderSchemas asks the policy plugin to validate the loaded policies
+// against the run's provider schemas, so a policy that references an attribute a
+// provider does not have fails early rather than partway through evaluation. It
+// is a no-op when policy enforcement is off or there are no schemas. Any error
+// diagnostics it returns should block the run.
+func validateProviderSchemas(ctx context.Context, client policy.Client, schemas *Schemas) tfdiags.Diagnostics {
+	if client == nil || schemas == nil {
+		return nil
+	}
+
+	providerAddrs := make([]addrs.Provider, 0, len(schemas.Providers))
+	for providerAddr := range schemas.Providers {
+		providerAddrs = append(providerAddrs, providerAddr)
+	}
+	sort.Slice(providerAddrs, func(i, j int) bool {
+		if providerAddrs[i].Type != providerAddrs[j].Type {
+			return providerAddrs[i].Type < providerAddrs[j].Type
+		}
+		return providerAddrs[i].ForDisplay() < providerAddrs[j].ForDisplay()
+	})
+
+	var diags tfdiags.Diagnostics
+	var req policy.ValidateProviderSchemasRequest
+	for i, providerAddr := range providerAddrs {
+		if i > 0 && providerAddrs[i-1].Type == providerAddr.Type {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Ambiguous provider schemas for policy validation",
+				fmt.Sprintf("The provider type %q identifies both %s and %s. Terraform policies identify providers by type, so these schemas cannot be validated safely in the same run.", providerAddr.Type, providerAddrs[i-1].ForDisplay(), providerAddr.ForDisplay()),
+			))
+			continue
+		}
+
+		providerSchema := schemas.Providers[providerAddr]
+		req.ProviderSchemas = append(req.ProviderSchemas, policy.ProviderSchema{
+			Type:        providerAddr.Type,
+			Config:      blockImpliedType(providerSchema.Provider.Body),
+			Resources:   blockImpliedTypes(providerSchema.ResourceTypes),
+			DataSources: blockImpliedTypes(providerSchema.DataSources),
+		})
+	}
+	if diags.HasErrors() {
+		return diags
+	}
+	if len(req.ProviderSchemas) == 0 {
+		return nil
+	}
+
+	return client.ValidateProviderSchemas(ctx, req).Diagnostics.AsTerraformDiags()
+}
+
+// blockImpliedTypes maps each schema's config block to its implied cty object
+// type, the form the policy engine validates against.
+func blockImpliedTypes(schemas map[string]providers.Schema) map[string]cty.Type {
+	if len(schemas) == 0 {
+		return nil
+	}
+	out := make(map[string]cty.Type, len(schemas))
+	for name, schema := range schemas {
+		out[name] = blockImpliedType(schema.Body)
+	}
+	return out
+}
+
+func blockImpliedType(block *configschema.Block) cty.Type {
+	if block == nil {
+		return cty.EmptyObject
+	}
+	return block.ImpliedType()
 }
