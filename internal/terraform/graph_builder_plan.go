@@ -349,10 +349,11 @@ func (b *PlanGraphBuilder) initPlan() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
-			skipPlanChanges:              b.skipPlanChanges,
-			forgetResources:              b.forgetResources,
-			forgetModules:                b.forgetModules,
+			// -refresh-on-change optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.refreshOnChange,
+			skipPlanChanges: b.skipPlanChanges,
+			forgetResources: b.forgetResources,
+			forgetModules:   b.forgetModules,
 		}
 	}
 
@@ -362,7 +363,8 @@ func (b *PlanGraphBuilder) initPlan() {
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
 
-			skipRefresh:     b.skipRefresh,
+			// -refresh-on-change optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.refreshOnChange,
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
@@ -377,7 +379,8 @@ func (b *PlanGraphBuilder) initDestroy() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
+			// -refresh-on-change optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh: b.skipRefresh || b.refreshOnChange,
 		}
 	}
 }

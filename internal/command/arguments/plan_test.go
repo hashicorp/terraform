@@ -105,10 +105,6 @@ func TestParsePlan_refresh_on_change(t *testing.T) {
 			args:    []string{"-refresh-on-change"},
 			wantErr: "",
 		},
-		"refresh-on-change with destroy": {
-			args:    []string{"-refresh-on-change", "-destroy"},
-			wantErr: "Incompatible plan mode options",
-		},
 		"refresh-on-change with refresh-only": {
 			args:    []string{"-refresh-on-change", "-refresh-only"},
 			wantErr: "Incompatible plan mode options",

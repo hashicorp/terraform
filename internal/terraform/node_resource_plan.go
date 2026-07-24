@@ -654,8 +654,9 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,
-		skipRefresh:                  n.skipRefresh,
-		skipPlanChanges:              n.skipPlanChanges,
+		// -refresh-on-change optimizes to skip refreshing when destroying / deleting instances
+		skipRefresh:     n.skipRefresh || n.refreshOnChange,
+		skipPlanChanges: n.skipPlanChanges,
 	}
 }
 

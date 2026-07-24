@@ -101,6 +101,184 @@ func TestApply_refresh_on_change(t *testing.T) {
 	}
 }
 
+func TestApply_refresh_on_change_destroy(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-refresh-on-change"), td)
+	t.Chdir(td)
+
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"bar","ami": "bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"quux","ami": "old-value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := testStateFile(t, testState)
+
+	p := applyFixtureProvider()
+	fooRefreshed := false
+	bazRefreshed := false
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		amiVal := req.PriorState.GetAttr("ami")
+		if amiVal.RawEquals(cty.StringVal("bar")) {
+			fooRefreshed = true
+		}
+		if amiVal.RawEquals(cty.StringVal("old-value")) {
+			bazRefreshed = true
+		}
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
+	}
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-destroy",
+		"-auto-approve",
+		"-refresh-on-change",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if fooRefreshed {
+		t.Error(`Unexpected call to ReadResource for the "foo" resource. This resource should not be refreshed with ` +
+			`the -refresh-on-change flag.`)
+	}
+
+	if bazRefreshed {
+		t.Error(`Unexpected call to ReadResource for the "baz" resource. This resource should not be refreshed with ` +
+			`the -refresh-on-change flag.`)
+	}
+}
+
+func TestDestroy_refresh_on_change_destroy(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-refresh-on-change"), td)
+	t.Chdir(td)
+
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"bar","ami": "bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"quux","ami": "old-value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := testStateFile(t, testState)
+
+	p := applyFixtureProvider()
+	fooRefreshed := false
+	bazRefreshed := false
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		amiVal := req.PriorState.GetAttr("ami")
+		if amiVal.RawEquals(cty.StringVal("bar")) {
+			fooRefreshed = true
+		}
+		if amiVal.RawEquals(cty.StringVal("old-value")) {
+			bazRefreshed = true
+		}
+		return providers.ReadResourceResponse{
+			NewState: req.PriorState,
+		}
+	}
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+		Destroy: true,
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-auto-approve",
+		"-refresh-on-change",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if fooRefreshed {
+		t.Error(`Unexpected call to ReadResource for the "foo" resource. This resource should not be refreshed with ` +
+			`the -refresh-on-change flag.`)
+	}
+
+	if bazRefreshed {
+		t.Error(`Unexpected call to ReadResource for the "baz" resource. This resource should not be refreshed with ` +
+			`the -refresh-on-change flag.`)
+	}
+}
+
 func TestApply_refresh_on_change_invalid_flags(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-refresh-on-change"), td)
@@ -110,10 +288,6 @@ func TestApply_refresh_on_change_invalid_flags(t *testing.T) {
 		args    []string
 		wantErr string
 	}{
-		"destroy": {
-			args:    []string{"-refresh-on-change", "-destroy"},
-			wantErr: "Incompatible plan mode options",
-		},
 		"refresh-only": {
 			args:    []string{"-refresh-on-change", "-refresh-only"},
 			wantErr: "Incompatible plan mode options",

@@ -153,15 +153,6 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 		))
 	}
 
-	// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
-	if apply.Operation.RefreshOnChange {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid mode option",
-			"The -refresh-on-change option is not valid for \"terraform destroy\".",
-		))
-	}
-
 	// NOTE: It's also invalid to have apply.PlanPath set in this codepath,
 	// but we don't check that in here because we'll return a different error
 	// message depending on whether the given path seems to refer to a saved

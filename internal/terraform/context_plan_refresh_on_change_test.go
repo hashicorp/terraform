@@ -120,6 +120,403 @@ resource "test_object" "changed" {
 	}
 }
 
+func TestContext2Plan_refresh_on_change_destroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "noop" {
+  arg = "same"
+}
+
+resource "test_object" "changed" {
+  arg = "new"
+}
+`,
+	})
+
+	p := refreshOnChangePlanTestProvider(0)
+
+	var mu sync.Mutex
+	refreshedIDs := map[string]bool{}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		mu.Lock()
+		defer mu.Unlock()
+		if id := req.PriorState.GetAttr("id"); !id.IsNull() {
+			refreshedIDs[id.AsString()] = true
+		}
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.noop"),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"noop","arg":"same","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.changed"),
+			&states.ResourceInstanceObjectSrc{
+				// No refresh should occur because we're destroying and -refresh-on-change optimizes to skip refresh
+				AttrsJSON: []byte(`{"id":"changed","arg":"old","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Hooks: []Hook{hook},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.DestroyMode,
+		RefreshOnChange: true,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	if refreshedIDs["noop"] {
+		t.Error("test_object.noop should not have been refreshed")
+	}
+	if refreshedIDs["changed"] {
+		t.Error("test_object.changed should not have been refreshed")
+	}
+
+	noop := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.noop"))
+	if got, want := noop.Action, plans.Delete; got != want {
+		t.Errorf("test_object.noop: wrong plan action - got: %s, want: %s", got, want)
+	}
+	changed := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.changed"))
+	if got, want := changed.Action, plans.Delete; got != want {
+		t.Errorf("test_object.changed: wrong plan action - got: %s, want: %s", got, want)
+	}
+
+	// Assert that the correct hooks are called + no duplicates
+	wantHookCalls := []*testHookCall{
+		// No refreshing should occur, so these are all from the destroy plan
+		{"PreDiff", "test_object.changed"},
+		{"PostDiff", "test_object.changed"},
+		{"PreDiff", "test_object.noop"},
+		{"PostDiff", "test_object.noop"},
+	}
+
+	sortHookCalls := cmpopts.SortSlices(func(a, b *testHookCall) bool {
+		if a.InstanceID == b.InstanceID {
+			return a.Action > b.Action
+		}
+		return a.InstanceID > b.InstanceID
+	})
+
+	if diff := cmp.Diff(wantHookCalls, hook.Calls, sortHookCalls); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+}
+
+func TestContext2Plan_refresh_on_change_orphans(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "expansion_with_orphan" {
+  for_each = toset(["res1", "res3"])
+  arg = each.value
+}
+
+module "module_with_orphan" {
+  source = "./child"
+  count = 1
+
+  arg = "mod-res${count.index + 1}"
+}
+`,
+		"child/main.tf": `
+variable "arg" {
+  type = string
+}
+resource "test_object" "mod_res" {
+  arg = var.arg
+}
+`,
+	})
+
+	p := refreshOnChangePlanTestProvider(0)
+
+	var mu sync.Mutex
+	refreshedIDs := map[string]bool{}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		mu.Lock()
+		defer mu.Unlock()
+		if id := req.PriorState.GetAttr("id"); !id.IsNull() {
+			refreshedIDs[id.AsString()] = true
+		}
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// Orphaned!
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.orphan1"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"orphan1","arg":"orphan1","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`test_object.expansion_with_orphan["res1"]`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"res1","arg":"refresh me!","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		// Orphaned!
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`test_object.expansion_with_orphan["orphan2"]`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"orphan2","arg":"orphan2","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`test_object.expansion_with_orphan["res3"]`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"res3","arg":"refresh me!","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`module.module_with_orphan[0].test_object.mod_res`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"mod-res1","arg":"refresh me!","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		// Orphaned!
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`module.module_with_orphan[1].test_object.mod_res`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"mod-res2","arg":"mod-res2","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Hooks: []Hook{hook},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !refreshedIDs["res1"] {
+		t.Error(`test_object.expansion_with_orphan["res1"] should have been refreshed`)
+	}
+
+	if !refreshedIDs["res3"] {
+		t.Error(`test_object.expansion_with_orphan["res3"] should have been refreshed`)
+	}
+
+	if !refreshedIDs["mod-res1"] {
+		t.Error(`module.module_with_orphan[0].test_object.mod_res should have been refreshed`)
+	}
+
+	if refreshedIDs["orphan1"] {
+		t.Error("test_object.orphan1 should not have been refreshed")
+	}
+
+	if refreshedIDs["orphan2"] {
+		t.Error(`test_object.expansion_with_orphan["orphan2"] should not have been refreshed`)
+	}
+
+	if refreshedIDs["mod-res2"] {
+		t.Error(`module.module_with_orphan[1].test_object.mod_res should not have been refreshed`)
+	}
+
+	orphan1 := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.orphan1"))
+	if got, want := orphan1.Action, plans.Delete; got != want {
+		t.Errorf("test_object.orphan1: wrong plan action - got: %s, want: %s", got, want)
+	}
+
+	res1 := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.expansion_with_orphan["res1"]`))
+	if got, want := res1.Action, plans.Update; got != want {
+		t.Errorf(`test_object.expansion_with_orphan["res1"]: wrong plan action - got: %s, want: %s`, got, want)
+	}
+
+	orphan2 := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.expansion_with_orphan["orphan2"]`))
+	if got, want := orphan2.Action, plans.Delete; got != want {
+		t.Errorf(`test_object.expansion_with_orphan["orphan2"]: wrong plan action - got: %s, want: %s`, got, want)
+	}
+
+	res3 := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.expansion_with_orphan["res3"]`))
+	if got, want := res3.Action, plans.Update; got != want {
+		t.Errorf(`test_object.expansion_with_orphan["res3"]: wrong plan action - got: %s, want: %s`, got, want)
+	}
+
+	modRes1 := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`module.module_with_orphan[0].test_object.mod_res`))
+	if got, want := modRes1.Action, plans.Update; got != want {
+		t.Errorf(`module.module_with_orphan[0].test_object.mod_res: wrong plan action - got: %s, want: %s`, got, want)
+	}
+
+	modRes2 := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`module.module_with_orphan[1].test_object.mod_res`))
+	if got, want := modRes2.Action, plans.Delete; got != want {
+		t.Errorf(`module.module_with_orphan[1].test_object.mod_res: wrong plan action - got: %s, want: %s`, got, want)
+	}
+
+	// Assert that the correct hooks are called + no duplicates
+	wantHookCalls := []*testHookCall{
+		// Orphans don't refresh
+		{"PreDiff", "test_object.orphan1"},
+		{"PostDiff", "test_object.orphan1"},
+		{"PreDiff", `test_object.expansion_with_orphan["orphan2"]`},
+		{"PostDiff", `test_object.expansion_with_orphan["orphan2"]`},
+		{"PreDiff", `module.module_with_orphan[1].test_object.mod_res`},
+		{"PostDiff", `module.module_with_orphan[1].test_object.mod_res`},
+		// Rest of expanded resources/module instances refresh as they have updates
+		{"PreRefresh", `test_object.expansion_with_orphan["res1"]`},
+		{"PostRefresh", `test_object.expansion_with_orphan["res1"]`},
+		{"PreDiff", `test_object.expansion_with_orphan["res1"]`},
+		{"PostDiff", `test_object.expansion_with_orphan["res1"]`},
+		{"PreRefresh", `test_object.expansion_with_orphan["res3"]`},
+		{"PostRefresh", `test_object.expansion_with_orphan["res3"]`},
+		{"PreDiff", `test_object.expansion_with_orphan["res3"]`},
+		{"PostDiff", `test_object.expansion_with_orphan["res3"]`},
+		{"PreRefresh", `module.module_with_orphan[0].test_object.mod_res`},
+		{"PostRefresh", `module.module_with_orphan[0].test_object.mod_res`},
+		{"PreDiff", `module.module_with_orphan[0].test_object.mod_res`},
+		{"PostDiff", `module.module_with_orphan[0].test_object.mod_res`},
+	}
+
+	sortHookCalls := cmpopts.SortSlices(func(a, b *testHookCall) bool {
+		if a.InstanceID == b.InstanceID {
+			return a.Action > b.Action
+		}
+		return a.InstanceID > b.InstanceID
+	})
+
+	if diff := cmp.Diff(wantHookCalls, hook.Calls, sortHookCalls); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+}
+
+func TestContext2Plan_refresh_on_change_deposed(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "current" {
+  arg = "new"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := refreshOnChangePlanTestProvider(0)
+
+	var mu sync.Mutex
+	refreshedIDs := map[string]bool{}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		mu.Lock()
+		defer mu.Unlock()
+		if id := req.PriorState.GetAttr("id"); !id.IsNull() {
+			refreshedIDs[id.AsString()] = true
+		}
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+
+	deposedKey := states.DeposedKey("00000001")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.current"),
+			&states.ResourceInstanceObjectSrc{
+				// Will prompt a refresh since the config value (arg) has changed
+				AttrsJSON: []byte(`{"id":"current","arg":"old","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceDeposed(
+			mustResourceInstanceAddr("test_object.deposed"),
+			deposedKey,
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"deposed","arg":"old","computed":"boop"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Hooks: []Hook{hook},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		RefreshOnChange: true,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !refreshedIDs["current"] {
+		t.Error(`test_object.current should have been refreshed`)
+	}
+
+	if refreshedIDs["deposed"] {
+		t.Error("test_object.deposed should not have been refreshed")
+	}
+
+	testChange := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.current"))
+	if got, want := testChange.Action, plans.Update; got != want {
+		t.Errorf("test_object.current: wrong plan action - got: %s, want: %s", got, want)
+	}
+
+	testDeposedChange := plan.Changes.ResourceInstanceDeposed(mustResourceInstanceAddr("test_object.deposed"), deposedKey)
+	if got, want := testDeposedChange.Action, plans.Delete; got != want {
+		t.Errorf("test_object.deposed: wrong plan action - got: %s, want: %s", got, want)
+	}
+
+	// Assert that the correct hooks are called + no duplicates
+	wantHookCalls := []*testHookCall{
+		// The current instance will refresh as it was updated
+		{"PreRefresh", "test_object.current"},
+		{"PostRefresh", "test_object.current"},
+		{"PreDiff", "test_object.current"},
+		{"PostDiff", "test_object.current"},
+		// The deposed instance will not refresh
+		{"PreDiff", "test_object.deposed"},
+		{"PostDiff", "test_object.deposed"},
+	}
+
+	sortHookCalls := cmpopts.SortSlices(func(a, b *testHookCall) bool {
+		if a.InstanceID == b.InstanceID {
+			return a.Action > b.Action
+		}
+		return a.InstanceID > b.InstanceID
+	})
+
+	if diff := cmp.Diff(wantHookCalls, hook.Calls, sortHookCalls); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+}
+
 func TestContext2Plan_refresh_on_change_for_each(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -750,13 +1147,9 @@ resource "test_object" "a" {
 		opts    *PlanOpts
 		wantErr string
 	}{
-		"destroy mode": {
-			opts:    &PlanOpts{Mode: plans.DestroyMode, RefreshOnChange: true},
-			wantErr: "The -refresh-on-change planning option is only allowed in normal planning mode, got DestroyMode. This is a bug in Terraform.",
-		},
 		"refresh-only mode": {
 			opts:    &PlanOpts{Mode: plans.RefreshOnlyMode, RefreshOnChange: true},
-			wantErr: "The -refresh-on-change planning option is only allowed in normal planning mode, got RefreshOnlyMode. This is a bug in Terraform.",
+			wantErr: "The -refresh-on-change planning option is only allowed in normal or destroy planning modes, got RefreshOnlyMode. This is a bug in Terraform.",
 		},
 		"skip refresh": {
 			opts:    &PlanOpts{Mode: plans.NormalMode, RefreshOnChange: true, SkipRefresh: true},

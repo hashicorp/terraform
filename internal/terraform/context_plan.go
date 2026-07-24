@@ -300,14 +300,13 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	}
 
 	if opts.RefreshOnChange {
-		// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
-		if opts.Mode != plans.NormalMode {
+		if opts.Mode != plans.NormalMode && opts.Mode != plans.DestroyMode {
 			// The CLI layer (and other similar callers) should prevent this
 			// combination of options.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
-				fmt.Sprintf("The -refresh-on-change planning option is only allowed in normal planning mode, got %s. This is a bug in Terraform.", opts.Mode),
+				fmt.Sprintf("The -refresh-on-change planning option is only allowed in normal or destroy planning modes, got %s. This is a bug in Terraform.", opts.Mode),
 			))
 			return nil, nil, diags
 		}
@@ -570,6 +569,12 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 
 	if opts.Mode != plans.DestroyMode {
 		panic(fmt.Sprintf("called Context.destroyPlan with %s", opts.Mode))
+	}
+
+	// During a plan there isn't a way for providers to indicate that a refresh is needed or not prior to attempting
+	// to destroy a resource instance, so -refresh-on-change optimizes to skip refresh.
+	if !opts.SkipRefresh && opts.RefreshOnChange {
+		opts.SkipRefresh = true
 	}
 
 	priorState := prevRunState
@@ -1074,17 +1079,16 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                  config,
-			State:                   prevRunState,
-			RootVariableValues:      opts.SetVariables,
-			ExternalProviderConfigs: externalProviderConfigs,
-			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
-			ActionTargets:           opts.ActionTargets,
-			skipRefresh:             opts.SkipRefresh,
-			skipPlanChanges:         true, // this activates "refresh only" mode.
-
-			refreshOnChange:           false,
+			Config:                    config,
+			State:                     prevRunState,
+			RootVariableValues:        opts.SetVariables,
+			ExternalProviderConfigs:   externalProviderConfigs,
+			Plugins:                   c.plugins,
+			Targets:                   opts.Targets,
+			ActionTargets:             opts.ActionTargets,
+			skipRefresh:               opts.SkipRefresh,
+			skipPlanChanges:           true, // this activates "refresh only" mode.
+			refreshOnChange:           opts.RefreshOnChange,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1095,15 +1099,14 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                  config,
-			State:                   prevRunState,
-			RootVariableValues:      opts.SetVariables,
-			ExternalProviderConfigs: externalProviderConfigs,
-			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
-			skipRefresh:             opts.SkipRefresh,
-			// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
-			refreshOnChange:           false,
+			Config:                    config,
+			State:                     prevRunState,
+			RootVariableValues:        opts.SetVariables,
+			ExternalProviderConfigs:   externalProviderConfigs,
+			Plugins:                   c.plugins,
+			Targets:                   opts.Targets,
+			skipRefresh:               opts.SkipRefresh,
+			refreshOnChange:           opts.RefreshOnChange,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,

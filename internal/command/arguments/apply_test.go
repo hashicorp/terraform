@@ -333,10 +333,6 @@ func TestParseApply_refresh_on_change(t *testing.T) {
 			args:    []string{"-refresh-on-change"},
 			wantErr: "",
 		},
-		"refresh-on-change with destroy": {
-			args:    []string{"-refresh-on-change", "-destroy"},
-			wantErr: "Incompatible plan mode options",
-		},
 		"refresh-on-change with refresh-only": {
 			args:    []string{"-refresh-on-change", "-refresh-only"},
 			wantErr: "Incompatible plan mode options",
@@ -435,14 +431,4 @@ func TestParseApplyDestroy_invalid(t *testing.T) {
 			t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
 		}
 	})
-}
-
-func TestParseApplyDestroy_refresh_on_change(t *testing.T) {
-	_, diags := ParseApplyDestroy([]string{"-refresh-on-change"})
-	if len(diags) == 0 {
-		t.Fatal("expected diags but got none")
-	}
-	if got, want := diags.Err().Error(), "Invalid mode option"; !strings.Contains(got, want) {
-		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
-	}
 }

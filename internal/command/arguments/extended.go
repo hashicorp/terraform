@@ -237,12 +237,11 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
-	// TODO:@austinvalle: Revisit this and see if we can make meaningful changes to how refresh interacts with destroy
-	if o.RefreshOnChange && o.PlanMode != plans.NormalMode {
+	if o.RefreshOnChange && o.PlanMode != plans.NormalMode && o.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Incompatible plan mode options",
-			fmt.Sprintf("The -refresh-on-change option can only be used in normal planning mode, but the current mode is %s.", o.PlanMode),
+			fmt.Sprintf("The -refresh-on-change option can only be used in normal or destroy planning modes, but the current mode is %s.", o.PlanMode),
 		))
 	}
 
