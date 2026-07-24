@@ -57,6 +57,35 @@ func TestRemoteClientBasic(t *testing.T) {
 	remote.TestClient(t, state.(*remote.State).Client)
 }
 
+func TestRemoteClientTags(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":  bucketName,
+		"key":     keyName,
+		"encrypt": true,
+		"use_lockfile": true,
+		"state_tags": map[string]string{"type": "state", "tag2": "value2"},
+		"lock_tags": map[string]string{"type": "lock", "tag2": "value2", "tag3": "value3"},
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
+	}
+
+	remote.TestClient(t, state.(*remote.State).Client)
+}
+
+
 func TestRemoteClientLocks(t *testing.T) {
 	testACC(t)
 
