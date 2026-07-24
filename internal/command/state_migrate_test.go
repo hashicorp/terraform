@@ -262,8 +262,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 
 		expectedMsg := []string{
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
-			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_dst\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -350,8 +350,8 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 
 		expectedMsg := []string{
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test_dst" (hashicorp/test)...`,
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test_dst\"...\n- Reusing previous version of hashicorp/test from the dependency lock file\n- Using previously-installed hashicorp/test v1.2.3",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_dst\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file\n- Using previously-installed hashicorp/test v1.2.3",
 		}
 		for _, expectedMsg := range expectedMsg {
 			if !strings.Contains(out.Stdout(), expectedMsg) {
@@ -623,8 +623,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Reusing version 3.2.1 of hashicorp/test2 from the dependency lock file",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -734,8 +734,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Finding hashicorp/test versions matching \"1.2.3\"...\n- Installing hashicorp/test v1.2.3...\n- Installed hashicorp/test v1.2.3 (verified checksum)",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Finding latest version of hashicorp/test2...\n- Installing hashicorp/test2 v3.2.1...\n- Installed hashicorp/test2 v3.2.1 (verified checksum)",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -874,8 +874,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 		}
 
 		expectedMsg := []string{
-			"Initializing provider plugin for state store \"test_src\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
-			"Initializing provider plugin for state store \"test2_store\"...\n- Reusing previous version of hashicorp/test2 from the dependency lock file",
+			"Initializing provider hashicorp/test (1.2.3) for state store \"test_src\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
+			"Initializing provider hashicorp/test2 for state store \"test2_store\"...\n- Reusing version 3.2.1 of hashicorp/test2 from the dependency lock file",
 			`Migrating state from state store "test_src" (hashicorp/test) to state store "test2_store" (hashicorp/test2)...`,
 		}
 		for _, expectedMsg := range expectedMsg {
@@ -963,7 +963,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	}
 
 	expectedMsg := []string{
-		"Initializing provider plugin for state store \"test_store\"...\n- Reusing previous version of hashicorp/test from the dependency lock file",
+		"Initializing provider hashicorp/test (1.2.3) for state store \"test_store\"...\n- Reusing version 1.2.3 of hashicorp/test from the dependency lock file",
 		`Migrating state from state store "test_store" (hashicorp/test) to backend "local"...`,
 	}
 	for _, expectedMsg := range expectedMsg {
@@ -1011,6 +1011,117 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+// func TestStateMigrate_upgrade(t *testing.T) {
+// 	wd := tempWorkingDirFixture(t, "state-migrate-state-store-upgrade")
+
+// 	// setup FS mirror
+// 	tmpDir := t.TempDir()
+// 	mirrorPath := filepath.Join(tmpDir, "mirror")
+// 	cliCfgFilePath := filepath.Join(tmpDir, "test.tfrc")
+// 	cfgBody := fmt.Sprintf(`provider_installation {
+//   filesystem_mirror {
+//     path    = %q
+//     include = ["registry.terraform.io/hashicorp/simple6"]
+//   }
+//   direct {
+//     exclude = ["registry.terraform.io/hashicorp/simple6"]
+//   }
+// }
+// `, mirrorPath)
+// 	os.WriteFile(cliCfgFilePath, []byte(cfgBody), 0o700)
+// 	t.Setenv("TF_CLI_CONFIG_FILE", cliCfgFilePath)
+
+// 	// In order to test integration with PSS we need two provider plugins implementing a state store
+// 	// which we can tell apart to be able to verify successful upgrade between them.
+// 	platform := getproviders.CurrentPlatform.String()
+// 	// Build v1.0.0 plugin
+// 	simpleProviderv1 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
+// 	simpleProviderv1Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
+// 		simpleProviderv1, "-ldflags", "-X 'main.fsStatesDir=terraform.tfstate.d'")
+// 	providerv1MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "1.0.0")
+// 	if err := os.MkdirAll(filepath.Join(providerv1MirrorPath, platform), os.ModePerm); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if err := os.Rename(simpleProviderv1Exe, filepath.Join(providerv1MirrorPath, platform, "terraform-provider-simple6")); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	// Build v2.0.0 plugin
+// 	simpleProviderv2 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
+// 	simpleProviderv2Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
+// 		simpleProviderv2, "-ldflags", "-X 'main.fsStatesDir=v2.tfstate.d'")
+// 	providerv2MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "2.0.0")
+// 	if err := os.MkdirAll(filepath.Join(providerv2MirrorPath, platform), os.ModePerm); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if err := os.Rename(simpleProviderv2Exe, filepath.Join(providerv2MirrorPath, platform, "terraform-provider-simple6")); err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	workDir := wd.RootModuleDir()
+// 	t.Chdir(workDir)
+
+// 	config, diags := cliconfig.LoadConfig()
+// 	if len(diags) > 0 {
+// 		t.Fatal(diags)
+// 	}
+
+// 	ui := cli.NewMockUi()
+// 	view, done := testView(t)
+// 	c := &StateMigrateCommand{
+// 		Meta: Meta{
+// 			Ui:                        ui,
+// 			View:                      view,
+// 			WorkingDir:                wd,
+// 			AllowExperimentalFeatures: true,
+// 			ProviderSource: ,
+// 		},
+// 	}
+
+// 	_ = testInputMap(t, map[string]string{
+// 		"backend-migrate-copy-to-empty": "yes",
+// 	})
+
+// 	args := []string{"-no-color", "-upgrade"}
+// 	code := c.Run(args)
+// 	out := done(t)
+// 	if code != 0 {
+// 		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+// 	}
+
+// 	expectedMsg := []string{
+// 		"Initializing provider plugin for state store \"test_store\" (hashicorp/test 1.0.0)...", // version from lockfile or tfmigrate
+// 		"Initializing provider plugin for state store \"test_store\" (hashicorp/test 2.0.0)...", // version from tf config ONLY
+// 		// read state from 1.0.0, retain in memory
+// 		// write state to 2.0.0
+// 		`Migrating state from state store "test_store" (hashicorp/test 1.0.0) to state store "test_store" (hashicorp/test 2.0.0)...`,
+// 		`Finishing upgrade of hashicorp/test from 1.0.0 to 2.0.0`, // updated lockfile
+// 	}
+// 	for _, expectedMsg := range expectedMsg {
+// 		if !strings.Contains(out.Stdout(), expectedMsg) {
+// 			t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
+// 		}
+// 	}
+
+// 	f, err := os.Open("destination-backend.tfstate")
+// 	if err != nil {
+// 		t.Fatalf("failed to read migrated state: %s", err)
+// 	}
+// 	t.Cleanup(func() {
+// 		err := f.Close()
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+// 	})
+// 	s, err := statefile.Read(f)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	_, ok := s.State.RootOutputValues["test"]
+// 	if !ok {
+// 		t.Fatalf("unable to find test output in migrated state")
+// 	}
+// }
 
 func TestStateMigrate_missingModuleFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-mod-files")

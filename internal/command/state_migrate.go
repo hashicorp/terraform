@@ -127,10 +127,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			return 1
 		}
 
-		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
+		upgrade := false // The source provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
 		var output bool
-		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
+		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -229,10 +229,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		//
 		// We only pass in a single required provider, so we expect a single lock to be
 		// returned. This will be added the dependency lock file after a successful migration.
-		upgrade := false // TODO - control this by -upgrade flag
+		upgrade := args.Upgrade
 		var dstProviderDiags tfdiags.Diagnostics
 		var output bool
-		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, view)
+		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -464,7 +464,7 @@ func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *de
 // Download of the up to 2 providers is kept separate due to:
 // - Potential for downloading different versions of the same provider
 // - Need to keep the locks separate for source and destination providers; destination providers are added to the dependency lock file.
-func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName string, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore *configs.StateStore, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install state migration "+location+" provider")
 	defer span.End()
 
@@ -501,14 +501,22 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	// are shimming our vt100 output to the legacy console API on Windows.
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitializingStateStoreProviderPlugin(storeName)
+			pAddr := stateStore.ProviderAddr
+			// empty address would indicate wrong configuration
+			// such as missing or mismatching provider requirement
+			// which will be surfaced as diagnostic during installation
+			if !pAddr.IsZero() {
+				cons := reqs[pAddr]
+				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, stateStore.Type)
+			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogReusingPreviousProviderVersion(provider)
+				pLock := locks.Provider(provider)
+				view.LogReusingPreviousProviderVersion(provider, pLock.Version())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)

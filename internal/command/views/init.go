@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -76,8 +77,12 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) LogInitializingStateStoreProviderPlugin(storeType string) {
-	params := []any{storeType}
+func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 	v.view.streams.Println(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
 }
 
@@ -111,8 +116,8 @@ func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, ve
 	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
 }
 
-func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
+func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{version, providerAddr.ForDisplay()}
 	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
 }
 
@@ -222,8 +227,12 @@ func (v *InitJSON) Log(message string, params ...any) {
 	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
-func (v *InitJSON) LogInitializingStateStoreProviderPlugin(storeType string) {
-	params := []any{storeType}
+func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
@@ -278,8 +287,8 @@ func (v *InitJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, ver
 	v.logInitMessage(InstallingProviderMessage, params...)
 }
 
-func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
+func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{version, providerAddr.ForDisplay()}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
@@ -375,8 +384,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "Initializing provider plugins...",
 	},
 	"initializing_state_store_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugin for state store %q...",
-		JSONValue:  "Initializing provider plugin for state store %q...",
+		HumanValue: "\n[reset][bold]Initializing provider %s%s for state store %q...",
+		JSONValue:  "Initializing provider %s%s for state store %q...",
 	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
@@ -411,8 +420,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "%s is built in to Terraform",
 	},
 	"reusing_previous_version_info": {
-		HumanValue: "- Reusing previous version of %s from the dependency lock file",
-		JSONValue:  "%s: Reusing previous version from the dependency lock file",
+		HumanValue: "- Reusing version %s of %s from the dependency lock file",
+		JSONValue:  "Reusing version %s of %s from the dependency lock file",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
