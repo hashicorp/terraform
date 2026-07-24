@@ -54,6 +54,10 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 			Walker: b.Walker,
 		},
 
+		&ProviderRequirementExprTransformer{
+			Config: b.Config,
+		},
+
 		&LocalTransformer{
 			Config: b.Config,
 		},
@@ -65,6 +69,8 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 			Keep: func(v dag.Vertex) bool {
 				switch n := v.(type) {
 				case *nodeInstallModule:
+					return true
+				case *nodeResolveProviderRequirements:
 					return true
 				case *NodeRootVariable:
 					return n.Config.Const
