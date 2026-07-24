@@ -22,150 +22,224 @@ import (
 )
 
 func TestStateMigrate_fromBackendToBackend(t *testing.T) {
-	fixture := "state-migrate-backend-to-backend"
-	wd := tempWorkingDirFixture(t, fixture)
-	t.Chdir(wd.RootModuleDir())
+	t.Run("full assertions, including asserting human view output", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-backend"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
-	view, done := testView(t)
-	c := &StateMigrateCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			WorkingDir:                wd,
-			AllowExperimentalFeatures: true,
-		},
-	}
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+			},
+		}
 
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
+		_ = testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
 
-	args := []string{"-no-color"}
-	code := c.Run(args)
-	out := done(t)
-	if code != 0 {
-		t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
-	}
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d\nstderr: %q", code, out.Stderr())
+		}
 
-	// Assert expected human output is made
-	checkGoldenReferenceHumanOutput(t, out, fixture)
+		// Assert expected human output is made
+		checkGoldenReferenceHumanOutput(t, out, fixture)
 
-	// Assert the migrated state contains expected content
-	f, err := os.Open("destination-backend.tfstate")
-	if err != nil {
-		t.Fatalf("failed to read migrated state: %s", err)
-	}
-	t.Cleanup(func() {
-		err := f.Close()
+		// Assert the migrated state contains expected content
+		f, err := os.Open("destination-backend.tfstate")
+		if err != nil {
+			t.Fatalf("failed to read migrated state: %s", err)
+		}
+		t.Cleanup(func() {
+			err := f.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+		s, err := statefile.Read(f)
 		if err != nil {
 			t.Fatal(err)
 		}
-	})
-	s, err := statefile.Read(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, ok := s.State.RootOutputValues["test"]
-	if !ok {
-		t.Fatalf("unable to find test output in migrated state")
-	}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
 
-	// Assert the backend state file describes the new backend location,
-	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
-	sMgr := &clistate.LocalState{Path: statePath}
-	if err := sMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-	backendState := sMgr.State()
-	if backendState.StateStore != nil {
-		t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
-	}
-	if backendState.Backend == nil {
-		t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
-	}
-	if backendState.Backend.Type != "local" {
-		t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
-	}
-	if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
-		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
-	}
+		// Assert the backend state file describes the new backend location,
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		backendState := sMgr.State()
+		if backendState.StateStore != nil {
+			t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
+		}
+		if backendState.Backend == nil {
+			t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
+		}
+		if backendState.Backend.Type != "local" {
+			t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
+		}
+		if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("assert only JSON view output", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-backend"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-input=false",
+			"-json",
+			"-force-copy", // deal with interactive prompts to approve the migration
+		}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d\nstdout: %q\nstderr: %q", code, out.Stdout(), out.Stderr())
+		}
+
+		// Assert expected JSON output is made
+		checkGoldenReference(t, out, fixture)
+
+		// No further assertions; done in previous sub test
+	})
 }
 
 func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
-	fixture := "state-migrate-backend-to-state-store"
-	wd := tempWorkingDirFixture(t, fixture)
-	t.Chdir(wd.RootModuleDir())
+	t.Run("full assertions, including asserting human view output", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-state-store"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
 
-	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
-	p.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"hashicorp/test": {"1.2.3"},
+		p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		p.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides:          metaOverridesForProvider(p),
+				ProviderSource:            providerSource,
+			},
+		}
+
+		_ = testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected human output is made
+		checkGoldenReferenceHumanOutput(t, out, fixture)
+
+		// Assert the migrated state contains expected content
+		b, err := p.MockStates.Read("test_store", "default")
+		if err != nil {
+			t.Fatalf("unable to find migrated state in mock provider: %s", err)
+		}
+		s, err := statefile.Read(bytes.NewBuffer(b))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
+
+		// Assert the backend state file describes the new state store location.
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		backendState := sMgr.State()
+		if backendState.Backend != nil {
+			t.Fatalf("expected backend state file to not describe a backend during backend=>state_store migration, but it's set")
+		}
+		if backendState.StateStore == nil {
+			t.Fatalf("expected backend state file to describe a state store during backend=>state_store migration, but it's nil")
+		}
+		if backendState.StateStore.Provider.Source.Type != "test" {
+			t.Fatalf("expected backend state file to describe the destination state store provider \"test\", but got %q", backendState.StateStore.Provider)
+		}
+		if backendState.StateStore.Provider.Version.String() != "1.2.3" {
+			t.Fatalf("expected backend state file to describe the destination state store provider version \"1.2.3\", but got %q", backendState.StateStore.Provider.Version)
+		}
+		if backendState.StateStore.Type != "test_store" {
+			t.Fatalf("expected backend state file to describe the destination state store type \"test_store\", but got %q", backendState.StateStore.Type)
+		}
 	})
+	t.Run("assert only JSON view output", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-state-store"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
-	view, done := testView(t)
-	c := &StateMigrateCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			WorkingDir:                wd,
-			AllowExperimentalFeatures: true,
-			testingOverrides:          metaOverridesForProvider(p),
-			ProviderSource:            providerSource,
-		},
-	}
+		p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		p.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
 
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides:          metaOverridesForProvider(p),
+				ProviderSource:            providerSource,
+			},
+		}
+
+		args := []string{
+			"-input=false",
+			"-json",
+			"-force-copy", // deal with interactive prompts to approve the migration
+		}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected human output is made
+		checkGoldenReference(t, out, fixture)
 	})
-
-	args := []string{"-no-color"}
-	code := c.Run(args)
-	out := done(t)
-	if code != 0 {
-		t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
-	}
-
-	// Assert expected human output is made
-	checkGoldenReferenceHumanOutput(t, out, fixture)
-
-	// Assert the migrated state contains expected content
-	b, err := p.MockStates.Read("test_store", "default")
-	if err != nil {
-		t.Fatalf("unable to find migrated state in mock provider: %s", err)
-	}
-	s, err := statefile.Read(bytes.NewBuffer(b))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, ok := s.State.RootOutputValues["test"]
-	if !ok {
-		t.Fatalf("unable to find test output in migrated state")
-	}
-
-	// Assert the backend state file describes the new state store location.
-	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
-	sMgr := &clistate.LocalState{Path: statePath}
-	if err := sMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-	backendState := sMgr.State()
-	if backendState.Backend != nil {
-		t.Fatalf("expected backend state file to not describe a backend during backend=>state_store migration, but it's set")
-	}
-	if backendState.StateStore == nil {
-		t.Fatalf("expected backend state file to describe a state store during backend=>state_store migration, but it's nil")
-	}
-	if backendState.StateStore.Provider.Source.Type != "test" {
-		t.Fatalf("expected backend state file to describe the destination state store provider \"test\", but got %q", backendState.StateStore.Provider)
-	}
-	if backendState.StateStore.Provider.Version.String() != "1.2.3" {
-		t.Fatalf("expected backend state file to describe the destination state store provider version \"1.2.3\", but got %q", backendState.StateStore.Provider.Version)
-	}
-	if backendState.StateStore.Type != "test_store" {
-		t.Fatalf("expected backend state file to describe the destination state store type \"test_store\", but got %q", backendState.StateStore.Type)
-	}
 }
 
 // Testing migration between two state stores in a single provider.
@@ -540,6 +614,79 @@ provider "registry.terraform.io/hashicorp/test2" {
 		// Assert the backend state file describes the new state store location.
 		assertBackendStateFile(t, c)
 	})
+	t.Run("assert only JSON view output: source provider already in the dependency lock file, destination is not", func(t *testing.T) {
+		fixture := "state-store-changed/provider-used"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// hashicorp/test
+		sourcePssSchema := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		sourceProvider := mockPluggableStateStorageProvider(sourcePssSchema)
+		sourceProvider.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+		}
+		// hashicorp/test2
+		destinationPssSchema := map[string]providers.Schema{
+			"test2_store": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
+		destinationProvider.MockStates = testing_provider.MockStateBytes{
+			"test2_store": map[string][]byte{}, // No existing state in the destination
+		}
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"},
+			"hashicorp/test2": {"3.2.1"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		args := []string{
+			"-input=false",
+			"-json",
+			"-force-copy", // deal with interactive prompts to approve the migration
+		}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected JSON output is made
+		// Parameterized due to output referencing the current platform.
+		checkParameterizedGoldenReference(t, out, fixture, getproviders.CurrentPlatform.String())
+	})
+
 	t.Run("destination provider already in the dependency lock file, source is not", func(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "state-store-changed/provider-used")
 		t.Chdir(wd.RootModuleDir())

@@ -1,0 +1,7 @@
+{"@level":"info","@message":"Terraform 1.16.0-dev","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:15.987666+01:00","terraform":"1.16.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"Initializing provider plugin for state store \"test_store\"...","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:19.353736+01:00","type":"initializing_state_store_provider_plugin_message"}
+{"@level":"info","@message":"hashicorp/test: Reusing previous version from the dependency lock file","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:19.353950+01:00","type":"reusing_previous_version_info"}
+{"@level":"info","@message":"Installing provider version: hashicorp/test v1.2.3...","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:19.354164+01:00","type":"installing_provider_message"}
+{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (verified checksum)","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:19.357634+01:00","type":"installed_provider_version_info"}
+{"@level":"info","@message":"[reset][bold]Migrating state from backend \"local\" to state store \"test_store\" (hashicorp/test)...[reset]","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:23.501107+01:00"}
+{"@level":"info","@message":"[reset][bold]Finished migrating state from backend \"local\" to state store \"test_store\" (hashicorp/test).[reset]","@module":"terraform.ui","@timestamp":"2026-07-20T18:24:23.510351+01:00"}
