@@ -165,6 +165,21 @@ func populateComputedValues(target cty.Value, with MockedData, schema *configsch
 		})
 	}
 
+	// If there are no errors, we coerce the value to ensure it matches the schema.
+	// Any errors here would be because we generated an invalid value.
+	if !diags.HasErrors() {
+		var err error
+		value, err = schema.CoerceValue(value)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Detail:   "Failed to coerce value",
+				Summary:  fmt.Sprintf("Terraform failed to coerce a value for a mocked object: %s. This is a bug in Terraform - please report it.", err),
+				Subject:  with.Range.Ptr(),
+			})
+		}
+	}
+
 	return value, diags
 }
 
