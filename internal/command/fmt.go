@@ -34,6 +34,16 @@ var (
 		".tfmock.hcl",
 		".tfquery.hcl",
 	}
+
+	// fmtExtDescriptions maps each supported extension to a human-readable
+	// description for use in help text and diagnostics.
+	fmtExtDescriptions = map[string]string{
+		".tf":          "configuration files",
+		".tfvars":      "variables files",
+		".tftest.hcl":  "testing files",
+		".tfmock.hcl":  "mock data files",
+		".tfquery.hcl": "query files",
+	}
 )
 
 // FmtCommand is a Command implementation that rewrites Terraform config
@@ -160,7 +170,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			}
 
 			if !fmtd {
-				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, .tftest.hcl, .tfmock.hcl, and .tfquery.hcl files can be processed with terraform fmt"))
+				diags = diags.Append(fmt.Errorf("Only %s files can be processed with terraform fmt", formatSupportedExtsList()))
 				continue
 			}
 		}
@@ -547,13 +557,11 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 }
 
 func (c *FmtCommand) Help() string {
-	helpText := `
+	helpText := fmt.Sprintf(`
 Usage: terraform [global options] fmt [options] [target...]
 
   Rewrites all Terraform configuration files to a canonical format. All
-  configuration files (.tf), variables files (.tfvars), testing files
-  (.tftest.hcl), mock data files (.tfmock.hcl), and query files
-  (.tfquery.hcl) are updated. JSON files (.tf.json, .tfvars.json, or
+  %s are updated. JSON files (.tf.json, .tfvars.json, or
   .tftest.json) are not modified.
 
   By default, fmt scans the current directory for configuration files. If you
@@ -582,7 +590,7 @@ Options:
 
   -recursive     Also process files in subdirectories. By default, only the
                  given directory (or current directory) is processed.
-`
+`, formatSupportedExtsHelpList())
 	return strings.TrimSpace(helpText)
 }
 
@@ -615,4 +623,55 @@ func bytesDiff(b1, b2 []byte, path string) (data []byte, err error) {
 		err = nil
 	}
 	return
+}
+
+// formatSupportedExtsList builds a comma-separated list of extensions like
+// ".tf, .tfvars, and .tftest.hcl"
+func formatSupportedExtsList() string {
+	if len(fmtSupportedExts) == 0 {
+		return ""
+	}
+	if len(fmtSupportedExts) == 1 {
+		return fmtSupportedExts[0]
+	}
+	if len(fmtSupportedExts) == 2 {
+		return fmtSupportedExts[0] + " and " + fmtSupportedExts[1]
+	}
+
+	var parts []string
+	for i, ext := range fmtSupportedExts {
+		if i == len(fmtSupportedExts)-1 {
+			parts = append(parts, "and "+ext)
+		} else {
+			parts = append(parts, ext)
+		}
+	}
+	return strings.Join(parts, ", ")
+}
+
+// formatSupportedExtsHelpList builds a comma-separated list of descriptions and extensions like
+// "configuration files (.tf), variables files (.tfvars), and testing files (.tftest.hcl)"
+func formatSupportedExtsHelpList() string {
+	if len(fmtSupportedExts) == 0 {
+		return ""
+	}
+	if len(fmtSupportedExts) == 1 {
+		ext := fmtSupportedExts[0]
+		return fmtExtDescriptions[ext] + " (" + ext + ")"
+	}
+
+	var parts []string
+	for i, ext := range fmtSupportedExts {
+		desc := fmtExtDescriptions[ext] + " (" + ext + ")"
+		if i == len(fmtSupportedExts)-1 {
+			parts = append(parts, "and "+desc)
+		} else {
+			parts = append(parts, desc)
+		}
+	}
+
+	if len(fmtSupportedExts) == 2 {
+		return strings.Join(parts, " ")
+	}
+	return strings.Join(parts, ", ")
 }
