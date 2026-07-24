@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "Terraform now reports the newest available prerelease version when a provider has no stable releases and explains how to select it."
+time: 2026-07-24T08:32:34+07:00
+custom:
+    Issue: "38923"

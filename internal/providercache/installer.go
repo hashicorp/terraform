@@ -343,7 +343,19 @@ NeedProvider:
 			lock := locks.Provider(provider)
 			err = fmt.Errorf("the previously-selected version %s is no longer available", lock.Version())
 		} else {
-			err = fmt.Errorf("no available releases match the given constraints %s", getproviders.VersionConstraintsString(reqs[provider]))
+			onlyPrereleases := len(available) > 0
+			for _, version := range available {
+				if versions.Released.Has(version) {
+					onlyPrereleases = false
+					break
+				}
+			}
+			if onlyPrereleases {
+				latestVersion := available[len(available)-1]
+				err = fmt.Errorf("provider has no stable releases, but does have a pre-release version %s; if you intend to test that version, specify an exact version constraint.", latestVersion)
+			} else {
+				err = fmt.Errorf("no available releases match the given constraints %s", getproviders.VersionConstraintsString(reqs[provider]))
+			}
 		}
 		errs[provider] = err
 		if cb := evts.QueryPackagesFailure; cb != nil {
