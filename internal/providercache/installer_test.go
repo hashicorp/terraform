@@ -2089,6 +2089,58 @@ func TestEnsureProviderVersions(t *testing.T) {
 				}
 			},
 		},
+		"only pre-release versions are available": {
+			Source: getproviders.NewMockSource(
+				[]getproviders.PackageMeta{
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("0.1.0-alpha1"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("0.1.0-beta2"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+				},
+				nil,
+			),
+			Mode: InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				beepProvider: nil,
+			},
+			WantErr: `some providers could not be installed:
+- example.com/foo/beep: provider has no stable releases, but does have a pre-release version 0.1.0-beta2; if you intend to test that version, specify an exact version constraint.`,
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								beepProvider: nil,
+							},
+						},
+					},
+					beepProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{"", false},
+						},
+						{
+							Event:    "QueryPackagesFailure",
+							Provider: beepProvider,
+							Args:     `provider has no stable releases, but does have a pre-release version 0.1.0-beta2; if you intend to test that version, specify an exact version constraint.`,
+						},
+					},
+				}
+			},
+		},
 		"version exists but doesn't support the current platform": {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{
