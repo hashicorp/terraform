@@ -18,6 +18,24 @@ type taskResultSummary struct {
 	passed          int
 }
 
+func isNonTerminalTaskResultStatus(status tfe.TaskResultStatus) bool {
+	return status == tfe.TaskRunning || status == tfe.TaskPending
+}
+
+func partitionTaskResults(taskResults []*tfe.TaskResult) ([]*tfe.TaskResult, []*tfe.TaskResult) {
+	completed := make([]*tfe.TaskResult, 0, len(taskResults))
+	pending := make([]*tfe.TaskResult, 0, len(taskResults))
+	for _, taskResult := range taskResults {
+		if isNonTerminalTaskResultStatus(taskResult.Status) {
+			pending = append(pending, taskResult)
+			continue
+		}
+		completed = append(completed, taskResult)
+	}
+
+	return completed, pending
+}
+
 type taskResultSummarizer struct {
 	finished bool
 	cloud    *Cloud
@@ -42,11 +60,28 @@ func (trs *taskResultSummarizer) Summarize(context *IntegrationContext, output I
 
 	counts := summarizeTaskResults(ts.TaskResults)
 
-	if counts.pending != 0 {
+	if counts.pending != 0 && !isTerminalTaskStageStatus(ts.Status) {
 		pendingMessage := "%d tasks still pending, %d passed, %d failed ... "
 		message := fmt.Sprintf(pendingMessage, counts.pending, counts.passed, counts.failed)
 		return true, &message, nil
 	}
+
+	if counts.pending != 0 {
+		completed, pending := partitionTaskResults(ts.TaskResults)
+		if len(completed) == 0 {
+			output.Output("Skipping task results.")
+			output.End()
+			return false, nil, nil
+		}
+
+		completedCounts := summarizeTaskResults(completed)
+		trs.runTasksWithTaskResults(output, completed, completedCounts)
+		output.Output(fmt.Sprintf("Skipping %d pending task result(s) because task stage is %s.", len(pending), ts.Status))
+		output.End()
+		trs.finished = true
+		return false, nil, nil
+	}
+
 	if counts.unreachable {
 		output.Output("Skipping task results.")
 		output.End()

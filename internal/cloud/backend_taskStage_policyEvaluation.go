@@ -17,6 +17,29 @@ type policyEvaluationSummary struct {
 	passed      int
 }
 
+func isNonTerminalPolicyEvaluationStatus(status tfe.PolicyEvaluationStatus) bool {
+	switch status {
+	case tfe.PolicyEvaluationRunning, tfe.PolicyEvaluationPending, tfe.PolicyEvaluationStatus(tfe.PolicyQueued):
+		return true
+	default:
+		return false
+	}
+}
+
+func partitionPolicyEvaluations(policyEvaluations []*tfe.PolicyEvaluation) ([]*tfe.PolicyEvaluation, []*tfe.PolicyEvaluation) {
+	completed := make([]*tfe.PolicyEvaluation, 0, len(policyEvaluations))
+	pending := make([]*tfe.PolicyEvaluation, 0, len(policyEvaluations))
+	for _, policyEvaluation := range policyEvaluations {
+		if isNonTerminalPolicyEvaluationStatus(policyEvaluation.Status) {
+			pending = append(pending, policyEvaluation)
+			continue
+		}
+		completed = append(completed, policyEvaluation)
+	}
+
+	return completed, pending
+}
+
 type Symbol rune
 
 const (
@@ -56,7 +79,7 @@ func (pes *policyEvaluationSummarizer) Summarize(context *IntegrationContext, ou
 
 	counts := summarizePolicyEvaluationResults(ts.PolicyEvaluations)
 
-	if counts.pending != 0 {
+	if counts.pending != 0 && !isTerminalTaskStageStatus(ts.Status) {
 		pendingMessage := "Evaluating ... "
 		return true, &pendingMessage, nil
 	}
@@ -68,7 +91,7 @@ func (pes *policyEvaluationSummarizer) Summarize(context *IntegrationContext, ou
 	}
 
 	// Print out the summary
-	if err := pes.taskStageWithPolicyEvaluation(context, output, ts.PolicyEvaluations); err != nil {
+	if err := pes.taskStageWithPolicyEvaluation(context, output, ts); err != nil {
 		return false, nil, err
 	}
 	// Mark as finished
@@ -103,10 +126,27 @@ func summarizePolicyEvaluationResults(policyEvaluations []*tfe.PolicyEvaluation)
 	}
 }
 
-func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, policyEvaluation []*tfe.PolicyEvaluation) error {
+func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, ts *tfe.TaskStage) error {
+	policyEvaluations := ts.PolicyEvaluations
+	pendingToSkipCount := 0
+
+	if isTerminalTaskStageStatus(ts.Status) {
+		completed, pending := partitionPolicyEvaluations(policyEvaluations)
+		if len(pending) > 0 && len(completed) == 0 {
+			output.Output("Skipping policy evaluation.")
+			output.End()
+			return nil
+		}
+
+		if len(pending) > 0 {
+			policyEvaluations = completed
+			pendingToSkipCount = len(pending)
+		}
+	}
+
 	var result, message, kind string
 	// Currently only one policy evaluation supported : OPA
-	for _, polEvaluation := range policyEvaluation {
+	for _, polEvaluation := range policyEvaluations {
 		if polEvaluation.PolicyKind == "opa" {
 			kind = "OPA"
 		} else {
@@ -118,6 +158,9 @@ func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *In
 			if polEvaluation.ResultCount.AdvisoryFailed > 0 {
 				result += " (with advisory)"
 			}
+		} else if isNonTerminalPolicyEvaluationStatus(polEvaluation.Status) {
+			message = fmt.Sprintf("[dim] Pending policy evaluation skipped as task stage is %s.", ts.Status)
+			result = "[dim]skipped"
 		} else {
 			message = fmt.Sprintf("[dim] This result means that one or more %s policies failed. More than likely, this was due to the discovery of violations by the main rule and other sub rules", kind)
 			result = fmt.Sprintf("[red]%s", strings.ToUpper(string(tfe.PolicyEvaluationFailed)))
@@ -160,6 +203,12 @@ func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *In
 			}
 		}
 	}
+
+	if pendingToSkipCount > 0 {
+		output.Output(fmt.Sprintf("Skipping %d pending policy evaluation(s) because task stage is %s.", pendingToSkipCount, ts.Status))
+		output.End()
+	}
+
 	return nil
 }
 
