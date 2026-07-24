@@ -35,7 +35,8 @@ func (b *Local) opApply(
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	op *backendrun.Operation,
-	runningOp *backendrun.RunningOperation) {
+	runningOp *backendrun.RunningOperation,
+) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
 	var diags, moreDiags tfdiags.Diagnostics
@@ -371,7 +372,7 @@ func (b *Local) opApply(
 							diags = diags.Append(&hcl.Diagnostic{
 								Severity: hcl.DiagWarning,
 								Summary:  "Ignoring variable when applying a saved plan",
-								Detail: fmt.Sprintf("The variable %s cannot be overriden when applying a saved plan file, "+
+								Detail: fmt.Sprintf("The variable %s cannot be overridden when applying a saved plan file, "+
 									"because a saved plan includes the variable values that were set when it was created. "+
 									"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 									"To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.",
@@ -419,6 +420,48 @@ func (b *Local) opApply(
 			op.ReportResult(runningOp, diags)
 			return
 		}
+	}
+
+	// If the user erroneously included any plan options flags when they supplied a plan file,
+	// we'll return an error if the flag values don't match the plan file.
+	if len(op.Targets) != 0 {
+		// Do target flags all match targets in the plan?
+		for _, target := range op.Targets {
+			found := false
+			for _, planTarget := range plan.TargetAddrs {
+				if target.TargetContains(planTarget) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Can't change resource targeting when applying a saved plan",
+					fmt.Sprintf("The target address %q was supplied using a -target flag but does not match a target in the saved plan file. This flag will be ignored and won't influence the apply operation.", target),
+				))
+			}
+		}
+	}
+	if op.PlanMode != plan.UIMode {
+		if op.PlanMode == plans.DestroyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change plan mode when applying a saved plan",
+				"The -destroy flag was supplied to the apply command, but the plan file was not created with the -destroy flag. This flag will be ignored and won't influence the apply operation.",
+			))
+		}
+		if op.PlanMode == plans.RefreshOnlyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change plan mode when applying a saved plan",
+				"The -refresh-only flag was supplied to the apply command, but the plan file was not created with the -refresh-only flag. This flag will be ignored and won't influence the apply operation.",
+			))
+		}
+	}
+	if diags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
 	}
 
 	// Start the apply in a goroutine so that we can be interrupted.

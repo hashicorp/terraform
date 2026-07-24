@@ -2086,6 +2086,112 @@ func TestApply_changedVars_applyTime(t *testing.T) {
 	})
 }
 
+// There isn't validation to stop users passing plan options like -target, -destroy and -refresh-only flags
+// to an apply command when a saved plan is used.
+//
+// Adding any validation is a breaking change.
+// For now, we raise warnings when applying a plan file that doesn't match the intent
+// expressed by the plan options passed to the apply command alongside the plan file.
+// See: https://github.com/hashicorp/terraform/issues/38670
+func TestApply_changedPlanOptions_applyTime(t *testing.T) {
+	t.Run("change to -target", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-target", "test_instance.foo",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change resource targeting when applying a saved plan`) {
+			t.Fatalf("missing warning text:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `target address "test_instance.foo"`) {
+			t.Fatalf("missing detail from warning:\n%s", output.All())
+		}
+	})
+	t.Run("change to -destroy", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-destroy",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change plan mode when applying a saved plan`) {
+			t.Fatalf("missing warning:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `-destroy`) {
+			t.Fatalf("missing flag name from warning:\n%s", output.All())
+		}
+	})
+	t.Run("change to -refresh-only", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-refresh-only",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change plan mode when applying a saved plan`) {
+			t.Fatalf("missing warning text:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `-refresh-only`) {
+			t.Fatalf("missing flag name from warning:\n%s", output.All())
+		}
+	})
+}
+
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
 	// temporary data directory which we can remove between commands
