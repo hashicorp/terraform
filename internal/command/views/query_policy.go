@@ -194,6 +194,10 @@ func (b *queryPolicyBlock) summary() queryPolicySummary {
 		return results[i].TargetAddress < results[j].TargetAddress
 	})
 
+	// passed_policies contains all policies evaluated against any identity in
+	// this block, regardless of whether they passed or failed. The field name
+	// is intentionally kept as "passed_policies" to match the RFC wire contract
+	// (the UI uses it for column-header counts, not to filter by pass status).
 	passedPolicies := make([]viewjson.PolicyMetadata, 0, len(b.PolicyMetadata))
 	for _, metadata := range b.PolicyMetadata {
 		passedPolicies = append(passedPolicies, metadata)
@@ -240,6 +244,13 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 	}
 }
 
+// queryPolicyListBlockAddr extracts the list block address from a warning
+// diagnostic detail string. It looks for the literal substring "list block "
+// and returns everything up to the next space or colon.
+//
+// Terraform list block addresses use the form TYPE.NAME (and, for nested
+// modules, module.M.TYPE.NAME), so dots are part of the address and must not
+// be used as a terminator.
 func queryPolicyListBlockAddr(detail string) string {
 	const marker = "list block "
 	idx := strings.Index(detail, marker)
@@ -251,7 +262,7 @@ func queryPolicyListBlockAddr(detail string) string {
 		return ""
 	}
 	for i, r := range rest {
-		if r == ' ' || r == ':' || r == '.' {
+		if r == ' ' || r == ':' {
 			return rest[:i]
 		}
 	}
