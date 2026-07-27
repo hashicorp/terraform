@@ -26,7 +26,8 @@ func NewQueryOperation(vt arguments.ViewType, inAutomation bool, view *View) Ope
 }
 
 type QueryOperationHuman struct {
-	view *View
+	view        *View
+	queryPolicy *queryPolicyView
 
 	// inAutomation indicates that commands are being run by an
 	// automated system rather than directly at a command prompt.
@@ -79,13 +80,24 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 		if data.LengthInt() == 0 {
 			emptyBlocks = append(emptyBlocks, addr.String())
 		}
-
 	}
 
 	if len(emptyBlocks) > 0 {
 		msg := fmt.Sprintf(v.view.colorize.Color("[bold][yellow]Warning:[reset][bold] list block(s) [%s] returned 0 results.\n"), strings.Join(emptyBlocks, ", "))
 		v.view.streams.Println(format.WordWrap(msg, v.view.outputColumns()))
 	}
+
+	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
+		return
+	}
+
+	v.view.streams.Println(format.WordWrap(fmt.Sprintf("Evaluated %d policies.", queryPolicyEvaluatedCount(v.queryPolicy)), v.view.outputColumns()))
+	v.queryPolicy.Flush(func(summary queryPolicySummary) {
+		v.view.streams.Println()
+		v.view.streams.Println(renderQueryPolicySummaryHuman(summary))
+	}, func(diags tfdiags.Diagnostics) {
+		v.view.Diagnostics(diags)
+	})
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -95,6 +107,9 @@ func (v *QueryOperationHuman) PlanNextStep(planPath string, genConfigPath string
 }
 
 func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	if v.queryPolicy != nil {
+		v.queryPolicy.AddWarningDiags(diags)
+	}
 	v.view.Diagnostics(diags)
 }
 
@@ -103,11 +118,18 @@ func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 }
 
 func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	if v.queryPolicy == nil {
+		v.queryPolicy = newQueryPolicyView()
+	}
+	if v.queryPolicy.AddResult(addr, resp) {
+		return
+	}
 	v.view.PolicyResult(addr, resp)
 }
 
 type QueryOperationJSON struct {
-	view *JSONView
+	view        *JSONView
+	queryPolicy *queryPolicyView
 }
 
 var _ Operation = (*QueryOperationJSON)(nil)
@@ -133,6 +155,10 @@ func (v *QueryOperationJSON) EmergencyDumpState(stateFile *statefile.File) error
 }
 
 func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
+		return
+	}
+	v.queryPolicy.Flush(v.view.logPolicyQuerySummary, nil)
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -142,6 +168,9 @@ func (v *QueryOperationJSON) PlanNextStep(planPath string, genConfigPath string)
 }
 
 func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	if v.queryPolicy != nil {
+		v.queryPolicy.AddWarningDiags(diags)
+	}
 	v.view.Diagnostics(diags)
 }
 
@@ -150,5 +179,11 @@ func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 }
 
 func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	if v.queryPolicy == nil {
+		v.queryPolicy = newQueryPolicyView()
+	}
+	if v.queryPolicy.AddResult(addr, resp) {
+		return
+	}
 	v.view.PolicyResult(addr, resp)
 }
