@@ -157,6 +157,7 @@ func apply(tfCtx *terraform.Context, run *configs.TestRun, module *configs.Confi
 		SetVariables:              ephemeralVariables,
 		ExternalProviders:         providers,
 		AllowRootEphemeralOutputs: true,
+		SkipActions:               true,
 	}
 
 	waiter.update(tfCtx, progress, created)

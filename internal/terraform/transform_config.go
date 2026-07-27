@@ -48,6 +48,10 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	// SkipActions, when true, sets the skipActions flag on all resource nodes
+	// so that lifecycle action triggers are suppressed during planning and apply.
+	SkipActions bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -171,6 +175,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract.actionTriggers = triggers
+		abstract.skipActions = t.SkipActions
 
 		// now record all the action nodes which were used by resources, so that
 		// they are not validated on their own since they may container "caller"

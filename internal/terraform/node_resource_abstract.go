@@ -105,6 +105,10 @@ type NodeAbstractResource struct {
 	// If we have already planned the changes, then we have actionApplyTriggers
 	// instead of actionTriggers
 	actionApplyTriggers []*actionTriggerApplyInstance
+
+	// skipActions suppresses lifecycle action trigger planning and invocation.
+	// Set to true during test runs so that actions do not execute.
+	skipActions bool
 }
 
 var (

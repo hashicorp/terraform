@@ -133,6 +133,10 @@ type PlanGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// SkipActions, when true, suppresses all action invocations during planning.
+	// This should be set during test runs where actions must not have real side-effects.
+	SkipActions bool
 }
 
 // See GraphBuilder
@@ -170,6 +174,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			importTargets: b.ImportTargets,
 
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
+			SkipActions:                        b.SkipActions,
 		},
 
 		// Add dynamic values
@@ -254,13 +259,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// In order to analyze any use of caller, this must happen after
 		// AttachSchemaTransformer so we can get all references from the action
-		// configs.
+		// configs. Skipped when SkipActions is set (e.g. during test runs).
 		&ActionInvokePlanTransformer{
 			Config:          b.Config,
 			Operation:       b.Operation,
 			ActionTargets:   b.ActionTargets,
 			ResourceTargets: b.Targets,
 			queryPlanMode:   b.queryPlan,
+			skip:            b.SkipActions,
 		},
 
 		// Create expansion nodes for all of the module calls. This must

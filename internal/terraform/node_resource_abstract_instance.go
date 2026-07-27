@@ -3155,6 +3155,10 @@ func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalCont
 }
 
 func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRepData instances.RepetitionData, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	if n.skipActions {
+		return nil
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// check if our containing resource was deferred
@@ -3365,6 +3369,10 @@ func (n *NodeAbstractResourceInstance) invokeDestroyActions(ctx EvalContext, for
 // skipped. If the taint return parameter is true, then the resource will be
 // tainted in state.
 func (n *NodeAbstractResourceInstance) invokeActions(ctx EvalContext, repData instances.RepetitionData, forEvents []configs.ActionTriggerEvent, callerVal cty.Value) (taint bool, diags tfdiags.Diagnostics) {
+	if n.skipActions {
+		return false, nil
+	}
+
 	for _, trigger := range n.actionApplyTriggers {
 		event := trigger.ActionInvocation.ActionTrigger.TriggerEvent()
 		if !slices.Contains(forEvents, event) {

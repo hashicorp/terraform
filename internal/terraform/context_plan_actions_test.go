@@ -4437,6 +4437,64 @@ resource "test_object" "b" {
 				},
 			},
 		},
+
+		// ======== SKIP ACTIONS ========
+		// When SkipActions is set in PlanOpts, no action invocations should be
+		// planned regardless of lifecycle action_trigger configuration.
+		// ======== SKIP ACTIONS ========
+
+		"skip_actions": {
+			"lifecycle trigger not planned when SkipActions is set": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "a" {
+		lifecycle {
+			 action_trigger {
+			   events  = [before_create]
+			   actions = [action.test_action.hello]
+			 }
+		}
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode:        plans.NormalMode,
+					SkipActions: true,
+				},
+				expectPlanActionCalled: false,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected no action invocations when SkipActions is set, got %d", len(p.Changes.ActionInvocations))
+					}
+				},
+			},
+			"after_create trigger not planned when SkipActions is set": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "a" {
+		lifecycle {
+			 action_trigger {
+			   events  = [after_create]
+			   actions = [action.test_action.hello]
+			 }
+		}
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode:        plans.NormalMode,
+					SkipActions: true,
+				},
+				expectPlanActionCalled: false,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected no action invocations when SkipActions is set, got %d", len(p.Changes.ActionInvocations))
+					}
+				},
+			},
+		},
 	} {
 		t.Run(topic, func(t *testing.T) {
 			for name, tc := range tcs {
