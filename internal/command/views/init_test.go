@@ -375,7 +375,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	newInit.LogInitMessage(InitializingProviderPluginMessage)
+	newInit.Output(InitializingProviderPluginMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -388,10 +388,11 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 			"ui":        JSON_UI_VERSION,
 		},
 		{
-			"@level":   "info",
-			"@message": "Initializing provider plugins...",
-			"@module":  "terraform.ui",
-			"type":     "log",
+			"@level":       "info",
+			"@message":     "Initializing provider plugins...",
+			"@module":      "terraform.ui",
+			"message_code": "initializing_provider_plugin_message",
+			"type":         "init_output",
 		},
 	}
 
@@ -661,6 +662,30 @@ func TestNewInit_LogProviderVersionSuccess_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogProviderVersionAlreadyInstalled_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	initView.LogProviderVersionAlreadyInstalled(p, v)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test v1.0.0: Using previously-installed provider version"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 // Assert JSON log content, including log type and additional fields
 //
 // Note - in calling code this is only ever used for partner providers
@@ -683,6 +708,194 @@ func TestNewInit_LogProviderVersionSuccessWithKeyID_json(t *testing.T) {
 		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
 		`"@module":"terraform.ui"`,
 		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogReusingPreviousProviderVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	initView.LogReusingPreviousProviderVersion(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test: Reusing previous version from the dependency lock file"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogFindingMatchingVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	constraint, _ := getproviders.ParseVersionConstraints("1.0.0")
+	initView.LogFindingMatchingVersion(p, constraint)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Finding matching versions for provider: hashicorp/test, version_constraint: \"1.0.0\""`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogFindingLatestVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	initView.LogFindingLatestVersion(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test: Finding latest version..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInstallingProviderVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	initView.LogInstallingProviderVersion(p, v)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installing provider version: hashicorp/test v1.0.0..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogBuiltInProviderAvailable_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	initView.LogBuiltInProviderAvailable(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test is built in to Terraform"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogUsingProviderVersionFromCacheDir_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	initView.LogUsingProviderVersionFromCacheDir(p, v)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test v1.0.0: Using from the shared cache directory"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogPartnerAndCommunityProviders_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogPartnerAndCommunityProviders()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Partner and community providers are signed by their developers.\nIf you'd like to know more about provider signing, you can read about it here:\nhttps://developer.hashicorp.com/terraform/cli/plugins/signing"`,
+		`"@module":"terraform.ui"`,
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitializingStateStoreProviderPlugin_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	storeType := "test_store"
+	initView.LogInitializingStateStoreProviderPlugin(storeType)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing provider plugin for state store \"test_store\"..."`,
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"message_code":"initializing_state_store_provider_plugin_message"`,
+		`"type":"init_output"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {

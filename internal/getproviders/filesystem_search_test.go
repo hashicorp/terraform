@@ -36,12 +36,28 @@ func TestSearchLocalDirectory(t *testing.T) {
 				// example.com that is one level deeper.
 			},
 		},
+		{
+			"underscore-namespace",
+			".",
+			map[addrs.Provider]PackageMetaList{
+				addrs.MustParseProviderSourceString("example.com/my_org/foo"): {
+					{
+						Provider:       addrs.MustParseProviderSourceString("example.com/my_org/foo"),
+						Version:        MustParseVersion("1.0.0"),
+						TargetPlatform: Platform{OS: "linux", Arch: "amd64"},
+						Filename:       "terraform-provider-foo_1.0.0_linux_amd64.zip",
+						Location:       PackageLocalDir("testdata/search-local-directory/underscore-namespace/example.com/my_org/foo/1.0.0/linux_amd64"),
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Fixture, func(t *testing.T) {
 			fullDir := filepath.Join("testdata/search-local-directory", test.Fixture, test.Subdir)
 			got, err := SearchLocalDirectory(fullDir)
+
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}

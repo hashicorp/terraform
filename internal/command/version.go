@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -58,25 +59,17 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *VersionCommand) Run(args []string) int {
+func (c *VersionCommand) Run(rawArgs []string) int {
 	var outdated bool
 	var latest string
 	var versionString bytes.Buffer
-	args = c.Meta.process(args)
-	var jsonOutput bool
-	cmdFlags := c.Meta.defaultFlagSet("version")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
-	// Enable but ignore the global version flags. In main.go, if any of the
-	// arguments are -v, -version, or --version, this command will be called
-	// with the rest of the arguments, so we need to be able to cope with
-	// those.
-	cmdFlags.Bool("v", true, "version")
-	cmdFlags.Bool("version", true, "version")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+
+	args, argDiags := arguments.ParseVersion(rawArgs)
+	if argDiags.HasErrors() {
+		c.showDiagnostics(argDiags)
 		return 1
 	}
+	jsonOutput := args.ViewType == arguments.ViewJSON
 
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {

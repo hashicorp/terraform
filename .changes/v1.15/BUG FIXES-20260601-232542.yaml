@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Fixed an issue where resources being removed from state via `removed` block were incorrectly listed under `planned_values` in json representations of the plan file.
-time: 2026-06-01T23:25:42.881637+01:00
-custom:
-    Issue: "38665"

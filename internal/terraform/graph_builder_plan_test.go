@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -227,6 +228,88 @@ output "value" {
 		testGraphHappensBefore(t, g, "module.child.data.aws_data_source.a (expand)", "(evaluate policies)")
 		testGraphHappensBefore(t, g, "module.child (close)", "(evaluate policies)")
 	})
+}
+
+// TestPlanGraphBuilder_QueryPlan_PolicyWiring verifies that when queryPlan == true
+// and a PolicyClient is set, policyEvalTransformer wires nodePolicyEval to depend
+// only on list block nodes.
+func TestPlanGraphBuilder_QueryPlan_PolicyWiring(t *testing.T) {
+	provider := mockProviderWithResourceTypeSchema("test_resource", simpleTestSchema())
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
+	}, nil, nil)
+
+	config := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
+resource "test_resource" "example" {
+  id = "example"
+}
+
+provider "test" {
+  alias = "example"
+  id = resource.test_resource.example.id
+}
+`,
+		"main.tfquery.hcl": `
+list "test_resource" "mylist" {
+  provider = test.example
+}
+`,
+	}, configs.MatchQueryFiles())
+
+	b := &PlanGraphBuilder{
+		Config:       config,
+		Plugins:      plugins,
+		PolicyClient: policy.NewTestMockClient(t),
+		queryPlan:    true,
+		Operation:    walkPlan,
+	}
+	assertPlanGraphBuilderPolicyTransformerQueryPlan(t, b)
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("Build failed: %s", diags.Err())
+	}
+
+	nodes := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq()).Collect()
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 nodePolicyEval node in query plan graph, got %d", len(nodes))
+	}
+
+	// The list block node must be scheduled before policy evaluation.
+	testGraphHappensBefore(t, g, "list.test_resource.mylist (expand)", "(evaluate policies)")
+
+	policyNode := nodes[0]
+	for _, dep := range g.DownEdges(policyNode) {
+		if res, ok := dep.(GraphNodeConfigResource); ok && res.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
+			t.Errorf("policy node should not directly depend on non-list resource %q in query mode", dag.VertexName(dep))
+		}
+	}
+}
+
+func assertPlanGraphBuilderPolicyTransformerQueryPlan(t *testing.T, b *PlanGraphBuilder) {
+	t.Helper()
+
+	for _, step := range b.Steps() {
+		tr, ok := step.(*policyEvalTransformer)
+		if !ok {
+			continue
+		}
+		if !tr.QueryPlan {
+			t.Fatal("expected PlanGraphBuilder to propagate queryPlan to policyEvalTransformer")
+		}
+		return
+	}
+
+	t.Fatal("expected PlanGraphBuilder to include policyEvalTransformer")
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {

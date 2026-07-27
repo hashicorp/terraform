@@ -90,7 +90,7 @@ func (s *StateMigrateHuman) Spacer() {
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) LogInitMessage(code InitMessageCode, params ...any) {
+func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 	msg, ok := MessageRegistry[code]
 	if !ok {
 		panic("missing message for InstallingProviderMessage init message code")
@@ -99,12 +99,59 @@ func (s *StateMigrateHuman) LogInitMessage(code InitMessageCode, params ...any) 
 }
 
 // Implements ProviderInstaller interface.
-func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
-	msg, ok := MessageRegistry[code]
-	if !ok {
-		panic("missing message for InstallingProviderMessage init message code")
-	}
-	s.Log(msg.HumanValue, params...)
+func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(storeType string) {
+	params := []any{storeType}
+	msg := s.prepareMessage(InitializingStateStoreProviderPluginMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+	msg := s.prepareMessage(FindingMatchingVersionMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(UsingProviderFromCacheDirInfo, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(BuiltInProviderAvailableMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	msg := s.prepareMessage(InstallingProviderMessage, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
+	s.log(msg)
 }
 
 // Implements ProviderInstaller interface.
@@ -120,6 +167,12 @@ func (s *StateMigrateHuman) LogProviderVersionSuccessWithKeyID(providerAddr addr
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
+	s.log(msg)
+}
+
+// Implements ProviderInstaller interface.
+func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
+	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
 	s.log(msg)
 }
 

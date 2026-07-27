@@ -114,7 +114,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			smi.StateStore.ProviderAddr.ForDisplay())
 
 		// Load any pre-existing source provider lock file.
-		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(args.SourceLockFilePath)
+		var lockfilePath string
+		if args.SourceLockFilePath != "" {
+			lockfilePath = args.SourceLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(srcLockDiags)
 		if srcLockDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -191,7 +197,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		}
 
 		// Load any pre-existing destination provider lock file.
-		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(args.DestinationLockFilePath)
+		var lockfilePath string
+		if args.DestinationLockFilePath != "" {
+			lockfilePath = args.DestinationLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(dstLockDiags)
 		if dstLockDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -489,19 +501,19 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	// are shimming our vt100 output to the legacy console API on Windows.
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitMessage(views.InitializingStateStoreProviderPluginMessage, storeName)
+			view.LogInitializingStateStoreProviderPlugin(storeName)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},

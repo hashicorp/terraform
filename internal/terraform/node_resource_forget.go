@@ -34,6 +34,11 @@ func (n *NodeForgetResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 
+func (n *NodeForgetResourceInstance) References() []*addrs.Reference {
+	// Forgotten resources don't participate in references
+	return nil
+}
+
 func (n *NodeForgetResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (forget)"
 }

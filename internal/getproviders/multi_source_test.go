@@ -455,6 +455,32 @@ func TestMultiSourceSelector(t *testing.T) {
 			true,
 		},
 
+		// Underscore namespace
+		"provider with underscore namespace include constraint that matches exactly": {
+			MultiSourceSelector{
+				Source:  emptySource,
+				Include: mustParseMultiSourceMatchingPatterns("my_org/foo"),
+			},
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "my_org", "foo"),
+			true,
+		},
+		"provider with underscore namespace include constraint that does not match": {
+			MultiSourceSelector{
+				Source:  emptySource,
+				Include: mustParseMultiSourceMatchingPatterns("my_org/bar"),
+			},
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "my_org", "foo"),
+			false,
+		},
+		"provider with underscore namespace type-wildcard include constraint that matches": {
+			MultiSourceSelector{
+				Source:  emptySource,
+				Include: mustParseMultiSourceMatchingPatterns("my_org/*"),
+			},
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "my_org", "foo"),
+			true,
+		},
+
 		// Exclude constraints
 		"default provider with exclude constraint that matches it exactly": {
 			MultiSourceSelector{

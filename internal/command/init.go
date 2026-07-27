@@ -471,19 +471,19 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingStateStoreProviderPluginMessage, rootModEarly.StateStore.Type)
+			view.LogInitializingStateStoreProviderPlugin(rootModEarly.StateStore.Type)
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},
@@ -632,12 +632,12 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogReusingPreviousProviderVersion(provider)
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},
@@ -922,14 +922,14 @@ func (c *InitCommand) Synopsis() string {
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
 func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
-		view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+		view.LogProviderVersionAlreadyInstalled(provider, selectedVersion)
 	}
 }
 
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
 func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
-		view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+		view.LogBuiltInProviderAvailable(provider)
 	}
 }
 
@@ -947,14 +947,14 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
 func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-		view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+		view.LogUsingProviderVersionFromCacheDir(provider, version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
+		view.LogInstallingProviderVersion(provider, version)
 	}
 }
 
@@ -1258,7 +1258,7 @@ func providersFetchedCallback(view views.ProviderInstaller) func(authResults map
 			}
 		}
 		if thirdPartySigned {
-			view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
+			view.LogPartnerAndCommunityProviders()
 		}
 	}
 }
