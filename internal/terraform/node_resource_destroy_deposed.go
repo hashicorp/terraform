@@ -251,6 +251,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.
 	return nil
 }
 
+func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Reference {
+	// Deposed objects don't participate in references.
+	return nil
+}
+
 // GraphNodeDestroyer
 func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()

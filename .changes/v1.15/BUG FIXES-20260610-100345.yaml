@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Fix two module installation edge cases with `null` and sensitive/ephemeral module sources
-time: 2026-06-10T10:03:45.715338+02:00
-custom:
-    Issue: "38704"
