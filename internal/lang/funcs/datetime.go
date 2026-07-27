@@ -40,50 +40,10 @@ func MakeStaticTimestampFunc(static time.Time) function.Function {
 	})
 }
 
-// TimeAddFunc constructs a function that adds a duration to a timestamp, returning a new timestamp.
-//
-// In the Terraform language, timestamps are conventionally represented as
-// strings using RFC 3339 "Date and Time format" syntax. Timeadd requires
-// the timestamp argument to be a string conforming to this syntax.
-//
-// `duration` is a string representation of a time difference, consisting of
-// sequences of number and unit pairs, like `"1.5h"` or `1h30m`. The accepted
-// units are `ns`, `us` (or `µs`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
-// number may be negative to indicate a negative duration, like `"-2h5m"`.
-//
-// The result is a string, also in RFC 3339 format, representing the result
-// of adding the given direction to the given timestamp.
-var TimeAddFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "timestamp",
-			Type: cty.String,
-		},
-		{
-			Name: "duration",
-			Type: cty.String,
-		},
-	},
-	Type:         function.StaticReturnType(cty.String),
-	RefineResult: refineNotNull,
-	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		ts, err := parseTimestamp(args[0].AsString())
-		if err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-		duration, err := time.ParseDuration(args[1].AsString())
-		if err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-
-		return cty.StringVal(ts.Add(duration).Format(time.RFC3339)), nil
-	},
-})
-
 // TimeCmpFunc compares two timestamps, indicating whether they are equal or
 // if one is before the other.
 //
-// TimTimeCmpFunceCmp considers the UTC offset of each given timestamp when making its
+// TimeCmpFunc considers the UTC offset of each given timestamp when making its
 // decision, so for example 6:00 +0200 and 4:00 UTC are equal.
 //
 // In the Terraform language, timestamps are conventionally represented as

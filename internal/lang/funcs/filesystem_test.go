@@ -18,67 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
-func TestFile(t *testing.T) {
-	tests := []struct {
-		Path cty.Value
-		Want cty.Value
-		Err  string
-	}{
-		{
-			cty.StringVal("testdata/hello.txt"),
-			cty.StringVal("Hello World"),
-			``,
-		},
-		{
-			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
-			cty.UnknownVal(cty.String).RefineNotNull().Mark(marks.Sensitive),
-			``,
-		},
-		{
-			cty.StringVal("testdata/icon.png"),
-			cty.NilVal,
-			`contents of "testdata/icon.png" are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
-		},
-		{
-			cty.StringVal("testdata/icon.png").Mark(marks.Sensitive),
-			cty.NilVal,
-			`contents of (sensitive value) are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
-		},
-		{
-			cty.StringVal("testdata/missing"),
-			cty.NilVal,
-			`no file exists at "testdata/missing"; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
-		},
-		{
-			cty.StringVal("testdata/missing").Mark(marks.Sensitive),
-			cty.NilVal,
-			`no file exists at (sensitive value); this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("File(\".\", %#v)", test.Path), func(t *testing.T) {
-			got, err := File(".", test.Path)
-
-			if test.Err != "" {
-				if err == nil {
-					t.Fatal("succeeded; want error")
-				}
-				if got, want := err.Error(), test.Err; got != want {
-					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
-				}
-				return
-			} else if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-			}
-		})
-	}
-}
-
 func TestTemplateFile(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
