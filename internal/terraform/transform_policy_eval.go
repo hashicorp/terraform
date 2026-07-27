@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
@@ -14,6 +15,10 @@ import (
 // providers are kept open until all policies have been evaluated.
 type policyEvalTransformer struct {
 	PolicyClient policy.Client
+
+	// QueryPlan restricts upstream wiring to GraphNodeConfigResource nodes with
+	// addrs.ListResourceMode, rather than all vertices.
+	QueryPlan bool
 }
 
 var _ GraphTransformer = (*policyEvalTransformer)(nil)
@@ -35,6 +40,18 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		// sources of a provider.
 		if _, ok := v.(GraphNodeCloseProvider); ok {
 			g.Connect(dag.BasicEdge(v, policyNode))
+			continue
+		}
+
+		// In query mode, policyNode only needs to depend on list block nodes since
+		// those are the only vertices that populate the policy subgraph via ctx.PolicyGraph().AddQuery.
+		// All other vertices are skipped.
+		if t.QueryPlan {
+			if res, ok := v.(GraphNodeConfigResource); ok {
+				if res.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
+					g.Connect(dag.BasicEdge(policyNode, v))
+				}
+			}
 			continue
 		}
 
