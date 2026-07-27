@@ -16,6 +16,10 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// NewQueryOperation creates the human-readable Operation implementation for the
+// query command. The JSON path is wired separately: QueryJSON.Operation() returns
+// a *QueryOperationJSON directly without going through this constructor, so
+// ViewJSON is intentionally not handled here. Passing ViewJSON would panic.
 func NewQueryOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
 	switch vt {
 	case arguments.ViewHuman:
@@ -65,20 +69,22 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	// The hook for individual query blocks do not display any output when the results are empty,
 	// so we will display a grouped warning message here for the empty queries.
 	emptyBlocks := []string{}
-	for _, query := range plan.Changes.Queries {
-		pSchema := schemas.ProviderSchema(query.ProviderAddr.Provider)
-		addr := query.Addr
-		schema := pSchema.ListResourceTypes[addr.Resource.Resource.Type]
+	if plan != nil && plan.Changes != nil {
+		for _, query := range plan.Changes.Queries {
+			pSchema := schemas.ProviderSchema(query.ProviderAddr.Provider)
+			addr := query.Addr
+			schema := pSchema.ListResourceTypes[addr.Resource.Resource.Type]
 
-		results, err := query.Decode(schema)
-		if err != nil {
-			v.view.streams.Eprintln(err)
-			continue
-		}
+			results, err := query.Decode(schema)
+			if err != nil {
+				v.view.streams.Eprintln(err)
+				continue
+			}
 
-		data := results.Results.Value.GetAttr("data")
-		if data.LengthInt() == 0 {
-			emptyBlocks = append(emptyBlocks, addr.String())
+			data := results.Results.Value.GetAttr("data")
+			if data.LengthInt() == 0 {
+				emptyBlocks = append(emptyBlocks, addr.String())
+			}
 		}
 	}
 
