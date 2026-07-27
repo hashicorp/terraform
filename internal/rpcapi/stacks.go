@@ -347,7 +347,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 				syncEvts.Send(&stacks.PlanStackChanges_Event{
 					Event: &stacks.PlanStackChanges_Event_PolicySetupDiagnostics{
 						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
-							// TODO: there is no target address here, since the diagnostics are at the top-level
+							// There is no target address here, since the diagnostics are at the top-level
 							Diagnostics: policyDiagsToProto("", diags),
 						},
 					},
@@ -722,7 +722,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 				syncEvts.Send(&stacks.ApplyStackChanges_Event{
 					Event: &stacks.ApplyStackChanges_Event_PolicySetupDiagnostics{
 						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
-							// TODO: there is no target address here, since the diagnostics are at the top-level
+							// There is no target address here, since the diagnostics are at the top-level
 							Diagnostics: policyDiagsToProto("", diags),
 						},
 					},
