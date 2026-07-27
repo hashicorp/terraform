@@ -178,6 +178,18 @@ func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse) 
 	}
 }
 
+func (v *JSONView) logPolicyQuerySummary(summary queryPolicySummary) {
+	v.log.Error(
+		"Policy query summary",
+		"type", json.MessagePolicyQuerySummary,
+		"@policy", "true",
+		"list_block_address", summary.ListBlockAddress,
+		"overall_result", summary.OverallResult,
+		"results", summary.Results,
+		"passed_policies", summary.PassedPolicies,
+	)
+}
+
 func (v *JSONView) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	v.logPolicyResult(addr, resp)
 }
