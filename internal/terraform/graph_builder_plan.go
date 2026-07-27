@@ -266,7 +266,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ActionTargets:   b.ActionTargets,
 			ResourceTargets: b.Targets,
 			queryPlanMode:   b.queryPlan,
-			skip:            b.SkipActions,
+			Skip:            b.SkipActions,
 		},
 
 		// Create expansion nodes for all of the module calls. This must
