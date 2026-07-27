@@ -710,10 +710,10 @@ resource "test_instance" "resource" {
 				})
 			}),
 			outputs: cty.EmptyObjectVal,
-			},
-			"ephemeral_override": {
-				configs: map[string]string{
-					"main.tf": `
+		},
+		"ephemeral_override": {
+			configs: map[string]string{
+				"main.tf": `
 	ephemeral "test_ephemeral" "secret" {
 			input = "my-input"
 	}
@@ -723,18 +723,18 @@ resource "test_instance" "resource" {
 			value     = ephemeral.test_ephemeral.secret.result
 	}
 	`,
-				},
-				overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(mustResourceInstanceAddr("ephemeral.test_ephemeral.secret"), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{
-							"result": cty.StringVal("mocked-secret"),
-						}),
-					})
-				}),
-				// Ephemeral outputs are not stored in state; no outputs to compare.
-				outputs: cty.EmptyObjectVal,
 			},
-		}
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustResourceInstanceAddr("ephemeral.test_ephemeral.secret"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"result": cty.StringVal("mocked-secret"),
+					}),
+				})
+			}),
+			// Ephemeral outputs are not stored in state; no outputs to compare.
+			outputs: cty.EmptyObjectVal,
+		},
+	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 			cfg := testModuleInline(t, tc.configs)
@@ -745,11 +745,11 @@ resource "test_instance" "resource" {
 			})
 
 			plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
-					Mode:                      plans.NormalMode,
-					Overrides:                 tc.overrides,
-					GenerateConfigPath:        "out.tf",
-					AllowRootEphemeralOutputs: true,
-				})
+				Mode:                      plans.NormalMode,
+				Overrides:                 tc.overrides,
+				GenerateConfigPath:        "out.tf",
+				AllowRootEphemeralOutputs: true,
+			})
 			if len(tc.expectedErr) > 0 {
 				if diags.ErrWithWarnings().Error() != tc.expectedErr {
 					t.Fatal(diags)
@@ -765,7 +765,7 @@ resource "test_instance" "resource" {
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
-	
+
 			outputs := make(map[string]cty.Value)
 			for _, output := range cfg.Module.Outputs {
 				if output.Ephemeral {
@@ -787,7 +787,7 @@ resource "test_instance" "resource" {
 			_, diags = ctx.Plan(cfg, state, &PlanOpts{
 				Mode:                      plans.RefreshOnlyMode,
 				AllowRootEphemeralOutputs: true,
-				Overrides: tc.overrides,
+				Overrides:                 tc.overrides,
 			})
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
@@ -796,7 +796,7 @@ resource "test_instance" "resource" {
 			destroyPlan, diags := ctx.Plan(cfg, state, &PlanOpts{
 				Mode:                      plans.DestroyMode,
 				AllowRootEphemeralOutputs: true,
-				Overrides: tc.overrides,
+				Overrides:                 tc.overrides,
 			})
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())

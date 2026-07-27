@@ -234,8 +234,8 @@ func TestMockData_Merge(t *testing.T) {
 		},
 		"ephemeral_no_collisions": {
 			current: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral": {
 						Mode:     addrs.EphemeralResourceMode,
@@ -246,8 +246,8 @@ func TestMockData_Merge(t *testing.T) {
 				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 			},
 			target: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral_two": {
 						Mode:     addrs.EphemeralResourceMode,
@@ -258,8 +258,8 @@ func TestMockData_Merge(t *testing.T) {
 				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 			},
 			result: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral": {
 						Mode:     addrs.EphemeralResourceMode,
@@ -277,8 +277,8 @@ func TestMockData_Merge(t *testing.T) {
 		},
 		"ephemeral_collision_skipped": {
 			current: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral": {
 						Mode:     addrs.EphemeralResourceMode,
@@ -289,8 +289,8 @@ func TestMockData_Merge(t *testing.T) {
 				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 			},
 			target: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral": {
 						Mode:     addrs.EphemeralResourceMode,
@@ -301,8 +301,8 @@ func TestMockData_Merge(t *testing.T) {
 				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 			},
 			result: &MockData{
-				MockResources:          map[string]*MockResource{},
-				MockDataSources:        map[string]*MockResource{},
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
 				MockEphemeralResources: map[string]*MockResource{
 					"test_ephemeral": {
 						Mode:     addrs.EphemeralResourceMode,
