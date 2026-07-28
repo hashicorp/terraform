@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 func TestSensitive(t *testing.T) {
@@ -55,7 +56,7 @@ func TestSensitive(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("sensitive(%#v)", test.Input), func(t *testing.T) {
-			got, err := Sensitive(test.Input)
+			got, err := SensitiveFunc.Call([]cty.Value{test.Input})
 
 			if test.WantErr != "" {
 				if err == nil {
@@ -138,7 +139,7 @@ func TestNonsensitive(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("nonsensitive(%#v)", test.Input), func(t *testing.T) {
-			got, err := Nonsensitive(test.Input)
+			got, err := NonsensitiveFunc.Call([]cty.Value{test.Input})
 
 			if test.WantErr != "" {
 				if err == nil {
@@ -213,7 +214,7 @@ func TestIssensitive(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("issensitive(%#v)", test.Input), func(t *testing.T) {
-			got, err := Issensitive(test.Input)
+			got, err := IssensitiveFunc.Call([]cty.Value{test.Input})
 
 			if test.WantErr != "" {
 				if err == nil {

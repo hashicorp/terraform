@@ -471,14 +471,22 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitializingStateStoreProviderPlugin(rootModEarly.StateStore.Type)
+			pAddr := rootModEarly.StateStore.ProviderAddr
+			// empty address would indicate wrong configuration
+			// such as missing or mismatching provider requirement
+			// which will be surfaced as diagnostic during installation
+			if !pAddr.IsZero() {
+				cons := reqs[pAddr]
+				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, rootModEarly.StateStore.Type)
+			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogReusingPreviousProviderVersion(provider)
+				pLock := previousLocks.Provider(provider)
+				view.LogReusingPreviousProviderVersion(provider, pLock.Version())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)
@@ -632,7 +640,8 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogReusingPreviousProviderVersion(provider)
+				pLock := locks.Provider(provider)
+				view.LogReusingPreviousProviderVersion(provider, pLock.Version())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)

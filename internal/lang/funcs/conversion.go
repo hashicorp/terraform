@@ -11,12 +11,13 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/customdecode"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
-	"github.com/hashicorp/terraform/internal/lang/ephemeral"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/lang/types"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/lang/types"
 )
 
 // MakeToFunc constructs a "to..." function, like "tostring", which converts
@@ -136,10 +137,6 @@ var EphemeralAsNullFunc = function.New(&function.Spec{
 	},
 })
 
-func EphemeralAsNull(input cty.Value) (cty.Value, error) {
-	return EphemeralAsNullFunc.Call([]cty.Value{input})
-}
-
 // TypeFunc returns an encapsulated value containing its argument's type. This
 // value is marked to allow us to limit the use of this function at the moment
 // to only a few supported use cases.
@@ -159,10 +156,6 @@ var TypeFunc = function.New(&function.Spec{
 		return cty.CapsuleVal(types.TypeType, &givenType).Mark(marks.TypeType), nil
 	},
 })
-
-func Type(input []cty.Value) (cty.Value, error) {
-	return TypeFunc.Call(input)
-}
 
 // ConvertFunc is a cty function which takes any value as the first argument,
 // and returns the result of converting the first argument to the type
