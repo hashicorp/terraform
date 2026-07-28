@@ -97,6 +97,7 @@ type BuiltinEvalContext struct {
 	OverrideValues          *mocking.Overrides
 	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
 	PolicyClientValue       policy.Client
+	PolicySemaphoreValue    Semaphore
 	DeprecationsValue       *deprecation.Deprecations
 }
 
@@ -106,6 +107,10 @@ func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.Prov
 
 func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {
 	return ctx.PolicyClientValue
+}
+
+func (ctx *BuiltinEvalContext) PolicySemaphore() Semaphore {
+	return ctx.PolicySemaphoreValue
 }
 
 func (ctx *BuiltinEvalContext) PolicyGraph() *policySubgraph {
