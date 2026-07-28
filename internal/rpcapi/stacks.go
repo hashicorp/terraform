@@ -735,9 +735,6 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 				defer policyClient.Stop()
 			}
 		}
-
-		log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
-		defer policyClient.Stop()
 	}
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
