@@ -62,11 +62,13 @@ type ManagedResource struct {
 
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
+	Destroy             bool
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
+	DestroySet             bool
 }
 
 type ListResource struct {
@@ -218,6 +220,12 @@ func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool)
 				diags = diags.Extend(hclDiags)
 
 				r.TriggersReplacement = append(r.TriggersReplacement, exprs...)
+			}
+
+			if attr, exists := lcContent.Attributes["destroy"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.Destroy)
+				diags = append(diags, valDiags...)
+				r.Managed.DestroySet = true
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
@@ -996,6 +1004,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "replace_triggered_by",
+		},
+		{
+			Name: "destroy",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

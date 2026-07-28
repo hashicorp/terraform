@@ -5,19 +5,31 @@ package addrs
 
 // Self is the address of the special object "self" that behaves as an alias
 // for a containing object currently in scope.
-const Self selfT = 0
+const Self SelfType = 0
 
-type selfT int
+// Caller is a pseudo-alias for self, representing the object triggering an
+// action. An action is called from within a resource, but we use "caller"
+// because the configuration is written outside of the resource context.
+const Caller SelfType = 1
 
-func (s selfT) referenceableSigil() {
+type SelfType int
+
+func (s SelfType) referenceableSigil() {
 }
 
-func (s selfT) String() string {
-	return "self"
+func (s SelfType) String() string {
+	switch s {
+	case 0:
+		return "self"
+	case 1:
+		return "caller"
+	default:
+		panic("invalid self type")
+	}
 }
 
-func (s selfT) UniqueKey() UniqueKey {
-	return Self // Self is its own UniqueKey
+func (s SelfType) UniqueKey() UniqueKey {
+	return s
 }
 
-func (s selfT) uniqueKeySigil() {}
+func (s SelfType) uniqueKeySigil() {}

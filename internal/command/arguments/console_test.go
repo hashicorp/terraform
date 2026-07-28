@@ -46,6 +46,14 @@ func TestParseConsole_valid(t *testing.T) {
 				InputEnabled: false,
 			},
 		},
+		"module scope": {
+			[]string{"-scope=module.child"},
+			&Console{
+				Vars:         &Vars{},
+				InputEnabled: true,
+				Scope:        "module.child",
+			},
+		},
 		"compact warnings": {
 			[]string{"-compact-warnings"},
 			&Console{
@@ -55,13 +63,14 @@ func TestParseConsole_valid(t *testing.T) {
 			},
 		},
 		"all flags": {
-			[]string{"-state", "mystate.tfstate", "-plan", "-input=false", "-compact-warnings"},
+			[]string{"-state", "mystate.tfstate", "-plan", "-input=false", "-compact-warnings", "-scope=module.child[0]"},
 			&Console{
 				Vars:            &Vars{},
 				StatePath:       "mystate.tfstate",
 				EvalFromPlan:    true,
 				InputEnabled:    false,
 				CompactWarnings: true,
+				Scope:           "module.child[0]",
 			},
 		},
 	}

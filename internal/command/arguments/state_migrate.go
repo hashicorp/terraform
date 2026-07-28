@@ -5,18 +5,21 @@ package arguments
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const lockFileName = ".terraform.lock.hcl"
+const lockFileName = depsfile.LockFilePath // .terraform.lock.hcl
 
 // StateMigrate represents the command-line arguments for the state migrate command.
 type StateMigrate struct {
 	SourceLockFilePath      string
 	DestinationLockFilePath string
 	Upgrade                 bool
+	ForceCopy               bool
 	InputEnabled            bool
 
 	ViewType ViewType
@@ -27,17 +30,17 @@ type StateMigrate struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	migrate := &StateMigrate{
-		ViewType: ViewHuman,
-	}
+	migrate := &StateMigrate{}
 
 	var srcLockFilePath, dstLockFilePath string
-	var upgrade, inputEnabled bool
+	var upgrade, inputEnabled, forceCopy, json bool
 	cmdFlags := defaultFlagSet("state migrate")
 	cmdFlags.StringVar(&srcLockFilePath, "source-provider-lock-file", "", "Path to a provider lock file for the source provider.")
 	cmdFlags.StringVar(&dstLockFilePath, "destination-provider-lock-file", "", "Path to a provider lock file for the destination provider.")
 	cmdFlags.BoolVar(&upgrade, "upgrade", false, "Trigger upgrade of the provider.")
 	cmdFlags.BoolVar(&inputEnabled, "input", true, "Enable input for interactive prompts.")
+	cmdFlags.BoolVar(&forceCopy, "force-copy", false, "Suppress and auto-approve prompts about copying state data. Enables state migrations when interactive prompts are disabled via -input=false.")
+	cmdFlags.BoolVar(&json, "json", false, "Enable JSON output.")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -50,6 +53,7 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 
 	migrate.Upgrade = upgrade
 	migrate.InputEnabled = inputEnabled
+	migrate.ForceCopy = forceCopy
 
 	if inputEnabled {
 		// lock file paths are only to be used in automation
@@ -67,18 +71,27 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 				"-destination-provider-lock-file cannot be used outside of automation (with -input=true)",
 			))
 		}
-		if len(diags) > 0 {
-			return migrate, diags
-		}
 
-	}
-	if dstLockFilePath == "" {
-		// setting default here instead of in the flag definition
-		// to make check above free of side effects
-		dstLockFilePath = lockFileName
+		// JSON output is only to be used in automation, as input cannot be received
+		if json {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting command-line flags provided",
+				"-json cannot be used outside of automation (with -input=true)",
+			))
+		}
 	}
 
 	if srcLockFilePath != "" {
+		// If a file is supplied via flag, it must exist.
+		if _, err := os.Stat(srcLockFilePath); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unreadable source provider lock file",
+				fmt.Sprintf("%q: %s", srcLockFilePath, err.Error()),
+			))
+		}
+
 		srcFilename := filepath.Base(srcLockFilePath)
 		if srcFilename != lockFileName {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -86,20 +99,36 @@ func ParseStateMigrate(args []string) (*StateMigrate, tfdiags.Diagnostics) {
 				"Invalid source-provider-lock-file",
 				fmt.Sprintf("Expected lock file name to be %s, got: %s", lockFileName, srcFilename),
 			))
-		} else {
-			migrate.SourceLockFilePath = srcLockFilePath
 		}
+
+		migrate.SourceLockFilePath = srcLockFilePath
 	}
 
-	dstFilename := filepath.Base(dstLockFilePath)
-	if dstFilename != lockFileName {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid destination-provider-lock-file",
-			fmt.Sprintf("Expected lock file name to be %s, got: %s", lockFileName, dstFilename),
-		))
-	} else {
+	if dstLockFilePath != "" {
+		// If a file is supplied via flag, it must exist.
+		if _, err := os.Stat(dstLockFilePath); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unreadable destination provider lock file",
+				fmt.Sprintf("%q: %s", dstLockFilePath, err.Error()),
+			))
+		}
+
+		dstFilename := filepath.Base(dstLockFilePath)
+		if dstFilename != lockFileName {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid destination-provider-lock-file",
+				fmt.Sprintf("Expected lock file name to be %s, got: %s", lockFileName, dstFilename),
+			))
+		}
 		migrate.DestinationLockFilePath = dstLockFilePath
+	}
+
+	if json {
+		migrate.ViewType = ViewJSON
+	} else {
+		migrate.ViewType = ViewHuman
 	}
 
 	return migrate, diags

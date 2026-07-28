@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -20,8 +22,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -58,6 +62,8 @@ type stacksServer struct {
 	// for testing. This just ensures our tests aren't flaky as we can use a
 	// constant timestamp for the plan.
 	planTimestampOverride *time.Time
+	// policyClientOverride is an in-memory override of the policy client used for testing.
+	policyClientOverride policy.Client
 }
 
 var (
@@ -318,6 +324,44 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
+	// Setup the policy client if the caller provides a plugin path and policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
+			}
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
+			if diags.HasErrors() {
+				// Send the policy diagnostics back to the client
+				syncEvts.Send(&stacks.PlanStackChanges_Event{
+					Event: &stacks.PlanStackChanges_Event_PolicySetupDiagnostics{
+						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
+							// There is no target address here, since the diagnostics are at the top-level
+							Diagnostics: policyDiagsToProto("", diags),
+						},
+					},
+				})
+
+				// Still allow the plan to run, which lets tfc-agent determine what to do with the policy diagnostics
+				policyClient = nil
+			} else {
+				log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+				defer policyClient.Stop()
+			}
+		}
+	}
+
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -373,8 +417,21 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
-	ctx = stackruntime.ContextWithHooks(ctx, hooks)
+	planHooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
+	ctx = stackruntime.ContextWithHooks(ctx, planHooks)
+
+	// We collect policy evaluation results from individual resource events
+	// during the planning process and then send them at once to the stacks client.
+	policyResults := stackPolicyEvaluationHooks(policyClient, planHooks)
+	sendPolicyResults := sync.OnceFunc(func() {
+		for addr, results := range policyResults.All() {
+			syncEvts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
+					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+	})
 
 	var planMode plans.Mode
 	switch req.PlanMode {
@@ -414,6 +471,7 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		PolicyClient:       policyClient,
 
 		// planTimestampOverride will be null if not set, so it's fine for
 		// us to just set this all the time. In practice, this will only have
@@ -439,7 +497,12 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	// The actual plan operation runs in the background, and emits events
 	// to us via the channels in rtResp before finally closing changesCh
 	// to signal that the process is complete.
-	go stackruntime.Plan(planCtx, &rtReq, &rtResp)
+	go func() {
+		stackruntime.Plan(planCtx, &rtReq, &rtResp)
+
+		// Send policy evaluation results to the client after the plan completes.
+		sendPolicyResults()
+	}()
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
 		diags := tfdiags.Diagnostics{diag}
@@ -475,6 +538,10 @@ Events:
 						emitDiag(diag)
 					}
 				}
+
+				// If the changes channel is closed before we finish, we still
+				// need to send any policy results so far to the client.
+				sendPolicyResults()
 				break Events
 			}
 
@@ -632,6 +699,44 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 	}
 
+	// Setup the policy client if the caller provides a plugin path and policies
+	var policyClient policy.Client
+	if req.TfpolicyPluginPath != nil && len(req.PolicyPaths) > 0 {
+		if s.policyClientOverride != nil {
+			// Tests use a mock policy client
+			policyClient = s.policyClientOverride
+		} else {
+			var entitlement *policy.Entitlement
+			if req.PolicyEntitlement != nil {
+				entitlement = &policy.Entitlement{
+					Host:  req.PolicyEntitlement.Host,
+					Token: req.PolicyEntitlement.Token,
+					Org:   req.PolicyEntitlement.Org,
+				}
+			}
+			// Normal code path for connecting to a policy client
+			var diags policy.Diagnostics
+			policyClient, diags = policy.NewPolicyClient(ctx, *req.TfpolicyPluginPath, req.PolicyPaths, entitlement)
+			if diags.HasErrors() {
+				// Send the policy diagnostics back to the client
+				syncEvts.Send(&stacks.ApplyStackChanges_Event{
+					Event: &stacks.ApplyStackChanges_Event_PolicySetupDiagnostics{
+						PolicySetupDiagnostics: &stacks.PolicySetupDiagnostics{
+							// There is no target address here, since the diagnostics are at the top-level
+							Diagnostics: policyDiagsToProto("", diags),
+						},
+					},
+				})
+
+				// Still allow the apply to run, which lets tfc-agent determine what to do with the policy diagnostics
+				policyClient = nil
+			} else {
+				log.Printf("[DEBUG] rpcapi: Policy engine initialized with paths: %v", req.PolicyPaths)
+				defer policyClient.Stop()
+			}
+		}
+	}
+
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
@@ -640,9 +745,21 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
-	ctx = stackruntime.ContextWithHooks(ctx, hooks)
+	applyHooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
+	ctx = stackruntime.ContextWithHooks(ctx, applyHooks)
 
+	// We collect policy evaluation results from individual resource events
+	// during the apply process and then send them at once to the stacks client.
+	policyResults := stackPolicyEvaluationHooks(policyClient, applyHooks)
+	sendPolicyResults := sync.OnceFunc(func() {
+		for addr, results := range policyResults.All() {
+			syncEvts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
+					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+	})
 	changesCh := make(chan stackstate.AppliedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.ApplyRequest{
@@ -652,6 +769,7 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+		PolicyClient:       policyClient,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -672,7 +790,12 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	// The actual apply operation runs in the background, and emits events
 	// to us via the channels in rtResp before finally closing changesCh
 	// to signal that the process is complete.
-	go stackruntime.Apply(applyCtx, &rtReq, &rtResp)
+	go func() {
+		stackruntime.Apply(applyCtx, &rtReq, &rtResp)
+
+		// Send policy evaluation results to the client after the apply completes.
+		sendPolicyResults()
+	}()
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
 		diags := tfdiags.Diagnostics{diag}
@@ -708,6 +831,10 @@ Events:
 						emitDiag(diag)
 					}
 				}
+
+				// If the changes channel is closed before we finish, we still
+				// need to send any policy results so far to the client.
+				sendPolicyResults()
 				break Events
 			}
 
@@ -1019,7 +1146,7 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 }
 
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_Progress{
@@ -1029,10 +1156,23 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 		},
 		mainStackSource,
 	)
+
+	changeHooks.ReportProviderInstancePolicyResult = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.Result.Empty() {
+			return
+		}
+		evts.Send(&stacks.PlanStackChanges_Event{
+			Event: &stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h),
+			},
+		})
+	}
+
+	return changeHooks
 }
 
 func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
-	return stackChangeHooks(
+	changeHooks := stackChangeHooks(
 		func(scp *stacks.StackChangeProgress) error {
 			return evts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_Progress{
@@ -1042,6 +1182,19 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 		},
 		mainStackSource,
 	)
+
+	changeHooks.ReportProviderInstancePolicyResult = func(ctx context.Context, h *hooks.ProviderInstancePolicyResults) {
+		if h.Result.Empty() {
+			return
+		}
+		evts.Send(&stacks.ApplyStackChanges_Event{
+			Event: &stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation{
+				ProviderInstancePolicyEvaluation: providerInstancePolicyEvaluationProto(h),
+			},
+		})
+	}
+
+	return changeHooks
 }
 
 // stackChangeHooks is the shared hook-handling logic for both [stackPlanHooks]
@@ -1363,6 +1516,26 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			return span
 		},
 	}
+}
+
+func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsComponentInstance, map[string]policy.EvaluationResponse] {
+	resultMap := collections.NewMap[stackaddrs.AbsComponentInstance, map[string]policy.EvaluationResponse]()
+	if policyClient != nil {
+		mu := sync.Mutex{}
+		runtimeHooks.ReportComponentInstancePolicyResult = func(ctx context.Context, a any, h *hooks.ComponentInstancePolicyResult) any {
+			mu.Lock()
+			defer mu.Unlock()
+			mp, ok := resultMap.GetOk(h.ComponentAddr)
+			if !ok {
+				mp = make(map[string]policy.EvaluationResponse)
+				resultMap.Put(h.ComponentAddr, mp)
+			}
+			mp[h.ResourceAddr] = h.Result
+			return nil
+		}
+	}
+
+	return resultMap
 }
 
 func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackChangeProgress_ResourceInstancePlannedChange, error) {

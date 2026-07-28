@@ -199,6 +199,10 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		}
 	}
 
+	if len(op.PolicyPaths) != 0 {
+		runOptions.PolicyPaths = append(runOptions.PolicyPaths, op.PolicyPaths...)
+	}
+
 	runVariables, err := b.parseRunVariables(op)
 	if err != nil {
 		return nil, err
@@ -316,6 +320,13 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		if err != nil {
 			return r, err
 		}
+	}
+
+	// Show the Terraform policy results. A failed mandatory policy errors the
+	// run, but the user still needs to see why, so this always renders.
+	if err := b.renderTFPolicyEvaluations(stopCtx, r,
+		tfe.TFPolicyEvaluationStageTypeInit, tfe.TFPolicyEvaluationStageTypePlan); err != nil {
+		return r, err
 	}
 
 	return r, nil

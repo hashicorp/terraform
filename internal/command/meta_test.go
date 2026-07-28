@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -259,6 +258,7 @@ func TestMeta_StatePersistInterval(t *testing.T) {
 	})
 }
 
+// Invalid workspace names provided via ENV are validated.
 func TestMeta_Workspace_override(t *testing.T) {
 	m := new(Meta)
 
@@ -296,7 +296,6 @@ func TestMeta_Workspace_override(t *testing.T) {
 
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
-	os.MkdirAll(td, 0755)
 	t.Chdir(td)
 
 	// this is an invalid workspace name
@@ -311,13 +310,25 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	m := new(Meta)
 
+	// Normally, errors are returned when selecting an invalid workspace.
 	ws, err := m.Workspace()
+	if ws != "" {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err == nil {
+		t.Errorf("Expected error but got none")
+	}
+
+	// But it is possible to select an invalid workspace, enabling some
+	// commands to interact with and correct the issue.
+	m.bypassWorkspaceNameValidityCheck = true
+	ws, err = m.Workspace()
 	if ws != workspace {
 		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
 	}
@@ -431,7 +442,7 @@ func TestCommand_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
 	t.Chdir(td)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	meta := Meta{
 		Ui: ui,
 	}

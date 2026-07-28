@@ -6,8 +6,6 @@ package command
 import (
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/cli"
 )
 
 func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
@@ -18,7 +16,7 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -48,7 +46,7 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &PlanCommand{
 			Meta: Meta{
@@ -78,7 +76,7 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateListCommand{
 			Meta: Meta{

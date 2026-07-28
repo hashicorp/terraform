@@ -149,6 +149,40 @@ func TestMarshalActionInvocations(t *testing.T) {
 				InvokeActionTrigger: new(InvokeActionTrigger),
 			},
 		},
+		"trigger address": {
+			input: &plans.ActionInvocationInstanceSrc{
+				Addr: action,
+				ActionTrigger: &plans.InvokeActionTrigger{
+					CallingResourceAddr: func() *addrs.AbsResourceInstance {
+						a := mustAddr("test_resource.foo[0]")
+						return &a
+					}(),
+				},
+				ConfigValue: mustDynamicValue(t, cty.ObjectVal(map[string]cty.Value{
+					"optional":  cty.StringVal("hello"),
+					"sensitive": cty.StringVal("world"),
+				})),
+				SensitiveConfigPaths: nil,
+				ProviderAddr:         provider,
+			},
+			output: ActionInvocation{
+				Address: "action.test_action.test",
+				Type:    "test_action",
+				Name:    "test",
+				ConfigValues: mustJson(t, map[string]interface{}{
+					"optional":  "hello",
+					"sensitive": "world",
+				}),
+				ConfigSensitive: mustJson(t, map[string]interface{}{
+					"sensitive": true,
+				}),
+				ConfigUnknown: mustJson(t, map[string]interface{}{}),
+				ProviderName:  "registry.terraform.io/hashicorp/test",
+				InvokeActionTrigger: &InvokeActionTrigger{
+					CallingResourceAddress: "test_resource.foo[0]",
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

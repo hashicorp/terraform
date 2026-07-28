@@ -184,6 +184,46 @@ var protocSteps = []protocStep{
 			"stacksproto1.proto",
 		},
 	},
+	{
+		"Terraform Policy RPC API",
+		"internal/policy/proto",
+		[]string{
+			"--go_out=.",
+			"--go_opt=paths=source_relative",
+			"--go-grpc_out=.",
+			"--go-grpc_opt=paths=source_relative",
+			"-I./",
+			"./policy.proto"},
+	},
+	{
+		"Terraform Policy Callback RPC API",
+		"internal/policy/proto",
+		[]string{
+			"--go_out=.",
+			"--go_opt=paths=source_relative",
+			"--go-grpc_out=.",
+			"--go-grpc_opt=paths=source_relative",
+			"-I./",
+			"./callback.proto"},
+	},
+	{
+		"Terraform Policy Diagnostics",
+		"internal/policy/proto",
+		[]string{
+			"--go_out=.",
+			"--go_opt=paths=source_relative",
+			"-I./",
+			"./diagnostics.proto"},
+	},
+	{
+		"Terraform Policy Shared Types",
+		"internal/policy/proto",
+		[]string{
+			"--go_out=.",
+			"--go_opt=paths=source_relative",
+			"-I./",
+			"./types.proto"},
+	},
 }
 
 func main() {

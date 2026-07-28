@@ -9,14 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -73,7 +72,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -109,7 +108,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	t.Run("auto approve", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -145,7 +144,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	t.Run("cancel at approval step", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -180,7 +179,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	t.Run("no matching provider found", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -209,7 +208,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	})
 
 	t.Run("invalid flags", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -235,7 +234,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	})
 
 	t.Run("wrong number of arguments", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -257,7 +256,7 @@ func TestStateReplaceProvider(t *testing.T) {
 	})
 
 	t.Run("invalid provider strings", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -294,7 +293,7 @@ func TestStateReplaceProvider(t *testing.T) {
 func TestStateReplaceProvider_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing resources
@@ -336,13 +335,15 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 	}
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
-		"default": stateBuf.Bytes(),
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
@@ -387,7 +388,7 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -419,7 +420,7 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -465,7 +466,7 @@ module.child:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
@@ -569,7 +570,7 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateReplaceProviderCommand{
 		StateMeta{

@@ -181,6 +181,10 @@ EOT_`,
 			cty.StringVal("an ephemeral value").Mark(marks.Ephemeral),
 			"(ephemeral value)",
 		},
+		{
+			cty.StringVal("I'm a deprecated string value").Mark(marks.Deprecation),
+			`"I'm a deprecated string value"`, // We don't render deprecated values differently, but we need to ensure the deprecation mark doesn't interfere with formatting
+		},
 	}
 
 	for _, test := range tests {

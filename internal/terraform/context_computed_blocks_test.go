@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -137,7 +136,7 @@ resource "test_resource" "computized" {
 	inst := state.ResourceInstance(mustResourceInstanceAddr("test_resource.computized"))
 	expectedState := `{"list":[{"attr":"test"}],"map":{"key":{"attr":"test"}},"set":[{"attr":"test"}],"single":{"attr":"test"}}`
 	if string(inst.Current.AttrsJSON) != expectedState {
-		fmt.Printf("expected: %s\ngot: %s\n", expectedState, inst.Current.AttrsJSON)
+		t.Fatalf("expected: %s\ngot: %s\n", expectedState, inst.Current.AttrsJSON)
 	}
 }
 

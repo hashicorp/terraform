@@ -16,10 +16,12 @@ import (
 )
 
 func TestUIInput_impl(t *testing.T) {
+	t.Parallel()
 	var _ terraform.UIInput = new(UIInput)
 }
 
 func TestUIInputInput(t *testing.T) {
+	t.Parallel()
 	i := &UIInput{
 		Reader: bytes.NewBufferString("foo\n"),
 		Writer: bytes.NewBuffer(nil),
@@ -36,6 +38,7 @@ func TestUIInputInput(t *testing.T) {
 }
 
 func TestUIInputInput_canceled(t *testing.T) {
+	t.Parallel()
 	r, w := io.Pipe()
 	i := &UIInput{
 		Reader: r,
@@ -86,6 +89,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 }
 
 func TestUIInputInput_spaces(t *testing.T) {
+	t.Parallel()
 	i := &UIInput{
 		Reader: bytes.NewBufferString("foo bar\n"),
 		Writer: bytes.NewBuffer(nil),
@@ -102,6 +106,7 @@ func TestUIInputInput_spaces(t *testing.T) {
 }
 
 func TestUIInputInput_Error(t *testing.T) {
+	t.Parallel()
 	i := &UIInput{
 		Reader: bytes.NewBuffer(nil),
 		Writer: bytes.NewBuffer(nil),

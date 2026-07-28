@@ -10,5 +10,6 @@ import (
 )
 
 func TestColorizeUi_impl(t *testing.T) {
+	t.Parallel()
 	var _ cli.Ui = new(ColorizeUi)
 }

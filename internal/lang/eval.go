@@ -79,6 +79,37 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	return val, diags
 }
 
+// EvalActionBlock is a special case for action blocks that allows the caller to
+// directly pass in the "caller" value. This allows for the evaluation of a
+// resource value which may be different from what's expected in the global
+// context, like for example when a destroy action needs to evaluate the
+// "before" value of the resource change.
+func (s *Scope) EvalActionBlock(body hcl.Body, schema *configschema.Block, caller cty.Value) (val cty.Value, diags tfdiags.Diagnostics) {
+
+	spec := schema.DecoderSpec()
+
+	refs, diags := langrefs.ReferencesInBlock(s.ParseRef, body, schema)
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	ctx, ctxDiags := s.EvalContextForExplicitSelf(refs)
+	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		// We'll stop early if we found problems in the references, because
+		// it's likely evaluation will produce redundant copies of the same errors.
+		return cty.UnknownVal(schema.ImpliedType()), diags
+	}
+
+	ctx.Variables["caller"] = caller
+	ctx.Variables["self"] = caller
+
+	val, evalDiags := hcldec.Decode(body, spec, ctx)
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
+
+	return val, diags
+}
+
 // EvalSelfBlock evaluates the given body only within the scope of the provided
 // object and instance key data. References to the object must use self, and the
 // key data will only contain count.index or each.key. The static values for
@@ -215,7 +246,7 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 	// We cheat a bit here and just build an EvalContext for our requested
 	// reference with the "self" address overridden, and then pull the "self"
 	// result out of it to return.
-	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject)
+	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject, false)
 	diags = diags.Append(ctxDiags)
 	val := ctx.Variables["self"]
 	if val == cty.NilVal {
@@ -244,10 +275,14 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 // this type offers, but this is here for less common situations where the
 // caller will handle the evaluation calls itself.
 func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	return s.evalContext(refs, s.SelfAddr)
+	return s.evalContext(refs, s.SelfAddr, false)
 }
 
-func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func (s *Scope) EvalContextForExplicitSelf(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return s.evalContext(refs, s.SelfAddr, true)
+}
+
+func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable, explicitSelf bool) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	if s == nil {
 		panic("attempt to construct EvalContext for nil Scope")
 	}
@@ -302,18 +337,17 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		rng := ref.SourceRange
 
 		rawSubj := ref.Subject
-		if rawSubj == addrs.Self {
+		if _, ok := rawSubj.(addrs.SelfType); ok {
+			if explicitSelf {
+				// A self value will be passed in explicitly as an evaluation
+				// variable, so we should not try to construct one here.
+				// Planning an orphaned instance or removed resource might fail
+				// here even though self/caller is still valid.
+				continue
+			}
+
 			if selfAddr == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Invalid "self" reference`,
-					// This detail message mentions some current practice that
-					// this codepath doesn't really "know about". If the "self"
-					// object starts being supported in more contexts later then
-					// we'll need to adjust this message.
-					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
-					Subject: ref.SourceRange.ToHCL().Ptr(),
-				})
+				diags = diags.Append(SelfContextDiagnostics(ref))
 				continue
 			}
 
@@ -326,7 +360,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			subj := selfAddr.(addrs.ResourceInstance)
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
-
 			diags = diags.Append(valDiags)
 
 			// Self is an exception in that it must always resolve to a
@@ -488,6 +521,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+		// "caller" is used directly when an action in invoked from the CLI,
+		// because we need to automatically retrieve the resource from state
+		vals["caller"] = self
 	}
 
 	if len(listResources) > 0 {
@@ -614,4 +650,30 @@ func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFu
 	}
 
 	return filteredDiags
+}
+
+// SelfContextDiagnostics produces a diagnostic message for incorrect usage of
+// the self object with the correct context for "self" vs "caller"
+func SelfContextDiagnostics(ref *addrs.Reference) *hcl.Diagnostic {
+	switch sub := ref.Subject.(type) {
+	case addrs.SelfType:
+		summary := fmt.Sprintf("Invalid %q reference", sub)
+		detail := fmt.Sprintf("The %q object is not available in this context. ", sub)
+		switch {
+		case sub == addrs.Self:
+			detail += "This object can be used only in resource provisioner, connection, and postcondition blocks."
+		case sub == addrs.Caller:
+			detail += "This object can be used only in action blocks triggered from a resource instance."
+		}
+
+		return &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  summary,
+			Detail:   detail,
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		}
+
+	default:
+		panic(fmt.Sprintf("reference %T is not a self type", ref))
+	}
 }

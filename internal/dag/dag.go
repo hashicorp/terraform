@@ -6,6 +6,7 @@ package dag
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -241,8 +242,33 @@ func (g *AcyclicGraph) Validate() error {
 				cycleStr[j] = VertexName(vertex)
 			}
 
+			// Reverse the cycle string so readers can interpret it
+			// left-to-right or top-to-bottom.
+			slices.Reverse(cycleStr)
+
+			// Since the cycle can start anywhere, pick an arbitrary first node
+			// for consistency. We're going to start with the shortest name, then
+			// compare lexically.
+			first := 0
+			for i := 1; i < len(cycleStr); i++ {
+				if len(cycleStr[i]) < len(cycleStr[first]) {
+					first = i
+					continue
+				}
+
+				if len(cycleStr[i]) == len(cycleStr[first]) && cycleStr[i] < cycleStr[first] {
+					first = i
+				}
+			}
+
+			// pivot the slice around our new first index
+			if first > 0 {
+				cycleStr = append(cycleStr[first:], cycleStr[:first]...)
+			}
+
 			err = errors.Join(err, fmt.Errorf(
-				"Cycle: %s", strings.Join(cycleStr, ", ")))
+				"Cycle:\n  %s", strings.Join(cycleStr, "\n  "),
+			))
 		}
 	}
 

@@ -21,6 +21,7 @@ type countHook struct {
 	Removed          int
 	Imported         int
 	ActionInvocation int
+	ActionFail       int
 
 	ToAdd          int
 	ToChange       int
@@ -34,18 +35,6 @@ type countHook struct {
 }
 
 var _ terraform.Hook = (*countHook)(nil)
-
-func (h *countHook) Reset() {
-	h.Lock()
-	defer h.Unlock()
-
-	h.pending = nil
-	h.Added = 0
-	h.Changed = 0
-	h.Removed = 0
-	h.Imported = 0
-	h.ActionInvocation = 0
-}
 
 func (h *countHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
@@ -127,7 +116,10 @@ func (h *countHook) PostApplyImport(id terraform.HookResourceIdentity, importing
 func (h *countHook) CompleteAction(id terraform.HookActionIdentity, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
-
 	h.ActionInvocation++
+	if err != nil {
+		h.ActionFail++
+	}
+
 	return terraform.HookActionContinue, nil
 }

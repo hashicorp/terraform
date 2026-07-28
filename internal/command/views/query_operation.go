@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -97,6 +98,14 @@ func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
+}
+
+func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
+}
+
 type QueryOperationJSON struct {
 	view *JSONView
 }
@@ -134,4 +143,12 @@ func (v *QueryOperationJSON) PlanNextStep(planPath string, genConfigPath string)
 
 func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
+}
+
+func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.view.PolicyResult(addr, resp)
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -53,6 +54,13 @@ type UiHook struct {
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
+
+func (h *UiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.viewLock.Lock()
+	defer h.viewLock.Unlock()
+	h.view.PolicyResult(addr, resp)
+	return terraform.HookActionContinue, nil
+}
 
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {

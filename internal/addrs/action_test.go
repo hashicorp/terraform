@@ -205,12 +205,12 @@ func TestAbsActionInstanceEqual(t *testing.T) {
 func TestConfigActionEqual(t *testing.T) {
 	actions := []ConfigAction{
 		{
-			RootModule,
-			Action{Type: "foo", Name: "bar"},
+			Module: RootModule,
+			Action: Action{Type: "foo", Name: "bar"},
 		},
 		{
-			Module{"child"},
-			Action{Type: "the", Name: "bloop"},
+			Module: Module{"child"},
+			Action: Action{Type: "the", Name: "bloop"},
 		},
 	}
 	for _, r := range actions {
@@ -228,34 +228,34 @@ func TestConfigActionEqual(t *testing.T) {
 	}{
 		{ // different name
 			ConfigAction{
-				RootModule,
-				Action{Type: "foo", Name: "bar"},
+				Module: RootModule,
+				Action: Action{Type: "foo", Name: "bar"},
 			},
 			ConfigAction{
-				RootModule,
-				Action{Type: "foo", Name: "baz"},
+				Module: RootModule,
+				Action: Action{Type: "foo", Name: "baz"},
 			},
 		},
 		// different type
 		{
 			ConfigAction{
-				RootModule,
-				Action{Type: "foo", Name: "bar"},
+				Module: RootModule,
+				Action: Action{Type: "foo", Name: "bar"},
 			},
 			ConfigAction{
-				RootModule,
-				Action{Type: "baz", Name: "bar"},
+				Module: RootModule,
+				Action: Action{Type: "baz", Name: "bar"},
 			},
 		},
 		// different Module
 		{
 			ConfigAction{
-				RootModule,
-				Action{Type: "foo", Name: "bar"},
+				Module: RootModule,
+				Action: Action{Type: "foo", Name: "bar"},
 			},
 			ConfigAction{
-				Module{"mod"},
-				Action{Type: "foo", Name: "bar"},
+				Module: Module{"mod"},
+				Action: Action{Type: "foo", Name: "bar"},
 			},
 		},
 	}

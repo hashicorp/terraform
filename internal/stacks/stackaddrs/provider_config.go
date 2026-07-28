@@ -94,3 +94,14 @@ func AbsProviderToInstance(addr AbsProviderConfig, ik addrs.InstanceKey) AbsProv
 		},
 	}
 }
+
+func ConfigProviderConfigForAbsInstance(instAddr AbsProviderConfigInstance) ConfigProviderConfig {
+	configInst := ConfigForAbs(instAddr) // a ConfigProviderConfigInstance
+	return ConfigProviderConfig{
+		Stack: configInst.Stack,
+		Item: ProviderConfig{
+			Name:     configInst.Item.ProviderConfig.Name,
+			Provider: configInst.Item.ProviderConfig.Provider,
+		},
+	}
+}

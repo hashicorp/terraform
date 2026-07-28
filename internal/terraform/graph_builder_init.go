@@ -43,7 +43,7 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 	} else {
 		steps = append(steps, &ModuleVariableTransformer{
 			Config:         b.Config,
-			ModuleOnly:     true,
+			Operation:      walkInit,
 			ValidateChecks: true,
 		})
 	}

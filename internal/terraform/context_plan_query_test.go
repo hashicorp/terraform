@@ -466,8 +466,8 @@ func TestContext2Plan_queryList(t *testing.T) {
 				`,
 			assertValidateDiags: func(t *testing.T, diags tfdiags.Diagnostics) {
 				tfdiags.AssertDiagnosticCount(t, diags, 1)
-				if !strings.Contains(diags[0].Description().Summary, "Cycle: list.test_resource") {
-					t.Errorf("Expected error message to contain 'Cycle: list.test_resource', got %q", diags[0].Description().Summary)
+				if !strings.Contains(diags[0].Description().Summary, "Cycle:\n  list.test_resource") {
+					t.Errorf("Expected error message to contain 'Cycle:\\n  list.test_resource', got: %q", diags[0].Description().Summary)
 				}
 				if diags[0].Severity() != tfdiags.Error {
 					t.Errorf("Expected error severity to be Error, got %s", diags[0].Severity())

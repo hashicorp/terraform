@@ -47,9 +47,15 @@ type LifecycleActionTrigger struct {
 	ActionTriggerEvent        string `json:"action_trigger_event,omitempty"`
 	ActionTriggerBlockIndex   int    `json:"action_trigger_block_index"`
 	ActionsListIndex          int    `json:"actions_list_index"`
+	OnFailure                 string `json:"on_failure"`
 }
 
-type InvokeActionTrigger struct{}
+type InvokeActionTrigger struct {
+	// An invoked action may have an associated resource instance to fill the
+	// caller object. We record that here to report the correct invocation to
+	// the user.
+	CallingResourceAddress string `json:"calling_resource_address,omitempty"`
+}
 
 func ActionInvocationCompare(a, b ActionInvocation) int {
 
@@ -133,9 +139,13 @@ func MarshalActionInvocation(action *plans.ActionInvocationInstanceSrc, schemas 
 			ActionTriggerEvent:        at.TriggerEvent().String(),
 			ActionTriggerBlockIndex:   at.ActionTriggerBlockIndex,
 			ActionsListIndex:          at.ActionsListIndex,
+			OnFailure:                 at.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
-		ai.InvokeActionTrigger = new(InvokeActionTrigger)
+		ai.InvokeActionTrigger = &InvokeActionTrigger{}
+		if at.CallingResourceAddr != nil {
+			ai.InvokeActionTrigger.CallingResourceAddress = at.CallingResourceAddr.String()
+		}
 	default:
 		return ai, fmt.Errorf("unsupported action trigger type: %T", at)
 	}

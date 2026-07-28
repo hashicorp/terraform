@@ -12,8 +12,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -46,6 +48,15 @@ type ApplyOpts struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
+	// file). This is required by policy evaluations against providers to access version information.
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
+
+	// Optional policy client.
+	// When set, policy evaluation logic will be executed in the graph.
+	// When nil, that logic will be skipped.
+	PolicyClient policy.Client
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -61,6 +72,7 @@ func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 	return &ApplyOpts{
 		ExternalProviders:         po.ExternalProviders,
 		AllowRootEphemeralOutputs: po.AllowRootEphemeralOutputs,
+		ProviderLocks:             po.ProviderLocks,
 	}
 }
 
@@ -207,13 +219,20 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		PlanTimeTimestamp: plan.Timestamp,
 
 		FunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
+
+		ProviderLocks: opts.ProviderLocks,
+		PolicyClient:  opts.PolicyClient,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
 	// After the walk is finished, we capture a simplified snapshot of the
 	// check result data as part of the new state.
-	walker.State.RecordCheckResults(walker.Checks)
+	// The concurrent-safe state has already been closed by the walk, so we
+	// need to access the underlying state object directly to update it.
+	state := walker.State.Lock()
+	state.RecordCheckResults(walker.Checks)
+	walker.State.Unlock()
 
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
@@ -225,7 +244,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		newState.PruneResourceHusks()
 	}
 
-	if len(plan.TargetAddrs) > 0 {
+	if len(plan.TargetAddrs) > 0 && len(plan.ActionTargetAddrs) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Applied changes may be incomplete",
@@ -378,6 +397,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		Overrides:                 plan.Overrides,
 		SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		PolicyClient:              opts.PolicyClient,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

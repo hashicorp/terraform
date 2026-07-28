@@ -71,6 +71,7 @@ func NewPlannedActionInvocation(aiSrc *plans.ActionInvocationInstanceSrc) *Actio
 			TriggeringEvent:         trigger.ActionTriggerEvent.String(),
 			ActionTriggerBlockIndex: trigger.ActionTriggerBlockIndex,
 			ActionsListIndex:        trigger.ActionsListIndex,
+			OnFailure:               trigger.ActionOnFailure.String(),
 		}
 	case *plans.InvokeActionTrigger:
 		ai.InvokeTrigger = new(ActionInvocationInvokeTrigger)
@@ -97,6 +98,7 @@ type ActionInvocationLifecycleTrigger struct {
 	TriggeringEvent         string       `json:"triggering_event"`
 	ActionTriggerBlockIndex int          `json:"action_trigger_block_index"`
 	ActionsListIndex        int          `json:"actions_list_index"`
+	OnFailure               string       `json:"on_failure"`
 }
 
 type ActionInvocationInvokeTrigger struct{}

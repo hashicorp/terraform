@@ -35,7 +35,7 @@ func TestUnlock(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
@@ -74,7 +74,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	defer inmem.Reset()
 
 	// init backend
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ci := &InitCommand{
 		Meta: Meta{
@@ -86,7 +86,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &UnlockCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -104,7 +104,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &UnlockCommand{
 		Meta: Meta{
 			Ui:   ui,

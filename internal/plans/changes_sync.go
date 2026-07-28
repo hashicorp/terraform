@@ -4,7 +4,9 @@
 package plans
 
 import (
+	"iter"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -17,9 +19,12 @@ import (
 // undefined if any other caller makes changes to the underlying Changes
 // object or its nested objects concurrently with any of the methods of a
 // particular ChangesSync.
+// Once the object is closed, it is no longer writable and any further
+// modifications will panic.
 type ChangesSync struct {
 	lock    sync.Mutex
 	changes *Changes
+	closed  atomic.Bool
 }
 
 // AppendResourceInstanceChange records the given resource instance change in
@@ -32,8 +37,7 @@ func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChan
 	if cs == nil {
 		panic("AppendResourceInstanceChange on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	s := change.DeepCopy()
 	cs.changes.Resources = append(cs.changes.Resources, s)
@@ -43,8 +47,7 @@ func (cs *ChangesSync) AppendQueryInstance(query *QueryInstance) {
 	if cs == nil {
 		panic("AppendQueryInstance on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	s := query.DeepCopy() // TODO do we need to deep copy here?
 	cs.changes.Queries = append(cs.changes.Queries, s)
@@ -90,10 +93,24 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 	var changes []*ResourceInstanceChange
-	for _, c := range cs.changes.InstancesForConfigResource(addr) {
+	for c := range cs.changes.InstancesForConfigResource(addr) {
 		changes = append(changes, c.DeepCopy())
 	}
 	return changes
+}
+
+// ReadInstancesForConfigResource returns an iterator over the changes for a given
+// configuration resource, applying the given selector function to each change.
+// The changes must no longer be writable otherwise a panic will occur.
+func ReadInstancesForConfigResource(changesSync *ChangesSync, addr addrs.ConfigResource) iter.Seq[*ResourceInstanceChange] {
+	if changesSync == nil {
+		panic("ReadInstancesForConfigResource on nil ChangesSync")
+	}
+	if !changesSync.closed.Load() {
+		panic("ReadEachConfigResourceChange requires closed ChangesSync")
+	}
+
+	return changesSync.changes.InstancesForConfigResource(addr)
 }
 
 // GetChangesForAbsResource searches the set of resource instance
@@ -137,8 +154,7 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 	if cs == nil {
 		panic("RemoveResourceInstanceChange on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	addrStr := addr.String()
 	for i, r := range cs.changes.Resources {
@@ -161,8 +177,7 @@ func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChange) {
 	if cs == nil {
 		panic("AppendOutputChange on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	cs.changes.Outputs = append(cs.changes.Outputs, changeSrc)
 }
@@ -224,8 +239,7 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	if cs == nil {
 		panic("RemoveOutputChange on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	addrStr := addr.String()
 
@@ -263,8 +277,7 @@ func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocationInstance) 
 	if cs == nil {
 		panic("AppendActionInvocation on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	cs.changes.ActionInvocations = append(cs.changes.ActionInvocations, action)
 }
@@ -275,8 +288,7 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 	if cs == nil {
 		panic("RemoveActionInvocation on nil ChangesSync")
 	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
+	defer cs.beginWrite()()
 
 	addrStr := addr.String()
 	for i, a := range cs.changes.ActionInvocations {
@@ -286,5 +298,23 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 		copy(cs.changes.ActionInvocations[i:], cs.changes.ActionInvocations[i+1:])
 		cs.changes.ActionInvocations = cs.changes.ActionInvocations[:len(cs.changes.ActionInvocations)-1]
 		return
+	}
+}
+
+// Close marks the wrapper as closed, so any further modifications will panic.
+func (cs *ChangesSync) Close() {
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	cs.closed.Store(true) // only reading is allowed after close
+}
+
+func (cs *ChangesSync) beginWrite() func() {
+	cs.lock.Lock()
+	if cs.closed.Load() {
+		cs.lock.Unlock()
+		panic("write on closed ChangesSync")
+	}
+	return func() {
+		cs.lock.Unlock()
 	}
 }

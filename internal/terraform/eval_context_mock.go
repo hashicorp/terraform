@@ -11,12 +11,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -154,6 +155,9 @@ type MockEvalContext struct {
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
 
+	PolicyGraphCalled bool
+	PolicyGraphValue  *policySubgraph
+
 	MoveResultsCalled  bool
 	MoveResultsResults refactoring.MoveResults
 
@@ -169,11 +173,11 @@ type MockEvalContext struct {
 	ForgetCalled bool
 	ForgetValues bool
 
-	ActionsCalled bool
-	ActionsState  *actions.Actions
-
-	DeprecationCalled bool
-	DeprecationState  *deprecation.Deprecations
+	ProviderLocksValue map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue  policy.Client
+	ConfigValue        *configs.Config
+	DeprecationCalled  bool
+	DeprecationState   *deprecation.Deprecations
 }
 
 // MockEvalContext implements EvalContext
@@ -424,6 +428,11 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	return c.PrevRunStateState
 }
 
+func (c *MockEvalContext) PolicyGraph() *policySubgraph {
+	c.PolicyGraphCalled = true
+	return c.PolicyGraphValue
+}
+
 func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
 	c.MoveResultsCalled = true
 	return c.MoveResultsResults
@@ -453,9 +462,16 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 	}
 }
 
-func (c *MockEvalContext) Actions() *actions.Actions {
-	c.ActionsCalled = true
-	return c.ActionsState
+func (c *MockEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return c.ProviderLocksValue
+}
+
+func (c *MockEvalContext) PolicyClient() policy.Client {
+	return c.PolicyClientValue
+}
+
+func (c *MockEvalContext) Config() *configs.Config {
+	return c.ConfigValue
 }
 
 func (c *MockEvalContext) Deprecations() *deprecation.Deprecations {

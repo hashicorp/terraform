@@ -20,10 +20,6 @@ import (
 )
 
 type validateTestInput struct {
-	// skip lets us write tests for behaviour we want to add in the future. Set
-	// this to true for any tests that are not yet implemented.
-	skip bool
-
 	// diags is a function that returns the expected diagnostics for the
 	// test.
 	diags func() tfdiags.Diagnostics
@@ -346,12 +342,8 @@ var (
 // potentially be included in here unless it depends on provider plugins
 // to complete validation, since this test cannot supply provider plugins.
 func TestValidate_valid(t *testing.T) {
-	for name, tc := range validConfigurations {
+	for name := range validConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
@@ -399,10 +391,6 @@ func TestValidate_valid(t *testing.T) {
 func TestValidate_invalid(t *testing.T) {
 	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()

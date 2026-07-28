@@ -30,6 +30,7 @@ func TestDecodeActionBlock(t *testing.T) {
 				Type:      "an_action",
 				Name:      "foo",
 				DeclRange: blockRange,
+				Body:      hcl.EmptyBody(),
 			},
 			nil,
 		},
@@ -52,6 +53,12 @@ func TestDecodeActionBlock(t *testing.T) {
 				DeclRange: blockRange,
 				Count:     hcltest.MockExprLiteral(cty.NumberIntVal(2)),
 				ForEach:   hcltest.MockExprLiteral(cty.StringVal("something")),
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"count":    hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+						"for_each": hcltest.MockExprLiteral(cty.StringVal("something")),
+					}),
+				}),
 			},
 			[]string{"MockAttrs:0,0-0: Invalid combination of \"count\" and \"for_each\"; The \"count\" and \"for_each\" meta-arguments are mutually-exclusive, only one should be used."},
 		},
@@ -97,9 +104,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				Type: "action_trigger",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
-						"condition": trueConditionExpr,
-						"events":    eventsListExpr,
-						"actions":   fooAndBarExpr,
+						"condition":  trueConditionExpr,
+						"events":     eventsListExpr,
+						"actions":    fooAndBarExpr,
+						"on_failure": hcltest.MockExprVariable("halt"),
 					}),
 				}),
 			},
@@ -141,7 +149,6 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-33: No actions specified; At least one action must be specified for an action_trigger.",
 				"MockExprTraversal:0,0-33: Invalid reference to action outside this module; Actions can only be referenced in the module they are declared in.",
 			},
 		},
@@ -167,8 +174,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-16: No actions specified; At least one action must be specified for an action_trigger.",
-				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module.",
+				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module, count.index, or each.key.",
 			},
 		},
 		"error - invalid event": {
@@ -193,8 +199,38 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 				},
 			},
 			[]string{
-				"MockExprTraversal:0,0-12: Invalid \"event\" value not_an_event; The \"event\" argument supports the following values: before_create, after_create, before_update, after_update.",
+				"MockExprTraversal:0,0-12: Invalid \"event\" value not_an_event; The \"event\" argument supports the following values: before_create, after_create, before_update, after_update, before_destroy, after_destroy.",
 				":0,0-0: No events specified; At least one event must be specified for an action_trigger.",
+			},
+		},
+		"error - invalid on_failure": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition":  trueConditionExpr,
+						"events":     eventsListExpr,
+						"actions":    fooAndBarExpr,
+						"on_failure": hcltest.MockExprVariable("die"),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: trueConditionExpr,
+				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
+				Actions: []ActionRef{
+					{
+						fooActionExpr,
+						fooActionExpr.Range(),
+					},
+					{
+						barActionExpr,
+						barActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				`MockExprVariable:0,0-0: Invalid "on_failure" keyword; The "on_failure" argument requires one of the following keywords: halt, taint or continue.`,
 			},
 		},
 		"error - duplicate event": {
@@ -243,9 +279,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`MockExprTraversal:0,0-7: Self reference not allowed; The condition expression cannot reference "self".`,
-			},
+			nil,
 		},
 		"error - condition uses count.index and includes before_event": {
 			&hcl.Block{
@@ -268,9 +302,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`:1,1-29: Count reference not allowed; The condition expression cannot reference "count" if the action is run before the resource is applied.`,
-			},
+			nil,
 		},
 		"error - condition uses each.value and includes before_event": {
 			&hcl.Block{
@@ -293,9 +325,7 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 					},
 				},
 			},
-			[]string{
-				`:1,1-26: Each reference not allowed; The condition expression cannot reference "each" if the action is run before the resource is applied.`,
-			},
+			nil,
 		},
 	}
 

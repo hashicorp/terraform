@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -73,7 +74,14 @@ func (n *nodeInstallModule) References() []*addrs.Reference {
 func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	if n.ModuleCall.SourceExpr == nil {
+		// Cannot install a module without a source
+		// Outer diags should already contain a parsing error
+		return diags
+	}
+
 	var version configs.VersionConstraint
+	hasVersion := false
 	if n.ModuleCall.VersionExpr != nil {
 		var versionDiags tfdiags.Diagnostics
 		version, versionDiags = evalVersionConstraint(n.ModuleCall.VersionExpr, ctx)
@@ -81,9 +89,9 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		if diags.HasErrors() {
 			return diags
 		}
+		hasVersion = version.Required.Len() > 0
 	}
 
-	hasVersion := n.ModuleCall.VersionExpr != nil
 	source, sourceRaw, sourceDiags := evalSource(n.ModuleCall.SourceExpr, hasVersion, ctx)
 	diags = diags.Append(sourceDiags)
 	if diags.HasErrors() {
@@ -140,6 +148,12 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	var g Graph
 	var diags tfdiags.Diagnostics
 
+	if n.Config == nil {
+		// Cannot expand without a config. This can happen when something goes wrong
+		// during module installation/Execute() above.
+		return nil, diags
+	}
+
 	expander := ctx.InstanceExpander()
 	_, call := n.Addr.Call()
 	expander.SetModuleSingle(n.Path(), call)
@@ -191,6 +205,16 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 		return nil, "", diags
 	}
 
+	if value.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsuitable module source",
+			Detail:   `Unsuitable value: null value is not allowed.`,
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return nil, "", diags
+	}
+
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -200,6 +224,20 @@ func evalSource(sourceExpr hcl.Expression, hasVersion bool, ctx EvalContext) (ad
 		})
 		return nil, "", diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown module source",
+			Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return nil, "", diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	rawSource := value.AsString()
 	if hasVersion {
@@ -307,6 +345,20 @@ func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs
 		})
 		return ret, diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown module version",
+			Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+			Subject:  versionExpr.Range().Ptr(),
+		})
+		return ret, diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	constraintStr := value.AsString()
 	constraints, err := version.NewConstraint(constraintStr)

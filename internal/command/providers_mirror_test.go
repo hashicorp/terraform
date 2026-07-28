@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
@@ -26,7 +24,7 @@ func TestProvidersMirror(t *testing.T) {
 	})
 
 	t.Run("missing arg error", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{Ui: ui},
 		}
@@ -47,7 +45,7 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -76,7 +74,7 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
 				Ui:         ui,
@@ -109,7 +107,7 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
 				Ui:         ui,

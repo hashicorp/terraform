@@ -4,10 +4,15 @@
 package views
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -111,12 +116,7 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 	}
 
 	for _, diag := range diags {
-		var msg string
-		if v.colorize.Disable {
-			msg = format.DiagnosticPlain(diag, v.configSources(), v.streams.Stderr.Columns())
-		} else {
-			msg = format.Diagnostic(diag, v.configSources(), v.colorize, v.streams.Stderr.Columns())
-		}
+		msg := v.formatDiagnostic(diag)
 
 		if diag.Severity() == tfdiags.Error {
 			v.streams.Eprint(msg)
@@ -124,6 +124,77 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 			v.streams.Print(msg)
 		}
 	}
+}
+
+// PolicyDiagnostics renders policy diagnostics that are not tied to a
+// specific target, such as setup diagnostics (e.g. a failure to connect to
+// the policy engine).
+func (v *View) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.Diagnostics(diags.AsTerraformDiags())
+}
+
+func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	configSources := v.configSources()
+	var buf strings.Builder
+	var foundInfo bool
+
+	for _, enforcement := range resp.Enforcements {
+		var src []byte
+		hasLocalRange := enforcement.LocalRange != nil
+		if hasLocalRange {
+			src = configSources[enforcement.LocalRange.Filename]
+		}
+		info := json.NewPolicyInfo(src, enforcement)
+		// Print info message attached to the enforcement
+		if info.Message != "" {
+			foundInfo = true
+			buf.WriteString("Policy Info:\n")
+			if info.PolicyRange != nil && info.PolicySnippet != nil {
+				fmt.Fprintf(
+					&buf,
+					"on %s line %d, in %s\n",
+					info.PolicyRange.Filename,
+					info.PolicyRange.Start.Line,
+					info.PolicySnippet.Code,
+				)
+			} else if enforcement.Policy != nil {
+				fmt.Fprintf(
+					&buf,
+					"in policy %s\n",
+					enforcement.Policy.Address,
+				)
+			}
+			fmt.Fprintf(&buf, "%q\n", info.Message)
+			if hasLocalRange {
+				rng := enforcement.LocalRange
+				resourceContext := string(rng.SliceBytes(src))
+
+				fmt.Fprintf(
+					&buf,
+					"\non %s line %d, in %s\n",
+					rng.Filename,
+					rng.Start.Line,
+					resourceContext,
+				)
+			}
+			buf.WriteString("\n")
+		}
+	}
+
+	// Print policy diagnostics
+	v.Diagnostics(resp.Diagnostics.AsTerraformDiags())
+
+	if foundInfo {
+		v.streams.Println()
+		v.streams.Println(buf.String())
+	}
+}
+
+var _ Spacer = (*View)(nil)
+
+// Spacer logs an empty line to space-out human-readable output.
+func (v *View) Spacer() {
+	v.streams.Println()
 }
 
 // HelpPrompt is intended to be called from commands which fail to parse all
@@ -163,4 +234,12 @@ func (v *View) errorColumns() int {
 // visually de-emphasize it.
 func (v *View) outputHorizRule() {
 	v.streams.Println(format.HorizontalRule(v.colorize, v.outputColumns()))
+}
+
+func (v *View) formatDiagnostic(diag tfdiags.Diagnostic) string {
+	if v.colorize.Disable {
+		return format.DiagnosticPlain(diag, v.configSources(), v.streams.Stderr.Columns())
+	} else {
+		return format.Diagnostic(diag, v.configSources(), v.colorize, v.streams.Stderr.Columns())
+	}
 }

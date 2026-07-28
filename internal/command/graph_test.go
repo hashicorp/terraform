@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -31,7 +30,7 @@ func TestGraph_planPhase(t *testing.T) {
 	testCopyDir(t, testFixturePath("graph"), td)
 	t.Chdir(td)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	c := &GraphCommand{
 		Meta: Meta{
@@ -70,8 +69,8 @@ func TestGraph_cyclic(t *testing.T) {
 		{
 			name: "plan",
 			args: []string{"-type=plan"},
-			errors: []string{`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`},
+			errors: []string{"Error: Cycle:\n  test_instance.",
+				"Error: Cycle:\n  local."},
 		},
 		{
 			name: "plan with -draw-cycles option",
@@ -102,8 +101,8 @@ func TestGraph_cyclic(t *testing.T) {
 			// The cyclic errors do not maintain a consistent order, so we can't
 			// predict the exact output. We'll just check that the error messages
 			// are present for the things we know are cyclic.
-			errors: []string{`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`},
+			errors: []string{"Error: Cycle:\n  test_instance.",
+				"Error: Cycle:\n  local."},
 		},
 		{
 			name: "apply with -draw-cycles option",
@@ -132,7 +131,7 @@ func TestGraph_cyclic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			streams, closeStreams := terminal.StreamsForTesting(t)
 			c := &GraphCommand{
 				Meta: Meta{
@@ -171,7 +170,7 @@ func TestGraph_cyclic(t *testing.T) {
 }
 
 func TestGraph_multipleArgs(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
@@ -195,7 +194,7 @@ func TestGraph_noConfig(t *testing.T) {
 
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	defer closeStreams(t)
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
@@ -227,7 +226,7 @@ func TestGraph_resourcesOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -248,7 +247,7 @@ func TestGraph_resourcesOnly(t *testing.T) {
 		},
 	}
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	streams, closeStreams := terminal.StreamsForTesting(t)
 	c := &GraphCommand{
 		Meta: Meta{
@@ -340,7 +339,7 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 	planPath := testPlanFile(t, configSnap, states.NewState(), plan)
 
 	streams, closeStreams := terminal.StreamsForTesting(t)
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
@@ -367,7 +366,7 @@ func TestGraph_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		streams, closeStreams := terminal.StreamsForTesting(t)
 		c := &GraphCommand{
 			Meta: Meta{
@@ -394,7 +393,7 @@ func TestGraph_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		streams, closeStreams := terminal.StreamsForTesting(t)
 		c := &GraphCommand{
 			Meta: Meta{
@@ -432,7 +431,7 @@ func TestGraph_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		streams, closeStreams := terminal.StreamsForTesting(t)
 		c := &GraphCommand{
 			Meta: Meta{

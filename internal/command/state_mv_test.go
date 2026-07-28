@@ -13,12 +13,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -60,7 +60,7 @@ func TestStateMv(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -162,7 +162,7 @@ func TestStateMv(t *testing.T) {
 func TestStateMv_stateStore(t *testing.T) {
 	// Create a temporary working directory
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing resources
@@ -204,10 +204,12 @@ func TestStateMv_stateStore(t *testing.T) {
 	}
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
-		"default": stateBuf.Bytes(),
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	// Make the mock assert that the resource has been moved when the new state is persisted
@@ -257,7 +259,7 @@ func TestStateMv_stateStore(t *testing.T) {
 		return providers.WriteStateBytesResponse{}
 	}
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -315,7 +317,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -363,7 +365,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -412,7 +414,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -462,7 +464,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -502,7 +504,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -578,7 +580,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -626,7 +628,7 @@ func TestStateMv_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -654,7 +656,7 @@ func TestStateMv_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -693,7 +695,7 @@ module.child:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -755,7 +757,7 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &StateMvCommand{
@@ -824,7 +826,7 @@ func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -898,7 +900,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -973,7 +975,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1046,7 +1048,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1123,7 +1125,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// init our backend
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -1140,7 +1142,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 
 	// only modify statePath
 	p := testProvider()
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -1203,7 +1205,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	backupPath := statePath + ".backup.test"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1254,7 +1256,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1328,7 +1330,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	stateOutPath := testStateFile(t, stateDst)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1373,7 +1375,7 @@ func TestStateMv_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1443,7 +1445,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1519,7 +1521,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1591,7 +1593,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1649,7 +1651,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 	stateOutPath2 := statePath + ".out2"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1749,7 +1751,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1820,7 +1822,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1873,7 +1875,7 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_original)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1917,7 +1919,7 @@ func TestStateMvInvalidSourceAddress(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1982,7 +1984,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{

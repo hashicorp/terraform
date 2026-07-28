@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
@@ -643,4 +644,11 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 		}
 		s.MoveModuleInstance(ms.Addr, newInst)
 	}
+}
+
+// RecordCheckResults replaces any check results already recorded in the state
+// with a new set taken from the given check state object.
+func (s *State) RecordCheckResults(checkState *checks.State) {
+	newResults := NewCheckResults(checkState)
+	s.CheckResults = newResults
 }

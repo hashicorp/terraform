@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -24,8 +25,9 @@ func TestNilHook_impl(t *testing.T) {
 // It is intended for testing that core code is emitting the correct hooks
 // for a given situation.
 type testHook struct {
-	mu    sync.Mutex
-	Calls []*testHookCall
+	mu            sync.Mutex
+	Calls         []*testHookCall
+	PolicyResults map[string]policy.EvaluationResponse
 }
 
 var _ Hook = (*testHook)(nil)
@@ -42,6 +44,17 @@ func (h *testHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreApply", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PolicyResult", addr})
+	if h.PolicyResults == nil {
+		h.PolicyResults = make(map[string]policy.EvaluationResponse)
+	}
+	h.PolicyResults[addr] = resp
 	return HookActionContinue, nil
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -39,23 +40,14 @@ const (
 	envTmpLogPath = "TF_TEMP_LOG_PATH"
 )
 
-// ui wraps the primary output cli.Ui, and redirects Warn calls to Output
-// calls. This ensures that warnings are sent to stdout, and are properly
-// serialized within the stdout stream.
-type ui struct {
-	cli.Ui
-}
-
-func (u *ui) Warn(msg string) {
-	u.Ui.Output(msg)
-}
-
 func init() {
-	Ui = &ui{&cli.BasicUi{
-		Writer:      os.Stdout,
-		ErrorWriter: os.Stderr,
-		Reader:      os.Stdin,
-	}}
+	Ui = &ui.WrappedUi{
+		Ui: &cli.BasicUi{
+			Writer:      os.Stdout,
+			ErrorWriter: os.Stderr,
+			Reader:      os.Stdin,
+		},
+	}
 }
 
 func main() {
@@ -81,7 +73,9 @@ func realMain() int {
 	{
 		// At minimum we emit a span covering the entire command execution.
 		_, displayArgs := shquot.POSIXShellSplit(os.Args)
-		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		// Extract the parent traces from the environment if present.
+		parentCtx := extractParentTraceContext(context.Background())
+		ctx, otelSpan = tracer.Start(parentCtx, fmt.Sprintf("terraform %s", displayArgs))
 		defer otelSpan.End()
 	}
 

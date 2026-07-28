@@ -10,3 +10,9 @@ import "github.com/hashicorp/terraform/internal/dag"
 func GraphDot(g *Graph, opts *dag.DotOpts) (string, error) {
 	return string(g.Dot(opts)), nil
 }
+
+// GraphMermaid returns the Mermaid flowchart formatting for the given
+// Terraform graph.
+func GraphMermaid(g *Graph, opts *dag.DotOpts) (string, error) {
+	return string(g.Mermaid(opts)), nil
+}

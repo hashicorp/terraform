@@ -11,6 +11,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -201,7 +203,71 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
 		))
 	}
+
+	// Post-provider config policy evaluation
+	//
+	// We use the marked "configVal" so that we can send sensitive paths to the
+	// policy plugin. Provider schemas don't have a defined usage/behavior for
+	// the "Sensitive" field, so we don't add sensitive paths from the schema to this value.
+	policyDiags := n.EvalPolicy(ctx, configVal)
+	diags = diags.Append(policyDiags)
+	if policyDiags.HasErrors() {
+		return diags
+	}
+
 	return diags
+}
+
+// EvalPolicy evaluates the provider policy.
+// Contrary to resource policy evaluation, provider policy evaluation is done inline,
+// allowing us to block the evaluation of the provider's resources within the graph if the policy fails.
+// Provider policies have no support for callback functions, so we do not need to worry about
+// them retrieving objects that are not yet available in the state.
+func (n *NodeApplyableProvider) EvalPolicy(ctx EvalContext, attrs cty.Value) tfdiags.Diagnostics {
+	if ctx.PolicyClient() == nil {
+		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation for %s", n.Addr)
+		return nil
+	}
+
+	result := ctx.PolicyClient().EvaluateProvider(ctx.StopCtx(), policy.EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]{
+		Target: n.Addr.Provider.Type,
+		Attrs:  policy.CtyToPolicyValue(attrs),
+		Meta: &proto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:      n.Addr.Provider.Type,
+			Alias:     n.Addr.Alias,
+			Namespace: n.Addr.Provider.Namespace,
+			Source:    n.Addr.Provider.String(),
+			Version:   n.providerVersion(ctx),
+		},
+	})
+
+	// Annotate the result diagnostics and enforcements with the local range of
+	// the provider config block.
+	if n.Config != nil {
+		result = result.WithLocalRange(n.Config.DeclRange.Ptr())
+	}
+
+	var diags tfdiags.Diagnostics
+	if !result.Empty() {
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.Addr.String(), result)
+		})
+		diags = diags.Append(hookErr)
+	}
+
+	return diags
+}
+
+// providerVersion returns the exact locked version for this provider from the
+// dependency lock file (e.g. "5.31.0"). Returns an empty string if no lock
+// file entry is available for this provider.
+func (n *NodeApplyableProvider) providerVersion(ctx EvalContext) string {
+	if providerLocks := ctx.ProviderLocks(); providerLocks != nil {
+		if lock := providerLocks[n.Addr.Provider]; lock != nil {
+			return lock.Version().String()
+		}
+	}
+	return ""
 }
 
 // nodeExternalProvider is used instead of [NodeApplyableProvider] when an

@@ -8,12 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -26,7 +25,7 @@ func TestStatePull(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -71,7 +70,7 @@ func TestStatePull(t *testing.T) {
 func TestStatePull_stateStore(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing a state containing a resource
@@ -101,16 +100,18 @@ func TestStatePull_stateStore(t *testing.T) {
 	stateBytes := stateBuf.Bytes()
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]any{
-		"default": stateBytes,
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBytes,
+	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	streams, _ := terminal.StreamsForTesting(t)
 	c := &StatePullCommand{
 		Meta: Meta{
@@ -164,7 +165,7 @@ func TestStatePull_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -188,7 +189,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -212,7 +213,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -259,7 +260,7 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -304,7 +305,7 @@ func TestStatePull_checkRequiredVersion(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),

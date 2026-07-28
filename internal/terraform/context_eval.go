@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -101,6 +102,17 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		// use a placeholder graph walker here, which'll refer to the
 		// unmodified state.
 		walker = c.graphWalker(graph, walkEval, walkOpts)
+	}
+
+	// If the caller is requesting an evaluation scope that is not the root module, ensure the eval context exists
+	if !moduleAddr.Equal(addrs.RootModuleInstance) && !walker.scopeEvalContextExists(evalContextModuleInstance{Addr: moduleAddr}) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to retrieve evaluation scope after graph walk",
+			fmt.Sprintf(`The module address "%s" does not have an evaluation scope. This usually `+
+				`indicates that the module or the specific module instance provided does not exist.`, moduleAddr),
+		))
+		return nil, diags
 	}
 
 	return evalScopeFromGraphWalk(walker, moduleAddr), diags

@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
+	pTesting "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/posener/complete"
 )
 
@@ -21,7 +21,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		td := t.TempDir()
 		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		meta := &Meta{Ui: ui}
 
 		predictor := meta.completePredictWorkspaceName()
@@ -38,22 +38,22 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	t.Run("test autocompletion using a state store", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock
-		mockProvider := mockPluggableStateStorageProvider()
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		// Mock the existence of workspaces
-		mockProvider.MockStates = map[string]interface{}{
-			"default": true,
-			"foobar":  true,
-		}
+		mockProvider.MockStates = pTesting.NewMockStateBytesWithStateIds("test_store", []string{
+			"default",
+			"foobar",
+		})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		wd := workdir.NewDir(".")
 		wd.OverrideOriginalWorkingDir(td)
@@ -84,19 +84,17 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	t.Run("test autocompletion using a state store containing no workspaces", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
 		// Set up pluggable state store provider mock
-		mockProvider := mockPluggableStateStorageProvider()
-		// No workspaces exist in the mock
-		mockProvider.MockStates = map[string]interface{}{}
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		wd := workdir.NewDir(".")
 		wd.OverrideOriginalWorkingDir(td)

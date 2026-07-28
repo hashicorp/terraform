@@ -45,6 +45,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	default:
 		args, diags = arguments.ParseApply(rawArgs)
 	}
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -95,11 +96,23 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		// if there has been any errors when setting up the policy client, we log them but
+		// we still proceed with the operation, as a failure to set up the policy client
+		// should not prevent the apply operation from running
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyDiagnostics(policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	// Collect variable value and add them to the operation request
@@ -146,6 +159,10 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	return 0
+}
+
+func (c *ApplyCommand) Validate(args *arguments.Apply) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
 }
 
 func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
@@ -241,14 +258,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 	return be, diags
 }
 
-func (c *ApplyCommand) OperationRequest(
-	be backendrun.OperationsBackend,
-	view views.Apply,
-	viewType arguments.ViewType,
-	planFile *planfile.WrappedPlanFile,
-	args *arguments.Operation,
-	autoApprove bool,
-) (*backendrun.Operation, tfdiags.Diagnostics) {
+func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view views.Apply, viewType arguments.ViewType, planFile *planfile.WrappedPlanFile, args *arguments.Operation, autoApprove bool, policyPaths []string) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Applying changes with dev overrides in effect could make it impossible
@@ -275,6 +285,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
 	opReq.ActionTargets = args.ActionTargets
+	opReq.PolicyPaths = policyPaths
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {

@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -85,7 +86,9 @@ func (n *NodePlanDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.Ref
 // GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
 func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference {
 	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
+	// make no references. Deposed instances do not invoke actions, since the
+	// fact they are deposed during plan indicated that the instance already
+	// errored out during a create-before-destroy apply.
 	return nil
 }
 
@@ -225,7 +228,7 @@ var (
 	_ GraphNodeConfigResource                = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeResourceInstance              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeDestroyerCBD                  = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeCreateBeforeDestroy           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeExecutable                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
@@ -248,10 +251,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.
 	return nil
 }
 
-// GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
 func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Reference {
-	// We don't evaluate configuration for deposed objects, so they effectively
-	// make no references.
+	// Deposed objects don't participate in references.
 	return nil
 }
 
@@ -269,18 +270,12 @@ func (n *NodeDestroyDeposedResourceInstanceObject) CreateBeforeDestroy() bool {
 }
 
 // GraphNodeDestroyerCBD
-func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v bool) error {
-	if !v {
-		// Should never happen: deposed instances are _always_ create_before_destroy.
-		return fmt.Errorf("can't deactivate create_before_destroy for a deposed instance")
-	}
-	return nil
+func (n *NodeDestroyDeposedResourceInstanceObject) ForceCreateBeforeDestroy() {
+	// noop because deposed instances are always CBD
 }
 
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	var change *plans.ResourceInstanceChange
-
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	if err != nil {
@@ -292,7 +287,14 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+	var change *plans.ResourceInstanceChange
+	var destroyPlanDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+	if resourceLifecycleForget(n.Config) {
+		change, destroyPlanDiags = n.planForget(ctx, state, n.DeposedKey)
+	} else {
+		change, deferred, destroyPlanDiags = n.planDestroy(ctx, state, n.DeposedKey)
+	}
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -312,6 +314,12 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
+	log.Printf("[DEBUG] NodeApplyableResourceInstance: invoking before actions for %s", n.Addr)
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.BeforeDestroy, op))
+	if diags.HasErrors() {
+		return diags
+	}
+
 	// we pass a nil configuration to apply because we are destroying
 	state, applyDiags := n.apply(ctx, state, change, nil, instances.RepetitionData{}, false)
 	diags = diags.Append(applyDiags)
@@ -321,10 +329,13 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
 	writeDiags := n.writeResourceInstanceState(ctx, state)
-	diags.Append(writeDiags)
+	diags = diags.Append(writeDiags)
 	if diags.HasErrors() {
 		return diags
 	}
+
+	// after destroy we continue to use the before value, since there is no after
+	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy, op))
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 

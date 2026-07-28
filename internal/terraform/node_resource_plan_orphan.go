@@ -45,10 +45,16 @@ var (
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeDestroyer            = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {
 	return n.ResourceInstanceAddr().String() + " (orphan)"
+}
+
+func (n *NodePlannableResourceInstanceOrphan) DestroyAddr() *addrs.AbsResourceInstance {
+	addr := n.ResourceInstanceAddr()
+	return &addr
 }
 
 // GraphNodeExecutable
@@ -70,10 +76,24 @@ func (n *NodePlannableResourceInstanceOrphan) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()
+}
+
+func (n *NodePlannableResourceInstanceOrphan) ReferenceableAddrs() []addrs.Referenceable {
+	// destroy nodes are not referenceable, so we must override the method from
+	// the abstract layers
+	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) References() (refs []*addrs.Reference) {
+	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) AttachActionTriggers(triggers []*resourceActionTrigger) {
+	n.actionTriggers = triggers
 }
 
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
@@ -120,6 +140,12 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 	for _, fm := range n.forgetModules {
 		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		if n.Config.Managed.DestroySet && !n.Config.Managed.Destroy {
 			forget = true
 		}
 	}
@@ -174,6 +200,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	} else if shouldDefer {
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 		return diags
 	}
 
@@ -190,7 +217,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// context surrounding the change, rather than the change itself, and
 	// so it's helpful to still include the valid-in-isolation change as
 	// part of the plan as additional context in our error output.
-	diags = diags.Append(n.writeChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -202,7 +229,24 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
+
+	actionDiags := n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change)
+	if actionDiags.HasErrors() {
+		// Orphaned destroy actions may not have enough configuration
+		// information to plan, but we can't block their progress since the
+		// config no longer exists. We'll still keep the original diags as
+		// warnings, but add an additional message to help explain the failure
+		// mode.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Orphaned action failed to plan",
+			fmt.Sprintf("One or more actions for the orphaned instance %s does not have enough configuration information to complete a plan, and will not be invoked", n.Addr),
+		))
+	}
+	diags = diags.Append(tfdiags.OverrideAll(actionDiags, tfdiags.Warning, nil))
+
+	return diags
 }
 
 func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {

@@ -80,6 +80,10 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 		loader.Parser().ForceFileSource(filename, src)
 	})
 	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {

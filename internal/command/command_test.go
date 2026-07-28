@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
@@ -31,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -138,6 +140,26 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
+func testPolicyFixtureDir(t *testing.T) string {
+	t.Helper()
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+
+	policyCode := `		resource_policy "resource_type" "policy_name" {
+		  enforce_attrs {
+		    key = attr.value == "foo"
+		  }
+		}
+	`
+	if err := os.WriteFile(filepath.Join(td, "policy.hcl"), []byte(policyCode), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	return td
+}
+
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -160,7 +182,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
-	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -225,6 +247,102 @@ func testPlan(t *testing.T) *plans.Plan {
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
 	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
+}
+
+func TestPlan_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
+}
+
+func TestApply_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color", "-auto-approve"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
+}
+
+func TestInit_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			Ui:   new(cli.MockUi),
+			View: view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+}
+
+func TestQuery_PoliciesRequireExperimentalFeatures(t *testing.T) {
+	td := testPolicyFixtureDir(t)
+
+	p := queryFixtureProvider()
+	view, done := testView(t)
+	c := &QueryCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
+	}
+	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
+		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
+	}
+	if strings.Contains(output.All(), "Failed to connect to policy engine") {
+		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
+	}
 }
 
 func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
@@ -1137,13 +1255,88 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func testUiWrapped(t *testing.T, testUi ...*cli.MockUi) *ui.WrappedMockUi {
+	t.Helper()
+
+	// Calling code might be opinionated about whether the mock should be
+	// created using the cli.NewMockUi constructor or not. Therefore we let
+	// the caller either pass in a pre-constructed MockUi or let this function
+	// create one for them.
+	var wrappedMock *cli.MockUi
+	switch len(testUi) {
+	case 0:
+		wrappedMock = cli.NewMockUi()
+	case 1:
+		wrappedMock = testUi[0]
+	default:
+		t.Fatalf("incorrect use of testUiWrapped: only zero or one MockUi instance is allowed")
+	}
+
+	return &ui.WrappedMockUi{MockUi: wrappedMock}
+}
+
 func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
+	t.Helper()
 	streams, done := terminal.StreamsForTesting(t)
 	return views.NewView(streams), done
 }
 
-// checkGoldenReference compares the given test output with a known "golden" output log
-// located under the specified fixture path.
+// checkGoldenReferenceHumanOutput compares a test fixture's log output with the given test output.
+// The log is expected to be in a file called "output.log" located under the specified fixture path.
+func checkGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
+	t.Helper()
+
+	// No params
+	checkParameterizedGoldenReferenceHumanOutput(t, output, fixturePathName)
+}
+
+// checkParameterizedGoldenReferenceHumanOutput compares a test fixture's log output with the given test output.
+// The log is expected to be in a file called "output.log" or "output-parameterized.log" located under the specified fixture path.
+//
+// The log can contain format specifiers that will be replaced with the given params, and these are only intended
+// for use when output references values like current platform or Terraform version.
+func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, fixturePathName string, params ...interface{}) {
+	t.Helper()
+
+	var expectedFilePath string
+
+	if len(params) > 0 {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output-parameterized.log")
+	} else {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output.log")
+	}
+
+	// Load the golden reference fixture
+	wantFile, err := os.Open(expectedFilePath)
+	if err != nil {
+		t.Fatalf("failed to open output file: %s", err)
+	}
+	defer wantFile.Close()
+	wantBytes, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("failed to read output file: %s", err)
+	}
+	wantTemplate := string(wantBytes)
+	want := fmt.Sprintf(wantTemplate, params...)
+
+	got := output.Stdout()
+
+	// Whereas JSON output is compared line by line, human output is compared as a single string.
+	// This is because the human output may have newlines inserted in different places depending
+	// on terminal width.
+	got = strings.ReplaceAll(got, "\n", " ")
+
+	want = strings.ReplaceAll(want, "\n", " ")
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong output\n%s\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
+			"Please communicate with HCP Terraform team before resolving", diff)
+	}
+}
+
+// checkGoldenReference compares the given test output with a known "golden" output JSON log
+// with the name "output.jsonlog" located under the specified fixture path.
 //
 // If any of these tests fail, please communicate with HCP Terraform folks before resolving,
 // as changes to UI output may also affect the behavior of HCP Terraform's structured run output.
@@ -1156,11 +1349,19 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 		t.Fatalf("failed to open output file: %s", err)
 	}
 	defer wantFile.Close()
-	wantBytes, err := ioutil.ReadAll(wantFile)
+	wantBytes, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("failed to read output file: %s", err)
 	}
 	want := string(wantBytes)
+
+	checkGoldenReferenceStr(t, output, want)
+}
+
+// checkGoldenReferenceStr allows comparison of a test's output with a string provided by the caller.
+// If you want to compare against a known "golden" output JSON log, use checkGoldenReference instead.
+func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want string) {
+	t.Helper()
 
 	got := output.Stdout()
 
@@ -1190,6 +1391,9 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
 		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
 	}
+	// Note: we assemble a 'want' version log here instead of reading it from the golden reference because
+	// the version string is dynamic and will change with each release. Loops below skip the first element,
+	// so golden references are expected to include a version log but it is ALWAYS ignored in the comparison.
 	wantVersion := versionMessage{
 		"info",
 		fmt.Sprintf("Terraform %s", version.String()),
@@ -1220,8 +1424,9 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 		index := i + 1
 		var wantMap map[string]interface{}
 		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
-			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, wantLines[index])
 		}
+		delete(wantMap, "@timestamp") // If the test fixture includes timestamps ignore and don't compare them, since they will always differ
 		wantLineMaps = append(wantLineMaps, wantMap)
 	}
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {

@@ -4,6 +4,7 @@
 package addrs
 
 import (
+	"iter"
 	"sort"
 )
 
@@ -60,6 +61,16 @@ func (s Set[T]) Union(other Set[T]) Set[T] {
 		ret[k] = addr
 	}
 	return ret
+}
+
+func (s Set[T]) Iter() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, elem := range s {
+			if !yield(elem) {
+				return
+			}
+		}
+	}
 }
 
 // Intersection returns a new set which contains the intersection of all of the

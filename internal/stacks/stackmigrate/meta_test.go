@@ -78,11 +78,16 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 
 	m := new(Meta)
 
+	// Normally, errors are returned when selecting an invalid workspace.
 	ws, err := m.Workspace()
-	if ws != workspace {
+	if ws != "" {
 		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
 	}
-	if err != nil {
-		t.Errorf("Unexpected error: %s", err)
+	if err == nil {
+		t.Errorf("Expected error but got none")
 	}
+
+	// The Meta in the command package has a field `bypassWorkspaceNameValidityCheck` that allows
+	// a selected workspace to be invalid in specific commands (i.e. enough to enable users to recover from an invalid value).
+	// This can be implemented in Stacks when/if needed.
 }

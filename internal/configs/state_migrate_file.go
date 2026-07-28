@@ -9,9 +9,9 @@ import (
 	"slices"
 
 	"github.com/apparentlymart/go-versions/versions"
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -26,10 +26,22 @@ import (
 // When creating a StateMigrationInstructions struct, calling code must ensure that there
 // are no duplicated or mutually-exclusive pieces of information in the original file(s).
 type StateMigrationInstructions struct {
-	StateStoreProvider *RequiredProvider
+	StateStoreProvider *StateStoreProviderRequirement
 	StateStore         *StateStore
 
 	Backend *Backend
+}
+
+// StateStoreProviderRequirement is very similar to RequiredProvider
+// but contains data that's specific to state migration files, and how they're used in commands.
+type StateStoreProviderRequirement struct {
+	Type      addrs.Provider
+	Source    string
+	DeclRange hcl.Range
+
+	// Requirement represents the single provider used for state storage.
+	// By parsing data into this field it can easily be passed to functions for provider download, which expect a providerreqs.Requirements argument.
+	Requirement providerreqs.Requirements
 }
 
 // StateMigrationFile represents a single state migration file within a configuration directory.
@@ -53,7 +65,7 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "state_store_provider":
-			p, pDiags := decodeStateStoreProviderBlock(block)
+			req, pDiags := decodeStateStoreProviderBlock(block)
 			diags = diags.Extend(pDiags)
 
 			if file.StateStoreProvider != nil {
@@ -66,8 +78,8 @@ func loadStateMigrationFile(body hcl.Body) (*StateMigrationFile, hcl.Diagnostics
 				continue // Keep file.StateStoreProvider as first parsed block in this scenario
 			}
 
-			if p != nil {
-				file.StateStoreProvider = p
+			if req != nil {
+				file.StateStoreProvider = req
 				file.fromBlockSource = &block.DefRange
 			}
 		case "from":
@@ -188,10 +200,10 @@ func decodeFromBlock(block *hcl.Block) (*StateMigrationInstructions, hcl.Diagnos
 	return &fromData, diags
 }
 
-func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Diagnostics) {
+func decodeStateStoreProviderBlock(block *hcl.Block) (*StateStoreProviderRequirement, hcl.Diagnostics) {
 	// state_store_provider blocks are similar to required_provider blocks but different, so we need logic
 	// similar to that in decodeProviderRequirementsBlock but distinct. E.g. version constraints must be
-	// exact versions, not a range. The similarity is sufficient that we can return a RequiredProvider pointer.
+	// exact versions, not a range.
 
 	var diags hcl.Diagnostics
 	attrs, hclDiags := block.Body.JustAttributes()
@@ -230,10 +242,10 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 	}
 
 	// Process the data inside the object describing the provider
-	ssProvider := RequiredProvider{
-		Name:      localName,
+	ssProvider := StateStoreProviderRequirement{
 		DeclRange: attr.Range,
 	}
+	var constraints providerreqs.VersionConstraints
 	for _, kv := range kvs {
 		key, keyDiags := kv.Key.Value(nil)
 		if keyDiags.HasErrors() {
@@ -253,50 +265,29 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 
 		switch key.AsString() {
 		case "version":
-			vc := VersionConstraint{
-				DeclRange: attr.Range,
-			}
-
 			versionString, valDiags := kv.Value.Value(nil)
 			if valDiags.HasErrors() || !versionString.Type().Equals(cty.String) {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Invalid provider version in "state_store_provider" configuration block`,
-					Detail:   "Version must be a string, specifying a single version.",
-					Subject:  kv.Value.Range().Ptr(),
-				})
-				continue
+				diags = append(diags, badVersionConstraintErrorDiag("", kv.Value.Range().Ptr()))
+				return nil, diags
 			}
 
+			// This means it's only valid to specify a single version in the format "1.0.0",
+			// but disallows using the equivalent "=1.0.0"
 			v, err := versions.ParseVersion(versionString.AsString())
 			if err != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Invalid provider version in "state_store_provider" configuration block`,
-					Detail:   "The version attribute must specify a single, specific version (e.g. \"1.0.0\") and cannot be a version constraint with an operator.",
-					Subject:  kv.Value.Range().Ptr(),
-				})
+				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
 				return nil, diags
 			}
 
-			// We ensure user input can be parsed as a version, but we need to
-			// create a constraint to be part of the returned RequiredProvider struct.
-			// The constraint will pin to a specific version set by the config.
-			constraints, err := version.NewConstraint(v.String())
+			constraints, err = providerreqs.ParseVersionConstraints(v.String())
 			if err != nil {
-				// NewConstraint doesn't return user-friendly errors, so we'll just
+				// ParseVersionConstraints doesn't return user-friendly errors, so we'll just
 				// ignore the provided error and produce our own generic one.
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Unable to create version constraint from provider version`,
-					Detail:   fmt.Sprintf("Terraform was unable to create an 'exact' version constraint from the provided version string: %s.", v.String()),
-					Subject:  kv.Value.Range().Ptr(),
-				})
+				diags = append(diags, badVersionConstraintErrorDiag(versionString.AsString(), kv.Value.Range().Ptr()))
 				return nil, diags
 			}
 
-			vc.Required = constraints
-			ssProvider.Requirement = vc
+			// All ok with the parsed version constraint. It's used after this switch statement.
 
 		case "source":
 			source, err := kv.Value.Value(nil)
@@ -337,8 +328,13 @@ func decodeStateStoreProviderBlock(block *hcl.Block) (*RequiredProvider, hcl.Dia
 			})
 			return nil, diags
 		}
-
 	}
+
+	// Now both the source and version have been parsed, we can populate
+	// the Requirement field with a single provider requirement.
+	req := make(providerreqs.Requirements, 1)
+	req[ssProvider.Type] = constraints
+	ssProvider.Requirement = req
 
 	return &ssProvider, diags
 }
@@ -371,4 +367,13 @@ var fromBlockSchema = &hcl.BodySchema{
 			LabelNames: []string{"type"},
 		},
 	},
+}
+
+func badVersionConstraintErrorDiag(version string, subject *hcl.Range) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  `Invalid provider version in "state_store_provider" configuration block`,
+		Detail:   fmt.Sprintf("Version must be a string, specifying a single version, but got: %s. Please ensure the version string is valid and specifies a single version in format \"1.0.0\"", version),
+		Subject:  subject,
+	}
 }

@@ -6559,8 +6559,7 @@ resource "test_object" "a" {
 		Mode: plans.DestroyMode,
 		SetVariables: InputValues{
 			"input": {
-				Value:       cty.StringVal("foo"),
-				SourceType:  ValueFromCLIArg,
+				Value:       cty.UnknownVal(cty.String),
 				SourceRange: tfdiags.SourceRange{},
 			},
 		},
@@ -7935,4 +7934,62 @@ locals {
 			OriginDescription: "module.silenced.old",
 		},
 	}))
+}
+
+func TestContext2Plan_deprecated_child_output_attr_in_root(t *testing.T) {
+	// This passes validation (see
+	// TestContext2Validate_deprecatedAttr/referencing nested deprecated attr in
+	// child module output) but should error during plan.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			module "child" {
+				source = "./child"
+			}
+
+			output "deprecated" {
+				value = module.child.deprecated.foo
+			}
+			`,
+
+		"child/main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test
+            }
+             `,
+	})
+
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true, Deprecated: true},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+	if !diags.HasWarnings() {
+		t.Fatal("missing expected warnings!")
+	} else {
+		tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  `Deprecated value used`,
+			Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 13, Byte: 87},
+				End:      hcl.Pos{Line: 7, Column: 40, Byte: 114},
+			},
+		}))
+	}
 }

@@ -5,21 +5,13 @@ package e2etest
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
-	tfplugin5 "github.com/hashicorp/terraform/internal/plugin"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
-	simple5 "github.com/hashicorp/terraform/internal/provider-simple"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	proto5 "github.com/hashicorp/terraform/internal/tfplugin5"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
@@ -234,55 +226,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "test-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	reattachCh := make(chan *plugin.ReattachConfig)
-	closeCh := make(chan struct{})
-	provider := &providerServer{
-		ProviderServer: grpcwrap.Provider6(simple.Provider()),
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go plugin.Serve(&plugin.ServeConfig{
-		Logger: hclog.New(&hclog.LoggerOptions{
-			Name:   "plugintest",
-			Level:  hclog.Trace,
-			Output: io.Discard,
-		}),
-		Test: &plugin.ServeTestConfig{
-			Context:          ctx,
-			ReattachConfigCh: reattachCh,
-			CloseCh:          closeCh,
-		},
-		GRPCServer: plugin.DefaultGRPCServer,
-		VersionedPlugins: map[int]plugin.PluginSet{
-			6: {
-				"provider": &tfplugin.GRPCProviderPlugin{
-					GRPCProvider: func() proto.ProviderServer {
-						return provider
-					},
-				},
-			},
-		},
-	})
-	config := <-reattachCh
-	if config == nil {
-		t.Fatalf("no reattach config received")
-	}
-	reattachStr, err := json.Marshal(map[string]reattachConfig{
-		"hashicorp/test": {
-			Protocol:        string(config.Protocol),
-			ProtocolVersion: 6,
-			Pid:             config.Pid,
-			Test:            true,
-			Addr: reattachConfigAddr{
-				Network: config.Addr.Network(),
-				String:  config.Addr.String(),
-			},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	reattachStr, provider := reattachedProviderForTest(t, addrs.NewDefaultProvider("test"), 6)
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
 	//// INIT
@@ -329,8 +273,6 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	if !provider.ApplyResourceChangeCalled() {
 		t.Error("ApplyResourceChange (destroy) not called on in-process provider")
 	}
-	cancel()
-	<-closeCh
 }
 
 func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
@@ -339,55 +281,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "test-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	reattachCh := make(chan *plugin.ReattachConfig)
-	closeCh := make(chan struct{})
-	provider := &providerServer5{
-		ProviderServer: grpcwrap.Provider(simple5.Provider()),
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go plugin.Serve(&plugin.ServeConfig{
-		Logger: hclog.New(&hclog.LoggerOptions{
-			Name:   "plugintest",
-			Level:  hclog.Trace,
-			Output: io.Discard,
-		}),
-		Test: &plugin.ServeTestConfig{
-			Context:          ctx,
-			ReattachConfigCh: reattachCh,
-			CloseCh:          closeCh,
-		},
-		GRPCServer: plugin.DefaultGRPCServer,
-		VersionedPlugins: map[int]plugin.PluginSet{
-			5: {
-				"provider": &tfplugin5.GRPCProviderPlugin{
-					GRPCProvider: func() proto5.ProviderServer {
-						return provider
-					},
-				},
-			},
-		},
-	})
-	config := <-reattachCh
-	if config == nil {
-		t.Fatalf("no reattach config received")
-	}
-	reattachStr, err := json.Marshal(map[string]reattachConfig{
-		"hashicorp/test": {
-			Protocol:        string(config.Protocol),
-			ProtocolVersion: 5,
-			Pid:             config.Pid,
-			Test:            true,
-			Addr: reattachConfigAddr{
-				Network: config.Addr.Network(),
-				String:  config.Addr.String(),
-			},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	reattachStr, provider := reattachedProviderForTest(t, addrs.NewDefaultProvider("test"), 5) // protocol 5
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
 	//// INIT
@@ -434,6 +328,4 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 	if !provider.ApplyResourceChangeCalled() {
 		t.Error("ApplyResourceChange (destroy) not called on in-process provider")
 	}
-	cancel()
-	<-closeCh
 }

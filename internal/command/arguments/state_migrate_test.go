@@ -4,23 +4,39 @@
 package arguments
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestStateMigrateArgs(t *testing.T) {
+func TestStateMigrateArgs_valid(t *testing.T) {
+	t.Parallel()
+
+	// Create lock files to use in test, as validation will check for the existence of the
+	// file if a path is supplied via CLI flags.
+	td := t.TempDir()
+	userLockFilePath := filepath.Join(td, ".terraform.lock.hcl")
+	if err := os.WriteFile(userLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	invalidLockFilePath := filepath.Join(td, "invalid.lock.hcl")
+	if err := os.WriteFile(invalidLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
 	testCases := []struct {
-		rawArgs       []string
-		expectedArgs  *StateMigrate
-		expectedDiags tfdiags.Diagnostics
+		rawArgs      []string
+		expectedArgs *StateMigrate
 	}{
 		{
 			rawArgs: []string{""},
 			expectedArgs: &StateMigrate{
 				SourceLockFilePath:      "",
-				DestinationLockFilePath: ".terraform.lock.hcl",
+				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            true,
 				ViewType:                ViewHuman,
@@ -28,24 +44,59 @@ func TestStateMigrateArgs(t *testing.T) {
 		},
 		{ // set or override all flags
 			rawArgs: []string{
-				"-source-provider-lock-file", "/some/path/.terraform.lock.hcl",
-				"-destination-provider-lock-file", "/some/other/path/.terraform.lock.hcl",
+				"-source-provider-lock-file", userLockFilePath,
+				"-destination-provider-lock-file", userLockFilePath,
 				"-upgrade",
+				"-json",
 				"-input=false",
 			},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "/some/path/.terraform.lock.hcl",
-				DestinationLockFilePath: "/some/other/path/.terraform.lock.hcl",
+				SourceLockFilePath:      userLockFilePath,
+				DestinationLockFilePath: userLockFilePath,
 				Upgrade:                 true,
 				InputEnabled:            false,
-				ViewType:                ViewHuman,
+				ViewType:                ViewJSON,
 			},
 		},
+	}
+
+	for i, tc := range testCases {
+		args, diags := ParseStateMigrate(tc.rawArgs)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected diagnostics: %v", diags)
+		}
+		if diff := cmp.Diff(tc.expectedArgs, args); diff != "" {
+			t.Fatalf("%d: supplied: %q, got unexpected arguments:\n%s", i, tc.rawArgs, diff)
+		}
+	}
+}
+
+func TestStateMigrateArgs_invalid(t *testing.T) {
+	t.Parallel()
+
+	// Create lock files to use in test, as validation will check for the existence of the
+	// file if a path is supplied via CLI flags.
+	td := t.TempDir()
+	userLockFilePath := filepath.Join(td, ".terraform.lock.hcl")
+	if err := os.WriteFile(userLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	invalidLockFilePath := filepath.Join(td, "invalid.lock.hcl")
+	if err := os.WriteFile(invalidLockFilePath, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create test lock file: %s", err)
+	}
+
+	testCases := []struct {
+		rawArgs       []string
+		expectedArgs  *StateMigrate
+		expectedDiags tfdiags.Diagnostics
+	}{
 		{
-			rawArgs: []string{"-input=false", "-source-provider-lock-file", "foo"},
+			rawArgs: []string{"-input=false", "-source-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
-				DestinationLockFilePath: ".terraform.lock.hcl",
+				SourceLockFilePath:      invalidLockFilePath,
+				DestinationLockFilePath: "",
 				Upgrade:                 false,
 				InputEnabled:            false,
 				ViewType:                ViewHuman,
@@ -54,15 +105,15 @@ func TestStateMigrateArgs(t *testing.T) {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid source-provider-lock-file",
-					"Expected lock file name to be .terraform.lock.hcl, got: foo",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
 				),
 			},
 		},
 		{
-			rawArgs: []string{"-input=false", "-destination-provider-lock-file", "foo"},
+			rawArgs: []string{"-input=false", "-destination-provider-lock-file", invalidLockFilePath},
 			expectedArgs: &StateMigrate{
 				SourceLockFilePath:      "",
-				DestinationLockFilePath: "",
+				DestinationLockFilePath: invalidLockFilePath,
 				Upgrade:                 false,
 				InputEnabled:            false,
 				ViewType:                ViewHuman,
@@ -71,18 +122,18 @@ func TestStateMigrateArgs(t *testing.T) {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid destination-provider-lock-file",
-					"Expected lock file name to be .terraform.lock.hcl, got: foo",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
 				),
 			},
 		},
 		{ // set lock file paths outside of automation
 			rawArgs: []string{
-				"-source-provider-lock-file", "/src/.terraform.lock.hcl",
-				"-destination-provider-lock-file", "/dst/.terraform.lock.hcl",
+				"-source-provider-lock-file", userLockFilePath,
+				"-destination-provider-lock-file", invalidLockFilePath,
 			},
 			expectedArgs: &StateMigrate{
-				SourceLockFilePath:      "",
-				DestinationLockFilePath: "",
+				SourceLockFilePath:      userLockFilePath,
+				DestinationLockFilePath: invalidLockFilePath,
 				Upgrade:                 false,
 				InputEnabled:            true,
 				ViewType:                ViewHuman,
@@ -98,13 +149,43 @@ func TestStateMigrateArgs(t *testing.T) {
 					"Conflicting command-line flags provided",
 					"-destination-provider-lock-file cannot be used outside of automation (with -input=true)",
 				),
+				// Diagnostic about invalid lock file regardless of this flag not being allow
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid destination-provider-lock-file",
+					"Expected lock file name to be .terraform.lock.hcl, got: invalid.lock.hcl",
+				),
+			},
+		},
+		{ // JSON output outside of automation
+			rawArgs: []string{
+				"-json",
+			},
+			expectedArgs: &StateMigrate{
+				SourceLockFilePath:      "",
+				DestinationLockFilePath: "",
+				Upgrade:                 false,
+				InputEnabled:            true,
+				ViewType:                ViewJSON,
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Conflicting command-line flags provided",
+					"-json cannot be used outside of automation (with -input=true)",
+				),
 			},
 		},
 	}
 
 	for i, tc := range testCases {
 		args, diags := ParseStateMigrate(tc.rawArgs)
+
+		if !diags.HasErrors() {
+			t.Fatalf("expected diagnostics, but got none")
+		}
 		tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
+
 		if diff := cmp.Diff(tc.expectedArgs, args); diff != "" {
 			t.Fatalf("%d: supplied: %q, got unexpected arguments:\n%s", i, tc.rawArgs, diff)
 		}

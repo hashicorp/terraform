@@ -165,8 +165,8 @@ func (a AbsAction) Instance(key InstanceKey) AbsActionInstance {
 	}
 }
 
-// Config returns the unexpanded ConfigAction for this AbsAction.
-func (a AbsAction) Config() ConfigAction {
+// ConfigAction returns the unexpanded ConfigAction for this AbsAction.
+func (a AbsAction) ConfigAction() ConfigAction {
 	return ConfigAction{
 		Module: a.Module.Module(),
 		Action: a.Action,
@@ -180,6 +180,8 @@ func (a AbsAction) TargetContains(other Targetable) bool {
 		return a.Equal(to)
 	case AbsActionInstance:
 		return a.Equal(to.ContainingAction())
+	case ConfigAction:
+		return a.ConfigAction().Equal(to)
 	default:
 		return false
 	}
@@ -276,6 +278,8 @@ func (a AbsActionInstance) TargetContains(other Targetable) bool {
 		return to.Equal(a.ContainingAction()) && a.Action.Key == NoKey
 	case AbsActionInstance:
 		return to.Equal(a)
+	case ConfigAction:
+		return a.ConfigAction().Equal(to)
 	default:
 		return false
 	}
@@ -314,6 +318,7 @@ func (a absActionInstanceKey) uniqueKeySigil() {}
 
 // ConfigAction is the address for an action within the configuration.
 type ConfigAction struct {
+	targetable
 	Module Module
 	Action Action
 }
@@ -337,6 +342,11 @@ func (a ConfigAction) Absolute(module ModuleInstance) AbsAction {
 	}
 }
 
+// AddrType implements Targetable
+func (a ConfigAction) AddrType() TargetableAddrType {
+	return ActionAddrType
+}
+
 func (a ConfigAction) String() string {
 	if len(a.Module) == 0 {
 		return a.Action.String()
@@ -346,6 +356,16 @@ func (a ConfigAction) String() string {
 
 func (a ConfigAction) Equal(o ConfigAction) bool {
 	return a.Module.Equal(o.Module) && a.Action.Equal(o.Action)
+}
+
+func (a ConfigAction) TargetContains(other Targetable) bool {
+	switch other := other.(type) {
+	case AbsAction:
+		return other.ConfigAction().Equal(a)
+	case AbsActionInstance:
+		return other.ContainingAction().ConfigAction().Equal(a)
+	}
+	return false
 }
 
 func (a ConfigAction) UniqueKey() UniqueKey {

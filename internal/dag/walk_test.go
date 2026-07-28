@@ -220,6 +220,45 @@ func TestWalker_newEdge(t *testing.T) {
 	}
 }
 
+type tolerantTestVertex string
+
+func (v tolerantTestVertex) AllowUpstreamFailure(dep Vertex) bool {
+	return dep == 2
+}
+
+func TestWalker_tolerantVertex(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(tolerantTestVertex("t"))
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, tolerantTestVertex("t")))
+	g.Connect(BasicEdge(tolerantTestVertex("t"), 4))
+
+	var order []any
+
+	w := NewWalker(func(v Vertex) tfdiags.Diagnostics {
+		if v == 2 {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(fmt.Errorf("error"))
+			return diags
+		}
+
+		return walkCbRecord(&order)(v)
+	})
+	w.Update(&g)
+
+	if err := w.Wait(); err == nil {
+		t.Fatal("expect error")
+	}
+
+	expected := []any{1, tolerantTestVertex("t")}
+	if !reflect.DeepEqual(order, expected) {
+		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
+	}
+}
+
 func TestWalker_removeEdge(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)

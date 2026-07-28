@@ -157,7 +157,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
@@ -225,7 +225,7 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,

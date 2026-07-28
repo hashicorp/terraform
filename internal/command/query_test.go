@@ -6,17 +6,21 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -244,6 +248,122 @@ this variable.
 				actual := strings.TrimSpace(output.Stderr())
 				assertErr(actual)
 			}
+		})
+	}
+}
+
+// TestQuery_varFileDuplicateAttr is a regression test for a bug where a
+// -var-file containing a duplicated attribute would print an error diagnostic
+// but still exit 0, silently discarding the file and falling back to other
+// variable sources. A malformed var file must cause the query to fail.
+func TestQuery_varFileDuplicateAttr(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("query", "duplicate-var-file")), td)
+	t.Chdir(td)
+
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	p := queryFixtureProvider()
+	view, done := testView(t)
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(p),
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		ProviderSource:            providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	initCode := init.Run(nil)
+	initOutput := done(t)
+	if initCode != 0 {
+		t.Fatalf("init failed: %d\n\n%s", initCode, initOutput.All())
+	}
+
+	view, done = testView(t)
+	meta.View = view
+
+	c := &QueryCommand{Meta: meta}
+	code := c.Run([]string{"-no-color", "-var-file=duplicate.tfvars"})
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+}
+
+func TestQueryCommand_Validate(t *testing.T) {
+	td := t.TempDir()
+	if err := os.WriteFile(filepath.Join(td, "main.policy.hcl"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+	td2 := t.TempDir()
+	if err := os.WriteFile(filepath.Join(td2, "allow.policy.hcl"), []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(t.TempDir(), "does-not-exist")
+
+	tests := []struct {
+		name             string
+		policyPaths      []string
+		allowExperiments bool
+		wantDiags        tfdiags.Diagnostics
+	}{
+		{
+			name:             "no policies, flag omitted",
+			policyPaths:      nil,
+			allowExperiments: true,
+		},
+		{
+			name:             "single valid path",
+			policyPaths:      []string{td},
+			allowExperiments: true,
+		},
+		{
+			name:             "multiple valid paths",
+			policyPaths:      []string{td, td2},
+			allowExperiments: true,
+		},
+		{
+			name:             "non-existent path",
+			policyPaths:      []string{missingPath},
+			allowExperiments: true,
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid policy path",
+					fmt.Sprintf("Terraform cannot find the policy path at %s. Please ensure the file or directory exists and the path is correct.", missingPath),
+				),
+			},
+		},
+		{
+			name:             "experiments disallowed",
+			policyPaths:      []string{td},
+			allowExperiments: false,
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to parse command-line flags",
+					"The -policies flag is only valid in experimental builds of Terraform.",
+				),
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := &QueryCommand{Meta: Meta{AllowExperimentalFeatures: tc.allowExperiments}}
+			got := cmd.Validate(&arguments.Query{PolicyPaths: tc.policyPaths})
+			if tc.wantDiags == nil {
+				tfdiags.AssertNoDiagnostics(t, got)
+				return
+			}
+			tfdiags.AssertDiagnosticsMatch(t, got, tc.wantDiags)
 		})
 	}
 }

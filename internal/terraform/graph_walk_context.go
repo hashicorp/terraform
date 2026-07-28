@@ -8,19 +8,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -57,14 +58,17 @@ type ContextGraphWalker struct {
 	// only allowed in the context of a destroy plan.
 	Forget bool
 
-	Actions      *actions.Actions
 	Deprecations *deprecation.Deprecations
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	once               sync.Once
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
+
+	PolicyClient policy.Client
+	PolicyGraph  *policySubgraph // Used for writing resource policy evaluation nodes
+
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex
 	providerCache      map[string]providers.Interface
@@ -78,6 +82,14 @@ type ContextGraphWalker struct {
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
+
+// scopeEvalContextExists checks if the given scope has an associated eval context
+func (w *ContextGraphWalker) scopeEvalContextExists(scope evalContextScope) bool {
+	w.contextLock.Lock()
+	defer w.contextLock.Unlock()
+
+	return w.contexts.HasKey(scope)
+}
 
 // enterScope provides an EvalContext associated with the given scope.
 func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
@@ -100,8 +112,6 @@ func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
 }
 
 func (w *ContextGraphWalker) EvalContext() EvalContext {
-	w.once.Do(w.init)
-
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
@@ -143,23 +153,16 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
+		PolicyGraphValue:        w.PolicyGraph,
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		ActionsValue:            w.Actions,
+		ProviderLocksValue:      w.ProviderLocks,
+		PolicyClientValue:       w.PolicyClient,
 		DeprecationsValue:       w.Deprecations,
 	}
 
 	return ctx
-}
-
-func (w *ContextGraphWalker) init() {
-	w.contexts = collections.NewMap[evalContextScope, *BuiltinEvalContext]()
-	w.providerCache = make(map[string]providers.Interface)
-	w.providerFuncCache = make(map[string]providers.Interface)
-	w.providerSchemas = make(map[string]providers.ProviderSchema)
-	w.provisionerCache = make(map[string]provisioners.Interface)
-	w.provisionerSchemas = make(map[string]*configschema.Block)
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

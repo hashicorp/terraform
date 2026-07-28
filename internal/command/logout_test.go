@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -16,9 +14,10 @@ import (
 )
 
 func TestLogout(t *testing.T) {
+	t.Parallel()
 	workDir := t.TempDir()
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	credsSrc := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 
 	c := &LogoutCommand{

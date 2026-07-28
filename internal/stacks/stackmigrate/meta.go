@@ -6,7 +6,6 @@ package stackmigrate
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -33,9 +32,9 @@ var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Workspace() (string, error) {
-	current, overridden := m.WorkspaceOverridden()
-	if overridden && !validWorkspaceName(current) {
-		return "", errInvalidWorkspaceNameEnvVar
+	current, _, err := m.WorkspaceOverridden()
+	if err != nil {
+		return "", err
 	}
 	return current, nil
 }
@@ -43,15 +42,25 @@ func (m *Meta) Workspace() (string, error) {
 // WorkspaceOverridden returns the name of the currently configured workspace,
 // corresponding to the desired named state, as well as a bool saying whether
 // this was set via the TF_WORKSPACE environment variable.
-func (m *Meta) WorkspaceOverridden() (string, bool) {
+func (m *Meta) WorkspaceOverridden() (string, bool, error) {
 	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
-		return envVar, true
+		if !validWorkspaceName(envVar) {
+			// Protect against invalid workspace names set via ENV.
+			return "", true, errInvalidWorkspaceNameEnvVar
+		}
+		return envVar, true, nil
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+	envData, err := os.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
+	}
+	if !validWorkspaceName(current) {
+		// This check is active in every command that uses a backend.
+		// It is selectively disabled in commands that are recommended for recovering from an invalid workspace.
+		err := fmt.Errorf("Invalid workspace name: The selected workspace described in %q has an invalid name. This suggests that the file contents were edited by something other than Terraform. To select a different, valid workspace name use commands `terraform workspace select` or `terraform workspace select -or-create`.", filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+		return "", false, err
 	}
 
 	if err != nil && !os.IsNotExist(err) {
@@ -59,7 +68,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		log.Printf("[ERROR] failed to read current workspace: %s", err)
 	}
 
-	return current, false
+	return current, false, nil
 }
 
 // fixupMissingWorkingDir is a compensation for various existing tests which

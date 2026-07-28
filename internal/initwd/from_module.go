@@ -48,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
@@ -159,7 +159,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
-	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher, wrapHooks)
 	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)
@@ -345,7 +345,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			newRecord.Dir = newDir
 			newRecord.Key = newKey
 			retManifest[newKey] = newRecord
-			hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			// Call the original hooks here, not the wrapper
+			for _, hook := range hooks {
+				hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			}
 			continue
 		}
 
@@ -383,7 +386,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		newRecord.Dir = filepath.Join(instPath, subDir)
 		newRecord.Key = newKey
 		retManifest[newKey] = newRecord
-		hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		// Call the original hooks here, not the wrapper
+		for _, hook := range hooks {
+			hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		}
 	}
 
 	retManifest.WriteSnapshotToDir(modulesDir)
@@ -416,8 +422,19 @@ func pathTraversesUp(path string) bool {
 // does its own installation steps after the initial installation pass
 // has completed.
 type installHooksInitDir struct {
-	Wrapped ModuleInstallHooks
-	ModuleInstallHooksImpl
+	Wrapped []ModuleInstallHook
+	ModuleInstallHookImpl
+}
+
+// ModuleSourceResolved calls ModuleSourceResolved on each wrapped hook and returns the first error it encounters.
+func (h installHooksInitDir) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, version string) tfdiags.Diagnostics {
+	for _, hook := range h.Wrapped {
+		diags := hook.ModuleSourceResolved(ctx, req, version)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+	return nil
 }
 
 func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *version.Version) {
@@ -429,5 +446,7 @@ func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *v
 	}
 
 	trimAddr := moduleAddr[len(initFromModuleRootKeyPrefix):]
-	h.Wrapped.Download(trimAddr, packageAddr, version)
+	for _, hook := range h.Wrapped {
+		hook.Download(trimAddr, packageAddr, version)
+	}
 }

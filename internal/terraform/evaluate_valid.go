@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -52,21 +53,10 @@ func (e *Evaluator) StaticValidateReference(ref *addrs.Reference, modAddr addrs.
 }
 
 func (e *Evaluator) staticValidateReference(ref *addrs.Reference, modCfg *configs.Config, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	if ref.Subject == addrs.Self {
-		// The "self" address is a special alias for the address given as
-		// our self parameter here, if present.
+	if _, ok := ref.Subject.(addrs.SelfType); ok {
 		if self == nil {
 			var diags tfdiags.Diagnostics
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid "self" reference`,
-				// This detail message mentions some current practice that
-				// this codepath doesn't really "know about". If the "self"
-				// object starts being supported in more contexts later then
-				// we'll need to adjust this message.
-				Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
-				Subject: ref.SourceRange.ToHCL().Ptr(),
-			})
+			diags = diags.Append(lang.SelfContextDiagnostics(ref))
 			return diags
 		}
 

@@ -172,7 +172,7 @@ func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 	// This is necessary because the plugin.GRPCBroker cannot be mocked except the actual plugin process is started.
 	exitCode := gRPCClient.executeWithBrokers(mockBrokerIDs, []string{"init"}, io.Discard, io.Discard)
 	if exitCode != 255 {
-		t.Fatalf("expected exit %q, got %q", 255, exitCode)
+		t.Fatalf("expected exit %d, got %d", 255, exitCode)
 	}
 
 	recvLog := "[TRACE] received exit code: 3000\n[ERROR] stacksplugin returned an invalid error code 3000\n"
@@ -216,7 +216,7 @@ func Test_GRPCStacksClient_Execute(t *testing.T) {
 	// This is necessary because the plugin.GRPCBroker cannot be mocked except the actual plugin process is started.
 	exitCode := gRPCClient.executeWithBrokers(mockBrokerIDs, []string{"example"}, &stdoutBuffer, io.Discard)
 	if exitCode != 99 {
-		t.Fatalf("expected exit %q, got %q", 99, exitCode)
+		t.Fatalf("expected exit %d, got %d", 99, exitCode)
 	}
 
 	recvResponse := "firstresponse\nsecondresponse\n"

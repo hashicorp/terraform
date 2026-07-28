@@ -27,13 +27,11 @@ import (
 // position to return errors and so the validate walk should include specific
 // steps for validating module blocks, separate from this transform.
 type ModuleVariableTransformer struct {
-	Config *configs.Config
+	Config    *configs.Config
+	Operation walkOperation
 
-	// ModuleOnly, if true, makes the transformer only process the
-	// variables in the current module, skipping any child modules.
-	ModuleOnly bool
-
-	// ValidateChecks should be set to true if the graph should run the user-defined validations for child module variables
+	// ValidateChecks should be set to true if the graph should run the user
+	// defined validations for child module variables
 	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
@@ -42,7 +40,9 @@ type ModuleVariableTransformer struct {
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
-	if t.ModuleOnly && t.Config.Parent != nil {
+	// During init the transformer only processes the
+	// variables in the current module, skipping any child modules.
+	if t.Operation == walkInit && t.Config.Parent != nil {
 		return t.transformSingle(g, t.Config.Parent, t.Config)
 	} else {
 		return t.transform(g, nil, t.Config)
@@ -93,9 +93,15 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 	// decode the content of the call block.
 	schema := &hcl.BodySchema{}
 	for _, v := range c.Module.Variables {
+		required := v.Default == cty.NilVal
+		if t.Operation == walkInit {
+			// During init we only want require const variables
+			required = required && v.Const
+		}
+
 		schema.Attributes = append(schema.Attributes, hcl.AttributeSchema{
 			Name:     v.Name,
-			Required: v.Default == cty.NilVal,
+			Required: required,
 		})
 	}
 

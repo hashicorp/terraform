@@ -39,6 +39,16 @@ type NamedVertex interface {
 	Name() string
 }
 
+// TolerantVertex is an optional interface that can be implemented by Vertex
+// to allow it to tolerate upstream failures.
+type TolerantVertex interface {
+	Vertex
+
+	// AllowUpstreamFailure returns true if the receiver vertex can tolerate a
+	// failure in the given vertex.
+	AllowUpstreamFailure(Vertex) bool
+}
+
 func (g *Graph) DirectedGraph() Grapher {
 	return g
 }
@@ -355,6 +365,11 @@ func (g *Graph) init() {
 // Dot returns a dot-formatted representation of the Graph.
 func (g *Graph) Dot(opts *DotOpts) []byte {
 	return newMarshalGraph("", g).Dot(opts)
+}
+
+// Mermaid returns a Mermaid flowchart formatted representation of the Graph.
+func (g *Graph) Mermaid(opts *DotOpts) []byte {
+	return newMarshalGraph("", g).Mermaid(opts)
 }
 
 // VertexName returns the name of a vertex.

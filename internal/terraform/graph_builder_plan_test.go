@@ -11,7 +11,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 )
@@ -91,6 +94,222 @@ openstack_floating_ip.random
 			}
 		}
 	})
+}
+
+func TestPlanGraphBuilder_PolicyClient(t *testing.T) {
+	awsProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"aws_security_group": {Body: simpleTestSchema()},
+				"aws_instance":       {Body: simpleTestSchema()},
+				"aws_load_balancer":  {Body: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				"aws_data_source": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Optional: true, Computed: true},
+						},
+					},
+				},
+			},
+		},
+	}
+	openstackProvider := mockProviderWithResourceTypeSchema("openstack_floating_ip", simpleTestSchema())
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("aws"):       providers.FactoryFixed(awsProvider),
+		addrs.NewDefaultProvider("openstack"): providers.FactoryFixed(openstackProvider),
+	}, nil, nil)
+
+	t.Run("with policy client", func(t *testing.T) {
+		b := &PlanGraphBuilder{
+			Config:       testModule(t, "graph-builder-plan-basic"),
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 1 {
+			t.Fatalf("expected 1 policy evaluation node in plan graph with policy client, got %d", nodes)
+		}
+
+		testGraphHappensBefore(t, g, "output.instance_id (expand)", "(evaluate policies)")
+	})
+
+	t.Run("without policy client", func(t *testing.T) {
+		b := &PlanGraphBuilder{
+			Config:    testModule(t, "graph-builder-plan-basic"),
+			Plugins:   plugins,
+			Operation: walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		policyNode := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq())
+		if nodes := len(policyNode.Collect()); nodes != 0 {
+			t.Fatalf("expected 0 policy evaluation nodes in plan graph without policy client, got %d", nodes)
+		}
+	})
+
+	t.Run("Data source before policy", func(t *testing.T) {
+		config := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "aws_instance" "foo" {
+  ami = "bar"
+}
+
+data "aws_data_source" "a" {
+  id = "zzzzz"
+}
+`,
+		})
+
+		b := &PlanGraphBuilder{
+			Config:       config,
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		testGraphHappensBefore(t, g, "data.aws_data_source.a (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "(evaluate policies)", "provider[\"registry.terraform.io/hashicorp/aws\"] (close)")
+	})
+
+	t.Run("Output evaluates before policy", func(t *testing.T) {
+		config := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "aws_instance" "foo" {
+  ami = "bar"
+}
+
+module "child" {
+  source = "./child"
+}
+`,
+			"child/main.tf": `
+data "aws_data_source" "a" {
+  id = "zzzzz"
+}
+
+output "value" {
+  value = data.aws_data_source.a.id
+}
+`,
+		})
+
+		b := &PlanGraphBuilder{
+			Config:       config,
+			Plugins:      plugins,
+			PolicyClient: policy.NewTestMockClient(t),
+			Operation:    walkPlan,
+		}
+
+		g, diags := b.Build(addrs.RootModuleInstance)
+		if diags.HasErrors() {
+			t.Fatalf("err: %s", diags.Err())
+		}
+
+		testGraphHappensBefore(t, g, "module.child.output.value (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "module.child.data.aws_data_source.a (expand)", "(evaluate policies)")
+		testGraphHappensBefore(t, g, "module.child (close)", "(evaluate policies)")
+	})
+}
+
+// TestPlanGraphBuilder_QueryPlan_PolicyWiring verifies that when queryPlan == true
+// and a PolicyClient is set, policyEvalTransformer wires nodePolicyEval to depend
+// only on list block nodes.
+func TestPlanGraphBuilder_QueryPlan_PolicyWiring(t *testing.T) {
+	provider := mockProviderWithResourceTypeSchema("test_resource", simpleTestSchema())
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
+	}, nil, nil)
+
+	config := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
+resource "test_resource" "example" {
+  id = "example"
+}
+
+provider "test" {
+  alias = "example"
+  id = resource.test_resource.example.id
+}
+`,
+		"main.tfquery.hcl": `
+list "test_resource" "mylist" {
+  provider = test.example
+}
+`,
+	}, configs.MatchQueryFiles())
+
+	b := &PlanGraphBuilder{
+		Config:       config,
+		Plugins:      plugins,
+		PolicyClient: policy.NewTestMockClient(t),
+		queryPlan:    true,
+		Operation:    walkPlan,
+	}
+	assertPlanGraphBuilderPolicyTransformerQueryPlan(t, b)
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("Build failed: %s", diags.Err())
+	}
+
+	nodes := dag.SelectSeq[*nodePolicyEval](g.VerticesSeq()).Collect()
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 nodePolicyEval node in query plan graph, got %d", len(nodes))
+	}
+
+	// The list block node must be scheduled before policy evaluation.
+	testGraphHappensBefore(t, g, "list.test_resource.mylist (expand)", "(evaluate policies)")
+
+	policyNode := nodes[0]
+	for _, dep := range g.DownEdges(policyNode) {
+		if res, ok := dep.(GraphNodeConfigResource); ok && res.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
+			t.Errorf("policy node should not directly depend on non-list resource %q in query mode", dag.VertexName(dep))
+		}
+	}
+}
+
+func assertPlanGraphBuilderPolicyTransformerQueryPlan(t *testing.T, b *PlanGraphBuilder) {
+	t.Helper()
+
+	for _, step := range b.Steps() {
+		tr, ok := step.(*policyEvalTransformer)
+		if !ok {
+			continue
+		}
+		if !tr.QueryPlan {
+			t.Fatal("expected PlanGraphBuilder to propagate queryPlan to policyEvalTransformer")
+		}
+		return
+	}
+
+	t.Fatal("expected PlanGraphBuilder to include policyEvalTransformer")
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {

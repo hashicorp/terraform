@@ -162,15 +162,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		o.ActionTargets = append(o.ActionTargets, target.Subject)
 	}
 
-	if len(o.ActionTargets) > 0 && len(o.Targets) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid arguments",
-			"The -invoke and -target arguments must not both be specified."))
-	}
-
 	if len(o.ActionTargets) > 1 {
-		// TEMP: Disallow targeting multiple actions for now.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid arguments",

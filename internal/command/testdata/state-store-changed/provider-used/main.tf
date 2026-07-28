@@ -11,6 +11,5 @@ terraform {
       region = "foobar"
     }
 
-    value = "foobar"
   }
 }

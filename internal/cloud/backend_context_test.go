@@ -212,7 +212,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			}
 			b.client.Variables.Create(context.TODO(), workspaceID, *v)
 
-			_, _, diags := b.LocalRun(op)
+			_, _, diags := b.LocalRun(context.Background(), op)
 
 			if test.WantError != "" {
 				if !diags.HasErrors() {
@@ -433,7 +433,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				b.client.Variables.Create(context.TODO(), workspaceID, *v)
 			}
 
-			lr, _, diags := b.LocalRun(op)
+			lr, _, diags := b.LocalRun(context.Background(), op)
 
 			if diags.HasErrors() {
 				t.Fatalf("unexpected error\ngot:  %s\nwant: <no error>", diags.Err().Error())

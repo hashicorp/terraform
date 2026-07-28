@@ -14,13 +14,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -30,7 +30,7 @@ import (
 )
 
 func TestProvidersSchema_error(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -66,7 +66,7 @@ func TestProvidersSchema_output(t *testing.T) {
 			})
 
 			p := providersSchemaFixtureProvider()
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -111,6 +111,58 @@ func TestProvidersSchema_output(t *testing.T) {
 	}
 }
 
+// Test that provider schema data can be obtained based on directory data set in the Meta,
+// not by relying on code upstream from the command having changed the working directory.
+// This test mimics a user running `terraform -chdir=<dir> providers schema`
+func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
+	fixtureDir := "providers-schema/basic"
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(fixtureDir), td)
+
+	// We don't call t.Chdir, intentionally.
+
+	p := providersSchemaFixtureProvider()
+	ui := testUiWrapped(t)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			Ui:               ui,
+			testingOverrides: metaOverridesForProvider(p),
+
+			// Setting WorkingDir mimics what calling code would do
+			// when running a command with -chdir.
+			WorkingDir: workdir.NewDir(td),
+		},
+	}
+
+	args := []string{
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Assert we got the expected output, despite no changing into that directory.
+	var got, want providerSchemas
+
+	gotString := ui.OutputWriter.String()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open(filepath.Join(td, "output.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
 func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	// State with a 'baz' provider not in the config
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -144,16 +196,18 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	}
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
-		"default": stateBuf.Bytes(),
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
 	mockProviderAddressTest := addrs.NewDefaultProvider("test")
 
 	// Mock for the provider in the state
 	mockProviderAddressBaz := addrs.NewDefaultProvider("baz")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			Ui:                        ui,
@@ -219,7 +273,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -243,7 +297,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -281,7 +335,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),

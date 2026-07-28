@@ -55,6 +55,11 @@
       "source": "git::https://example.com/action_invocations.git",
       "local": "action_invocations",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/multiple-components.git",
+      "local": "multiple-components",
+      "meta": {}
     }
   ]
 }

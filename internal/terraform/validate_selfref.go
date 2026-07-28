@@ -156,9 +156,9 @@ func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Refer
 
 		if self.Equal(subject) {
 			tail := len(refs) - 1
-
 			refs[i], refs[tail] = refs[tail], refs[i]
 			refs = refs[:tail]
+			i--
 		}
 	}
 	return refs

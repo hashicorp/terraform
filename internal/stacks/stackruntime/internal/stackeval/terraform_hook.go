@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -277,6 +278,17 @@ func (h *componentInstanceTerraformHook) CompleteAction(id terraform.HookActionI
 		Status:       status,
 		Trigger:      ai.Trigger,
 	})
+	return terraform.HookActionContinue, nil
+}
+
+func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	if !resp.Empty() {
+		hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
+			ComponentAddr: h.addr,
+			ResourceAddr:  addr,
+			Result:        resp,
+		})
+	}
 	return terraform.HookActionContinue, nil
 }
 

@@ -151,6 +151,13 @@ type Hooks struct {
 	//
 	// See the docs for [hooks.ContextAttachFunc] for more information.
 	ContextAttach hooks.ContextAttachFunc
+
+	// ReportComponentInstancePolicyResult is called to report the policy result for a resource instance.
+	ReportComponentInstancePolicyResult hooks.MoreFunc[*hooks.ComponentInstancePolicyResult]
+
+	// ReportProviderInstancePolicyResult is called after a provider instance is configured during plan or apply. If no policy results are provided
+	// it will not emit an event.
+	ReportProviderInstancePolicyResult hooks.SingleFunc[*hooks.ProviderInstancePolicyResults]
 }
 
 // A do-nothing default Hooks that we use when the caller doesn't provide one.

@@ -32,6 +32,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -79,11 +80,23 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		// if there has been any errors when setting up the policy client, we log them but
+		// we still proceed with the operation, as a failure to set up the policy client
+		// should not prevent the plan operation from running
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyDiagnostics(policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
 	}
 
 	// Collect variable value and add them to the operation request
@@ -97,6 +110,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// we've accumulated here, since the backend will start fresh with its own
 	// diagnostics.
 	view.Diagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
 	diags = nil
 
 	// Perform the operation
@@ -117,6 +133,10 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
+func (c *PlanCommand) Validate(args *arguments.Plan) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+}
+
 func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
@@ -133,14 +153,7 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.V
 	return be, diags
 }
 
-func (c *PlanCommand) OperationRequest(
-	be backendrun.OperationsBackend,
-	view views.Plan,
-	viewType arguments.ViewType,
-	args *arguments.Operation,
-	planOutPath string,
-	generateConfigOut string,
-) (*backendrun.Operation, tfdiags.Diagnostics) {
+func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view views.Plan, viewType arguments.ViewType, args *arguments.Operation, planOutPath string, generateConfigOut string, policyPaths []string) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation

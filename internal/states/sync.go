@@ -4,6 +4,7 @@
 package states
 
 import (
+	"iter"
 	"log"
 	"sync"
 
@@ -140,6 +141,36 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 	ret := s.state.ResourceInstance(addr).DeepCopy()
 	s.lock.RUnlock()
 	return ret
+}
+
+// ReadEachConfigResourceInstance returns an iterator over the resource instances
+// of the given config resource, applying the given selector function to each
+// instance and yielding the results.
+func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.ConfigResource, selector func(*ResourceInstance) (T, bool)) iter.Seq[T] {
+	if syncState == nil {
+		panic("ReadEachConfigResourceInstance on nil state")
+	}
+
+	if syncState.writable {
+		panic("ReadEachConfigResourceInstance on writable state")
+	}
+
+	addrs := syncState.state.allResourceInstanceObjectAddrs(func(objAddr addrs.AbsResourceInstanceObject) bool {
+		return objAddr.ResourceInstance.ConfigResource().Equal(addr)
+	})
+
+	return func(yield func(T) bool) {
+		for _, addr := range addrs {
+			val := syncState.state.ResourceInstance(addr.ResourceInstance)
+			selected, ok := selector(val)
+			if !ok {
+				continue
+			}
+			if !yield(selected) {
+				return
+			}
+		}
+	}
 }
 
 // ResourceInstanceObject returns a snapshot of the resource instance object
@@ -436,9 +467,8 @@ func (s *SyncState) DiscardCheckResults() {
 // RecordCheckResults replaces any check results already recorded in the state
 // with a new set taken from the given check state object.
 func (s *SyncState) RecordCheckResults(checkState *checks.State) {
-	newResults := NewCheckResults(checkState)
 	defer s.beginWrite()()
-	s.state.CheckResults = newResults
+	s.state.RecordCheckResults(checkState)
 }
 
 // Lock acquires an explicit lock on the state, allowing direct read and write

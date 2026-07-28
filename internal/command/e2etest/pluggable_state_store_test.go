@@ -5,11 +5,8 @@ package e2etest
 
 import (
 	"bytes"
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,24 +14,18 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 // Test that users can do the full init-plan-apply workflow with pluggable state storage
-// when the state storage provider is reattached/unmanaged by Terraform.
+// when the state storage provider is unmanaged by Terraform.
 // As well as ensuring that the state store can be initialised ok, this tests that
-// the state store's details can be stored in the plan file despite the fact it's reattached.
+// the state store's details can be stored in the plan file despite the fact it's unmanaged.
 func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
@@ -47,59 +38,9 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
-	reattachCh := make(chan *plugin.ReattachConfig)
-	closeCh := make(chan struct{})
-	provider := &providerServer{
-		ProviderServer: grpcwrap.Provider6(simple.Provider()),
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go plugin.Serve(&plugin.ServeConfig{
-		Logger: hclog.New(&hclog.LoggerOptions{
-			Name:   "plugintest",
-			Level:  hclog.Trace,
-			Output: io.Discard,
-		}),
-		Test: &plugin.ServeTestConfig{
-			Context:          ctx,
-			ReattachConfigCh: reattachCh,
-			CloseCh:          closeCh,
-		},
-		GRPCServer: plugin.DefaultGRPCServer,
-		VersionedPlugins: map[int]plugin.PluginSet{
-			6: {
-				"provider": &tfplugin.GRPCProviderPlugin{
-					GRPCProvider: func() proto.ProviderServer {
-						return provider
-					},
-				},
-			},
-		},
-	})
-	config := <-reattachCh
-	if config == nil {
-		t.Fatalf("no reattach config received")
-	}
-	reattachStr, err := json.Marshal(map[string]reattachConfig{
-		"hashicorp/simple6": {
-			Protocol:        string(config.Protocol),
-			ProtocolVersion: 6,
-			Pid:             config.Pid,
-			Test:            true,
-			Addr: reattachConfigAddr{
-				Network: config.Addr.Network(),
-				String:  config.Addr.String(),
-			},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	reattachStr, provider := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
 	// Required for the local state files to be written to the temp directory,
@@ -165,13 +106,11 @@ func TestPrimary_stateStore_unmanaged_separatePlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s\nstdout:\n%s", err, stderr, stdout)
 	}
-
-	cancel()
-	<-closeCh
 }
 
 // Tests using `terraform workspace` commands in combination with pluggable state storage.
 func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -181,11 +120,8 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// In order to test integration with PSS we need a provider plugin implementing a state store.
@@ -277,6 +213,7 @@ func TestPrimary_stateStore_workspaceCmd(t *testing.T) {
 // > `terraform state show`
 // > `terraform state list`
 func TestPrimary_stateStore_stateCmds(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -286,11 +223,8 @@ func TestPrimary_stateStore_stateCmds(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -353,6 +287,7 @@ resource "terraform_data" "my-data" {
 // > `terraform output`
 // > `terraform output <name>`
 func TestPrimary_stateStore_outputCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -362,11 +297,8 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -422,6 +354,7 @@ func TestPrimary_stateStore_outputCmd(t *testing.T) {
 // > `terraform show <path-to-state-file>`
 // > `terraform show <path-to-plan-file>`
 func TestPrimary_stateStore_showCmd(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -431,11 +364,8 @@ func TestPrimary_stateStore_showCmd(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	tfBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
-
 	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-fs")
-	tf := e2e.NewBinary(t, tfBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 
 	workspaceDirName := "states" // see test fixture value for workspace_dir
 
@@ -547,6 +477,7 @@ state, without changing any real infrastructure.
 // in the command's outputs. _This_ test is intended to assert that the command is able to read and use
 // state via a state store ok, and is able to detect providers required only by the state.
 func TestPrimary_stateStore_providerCmds(t *testing.T) {
+	t.Parallel()
 	if !canRunGoBuild {
 		// We're running in a separate-build-then-run context, so we can't
 		// currently execute this test which depends on being able to build
@@ -556,10 +487,8 @@ func TestPrimary_stateStore_providerCmds(t *testing.T) {
 		t.Skip("can't run without building a new provider executable")
 	}
 
-	t.Setenv(e2e.TestExperimentFlag, "true")
-	terraformBin := e2e.GoBuild("github.com/hashicorp/terraform", "terraform")
 	fixturePath := filepath.Join("testdata", "full-workflow-with-state-store-fs")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
 	workspaceDirName := "states" // See workspace_dir value in the configuration
 
 	// Add a state file describing a resource from the simple (v5) provider, so

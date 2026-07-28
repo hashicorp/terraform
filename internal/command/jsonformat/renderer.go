@@ -87,6 +87,11 @@ const (
 	LogListStart         JSONLogType = "list_start"
 	LogListResourceFound JSONLogType = "list_resource_found"
 	LogListComplete      JSONLogType = "list_complete"
+
+	// Policy Messages
+	LogPolicyInfo       JSONLogType = "policy_info"
+	LogPolicyResult     JSONLogType = "policy_result"
+	LogPolicyDiagnostic JSONLogType = "policy_diagnostic"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -168,7 +173,10 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogTestInterrupt,
 		LogListStart,
 		LogListResourceFound,
-		LogListComplete:
+		LogListComplete,
+		LogPolicyInfo,
+		LogPolicyResult,
+		LogPolicyDiagnostic:
 		// We won't display these types of logs
 		return nil
 

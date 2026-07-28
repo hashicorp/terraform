@@ -17,10 +17,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -243,7 +243,7 @@ resource "test_instance" "a" {
 		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
 			AttrsJSON:    []byte(`{"id":"b"}`),
 			Status:       states.ObjectReady,
-			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+			Dependencies: []addrs.ConfigResource{addrA.ConfigResource()},
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
@@ -4952,4 +4952,337 @@ resource "test_resource" "bar" {
 	// inconsistent final plan"
 	_, diags = ctx.Apply(plan, m, nil)
 	tfdiags.AssertNoErrors(t, diags)
+}
+
+// TestContext2Apply_deposedNoLongerExists_withConditions is a regression test
+// for a panic that occurred when applying a plan that contained a NoOp change
+// for a deposed object on a resource whose config declared a precondition.
+func TestContext2Apply_deposedNoLongerExists_withConditions(t *testing.T) {
+	// count = 0 so the configuration declares no current instances, but the
+	// resource block (with its precondition) is still present in the module.
+	// The precondition must reference something else in configuration; we
+	// reference path.module, which is always defined.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  count       = 0
+  test_string = "ok"
+  lifecycle {
+    create_before_destroy = true
+    precondition {
+      condition     = path.module != "/dev/null"
+      error_message = "never fires"
+    }
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	// Pretend the deposed object has been deleted out-of-band.
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: cty.NullVal(req.PriorState.Type()),
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		states.DeposedKey("deadbeef"),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	// Sanity check: the plan should contain a NoOp change for the deposed
+	// object and nothing else for this address.
+	addr := mustResourceInstanceAddr("test_object.a[0]")
+	deposedChange := plan.Changes.ResourceInstanceDeposed(addr, states.DeposedKey("deadbeef"))
+	if deposedChange == nil {
+		t.Fatalf("expected a deposed change for %s, got none", addr)
+	}
+	if deposedChange.Action != plans.NoOp {
+		t.Fatalf("expected NoOp deposed change for %s, got %s", addr, deposedChange.Action)
+	}
+	if got := plan.Changes.ResourceInstance(addr); got != nil {
+		t.Fatalf("expected no non-deposed change for %s, got %s", addr, got.Action)
+	}
+
+	// Apply must not panic.
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+}
+
+func TestContext2Apply_forget_resource_lifecycle(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource test_object forget {
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource test_object destroy {
+	lifecycle {
+		destroy = true
+	}
+}
+
+resource test_object default {}
+`})
+
+	p := simpleMockProvider()
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	destroy := mustResourceInstanceAddr("test_object.destroy")
+	defaultRes := mustResourceInstanceAddr("test_object.default")
+
+	testState := func() *states.State {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		root.SetResourceInstanceCurrent(
+			destroy.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		root.SetResourceInstanceCurrent(
+			defaultRes.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		return state
+	}
+
+	assertPlan := func(t *testing.T, plan *plans.Plan, inst addrs.AbsResourceInstance, action plans.Action) {
+		t.Helper()
+		change := plan.Changes.ResourceInstance(inst)
+		if change == nil {
+			t.Fatal("expected a change")
+		}
+		if change.Action != action {
+			t.Fatalf("wrong change type for %s. Got %s, wanted %s\n", destroy, change.Action, action)
+		}
+	}
+
+	t.Run("destroy all", func(t *testing.T) {
+		state := testState()
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+		if diags.HasErrors() {
+			t.Fatalf("plan: %s", diags.Err())
+		}
+
+		assertPlan(t, plan, forget, plans.Forget)
+		assertPlan(t, plan, destroy, plans.Delete)
+		assertPlan(t, plan, defaultRes, plans.Delete)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if !state.Empty() {
+			t.Fatalf("unexected remaining state")
+		}
+	})
+
+	t.Run("targeted destroy", func(t *testing.T) {
+		p.ApplyResourceChangeCalled = false //reset!
+		state := testState()
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.Targetable{forget}})
+		if len(diags) != 2 { // usual -target diag + warning about forgetting
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatalf("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.Forget)
+
+		change := plan.Changes.ResourceInstance(destroy)
+		if change != nil {
+			t.Fatal("unrelated resource change on a targeted plan?")
+		}
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		if len(applyDiags) != 1 { // usual diags when using -target
+			t.Errorf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
+		}
+		if len(state.AllResourceInstanceObjectAddrs()) != 2 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+
+		if p.ApplyResourceChangeCalled {
+			t.Fatalf("no changes should have been applied: forget only")
+		}
+	})
+
+	t.Run("tainted instance (destroy)", func(t *testing.T) {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+		if len(diags) != 1 {
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatalf("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.Forget)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if !state.Empty() {
+			t.Fatalf("unexected remaining state")
+		}
+	})
+
+	t.Run("tainted instance (replace)", func(t *testing.T) {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+
+		plan, diags := ctx.Plan(m, state, nil)
+		if len(diags) != 1 {
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatal("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.CreateThenForget)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+	})
+
+	t.Run("remember", func(t *testing.T) {
+		// make sure we're not "forgetting" to create
+		plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+		assertNoDiagnostics(t, diags)
+		assertPlan(t, plan, forget, plans.Create)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+	})
+}
+
+func TestContext2Apply_forget_cycle(t *testing.T) {
+	// three cheers for users who test alpha releases!
+	// https://github.com/hashicorp/terraform/issues/38898
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = test_object.forget_too.test_string
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource "test_object" "forget_too" {
+	test_string = "hi"
+	lifecycle {
+		destroy = false
+	}
+}
+`})
+
+	p := simpleMockProvider()
+
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	forget2 := mustResourceInstanceAddr("test_object.forget_too")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		forget.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"hi"}`),
+			Dependencies: []addrs.ConfigResource{forget2.ConfigResource()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		forget2.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"hi"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
+
+	state, applyDiags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, applyDiags)
+	if !state.Empty() {
+		t.Fatal("unexpected resources in state")
+	}
 }

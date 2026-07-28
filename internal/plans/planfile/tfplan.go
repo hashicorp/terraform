@@ -154,7 +154,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
 		target, diags := addrs.ParseTargetStr(rawTargetAddr)
 		if diags.HasErrors() {
-			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
+			return nil, fmt.Errorf("plan contains invalid target address %q: %s", rawTargetAddr, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
 	}
@@ -162,7 +162,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	for _, rawActionAddr := range rawPlan.ActionTargetAddrs {
 		target, diags := addrs.ParseTargetActionStr(rawActionAddr)
 		if diags.HasErrors() {
-			return nil, fmt.Errorf("plan contains invalid action target address %q: %s", target, diags.Err())
+			return nil, fmt.Errorf("plan contains invalid action target address %q: %s", rawActionAddr, diags.Err())
 		}
 		plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, target.Subject)
 	}
@@ -1370,14 +1370,38 @@ func actionInvocationFromTfplan(rawAction *planproto.ActionInvocationInstance) (
 		default:
 			return nil, fmt.Errorf("invalid action trigger event %s", at.ResourceActionTrigger.TriggerEvent)
 		}
+
+		var onFailure configs.ActionOnFailure
+		switch at.ResourceActionTrigger.OnFailure {
+		case planproto.ActionOnFailure_ON_FAILURE_HALT:
+			onFailure = configs.ActionOnFailureHalt
+		case planproto.ActionOnFailure_ON_FAILURE_TAINT:
+			onFailure = configs.ActionOnFailureTaint
+		case planproto.ActionOnFailure_ON_FAILURE_CONTINUE:
+			onFailure = configs.ActionOnFailureContinue
+		}
+
 		ret.ActionTrigger = &plans.ResourceActionTrigger{
 			TriggeringResourceAddr:  triggeringResourceAddrs,
 			ActionTriggerBlockIndex: int(at.ResourceActionTrigger.ActionTriggerBlockIndex),
 			ActionsListIndex:        int(at.ResourceActionTrigger.ActionsListIndex),
 			ActionTriggerEvent:      ate,
+			ActionOnFailure:         onFailure,
 		}
 	case *planproto.ActionInvocationInstance_InvokeActionTrigger:
-		ret.ActionTrigger = new(plans.InvokeActionTrigger)
+		var triggeringResourceAddr *addrs.AbsResourceInstance
+		if at.InvokeActionTrigger.CallingResourceAddr != "" {
+			addr, diags := addrs.ParseAbsResourceInstanceStr(at.InvokeActionTrigger.CallingResourceAddr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			triggeringResourceAddr = &addr
+		}
+
+		ret.ActionTrigger = &plans.InvokeActionTrigger{
+			CallingResourceAddr: triggeringResourceAddr,
+		}
+
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type %t", rawAction.ActionTrigger)
@@ -1432,16 +1456,37 @@ func actionInvocationToTfPlan(action *plans.ActionInvocationInstanceSrc) (*planp
 		case configs.AfterDestroy:
 			triggerEvent = planproto.ActionTriggerEvent_AFTER_DESTROY
 		}
+
+		var onFailure planproto.ActionOnFailure
+		switch at.ActionOnFailure {
+		case configs.ActionOnFailureHalt:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_HALT
+		case configs.ActionOnFailureTaint:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_TAINT
+		case configs.ActionOnFailureContinue:
+			onFailure = planproto.ActionOnFailure_ON_FAILURE_CONTINUE
+		}
+
 		ret.ActionTrigger = &planproto.ActionInvocationInstance_ResourceActionTrigger{
 			ResourceActionTrigger: &planproto.ResourceActionTrigger{
 				TriggerEvent:            triggerEvent,
 				TriggeringResourceAddr:  at.TriggeringResourceAddr.String(),
 				ActionTriggerBlockIndex: int64(at.ActionTriggerBlockIndex),
 				ActionsListIndex:        int64(at.ActionsListIndex),
+				OnFailure:               onFailure,
 			},
 		}
 	case *plans.InvokeActionTrigger:
-		ret.ActionTrigger = new(planproto.ActionInvocationInstance_InvokeActionTrigger)
+		var callingResourceAddr string
+		if at.CallingResourceAddr != nil {
+			callingResourceAddr = at.CallingResourceAddr.String()
+		}
+
+		ret.ActionTrigger = &planproto.ActionInvocationInstance_InvokeActionTrigger{
+			InvokeActionTrigger: &planproto.InvokeActionTrigger{
+				CallingResourceAddr: callingResourceAddr,
+			},
+		}
 	default:
 		// This should be exhaustive
 		return nil, fmt.Errorf("unsupported action trigger type: %T", at)

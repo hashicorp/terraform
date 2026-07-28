@@ -5381,8 +5381,7 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 
 	// The graph is checked for cycles before we can walk it, so we don't
 	// encounter the self-reference check.
-	//wantErrStr := "Self-referential block"
-	wantErrStr := "Cycle"
+	wantErrStr := "Self-referential block"
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}

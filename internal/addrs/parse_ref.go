@@ -59,6 +59,13 @@ func (r *Reference) DisplayString() string {
 	return ret.String()
 }
 
+// All referenceable addrs are also UniqueKeyers
+func (r Reference) UniqueKey() UniqueKey {
+	return r.Subject.UniqueKey()
+}
+
+func (r Reference) uniqueKeySigil() {}
+
 // ParseRef attempts to extract a referenceable address from the prefix of the
 // given traversal, which must be an absolute traversal or this function
 // will panic.
@@ -367,6 +374,13 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 			Remaining:   traversal[1:],
 		}, diags
 
+	case "caller":
+		return &Reference{
+			Subject:     Caller,
+			SourceRange: tfdiags.SourceRangeFromHCL(rootRange),
+			Remaining:   traversal[1:],
+		}, diags
+
 	case "terraform":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
@@ -638,19 +652,35 @@ func parseActionRef(startRange hcl.Range, traversal hcl.Traversal) (*Reference, 
 	}
 
 	if idxTrav, ok := remain[0].(hcl.TraverseIndex); ok {
-		var err error
-		actionInstAddr.Key, err = ParseInstanceKey(idxTrav.Key)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid index key",
-				Detail:   fmt.Sprintf("Invalid index for resource instance: %s.", err),
-				Subject:  &idxTrav.SrcRange,
-			})
-			return nil, diags
+		if idxTrav.Key.IsKnown() {
+			var err error
+			actionInstAddr.Key, err = ParseInstanceKey(idxTrav.Key)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid index key",
+					Detail:   fmt.Sprintf("Invalid index for action instance: %s.", err),
+					Subject:  &idxTrav.SrcRange,
+				})
+				return nil, diags
+			}
+		} else {
+			// allowing a wildcard key means we can parse and instance refs
+			// during validation even when they use count.index or each.key
+			actionInstAddr.Key = WildcardKey
 		}
+
 		remain = remain[1:]
 		rng = hcl.RangeBetween(rng, idxTrav.SrcRange)
+	}
+
+	if len(remain) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unexpected attribute in action reference",
+			Detail:   "Actions have no referenceable attributes.",
+			Subject:  remain[0].SourceRange().Ptr(),
+		})
 	}
 
 	return &Reference{

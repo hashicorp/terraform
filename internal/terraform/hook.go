@@ -4,11 +4,14 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -43,7 +46,15 @@ type HookActionIdentity struct {
 }
 
 func (i *HookActionIdentity) String() string {
-	return i.Addr.String() + " (triggered by " + i.ActionTrigger.String() + ")"
+	caller := ""
+	if invoked, ok := i.ActionTrigger.(*plans.InvokeActionTrigger); ok {
+		if invoked.CallingResourceAddr != nil {
+			caller = ", called from " + invoked.CallingResourceAddr.String()
+		}
+	}
+
+	triggeredBy := "triggered by " + i.ActionTrigger.String()
+	return fmt.Sprintf("%s (%s%s)", i.Addr, triggeredBy, caller)
 }
 
 // Hook is the interface that must be implemented to hook into various
@@ -149,6 +160,8 @@ type Hook interface {
 	// concurrent writes. Implementations which modify or retain the state after
 	// the call has returned must copy the state.
 	PostStateUpdate(new *states.State) (HookAction, error)
+
+	PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -258,5 +271,9 @@ func (*NilHook) Stopping() {
 }
 
 func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
 	return HookActionContinue, nil
 }

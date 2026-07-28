@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -361,6 +360,42 @@ func TestShow_planWithChanges(t *testing.T) {
 	}
 }
 
+// TestShow_planWithVarFileDuplicateAttr checks that a -var-file containing a
+// duplicated attribute causes show to fail, rather than silently swallowing
+// the error and exiting 0.
+func TestShow_planWithVarFileDuplicateAttr(t *testing.T) {
+	planPath := showFixturePlanFile(t, plans.Create)
+
+	varFilePath := testTempFile(t)
+	if err := os.WriteFile(varFilePath, []byte("foo = \"first\"\nfoo = \"second\"\n"), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-no-color",
+		"-var-file", varFilePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\nstdout:\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+}
+
 func TestShow_planWithForceReplaceChange(t *testing.T) {
 	// The main goal of this test is to see that the "replace by request"
 	// resource instance action reason can round-trip through a plan file and
@@ -560,7 +595,7 @@ func TestShow_json_output(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
@@ -669,7 +704,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -760,7 +795,7 @@ func TestShow_json_output_actions(t *testing.T) {
 	p := showFixtureProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -856,7 +891,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -966,7 +1001,7 @@ func TestShow_json_output_state(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
@@ -1118,7 +1153,7 @@ func TestShow_stateStore(t *testing.T) {
 
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("state-store-unchanged"), td)
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 	t.Chdir(td)
 
 	// Get bytes describing the state
@@ -1128,10 +1163,12 @@ func TestShow_stateStore(t *testing.T) {
 	}
 
 	// Create a mock that contains a persisted "default" state that uses the bytes from above.
-	mockProvider := mockPluggableStateStorageProvider()
-	mockProvider.MockStates = map[string]interface{}{
-		"default": stateBuf.Bytes(),
-	}
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
 	view, done := testView(t)

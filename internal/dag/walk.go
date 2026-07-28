@@ -67,6 +67,21 @@ type Walker struct {
 	diagsLock      sync.Mutex
 }
 
+// DependencyResult indicates if a dependency check resulted in success, failure, or tolerance.
+type DependencyResult string
+
+const (
+	// DependencyResultSuccess indicates that all dependencies were satisfied.
+	DependencyResultSuccess DependencyResult = "success"
+
+	// DependencyResultHardFailure indicates that one or more dependencies were not satisfied.
+	DependencyResultHardFailure DependencyResult = "hard-failure"
+
+	// DependencyResultSoftFailure indicates that there exists a dependency that could not be satisfied,
+	// but the current vertex should still be evaluated.
+	DependencyResultSoftFailure DependencyResult = "soft-failure"
+)
+
 func (w *Walker) init() {
 	if w.vertices == nil {
 		w.vertices = make(Set)
@@ -107,7 +122,7 @@ type walkerVertex struct {
 	// dependencies are complete. No other values will ever be sent again.
 	//
 	// DepsUpdateCh is closed when there is a new DepsCh set.
-	DepsCh       chan bool
+	DepsCh       chan DependencyResult
 	DepsUpdateCh chan struct{}
 	DepsLock     sync.Mutex
 
@@ -279,7 +294,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		}
 
 		// Create a new done channel
-		doneCh := make(chan bool, 1)
+		doneCh := make(chan DependencyResult, 1)
 
 		// Create the channel we close for cancellation
 		cancelCh := make(chan struct{})
@@ -338,10 +353,10 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// Wait for our dependencies. We create a [closed] deps channel so
 	// that we can immediately fall through to load our actual DepsCh.
-	var depsSuccess bool
+	var depsSuccess DependencyResult
 	var depsUpdateCh chan struct{}
-	depsCh := make(chan bool, 1)
-	depsCh <- true
+	depsCh := make(chan DependencyResult, 1)
+	depsCh <- DependencyResultSuccess
 	close(depsCh)
 	for {
 		select {
@@ -389,9 +404,16 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
-	if depsSuccess {
+	// We go through a three-way boolean logic here to handle the three possible
+	// dependency results: success, soft failure, and hard failure.
+
+	// We run the callback if the result is success or soft failure.
+	if depsSuccess == DependencyResultSuccess || depsSuccess == DependencyResultSoftFailure {
 		diags = w.Callback(v)
-	} else {
+	}
+
+	// We note that our upstream failed if the result is hard failure or soft failure.
+	if depsSuccess == DependencyResultHardFailure || depsSuccess == DependencyResultSoftFailure {
 		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))
 		// This won't be displayed to the user because we'll set upstreamFailed,
 		// but we need to ensure there's at least one error in here so that
@@ -419,7 +441,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 func (w *Walker) waitDeps(
 	v Vertex,
 	deps map[Vertex]<-chan struct{},
-	doneCh chan<- bool,
+	doneCh chan<- DependencyResult,
 	cancelCh <-chan struct{}) {
 
 	// For each dependency given to us, wait for it to complete
@@ -434,7 +456,7 @@ func (w *Walker) waitDeps(
 			case <-cancelCh:
 				// Wait cancelled. Note that we didn't satisfy dependencies
 				// so that anything waiting on us also doesn't run.
-				doneCh <- false
+				doneCh <- DependencyResultHardFailure
 				return
 
 			case <-time.After(time.Second * 5):
@@ -447,14 +469,31 @@ func (w *Walker) waitDeps(
 	// Dependencies satisfied! We need to check if any errored
 	w.diagsLock.Lock()
 	defer w.diagsLock.Unlock()
+
+	var allowUpstreamFailure bool
 	for dep := range deps {
 		if w.diagsMap[dep].HasErrors() {
-			// One of our dependencies failed, so return false
-			doneCh <- false
+
+			// If the vertex allows upstream failures, we can tolerate this error
+			if fv, ok := v.(TolerantVertex); ok && fv.AllowUpstreamFailure(dep) {
+				allowUpstreamFailure = true
+				continue
+			}
+
+			// One of our dependencies failed, so return a hard failure result
+			doneCh <- DependencyResultHardFailure
 			return
 		}
 	}
 
+	// If we have an error from a dependency that we can tolerate, return a soft failure result
+	// This allows us to treat such vertices specially, while still maintaining the flow
+	// of errors to dependencies further down the DAG.
+	if allowUpstreamFailure {
+		doneCh <- DependencyResultSoftFailure
+		return
+	}
+
 	// All dependencies satisfied and successful
-	doneCh <- true
+	doneCh <- DependencyResultSuccess
 }

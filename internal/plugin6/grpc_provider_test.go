@@ -2138,7 +2138,76 @@ func TestGRPCProvider_invokeAction_invalid(t *testing.T) {
 
 	checkDiagsHasError(t, resp.Diagnostics)
 }
+func TestGRPCProvider_planAction_invalid_defer(t *testing.T) {
+	client := mockProviderClient(t)
 
+	client.EXPECT().PlanAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.PlanAction_Response{
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_RESOURCE_CONFIG_UNKNOWN,
+		},
+	}, nil)
+
+	p := &GRPCProvider{
+		Addr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "terraform.io",
+		},
+		client: client,
+	}
+
+	resp := p.PlanAction(providers.PlanActionRequest{
+		ActionType: "action",
+		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+		// Deferrals are allowed, so we reach the reason validation, which only
+		// permits PROVIDER_CONFIG_UNKNOWN for actions.
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed: true,
+		},
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_planAction_defer_not_allowed(t *testing.T) {
+	client := mockProviderClient(t)
+
+	client.EXPECT().PlanAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.PlanAction_Response{
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_PROVIDER_CONFIG_UNKNOWN,
+		},
+	}, nil)
+
+	// Use a provider Addr distinct from other tests so the global schema cache
+	// does not satisfy the GetSchema call set up on this test's mock client.
+	p := &GRPCProvider{
+		Addr: addrs.Provider{
+			Type:      "test-defer-not-allowed",
+			Namespace: "hashicorp",
+			Hostname:  "terraform.io",
+		},
+		client: client,
+	}
+
+	// The provider signaled a deferral even though the client did not advertise
+	// the deferral capability, which must be reported as an error.
+	resp := p.PlanAction(providers.PlanActionRequest{
+		ActionType: "action",
+		ProposedActionData: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
 func TestGRPCProvider_ValidateStateStoreConfig_returns_validation_errors(t *testing.T) {
 	storeName := "mock_store" // mockProviderClient returns a mock that has this state store in its schemas
 

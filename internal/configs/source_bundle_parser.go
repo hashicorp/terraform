@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -29,6 +30,8 @@ type SourceBundleParser struct {
 	// for itself whether to enable it so that tests can cover both the
 	// allowed and not-allowed situations.
 	allowExperiments bool
+
+	mu sync.Mutex
 }
 
 // NewSourceBundleParser creates a new [SourceBundleParser] for the given
@@ -207,6 +210,9 @@ func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, over
 }
 
 func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, override bool) (*File, hcl.Diagnostics) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	var diags hcl.Diagnostics
 	path, err := p.sources.LocalPathForSource(source)
 	if err != nil {
@@ -244,6 +250,7 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 	default:
 		file, fdiags = p.p.ParseHCL(src, syntheticFilename)
 	}
+
 	diags = append(diags, fdiags...)
 
 	body := hcl.EmptyBody()
@@ -251,6 +258,7 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 		body = file.Body
 	}
 
+	// We are in a locked method, it's safe to call p.allowExperiments directly
 	return parseConfigFile(body, diags, override, p.allowExperiments)
 }
 
@@ -264,5 +272,13 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 // is responsible for deciding for itself whether and how to call this
 // method.
 func (p *SourceBundleParser) AllowLanguageExperiments(allowed bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.allowExperiments = allowed
+}
+
+func (p *SourceBundleParser) AllowsLanguageExperiments() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.allowExperiments
 }

@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -279,7 +281,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ...initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install modules")
 	defer span.End()
 
@@ -313,7 +315,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 	}
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks...)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
@@ -334,7 +336,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize directory from module", trace.WithAttributes(
 		attribute.String("source_addr", addr),
 	))
@@ -463,9 +465,10 @@ func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
 func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 	if m.configLoader == nil {
 		loader, err := configload.NewLoader(&configload.Config{
-			ModulesDir:        m.modulesDir(),
-			Services:          m.Services,
-			IncludeQueryFiles: m.includeQueryFiles,
+			ModulesDir:               m.modulesDir(),
+			Services:                 m.Services,
+			IncludeQueryFiles:        m.includeQueryFiles,
+			IncludeStateMigrateFiles: m.includeStateMigrateFiles,
 		})
 		if err != nil {
 			return nil, err
@@ -482,6 +485,17 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 // registryClient instantiates and returns a new Terraform Registry client.
 func (m *Meta) registryClient() *registry.Client {
 	return registry.NewClient(m.Services, nil)
+}
+
+func (m *Meta) getProviderSupplyModeForStateStore(config *configs.Module) getproviders.ProviderSupplyMode {
+	if config == nil || config.StateStore == nil {
+		return getproviders.Unset
+	}
+	isReattached, err := reattach.IsProviderReattached(config.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", config.StateStore.ProviderAddr.ForDisplay(), err))
+	}
+	return getproviders.DetermineProviderSupplyMode(m.isProviderDevOverride(config.StateStore.ProviderAddr), isReattached, config.StateStore.ProviderAddr.IsBuiltIn())
 }
 
 // configValueFromCLI parses a configuration value that was provided in a

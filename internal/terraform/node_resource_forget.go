@@ -34,6 +34,11 @@ func (n *NodeForgetResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 
+func (n *NodeForgetResourceInstance) References() []*addrs.Reference {
+	// Forgotten resources don't participate in references
+	return nil
+}
+
 func (n *NodeForgetResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (forget)"
 }
@@ -42,7 +47,7 @@ func (n *NodeForgetResourceInstance) Provider() ProviderRef {
 	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
 		// Indicate that this node does not require a configured provider
 		p := n.NodeAbstractResourceInstance.Provider()
-		p.NoProvider = true
+		p.Offline = true
 		return p
 	}
 	return n.NodeAbstractResourceInstance.Provider()

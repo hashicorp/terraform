@@ -13,12 +13,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
-	"github.com/hashicorp/terraform/internal/actions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -90,11 +91,29 @@ type BuiltinEvalContext struct {
 	EphemeralResourcesValue *ephemeral.Resources
 	RefreshStateValue       *states.SyncState
 	PrevRunStateValue       *states.SyncState
+	PolicyGraphValue        *policySubgraph
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
-	ActionsValue            *actions.Actions
+	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue       policy.Client
 	DeprecationsValue       *deprecation.Deprecations
+}
+
+func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return ctx.ProviderLocksValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {
+	return ctx.PolicyClientValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyGraph() *policySubgraph {
+	return ctx.PolicyGraphValue
+}
+
+func (ctx *BuiltinEvalContext) Config() *configs.Config {
+	return ctx.Evaluator.Config
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -353,7 +372,7 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
 
 	// get the reference to lookup changes in the plan
-	ref, diags := evalReplaceTriggeredByExpr(expr, repData)
+	ref, diags := evalSemiStaticExpr(expr, repData)
 	if diags.HasErrors() {
 		return nil, false, diags
 	}
@@ -660,10 +679,6 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		StorePlannedPrivate:        true,
 		ComputedBlocksAllowed:      true,
 	}
-}
-
-func (ctx *BuiltinEvalContext) Actions() *actions.Actions {
-	return ctx.ActionsValue
 }
 
 func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {

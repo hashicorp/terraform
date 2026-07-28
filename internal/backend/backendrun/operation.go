@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -165,6 +166,11 @@ type Operation struct {
 
 	// Query is true if the operation should be a query operation
 	Query bool
+
+	// PolicyPaths will trigger Terraform to load policies from the specified
+	// paths.
+	PolicyPaths  []string
+	PolicyClient policy.Client
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value

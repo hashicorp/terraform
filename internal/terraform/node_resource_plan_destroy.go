@@ -35,6 +35,8 @@ var (
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeExecutable           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeActionCaller         = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeAttachActionTriggers = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 func (n *NodePlanDestroyableResourceInstance) Name() string {
@@ -47,21 +49,35 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 	return &addr
 }
 
+func (n *NodePlanDestroyableResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
+	// destroy nodes are not referenceable, so we must override the method from
+	// the abstract layers
+	return nil
+}
+
+func (n *NodePlanDestroyableResourceInstance) References() (refs []*addrs.Reference) {
+	return n.destroyActionPlanReferences()
+}
+
+func (n *NodePlanDestroyableResourceInstance) AttachActionTriggers(triggers []*resourceActionTrigger) {
+	n.actionTriggers = triggers
+}
+
 // GraphNodeEvalable
 func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx, op)
+		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx, op)
+		return n.dataResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -107,6 +123,7 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 		return diags
 	} else if ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 		return diags
 	}
 
@@ -115,17 +132,19 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	// context surrounding the change, rather than the change itself, and
 	// so it's helpful to still include the valid-in-isolation change as
 	// part of the plan as additional context in our error output.
-	diags = diags.Append(n.writeChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 
 	diags = diags.Append(n.checkPreventDestroy(change))
 	if diags.HasErrors() {
 		return diags
 	}
 
+	diags = diags.Append(n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change))
+
 	return diags
 }
 
-func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 
 	// We may not be able to read a prior data source from the state if the
 	// schema was upgraded and we are destroying before ever refreshing that
@@ -141,5 +160,5 @@ func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContex
 		},
 		ProviderAddr: n.ResolvedProvider,
 	}
-	return diags.Append(n.writeChange(ctx, change, ""))
+	return diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 }

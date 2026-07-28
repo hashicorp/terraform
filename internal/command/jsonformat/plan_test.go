@@ -71,6 +71,7 @@ Plan: 0 to add, 0 to change, 0 to destroy. Actions: 1 to invoke.
 Terraform will invoke the following action(s):
 
   # action.test_action.action will be invoked
+    # action.test_action.action
     action "test_action" "action" {
         config {
             attr = "one"
@@ -184,6 +185,7 @@ Plan: 0 to add, 0 to change, 0 to destroy. Actions: 1 to invoke.
 Terraform will invoke the following action(s):
 
   # action.test_action.action will be invoked
+    # action.test_action.action
     action "test_action" "action" {
         config {
             attr = "one"
@@ -8494,6 +8496,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             disk = {
@@ -8538,6 +8541,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked after this change in order:
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             disk = {
@@ -8636,16 +8640,19 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             id = "first-block-and-action"
         }
     }
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             id = "first-block-second-action"
         }
     }
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             id = "fourth-block-first-action"
@@ -8654,11 +8661,13 @@ func TestResourceChange_actions(t *testing.T) {
 
 
     # Actions to be invoked after this change in order:
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             id = "second-block-first-action"
         }
     }
+    # action.test_action.hello
     action "test_action" "hello" {
         config {
             id = "third-block-first-action"
@@ -8687,6 +8696,7 @@ func TestResourceChange_actions(t *testing.T) {
     }
 
     # Actions to be invoked before this change in order:
+    # action.test_action.hello
     action "test_action" "hello" {
     }
 `,
