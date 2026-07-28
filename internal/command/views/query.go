@@ -5,8 +5,10 @@ package views
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -23,14 +25,16 @@ type Query interface {
 func NewQuery(vt arguments.ViewType, view *View) Query {
 	switch vt {
 	case arguments.ViewJSON:
-		return &QueryJSON{
-			view: NewJSONView(view),
-		}
+		jv := NewJSONView(view)
+		op := &QueryOperationJSON{view: jv, queryPolicy: newQueryPolicyView()}
+		return &QueryJSON{view: jv, op: op}
 	case arguments.ViewHuman:
-		return &QueryHuman{
-			view:         view,
+		op := &QueryOperationHuman{
+			view:        view,
 			inAutomation: view.RunningInAutomation(),
+			queryPolicy: newQueryPolicyView(),
 		}
+		return &QueryHuman{view: view, op: op}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
 	}
@@ -38,20 +42,18 @@ func NewQuery(vt arguments.ViewType, view *View) Query {
 
 type QueryHuman struct {
 	view *View
-
-	inAutomation bool
+	op   *QueryOperationHuman
 }
 
 var _ Query = (*QueryHuman)(nil)
 
 func (v *QueryHuman) Operation() Operation {
-	return NewQueryOperation(arguments.ViewHuman, v.inAutomation, v.view)
+	return v.op
 }
 
 func (v *QueryHuman) Hooks() []terraform.Hook {
-	return []terraform.Hook{
-		NewUiHook(v.view),
-	}
+	hook := NewUiHook(v.view)
+	return []terraform.Hook{&queryUiHook{UiHook: hook, op: v.op}}
 }
 
 func (v *QueryHuman) Diagnostics(diags tfdiags.Diagnostics) {
@@ -63,18 +65,18 @@ func (v *QueryHuman) HelpPrompt() {
 
 type QueryJSON struct {
 	view *JSONView
+	op   *QueryOperationJSON
 }
 
 var _ Query = (*QueryJSON)(nil)
 
 func (v *QueryJSON) Operation() Operation {
-	return &QueryOperationJSON{view: v.view}
+	return v.op
 }
 
 func (v *QueryJSON) Hooks() []terraform.Hook {
-	return []terraform.Hook{
-		newJSONHook(v.view),
-	}
+	hook := newJSONHook(v.view)
+	return []terraform.Hook{&queryJSONHook{jsonHook: hook, op: v.op}}
 }
 
 func (v *QueryJSON) Diagnostics(diags tfdiags.Diagnostics) {
@@ -82,4 +84,33 @@ func (v *QueryJSON) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *QueryJSON) HelpPrompt() {
+}
+
+// queryUiHook wraps UiHook and routes PolicyResult through the query operation
+// so that query policy results are buffered in the queryPolicyView instead of
+// being emitted immediately as generic policy_result records.
+type queryUiHook struct {
+	*UiHook
+	op  *QueryOperationHuman
+	mu  sync.Mutex
+}
+
+func (h *queryUiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.op.PolicyResult(addr, resp)
+	return terraform.HookActionContinue, nil
+}
+
+// queryJSONHook wraps jsonHook and routes PolicyResult through the query
+// operation so that query policy results are buffered in the queryPolicyView
+// instead of being emitted immediately as generic policy_result records.
+type queryJSONHook struct {
+	*jsonHook
+	op *QueryOperationJSON
+}
+
+func (h *queryJSONHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.op.PolicyResult(addr, resp)
+	return terraform.HookActionContinue, nil
 }
