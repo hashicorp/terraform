@@ -108,7 +108,6 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	policySem           Semaphore
-	policySemOnce       sync.Once
 	providerInputConfig map[string]map[string]cty.Value
 	runCond             *sync.Cond
 	runContext          context.Context
@@ -170,6 +169,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		plugins: plugins,
 
 		parallelSem:         NewSemaphore(par),
+		policySem:           NewSemaphore(getPolicyParallelism()),
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		sh:                  sh,
 		tracingCtx:          opts.TracingContext,
@@ -205,14 +205,9 @@ type ContextGraphOpts struct {
 }
 
 // policySemaphore returns the semaphore used to limit concurrent policy
-// evaluations. It is initialized lazily on first access with a capacity
-// determined by GOMAXPROCS or the TF_POLICY_PARALLELISM environment variable.
+// evaluations. Its capacity is determined at context construction time by
+// GOMAXPROCS or the TF_POLICY_PARALLELISM environment variable.
 func (c *Context) policySemaphore() Semaphore {
-	c.policySemOnce.Do(func() {
-		capacity := getPolicyParallelism()
-		c.policySem = NewSemaphore(capacity)
-		log.Printf("[DEBUG] Policy evaluation semaphore initialized with capacity %d", capacity)
-	})
 	return c.policySem
 }
 

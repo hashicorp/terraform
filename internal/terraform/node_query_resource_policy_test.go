@@ -354,7 +354,7 @@ func TestGetPolicyParallelism_InvalidEnvFallback(t *testing.T) {
 }
 
 // TestPolicySemaphore_Initialization verifies that the policy semaphore
-// is initialized lazily with the correct capacity.
+// is initialized eagerly in NewContext with the correct capacity.
 func TestPolicySemaphore_Initialization(t *testing.T) {
 	t.Setenv("TF_POLICY_PARALLELISM", "3")
 
@@ -365,7 +365,6 @@ func TestPolicySemaphore_Initialization(t *testing.T) {
 		t.Fatalf("NewContext failed: %s", diags.Err())
 	}
 
-	// Access the semaphore to trigger initialization
 	sem := ctx.policySemaphore()
 
 	// Verify we can acquire up to the capacity
