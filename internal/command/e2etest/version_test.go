@@ -108,7 +108,7 @@ func TestVersionReroutingFromOtherCommands(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	wantVersion := fmt.Sprintf("Terraform v%s\non %s\n", version.String(), getproviders.CurrentPlatform.String())
+	wantVersion := fmt.Sprintf("Terraform v%s\non %s\n\n", version.String(), getproviders.CurrentPlatform.String())
 
 	// Use version command directly
 	// The version command receives no arguments.

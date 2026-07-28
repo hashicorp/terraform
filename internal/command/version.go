@@ -4,16 +4,15 @@
 package command
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -24,13 +23,6 @@ type VersionCommand struct {
 	VersionPrerelease string
 	CheckFunc         VersionCheckFunc
 	Platform          getproviders.Platform
-}
-
-type VersionOutput struct {
-	Version            string            `json:"terraform_version"`
-	Platform           string            `json:"platform"`
-	ProviderSelections map[string]string `json:"provider_selections"`
-	Outdated           bool              `json:"terraform_outdated"`
 }
 
 // VersionCheckFunc is the callback called by the Version command to
@@ -60,23 +52,35 @@ Options:
 }
 
 func (c *VersionCommand) Run(rawArgs []string) int {
-	var outdated bool
-	var latest string
-	var versionString bytes.Buffer
+	var diags tfdiags.Diagnostics
 
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
 	args, argDiags := arguments.ParseVersion(rawArgs)
-	if argDiags.HasErrors() {
-		c.showDiagnostics(argDiags)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewVersion(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
-	jsonOutput := args.ViewType == arguments.ViewJSON
 
-	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
+	// Collect version information
+	var version string
 	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
+		version = fmt.Sprintf("%s-%s", c.Version, c.VersionPrerelease)
+	} else {
+		version = c.Version
 	}
+	platform := c.Platform.String()
 
-	// We'll also attempt to print out the selected plugin versions. We do
+	// We attempt to print out the selected plugin versions. We do
 	// this based on the dependency lock file, and so the result might be
 	// empty or incomplete if the user hasn't successfully run "terraform init"
 	// since the most recent change to dependencies.
@@ -84,81 +88,30 @@ func (c *VersionCommand) Run(rawArgs []string) int {
 	// Generally-speaking this is a best-effort thing that will give us a good
 	// result in the usual case where the user successfully ran "terraform init"
 	// and then hit a problem running _another_ command.
-	var providerVersions []string
 	var providerLocks map[addrs.Provider]*depsfile.ProviderLock
 	if locks, err := c.lockedDependencies(); err == nil {
 		providerLocks = locks.AllProviders()
-		for providerAddr, lock := range providerLocks {
-			version := lock.Version().String()
-			if version == "0.0.0" {
-				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s (unversioned)", providerAddr))
-			} else {
-				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s v%s", providerAddr, version))
-			}
-		}
 	}
 
 	// If we have a version check function, then let's check for
 	// the latest version as well.
+	var latest string
+	var outdated bool
 	if c.CheckFunc != nil {
 		// Check the latest version
 		info, err := c.CheckFunc()
-		if err != nil && !jsonOutput {
-			c.Ui.Error(fmt.Sprintf(
+		if err != nil {
+			diags = diags.Append(fmt.Errorf(
 				"\nError checking latest version: %s", err))
 		}
 		if info.Outdated {
-			outdated = true
 			latest = info.Latest
+			outdated = true
 		}
 	}
 
-	if jsonOutput {
-		selectionsOutput := make(map[string]string)
-		for providerAddr, lock := range providerLocks {
-			version := lock.Version().String()
-			selectionsOutput[providerAddr.String()] = version
-		}
-
-		var versionOutput string
-		if c.VersionPrerelease != "" {
-			versionOutput = c.Version + "-" + c.VersionPrerelease
-		} else {
-			versionOutput = c.Version
-		}
-
-		output := VersionOutput{
-			Version:            versionOutput,
-			Platform:           c.Platform.String(),
-			ProviderSelections: selectionsOutput,
-			Outdated:           outdated,
-		}
-
-		jsonOutput, err := json.MarshalIndent(output, "", "  ")
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("\nError marshalling JSON: %s", err))
-			return 1
-		}
-		c.Ui.Output(string(jsonOutput))
-		return 0
-	} else {
-		c.Ui.Output(versionString.String())
-		c.Ui.Output(fmt.Sprintf("on %s", c.Platform))
-
-		if len(providerVersions) != 0 {
-			sort.Strings(providerVersions)
-			for _, str := range providerVersions {
-				c.Ui.Output(str)
-			}
-		}
-		if outdated {
-			c.Ui.Output(fmt.Sprintf(
-				"\nYour version of Terraform is out of date! The latest version\n"+
-					"is %s. You can update by downloading from https://developer.hashicorp.com/terraform/install",
-				latest))
-		}
-
-	}
+	// Format and print output
+	view.LogVersion(version, platform, providerLocks, outdated, latest, diags)
 
 	return 0
 }
