@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/policy"
+	policyproto "github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 
@@ -492,4 +494,308 @@ func TestDependenciesProviderSchema(t *testing.T) {
 		}
 	}
 
+}
+
+func TestDependenciesProviderCache_policy(t *testing.T) {
+	policyObj := func(result policy.EvaluateResult) *policy.Policy {
+		return &policy.Policy{
+			Result:           result,
+			PolicySetName:    "some_policy_set",
+			Address:          "policy_name",
+			Directory:        "some/path/to",
+			Filename:         "policy_file.tfpolicy.hcl",
+			EnforcementLevel: "mandatory",
+		}
+	}
+
+	testCases := map[string]struct {
+		policyResponse            policy.EvaluationResponse
+		expectedDiags             []*terraform1.Diagnostic
+		expectedPolicyEvaluations []*dependencies.ProviderInstallPolicyEvaluation
+		expectedProviderPackages  []*terraform1.ProviderPackage
+	}{
+		"policy allow - no enforcements": {
+			policyResponse: policy.EvaluationResponse{
+				Overall:  policy.AllowResult,
+				Policies: []*policy.Policy{policyObj(policy.AllowResult)},
+			},
+			expectedDiags: []*terraform1.Diagnostic{},
+			// No enforcements in the response so no policy evaluation events
+			expectedPolicyEvaluations: []*dependencies.ProviderInstallPolicyEvaluation{},
+			expectedProviderPackages: []*terraform1.ProviderPackage{
+				{
+					SourceAddr: "example.com/foo/bar",
+					Version:    "1.2.3",
+					Hashes: []string{
+						// This hash is of the fake package directory we installed
+						// from, under testdata/provider-fs-mirror .
+						"h1:cAp58lPuOAaPN9ZDdFHx9FxVK2NU0UeObQs2/zld9Lc=",
+					},
+				},
+			},
+		},
+		"policy allow - advisory": {
+			policyResponse: policy.EvaluationResponse{
+				Overall:  policy.AllowResult,
+				Policies: []*policy.Policy{policyObj(policy.AllowResult)},
+				Enforcements: []policy.EnforcementResult{
+					{
+						Result:     policy.AllowResult,
+						Message:    "just an advisory message",
+						BlockIndex: 1,
+						Policy:     policyObj(policy.AllowResult),
+					},
+				},
+			},
+			expectedDiags: []*terraform1.Diagnostic{},
+			expectedPolicyEvaluations: []*dependencies.ProviderInstallPolicyEvaluation{
+				{
+					Addr: `provider["example.com/foo/bar"]`,
+					Results: []*terraform1.PolicyResult{
+						{
+							TargetAddress: `provider["example.com/foo/bar"]`,
+							PolicyMetadata: &terraform1.PolicyMetaData{
+								PolicyName:       "policy_name",
+								PolicySetName:    "some_policy_set",
+								EnforcementLevel: "mandatory",
+								FileName:         "policy_file.tfpolicy.hcl",
+							},
+							Result: terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						},
+					},
+					Infos: []*terraform1.PolicyInfo{
+						{
+							TargetAddress: `provider["example.com/foo/bar"]`,
+							PolicyMetadata: &terraform1.PolicyMetaData{
+								PolicyName:       "policy_name",
+								PolicySetName:    "some_policy_set",
+								EnforcementLevel: "mandatory",
+								FileName:         "policy_file.tfpolicy.hcl",
+								EnforceIndex:     1,
+							},
+							Message: "just an advisory message",
+							Result:  terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						},
+					},
+				},
+			},
+			// Providers are still installed successfully
+			expectedProviderPackages: []*terraform1.ProviderPackage{
+				{
+					SourceAddr: "example.com/foo/bar",
+					Version:    "1.2.3",
+					Hashes: []string{
+						// This hash is of the fake package directory we installed
+						// from, under testdata/provider-fs-mirror .
+						"h1:cAp58lPuOAaPN9ZDdFHx9FxVK2NU0UeObQs2/zld9Lc=",
+					},
+				},
+			},
+		},
+		"policy deny": {
+			policyResponse: policy.EvaluationResponse{
+				Overall:  policy.DenyResult,
+				Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+				Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+					{
+						Severity: policyproto.Severity_ERROR,
+						Summary:  "Provider policy violation",
+						Detail:   "testing provider violates policy",
+						Result: &policyproto.DiagnosticResult{
+							Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+						},
+					},
+				}, nil),
+			},
+			expectedDiags: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Provider download blocked due to policy violations",
+					Detail:   "Download blocked due to policy violations for provider example.com/foo/bar v1.16.0-dev. Please review the policy results for details.",
+				},
+			},
+			expectedPolicyEvaluations: []*dependencies.ProviderInstallPolicyEvaluation{
+				{
+					Addr: `provider["example.com/foo/bar"]`,
+					Results: []*terraform1.PolicyResult{
+						{
+							TargetAddress: `provider["example.com/foo/bar"]`,
+							PolicyMetadata: &terraform1.PolicyMetaData{
+								PolicyName:       "policy_name",
+								PolicySetName:    "some_policy_set",
+								EnforcementLevel: "mandatory",
+								FileName:         "policy_file.tfpolicy.hcl",
+							},
+							Result: terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
+						},
+					},
+					Infos: []*terraform1.PolicyInfo{},
+					Diagnostics: []*terraform1.PolicyDiagnostic{
+						{
+							TargetAddress:  `provider["example.com/foo/bar"]`,
+							PolicyMetadata: &terraform1.PolicyMetaData{},
+							Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
+							Diagnostic: &terraform1.Diagnostic{
+								Severity: terraform1.Diagnostic_ERROR,
+								Summary:  "Provider policy violation",
+								Detail:   "testing provider violates policy",
+							},
+						},
+					},
+				},
+			},
+			// Providers are not installed
+			expectedProviderPackages: nil,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+
+			ctx := context.Background()
+
+			handles := newHandleTable()
+			depsServer := newDependenciesServer(handles, disco.New())
+
+			mockPolicyClient := policy.NewTestMockClient(t)
+
+			mockPolicyClient.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				t.Errorf("unexpected call to evaluate resource %q during provider install", req.Target)
+				return policy.EvaluationResponse{}
+			}
+
+			mockPolicyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+				t.Errorf("unexpected call to evaluate module %q during provider install", req.Target)
+				return policy.EvaluationResponse{}
+			}
+
+			mockPolicyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+				// Assert provider data as defined in the lock file at: internal/rpcapi/testdata/sourcebundle/foo/.terraform.lock.hcl
+				expectedMeta := &policyproto.PolicyEvaluateProviderRequest_ProviderMetadata{
+					Name:      "bar",
+					Namespace: "foo",
+					Source:    "example.com/foo/bar",
+					Version:   "1.2.3",
+				}
+				if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+					t.Errorf("unexpected provider metadata\n%s", diff)
+					return policy.EvaluationResponse{}
+				}
+
+				return tc.policyResponse
+			}
+
+			depsServer.policyClientOverride = mockPolicyClient
+
+			grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				dependencies.RegisterDependenciesServer(srv, depsServer)
+			})
+			defer close()
+			depsClient := dependencies.NewDependenciesClient(grpcClient)
+
+			openSourcesResp, err := depsClient.OpenSourceBundle(ctx, &dependencies.OpenSourceBundle_Request{
+				LocalPath: "testdata/sourcebundle",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				_, err := depsClient.CloseSourceBundle(ctx, &dependencies.CloseSourceBundle_Request{
+					SourceBundleHandle: openSourcesResp.SourceBundleHandle,
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			}()
+
+			openLocksResp, err := depsClient.OpenDependencyLockFile(ctx, &dependencies.OpenDependencyLockFile_Request{
+				SourceBundleHandle: openSourcesResp.SourceBundleHandle,
+				SourceAddress: &terraform1.SourceAddress{
+					Source: "git::https://example.com/foo.git//.terraform.lock.hcl",
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(openLocksResp.Diagnostics) != 0 {
+				t.Error("OpenDependencyLockFile returned unexpected diagnostics")
+			}
+
+			tmpDir := t.TempDir()
+			cacheDir := filepath.Join(tmpDir, "pc")
+
+			fakePolicyPluginPath := "/not/a/real/plugin"
+			evts, err := depsClient.BuildProviderPluginCache(ctx, &dependencies.BuildProviderPluginCache_Request{
+				DependencyLocksHandle: openLocksResp.DependencyLocksHandle,
+				CacheDir:              cacheDir,
+				TfpolicyPluginPath:    &fakePolicyPluginPath,
+				PolicyPaths: []string{
+					"/fake/policy-set/",
+				},
+				InstallationMethods: []*dependencies.BuildProviderPluginCache_Request_InstallMethod{
+					{
+						Source: &dependencies.BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir{
+							LocalMirrorDir: "testdata/provider-fs-mirror",
+						},
+					},
+				},
+				OverridePlatform: "os_arch",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			gotDiagnostics := make([]*terraform1.Diagnostic, 0)
+			gotPolicyEvaluationEvents := make([]*dependencies.ProviderInstallPolicyEvaluation, 0)
+			for {
+				msg, err := evts.Recv()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					t.Fatal(err) // not expecting any errors
+				}
+
+				switch evt := msg.Event.(type) {
+				case *dependencies.BuildProviderPluginCache_Event_Diagnostic:
+					gotDiagnostics = append(gotDiagnostics, evt.Diagnostic)
+				case *dependencies.BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation:
+					gotPolicyEvaluationEvents = append(gotPolicyEvaluationEvents, evt.ProviderInstallPolicyEvaluation)
+				}
+			}
+
+			if diff := cmp.Diff(tc.expectedDiags, gotDiagnostics, protocmp.Transform()); diff != "" {
+				t.Fatalf("unexpected BuildProviderPluginCache diags\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tc.expectedPolicyEvaluations, gotPolicyEvaluationEvents, protocmp.Transform()); diff != "" {
+				t.Fatalf("unexpected BuildProviderPluginCache policy events\n%s", diff)
+			}
+
+			openCacheResp, err := depsClient.OpenProviderPluginCache(ctx, &dependencies.OpenProviderPluginCache_Request{
+				CacheDir:         cacheDir,
+				OverridePlatform: "os_arch",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				_, err := depsClient.CloseProviderPluginCache(ctx, &dependencies.CloseProviderPluginCache_Request{
+					ProviderCacheHandle: openCacheResp.ProviderCacheHandle,
+				})
+				if err != nil {
+					t.Error(err)
+				}
+			}()
+			pkgsResp, err := depsClient.GetCachedProviders(ctx, &dependencies.GetCachedProviders_Request{
+				ProviderCacheHandle: openCacheResp.ProviderCacheHandle,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(tc.expectedProviderPackages, pkgsResp.AvailableProviders, protocmp.Transform()); diff != "" {
+				t.Errorf("wrong providers in cache reported after building\n%s", diff)
+			}
+		})
+	}
 }

@@ -76,3 +76,78 @@ message SourcePos {
     int64 line = 2;
     int64 column = 3;
 }
+
+message PolicyMetaData {
+  string policy_name = 1;
+  string policy_set_name = 2;
+  string enforcement_level = 3;
+  string file_name = 4;
+  int32 enforce_index = 5;
+}
+
+message PolicyResult {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+}
+
+message PolicyInfo {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string message = 3;
+  SourceRange policy_range = 4;
+  PolicySnippet policy_snippet = 5;
+  EvaluateResult result = 6;
+}
+
+message PolicySnippet {
+  string context = 1;
+  string code = 2;
+  int64 start_line = 3;
+  int64 highlight_start_offset = 4;
+  int64 highlight_end_offset = 5;
+}
+
+message PolicyDiagnostic {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+  Diagnostic diagnostic = 4;
+  PolicySnippet policy_snippet = 5;
+  SourceRange policy_range = 6;
+  repeated ExpressionValue expression_values = 7;
+}
+
+// Sourced from: /internal/policy/proto/types.proto#EvaluateResult
+enum EvaluateResult {
+  INVALID_EVALUATE_RESULT = 0;
+  UNKNOWN_EVALUATE_RESULT = 1;
+  ERROR_EVALUATE_RESULT = 2;
+  ALLOW_EVALUATE_RESULT = 3;
+  DENY_EVALUATE_RESULT = 4;
+  SETUP_ERROR_EVALUATE_RESULT = 5;
+}
+
+// Sourced from: /internal/policy/proto/diagnostics.proto#ExpressionValue
+message ExpressionValue {
+  AttributePath traversal = 1;
+  bytes value = 2;
+}
+
+// Sourced from: /internal/rpcapi/terraform1/stacks.proto#AttributePath
+message AttributePath {
+  message Step {
+    oneof selector {
+      string attribute_name = 1;
+      string element_key_string = 2;
+      int64 element_key_int = 3;
+    }
+  }
+  repeated Step steps = 1;
+}
+
+message PolicyEntitlement { 
+  string host  = 1;
+  string token = 2;
+  string org   = 3;
+}

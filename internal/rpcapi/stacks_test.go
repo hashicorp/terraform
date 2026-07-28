@@ -2641,7 +2641,7 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 }
 
 func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr string) aggregatedPolicyEvent {
-	expectedPolicyMetadata := &stacks.PolicyMetaData{
+	expectedPolicyMetadata := &terraform1.PolicyMetaData{
 		PolicyName:       "policy_name",
 		PolicySetName:    "some_policy_set",
 		EnforcementLevel: "mandatory",
@@ -2655,27 +2655,27 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 				ComponentAddr:         "component.simple_component",
 				ComponentInstanceAddr: componentInstanceAddr,
 			},
-			Results: []*stacks.PolicyResult{
+			Results: []*terraform1.PolicyResult{
 				{
 					TargetAddress:  "module.child.testing_resource.child_resource",
 					PolicyMetadata: expectedPolicyMetadata,
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
 				{
 					TargetAddress:  "testing_resource.parent_resource",
 					PolicyMetadata: expectedPolicyMetadata,
-					Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Result:         terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 				},
 				{
 					TargetAddress:  "module.child",
 					PolicyMetadata: expectedPolicyMetadata,
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
 			},
-			Infos: []*stacks.PolicyInfo{
+			Infos: []*terraform1.PolicyInfo{
 				{
 					TargetAddress: "testing_resource.parent_resource",
-					PolicyMetadata: &stacks.PolicyMetaData{
+					PolicyMetadata: &terraform1.PolicyMetaData{
 						PolicyName:       "policy_name",
 						PolicySetName:    "some_policy_set",
 						EnforcementLevel: "mandatory",
@@ -2683,14 +2683,14 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 						EnforceIndex:     1,
 					},
 					Message: "just an advisory message",
-					Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Result:  terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 				},
 			},
-			Diagnostics: []*stacks.PolicyDiagnostic{
+			Diagnostics: []*terraform1.PolicyDiagnostic{
 				{
 					TargetAddress:  "module.child.testing_resource.child_resource",
-					PolicyMetadata: &stacks.PolicyMetaData{},
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					PolicyMetadata: &terraform1.PolicyMetaData{},
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					Diagnostic: &terraform1.Diagnostic{
 						Severity: terraform1.Diagnostic_ERROR,
 						Summary:  "Child module resource violation",
@@ -2709,8 +2709,8 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 				},
 				{
 					TargetAddress:  "module.child",
-					PolicyMetadata: &stacks.PolicyMetaData{},
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					PolicyMetadata: &terraform1.PolicyMetaData{},
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					Diagnostic: &terraform1.Diagnostic{
 						Severity: terraform1.Diagnostic_ERROR,
 						Summary:  "Child module policy violation",
@@ -2733,7 +2733,7 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 }
 
 func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string) aggregatedPolicyEvent {
-	expectedPolicyMetadata := &stacks.PolicyMetaData{
+	expectedPolicyMetadata := &terraform1.PolicyMetaData{
 		PolicyName:       "policy_name",
 		PolicySetName:    "some_policy_set",
 		EnforcementLevel: "mandatory",
@@ -2748,19 +2748,19 @@ func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string)
 				ProviderAddr:         providerAddr,
 				ProviderInstanceAddr: providerInstanceAddr,
 			},
-			Results: []*stacks.PolicyResult{
+			Results: []*terraform1.PolicyResult{
 				{
 					TargetAddress:  providerAddr,
 					PolicyMetadata: expectedPolicyMetadata,
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
 			},
-			Infos: []*stacks.PolicyInfo{},
-			Diagnostics: []*stacks.PolicyDiagnostic{
+			Infos: []*terraform1.PolicyInfo{},
+			Diagnostics: []*terraform1.PolicyDiagnostic{
 				{
 					TargetAddress:  providerAddr,
-					PolicyMetadata: &stacks.PolicyMetaData{},
-					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					PolicyMetadata: &terraform1.PolicyMetaData{},
+					Result:         terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					Diagnostic: &terraform1.Diagnostic{
 						Severity: terraform1.Diagnostic_ERROR,
 						Summary:  "Provider policy violation",

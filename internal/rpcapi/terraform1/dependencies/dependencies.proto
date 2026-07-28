@@ -156,6 +156,13 @@ message BuildProviderPluginCache {
     // other operations on this server.
     string override_platform = 4;
 
+
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 5;
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 6; 
+    terraform1.PolicyEntitlement policy_entitlement = 7;
+
     message InstallMethod {
       oneof source {
         bool direct = 1;
@@ -180,6 +187,7 @@ message BuildProviderPluginCache {
       FetchComplete fetch_complete = 8;
 
       terraform1.Diagnostic diagnostic = 9;
+      ProviderInstallPolicyEvaluation provider_install_policy_evaluation = 10;
     }
 
     message Pending {
@@ -383,4 +391,12 @@ message Schema {
       MARKDOWN = 1;
     }
   }
+}
+
+
+message ProviderInstallPolicyEvaluation {
+  string addr = 1;
+  repeated terraform1.PolicyResult results = 2;
+  repeated terraform1.PolicyInfo infos = 3;
+  repeated terraform1.PolicyDiagnostic diagnostics = 4;
 }

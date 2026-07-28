@@ -250,27 +250,27 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Results: []*stacks.PolicyResult{
+				Results: []*terraform1.PolicyResult{
 					{
 						TargetAddress: "module.example",
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "module_policy.example",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result: terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
 				},
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "module policy denied",
 							Detail:   "module policy blocked usage",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{},
+						PolicyMetadata: &terraform1.PolicyMetaData{},
 					},
 				},
 			},
@@ -311,31 +311,31 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Results: []*stacks.PolicyResult{
+				Results: []*terraform1.PolicyResult{
 					{
 						TargetAddress: "module.example",
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						Result: stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Result: terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 					},
 				},
-				Infos: []*stacks.PolicyInfo{
+				Infos: []*terraform1.PolicyInfo{
 					{
 						TargetAddress: "module.example",
-						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 						Message:       "module policy allowed usage",
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 							EnforceIndex:     1,
 						},
-						PolicySnippet: &stacks.PolicySnippet{
+						PolicySnippet: &terraform1.PolicySnippet{
 							Code:                 `key = attr.value == "foo"`,
 							Context:              snippetContext,
 							StartLine:            3,
@@ -393,22 +393,22 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "policy error",
 							Detail:   "the module is not allowed",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						PolicySnippet: &stacks.PolicySnippet{
+						PolicySnippet: &terraform1.PolicySnippet{
 							Context:              snippetContext,
 							Code:                 `key = attr.value == "foo"`,
 							StartLine:            2,
@@ -420,9 +420,9 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							Start:      &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
 							End:        &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
 						},
-						ExpressionValues: []*stacks.ExpressionValue{
+						ExpressionValues: []*terraform1.ExpressionValue{
 							{
-								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Traversal: terraform1.NewAttributePath(cty.GetAttrPath("value")),
 								Value:     exprValueBytes,
 							},
 						},
@@ -464,28 +464,28 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Results: []*stacks.PolicyResult{
+				Results: []*terraform1.PolicyResult{
 					{
 						TargetAddress: "module.example",
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "module_policy.example",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result: terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
 				},
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "enforce block denied module",
 							Detail:   "the enforce block condition failed",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "module_policy.example",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
@@ -524,10 +524,10 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: "test_instance.example",
-						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_WARNING,
 							Summary:  "resource policy warning",
@@ -543,7 +543,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 								End:        &terraform1.SourcePos{Line: 5, Column: 20, Byte: 70},
 							},
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
@@ -583,24 +583,24 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ComponentInstancePolicyEvaluation{
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: "test_instance.example",
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "policy error",
 							Detail:   "the resource is not allowed",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						ExpressionValues: []*stacks.ExpressionValue{
+						ExpressionValues: []*terraform1.ExpressionValue{
 							{
-								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Traversal: terraform1.NewAttributePath(cty.GetAttrPath("value")),
 								Value:     exprValueBytes,
 							},
 						},
@@ -695,27 +695,27 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
-				Results: []*stacks.PolicyResult{
+				Results: []*terraform1.PolicyResult{
 					{
 						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "provider_policy.example",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result: terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 					},
 				},
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "provider policy denied",
 							Detail:   "provider policy blocked usage",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{},
+						PolicyMetadata: &terraform1.PolicyMetaData{},
 					},
 				},
 			},
@@ -757,31 +757,31 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
-				Results: []*stacks.PolicyResult{
+				Results: []*terraform1.PolicyResult{
 					{
 						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						Result: stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Result: terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 					},
 				},
-				Infos: []*stacks.PolicyInfo{
+				Infos: []*terraform1.PolicyInfo{
 					{
 						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
-						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_ALLOW_EVALUATE_RESULT,
 						Message:       "provider policy allowed usage",
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 							EnforceIndex:     1,
 						},
-						PolicySnippet: &stacks.PolicySnippet{
+						PolicySnippet: &terraform1.PolicySnippet{
 							Code:                 `key = attr.value == "foo"`,
 							Context:              snippetContext,
 							StartLine:            3,
@@ -840,22 +840,22 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 				}
 			},
 			want: &stacks.ProviderInstancePolicyEvaluation{
-				Diagnostics: []*stacks.PolicyDiagnostic{
+				Diagnostics: []*terraform1.PolicyDiagnostic{
 					{
 						TargetAddress: `provider["registry.terraform.io/hashicorp/testing"]`,
-						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Result:        terraform1.EvaluateResult_DENY_EVALUATE_RESULT,
 						Diagnostic: &terraform1.Diagnostic{
 							Severity: terraform1.Diagnostic_ERROR,
 							Summary:  "policy error",
 							Detail:   "the provider is not allowed",
 						},
-						PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyMetadata: &terraform1.PolicyMetaData{
 							PolicyName:       "policy_name",
 							PolicySetName:    "some_policy_set",
 							FileName:         "policy_file.tfpolicy.hcl",
 							EnforcementLevel: "mandatory",
 						},
-						PolicySnippet: &stacks.PolicySnippet{
+						PolicySnippet: &terraform1.PolicySnippet{
 							Context:              snippetContext,
 							Code:                 `key = attr.value == "foo"`,
 							StartLine:            2,
@@ -867,9 +867,9 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 							Start:      &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
 							End:        &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
 						},
-						ExpressionValues: []*stacks.ExpressionValue{
+						ExpressionValues: []*terraform1.ExpressionValue{
 							{
-								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Traversal: terraform1.NewAttributePath(cty.GetAttrPath("value")),
 								Value:     exprValueBytes,
 							},
 						},

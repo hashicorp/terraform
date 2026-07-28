@@ -833,6 +833,74 @@ func (x *Schema) GetBlock() *Schema_Block {
 	return nil
 }
 
+type ProviderInstallPolicyEvaluation struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Addr          string                         `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Results       []*terraform1.PolicyResult     `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
+	Infos         []*terraform1.PolicyInfo       `protobuf:"bytes,3,rep,name=infos,proto3" json:"infos,omitempty"`
+	Diagnostics   []*terraform1.PolicyDiagnostic `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProviderInstallPolicyEvaluation) Reset() {
+	*x = ProviderInstallPolicyEvaluation{}
+	mi := &file_dependencies_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProviderInstallPolicyEvaluation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderInstallPolicyEvaluation) ProtoMessage() {}
+
+func (x *ProviderInstallPolicyEvaluation) ProtoReflect() protoreflect.Message {
+	mi := &file_dependencies_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderInstallPolicyEvaluation.ProtoReflect.Descriptor instead.
+func (*ProviderInstallPolicyEvaluation) Descriptor() ([]byte, []int) {
+	return file_dependencies_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ProviderInstallPolicyEvaluation) GetAddr() string {
+	if x != nil {
+		return x.Addr
+	}
+	return ""
+}
+
+func (x *ProviderInstallPolicyEvaluation) GetResults() []*terraform1.PolicyResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *ProviderInstallPolicyEvaluation) GetInfos() []*terraform1.PolicyInfo {
+	if x != nil {
+		return x.Infos
+	}
+	return nil
+}
+
+func (x *ProviderInstallPolicyEvaluation) GetDiagnostics() []*terraform1.PolicyDiagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
 type OpenSourceBundle_Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LocalPath     string                 `protobuf:"bytes,1,opt,name=local_path,json=localPath,proto3" json:"local_path,omitempty"`
@@ -842,7 +910,7 @@ type OpenSourceBundle_Request struct {
 
 func (x *OpenSourceBundle_Request) Reset() {
 	*x = OpenSourceBundle_Request{}
-	mi := &file_dependencies_proto_msgTypes[15]
+	mi := &file_dependencies_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -854,7 +922,7 @@ func (x *OpenSourceBundle_Request) String() string {
 func (*OpenSourceBundle_Request) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[15]
+	mi := &file_dependencies_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -886,7 +954,7 @@ type OpenSourceBundle_Response struct {
 
 func (x *OpenSourceBundle_Response) Reset() {
 	*x = OpenSourceBundle_Response{}
-	mi := &file_dependencies_proto_msgTypes[16]
+	mi := &file_dependencies_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -898,7 +966,7 @@ func (x *OpenSourceBundle_Response) String() string {
 func (*OpenSourceBundle_Response) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[16]
+	mi := &file_dependencies_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +998,7 @@ type CloseSourceBundle_Request struct {
 
 func (x *CloseSourceBundle_Request) Reset() {
 	*x = CloseSourceBundle_Request{}
-	mi := &file_dependencies_proto_msgTypes[17]
+	mi := &file_dependencies_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +1010,7 @@ func (x *CloseSourceBundle_Request) String() string {
 func (*CloseSourceBundle_Request) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[17]
+	mi := &file_dependencies_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -973,7 +1041,7 @@ type CloseSourceBundle_Response struct {
 
 func (x *CloseSourceBundle_Response) Reset() {
 	*x = CloseSourceBundle_Response{}
-	mi := &file_dependencies_proto_msgTypes[18]
+	mi := &file_dependencies_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +1053,7 @@ func (x *CloseSourceBundle_Response) String() string {
 func (*CloseSourceBundle_Response) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[18]
+	mi := &file_dependencies_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1079,7 @@ type OpenDependencyLockFile_Request struct {
 
 func (x *OpenDependencyLockFile_Request) Reset() {
 	*x = OpenDependencyLockFile_Request{}
-	mi := &file_dependencies_proto_msgTypes[19]
+	mi := &file_dependencies_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1091,7 @@ func (x *OpenDependencyLockFile_Request) String() string {
 func (*OpenDependencyLockFile_Request) ProtoMessage() {}
 
 func (x *OpenDependencyLockFile_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[19]
+	mi := &file_dependencies_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1063,7 +1131,7 @@ type OpenDependencyLockFile_Response struct {
 
 func (x *OpenDependencyLockFile_Response) Reset() {
 	*x = OpenDependencyLockFile_Response{}
-	mi := &file_dependencies_proto_msgTypes[20]
+	mi := &file_dependencies_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1075,7 +1143,7 @@ func (x *OpenDependencyLockFile_Response) String() string {
 func (*OpenDependencyLockFile_Response) ProtoMessage() {}
 
 func (x *OpenDependencyLockFile_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[20]
+	mi := &file_dependencies_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1120,7 +1188,7 @@ type CreateDependencyLocks_Request struct {
 
 func (x *CreateDependencyLocks_Request) Reset() {
 	*x = CreateDependencyLocks_Request{}
-	mi := &file_dependencies_proto_msgTypes[21]
+	mi := &file_dependencies_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1132,7 +1200,7 @@ func (x *CreateDependencyLocks_Request) String() string {
 func (*CreateDependencyLocks_Request) ProtoMessage() {}
 
 func (x *CreateDependencyLocks_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[21]
+	mi := &file_dependencies_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1232,7 @@ type CreateDependencyLocks_Response struct {
 
 func (x *CreateDependencyLocks_Response) Reset() {
 	*x = CreateDependencyLocks_Response{}
-	mi := &file_dependencies_proto_msgTypes[22]
+	mi := &file_dependencies_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1176,7 +1244,7 @@ func (x *CreateDependencyLocks_Response) String() string {
 func (*CreateDependencyLocks_Response) ProtoMessage() {}
 
 func (x *CreateDependencyLocks_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[22]
+	mi := &file_dependencies_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1208,7 +1276,7 @@ type CloseDependencyLocks_Request struct {
 
 func (x *CloseDependencyLocks_Request) Reset() {
 	*x = CloseDependencyLocks_Request{}
-	mi := &file_dependencies_proto_msgTypes[23]
+	mi := &file_dependencies_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +1288,7 @@ func (x *CloseDependencyLocks_Request) String() string {
 func (*CloseDependencyLocks_Request) ProtoMessage() {}
 
 func (x *CloseDependencyLocks_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[23]
+	mi := &file_dependencies_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1251,7 +1319,7 @@ type CloseDependencyLocks_Response struct {
 
 func (x *CloseDependencyLocks_Response) Reset() {
 	*x = CloseDependencyLocks_Response{}
-	mi := &file_dependencies_proto_msgTypes[24]
+	mi := &file_dependencies_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1263,7 +1331,7 @@ func (x *CloseDependencyLocks_Response) String() string {
 func (*CloseDependencyLocks_Response) ProtoMessage() {}
 
 func (x *CloseDependencyLocks_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[24]
+	mi := &file_dependencies_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +1356,7 @@ type GetLockedProviderDependencies_Request struct {
 
 func (x *GetLockedProviderDependencies_Request) Reset() {
 	*x = GetLockedProviderDependencies_Request{}
-	mi := &file_dependencies_proto_msgTypes[25]
+	mi := &file_dependencies_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1300,7 +1368,7 @@ func (x *GetLockedProviderDependencies_Request) String() string {
 func (*GetLockedProviderDependencies_Request) ProtoMessage() {}
 
 func (x *GetLockedProviderDependencies_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[25]
+	mi := &file_dependencies_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1332,7 +1400,7 @@ type GetLockedProviderDependencies_Response struct {
 
 func (x *GetLockedProviderDependencies_Response) Reset() {
 	*x = GetLockedProviderDependencies_Response{}
-	mi := &file_dependencies_proto_msgTypes[26]
+	mi := &file_dependencies_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1344,7 +1412,7 @@ func (x *GetLockedProviderDependencies_Response) String() string {
 func (*GetLockedProviderDependencies_Response) ProtoMessage() {}
 
 func (x *GetLockedProviderDependencies_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[26]
+	mi := &file_dependencies_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1381,13 +1449,18 @@ type BuildProviderPluginCache_Request struct {
 	// server's then the generated cache directory will appear empty to
 	// other operations on this server.
 	OverridePlatform string `protobuf:"bytes,4,opt,name=override_platform,json=overridePlatform,proto3" json:"override_platform,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+	TfpolicyPluginPath *string `protobuf:"bytes,5,opt,name=tfpolicy_plugin_path,json=tfpolicyPluginPath,proto3,oneof" json:"tfpolicy_plugin_path,omitempty"`
+	// Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+	PolicyPaths       []string                      `protobuf:"bytes,6,rep,name=policy_paths,json=policyPaths,proto3" json:"policy_paths,omitempty"`
+	PolicyEntitlement *terraform1.PolicyEntitlement `protobuf:"bytes,7,opt,name=policy_entitlement,json=policyEntitlement,proto3" json:"policy_entitlement,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *BuildProviderPluginCache_Request) Reset() {
 	*x = BuildProviderPluginCache_Request{}
-	mi := &file_dependencies_proto_msgTypes[27]
+	mi := &file_dependencies_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1399,7 +1472,7 @@ func (x *BuildProviderPluginCache_Request) String() string {
 func (*BuildProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[27]
+	mi := &file_dependencies_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1443,6 +1516,27 @@ func (x *BuildProviderPluginCache_Request) GetOverridePlatform() string {
 	return ""
 }
 
+func (x *BuildProviderPluginCache_Request) GetTfpolicyPluginPath() string {
+	if x != nil && x.TfpolicyPluginPath != nil {
+		return *x.TfpolicyPluginPath
+	}
+	return ""
+}
+
+func (x *BuildProviderPluginCache_Request) GetPolicyPaths() []string {
+	if x != nil {
+		return x.PolicyPaths
+	}
+	return nil
+}
+
+func (x *BuildProviderPluginCache_Request) GetPolicyEntitlement() *terraform1.PolicyEntitlement {
+	if x != nil {
+		return x.PolicyEntitlement
+	}
+	return nil
+}
+
 type BuildProviderPluginCache_Event struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Event:
@@ -1456,6 +1550,7 @@ type BuildProviderPluginCache_Event struct {
 	//	*BuildProviderPluginCache_Event_FetchBegin_
 	//	*BuildProviderPluginCache_Event_FetchComplete_
 	//	*BuildProviderPluginCache_Event_Diagnostic
+	//	*BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation
 	Event         isBuildProviderPluginCache_Event_Event `protobuf_oneof:"event"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1463,7 +1558,7 @@ type BuildProviderPluginCache_Event struct {
 
 func (x *BuildProviderPluginCache_Event) Reset() {
 	*x = BuildProviderPluginCache_Event{}
-	mi := &file_dependencies_proto_msgTypes[28]
+	mi := &file_dependencies_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1475,7 +1570,7 @@ func (x *BuildProviderPluginCache_Event) String() string {
 func (*BuildProviderPluginCache_Event) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[28]
+	mi := &file_dependencies_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1579,6 +1674,15 @@ func (x *BuildProviderPluginCache_Event) GetDiagnostic() *terraform1.Diagnostic 
 	return nil
 }
 
+func (x *BuildProviderPluginCache_Event) GetProviderInstallPolicyEvaluation() *ProviderInstallPolicyEvaluation {
+	if x != nil {
+		if x, ok := x.Event.(*BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation); ok {
+			return x.ProviderInstallPolicyEvaluation
+		}
+	}
+	return nil
+}
+
 type isBuildProviderPluginCache_Event_Event interface {
 	isBuildProviderPluginCache_Event_Event()
 }
@@ -1619,6 +1723,10 @@ type BuildProviderPluginCache_Event_Diagnostic struct {
 	Diagnostic *terraform1.Diagnostic `protobuf:"bytes,9,opt,name=diagnostic,proto3,oneof"`
 }
 
+type BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation struct {
+	ProviderInstallPolicyEvaluation *ProviderInstallPolicyEvaluation `protobuf:"bytes,10,opt,name=provider_install_policy_evaluation,json=providerInstallPolicyEvaluation,proto3,oneof"`
+}
+
 func (*BuildProviderPluginCache_Event_Pending_) isBuildProviderPluginCache_Event_Event() {}
 
 func (*BuildProviderPluginCache_Event_AlreadyInstalled) isBuildProviderPluginCache_Event_Event() {}
@@ -1637,6 +1745,9 @@ func (*BuildProviderPluginCache_Event_FetchComplete_) isBuildProviderPluginCache
 
 func (*BuildProviderPluginCache_Event_Diagnostic) isBuildProviderPluginCache_Event_Event() {}
 
+func (*BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation) isBuildProviderPluginCache_Event_Event() {
+}
+
 type BuildProviderPluginCache_Request_InstallMethod struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
@@ -1653,7 +1764,7 @@ type BuildProviderPluginCache_Request_InstallMethod struct {
 
 func (x *BuildProviderPluginCache_Request_InstallMethod) Reset() {
 	*x = BuildProviderPluginCache_Request_InstallMethod{}
-	mi := &file_dependencies_proto_msgTypes[29]
+	mi := &file_dependencies_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1665,7 +1776,7 @@ func (x *BuildProviderPluginCache_Request_InstallMethod) String() string {
 func (*BuildProviderPluginCache_Request_InstallMethod) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Request_InstallMethod) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[29]
+	mi := &file_dependencies_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1763,7 +1874,7 @@ type BuildProviderPluginCache_Event_Pending struct {
 
 func (x *BuildProviderPluginCache_Event_Pending) Reset() {
 	*x = BuildProviderPluginCache_Event_Pending{}
-	mi := &file_dependencies_proto_msgTypes[30]
+	mi := &file_dependencies_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1775,7 +1886,7 @@ func (x *BuildProviderPluginCache_Event_Pending) String() string {
 func (*BuildProviderPluginCache_Event_Pending) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_Pending) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[30]
+	mi := &file_dependencies_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1808,7 +1919,7 @@ type BuildProviderPluginCache_Event_ProviderConstraints struct {
 
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderConstraints{}
-	mi := &file_dependencies_proto_msgTypes[31]
+	mi := &file_dependencies_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1820,7 +1931,7 @@ func (x *BuildProviderPluginCache_Event_ProviderConstraints) String() string {
 func (*BuildProviderPluginCache_Event_ProviderConstraints) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[31]
+	mi := &file_dependencies_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1860,7 +1971,7 @@ type BuildProviderPluginCache_Event_ProviderVersion struct {
 
 func (x *BuildProviderPluginCache_Event_ProviderVersion) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderVersion{}
-	mi := &file_dependencies_proto_msgTypes[32]
+	mi := &file_dependencies_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1872,7 +1983,7 @@ func (x *BuildProviderPluginCache_Event_ProviderVersion) String() string {
 func (*BuildProviderPluginCache_Event_ProviderVersion) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[32]
+	mi := &file_dependencies_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1912,7 +2023,7 @@ type BuildProviderPluginCache_Event_ProviderWarnings struct {
 
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderWarnings{}
-	mi := &file_dependencies_proto_msgTypes[33]
+	mi := &file_dependencies_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1924,7 +2035,7 @@ func (x *BuildProviderPluginCache_Event_ProviderWarnings) String() string {
 func (*BuildProviderPluginCache_Event_ProviderWarnings) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[33]
+	mi := &file_dependencies_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1964,7 +2075,7 @@ type BuildProviderPluginCache_Event_FetchBegin struct {
 
 func (x *BuildProviderPluginCache_Event_FetchBegin) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchBegin{}
-	mi := &file_dependencies_proto_msgTypes[34]
+	mi := &file_dependencies_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1976,7 +2087,7 @@ func (x *BuildProviderPluginCache_Event_FetchBegin) String() string {
 func (*BuildProviderPluginCache_Event_FetchBegin) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchBegin) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[34]
+	mi := &file_dependencies_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2022,7 +2133,7 @@ type BuildProviderPluginCache_Event_FetchComplete struct {
 
 func (x *BuildProviderPluginCache_Event_FetchComplete) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchComplete{}
-	mi := &file_dependencies_proto_msgTypes[35]
+	mi := &file_dependencies_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2034,7 +2145,7 @@ func (x *BuildProviderPluginCache_Event_FetchComplete) String() string {
 func (*BuildProviderPluginCache_Event_FetchComplete) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchComplete) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[35]
+	mi := &file_dependencies_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2089,7 +2200,7 @@ type OpenProviderPluginCache_Request struct {
 
 func (x *OpenProviderPluginCache_Request) Reset() {
 	*x = OpenProviderPluginCache_Request{}
-	mi := &file_dependencies_proto_msgTypes[36]
+	mi := &file_dependencies_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2101,7 +2212,7 @@ func (x *OpenProviderPluginCache_Request) String() string {
 func (*OpenProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[36]
+	mi := &file_dependencies_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2140,7 +2251,7 @@ type OpenProviderPluginCache_Response struct {
 
 func (x *OpenProviderPluginCache_Response) Reset() {
 	*x = OpenProviderPluginCache_Response{}
-	mi := &file_dependencies_proto_msgTypes[37]
+	mi := &file_dependencies_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2152,7 +2263,7 @@ func (x *OpenProviderPluginCache_Response) String() string {
 func (*OpenProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[37]
+	mi := &file_dependencies_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2184,7 +2295,7 @@ type CloseProviderPluginCache_Request struct {
 
 func (x *CloseProviderPluginCache_Request) Reset() {
 	*x = CloseProviderPluginCache_Request{}
-	mi := &file_dependencies_proto_msgTypes[38]
+	mi := &file_dependencies_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2196,7 +2307,7 @@ func (x *CloseProviderPluginCache_Request) String() string {
 func (*CloseProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[38]
+	mi := &file_dependencies_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2227,7 +2338,7 @@ type CloseProviderPluginCache_Response struct {
 
 func (x *CloseProviderPluginCache_Response) Reset() {
 	*x = CloseProviderPluginCache_Response{}
-	mi := &file_dependencies_proto_msgTypes[39]
+	mi := &file_dependencies_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2239,7 +2350,7 @@ func (x *CloseProviderPluginCache_Response) String() string {
 func (*CloseProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[39]
+	mi := &file_dependencies_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2264,7 +2375,7 @@ type GetCachedProviders_Request struct {
 
 func (x *GetCachedProviders_Request) Reset() {
 	*x = GetCachedProviders_Request{}
-	mi := &file_dependencies_proto_msgTypes[40]
+	mi := &file_dependencies_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2276,7 +2387,7 @@ func (x *GetCachedProviders_Request) String() string {
 func (*GetCachedProviders_Request) ProtoMessage() {}
 
 func (x *GetCachedProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[40]
+	mi := &file_dependencies_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2308,7 +2419,7 @@ type GetCachedProviders_Response struct {
 
 func (x *GetCachedProviders_Response) Reset() {
 	*x = GetCachedProviders_Response{}
-	mi := &file_dependencies_proto_msgTypes[41]
+	mi := &file_dependencies_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2320,7 +2431,7 @@ func (x *GetCachedProviders_Response) String() string {
 func (*GetCachedProviders_Response) ProtoMessage() {}
 
 func (x *GetCachedProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[41]
+	mi := &file_dependencies_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2351,7 +2462,7 @@ type GetBuiltInProviders_Request struct {
 
 func (x *GetBuiltInProviders_Request) Reset() {
 	*x = GetBuiltInProviders_Request{}
-	mi := &file_dependencies_proto_msgTypes[42]
+	mi := &file_dependencies_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2363,7 +2474,7 @@ func (x *GetBuiltInProviders_Request) String() string {
 func (*GetBuiltInProviders_Request) ProtoMessage() {}
 
 func (x *GetBuiltInProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[42]
+	mi := &file_dependencies_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2395,7 +2506,7 @@ type GetBuiltInProviders_Response struct {
 
 func (x *GetBuiltInProviders_Response) Reset() {
 	*x = GetBuiltInProviders_Response{}
-	mi := &file_dependencies_proto_msgTypes[43]
+	mi := &file_dependencies_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2407,7 +2518,7 @@ func (x *GetBuiltInProviders_Response) String() string {
 func (*GetBuiltInProviders_Response) ProtoMessage() {}
 
 func (x *GetBuiltInProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[43]
+	mi := &file_dependencies_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2462,7 +2573,7 @@ type GetProviderSchema_Request struct {
 
 func (x *GetProviderSchema_Request) Reset() {
 	*x = GetProviderSchema_Request{}
-	mi := &file_dependencies_proto_msgTypes[44]
+	mi := &file_dependencies_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2474,7 +2585,7 @@ func (x *GetProviderSchema_Request) String() string {
 func (*GetProviderSchema_Request) ProtoMessage() {}
 
 func (x *GetProviderSchema_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[44]
+	mi := &file_dependencies_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2520,7 +2631,7 @@ type GetProviderSchema_Response struct {
 
 func (x *GetProviderSchema_Response) Reset() {
 	*x = GetProviderSchema_Response{}
-	mi := &file_dependencies_proto_msgTypes[45]
+	mi := &file_dependencies_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2532,7 +2643,7 @@ func (x *GetProviderSchema_Response) String() string {
 func (*GetProviderSchema_Response) ProtoMessage() {}
 
 func (x *GetProviderSchema_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[45]
+	mi := &file_dependencies_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2567,7 +2678,7 @@ type Schema_Block struct {
 
 func (x *Schema_Block) Reset() {
 	*x = Schema_Block{}
-	mi := &file_dependencies_proto_msgTypes[49]
+	mi := &file_dependencies_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2579,7 +2690,7 @@ func (x *Schema_Block) String() string {
 func (*Schema_Block) ProtoMessage() {}
 
 func (x *Schema_Block) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[49]
+	mi := &file_dependencies_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2640,7 +2751,7 @@ type Schema_Attribute struct {
 
 func (x *Schema_Attribute) Reset() {
 	*x = Schema_Attribute{}
-	mi := &file_dependencies_proto_msgTypes[50]
+	mi := &file_dependencies_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2652,7 +2763,7 @@ func (x *Schema_Attribute) String() string {
 func (*Schema_Attribute) ProtoMessage() {}
 
 func (x *Schema_Attribute) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[50]
+	mi := &file_dependencies_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2742,7 +2853,7 @@ type Schema_NestedBlock struct {
 
 func (x *Schema_NestedBlock) Reset() {
 	*x = Schema_NestedBlock{}
-	mi := &file_dependencies_proto_msgTypes[51]
+	mi := &file_dependencies_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2754,7 +2865,7 @@ func (x *Schema_NestedBlock) String() string {
 func (*Schema_NestedBlock) ProtoMessage() {}
 
 func (x *Schema_NestedBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[51]
+	mi := &file_dependencies_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2801,7 +2912,7 @@ type Schema_Object struct {
 
 func (x *Schema_Object) Reset() {
 	*x = Schema_Object{}
-	mi := &file_dependencies_proto_msgTypes[52]
+	mi := &file_dependencies_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2813,7 +2924,7 @@ func (x *Schema_Object) String() string {
 func (*Schema_Object) ProtoMessage() {}
 
 func (x *Schema_Object) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[52]
+	mi := &file_dependencies_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2853,7 +2964,7 @@ type Schema_DocString struct {
 
 func (x *Schema_DocString) Reset() {
 	*x = Schema_DocString{}
-	mi := &file_dependencies_proto_msgTypes[53]
+	mi := &file_dependencies_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2865,7 +2976,7 @@ func (x *Schema_DocString) String() string {
 func (*Schema_DocString) ProtoMessage() {}
 
 func (x *Schema_DocString) ProtoReflect() protoreflect.Message {
-	mi := &file_dependencies_proto_msgTypes[53]
+	mi := &file_dependencies_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2932,20 +3043,24 @@ const file_dependencies_proto_rawDesc = "" +
 	"\aRequest\x126\n" +
 	"\x17dependency_locks_handle\x18\x01 \x01(\x03R\x15dependencyLocksHandle\x1aV\n" +
 	"\bResponse\x12J\n" +
-	"\x12selected_providers\x18\x01 \x03(\v2\x1b.terraform1.ProviderPackageR\x11selectedProviders\"\xb4\x12\n" +
-	"\x18BuildProviderPluginCache\x1a\xcd\x03\n" +
+	"\x12selected_providers\x18\x01 \x03(\v2\x1b.terraform1.ProviderPackageR\x11selectedProviders\"\xff\x14\n" +
+	"\x18BuildProviderPluginCache\x1a\x8e\x05\n" +
 	"\aRequest\x12\x1b\n" +
 	"\tcache_dir\x18\x01 \x01(\tR\bcacheDir\x126\n" +
 	"\x17dependency_locks_handle\x18\x02 \x01(\x03R\x15dependencyLocksHandle\x12z\n" +
 	"\x14installation_methods\x18\x03 \x03(\v2G.terraform1.dependencies.BuildProviderPluginCache.Request.InstallMethodR\x13installationMethods\x12+\n" +
-	"\x11override_platform\x18\x04 \x01(\tR\x10overridePlatform\x1a\xc3\x01\n" +
+	"\x11override_platform\x18\x04 \x01(\tR\x10overridePlatform\x125\n" +
+	"\x14tfpolicy_plugin_path\x18\x05 \x01(\tH\x00R\x12tfpolicyPluginPath\x88\x01\x01\x12!\n" +
+	"\fpolicy_paths\x18\x06 \x03(\tR\vpolicyPaths\x12L\n" +
+	"\x12policy_entitlement\x18\a \x01(\v2\x1d.terraform1.PolicyEntitlementR\x11policyEntitlement\x1a\xc3\x01\n" +
 	"\rInstallMethod\x12\x18\n" +
 	"\x06direct\x18\x01 \x01(\bH\x00R\x06direct\x12*\n" +
 	"\x10local_mirror_dir\x18\x02 \x01(\tH\x00R\x0elocalMirrorDir\x12.\n" +
 	"\x12network_mirror_url\x18\x03 \x01(\tH\x00R\x10networkMirrorUrl\x12\x18\n" +
 	"\ainclude\x18\x04 \x03(\tR\ainclude\x12\x18\n" +
 	"\aexclude\x18\x05 \x03(\tR\aexcludeB\b\n" +
-	"\x06source\x1a\xc7\x0e\n" +
+	"\x06sourceB\x17\n" +
+	"\x15_tfpolicy_plugin_path\x1a\xd1\x0f\n" +
 	"\x05Event\x12[\n" +
 	"\apending\x18\x01 \x01(\v2?.terraform1.dependencies.BuildProviderPluginCache.Event.PendingH\x00R\apending\x12v\n" +
 	"\x11already_installed\x18\x02 \x01(\v2G.terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersionH\x00R\x10alreadyInstalled\x12d\n" +
@@ -2959,7 +3074,9 @@ const file_dependencies_proto_rawDesc = "" +
 	"\x0efetch_complete\x18\b \x01(\v2E.terraform1.dependencies.BuildProviderPluginCache.Event.FetchCompleteH\x00R\rfetchComplete\x128\n" +
 	"\n" +
 	"diagnostic\x18\t \x01(\v2\x16.terraform1.DiagnosticH\x00R\n" +
-	"diagnostic\x1ar\n" +
+	"diagnostic\x12\x87\x01\n" +
+	"\"provider_install_policy_evaluation\x18\n" +
+	" \x01(\v28.terraform1.dependencies.ProviderInstallPolicyEvaluationH\x00R\x1fproviderInstallPolicyEvaluation\x1ar\n" +
 	"\aPending\x12g\n" +
 	"\bexpected\x18\x01 \x03(\v2K.terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraintsR\bexpected\x1aR\n" +
 	"\x13ProviderConstraints\x12\x1f\n" +
@@ -3090,7 +3207,12 @@ const file_dependencies_proto_rawDesc = "" +
 	"\x06format\x18\x02 \x01(\x0e20.terraform1.dependencies.Schema.DocString.FormatR\x06format\"!\n" +
 	"\x06Format\x12\t\n" +
 	"\x05PLAIN\x10\x00\x12\f\n" +
-	"\bMARKDOWN\x10\x012\x87\r\n" +
+	"\bMARKDOWN\x10\x01\"\xd7\x01\n" +
+	"\x1fProviderInstallPolicyEvaluation\x12\x12\n" +
+	"\x04addr\x18\x01 \x01(\tR\x04addr\x122\n" +
+	"\aresults\x18\x02 \x03(\v2\x18.terraform1.PolicyResultR\aresults\x12,\n" +
+	"\x05infos\x18\x03 \x03(\v2\x16.terraform1.PolicyInfoR\x05infos\x12>\n" +
+	"\vdiagnostics\x18\x04 \x03(\v2\x1c.terraform1.PolicyDiagnosticR\vdiagnostics2\x87\r\n" +
 	"\fDependencies\x12y\n" +
 	"\x10OpenSourceBundle\x121.terraform1.dependencies.OpenSourceBundle.Request\x1a2.terraform1.dependencies.OpenSourceBundle.Response\x12|\n" +
 	"\x11CloseSourceBundle\x122.terraform1.dependencies.CloseSourceBundle.Request\x1a3.terraform1.dependencies.CloseSourceBundle.Response\x12\x8b\x01\n" +
@@ -3118,7 +3240,7 @@ func file_dependencies_proto_rawDescGZIP() []byte {
 }
 
 var file_dependencies_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_dependencies_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_dependencies_proto_msgTypes = make([]protoimpl.MessageInfo, 55)
 var file_dependencies_proto_goTypes = []any{
 	(BuildProviderPluginCache_Event_FetchComplete_AuthResult)(0), // 0: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.AuthResult
 	(Schema_NestedBlock_NestingMode)(0),                          // 1: terraform1.dependencies.Schema.NestedBlock.NestingMode
@@ -3139,119 +3261,129 @@ var file_dependencies_proto_goTypes = []any{
 	(*ProviderSchema)(nil),                                       // 16: terraform1.dependencies.ProviderSchema
 	(*ActionSchema)(nil),                                         // 17: terraform1.dependencies.ActionSchema
 	(*Schema)(nil),                                               // 18: terraform1.dependencies.Schema
-	(*OpenSourceBundle_Request)(nil),                             // 19: terraform1.dependencies.OpenSourceBundle.Request
-	(*OpenSourceBundle_Response)(nil),                            // 20: terraform1.dependencies.OpenSourceBundle.Response
-	(*CloseSourceBundle_Request)(nil),                            // 21: terraform1.dependencies.CloseSourceBundle.Request
-	(*CloseSourceBundle_Response)(nil),                           // 22: terraform1.dependencies.CloseSourceBundle.Response
-	(*OpenDependencyLockFile_Request)(nil),                       // 23: terraform1.dependencies.OpenDependencyLockFile.Request
-	(*OpenDependencyLockFile_Response)(nil),                      // 24: terraform1.dependencies.OpenDependencyLockFile.Response
-	(*CreateDependencyLocks_Request)(nil),                        // 25: terraform1.dependencies.CreateDependencyLocks.Request
-	(*CreateDependencyLocks_Response)(nil),                       // 26: terraform1.dependencies.CreateDependencyLocks.Response
-	(*CloseDependencyLocks_Request)(nil),                         // 27: terraform1.dependencies.CloseDependencyLocks.Request
-	(*CloseDependencyLocks_Response)(nil),                        // 28: terraform1.dependencies.CloseDependencyLocks.Response
-	(*GetLockedProviderDependencies_Request)(nil),                // 29: terraform1.dependencies.GetLockedProviderDependencies.Request
-	(*GetLockedProviderDependencies_Response)(nil),               // 30: terraform1.dependencies.GetLockedProviderDependencies.Response
-	(*BuildProviderPluginCache_Request)(nil),                     // 31: terraform1.dependencies.BuildProviderPluginCache.Request
-	(*BuildProviderPluginCache_Event)(nil),                       // 32: terraform1.dependencies.BuildProviderPluginCache.Event
-	(*BuildProviderPluginCache_Request_InstallMethod)(nil),       // 33: terraform1.dependencies.BuildProviderPluginCache.Request.InstallMethod
-	(*BuildProviderPluginCache_Event_Pending)(nil),               // 34: terraform1.dependencies.BuildProviderPluginCache.Event.Pending
-	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 35: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
-	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 36: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 37: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderWarnings
-	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 38: terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin
-	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 39: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete
-	(*OpenProviderPluginCache_Request)(nil),                      // 40: terraform1.dependencies.OpenProviderPluginCache.Request
-	(*OpenProviderPluginCache_Response)(nil),                     // 41: terraform1.dependencies.OpenProviderPluginCache.Response
-	(*CloseProviderPluginCache_Request)(nil),                     // 42: terraform1.dependencies.CloseProviderPluginCache.Request
-	(*CloseProviderPluginCache_Response)(nil),                    // 43: terraform1.dependencies.CloseProviderPluginCache.Response
-	(*GetCachedProviders_Request)(nil),                           // 44: terraform1.dependencies.GetCachedProviders.Request
-	(*GetCachedProviders_Response)(nil),                          // 45: terraform1.dependencies.GetCachedProviders.Response
-	(*GetBuiltInProviders_Request)(nil),                          // 46: terraform1.dependencies.GetBuiltInProviders.Request
-	(*GetBuiltInProviders_Response)(nil),                         // 47: terraform1.dependencies.GetBuiltInProviders.Response
-	(*GetProviderSchema_Request)(nil),                            // 48: terraform1.dependencies.GetProviderSchema.Request
-	(*GetProviderSchema_Response)(nil),                           // 49: terraform1.dependencies.GetProviderSchema.Response
-	nil,                                                          // 50: terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry
-	nil,                                                          // 51: terraform1.dependencies.ProviderSchema.DataResourceTypesEntry
-	nil,                                                          // 52: terraform1.dependencies.ProviderSchema.ActionTypesEntry
-	(*Schema_Block)(nil),                                         // 53: terraform1.dependencies.Schema.Block
-	(*Schema_Attribute)(nil),                                     // 54: terraform1.dependencies.Schema.Attribute
-	(*Schema_NestedBlock)(nil),                                   // 55: terraform1.dependencies.Schema.NestedBlock
-	(*Schema_Object)(nil),                                        // 56: terraform1.dependencies.Schema.Object
-	(*Schema_DocString)(nil),                                     // 57: terraform1.dependencies.Schema.DocString
-	(*terraform1.SourceAddress)(nil),                             // 58: terraform1.SourceAddress
-	(*terraform1.Diagnostic)(nil),                                // 59: terraform1.Diagnostic
-	(*terraform1.ProviderPackage)(nil),                           // 60: terraform1.ProviderPackage
+	(*ProviderInstallPolicyEvaluation)(nil),                      // 19: terraform1.dependencies.ProviderInstallPolicyEvaluation
+	(*OpenSourceBundle_Request)(nil),                             // 20: terraform1.dependencies.OpenSourceBundle.Request
+	(*OpenSourceBundle_Response)(nil),                            // 21: terraform1.dependencies.OpenSourceBundle.Response
+	(*CloseSourceBundle_Request)(nil),                            // 22: terraform1.dependencies.CloseSourceBundle.Request
+	(*CloseSourceBundle_Response)(nil),                           // 23: terraform1.dependencies.CloseSourceBundle.Response
+	(*OpenDependencyLockFile_Request)(nil),                       // 24: terraform1.dependencies.OpenDependencyLockFile.Request
+	(*OpenDependencyLockFile_Response)(nil),                      // 25: terraform1.dependencies.OpenDependencyLockFile.Response
+	(*CreateDependencyLocks_Request)(nil),                        // 26: terraform1.dependencies.CreateDependencyLocks.Request
+	(*CreateDependencyLocks_Response)(nil),                       // 27: terraform1.dependencies.CreateDependencyLocks.Response
+	(*CloseDependencyLocks_Request)(nil),                         // 28: terraform1.dependencies.CloseDependencyLocks.Request
+	(*CloseDependencyLocks_Response)(nil),                        // 29: terraform1.dependencies.CloseDependencyLocks.Response
+	(*GetLockedProviderDependencies_Request)(nil),                // 30: terraform1.dependencies.GetLockedProviderDependencies.Request
+	(*GetLockedProviderDependencies_Response)(nil),               // 31: terraform1.dependencies.GetLockedProviderDependencies.Response
+	(*BuildProviderPluginCache_Request)(nil),                     // 32: terraform1.dependencies.BuildProviderPluginCache.Request
+	(*BuildProviderPluginCache_Event)(nil),                       // 33: terraform1.dependencies.BuildProviderPluginCache.Event
+	(*BuildProviderPluginCache_Request_InstallMethod)(nil),       // 34: terraform1.dependencies.BuildProviderPluginCache.Request.InstallMethod
+	(*BuildProviderPluginCache_Event_Pending)(nil),               // 35: terraform1.dependencies.BuildProviderPluginCache.Event.Pending
+	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 36: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
+	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 37: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 38: terraform1.dependencies.BuildProviderPluginCache.Event.ProviderWarnings
+	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 39: terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin
+	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 40: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete
+	(*OpenProviderPluginCache_Request)(nil),                      // 41: terraform1.dependencies.OpenProviderPluginCache.Request
+	(*OpenProviderPluginCache_Response)(nil),                     // 42: terraform1.dependencies.OpenProviderPluginCache.Response
+	(*CloseProviderPluginCache_Request)(nil),                     // 43: terraform1.dependencies.CloseProviderPluginCache.Request
+	(*CloseProviderPluginCache_Response)(nil),                    // 44: terraform1.dependencies.CloseProviderPluginCache.Response
+	(*GetCachedProviders_Request)(nil),                           // 45: terraform1.dependencies.GetCachedProviders.Request
+	(*GetCachedProviders_Response)(nil),                          // 46: terraform1.dependencies.GetCachedProviders.Response
+	(*GetBuiltInProviders_Request)(nil),                          // 47: terraform1.dependencies.GetBuiltInProviders.Request
+	(*GetBuiltInProviders_Response)(nil),                         // 48: terraform1.dependencies.GetBuiltInProviders.Response
+	(*GetProviderSchema_Request)(nil),                            // 49: terraform1.dependencies.GetProviderSchema.Request
+	(*GetProviderSchema_Response)(nil),                           // 50: terraform1.dependencies.GetProviderSchema.Response
+	nil,                                                          // 51: terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry
+	nil,                                                          // 52: terraform1.dependencies.ProviderSchema.DataResourceTypesEntry
+	nil,                                                          // 53: terraform1.dependencies.ProviderSchema.ActionTypesEntry
+	(*Schema_Block)(nil),                                         // 54: terraform1.dependencies.Schema.Block
+	(*Schema_Attribute)(nil),                                     // 55: terraform1.dependencies.Schema.Attribute
+	(*Schema_NestedBlock)(nil),                                   // 56: terraform1.dependencies.Schema.NestedBlock
+	(*Schema_Object)(nil),                                        // 57: terraform1.dependencies.Schema.Object
+	(*Schema_DocString)(nil),                                     // 58: terraform1.dependencies.Schema.DocString
+	(*terraform1.PolicyResult)(nil),                              // 59: terraform1.PolicyResult
+	(*terraform1.PolicyInfo)(nil),                                // 60: terraform1.PolicyInfo
+	(*terraform1.PolicyDiagnostic)(nil),                          // 61: terraform1.PolicyDiagnostic
+	(*terraform1.SourceAddress)(nil),                             // 62: terraform1.SourceAddress
+	(*terraform1.Diagnostic)(nil),                                // 63: terraform1.Diagnostic
+	(*terraform1.ProviderPackage)(nil),                           // 64: terraform1.ProviderPackage
+	(*terraform1.PolicyEntitlement)(nil),                         // 65: terraform1.PolicyEntitlement
 }
 var file_dependencies_proto_depIdxs = []int32{
 	18, // 0: terraform1.dependencies.ProviderSchema.provider_config:type_name -> terraform1.dependencies.Schema
-	50, // 1: terraform1.dependencies.ProviderSchema.managed_resource_types:type_name -> terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry
-	51, // 2: terraform1.dependencies.ProviderSchema.data_resource_types:type_name -> terraform1.dependencies.ProviderSchema.DataResourceTypesEntry
-	52, // 3: terraform1.dependencies.ProviderSchema.action_types:type_name -> terraform1.dependencies.ProviderSchema.ActionTypesEntry
+	51, // 1: terraform1.dependencies.ProviderSchema.managed_resource_types:type_name -> terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry
+	52, // 2: terraform1.dependencies.ProviderSchema.data_resource_types:type_name -> terraform1.dependencies.ProviderSchema.DataResourceTypesEntry
+	53, // 3: terraform1.dependencies.ProviderSchema.action_types:type_name -> terraform1.dependencies.ProviderSchema.ActionTypesEntry
 	18, // 4: terraform1.dependencies.ActionSchema.schema:type_name -> terraform1.dependencies.Schema
-	53, // 5: terraform1.dependencies.Schema.block:type_name -> terraform1.dependencies.Schema.Block
-	58, // 6: terraform1.dependencies.OpenDependencyLockFile.Request.source_address:type_name -> terraform1.SourceAddress
-	59, // 7: terraform1.dependencies.OpenDependencyLockFile.Response.diagnostics:type_name -> terraform1.Diagnostic
-	60, // 8: terraform1.dependencies.CreateDependencyLocks.Request.provider_selections:type_name -> terraform1.ProviderPackage
-	60, // 9: terraform1.dependencies.GetLockedProviderDependencies.Response.selected_providers:type_name -> terraform1.ProviderPackage
-	33, // 10: terraform1.dependencies.BuildProviderPluginCache.Request.installation_methods:type_name -> terraform1.dependencies.BuildProviderPluginCache.Request.InstallMethod
-	34, // 11: terraform1.dependencies.BuildProviderPluginCache.Event.pending:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.Pending
-	36, // 12: terraform1.dependencies.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	36, // 13: terraform1.dependencies.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	35, // 14: terraform1.dependencies.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
-	36, // 15: terraform1.dependencies.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	37, // 16: terraform1.dependencies.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderWarnings
-	38, // 17: terraform1.dependencies.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin
-	39, // 18: terraform1.dependencies.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete
-	59, // 19: terraform1.dependencies.BuildProviderPluginCache.Event.diagnostic:type_name -> terraform1.Diagnostic
-	35, // 20: terraform1.dependencies.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
-	36, // 21: terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	36, // 22: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
-	0,  // 23: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.auth_result:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.AuthResult
-	60, // 24: terraform1.dependencies.GetCachedProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
-	60, // 25: terraform1.dependencies.GetBuiltInProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
-	16, // 26: terraform1.dependencies.GetProviderSchema.Response.schema:type_name -> terraform1.dependencies.ProviderSchema
-	18, // 27: terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry.value:type_name -> terraform1.dependencies.Schema
-	18, // 28: terraform1.dependencies.ProviderSchema.DataResourceTypesEntry.value:type_name -> terraform1.dependencies.Schema
-	17, // 29: terraform1.dependencies.ProviderSchema.ActionTypesEntry.value:type_name -> terraform1.dependencies.ActionSchema
-	54, // 30: terraform1.dependencies.Schema.Block.attributes:type_name -> terraform1.dependencies.Schema.Attribute
-	55, // 31: terraform1.dependencies.Schema.Block.block_types:type_name -> terraform1.dependencies.Schema.NestedBlock
-	57, // 32: terraform1.dependencies.Schema.Block.description:type_name -> terraform1.dependencies.Schema.DocString
-	56, // 33: terraform1.dependencies.Schema.Attribute.nested_type:type_name -> terraform1.dependencies.Schema.Object
-	57, // 34: terraform1.dependencies.Schema.Attribute.description:type_name -> terraform1.dependencies.Schema.DocString
-	53, // 35: terraform1.dependencies.Schema.NestedBlock.block:type_name -> terraform1.dependencies.Schema.Block
-	1,  // 36: terraform1.dependencies.Schema.NestedBlock.nesting:type_name -> terraform1.dependencies.Schema.NestedBlock.NestingMode
-	54, // 37: terraform1.dependencies.Schema.Object.attributes:type_name -> terraform1.dependencies.Schema.Attribute
-	2,  // 38: terraform1.dependencies.Schema.Object.nesting:type_name -> terraform1.dependencies.Schema.Object.NestingMode
-	3,  // 39: terraform1.dependencies.Schema.DocString.format:type_name -> terraform1.dependencies.Schema.DocString.Format
-	19, // 40: terraform1.dependencies.Dependencies.OpenSourceBundle:input_type -> terraform1.dependencies.OpenSourceBundle.Request
-	21, // 41: terraform1.dependencies.Dependencies.CloseSourceBundle:input_type -> terraform1.dependencies.CloseSourceBundle.Request
-	23, // 42: terraform1.dependencies.Dependencies.OpenDependencyLockFile:input_type -> terraform1.dependencies.OpenDependencyLockFile.Request
-	25, // 43: terraform1.dependencies.Dependencies.CreateDependencyLocks:input_type -> terraform1.dependencies.CreateDependencyLocks.Request
-	27, // 44: terraform1.dependencies.Dependencies.CloseDependencyLocks:input_type -> terraform1.dependencies.CloseDependencyLocks.Request
-	29, // 45: terraform1.dependencies.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.dependencies.GetLockedProviderDependencies.Request
-	31, // 46: terraform1.dependencies.Dependencies.BuildProviderPluginCache:input_type -> terraform1.dependencies.BuildProviderPluginCache.Request
-	40, // 47: terraform1.dependencies.Dependencies.OpenProviderPluginCache:input_type -> terraform1.dependencies.OpenProviderPluginCache.Request
-	42, // 48: terraform1.dependencies.Dependencies.CloseProviderPluginCache:input_type -> terraform1.dependencies.CloseProviderPluginCache.Request
-	44, // 49: terraform1.dependencies.Dependencies.GetCachedProviders:input_type -> terraform1.dependencies.GetCachedProviders.Request
-	46, // 50: terraform1.dependencies.Dependencies.GetBuiltInProviders:input_type -> terraform1.dependencies.GetBuiltInProviders.Request
-	48, // 51: terraform1.dependencies.Dependencies.GetProviderSchema:input_type -> terraform1.dependencies.GetProviderSchema.Request
-	20, // 52: terraform1.dependencies.Dependencies.OpenSourceBundle:output_type -> terraform1.dependencies.OpenSourceBundle.Response
-	22, // 53: terraform1.dependencies.Dependencies.CloseSourceBundle:output_type -> terraform1.dependencies.CloseSourceBundle.Response
-	24, // 54: terraform1.dependencies.Dependencies.OpenDependencyLockFile:output_type -> terraform1.dependencies.OpenDependencyLockFile.Response
-	26, // 55: terraform1.dependencies.Dependencies.CreateDependencyLocks:output_type -> terraform1.dependencies.CreateDependencyLocks.Response
-	28, // 56: terraform1.dependencies.Dependencies.CloseDependencyLocks:output_type -> terraform1.dependencies.CloseDependencyLocks.Response
-	30, // 57: terraform1.dependencies.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.dependencies.GetLockedProviderDependencies.Response
-	32, // 58: terraform1.dependencies.Dependencies.BuildProviderPluginCache:output_type -> terraform1.dependencies.BuildProviderPluginCache.Event
-	41, // 59: terraform1.dependencies.Dependencies.OpenProviderPluginCache:output_type -> terraform1.dependencies.OpenProviderPluginCache.Response
-	43, // 60: terraform1.dependencies.Dependencies.CloseProviderPluginCache:output_type -> terraform1.dependencies.CloseProviderPluginCache.Response
-	45, // 61: terraform1.dependencies.Dependencies.GetCachedProviders:output_type -> terraform1.dependencies.GetCachedProviders.Response
-	47, // 62: terraform1.dependencies.Dependencies.GetBuiltInProviders:output_type -> terraform1.dependencies.GetBuiltInProviders.Response
-	49, // 63: terraform1.dependencies.Dependencies.GetProviderSchema:output_type -> terraform1.dependencies.GetProviderSchema.Response
-	52, // [52:64] is the sub-list for method output_type
-	40, // [40:52] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	54, // 5: terraform1.dependencies.Schema.block:type_name -> terraform1.dependencies.Schema.Block
+	59, // 6: terraform1.dependencies.ProviderInstallPolicyEvaluation.results:type_name -> terraform1.PolicyResult
+	60, // 7: terraform1.dependencies.ProviderInstallPolicyEvaluation.infos:type_name -> terraform1.PolicyInfo
+	61, // 8: terraform1.dependencies.ProviderInstallPolicyEvaluation.diagnostics:type_name -> terraform1.PolicyDiagnostic
+	62, // 9: terraform1.dependencies.OpenDependencyLockFile.Request.source_address:type_name -> terraform1.SourceAddress
+	63, // 10: terraform1.dependencies.OpenDependencyLockFile.Response.diagnostics:type_name -> terraform1.Diagnostic
+	64, // 11: terraform1.dependencies.CreateDependencyLocks.Request.provider_selections:type_name -> terraform1.ProviderPackage
+	64, // 12: terraform1.dependencies.GetLockedProviderDependencies.Response.selected_providers:type_name -> terraform1.ProviderPackage
+	34, // 13: terraform1.dependencies.BuildProviderPluginCache.Request.installation_methods:type_name -> terraform1.dependencies.BuildProviderPluginCache.Request.InstallMethod
+	65, // 14: terraform1.dependencies.BuildProviderPluginCache.Request.policy_entitlement:type_name -> terraform1.PolicyEntitlement
+	35, // 15: terraform1.dependencies.BuildProviderPluginCache.Event.pending:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.Pending
+	37, // 16: terraform1.dependencies.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	37, // 17: terraform1.dependencies.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	36, // 18: terraform1.dependencies.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
+	37, // 19: terraform1.dependencies.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	38, // 20: terraform1.dependencies.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderWarnings
+	39, // 21: terraform1.dependencies.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin
+	40, // 22: terraform1.dependencies.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete
+	63, // 23: terraform1.dependencies.BuildProviderPluginCache.Event.diagnostic:type_name -> terraform1.Diagnostic
+	19, // 24: terraform1.dependencies.BuildProviderPluginCache.Event.provider_install_policy_evaluation:type_name -> terraform1.dependencies.ProviderInstallPolicyEvaluation
+	36, // 25: terraform1.dependencies.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderConstraints
+	37, // 26: terraform1.dependencies.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	37, // 27: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.ProviderVersion
+	0,  // 28: terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.auth_result:type_name -> terraform1.dependencies.BuildProviderPluginCache.Event.FetchComplete.AuthResult
+	64, // 29: terraform1.dependencies.GetCachedProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
+	64, // 30: terraform1.dependencies.GetBuiltInProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
+	16, // 31: terraform1.dependencies.GetProviderSchema.Response.schema:type_name -> terraform1.dependencies.ProviderSchema
+	18, // 32: terraform1.dependencies.ProviderSchema.ManagedResourceTypesEntry.value:type_name -> terraform1.dependencies.Schema
+	18, // 33: terraform1.dependencies.ProviderSchema.DataResourceTypesEntry.value:type_name -> terraform1.dependencies.Schema
+	17, // 34: terraform1.dependencies.ProviderSchema.ActionTypesEntry.value:type_name -> terraform1.dependencies.ActionSchema
+	55, // 35: terraform1.dependencies.Schema.Block.attributes:type_name -> terraform1.dependencies.Schema.Attribute
+	56, // 36: terraform1.dependencies.Schema.Block.block_types:type_name -> terraform1.dependencies.Schema.NestedBlock
+	58, // 37: terraform1.dependencies.Schema.Block.description:type_name -> terraform1.dependencies.Schema.DocString
+	57, // 38: terraform1.dependencies.Schema.Attribute.nested_type:type_name -> terraform1.dependencies.Schema.Object
+	58, // 39: terraform1.dependencies.Schema.Attribute.description:type_name -> terraform1.dependencies.Schema.DocString
+	54, // 40: terraform1.dependencies.Schema.NestedBlock.block:type_name -> terraform1.dependencies.Schema.Block
+	1,  // 41: terraform1.dependencies.Schema.NestedBlock.nesting:type_name -> terraform1.dependencies.Schema.NestedBlock.NestingMode
+	55, // 42: terraform1.dependencies.Schema.Object.attributes:type_name -> terraform1.dependencies.Schema.Attribute
+	2,  // 43: terraform1.dependencies.Schema.Object.nesting:type_name -> terraform1.dependencies.Schema.Object.NestingMode
+	3,  // 44: terraform1.dependencies.Schema.DocString.format:type_name -> terraform1.dependencies.Schema.DocString.Format
+	20, // 45: terraform1.dependencies.Dependencies.OpenSourceBundle:input_type -> terraform1.dependencies.OpenSourceBundle.Request
+	22, // 46: terraform1.dependencies.Dependencies.CloseSourceBundle:input_type -> terraform1.dependencies.CloseSourceBundle.Request
+	24, // 47: terraform1.dependencies.Dependencies.OpenDependencyLockFile:input_type -> terraform1.dependencies.OpenDependencyLockFile.Request
+	26, // 48: terraform1.dependencies.Dependencies.CreateDependencyLocks:input_type -> terraform1.dependencies.CreateDependencyLocks.Request
+	28, // 49: terraform1.dependencies.Dependencies.CloseDependencyLocks:input_type -> terraform1.dependencies.CloseDependencyLocks.Request
+	30, // 50: terraform1.dependencies.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.dependencies.GetLockedProviderDependencies.Request
+	32, // 51: terraform1.dependencies.Dependencies.BuildProviderPluginCache:input_type -> terraform1.dependencies.BuildProviderPluginCache.Request
+	41, // 52: terraform1.dependencies.Dependencies.OpenProviderPluginCache:input_type -> terraform1.dependencies.OpenProviderPluginCache.Request
+	43, // 53: terraform1.dependencies.Dependencies.CloseProviderPluginCache:input_type -> terraform1.dependencies.CloseProviderPluginCache.Request
+	45, // 54: terraform1.dependencies.Dependencies.GetCachedProviders:input_type -> terraform1.dependencies.GetCachedProviders.Request
+	47, // 55: terraform1.dependencies.Dependencies.GetBuiltInProviders:input_type -> terraform1.dependencies.GetBuiltInProviders.Request
+	49, // 56: terraform1.dependencies.Dependencies.GetProviderSchema:input_type -> terraform1.dependencies.GetProviderSchema.Request
+	21, // 57: terraform1.dependencies.Dependencies.OpenSourceBundle:output_type -> terraform1.dependencies.OpenSourceBundle.Response
+	23, // 58: terraform1.dependencies.Dependencies.CloseSourceBundle:output_type -> terraform1.dependencies.CloseSourceBundle.Response
+	25, // 59: terraform1.dependencies.Dependencies.OpenDependencyLockFile:output_type -> terraform1.dependencies.OpenDependencyLockFile.Response
+	27, // 60: terraform1.dependencies.Dependencies.CreateDependencyLocks:output_type -> terraform1.dependencies.CreateDependencyLocks.Response
+	29, // 61: terraform1.dependencies.Dependencies.CloseDependencyLocks:output_type -> terraform1.dependencies.CloseDependencyLocks.Response
+	31, // 62: terraform1.dependencies.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.dependencies.GetLockedProviderDependencies.Response
+	33, // 63: terraform1.dependencies.Dependencies.BuildProviderPluginCache:output_type -> terraform1.dependencies.BuildProviderPluginCache.Event
+	42, // 64: terraform1.dependencies.Dependencies.OpenProviderPluginCache:output_type -> terraform1.dependencies.OpenProviderPluginCache.Response
+	44, // 65: terraform1.dependencies.Dependencies.CloseProviderPluginCache:output_type -> terraform1.dependencies.CloseProviderPluginCache.Response
+	46, // 66: terraform1.dependencies.Dependencies.GetCachedProviders:output_type -> terraform1.dependencies.GetCachedProviders.Response
+	48, // 67: terraform1.dependencies.Dependencies.GetBuiltInProviders:output_type -> terraform1.dependencies.GetBuiltInProviders.Response
+	50, // 68: terraform1.dependencies.Dependencies.GetProviderSchema:output_type -> terraform1.dependencies.GetProviderSchema.Response
+	57, // [57:69] is the sub-list for method output_type
+	45, // [45:57] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_dependencies_proto_init() }
@@ -3259,7 +3391,8 @@ func file_dependencies_proto_init() {
 	if File_dependencies_proto != nil {
 		return
 	}
-	file_dependencies_proto_msgTypes[28].OneofWrappers = []any{
+	file_dependencies_proto_msgTypes[28].OneofWrappers = []any{}
+	file_dependencies_proto_msgTypes[29].OneofWrappers = []any{
 		(*BuildProviderPluginCache_Event_Pending_)(nil),
 		(*BuildProviderPluginCache_Event_AlreadyInstalled)(nil),
 		(*BuildProviderPluginCache_Event_BuiltIn)(nil),
@@ -3269,8 +3402,9 @@ func file_dependencies_proto_init() {
 		(*BuildProviderPluginCache_Event_FetchBegin_)(nil),
 		(*BuildProviderPluginCache_Event_FetchComplete_)(nil),
 		(*BuildProviderPluginCache_Event_Diagnostic)(nil),
+		(*BuildProviderPluginCache_Event_ProviderInstallPolicyEvaluation)(nil),
 	}
-	file_dependencies_proto_msgTypes[29].OneofWrappers = []any{
+	file_dependencies_proto_msgTypes[30].OneofWrappers = []any{
 		(*BuildProviderPluginCache_Request_InstallMethod_Direct)(nil),
 		(*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir)(nil),
 		(*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl)(nil),
@@ -3281,7 +3415,7 @@ func file_dependencies_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dependencies_proto_rawDesc), len(file_dependencies_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   54,
+			NumMessages:   55,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
