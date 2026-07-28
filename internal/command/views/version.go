@@ -23,6 +23,9 @@ type Version interface {
 // VersionOutput contains the information that is output by the version command.
 // Either it's rendered as JSON or as a human-readable string, depending on the view type.
 type VersionOutput struct {
+	// format_version is required for us to be able to change the JSON output in future
+	FormatVersion string `json:"format_version"`
+
 	Version            string            `json:"terraform_version"`
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
@@ -97,10 +100,18 @@ func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
+// LogVersion prints the version information in JSON format.
+// The schema of the output is versioned using the format_version field, which is standard for commands with 'static log' JSON output.
 func (v *VersionJSON) LogVersion(version string, platform string, providerSelections map[addrs.Provider]*depsfile.ProviderLock, outdated bool, latest string, diags tfdiags.Diagnostics) {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const FormatVersion = "1.0"
+
 	v.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
 
 	output := VersionOutput{
+		FormatVersion:      FormatVersion,
 		Version:            version,
 		Platform:           platform,
 		ProviderSelections: make(map[string]string),
