@@ -30,9 +30,9 @@ func NewQuery(vt arguments.ViewType, view *View) Query {
 		return &QueryJSON{view: jv, op: op}
 	case arguments.ViewHuman:
 		op := &QueryOperationHuman{
-			view:        view,
+			view:         view,
 			inAutomation: view.RunningInAutomation(),
-			queryPolicy: newQueryPolicyView(),
+			queryPolicy:  newQueryPolicyView(),
 		}
 		return &QueryHuman{view: view, op: op}
 	default:
@@ -91,8 +91,8 @@ func (v *QueryJSON) HelpPrompt() {
 // being emitted immediately as generic policy_result records.
 type queryUiHook struct {
 	*UiHook
-	op  *QueryOperationHuman
-	mu  sync.Mutex
+	op *QueryOperationHuman
+	mu sync.Mutex
 }
 
 func (h *queryUiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
