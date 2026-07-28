@@ -4,10 +4,12 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -55,6 +57,7 @@ func (n *nodeQueryResourcePolicy) Name() string {
 // gate used by nodeResourcePolicy is correct for plan/apply (where passing resources
 // carry no actionable information), but wrong here because query consumers need a
 // complete row for every discovered resource.
+
 func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -68,6 +71,29 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	if config == nil {
 		log.Printf("[DEBUG] No configuration available, skipping query policy evaluation")
 		return nil
+	}
+
+	// Check if the overall policy pass deadline has already fired before
+	// acquiring the semaphore. This prevents queueing new evaluations when
+	// the deadline is known to have elapsed, and ensures unevaluated resources
+	// are recorded as errors rather than silently dropped.
+	if policyGraph := ctx.PolicyGraph(); policyGraph != nil && policyGraph.overallDeadlineExceeded() {
+		log.Printf("[DEBUG] Overall policy pass deadline exceeded; skipping evaluation for %s", n.ResourceAddr)
+		result := policy.EvaluationResponse{
+			Overall: policy.PolicyErrorResult,
+			Diagnostics: policy.Diagnostics{policy.NewErrorDiagnostic(
+				"Policy evaluation deadline exceeded",
+				fmt.Sprintf("The overall policy evaluation deadline was reached before %s could be evaluated. %s",
+					n.ResourceAddr, overallDeadlineExceededDiagMsg),
+				policy.PolicyErrorResult,
+			)},
+		}
+		result = result.WithQueryMetadata(ctyIdentityToStringMap(n.Identity), n.ListBlockAddr.String())
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.ResourceAddr.String(), result)
+		})
+		diags = diags.Append(hookErr)
+		return diags
 	}
 
 	// Acquire the policy semaphore to limit concurrent policy evaluations.
@@ -111,7 +137,29 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	// Evaluate policies with the generated config as the "after" state
 	// and null as the "before" state (since these are discovered resources).
 	// evaluatePolicies already applies WithLocalRange internally; do not reapply.
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+	evalResult := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+
+	// Replace the result with an explicit error carrying a human-readable
+	// timeout diagnostic when the per-call timeout fired. evaluatePolicies
+	// sets PerCallTimedOut=true only when the per-call context timed out while
+	// the parent context was still live, so this is a precise signal.
+	result := evalResult.EvaluationResponse
+	if evalResult.PerCallTimedOut {
+		pg := ctx.PolicyGraph()
+		timeoutLabel := ""
+		if pg != nil {
+			timeoutLabel = fmt.Sprintf(" of %s", pg.timeouts.PerCall)
+		}
+		result = policy.EvaluationResponse{
+			Overall: policy.PolicyErrorResult,
+			Diagnostics: policy.Diagnostics{policy.NewErrorDiagnostic(
+				"Policy evaluation timed out",
+				fmt.Sprintf("Policy evaluation for %s exceeded the per-call timeout%s. %s",
+					n.ResourceAddr, timeoutLabel, perCallTimeoutDiagMsg),
+				policy.PolicyErrorResult,
+			)},
+		}
+	}
 
 	// Annotate the result with query correlation metadata so that downstream
 	// consumers (UI, cloud backend) can identify which list-block row this

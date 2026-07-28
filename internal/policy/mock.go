@@ -46,79 +46,81 @@ type MockClient struct {
 	StopFn     func()
 }
 
-func (p *MockClient) beginWrite() func() {
-	p.mu.Lock()
-	return p.mu.Unlock
-}
-
 func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupResponse) {
-	defer p.beginWrite()()
-
+	p.mu.Lock()
 	p.SetupCalled = true
 	p.SetupRequest = req
-	if p.SetupFn != nil {
-		return p.SetupFn(ctx, req)
-	}
+	fn := p.SetupFn
+	fixed := p.SetupResponse
+	p.mu.Unlock()
 
-	if p.SetupResponse != nil {
-		return *p.SetupResponse
+	if fn != nil {
+		return fn(ctx, req)
 	}
-
+	if fixed != nil {
+		return *fixed
+	}
 	return resp
 }
 
 func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
-
+	p.mu.Lock()
 	p.EvaluateCalled = true
 	p.EvaluateRequest = r
-	if p.EvaluateFn != nil {
-		return p.EvaluateFn(ctx, r)
-	}
+	fn := p.EvaluateFn
+	fixed := p.EvaluateResponse
+	p.mu.Unlock()
 
-	if p.EvaluateResponse != nil {
-		return *p.EvaluateResponse
+	if fn != nil {
+		return fn(ctx, r)
 	}
-
+	if fixed != nil {
+		return *fixed
+	}
 	return resp
 }
 
 func (p *MockClient) EvaluateProvider(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
-
+	p.mu.Lock()
 	p.EvaluateProviderCalled = true
 	p.EvaluateProviderRequest = r
-	if p.EvaluateProviderFn != nil {
-		return p.EvaluateProviderFn(ctx, r)
-	}
+	fn := p.EvaluateProviderFn
+	fixed := p.EvaluateProviderResponse
+	p.mu.Unlock()
 
-	if p.EvaluateProviderResponse != nil {
-		return *p.EvaluateProviderResponse
+	if fn != nil {
+		return fn(ctx, r)
 	}
-
+	if fixed != nil {
+		return *fixed
+	}
 	return resp
 }
 
 func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
-
+	p.mu.Lock()
 	p.EvaluateModuleCalled = true
 	p.EvaluateModuleRequest = r
-	if p.EvaluateModuleFn != nil {
-		return p.EvaluateModuleFn(ctx, r)
-	}
+	fn := p.EvaluateModuleFn
+	fixed := p.EvaluateModuleResponse
+	p.mu.Unlock()
 
-	if p.EvaluateModuleResponse != nil {
-		return *p.EvaluateModuleResponse
+	if fn != nil {
+		return fn(ctx, r)
 	}
-
+	if fixed != nil {
+		return *fixed
+	}
 	return resp
 }
 
 func (p *MockClient) Stop() {
-	defer p.beginWrite()()
+	p.mu.Lock()
 	p.StopCalled = true
-	if p.StopFn != nil {
-		p.StopFn()
+	fn := p.StopFn
+	p.mu.Unlock()
+
+	if fn != nil {
+		fn()
 	}
 }

@@ -35,6 +35,12 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.Changes().Close()
 	ctx.State().Close()
 
+	// Install the overall-pass deadline on the policy subgraph so that
+	// individual Execute calls can detect when the deadline has fired and
+	// short-circuit with an error result instead of blocking indefinitely.
+	// setDeadline is a no-op when Overall is zero (deadline disabled).
+	policyGraph.setDeadline(ctx.StopCtx())
+
 	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
 	return policyGraph.evalGraph(span), nil
 }
@@ -52,7 +58,8 @@ func (n *nodePolicyEval) AllowUpstreamFailure(dep dag.Vertex) bool {
 // must tolerate upstream failures so the span is still closed even if a policy
 // node returned error diagnostics.
 type nodePolicyEvalFinish struct {
-	span trace.Span
+	span        trace.Span
+	policyGraph *policySubgraph
 }
 
 var _ GraphNodeExecutable = (*nodePolicyEvalFinish)(nil)
@@ -63,6 +70,11 @@ func (n *nodePolicyEvalFinish) Name() string {
 }
 
 func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Cancel the overall deadline context (if any) to release its resources
+	// now that all evaluations have completed or been short-circuited.
+	if n.policyGraph != nil {
+		n.policyGraph.cancelDeadline()
+	}
 	n.span.End()
 	return nil
 }
