@@ -15,8 +15,8 @@ import (
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -93,7 +93,7 @@ func TestQueryOperationJSON_policySummary(t *testing.T) {
 			wantPolicies: 1,
 		},
 		{
-			name:         "multiple list blocks",
+			name: "multiple list blocks",
 			wantPerBlock: []wantBlock{
 				{
 					addr:         listBlockAddr,
@@ -314,7 +314,6 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 	}
 }
 
-
 func TestQueryPolicyListBlockAddr(t *testing.T) {
 	tests := []struct {
 		detail string
@@ -366,7 +365,6 @@ func TestAddWarningDiagsRoutesCorrectly(t *testing.T) {
 		t.Fatalf("ListBlockAddress = %q, want %q", summaries[0].ListBlockAddress, "aws_instance.example")
 	}
 }
-
 
 func TestRenderer_ignoresPolicyQuerySummary(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)

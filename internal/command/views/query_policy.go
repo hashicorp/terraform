@@ -24,17 +24,17 @@ const (
 )
 
 type queryPolicySummary struct {
-	ListBlockAddress string                     `json:"list_block_address"`
-	OverallResult    queryPolicyResult          `json:"overall_result"`
+	ListBlockAddress string                      `json:"list_block_address"`
+	OverallResult    queryPolicyResult           `json:"overall_result"`
 	Results          []queryPolicyIdentityResult `json:"results"`
-	PassedPolicies   []viewjson.PolicyMetadata  `json:"passed_policies"`
+	PassedPolicies   []viewjson.PolicyMetadata   `json:"passed_policies"`
 }
 
 type queryPolicyIdentityResult struct {
-	Identity      map[string]string          `json:"identity,omitempty"`
-	TargetAddress string                     `json:"target_address"`
-	Result        queryPolicyResult          `json:"result"`
-	Policies      []queryPolicyPolicyResult  `json:"policies"`
+	Identity      map[string]string         `json:"identity,omitempty"`
+	TargetAddress string                    `json:"target_address"`
+	Result        queryPolicyResult         `json:"result"`
+	Policies      []queryPolicyPolicyResult `json:"policies"`
 }
 
 type queryPolicyPolicyResult struct {
@@ -330,4 +330,3 @@ func queryPolicyEvaluatedCount(view *queryPolicyView) int {
 	}
 	return len(policies)
 }
-
