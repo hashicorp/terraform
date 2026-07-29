@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -31,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
+	providertest "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
@@ -4826,6 +4828,12 @@ func TestApply_WithPolicyResults(t *testing.T) {
 		},
 		DependencyLocks: *lock,
 	})
+	policyClient := policyEvaluationTestClient(t)
+	validationCalls := 0
+	policyClient.ValidatePoliciesFn = func(context.Context, policy.ValidatePoliciesRequest) policy.ValidatePoliciesResponse {
+		validationCalls++
+		return policy.ValidatePoliciesResponse{}
+	}
 
 	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
 		Config: cfg,
@@ -4836,8 +4844,11 @@ func TestApply_WithPolicyResults(t *testing.T) {
 			},
 		},
 		DependencyLocks: *lock,
-		PolicyClient:    policyEvaluationTestClient(t),
+		PolicyClient:    policyClient,
 	})
+	if validationCalls != 1 {
+		t.Fatalf("ValidatePolicies called %d times, want once for the entire Stack", validationCalls)
+	}
 
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
@@ -4848,6 +4859,100 @@ func TestApply_WithPolicyResults(t *testing.T) {
 
 	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
 		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_InvalidPolicySchemaValidation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+	providerAddr := addrs.NewDefaultProvider("testing")
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		providerAddr,
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		Config:   cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			providerAddr: func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+	// An unrecognized lowercase state key is scheduled for discard during
+	// apply, but an invalid policy must block even that bookkeeping change.
+	plan.PrevRunStateRaw["aaaa"] = &anypb.Any{}
+
+	validationCalls := 0
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.ValidatePoliciesFn = func(context.Context, policy.ValidatePoliciesRequest) policy.ValidatePoliciesResponse {
+		validationCalls++
+		return policy.ValidatePoliciesResponse{Diagnostics: policy.Diagnostics{
+			policy.NewErrorDiagnostic("Invalid policy", "The policy references an attribute that the provider does not have.", policy.SetupErrorResult),
+		}}
+	}
+	schemaProvider := stacks_testing_provider.NewProvider(t)
+	providerSchema := schemaProvider.GetProviderSchema()
+	if err := schemaProvider.Close(); err != nil {
+		t.Fatal(err)
+	}
+	provider := &providertest.MockProvider{GetProviderSchemaResponse: &providerSchema}
+	changesCh := make(chan stackstate.AppliedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := ApplyResponse{AppliedChanges: changesCh, Diagnostics: diagsCh}
+	go Apply(ctx, &ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			providerAddr: providers.FactoryFixed(provider),
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyClient,
+	}, &resp)
+
+	changes, diags := collectApplyOutput(changesCh, diagsCh)
+	if !diags.HasErrors() {
+		t.Fatal("expected invalid policy diagnostics")
+	}
+	if validationCalls != 1 {
+		t.Fatalf("ValidatePolicies called %d times, want once for the entire Stack", validationCalls)
+	}
+	foundProviderSchema := false
+	for _, schema := range policyClient.ValidatePoliciesRequest.ProviderSchemas {
+		if schema.Source == providerAddr.String() {
+			foundProviderSchema = true
+			break
+		}
+	}
+	if !foundProviderSchema {
+		t.Fatalf("ValidatePolicies did not receive the Stack provider schema: %#v", policyClient.ValidatePoliciesRequest.ProviderSchemas)
+	}
+	if policyClient.EvaluateCalled || policyClient.EvaluateProviderCalled || policyClient.EvaluateModuleCalled {
+		t.Fatal("policy evaluation ran after schema validation failed")
+	}
+	if provider.ConfigureProviderCalled || provider.ApplyResourceChangeCalled {
+		t.Fatal("provider operations ran after policy validation failed")
+	}
+	if resp.Complete {
+		t.Fatal("a Stack apply with invalid policies must not be complete")
+	}
+	if len(changes) != 0 {
+		t.Fatalf("Stack apply emitted %d changes after policy validation failed", len(changes))
+	}
+
+	foundPolicyDiag := false
+	for _, diag := range diags {
+		if diag.Description().Summary == "Invalid policy" {
+			foundPolicyDiag = true
+			break
+		}
+	}
+	if !foundPolicyDiag {
+		t.Fatalf("invalid policy was not reported as a run diagnostic: %s", diags.ErrWithWarnings())
 	}
 }
 

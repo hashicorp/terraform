@@ -236,9 +236,20 @@ func validatePolicies(ctx context.Context, client policy.Client, schemas *Schema
 	if client == nil || schemas == nil {
 		return nil
 	}
+	return ValidatePolicies(ctx, client, schemas.Providers)
+}
 
-	providerAddrs := make([]addrs.Provider, 0, len(schemas.Providers))
-	for providerAddr := range schemas.Providers {
+// ValidatePolicies asks the policy plugin to validate the loaded policies
+// against the complete set of provider schemas for a run. Callers that
+// orchestrate multiple Context operations, such as Stacks, must call this once
+// with their combined schemas before any policy evaluation begins.
+func ValidatePolicies(ctx context.Context, client policy.Client, schemas map[addrs.Provider]providers.ProviderSchema) tfdiags.Diagnostics {
+	if client == nil || len(schemas) == 0 {
+		return nil
+	}
+
+	providerAddrs := make([]addrs.Provider, 0, len(schemas))
+	for providerAddr := range schemas {
 		providerAddrs = append(providerAddrs, providerAddr)
 	}
 	sort.Slice(providerAddrs, func(i, j int) bool {
@@ -260,7 +271,7 @@ func validatePolicies(ctx context.Context, client policy.Client, schemas *Schema
 			continue
 		}
 
-		providerSchema := schemas.Providers[providerAddr]
+		providerSchema := schemas[providerAddr]
 		req.ProviderSchemas = append(req.ProviderSchemas, policy.ProviderSchema{
 			Type:        providerAddr.Type,
 			Source:      providerAddr.String(),

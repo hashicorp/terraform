@@ -169,6 +169,10 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
+
+	// SkipPolicyValidation indicates that the caller already validated the
+	// policy client against the complete provider schema set for this run.
+	SkipPolicyValidation bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -802,7 +806,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// walk evaluates them, so a policy that references an attribute a provider
 	// does not have fails here rather than partway through planning. Schemas are
 	// already loaded at this point (a cache hit after graph build).
-	if opts.PolicyClient != nil {
+	if opts.PolicyClient != nil && !opts.SkipPolicyValidation {
 		schemas, schemaDiags := c.Schemas(config, prevRunState)
 		diags = diags.Append(schemaDiags)
 		if diags.HasErrors() {

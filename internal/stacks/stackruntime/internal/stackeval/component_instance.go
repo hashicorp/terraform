@@ -175,6 +175,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
 		PolicyClient:               c.main.PolicyClient(),
+		SkipPolicyValidation:       true, // Stacks validates once against the complete provider set.
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,

@@ -27,7 +27,21 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 )
+
+func TestStateKeysToDiscardUnrecognizedRawKey(t *testing.T) {
+	discardRaw, discardDesc, err := stateKeysToDiscard(
+		map[string]*anypb.Any{"aaaa": {}},
+		statekeys.NewKeySet(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if discardRaw.Len() != 1 || discardDesc.Len() != 0 {
+		t.Fatalf("wrong discard sets: %d raw, %d description", discardRaw.Len(), discardDesc.Len())
+	}
+}
 
 func TestApply_componentOrdering(t *testing.T) {
 	// This verifies that component instances have their plans applied in a

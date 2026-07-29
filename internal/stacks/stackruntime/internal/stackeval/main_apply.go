@@ -67,12 +67,22 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
 	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
 
-	// Before doing anything else we'll emit zero or more events to deal
-	// with discarding the previous run state data that's no longer needed.
-	emitStateKeyDiscardEvents(ctx, discardRawKeys, discardDescKeys, outp)
-
 	log.Printf("[TRACE] stackeval.ApplyPlan starting")
 	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
+		main := NewForApplying(config, plan, nil, opts)
+		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
+		policyDiags := main.validatePolicies(ctx)
+		if policyDiags.HasErrors() {
+			return withDiagnostics[*Main]{
+				Result:      main,
+				Diagnostics: policyDiags,
+			}, nil
+		}
+
+		// Policy validation must succeed before we emit even bookkeeping-only
+		// state changes, so an invalid policy leaves persisted state untouched.
+		emitStateKeyDiscardEvents(ctx, discardRawKeys, discardDescKeys, outp)
+
 		// We'll register all of the changes we intend to make up front, so we
 		// can error rather than deadlock if something goes wrong and causes
 		// us to try to depend on a result that isn't coming.
@@ -293,8 +303,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 			}
 		})
 
-		main := NewForApplying(config, plan, results, opts)
-		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
+		main.applying.results = results
 		begin(ctx, main) // the change tasks registered above become runnable
 
 		// With the planned changes now in progress, we'll visit everything and
@@ -342,7 +351,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 		// diagnostics because our custom walkstate hooks above just announce
 		// the diagnostics immediately. But "complete" still serves the purpose
 		// of blocking until all of the async jobs are complete.
-		diags := complete()
+		diags := policyDiags.Append(complete())
 
 		// By the time we get here all of the scheduled changes should be
 		// complete already anyway, since we should have visited them all
@@ -440,7 +449,7 @@ func stateKeysToDiscard(prevRunState map[string]*anypb.Any, prevDescKeys collect
 		}
 	}
 
-	return discardDescs, discardDescs, nil
+	return discardRaws, discardDescs, nil
 }
 
 func emitStateKeyDiscardEvents(ctx context.Context, discardRaws, discardDescs collections.Set[statekeys.Key], outp ApplyOutput) {

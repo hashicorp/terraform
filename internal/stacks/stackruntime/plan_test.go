@@ -6923,6 +6923,12 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 		providerreqs.MustParseVersionConstraints("=0.0.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
+	policyClient := policyEvaluationTestClient(t)
+	validationCalls := 0
+	policyClient.ValidatePoliciesFn = func(context.Context, policy.ValidatePoliciesRequest) policy.ValidatePoliciesResponse {
+		validationCalls++
+		return policy.ValidatePoliciesResponse{}
+	}
 
 	gotPolicyResults := planAndCollectPolicyResults(t, ctx, PlanRequest{
 		PlanMode: plans.NormalMode,
@@ -6933,8 +6939,11 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 			},
 		},
 		DependencyLocks: *lock,
-		PolicyClient:    policyEvaluationTestClient(t),
+		PolicyClient:    policyClient,
 	})
+	if validationCalls != 1 {
+		t.Fatalf("ValidatePolicies called %d times, want once for the entire Stack", validationCalls)
+	}
 
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
@@ -6945,6 +6954,83 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 
 	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
 		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestPlan_InvalidPolicySchemaValidation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+	providerAddr := addrs.NewDefaultProvider("testing")
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		providerAddr,
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	validationCalls := 0
+	policyClient := policy.NewTestMockClient(t)
+	policyClient.ValidatePoliciesFn = func(context.Context, policy.ValidatePoliciesRequest) policy.ValidatePoliciesResponse {
+		validationCalls++
+		return policy.ValidatePoliciesResponse{Diagnostics: policy.Diagnostics{
+			policy.NewErrorDiagnostic("Invalid policy", "The policy references an attribute that the provider does not have.", policy.SetupErrorResult),
+		}}
+	}
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := PlanResponse{PlannedChanges: changesCh, Diagnostics: diagsCh}
+	go Plan(ctx, &PlanRequest{
+		PlanMode: plans.NormalMode,
+		Config:   cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			providerAddr: func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyClient,
+	}, &resp)
+
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+	if !diags.HasErrors() {
+		t.Fatal("expected invalid policy diagnostics")
+	}
+	if validationCalls != 1 {
+		t.Fatalf("ValidatePolicies called %d times, want once for the entire Stack", validationCalls)
+	}
+	foundProviderSchema := false
+	for _, schema := range policyClient.ValidatePoliciesRequest.ProviderSchemas {
+		if schema.Source == providerAddr.String() {
+			foundProviderSchema = true
+			break
+		}
+	}
+	if !foundProviderSchema {
+		t.Fatalf("ValidatePolicies did not receive the Stack provider schema: %#v", policyClient.ValidatePoliciesRequest.ProviderSchemas)
+	}
+	if policyClient.EvaluateCalled || policyClient.EvaluateProviderCalled || policyClient.EvaluateModuleCalled {
+		t.Fatal("policy evaluation ran after schema validation failed")
+	}
+	if resp.Applyable {
+		t.Fatal("a Stack plan with invalid policies must not be applyable")
+	}
+
+	foundPolicyDiag := false
+	for _, diag := range diags {
+		if diag.Description().Summary == "Invalid policy" {
+			foundPolicyDiag = true
+			break
+		}
+	}
+	if !foundPolicyDiag {
+		t.Fatalf("invalid policy was not reported as a run diagnostic: %s", diags.ErrWithWarnings())
+	}
+	for _, change := range changes {
+		switch change.(type) {
+		case *stackplan.PlannedChangeComponentInstance, *stackplan.PlannedChangeComponentInstanceRemoved:
+			t.Fatalf("component planning began after policy validation failed: %T", change)
+		}
 	}
 }
 

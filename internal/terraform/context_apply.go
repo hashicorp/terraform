@@ -57,6 +57,10 @@ type ApplyOpts struct {
 	// When set, policy evaluation logic will be executed in the graph.
 	// When nil, that logic will be skipped.
 	PolicyClient policy.Client
+
+	// SkipPolicyValidation indicates that the caller already validated the
+	// policy client against the complete provider schema set for this run.
+	SkipPolicyValidation bool
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -197,7 +201,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	// Validate the loaded policies against the run's provider schemas before the
 	// walk evaluates them, so a policy that references an attribute a provider
 	// does not have fails here rather than partway through applying.
-	if opts.PolicyClient != nil {
+	if opts.PolicyClient != nil && !opts.SkipPolicyValidation {
 		diags = diags.Append(validatePolicies(c.runContext, opts.PolicyClient, schemas))
 		if diags.HasErrors() {
 			return nil, nil, diags

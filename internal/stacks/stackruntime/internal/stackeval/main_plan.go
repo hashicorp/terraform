@@ -119,6 +119,15 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 			return diags, nil
 		}
 
+		// Static validation establishes that the run's provider set is usable.
+		// Validate policies against that complete set before the dynamic walk can
+		// configure providers or begin any component-level policy evaluation.
+		policyDiags := m.validatePolicies(ctx)
+		reportDiags(policyDiags)
+		if policyDiags.HasErrors() {
+			return diags, nil
+		}
+
 		// If the static walk completed then we'll now perform a dynamic walk
 		// which is where we'll actually produce the plan and where we'll
 		// learn about any dynamic errors which affect only specific instances

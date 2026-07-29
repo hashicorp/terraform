@@ -261,6 +261,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
+			SkipPolicyValidation:      true,  // Stacks validates once against the complete provider set.
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)

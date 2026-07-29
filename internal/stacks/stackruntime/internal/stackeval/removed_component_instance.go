@@ -137,6 +137,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			Forget:                     forget,
 			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
 			PolicyClient:               r.main.PolicyClient(),
+			SkipPolicyValidation:       true, // Stacks validates once against the complete provider set.
 
 			// We want the same plantimestamp between all components and the stacks language
 			ForcePlanTimestamp: &plantimestamp,
