@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'policy (experimental): loaded policies are now validated against the run''s resolved provider schemas before plan and apply'
+time: 2026-07-29T15:45:00.000000-04:00
+custom:
+    Issue: "38877"

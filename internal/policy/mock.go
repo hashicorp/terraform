@@ -41,6 +41,12 @@ type MockClient struct {
 	EvaluateModuleRequest  EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]
 	EvaluateModuleFn       func(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
 
+	// ValidatePolicies method tracking
+	ValidatePoliciesCalled   bool
+	ValidatePoliciesResponse *ValidatePoliciesResponse
+	ValidatePoliciesRequest  ValidatePoliciesRequest
+	ValidatePoliciesFn       func(context.Context, ValidatePoliciesRequest) ValidatePoliciesResponse
+
 	// Stop method tracking
 	StopCalled bool
 	StopFn     func()
@@ -110,6 +116,22 @@ func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*pr
 
 	if p.EvaluateModuleResponse != nil {
 		return *p.EvaluateModuleResponse
+	}
+
+	return resp
+}
+
+func (p *MockClient) ValidatePolicies(ctx context.Context, req ValidatePoliciesRequest) (resp ValidatePoliciesResponse) {
+	defer p.beginWrite()()
+
+	p.ValidatePoliciesCalled = true
+	p.ValidatePoliciesRequest = req
+	if p.ValidatePoliciesFn != nil {
+		return p.ValidatePoliciesFn(ctx, req)
+	}
+
+	if p.ValidatePoliciesResponse != nil {
+		return *p.ValidatePoliciesResponse
 	}
 
 	return resp

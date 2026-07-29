@@ -21,6 +21,9 @@ type Client interface {
 	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+	// ValidatePolicies validates loaded policies using information resolved after
+	// Setup and before policy evaluation.
+	ValidatePolicies(context.Context, ValidatePoliciesRequest) ValidatePoliciesResponse
 	Stop()
 }
 
@@ -28,6 +31,31 @@ type Client interface {
 type CallbackService interface {
 	RegisterCallbackService(context.Context) (*callback.Server, Diagnostics)
 }
+
+type (
+	// ValidatePoliciesRequest carries resolved information used to validate the
+	// loaded policies.
+	ValidatePoliciesRequest struct {
+		ProviderSchemas []ProviderSchema
+	}
+
+	// ProviderSchema is one provider's schema as cty object types: its
+	// configuration and the object type of each resource and data source it
+	// offers. Policy-language aliases are resolved by the policy plugin from the
+	// policy configuration; Terraform configuration local names are unrelated.
+	ProviderSchema struct {
+		Type        string
+		Source      string
+		Config      cty.Type
+		Resources   map[string]cty.Type
+		DataSources map[string]cty.Type
+	}
+
+	// ValidatePoliciesResponse carries diagnostics from policy validation.
+	ValidatePoliciesResponse struct {
+		Diagnostics Diagnostics
+	}
+)
 
 type (
 	SetupResponse struct {
@@ -58,6 +86,10 @@ func (s *SetupResponse) ServerConfigurations() []ServerConfiguration {
 		})
 	}
 	return ret
+}
+
+func (s *SetupResponse) SupportsPolicyValidation() bool {
+	return s.serverCapabilities != nil && s.serverCapabilities.ValidatePolicies
 }
 
 type (

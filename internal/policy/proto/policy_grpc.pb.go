@@ -26,6 +26,7 @@ const (
 	Policy_EvaluateResource_FullMethodName = "/proto.Policy/EvaluateResource"
 	Policy_EvaluateProvider_FullMethodName = "/proto.Policy/EvaluateProvider"
 	Policy_EvaluateModule_FullMethodName   = "/proto.Policy/EvaluateModule"
+	Policy_ValidatePolicies_FullMethodName = "/proto.Policy/ValidatePolicies"
 )
 
 // PolicyClient is the client API for Policy service.
@@ -49,6 +50,9 @@ type PolicyClient interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(ctx context.Context, in *PolicyEvaluateModuleRequest, opts ...grpc.CallOption) (*PolicyEvaluateModuleResponse, error)
+	// ValidatePolicies validates the loaded policies using information that is
+	// available only after Setup, such as the resolved provider schemas.
+	ValidatePolicies(ctx context.Context, in *ValidatePoliciesRequest, opts ...grpc.CallOption) (*ValidatePoliciesResponse, error)
 }
 
 type policyClient struct {
@@ -99,6 +103,16 @@ func (c *policyClient) EvaluateModule(ctx context.Context, in *PolicyEvaluateMod
 	return out, nil
 }
 
+func (c *policyClient) ValidatePolicies(ctx context.Context, in *ValidatePoliciesRequest, opts ...grpc.CallOption) (*ValidatePoliciesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidatePoliciesResponse)
+	err := c.cc.Invoke(ctx, Policy_ValidatePolicies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PolicyServer is the server API for Policy service.
 // All implementations must embed UnimplementedPolicyServer
 // for forward compatibility.
@@ -120,6 +134,9 @@ type PolicyServer interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error)
+	// ValidatePolicies validates the loaded policies using information that is
+	// available only after Setup, such as the resolved provider schemas.
+	ValidatePolicies(context.Context, *ValidatePoliciesRequest) (*ValidatePoliciesResponse, error)
 	mustEmbedUnimplementedPolicyServer()
 }
 
@@ -141,6 +158,9 @@ func (UnimplementedPolicyServer) EvaluateProvider(context.Context, *PolicyEvalua
 }
 func (UnimplementedPolicyServer) EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EvaluateModule not implemented")
+}
+func (UnimplementedPolicyServer) ValidatePolicies(context.Context, *ValidatePoliciesRequest) (*ValidatePoliciesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidatePolicies not implemented")
 }
 func (UnimplementedPolicyServer) mustEmbedUnimplementedPolicyServer() {}
 func (UnimplementedPolicyServer) testEmbeddedByValue()                {}
@@ -235,6 +255,24 @@ func _Policy_EvaluateModule_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Policy_ValidatePolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidatePoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PolicyServer).ValidatePolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Policy_ValidatePolicies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PolicyServer).ValidatePolicies(ctx, req.(*ValidatePoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Policy_ServiceDesc is the grpc.ServiceDesc for Policy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,6 +295,10 @@ var Policy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EvaluateModule",
 			Handler:    _Policy_EvaluateModule_Handler,
+		},
+		{
+			MethodName: "ValidatePolicies",
+			Handler:    _Policy_ValidatePolicies_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
