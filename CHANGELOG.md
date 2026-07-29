@@ -1,4 +1,14 @@
-## 1.17.0 (Unreleased)
+## 1.17.0-alpha20260729 (July 29, 2026)
+
+
+ENHANCEMENTS:
+
+* command/init: Enrich log messages with provider versions ([#38918](https://github.com/hashicorp/terraform/issues/38918))
+
+
+BUG FIXES:
+
+* funcs: pow and log no longer panic when result is not a number ([#38912](https://github.com/hashicorp/terraform/issues/38912))
 
 
 EXPERIMENTS:
