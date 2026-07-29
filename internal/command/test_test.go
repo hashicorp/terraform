@@ -5973,7 +5973,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
