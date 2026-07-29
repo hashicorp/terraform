@@ -44,11 +44,31 @@ type (
 	// offers. Policy-language aliases are resolved by the policy plugin from the
 	// policy configuration; Terraform configuration local names are unrelated.
 	ProviderSchema struct {
-		Type        string
-		Source      string
-		Config      cty.Type
-		Resources   map[string]cty.Type
-		DataSources map[string]cty.Type
+		Type               string
+		Source             string
+		Config             cty.Type
+		ProviderMeta       cty.Type
+		Resources          map[string]cty.Type
+		DataSources        map[string]cty.Type
+		EphemeralResources map[string]cty.Type
+		ListResources      map[string]cty.Type
+		StateStores        map[string]cty.Type
+		Actions            map[string]cty.Type
+		ResourceIdentities map[string]cty.Type
+		Functions          map[string]Function
+	}
+
+	Function struct {
+		Parameters        []FunctionParameter
+		VariadicParameter *FunctionParameter
+		ReturnType        cty.Type
+	}
+
+	FunctionParameter struct {
+		Name               string
+		Type               cty.Type
+		AllowNullValue     bool
+		AllowUnknownValues bool
 	}
 
 	// ValidatePoliciesResponse carries diagnostics from policy validation.

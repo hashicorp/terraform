@@ -269,4 +269,38 @@ message ProviderSchema {
 
   // data_sources maps a data-source type to the cty JSON encoding of its object type.
   map<string, bytes> data_sources = 5;
+
+  // provider_meta is the cty JSON encoding of the provider-meta object type.
+  bytes provider_meta = 6;
+
+  // ephemeral_resources maps an ephemeral resource type to its cty JSON object type.
+  map<string, bytes> ephemeral_resources = 7;
+
+  // list_resources maps a list resource type to its cty JSON object type.
+  map<string, bytes> list_resources = 8;
+
+  // state_stores maps a state store type to its cty JSON object type.
+  map<string, bytes> state_stores = 9;
+
+  // actions maps an action type to its cty JSON configuration object type.
+  map<string, bytes> actions = 10;
+
+  // resource_identities maps a managed resource type to its cty JSON identity object type.
+  map<string, bytes> resource_identities = 11;
+
+  // functions maps a provider-defined function name to its signature.
+  map<string, Function> functions = 12;
+}
+
+message Function {
+  repeated FunctionParameter parameters = 1;
+  FunctionParameter variadic_parameter = 2;
+  bytes return_type = 3;
+}
+
+message FunctionParameter {
+  string name = 1;
+  bytes type = 2;
+  bool allow_null_value = 3;
+  bool allow_unknown_values = 4;
 }

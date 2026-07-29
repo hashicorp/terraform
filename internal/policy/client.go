@@ -332,12 +332,95 @@ func providerSchemaToProto(ps ProviderSchema) (*proto.ProviderSchema, error) {
 	if err != nil {
 		return nil, fmt.Errorf("data sources: %w", err)
 	}
+	providerMeta, err := marshalType(ps.ProviderMeta)
+	if err != nil {
+		return nil, fmt.Errorf("provider meta: %w", err)
+	}
+	ephemeralResources, err := marshalTypeMap(ps.EphemeralResources)
+	if err != nil {
+		return nil, fmt.Errorf("ephemeral resources: %w", err)
+	}
+	listResources, err := marshalTypeMap(ps.ListResources)
+	if err != nil {
+		return nil, fmt.Errorf("list resources: %w", err)
+	}
+	stateStores, err := marshalTypeMap(ps.StateStores)
+	if err != nil {
+		return nil, fmt.Errorf("state stores: %w", err)
+	}
+	actions, err := marshalTypeMap(ps.Actions)
+	if err != nil {
+		return nil, fmt.Errorf("actions: %w", err)
+	}
+	resourceIdentities, err := marshalTypeMap(ps.ResourceIdentities)
+	if err != nil {
+		return nil, fmt.Errorf("resource identities: %w", err)
+	}
+	functions, err := functionsToProto(ps.Functions)
+	if err != nil {
+		return nil, fmt.Errorf("functions: %w", err)
+	}
 	return &proto.ProviderSchema{
-		Type:        ps.Type,
-		Source:      ps.Source,
-		Config:      config,
-		Resources:   resources,
-		DataSources: dataSources,
+		Type:               ps.Type,
+		Source:             ps.Source,
+		Config:             config,
+		ProviderMeta:       providerMeta,
+		Resources:          resources,
+		DataSources:        dataSources,
+		EphemeralResources: ephemeralResources,
+		ListResources:      listResources,
+		StateStores:        stateStores,
+		Actions:            actions,
+		ResourceIdentities: resourceIdentities,
+		Functions:          functions,
+	}, nil
+}
+
+func functionsToProto(functions map[string]Function) (map[string]*proto.Function, error) {
+	if len(functions) == 0 {
+		return nil, nil
+	}
+	out := make(map[string]*proto.Function, len(functions))
+	for name, function := range functions {
+		parameters := make([]*proto.FunctionParameter, len(function.Parameters))
+		for i, parameter := range function.Parameters {
+			encoded, err := functionParameterToProto(parameter)
+			if err != nil {
+				return nil, fmt.Errorf("function %q parameter %q: %w", name, parameter.Name, err)
+			}
+			parameters[i] = encoded
+		}
+		var variadicParameter *proto.FunctionParameter
+		if function.VariadicParameter != nil {
+			var err error
+			variadicParameter, err = functionParameterToProto(*function.VariadicParameter)
+			if err != nil {
+				return nil, fmt.Errorf("function %q variadic parameter %q: %w", name, function.VariadicParameter.Name, err)
+			}
+		}
+		returnType, err := marshalType(function.ReturnType)
+		if err != nil {
+			return nil, fmt.Errorf("function %q return type: %w", name, err)
+		}
+		out[name] = &proto.Function{
+			Parameters:        parameters,
+			VariadicParameter: variadicParameter,
+			ReturnType:        returnType,
+		}
+	}
+	return out, nil
+}
+
+func functionParameterToProto(parameter FunctionParameter) (*proto.FunctionParameter, error) {
+	typ, err := marshalType(parameter.Type)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.FunctionParameter{
+		Name:               parameter.Name,
+		Type:               typ,
+		AllowNullValue:     parameter.AllowNullValue,
+		AllowUnknownValues: parameter.AllowUnknownValues,
 	}, nil
 }
 

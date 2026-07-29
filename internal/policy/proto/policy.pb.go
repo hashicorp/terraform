@@ -856,7 +856,21 @@ type ProviderSchema struct {
 	// resources maps a resource type to the cty JSON encoding of its object type.
 	Resources map[string][]byte `protobuf:"bytes,4,rep,name=resources,proto3" json:"resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// data_sources maps a data-source type to the cty JSON encoding of its object type.
-	DataSources   map[string][]byte `protobuf:"bytes,5,rep,name=data_sources,json=dataSources,proto3" json:"data_sources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	DataSources map[string][]byte `protobuf:"bytes,5,rep,name=data_sources,json=dataSources,proto3" json:"data_sources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// provider_meta is the cty JSON encoding of the provider-meta object type.
+	ProviderMeta []byte `protobuf:"bytes,6,opt,name=provider_meta,json=providerMeta,proto3" json:"provider_meta,omitempty"`
+	// ephemeral_resources maps an ephemeral resource type to its cty JSON object type.
+	EphemeralResources map[string][]byte `protobuf:"bytes,7,rep,name=ephemeral_resources,json=ephemeralResources,proto3" json:"ephemeral_resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// list_resources maps a list resource type to its cty JSON object type.
+	ListResources map[string][]byte `protobuf:"bytes,8,rep,name=list_resources,json=listResources,proto3" json:"list_resources,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// state_stores maps a state store type to its cty JSON object type.
+	StateStores map[string][]byte `protobuf:"bytes,9,rep,name=state_stores,json=stateStores,proto3" json:"state_stores,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// actions maps an action type to its cty JSON configuration object type.
+	Actions map[string][]byte `protobuf:"bytes,10,rep,name=actions,proto3" json:"actions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// resource_identities maps a managed resource type to its cty JSON identity object type.
+	ResourceIdentities map[string][]byte `protobuf:"bytes,11,rep,name=resource_identities,json=resourceIdentities,proto3" json:"resource_identities,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// functions maps a provider-defined function name to its signature.
+	Functions     map[string]*Function `protobuf:"bytes,12,rep,name=functions,proto3" json:"functions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -926,6 +940,183 @@ func (x *ProviderSchema) GetDataSources() map[string][]byte {
 	return nil
 }
 
+func (x *ProviderSchema) GetProviderMeta() []byte {
+	if x != nil {
+		return x.ProviderMeta
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetEphemeralResources() map[string][]byte {
+	if x != nil {
+		return x.EphemeralResources
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetListResources() map[string][]byte {
+	if x != nil {
+		return x.ListResources
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetStateStores() map[string][]byte {
+	if x != nil {
+		return x.StateStores
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetActions() map[string][]byte {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetResourceIdentities() map[string][]byte {
+	if x != nil {
+		return x.ResourceIdentities
+	}
+	return nil
+}
+
+func (x *ProviderSchema) GetFunctions() map[string]*Function {
+	if x != nil {
+		return x.Functions
+	}
+	return nil
+}
+
+type Function struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Parameters        []*FunctionParameter   `protobuf:"bytes,1,rep,name=parameters,proto3" json:"parameters,omitempty"`
+	VariadicParameter *FunctionParameter     `protobuf:"bytes,2,opt,name=variadic_parameter,json=variadicParameter,proto3" json:"variadic_parameter,omitempty"`
+	ReturnType        []byte                 `protobuf:"bytes,3,opt,name=return_type,json=returnType,proto3" json:"return_type,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *Function) Reset() {
+	*x = Function{}
+	mi := &file_policy_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Function) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Function) ProtoMessage() {}
+
+func (x *Function) ProtoReflect() protoreflect.Message {
+	mi := &file_policy_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Function.ProtoReflect.Descriptor instead.
+func (*Function) Descriptor() ([]byte, []int) {
+	return file_policy_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *Function) GetParameters() []*FunctionParameter {
+	if x != nil {
+		return x.Parameters
+	}
+	return nil
+}
+
+func (x *Function) GetVariadicParameter() *FunctionParameter {
+	if x != nil {
+		return x.VariadicParameter
+	}
+	return nil
+}
+
+func (x *Function) GetReturnType() []byte {
+	if x != nil {
+		return x.ReturnType
+	}
+	return nil
+}
+
+type FunctionParameter struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type               []byte                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	AllowNullValue     bool                   `protobuf:"varint,3,opt,name=allow_null_value,json=allowNullValue,proto3" json:"allow_null_value,omitempty"`
+	AllowUnknownValues bool                   `protobuf:"varint,4,opt,name=allow_unknown_values,json=allowUnknownValues,proto3" json:"allow_unknown_values,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *FunctionParameter) Reset() {
+	*x = FunctionParameter{}
+	mi := &file_policy_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FunctionParameter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FunctionParameter) ProtoMessage() {}
+
+func (x *FunctionParameter) ProtoReflect() protoreflect.Message {
+	mi := &file_policy_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FunctionParameter.ProtoReflect.Descriptor instead.
+func (*FunctionParameter) Descriptor() ([]byte, []int) {
+	return file_policy_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *FunctionParameter) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *FunctionParameter) GetType() []byte {
+	if x != nil {
+		return x.Type
+	}
+	return nil
+}
+
+func (x *FunctionParameter) GetAllowNullValue() bool {
+	if x != nil {
+		return x.AllowNullValue
+	}
+	return false
+}
+
+func (x *FunctionParameter) GetAllowUnknownValues() bool {
+	if x != nil {
+		return x.AllowUnknownValues
+	}
+	return false
+}
+
 // ClientCapabilities are the set of capabilities the client supports.
 // At launch, this is empty as we don't have any backwards or forwards
 // compatibility concerns to worry about.
@@ -937,7 +1128,7 @@ type PolicySetupRequest_ClientCapabilities struct {
 
 func (x *PolicySetupRequest_ClientCapabilities) Reset() {
 	*x = PolicySetupRequest_ClientCapabilities{}
-	mi := &file_policy_proto_msgTypes[13]
+	mi := &file_policy_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +1140,7 @@ func (x *PolicySetupRequest_ClientCapabilities) String() string {
 func (*PolicySetupRequest_ClientCapabilities) ProtoMessage() {}
 
 func (x *PolicySetupRequest_ClientCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[13]
+	mi := &file_policy_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -978,7 +1169,7 @@ type PolicySetupRequest_Entitlement struct {
 
 func (x *PolicySetupRequest_Entitlement) Reset() {
 	*x = PolicySetupRequest_Entitlement{}
-	mi := &file_policy_proto_msgTypes[14]
+	mi := &file_policy_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -990,7 +1181,7 @@ func (x *PolicySetupRequest_Entitlement) String() string {
 func (*PolicySetupRequest_Entitlement) ProtoMessage() {}
 
 func (x *PolicySetupRequest_Entitlement) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[14]
+	mi := &file_policy_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1037,7 +1228,7 @@ type PolicySetupResponse_TerraformConfiguration struct {
 
 func (x *PolicySetupResponse_TerraformConfiguration) Reset() {
 	*x = PolicySetupResponse_TerraformConfiguration{}
-	mi := &file_policy_proto_msgTypes[15]
+	mi := &file_policy_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1049,7 +1240,7 @@ func (x *PolicySetupResponse_TerraformConfiguration) String() string {
 func (*PolicySetupResponse_TerraformConfiguration) ProtoMessage() {}
 
 func (x *PolicySetupResponse_TerraformConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[15]
+	mi := &file_policy_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1085,7 +1276,7 @@ type PolicySetupResponse_ServerCapabilities struct {
 
 func (x *PolicySetupResponse_ServerCapabilities) Reset() {
 	*x = PolicySetupResponse_ServerCapabilities{}
-	mi := &file_policy_proto_msgTypes[16]
+	mi := &file_policy_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1097,7 +1288,7 @@ func (x *PolicySetupResponse_ServerCapabilities) String() string {
 func (*PolicySetupResponse_ServerCapabilities) ProtoMessage() {}
 
 func (x *PolicySetupResponse_ServerCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[16]
+	mi := &file_policy_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1329,7 @@ type PolicyEvaluateResourceRequest_ResourceMetadata struct {
 
 func (x *PolicyEvaluateResourceRequest_ResourceMetadata) Reset() {
 	*x = PolicyEvaluateResourceRequest_ResourceMetadata{}
-	mi := &file_policy_proto_msgTypes[18]
+	mi := &file_policy_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1150,7 +1341,7 @@ func (x *PolicyEvaluateResourceRequest_ResourceMetadata) String() string {
 func (*PolicyEvaluateResourceRequest_ResourceMetadata) ProtoMessage() {}
 
 func (x *PolicyEvaluateResourceRequest_ResourceMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[18]
+	mi := &file_policy_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1200,7 +1391,7 @@ type PolicyEvaluateProviderRequest_ProviderMetadata struct {
 
 func (x *PolicyEvaluateProviderRequest_ProviderMetadata) Reset() {
 	*x = PolicyEvaluateProviderRequest_ProviderMetadata{}
-	mi := &file_policy_proto_msgTypes[19]
+	mi := &file_policy_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1212,7 +1403,7 @@ func (x *PolicyEvaluateProviderRequest_ProviderMetadata) String() string {
 func (*PolicyEvaluateProviderRequest_ProviderMetadata) ProtoMessage() {}
 
 func (x *PolicyEvaluateProviderRequest_ProviderMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[19]
+	mi := &file_policy_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1273,7 +1464,7 @@ type PolicyEvaluateModuleRequest_ModuleMetadata struct {
 
 func (x *PolicyEvaluateModuleRequest_ModuleMetadata) Reset() {
 	*x = PolicyEvaluateModuleRequest_ModuleMetadata{}
-	mi := &file_policy_proto_msgTypes[20]
+	mi := &file_policy_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1285,7 +1476,7 @@ func (x *PolicyEvaluateModuleRequest_ModuleMetadata) String() string {
 func (*PolicyEvaluateModuleRequest_ModuleMetadata) ProtoMessage() {}
 
 func (x *PolicyEvaluateModuleRequest_ModuleMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_policy_proto_msgTypes[20]
+	mi := &file_policy_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1400,19 +1591,57 @@ const file_policy_proto_rawDesc = "" +
 	"\x17ValidatePoliciesRequest\x12@\n" +
 	"\x10provider_schemas\x18\x01 \x03(\v2\x15.proto.ProviderSchemaR\x0fproviderSchemas\"O\n" +
 	"\x18ValidatePoliciesResponse\x123\n" +
-	"\vdiagnostics\x18\x01 \x03(\v2\x11.proto.DiagnosticR\vdiagnostics\"\xe1\x02\n" +
+	"\vdiagnostics\x18\x01 \x03(\v2\x11.proto.DiagnosticR\vdiagnostics\"\xff\t\n" +
 	"\x0eProviderSchema\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x16\n" +
 	"\x06config\x18\x03 \x01(\fR\x06config\x12B\n" +
 	"\tresources\x18\x04 \x03(\v2$.proto.ProviderSchema.ResourcesEntryR\tresources\x12I\n" +
-	"\fdata_sources\x18\x05 \x03(\v2&.proto.ProviderSchema.DataSourcesEntryR\vdataSources\x1a<\n" +
+	"\fdata_sources\x18\x05 \x03(\v2&.proto.ProviderSchema.DataSourcesEntryR\vdataSources\x12#\n" +
+	"\rprovider_meta\x18\x06 \x01(\fR\fproviderMeta\x12^\n" +
+	"\x13ephemeral_resources\x18\a \x03(\v2-.proto.ProviderSchema.EphemeralResourcesEntryR\x12ephemeralResources\x12O\n" +
+	"\x0elist_resources\x18\b \x03(\v2(.proto.ProviderSchema.ListResourcesEntryR\rlistResources\x12I\n" +
+	"\fstate_stores\x18\t \x03(\v2&.proto.ProviderSchema.StateStoresEntryR\vstateStores\x12<\n" +
+	"\aactions\x18\n" +
+	" \x03(\v2\".proto.ProviderSchema.ActionsEntryR\aactions\x12^\n" +
+	"\x13resource_identities\x18\v \x03(\v2-.proto.ProviderSchema.ResourceIdentitiesEntryR\x12resourceIdentities\x12B\n" +
+	"\tfunctions\x18\f \x03(\v2$.proto.ProviderSchema.FunctionsEntryR\tfunctions\x1a<\n" +
 	"\x0eResourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a>\n" +
 	"\x10DataSourcesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x012\xc4\x03\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1aE\n" +
+	"\x17EphemeralResourcesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a@\n" +
+	"\x12ListResourcesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a>\n" +
+	"\x10StateStoresEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1a:\n" +
+	"\fActionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1aE\n" +
+	"\x17ResourceIdentitiesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\x1aM\n" +
+	"\x0eFunctionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12%\n" +
+	"\x05value\x18\x02 \x01(\v2\x0f.proto.FunctionR\x05value:\x028\x01\"\xae\x01\n" +
+	"\bFunction\x128\n" +
+	"\n" +
+	"parameters\x18\x01 \x03(\v2\x18.proto.FunctionParameterR\n" +
+	"parameters\x12G\n" +
+	"\x12variadic_parameter\x18\x02 \x01(\v2\x18.proto.FunctionParameterR\x11variadicParameter\x12\x1f\n" +
+	"\vreturn_type\x18\x03 \x01(\fR\n" +
+	"returnType\"\x97\x01\n" +
+	"\x11FunctionParameter\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\fR\x04type\x12(\n" +
+	"\x10allow_null_value\x18\x03 \x01(\bR\x0eallowNullValue\x120\n" +
+	"\x14allow_unknown_values\x18\x04 \x01(\bR\x12allowUnknownValues2\xc4\x03\n" +
 	"\x06Policy\x12@\n" +
 	"\x05Setup\x12\x19.proto.PolicySetupRequest\x1a\x1a.proto.PolicySetupResponse\"\x00\x12a\n" +
 	"\x10EvaluateResource\x12$.proto.PolicyEvaluateResourceRequest\x1a%.proto.PolicyEvaluateResourceResponse\"\x00\x12a\n" +
@@ -1432,7 +1661,7 @@ func file_policy_proto_rawDescGZIP() []byte {
 	return file_policy_proto_rawDescData
 }
 
-var file_policy_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_policy_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_policy_proto_goTypes = []any{
 	(*PolicySetupRequest)(nil),                         // 0: proto.PolicySetupRequest
 	(*PolicySetupResponse)(nil),                        // 1: proto.PolicySetupResponse
@@ -1447,71 +1676,88 @@ var file_policy_proto_goTypes = []any{
 	(*ValidatePoliciesRequest)(nil),                    // 10: proto.ValidatePoliciesRequest
 	(*ValidatePoliciesResponse)(nil),                   // 11: proto.ValidatePoliciesResponse
 	(*ProviderSchema)(nil),                             // 12: proto.ProviderSchema
-	(*PolicySetupRequest_ClientCapabilities)(nil),      // 13: proto.PolicySetupRequest.ClientCapabilities
-	(*PolicySetupRequest_Entitlement)(nil),             // 14: proto.PolicySetupRequest.Entitlement
-	(*PolicySetupResponse_TerraformConfiguration)(nil), // 15: proto.PolicySetupResponse.TerraformConfiguration
-	(*PolicySetupResponse_ServerCapabilities)(nil),     // 16: proto.PolicySetupResponse.ServerCapabilities
-	nil, // 17: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
-	(*PolicyEvaluateResourceRequest_ResourceMetadata)(nil), // 18: proto.PolicyEvaluateResourceRequest.ResourceMetadata
-	(*PolicyEvaluateProviderRequest_ProviderMetadata)(nil), // 19: proto.PolicyEvaluateProviderRequest.ProviderMetadata
-	(*PolicyEvaluateModuleRequest_ModuleMetadata)(nil),     // 20: proto.PolicyEvaluateModuleRequest.ModuleMetadata
-	nil,                        // 21: proto.ProviderSchema.ResourcesEntry
-	nil,                        // 22: proto.ProviderSchema.DataSourcesEntry
-	(*Diagnostic)(nil),         // 23: proto.Diagnostic
-	(*ResourceAttributes)(nil), // 24: proto.ResourceAttributes
-	(EvaluateResult)(0),        // 25: proto.EvaluateResult
-	(*Range)(nil),              // 26: proto.Range
-	(*Snippet)(nil),            // 27: proto.Snippet
-	(Operation)(0),             // 28: proto.Operation
+	(*Function)(nil),                                   // 13: proto.Function
+	(*FunctionParameter)(nil),                          // 14: proto.FunctionParameter
+	(*PolicySetupRequest_ClientCapabilities)(nil),      // 15: proto.PolicySetupRequest.ClientCapabilities
+	(*PolicySetupRequest_Entitlement)(nil),             // 16: proto.PolicySetupRequest.Entitlement
+	(*PolicySetupResponse_TerraformConfiguration)(nil), // 17: proto.PolicySetupResponse.TerraformConfiguration
+	(*PolicySetupResponse_ServerCapabilities)(nil),     // 18: proto.PolicySetupResponse.ServerCapabilities
+	nil, // 19: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
+	(*PolicyEvaluateResourceRequest_ResourceMetadata)(nil), // 20: proto.PolicyEvaluateResourceRequest.ResourceMetadata
+	(*PolicyEvaluateProviderRequest_ProviderMetadata)(nil), // 21: proto.PolicyEvaluateProviderRequest.ProviderMetadata
+	(*PolicyEvaluateModuleRequest_ModuleMetadata)(nil),     // 22: proto.PolicyEvaluateModuleRequest.ModuleMetadata
+	nil,                        // 23: proto.ProviderSchema.ResourcesEntry
+	nil,                        // 24: proto.ProviderSchema.DataSourcesEntry
+	nil,                        // 25: proto.ProviderSchema.EphemeralResourcesEntry
+	nil,                        // 26: proto.ProviderSchema.ListResourcesEntry
+	nil,                        // 27: proto.ProviderSchema.StateStoresEntry
+	nil,                        // 28: proto.ProviderSchema.ActionsEntry
+	nil,                        // 29: proto.ProviderSchema.ResourceIdentitiesEntry
+	nil,                        // 30: proto.ProviderSchema.FunctionsEntry
+	(*Diagnostic)(nil),         // 31: proto.Diagnostic
+	(*ResourceAttributes)(nil), // 32: proto.ResourceAttributes
+	(EvaluateResult)(0),        // 33: proto.EvaluateResult
+	(*Range)(nil),              // 34: proto.Range
+	(*Snippet)(nil),            // 35: proto.Snippet
+	(Operation)(0),             // 36: proto.Operation
 }
 var file_policy_proto_depIdxs = []int32{
-	13, // 0: proto.PolicySetupRequest.client_capabilities:type_name -> proto.PolicySetupRequest.ClientCapabilities
-	14, // 1: proto.PolicySetupRequest.entitlement:type_name -> proto.PolicySetupRequest.Entitlement
-	16, // 2: proto.PolicySetupResponse.server_capabilities:type_name -> proto.PolicySetupResponse.ServerCapabilities
-	23, // 3: proto.PolicySetupResponse.diagnostics:type_name -> proto.Diagnostic
-	24, // 4: proto.PolicyEvaluateResourceRequest.attrs:type_name -> proto.ResourceAttributes
-	18, // 5: proto.PolicyEvaluateResourceRequest.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
-	24, // 6: proto.PolicyEvaluateResourceRequest.prior_attrs:type_name -> proto.ResourceAttributes
-	25, // 7: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
-	26, // 8: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
+	15, // 0: proto.PolicySetupRequest.client_capabilities:type_name -> proto.PolicySetupRequest.ClientCapabilities
+	16, // 1: proto.PolicySetupRequest.entitlement:type_name -> proto.PolicySetupRequest.Entitlement
+	18, // 2: proto.PolicySetupResponse.server_capabilities:type_name -> proto.PolicySetupResponse.ServerCapabilities
+	31, // 3: proto.PolicySetupResponse.diagnostics:type_name -> proto.Diagnostic
+	32, // 4: proto.PolicyEvaluateResourceRequest.attrs:type_name -> proto.ResourceAttributes
+	20, // 5: proto.PolicyEvaluateResourceRequest.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
+	32, // 6: proto.PolicyEvaluateResourceRequest.prior_attrs:type_name -> proto.ResourceAttributes
+	33, // 7: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
+	34, // 8: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
 	4,  // 9: proto.PolicyEvaluationDetail.enforce_results:type_name -> proto.EnforceBlockResult
-	23, // 10: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
-	25, // 11: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
-	26, // 12: proto.EnforceBlockResult.range:type_name -> proto.Range
-	23, // 13: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
-	27, // 14: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
-	25, // 15: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
+	31, // 10: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
+	33, // 11: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
+	34, // 12: proto.EnforceBlockResult.range:type_name -> proto.Range
+	31, // 13: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
+	35, // 14: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
+	33, // 15: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
 	3,  // 16: proto.PolicyEvaluateResourceResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	24, // 17: proto.PolicyEvaluateProviderRequest.attrs:type_name -> proto.ResourceAttributes
-	19, // 18: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
-	25, // 19: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
+	32, // 17: proto.PolicyEvaluateProviderRequest.attrs:type_name -> proto.ResourceAttributes
+	21, // 18: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
+	33, // 19: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
 	3,  // 20: proto.PolicyEvaluateProviderResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	24, // 21: proto.PolicyEvaluateModuleRequest.attrs:type_name -> proto.ResourceAttributes
-	20, // 22: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
-	25, // 23: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
+	32, // 21: proto.PolicyEvaluateModuleRequest.attrs:type_name -> proto.ResourceAttributes
+	22, // 22: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
+	33, // 23: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
 	3,  // 24: proto.PolicyEvaluateModuleResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
 	12, // 25: proto.ValidatePoliciesRequest.provider_schemas:type_name -> proto.ProviderSchema
-	23, // 26: proto.ValidatePoliciesResponse.diagnostics:type_name -> proto.Diagnostic
-	21, // 27: proto.ProviderSchema.resources:type_name -> proto.ProviderSchema.ResourcesEntry
-	22, // 28: proto.ProviderSchema.data_sources:type_name -> proto.ProviderSchema.DataSourcesEntry
-	17, // 29: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
-	15, // 30: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
-	28, // 31: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
-	0,  // 32: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
-	2,  // 33: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
-	6,  // 34: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
-	8,  // 35: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
-	10, // 36: proto.Policy.ValidatePolicies:input_type -> proto.ValidatePoliciesRequest
-	1,  // 37: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
-	5,  // 38: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
-	7,  // 39: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
-	9,  // 40: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
-	11, // 41: proto.Policy.ValidatePolicies:output_type -> proto.ValidatePoliciesResponse
-	37, // [37:42] is the sub-list for method output_type
-	32, // [32:37] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	31, // 26: proto.ValidatePoliciesResponse.diagnostics:type_name -> proto.Diagnostic
+	23, // 27: proto.ProviderSchema.resources:type_name -> proto.ProviderSchema.ResourcesEntry
+	24, // 28: proto.ProviderSchema.data_sources:type_name -> proto.ProviderSchema.DataSourcesEntry
+	25, // 29: proto.ProviderSchema.ephemeral_resources:type_name -> proto.ProviderSchema.EphemeralResourcesEntry
+	26, // 30: proto.ProviderSchema.list_resources:type_name -> proto.ProviderSchema.ListResourcesEntry
+	27, // 31: proto.ProviderSchema.state_stores:type_name -> proto.ProviderSchema.StateStoresEntry
+	28, // 32: proto.ProviderSchema.actions:type_name -> proto.ProviderSchema.ActionsEntry
+	29, // 33: proto.ProviderSchema.resource_identities:type_name -> proto.ProviderSchema.ResourceIdentitiesEntry
+	30, // 34: proto.ProviderSchema.functions:type_name -> proto.ProviderSchema.FunctionsEntry
+	14, // 35: proto.Function.parameters:type_name -> proto.FunctionParameter
+	14, // 36: proto.Function.variadic_parameter:type_name -> proto.FunctionParameter
+	19, // 37: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
+	17, // 38: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
+	36, // 39: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
+	13, // 40: proto.ProviderSchema.FunctionsEntry.value:type_name -> proto.Function
+	0,  // 41: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
+	2,  // 42: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
+	6,  // 43: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
+	8,  // 44: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
+	10, // 45: proto.Policy.ValidatePolicies:input_type -> proto.ValidatePoliciesRequest
+	1,  // 46: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
+	5,  // 47: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
+	7,  // 48: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
+	9,  // 49: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
+	11, // 50: proto.Policy.ValidatePolicies:output_type -> proto.ValidatePoliciesResponse
+	46, // [46:51] is the sub-list for method output_type
+	41, // [41:46] is the sub-list for method input_type
+	41, // [41:41] is the sub-list for extension type_name
+	41, // [41:41] is the sub-list for extension extendee
+	0,  // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_policy_proto_init() }
@@ -1527,7 +1773,7 @@ func file_policy_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_policy_proto_rawDesc), len(file_policy_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

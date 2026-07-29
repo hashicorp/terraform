@@ -273,11 +273,18 @@ func ValidatePolicies(ctx context.Context, client policy.Client, schemas map[add
 
 		providerSchema := schemas[providerAddr]
 		req.ProviderSchemas = append(req.ProviderSchemas, policy.ProviderSchema{
-			Type:        providerAddr.Type,
-			Source:      providerAddr.String(),
-			Config:      blockImpliedType(providerSchema.Provider.Body),
-			Resources:   blockImpliedTypes(providerSchema.ResourceTypes),
-			DataSources: blockImpliedTypes(providerSchema.DataSources),
+			Type:               providerAddr.Type,
+			Source:             providerAddr.String(),
+			Config:             blockImpliedType(providerSchema.Provider.Body),
+			ProviderMeta:       blockImpliedType(providerSchema.ProviderMeta.Body),
+			Resources:          blockImpliedTypes(providerSchema.ResourceTypes),
+			DataSources:        blockImpliedTypes(providerSchema.DataSources),
+			EphemeralResources: blockImpliedTypes(providerSchema.EphemeralResourceTypes),
+			ListResources:      blockImpliedTypes(providerSchema.ListResourceTypes),
+			StateStores:        blockImpliedTypes(providerSchema.StateStores),
+			Actions:            actionImpliedTypes(providerSchema.Actions),
+			ResourceIdentities: resourceIdentityImpliedTypes(providerSchema.ResourceTypes),
+			Functions:          policyFunctions(providerSchema.Functions),
 		})
 	}
 	if diags.HasErrors() {
@@ -308,4 +315,62 @@ func blockImpliedType(block *configschema.Block) cty.Type {
 		return cty.EmptyObject
 	}
 	return block.ImpliedType()
+}
+
+func actionImpliedTypes(schemas map[string]providers.ActionSchema) map[string]cty.Type {
+	if len(schemas) == 0 {
+		return nil
+	}
+	out := make(map[string]cty.Type, len(schemas))
+	for name, schema := range schemas {
+		out[name] = blockImpliedType(schema.ConfigSchema)
+	}
+	return out
+}
+
+func resourceIdentityImpliedTypes(schemas map[string]providers.Schema) map[string]cty.Type {
+	var out map[string]cty.Type
+	for name, schema := range schemas {
+		if schema.Identity == nil {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]cty.Type)
+		}
+		out[name] = schema.Identity.ImpliedType()
+	}
+	return out
+}
+
+func policyFunctions(functions map[string]providers.FunctionDecl) map[string]policy.Function {
+	if len(functions) == 0 {
+		return nil
+	}
+	out := make(map[string]policy.Function, len(functions))
+	for name, function := range functions {
+		parameters := make([]policy.FunctionParameter, len(function.Parameters))
+		for i, parameter := range function.Parameters {
+			parameters[i] = policyFunctionParameter(parameter)
+		}
+		var variadicParameter *policy.FunctionParameter
+		if function.VariadicParameter != nil {
+			parameter := policyFunctionParameter(*function.VariadicParameter)
+			variadicParameter = &parameter
+		}
+		out[name] = policy.Function{
+			Parameters:        parameters,
+			VariadicParameter: variadicParameter,
+			ReturnType:        function.ReturnType,
+		}
+	}
+	return out
+}
+
+func policyFunctionParameter(parameter providers.FunctionParam) policy.FunctionParameter {
+	return policy.FunctionParameter{
+		Name:               parameter.Name,
+		Type:               parameter.Type,
+		AllowNullValue:     parameter.AllowNullValue,
+		AllowUnknownValues: parameter.AllowUnknownValues,
+	}
 }

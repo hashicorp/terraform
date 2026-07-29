@@ -141,13 +141,27 @@ func TestValidatePoliciesRequest(t *testing.T) {
 	otherAddr := addrs.MustParseProviderSourceString("example/other")
 	schemas := &Schemas{Providers: map[addrs.Provider]providers.ProviderSchema{
 		testAddr: {
-			Provider: providers.Schema{},
+			Provider:     providers.Schema{},
+			ProviderMeta: providers.Schema{Body: &configschema.Block{}},
 			ResourceTypes: map[string]providers.Schema{
-				"test_empty": {},
+				"test_empty": {Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Required: true},
+					},
+					Nesting: configschema.NestingSingle,
+				}},
 			},
 			DataSources: map[string]providers.Schema{
 				"test_data": {},
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{"test_ephemeral": {}},
+			ListResourceTypes:      map[string]providers.Schema{"test_list": {}},
+			StateStores:            map[string]providers.Schema{"test_store": {}},
+			Actions:                map[string]providers.ActionSchema{"test_action": {}},
+			Functions: map[string]providers.FunctionDecl{"test_function": {
+				Parameters: []providers.FunctionParam{{Name: "input", Type: cty.String}},
+				ReturnType: cty.Bool,
+			}},
 		},
 		otherAddr: {Provider: providers.Schema{Body: &configschema.Block{}}},
 	}}
@@ -167,6 +181,15 @@ func TestValidatePoliciesRequest(t *testing.T) {
 	}
 	if !got[1].Config.Equals(cty.EmptyObject) || !got[1].Resources["test_empty"].Equals(cty.EmptyObject) || !got[1].DataSources["test_data"].Equals(cty.EmptyObject) {
 		t.Fatalf("nil schema bodies were not preserved as empty objects: %#v", got[1])
+	}
+	if !got[1].ProviderMeta.Equals(cty.EmptyObject) ||
+		!got[1].EphemeralResources["test_ephemeral"].Equals(cty.EmptyObject) ||
+		!got[1].ListResources["test_list"].Equals(cty.EmptyObject) ||
+		!got[1].StateStores["test_store"].Equals(cty.EmptyObject) ||
+		!got[1].Actions["test_action"].Equals(cty.EmptyObject) ||
+		!got[1].ResourceIdentities["test_empty"].HasAttribute("id") ||
+		!got[1].Functions["test_function"].ReturnType.Equals(cty.Bool) {
+		t.Fatalf("additional schema types were not included: %#v", got[1])
 	}
 }
 

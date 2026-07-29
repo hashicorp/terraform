@@ -53,11 +53,24 @@ func (s *stubPolicyClient) ValidatePolicies(ctx context.Context, req *proto.Vali
 
 func TestProviderSchemaToProto(t *testing.T) {
 	got, err := providerSchemaToProto(ProviderSchema{
-		Type:        "test",
-		Source:      "registry.terraform.io/hashicorp/test",
-		Config:      cty.NilType,
-		Resources:   map[string]cty.Type{"test_empty": cty.NilType},
-		DataSources: map[string]cty.Type{"test_data": cty.EmptyObject},
+		Type:               "test",
+		Source:             "registry.terraform.io/hashicorp/test",
+		Config:             cty.NilType,
+		ProviderMeta:       cty.EmptyObject,
+		Resources:          map[string]cty.Type{"test_empty": cty.NilType},
+		DataSources:        map[string]cty.Type{"test_data": cty.EmptyObject},
+		EphemeralResources: map[string]cty.Type{"test_ephemeral": cty.EmptyObject},
+		ListResources:      map[string]cty.Type{"test_list": cty.EmptyObject},
+		StateStores:        map[string]cty.Type{"test_store": cty.EmptyObject},
+		Actions:            map[string]cty.Type{"test_action": cty.EmptyObject},
+		ResourceIdentities: map[string]cty.Type{"test_empty": cty.EmptyObject},
+		Functions: map[string]Function{"test_function": {
+			Parameters: []FunctionParameter{{Name: "input", Type: cty.String, AllowNullValue: true}},
+			VariadicParameter: &FunctionParameter{
+				Name: "extra", Type: cty.Number, AllowUnknownValues: true,
+			},
+			ReturnType: cty.Bool,
+		}},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error encoding absent schema bodies: %s", err)
@@ -67,9 +80,15 @@ func TestProviderSchemaToProto(t *testing.T) {
 	}
 
 	for name, raw := range map[string][]byte{
-		"config":     got.Config,
-		"test_empty": got.Resources["test_empty"],
-		"test_data":  got.DataSources["test_data"],
+		"config":         got.Config,
+		"provider_meta":  got.ProviderMeta,
+		"test_empty":     got.Resources["test_empty"],
+		"test_data":      got.DataSources["test_data"],
+		"test_ephemeral": got.EphemeralResources["test_ephemeral"],
+		"test_list":      got.ListResources["test_list"],
+		"test_store":     got.StateStores["test_store"],
+		"test_action":    got.Actions["test_action"],
+		"test_identity":  got.ResourceIdentities["test_empty"],
 	} {
 		typ, err := ctyjson.UnmarshalType(raw)
 		if err != nil {
@@ -78,6 +97,20 @@ func TestProviderSchemaToProto(t *testing.T) {
 		if !typ.Equals(cty.EmptyObject) {
 			t.Errorf("%s encoded %s, want empty object", name, typ.FriendlyName())
 		}
+	}
+
+	function := got.Functions["test_function"]
+	parameterType, err := ctyjson.UnmarshalType(function.Parameters[0].Type)
+	if err != nil || !parameterType.Equals(cty.String) || !function.Parameters[0].AllowNullValue {
+		t.Fatalf("unexpected function parameter: %#v (%s)", function.Parameters[0], err)
+	}
+	variadicType, err := ctyjson.UnmarshalType(function.VariadicParameter.Type)
+	if err != nil || !variadicType.Equals(cty.Number) || !function.VariadicParameter.AllowUnknownValues {
+		t.Fatalf("unexpected variadic parameter: %#v (%s)", function.VariadicParameter, err)
+	}
+	returnType, err := ctyjson.UnmarshalType(function.ReturnType)
+	if err != nil || !returnType.Equals(cty.Bool) {
+		t.Fatalf("unexpected function return type: %s (%s)", returnType.FriendlyName(), err)
 	}
 }
 
