@@ -52,6 +52,7 @@ enum Operation {
   UPDATE = 1;
   DELETE = 2;
   NO_OP = 3;
+  REPLACE = 4;
 }
 
 message ResourceAttributes {

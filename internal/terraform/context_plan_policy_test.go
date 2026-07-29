@@ -845,7 +845,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					called++
 					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
-						Operation:    proto.Operation_UPDATE,
+						Operation:    proto.Operation_REPLACE,
 					}, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}

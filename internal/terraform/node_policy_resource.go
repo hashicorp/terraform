@@ -91,17 +91,19 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
 	switch action {
-	case plans.Create:
+	// CreateThenForget is treated as a Create operation for policy evaluation purposes
+	// since the Forget part does not invoke any API calls.
+	case plans.Create, plans.CreateThenForget:
 		return proto.Operation_CREATE, true
 	case plans.Delete:
 		return proto.Operation_DELETE, true
 	case plans.NoOp:
 		return proto.Operation_NO_OP, true
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
+	case plans.Update:
 		return proto.Operation_UPDATE, true
+	case plans.DeleteThenCreate,
+		plans.CreateThenDelete:
+		return proto.Operation_REPLACE, true
 	default:
 		return 0, false
 	}
