@@ -2,6 +2,6 @@ run "test" {
   command = plan
 
   module {
-    source = "./"
+    source = "./testing"
   }
 }

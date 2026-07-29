@@ -5,11 +5,7 @@ package terraform
 
 import (
 	"path"
-	"slices"
 	"strings"
-
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -79,27 +75,19 @@ func loadTestModulesWithGraph(root *configs.Config, walker configs.ModuleWalker,
 				CallRange:         run.Module.DeclRange,
 			}
 
-			rootMod, _, loadDiags := walker.LoadModule(req)
+			rootMod, version, loadDiags := walker.LoadModule(req)
 			diags = diags.Append(loadDiags)
 			if loadDiags.HasErrors() || rootMod == nil {
 				continue
 			}
 
-			prefix := slices.Clone(req.Path)
-			prefixedWalker := configs.ModuleWalkerFunc(func(childReq *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-				prefixedReq := *childReq
-				prefixedReq.Path = append(slices.Clone(prefix), childReq.Path...)
-				if childReq.Parent != nil {
-					parent := *childReq.Parent
-					parent.Path = append(slices.Clone(prefix), childReq.Parent.Path...)
-					prefixedReq.Parent = &parent
-				}
-				return walker.LoadModule(&prefixedReq)
-			})
-
-			testCfg, testDiags := initConfigWithGraph(rootMod, prefixedWalker, vars)
+			testCfg, testDiags := initConfigWithGraph(rootMod, walker, vars, modulePath)
 			diags = diags.Append(testDiags)
 			if testCfg != nil {
+				testCfg.CallRange = req.CallRange
+				testCfg.SourceAddr = req.SourceAddr
+				testCfg.SourceAddrRange = req.SourceAddrRange
+				testCfg.Version = version
 				run.ConfigUnderTest = testCfg
 			}
 		}
@@ -108,10 +96,14 @@ func loadTestModulesWithGraph(root *configs.Config, walker configs.ModuleWalker,
 	return diags
 }
 
-func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues) (*configs.Config, tfdiags.Diagnostics) {
+func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues, modulePathPrefix addrs.Module) (*configs.Config, tfdiags.Diagnostics) {
 	ctx, ctxDiags := NewContext(&ContextOpts{Parallelism: 1})
 	if ctxDiags.HasErrors() {
 		return nil, ctxDiags
 	}
-	return ctx.Init(rootMod, InitOpts{Walker: walker, SetVariables: vars})
+	return ctx.Init(rootMod, InitOpts{
+		Walker:           walker,
+		SetVariables:     vars,
+		ModulePathPrefix: modulePathPrefix,
+	})
 }

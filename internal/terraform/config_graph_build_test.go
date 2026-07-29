@@ -236,6 +236,19 @@ func TestBuildConfigWithGraph_testModuleWithDynamicSource(t *testing.T) {
 	if run.ConfigUnderTest.Children["const_var_source"] == nil {
 		t.Fatal("dynamic module source was not loaded in the test run configuration")
 	}
+	if got := run.ConfigUnderTest.Path.String(); got != "" {
+		t.Errorf("test configuration path is %q; want root path", got)
+	}
+	child := run.ConfigUnderTest.Children["const_var_source"]
+	if got := child.Path.String(); got != "module.const_var_source" {
+		t.Errorf("child configuration path is %q; want %q", got, "module.const_var_source")
+	}
+	if child.Parent != run.ConfigUnderTest || child.Root != run.ConfigUnderTest {
+		t.Error("child configuration is not rooted in the test configuration")
+	}
+	if got := run.ConfigUnderTest.SourceAddr.String(); got != "./testing" {
+		t.Errorf("test configuration source is %q; want %q", got, "./testing")
+	}
 }
 
 func TestBuildConfigWithGraph_loadDiags(t *testing.T) {

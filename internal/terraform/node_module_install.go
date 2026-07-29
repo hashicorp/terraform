@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -26,6 +27,8 @@ type nodeInstallModule struct {
 	ModuleCall *configs.ModuleCall
 	Parent     *configs.Config
 	Walker     configs.ModuleWalker
+
+	ModulePathPrefix addrs.Module
 
 	// Stores the configuration of the installed module
 	Config *configs.Config
@@ -98,13 +101,21 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		return diags
 	}
 
+	requestPath := append(slices.Clone(n.ModulePathPrefix), n.Addr.Module()...)
+	requestParent := n.Parent
+	if len(n.ModulePathPrefix) != 0 {
+		parent := *n.Parent
+		parent.Path = append(slices.Clone(n.ModulePathPrefix), n.Parent.Path...)
+		requestParent = &parent
+	}
+
 	req := &configs.ModuleRequest{
 		Name:              n.ModuleCall.Name,
-		Path:              n.Addr.Module(),
+		Path:              requestPath,
 		SourceAddr:        source,
 		SourceAddrRange:   n.ModuleCall.SourceExpr.Range(),
 		VersionConstraint: version,
-		Parent:            n.Parent,
+		Parent:            requestParent,
 		CallRange:         n.ModuleCall.DeclRange,
 	}
 
@@ -159,8 +170,9 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	expander.SetModuleSingle(n.Path(), call)
 
 	graph, graphDiags := (&InitGraphBuilder{
-		Config: n.Config,
-		Walker: n.Walker,
+		Config:           n.Config,
+		Walker:           n.Walker,
+		ModulePathPrefix: n.ModulePathPrefix,
 	}).Build(n.Addr)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
