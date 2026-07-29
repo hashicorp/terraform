@@ -49,7 +49,7 @@ type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
 
-	ProviderInstaller
+	ProviderInstallationLogger
 	Spacer // The `state migrate` command logs empty lines to space-out different sections of human-readable output
 }
 
@@ -63,9 +63,9 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 }
 
 var (
-	_ StateMigrate      = (*StateMigrateHuman)(nil)
-	_ ProviderInstaller = (*StateMigrateHuman)(nil)
-	_ Spacer            = (*StateMigrateHuman)(nil)
+	_ StateMigrate               = (*StateMigrateHuman)(nil)
+	_ ProviderInstallationLogger = (*StateMigrateHuman)(nil)
+	_ Spacer                     = (*StateMigrateHuman)(nil)
 )
 
 type StateMigrateHuman struct {
@@ -90,7 +90,7 @@ func (s *StateMigrateHuman) Spacer() {
 	s.view.Spacer()
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 	msg, ok := MessageRegistry[code]
 	if !ok {
@@ -99,7 +99,7 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 	s.Log(msg.HumanValue, params...)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
@@ -110,63 +110,63 @@ func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
 	msg := s.prepareMessage(FindingMatchingVersionMessage, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
 	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(ProviderAlreadyInstalledMessage, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(UsingProviderFromCacheDirInfo, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
 	msg := s.prepareMessage(BuiltInProviderAvailableMessage, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	msg := s.prepareMessage(InstallingProviderMessage, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{version, providerAddr.ForDisplay()}
 	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
 	msg := s.prepareMessage(InstalledProviderVersionInfo, params...)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
@@ -175,13 +175,13 @@ func (s *StateMigrateHuman) LogProviderVersionSuccessWithKeyID(providerAddr addr
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
 	s.log(msg)
 }
 
-// Implements ProviderInstaller interface.
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[code]
 	if !ok {

@@ -929,14 +929,14 @@ func (c *InitCommand) Synopsis() string {
 }
 
 // Returns a reused callback function for the ProviderAlreadyInstalled event in a providercache.InstallerEvents struct.
-func providerAlreadyInstalledCallback(view views.ProviderInstaller) func(provider addrs.Provider, selectedVersion getproviders.Version) {
+func providerAlreadyInstalledCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, selectedVersion getproviders.Version) {
 	return func(provider addrs.Provider, selectedVersion getproviders.Version) {
 		view.LogProviderVersionAlreadyInstalled(provider, selectedVersion)
 	}
 }
 
 // Returns a reused callback function for the BuiltInProviderAvailable event in a providercache.InstallerEvents struct.
-func builtInProviderAvailableCallback(view views.ProviderInstaller) func(provider addrs.Provider) {
+func builtInProviderAvailableCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider) {
 	return func(provider addrs.Provider) {
 		view.LogBuiltInProviderAvailable(provider)
 	}
@@ -954,14 +954,14 @@ func builtInProviderFailureCallback(diags *tfdiags.Diagnostics) func(provider ad
 }
 
 // Returns a reused callback function for the LinkFromCacheBegin event in a providercache.InstallerEvents struct.
-func linkFromCacheBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+func linkFromCacheBeginCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 	return func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
 		view.LogUsingProviderVersionFromCacheDir(provider, version)
 	}
 }
 
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
-func fetchPackageBeginCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+func fetchPackageBeginCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 		view.LogInstallingProviderVersion(provider, version)
 	}
@@ -1202,7 +1202,7 @@ func fetchPackageFailureCallback(diags *tfdiags.Diagnostics, reqs getproviders.R
 }
 
 // Returns a reused callback function for the FetchPackageSuccess event in a providercache.InstallerEvents struct.
-func fetchPackageSuccessCallback(view views.ProviderInstaller) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+func fetchPackageSuccessCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 	return func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 		var keyID string
 		if authResult != nil && authResult.ThirdPartySigned() {
@@ -1257,7 +1257,7 @@ func providersLockUpdatedCallback(incompleteProviders *[]string) func(provider a
 }
 
 // Returns a reused callback function for the ProvidersFetched event in a providercache.InstallerEvents struct.
-func providersFetchedCallback(view views.ProviderInstaller) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+func providersFetchedCallback(view views.ProviderInstallationLogger) func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 	return func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 		thirdPartySigned := false
 		for _, authResult := range authResults {

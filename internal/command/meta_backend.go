@@ -3104,7 +3104,7 @@ func (m *Meta) determineSafeProviderInstallAction(provider addrs.Provider, provi
 // handleSafeProviderInstallAction takes the action determined by `determineSafeProviderInstallAction` and either prompts the user for approval, or returns an error if something has gone wrong with pre-supplied locks when Terraform was run in automation.
 //
 // NOTE: the command parameter is used to determine which command is being run, so that we can provide more specific guidance to the user. Do not use that parameter for any other purpose!
-func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInstallAction, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, stateStoreProviderLock, locksBeforeInstall *depsfile.Locks, flagLockfilePath string, command cli.Command, view views.ProviderInstaller) tfdiags.Diagnostics {
+func (m *Meta) handleSafeProviderInstallAction(action SafeStateStoreProviderInstallAction, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, stateStoreProviderLock, locksBeforeInstall *depsfile.Locks, flagLockfilePath string, command cli.Command, view views.ProviderInstallationLogger) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	switch action {
