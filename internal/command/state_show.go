@@ -92,6 +92,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
 
 	if ctxDiags.HasErrors() {
+		diags = diags.Append(ctxDiags)
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
