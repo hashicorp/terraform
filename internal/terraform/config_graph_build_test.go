@@ -331,6 +331,48 @@ func TestBuildConfigWithGraph_childProviderGrandchildCount(t *testing.T) {
 	})
 }
 
+func TestBuildConfigWithGraph_testModuleWithDynamicSource(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/test-module-dynamic-source")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	config, diags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	assertNoDiagnostics(t, diags)
+
+	run := config.Module.Tests["simple.tftest.hcl"].Runs[0]
+	if run.ConfigUnderTest == nil {
+		t.Fatal("test run configuration was not loaded")
+	}
+	if run.ConfigUnderTest.Children["const_var_source"] == nil {
+		t.Fatal("dynamic module source was not loaded in the test run configuration")
+	}
+	if got := run.ConfigUnderTest.Path.String(); got != "" {
+		t.Errorf("test configuration path is %q; want root path", got)
+	}
+	child := run.ConfigUnderTest.Children["const_var_source"]
+	if got := child.Path.String(); got != "module.const_var_source" {
+		t.Errorf("child configuration path is %q; want %q", got, "module.const_var_source")
+	}
+	if child.Parent != run.ConfigUnderTest || child.Root != run.ConfigUnderTest {
+		t.Error("child configuration is not rooted in the test configuration")
+	}
+	if got := run.ConfigUnderTest.SourceAddr.String(); got != "./testing" {
+		t.Errorf("test configuration source is %q; want %q", got, "./testing")
+	}
+}
+
 func assertNoDiagnostics[D hcl.Diagnostics | tfdiags.Diagnostics](t *testing.T, diags D) bool {
 	t.Helper()
 
