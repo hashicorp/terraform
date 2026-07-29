@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/zclconf/go-cty/cty"
@@ -1671,7 +1672,26 @@ func (p *GRPCProvider) Close() error {
 		return nil
 	}
 
-	p.PluginClient.Kill()
+	// Use a timeout to prevent indefinite hangs during plugin shutdown.
+	// In rare cases, the gRPC connection's HTTP/2 reader goroutine can get
+	// stuck in a blocking syscall.read that cannot be interrupted by
+	// ClientConn.Close. When this happens, Kill() never returns because
+	// it waits for the reader goroutine to finish.
+	// See https://github.com/hashicorp/terraform/issues/38939
+	done := make(chan struct{}, 1)
+	go func() {
+		p.PluginClient.Kill()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		logger.Trace("GRPCProvider: plugin client killed successfully")
+	case <-time.After(30 * time.Second):
+		logger.Warn("GRPCProvider: plugin client Kill timed out after 30s, " +
+			"the gRPC reader goroutine may be stuck in a blocking syscall")
+	}
+
 	return nil
 }
 
