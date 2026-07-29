@@ -147,6 +147,102 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			expectedOutputs: []string{"Skipping"},
 			isError:         false,
 		},
+		"pending-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"pending-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"pending-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"mixed-pending-and-completed-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "Still running", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is canceled.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is errored.",
+			},
+			isError: false,
+		},
 	}
 
 	for _, c := range cases {
