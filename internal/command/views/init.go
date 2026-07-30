@@ -23,7 +23,7 @@ type Init interface {
 	Output(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
 
-	ProviderInstaller
+	ProviderInstallationLogger
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -53,8 +53,8 @@ type InitHuman struct {
 }
 
 var (
-	_ Init              = (*InitHuman)(nil)
-	_ ProviderInstaller = (*InitHuman)(nil)
+	_ Init                       = (*InitHuman)(nil)
+	_ ProviderInstallationLogger = (*InitHuman)(nil)
 )
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
@@ -162,8 +162,8 @@ type InitJSON struct {
 }
 
 var (
-	_ Init              = (*InitJSON)(nil)
-	_ ProviderInstaller = (*InitJSON)(nil)
+	_ Init                       = (*InitJSON)(nil)
+	_ ProviderInstallationLogger = (*InitJSON)(nil)
 )
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
