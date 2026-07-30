@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'terraform test: Support overriding nested collection attributes in Plugin Framework provider schemas'
+time: 2026-07-30T12:00:00+09:00
+custom:
+    Issue: "38369"

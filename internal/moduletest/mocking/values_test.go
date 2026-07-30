@@ -566,6 +566,43 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				})),
 			}),
 		},
+		"nested_list_attribute_computed_overridden": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
+				// HCL list literals are represented as tuples before they are
+				// coerced against the provider schema.
+				"nested": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("one"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingList,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("one"),
+					}),
+				}),
+			}),
+		},
 		"nested_set_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.SetVal([]cty.Value{

@@ -23,14 +23,14 @@ func FillAttribute(in cty.Value, attribute *configschema.Attribute) (cty.Value, 
 
 func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Path) (cty.Value, error) {
 	if attribute.NestedType != nil {
-
-		// Then the in value must be an object.
-		if !in.Type().IsObjectType() {
-			return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
-		}
-
 		switch attribute.NestedType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
+			// Single nested attributes represent one object, so their mocked
+			// value must also be an object.
+			if !in.Type().IsObjectType() {
+				return cty.NilVal, path.NewErrorf("incompatible types; expected object type, found %s", in.Type().FriendlyName())
+			}
+
 			var names []string
 			for name := range attribute.NestedType.Attributes {
 				names = append(names, name)
@@ -57,12 +57,25 @@ func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Pat
 				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
 			}
 			return cty.ObjectVal(children), nil
-		case configschema.NestingSet:
-			return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
-		case configschema.NestingList:
-			return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
-		case configschema.NestingMap:
-			return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+		case configschema.NestingSet, configschema.NestingList, configschema.NestingMap:
+			// An object mock is a legacy shorthand for an element template. There
+			// are no collection elements to apply it to here, so preserve the
+			// existing empty-collection behavior.
+			if in.Type().IsObjectType() {
+				switch attribute.NestedType.Nesting {
+				case configschema.NestingSet:
+					return cty.SetValEmpty(attribute.ImpliedType().ElementType()), nil
+				case configschema.NestingList:
+					return cty.ListValEmpty(attribute.ImpliedType().ElementType()), nil
+				default:
+					return cty.MapValEmpty(attribute.ImpliedType().ElementType()), nil
+				}
+			}
+
+			// HCL collection literals have tuple/object types. Reuse fillType so
+			// they are coerced to the nested collection type and each object is
+			// filled using the nested attribute schema.
+			return fillType(in, attribute.NestedType.ConfigType(), path)
 		default:
 			panic(fmt.Errorf("unknown nesting mode: %d", attribute.NestedType.Nesting))
 		}

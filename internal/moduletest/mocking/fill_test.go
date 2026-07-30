@@ -8,7 +8,70 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
+
+func TestFillAttributeNestedCollections(t *testing.T) {
+	nestedAttributes := map[string]*configschema.Attribute{
+		"id": {
+			Type: cty.String,
+		},
+	}
+
+	tests := map[string]struct {
+		nesting  configschema.NestingMode
+		in       cty.Value
+		expected cty.Value
+	}{
+		"list accepts an HCL tuple": {
+			nesting: configschema.NestingList,
+			in: cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+			expected: cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+		},
+		"set accepts an HCL tuple": {
+			nesting: configschema.NestingSet,
+			in: cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+			expected: cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+		},
+		"map accepts a map": {
+			nesting: configschema.NestingMap,
+			in: cty.MapVal(map[string]cty.Value{
+				"first": cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+			expected: cty.MapVal(map[string]cty.Value{
+				"first": cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("first")}),
+			}),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			attribute := &configschema.Attribute{
+				NestedType: &configschema.Object{
+					Attributes: nestedAttributes,
+					Nesting:    test.nesting,
+				},
+			}
+
+			actual, err := FillAttribute(test.in, attribute)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !test.expected.RawEquals(actual) {
+				t.Errorf("expected:%s\nactual:   %s", test.expected.GoString(), actual.GoString())
+			}
+		})
+	}
+}
 
 func TestFillType(t *testing.T) {
 	tcs := map[string]struct {
