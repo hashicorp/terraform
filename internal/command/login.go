@@ -177,6 +177,12 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"Token TTL policy",
+		"If the user token TTL exceeds organization policy, it will be rejected from accessing that organization.",
+	))
+
 	var token svcauth.HostCredentialsToken
 	var tokenDiags tfdiags.Diagnostics
 

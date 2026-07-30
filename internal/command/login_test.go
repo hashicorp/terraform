@@ -289,3 +289,97 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 }
+
+func TestLogin_tokenTTLWarning(t *testing.T) {
+	// oauthserver.Handler is a stub OAuth server implementation that will,
+	// on success, always issue a bearer token named "good-token".
+	s := httptest.NewServer(oauthserver.Handler)
+	defer s.Close()
+
+	// tfeserver.Handler is a stub TFE API implementation which will respond
+	// to ping and current account requests, when requests are authenticated
+	// with token "good-token"
+	ts := httptest.NewServer(tfeserver.Handler)
+	defer ts.Close()
+
+	wantWarning := "If the user token TTL exceeds organization policy, it will be rejected from accessing that organization."
+
+	makeCmd := func(t *testing.T) (*LoginCommand, *ui.WrappedMockUi) {
+		t.Helper()
+		workDir := t.TempDir()
+		mockUi := testUiWrapped(t, new(cli.MockUi))
+		creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
+		svcs := disco.NewWithCredentialsSource(creds)
+		svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+		svcs.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
+			"login.v1": map[string]interface{}{
+				"client": "anything-goes",
+				"authz":  s.URL + "/authz",
+				"token":  s.URL + "/token",
+			},
+		})
+		svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
+			"tfe.v2":   ts.URL + "/api/v2",
+			"tfe.v2.1": ts.URL + "/api/v2",
+			"tfe.v2.2": ts.URL + "/api/v2",
+			"motd.v1":  ts.URL + "/api/terraform/motd",
+		})
+		svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
+			"tfe.v2":   ts.URL + "/api/v2",
+			"tfe.v2.1": ts.URL + "/api/v2",
+			"tfe.v2.2": ts.URL + "/api/v2",
+		})
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+		cmd := &LoginCommand{
+			Meta: Meta{
+				Ui:              mockUi,
+				BrowserLauncher: webbrowser.NewMockLauncher(ctx),
+				Services:        svcs,
+			},
+		}
+		return cmd, mockUi
+	}
+
+	t.Run("warning shown on oauth flow (example.com)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
+		_ = testInputMap(t, map[string]string{"approve": "yes"})
+		status := cmd.Run([]string{"example.com"})
+		if status != 0 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
+		}
+		if got := mockUi.OutputWriter.String(); !strings.Contains(got, wantWarning) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", wantWarning, got)
+		}
+	})
+
+	t.Run("warning shown on HCP Terraform (app.terraform.io)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+			"token":   "good-token",
+		})
+		status := cmd.Run([]string{"app.terraform.io"})
+		if status != 0 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
+		}
+		if got := mockUi.OutputWriter.String(); !strings.Contains(got, wantWarning) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", wantWarning, got)
+		}
+	})
+
+	t.Run("warning shown on TFE host (tfe.acme.com)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
+		_ = testInputMap(t, map[string]string{
+			"approve": "yes",
+			"token":   "good-token",
+		})
+		status := cmd.Run([]string{"tfe.acme.com"})
+		if status != 0 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
+		}
+		if got := mockUi.OutputWriter.String(); !strings.Contains(got, wantWarning) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", wantWarning, got)
+		}
+	})
+}
