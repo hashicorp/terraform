@@ -6,9 +6,11 @@ package policy
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -21,6 +23,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	grpccodes "google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -35,6 +39,79 @@ const (
 
 var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
+
+// pluginCrashDiagMsg is the sentinel detail fragment appended to diagnostics
+// when a gRPC transport-level error indicates that the policy plugin process
+// has crashed (segfault, OOM kill, broken pipe, etc.). Tests use this constant
+// to assert the exact diagnostic content without coupling to the full message.
+const pluginCrashDiagMsg = "The policy plugin process may have crashed or been forcibly terminated. Policy evaluation cannot be completed for this resource."
+
+// isPluginCrashError reports whether err is a gRPC transport-level failure
+// that is consistent with the plugin process having crashed or been killed.
+// It recognises:
+//   - io.EOF (connection closed by the server)
+//   - gRPC Unavailable status (transport failure, broken pipe, connection reset)
+//   - gRPC Internal status that carries connection-loss keywords
+//   - gRPC Unknown status that carries EOF or connection-reset keywords
+//
+// It intentionally does NOT match DeadlineExceeded or Canceled, which have
+// separate handling paths in the caller (per-call timeout and parent
+// cancellation respectively).
+func isPluginCrashError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Bare io.EOF: the plugin closed the connection without sending a response.
+	if err == io.EOF {
+		return true
+	}
+	st, ok := grpcstatus.FromError(err)
+	if !ok {
+		// Not a gRPC status error. Check for raw string matches that appear
+		// when the transport layer wraps non-gRPC errors (e.g. net.OpError
+		// with "broken pipe" or "connection reset by peer").
+		msg := strings.ToLower(err.Error())
+		return strings.Contains(msg, "broken pipe") ||
+			strings.Contains(msg, "connection reset") ||
+			strings.Contains(msg, "eof")
+	}
+	switch st.Code() {
+	case grpccodes.Unavailable:
+		// Unavailable is the canonical gRPC code for transport failures:
+		// the server process died, the connection was reset, etc.
+		return true
+	case grpccodes.Internal:
+		// Internal can carry "EOF" or "broken pipe" when the transport closes
+		// mid-message.
+		msg := strings.ToLower(st.Message())
+		return strings.Contains(msg, "eof") ||
+			strings.Contains(msg, "broken pipe") ||
+			strings.Contains(msg, "connection reset") ||
+			strings.Contains(msg, "unexpected EOF")
+	case grpccodes.Unknown:
+		// Unknown wraps raw errors from the transport layer; check for the
+		// same keywords.
+		msg := strings.ToLower(st.Message())
+		return strings.Contains(msg, "eof") ||
+			strings.Contains(msg, "broken pipe") ||
+			strings.Contains(msg, "connection reset")
+	}
+	return false
+}
+
+// transportErrorDiags builds the []*proto.Diagnostic slice for a transport-
+// level plugin crash. It is separated from isPluginCrashError so that the
+// detection and the message construction can be tested independently.
+func transportErrorDiags(resourceLabel string, err error) []*proto.Diagnostic {
+	return []*proto.Diagnostic{{
+		Severity: proto.Severity_ERROR,
+		Summary:  "Policy plugin crashed",
+		Detail: fmt.Sprintf(
+			"The policy plugin process crashed or became unavailable while evaluating %s: %v. %s",
+			resourceLabel, err, pluginCrashDiagMsg,
+		),
+	}}
+}
 
 // NewPolicyClient initializes and connects to a new tfpolicy-plugin process
 func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string, ent *Entitlement) (Client, Diagnostics) {
@@ -320,6 +397,12 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 
 	response, err := c.client.EvaluateResource(ctx, request)
 	if err != nil {
+		if isPluginCrashError(err) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "plugin crash")
+			log.Printf("[ERROR] policy plugin crashed during resource evaluation (%s): %v", req.Target, err)
+			return ErrorEvalFromDiags(transportErrorDiags(req.Target, err))
+		}
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
 			Summary:  "Failed to evaluate Terraform Policy",
@@ -357,6 +440,12 @@ func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*pr
 
 	response, err := c.client.EvaluateProvider(ctx, request)
 	if err != nil {
+		if isPluginCrashError(err) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "plugin crash")
+			log.Printf("[ERROR] policy plugin crashed during provider evaluation (%s): %v", req.Target, err)
+			return ErrorEvalFromDiags(transportErrorDiags(req.Target, err))
+		}
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
 			Summary:  "Failed to evaluate Terraform Policy",
@@ -395,6 +484,12 @@ func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*prot
 
 	response, err := c.client.EvaluateModule(ctx, request)
 	if err != nil {
+		if isPluginCrashError(err) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "plugin crash")
+			log.Printf("[ERROR] policy plugin crashed during module evaluation (%s): %v", req.Target, err)
+			return ErrorEvalFromDiags(transportErrorDiags(req.Target, err))
+		}
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
 			Summary:  "Failed to evaluate Terraform Policy",
