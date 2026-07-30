@@ -5987,7 +5987,7 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
