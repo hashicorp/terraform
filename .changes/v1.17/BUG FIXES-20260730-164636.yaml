@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'communicator/ssh: prevent private key and certificate data from appearing in SSH authentication errors'
+time: 2026-07-30T16:46:36+09:00
+custom:
+    Issue: "38949"
