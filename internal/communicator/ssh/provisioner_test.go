@@ -4,10 +4,36 @@
 package ssh
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
 )
+
+func TestSignCertWithPrivateKeyRedactsCredentials(t *testing.T) {
+	const privateKey = "private key that must not be included in errors"
+	const certificate = "certificate that must not be included in errors"
+
+	t.Run("private key", func(t *testing.T) {
+		_, err := signCertWithPrivateKey(privateKey, certificate)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+		if strings.Contains(err.Error(), privateKey) {
+			t.Fatalf("private key leaked in error: %s", err)
+		}
+	})
+
+	t.Run("certificate", func(t *testing.T) {
+		_, err := signCertWithPrivateKey(SERVER_PEM, certificate)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+		if strings.Contains(err.Error(), certificate) {
+			t.Fatalf("certificate leaked in error: %s", err)
+		}
+	})
+}
 
 func TestProvisioner_connInfo(t *testing.T) {
 	v := cty.ObjectVal(map[string]cty.Value{
