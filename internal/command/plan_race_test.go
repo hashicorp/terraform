@@ -58,7 +58,7 @@ func TestPlan_configLoaderRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create install loader: %s", err)
 	}
-	inst := initwd.NewModuleInstaller(modulesDir, installLoader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(modulesDir, installLoader, registry.NewClient(nil, nil), testModuleInstallerInitializer(installLoader))
 	if _, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false); instDiags.HasErrors() {
 		t.Fatalf("failed to install modules: %s", instDiags.Err())
 	}

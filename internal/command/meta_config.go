@@ -301,17 +301,10 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 
 	initializer := func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
 		variables, diags := backendrun.ParseConstVariableValues(m.VariableValues, rootMod.Variables)
-		ctx, ctxDiags := terraform.NewContext(&terraform.ContextOpts{
-			Parallelism: 1,
-		})
-		diags = diags.Append(ctxDiags)
 		if diags.HasErrors() {
 			return nil, diags
 		}
-		return ctx.Init(rootMod, terraform.InitOpts{
-			Walker:       walker,
-			SetVariables: variables,
-		})
+		return terraform.BuildConfigWithGraph(rootMod, walker, variables, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
 	}
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient(), initializer)
 
