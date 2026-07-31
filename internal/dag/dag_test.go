@@ -151,7 +151,7 @@ func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
 
 	const nodeCount = 200
 	nodes := make([]*counter, nodeCount)
-	for i := 0; i < nodeCount; i++ {
+	for i := range nodeCount {
 		nodes[i] = &counter{Name: strconv.Itoa(i)}
 	}
 
@@ -464,24 +464,24 @@ func BenchmarkDAG(b *testing.B) {
 
 		// create 4 layers of fully connected nodes
 		// layer A
-		for i := 0; i < count; i++ {
+		for i := range count {
 			g.Add(fmt.Sprintf("A%d", i))
 		}
 
 		// layer B
-		for i := 0; i < count; i++ {
+		for i := range count {
 			B := fmt.Sprintf("B%d", i)
 			g.Add(B)
-			for j := 0; j < count; j++ {
+			for j := range count {
 				g.Connect(BasicEdge(B, fmt.Sprintf("A%d", j)))
 			}
 		}
 
 		// layer C
-		for i := 0; i < count; i++ {
+		for i := range count {
 			c := fmt.Sprintf("C%d", i)
 			g.Add(c)
-			for j := 0; j < count; j++ {
+			for j := range count {
 				// connect them to previous layers so we have something that requires reduction
 				g.Connect(BasicEdge(c, fmt.Sprintf("A%d", j)))
 				g.Connect(BasicEdge(c, fmt.Sprintf("B%d", j)))
@@ -489,10 +489,10 @@ func BenchmarkDAG(b *testing.B) {
 		}
 
 		// layer D
-		for i := 0; i < count; i++ {
+		for i := range count {
 			d := fmt.Sprintf("D%d", i)
 			g.Add(d)
-			for j := 0; j < count; j++ {
+			for j := range count {
 				g.Connect(BasicEdge(d, fmt.Sprintf("A%d", j)))
 				g.Connect(BasicEdge(d, fmt.Sprintf("B%d", j)))
 				g.Connect(BasicEdge(d, fmt.Sprintf("C%d", j)))

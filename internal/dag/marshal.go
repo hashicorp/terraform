@@ -160,7 +160,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 func marshalVertexID(v Vertex) string {
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.Slice, reflect.UnsafePointer:
 		return strconv.Itoa(int(val.Pointer()))
 	case reflect.Interface:
 		// A vertex shouldn't contain another layer of interface, but handle
