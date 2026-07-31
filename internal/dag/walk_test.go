@@ -20,8 +20,8 @@ func TestWalker_basic(t *testing.T) {
 	g.Connect(BasicEdge(1, 2))
 
 	// Run it a bunch of times since it is timing dependent
-	for i := 0; i < 50; i++ {
-		var order []interface{}
+	for range 50 {
+		var order []any
 		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 
@@ -31,7 +31,7 @@ func TestWalker_basic(t *testing.T) {
 		}
 
 		// Check
-		expected := []interface{}{1, 2}
+		expected := []any{1, 2}
 		if !reflect.DeepEqual(order, expected) {
 			t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 		}
@@ -45,8 +45,8 @@ func TestWalker_updateNilGraph(t *testing.T) {
 	g.Connect(BasicEdge(1, 2))
 
 	// Run it a bunch of times since it is timing dependent
-	for i := 0; i < 50; i++ {
-		var order []interface{}
+	for range 50 {
+		var order []any
 		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 		w.Update(nil)
@@ -69,7 +69,7 @@ func TestWalker_error(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 
 	// Record function
-	var order []interface{}
+	var order []any
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
@@ -92,7 +92,7 @@ func TestWalker_error(t *testing.T) {
 	}
 
 	// Check
-	expected := []interface{}{1}
+	expected := []any{1}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -105,7 +105,7 @@ func TestWalker_newVertex(t *testing.T) {
 	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []interface{}
+	var order []any
 	recordF := walkCbRecord(&order)
 	done2 := make(chan int)
 
@@ -138,7 +138,7 @@ func TestWalker_newVertex(t *testing.T) {
 	}
 
 	// Check
-	expected := []interface{}{1, 2, 3}
+	expected := []any{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -151,7 +151,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []interface{}
+	var order []any
 	recordF := walkCbRecord(&order)
 
 	w := NewWalker(nil)
@@ -174,7 +174,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	}
 
 	// Check
-	expected := []interface{}{1}
+	expected := []any{1}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -187,7 +187,7 @@ func TestWalker_newEdge(t *testing.T) {
 	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []interface{}
+	var order []any
 	recordF := walkCbRecord(&order)
 
 	w := NewWalker(nil)
@@ -214,7 +214,7 @@ func TestWalker_newEdge(t *testing.T) {
 	}
 
 	// Check
-	expected := []interface{}{1, 3, 2}
+	expected := []any{1, 3, 2}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -269,7 +269,7 @@ func TestWalker_removeEdge(t *testing.T) {
 	g.Connect(BasicEdge(3, 2))
 
 	// Record function
-	var order []interface{}
+	var order []any
 	recordF := walkCbRecord(&order)
 
 	// The way this works is that our original graph forces
@@ -321,14 +321,14 @@ func TestWalker_removeEdge(t *testing.T) {
 	}
 
 	// Check
-	expected := []interface{}{1, 2, 3}
+	expected := []any{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
 // walkCbRecord is a test helper callback that just records the order called.
-func walkCbRecord(order *[]interface{}) WalkFunc {
+func walkCbRecord(order *[]any) WalkFunc {
 	var l sync.Mutex
 	return func(v Vertex) tfdiags.Diagnostics {
 		l.Lock()

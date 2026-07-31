@@ -11,34 +11,34 @@ import (
 func TestSetDifference(t *testing.T) {
 	cases := []struct {
 		Name     string
-		A, B     []interface{}
-		Expected []interface{}
+		A, B     []any
+		Expected []any
 	}{
 		{
 			"same",
-			[]interface{}{1, 2, 3},
-			[]interface{}{3, 1, 2},
-			[]interface{}{},
+			[]any{1, 2, 3},
+			[]any{3, 1, 2},
+			[]any{},
 		},
 
 		{
 			"A has extra elements",
-			[]interface{}{1, 2, 3},
-			[]interface{}{3, 2},
-			[]interface{}{1},
+			[]any{1, 2, 3},
+			[]any{3, 2},
+			[]any{1},
 		},
 
 		{
 			"B has extra elements",
-			[]interface{}{1, 2, 3},
-			[]interface{}{3, 2, 1, 4},
-			[]interface{}{},
+			[]any{1, 2, 3},
+			[]any{3, 2, 1, 4},
+			[]any{},
 		},
 		{
 			"B is nil",
-			[]interface{}{1, 2, 3},
+			[]any{1, 2, 3},
 			nil,
-			[]interface{}{1, 2, 3},
+			[]any{1, 2, 3},
 		},
 	}
 
@@ -71,22 +71,22 @@ func TestSetDifference(t *testing.T) {
 
 func TestSetFilter(t *testing.T) {
 	cases := []struct {
-		Input    []interface{}
-		Expected []interface{}
+		Input    []any
+		Expected []any
 	}{
 		{
-			[]interface{}{1, 2, 3},
-			[]interface{}{1, 2, 3},
+			[]any{1, 2, 3},
+			[]any{1, 2, 3},
 		},
 
 		{
-			[]interface{}{4, 5, 6},
-			[]interface{}{4},
+			[]any{4, 5, 6},
+			[]any{4},
 		},
 
 		{
-			[]interface{}{7, 8, 9},
-			[]interface{}{},
+			[]any{7, 8, 9},
+			[]any{},
 		},
 	}
 
@@ -101,7 +101,7 @@ func TestSetFilter(t *testing.T) {
 				expected.Add(v)
 			}
 
-			actual := input.Filter(func(v interface{}) bool {
+			actual := input.Filter(func(v any) bool {
 				return v.(int) < 5
 			})
 			match := actual.Intersection(expected)
@@ -134,7 +134,7 @@ func TestSetCopy(t *testing.T) {
 
 func makeSet(n int) Set {
 	ret := make(Set, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ret.Add(i)
 	}
 	return ret

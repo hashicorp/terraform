@@ -9,17 +9,17 @@ import (
 )
 
 // Set is a set data structure.
-type Set map[interface{}]interface{}
+type Set map[any]any
 
 // Hashable is the interface used by set to get the hash code of a value.
 // If this isn't given, then the value of the item being added to the set
 // itself is used as the comparison value.
 type Hashable interface {
-	Hashcode() interface{}
+	Hashcode() any
 }
 
 // hashcode returns the hashcode used for set elements.
-func hashcode(v interface{}) interface{} {
+func hashcode(v any) any {
 	if h, ok := v.(Hashable); ok {
 		return h.Hashcode()
 	}
@@ -28,17 +28,17 @@ func hashcode(v interface{}) interface{} {
 }
 
 // Add adds an item to the set
-func (s Set) Add(v interface{}) {
+func (s Set) Add(v any) {
 	s[hashcode(v)] = v
 }
 
 // Delete removes an item from the set.
-func (s Set) Delete(v interface{}) {
+func (s Set) Delete(v any) {
 	delete(s, hashcode(v))
 }
 
 // Include returns true/false of whether a value is in the set.
-func (s Set) Include(v interface{}) bool {
+func (s Set) Include(v any) bool {
 	_, ok := s[hashcode(v)]
 	return ok
 }
@@ -80,7 +80,7 @@ func (s Set) Difference(other Set) Set {
 
 // Filter returns a set that contains the elements from the receiver
 // where the given callback returns true.
-func (s Set) Filter(cb func(interface{}) bool) Set {
+func (s Set) Filter(cb func(any) bool) Set {
 	result := make(Set)
 
 	for _, v := range s {
