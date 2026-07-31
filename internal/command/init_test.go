@@ -175,7 +175,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
 				`Initializing provider plugins...
-				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Reusing version 1.0.0 of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
 			},
@@ -205,7 +205,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
 				`Initializing provider plugins...
-				- Reusing previous version of hashicorp/random from the dependency lock file
+				- Reusing version 1.2.3-beta of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.2.3-beta...
 				- Installed hashicorp/random v1.2.3-beta`,
 			},
@@ -260,13 +260,13 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 			workDirPath: "init-provider-download/state-store-config-only",
 			flags:       []string{"-enable-pluggable-state-storage-experiment"},
 			expectedDownloadMsgs: []string{
-				`Initializing provider plugin for state store "test_store"...
+				`Initializing provider hashicorp/test for state store "test_store"...
 				- Finding latest version of hashicorp/test...
 				- Installing hashicorp/test v1.2.3...
 				- Installed hashicorp/test v1.2.3`,
 				`Initializing the state store "test_store"...`,
 				`Initializing provider plugins...
-				- Reusing previous version of hashicorp/test from the dependency lock file
+				- Reusing version 1.2.3 of hashicorp/test from the dependency lock file
 				- Using previously-installed hashicorp/test v1.2.3`,
 			},
 		},
@@ -4276,7 +4276,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutput := `Initializing provider plugin for state store "test_store"...
+		expectedOutput := `Initializing provider hashicorp/test for state store "test_store"...
 - Finding latest version of hashicorp/test...
 - Installing hashicorp/test v1.2.3...
 - Installed hashicorp/test v1.2.3 (verified checksum)
@@ -4284,7 +4284,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 Initializing the state store "test_store"...
 
 Initializing provider plugins...
-- Reusing previous version of hashicorp/test from the dependency lock file
+- Reusing version 1.2.3 of hashicorp/test from the dependency lock file
 - Using previously-installed hashicorp/test v1.2.3`
 		if !strings.Contains(output, expectedOutput) {
 			t.Fatalf("expected output to include %q, but got:\n%s", expectedOutput, output)
@@ -5061,7 +5061,7 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 
 	// Check stdout
 	stdout := testOutput.Stdout()
-	expectedOutput := `Initializing provider plugin for state store "test_store"...
+	expectedOutput := `Initializing provider hashicorp/test (< 2.0.0) for state store "test_store"...
 - Finding hashicorp/test versions matching "< 2.0.0"...
 - Installing hashicorp/test v1.0.0...
 - Installed hashicorp/test v1.0.0 (verified checksum)
@@ -5072,7 +5072,7 @@ Initializing modules...
 - child in child
 
 Initializing provider plugins...
-- Reusing previous version of hashicorp/test from the dependency lock file
+- Reusing version 1.0.0 of hashicorp/test from the dependency lock file
 `
 
 	if stdout != expectedOutput {

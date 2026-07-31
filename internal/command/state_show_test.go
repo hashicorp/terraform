@@ -17,6 +17,7 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestStateShow(t *testing.T) {
@@ -421,6 +422,59 @@ resource "test_instance" "foo" {
     id  = "bar"
 }
 `
+
+func TestStateShow_stateStore_error(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		[]byte(""),
+	)
+	mockProvider.ReadStateBytesFn = func(rsbr providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "state reading failed", "test error"))
+		return providers.ReadStateBytesResponse{
+			Diagnostics: diags,
+		}
+	}
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := testUiWrapped(t)
+	view, done := testView(t)
+	c := &StateShowCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			Ui:   ui,
+			View: view,
+		},
+	}
+
+	// `terraform show` command specifying a given resource addr
+	args := []string{"test_instance.foo", "-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("unexpected exit code: %d (expected 1)\n\n%s", code, output.All())
+	}
+
+	// Test that error was displayed
+	expectedErr := "Error: state reading failed"
+	out := output.Stderr()
+	if !strings.Contains(out, expectedErr) {
+		t.Fatalf("Expected:\n%q\n\nTo contain: %q", out, expectedErr)
+	}
+}
 
 func TestStateShow_json(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {

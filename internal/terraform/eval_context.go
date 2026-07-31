@@ -235,6 +235,12 @@ type EvalContext interface {
 	// Absent if policy evaluation is not enabled.
 	PolicyClient() policy.Client
 
+	// PolicySemaphore returns the semaphore used to limit concurrent policy
+	// evaluations. This is separate from the provider operation semaphore to
+	// ensure policy evaluations don't consume provider parallelism slots.
+	// Returns nil if policy evaluation is not enabled.
+	PolicySemaphore() Semaphore
+
 	Config() *configs.Config
 
 	// Deprecations returns the deprecations object that tracks meta-information

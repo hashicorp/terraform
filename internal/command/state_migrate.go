@@ -110,9 +110,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.Source = srcB
 		}
 	} else if smi.StateStore != nil {
-		source = fmt.Sprintf("state store %q (%s)", smi.StateStore.Type,
-			smi.StateStore.ProviderAddr.ForDisplay())
-
 		// Load any pre-existing source provider lock file.
 		var lockfilePath string
 		if args.SourceLockFilePath != "" {
@@ -130,7 +127,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
 		var output bool
-		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
+		output, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -140,6 +137,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			// Space out provider download output from the migration output below.
 			view.Spacer()
 		}
+
+		pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
+		source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
+			smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
 
 		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
 		diags = diags.Append(srcDiags)
@@ -185,9 +186,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			}
 		}
 	} else if rootMod.StateStore != nil {
-		destination = fmt.Sprintf("state store %q (%s)", rootMod.StateStore.Type,
-			rootMod.StateStore.ProviderAddr.ForDisplay())
-
 		// Get single required_providers entry for state store provider.
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
@@ -232,7 +230,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		upgrade := false // TODO - control this by -upgrade flag
 		var dstProviderDiags tfdiags.Diagnostics
 		var output bool
-		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, view)
+		output, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -242,6 +240,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			// Space out provider download output from the migration output below.
 			view.Spacer()
 		}
+
+		pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
+		destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
+			rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
 
 		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
 		diags = diags.Append(dstDiags)
@@ -464,7 +466,7 @@ func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *de
 // Download of the up to 2 providers is kept separate due to:
 // - Potential for downloading different versions of the same provider
 // - Need to keep the locks separate for source and destination providers; destination providers are added to the dependency lock file.
-func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName string, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore *configs.StateStore, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install state migration "+location+" provider")
 	defer span.End()
 
@@ -501,14 +503,22 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	// are shimming our vt100 output to the legacy console API on Windows.
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitializingStateStoreProviderPlugin(storeName)
+			pAddr := stateStore.ProviderAddr
+			// empty address would indicate wrong configuration
+			// such as missing or mismatching provider requirement
+			// which will be surfaced as diagnostic during installation
+			if !pAddr.IsZero() {
+				cons := reqs[pAddr]
+				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, stateStore.Type)
+			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogReusingPreviousProviderVersion(provider)
+				pLock := locks.Provider(provider)
+				view.LogReusingPreviousProviderVersion(provider, pLock.Version())
 			} else {
 				if len(versionConstraints) > 0 {
 					view.LogFindingMatchingVersion(provider, versionConstraints)
