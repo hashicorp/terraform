@@ -174,7 +174,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	v := make(Set)
 	e := make(Set)
 	if g != nil {
-		v, e = g.vertices, g.edges
+		v, e = g.vertices, g.EdgeSet()
 	}
 
 	// Grab the change lock so no more updates happen but also so that

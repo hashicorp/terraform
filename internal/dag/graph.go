@@ -6,13 +6,13 @@ package dag
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"sort"
 )
 
 // Graph is used to represent a dependency graph.
 type Graph struct {
 	vertices  Set
-	edges     Set
 	downEdges map[any]Set
 	upEdges   map[any]Set
 }
@@ -63,11 +63,24 @@ func (g *Graph) Vertices() []Vertex {
 	return result
 }
 
+func (g *Graph) EdgeSet() Set {
+	edges := make(Set)
+	for from, tos := range g.downEdges {
+		for _, to := range tos {
+			edges.Add(BasicEdge(from, to))
+		}
+	}
+	return edges
+}
+
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
-	result := make([]Edge, 0, len(g.edges))
-	for _, v := range g.edges {
-		result = append(result, v.(Edge))
+	result := make([]Edge, 0, len(g.upEdges)+len(g.downEdges))
+
+	for from, tos := range g.downEdges {
+		for _, to := range tos {
+			result = append(result, BasicEdge(from, to))
+		}
 	}
 
 	return result
@@ -87,6 +100,7 @@ func (g *Graph) EdgesFrom(v Vertex) []Edge {
 }
 
 // EdgesTo returns the list of edges to the given target.
+// FIXME: this duplicates up edges
 func (g *Graph) EdgesTo(v Vertex) []Edge {
 	var result []Edge
 	search := hashcode(v)
@@ -106,7 +120,12 @@ func (g *Graph) HasVertex(v Vertex) bool {
 
 // HasEdge checks if the given Edge is present in the graph.
 func (g *Graph) HasEdge(e Edge) bool {
-	return g.edges.Include(e)
+	from, to := e.Source(), e.Target()
+	tos, hasFrom := g.downEdges[from]
+	if !hasFrom {
+		return false
+	}
+	return tos.Include(to)
 }
 
 // Add adds a vertex to the graph. This is safe to call multiple time with
@@ -167,9 +186,6 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 func (g *Graph) RemoveEdge(edge Edge) {
 	g.init()
 
-	// Delete the edge from the set
-	g.edges.Delete(edge)
-
 	// Delete the up/down edges
 	if s, ok := g.downEdges[hashcode(edge.Source())]; ok {
 		s.Delete(edge.Target())
@@ -224,9 +240,6 @@ func (g *Graph) Connect(edge Edge) {
 		return
 	}
 
-	// Add the edge to the set
-	g.edges.Add(edge)
-
 	// Add the down edge
 	s, ok := g.downEdges[sourceCode]
 	if !ok {
@@ -245,25 +258,21 @@ func (g *Graph) Connect(edge Edge) {
 }
 
 // Subsume imports all of the nodes and edges from the given graph into the
-// reciever, leaving the given graph unchanged.
+// receiver, leaving the given graph unchanged.
 //
-// If any of the nodes in the given graph are already present in the reciever
+// If any of the nodes in the given graph are already present in the receiver
 // then the existing node will be retained and any new edges from the given
 // graph will be connected with it.
-//
-// If the given graph has edges in common with the reciever then they will be
-// ignored, because each pair of nodes can only be connected once.
 func (g *Graph) Subsume(other *Graph) {
-	// We're using Set.Filter just as a "visit each element" here, so we're
-	// not doing anything with the result (which will always be empty).
-	other.vertices.Filter(func(i any) bool {
-		g.Add(i)
-		return false
-	})
-	other.edges.Filter(func(i any) bool {
-		g.Connect(i.(Edge))
-		return false
-	})
+	g.init()
+	maps.Insert(g.vertices, maps.All(other.vertices))
+
+	for v := range other.downEdges {
+		g.downEdges[v] = other.DownEdges(v)
+	}
+	for v := range other.upEdges {
+		g.upEdges[v] = other.UpEdges(v)
+	}
 }
 
 // String outputs some human-friendly output for the graph structure.
@@ -350,9 +359,6 @@ func (g *Graph) String() string {
 func (g *Graph) init() {
 	if g.vertices == nil {
 		g.vertices = make(Set)
-	}
-	if g.edges == nil {
-		g.edges = make(Set)
 	}
 	if g.downEdges == nil {
 		g.downEdges = make(map[any]Set)
