@@ -1,6 +1,16 @@
 ## 1.17.0 (Unreleased)
 
 
+ENHANCEMENTS:
+
+* command/init: Enrich log messages with provider versions ([#38918](https://github.com/hashicorp/terraform/issues/38918))
+
+
+BUG FIXES:
+
+* funcs: pow and log no longer panic when result is not a number ([#38912](https://github.com/hashicorp/terraform/issues/38912))
+
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.

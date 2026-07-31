@@ -272,11 +272,23 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 			}
 		}
 
-		var protoPolicyRange *terraform1.SourceRange
+		// Policy range uses a special range struct as policy files are not part of the source bundle
+		var protoPolicyRange *stacks.PolicyRange
 		if enforcement.Range != nil {
 			rng := sourceRangeFromHCL(*enforcement.Range)
-			protoPolicyRange = &terraform1.SourceRange{
-				SourceAddr: enforcement.Range.Filename,
+			protoPolicyRange = &stacks.PolicyRange{
+				Filename: enforcement.Range.Filename,
+				Start:    sourcePosToProto(rng.Start),
+				End:      sourcePosToProto(rng.End),
+			}
+		}
+
+		// Target range uses the standard range struct as targets will exist in a file with a full source address
+		var protoTargetRange *terraform1.SourceRange
+		if enforcement.LocalRange != nil {
+			rng := sourceRangeFromHCL(*enforcement.LocalRange)
+			protoTargetRange = &terraform1.SourceRange{
+				SourceAddr: enforcement.LocalRange.Filename,
 				Start:      sourcePosToProto(rng.Start),
 				End:        sourcePosToProto(rng.End),
 			}
@@ -289,6 +301,7 @@ func policyInfosToProto(addr string, enforcements []policy.EnforcementResult) []
 			PolicySnippet:  protoPolicySnippet,
 			PolicyMetadata: protoPolicyMetadata,
 			PolicyRange:    protoPolicyRange,
+			Range:          protoTargetRange,
 		})
 	}
 
@@ -332,8 +345,9 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 			}
 
 			if rng := extra.Range; rng != nil && rng.Subject != nil {
-				policyDiag.PolicyRange = &terraform1.SourceRange{
-					SourceAddr: rng.Subject.Filename,
+				// Policy range uses a special range struct as policy files are not part of the source bundle
+				policyDiag.PolicyRange = &stacks.PolicyRange{
+					Filename: rng.Subject.Filename,
 				}
 				if start := rng.Subject.Start; start != nil {
 					policyDiag.PolicyRange.Start = &terraform1.SourcePos{

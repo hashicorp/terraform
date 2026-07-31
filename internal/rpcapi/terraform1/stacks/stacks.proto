@@ -262,7 +262,8 @@ message PlanStackChanges {
     optional string tfpolicy_plugin_path = 8;
 
     // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
-    repeated string policy_paths = 9; 
+    repeated string policy_paths = 9;
+    PolicyEntitlement policy_entitlement = 10;
   }
   message Event {
     oneof event {
@@ -275,6 +276,9 @@ message PlanStackChanges {
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 13;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -341,6 +345,7 @@ message ApplyStackChanges {
 
     // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
     repeated string policy_paths = 10;
+    PolicyEntitlement policy_entitlement = 11;
 
     reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
   }
@@ -355,6 +360,9 @@ message ApplyStackChanges {
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 6;
     }
   }
 }
@@ -1122,6 +1130,10 @@ message ProviderInstancePolicyEvaluation {
   repeated PolicyDiagnostic diagnostics = 4;
 }
 
+message PolicySetupDiagnostics {
+  repeated PolicyDiagnostic diagnostics = 1;
+}
+
 message PolicyMetaData {
   string policy_name = 1;
   string policy_set_name = 2;
@@ -1140,9 +1152,12 @@ message PolicyInfo {
   string target_address = 1;
   PolicyMetaData policy_metadata = 2;
   string message = 3;
-  terraform1.SourceRange policy_range = 4;
+  PolicyRange policy_range = 4;
   PolicySnippet policy_snippet = 5;
   EvaluateResult result = 6;
+
+  // Range related to the target_address
+  terraform1.SourceRange range = 7;
 }
 
 message PolicySnippet {
@@ -1159,7 +1174,7 @@ message PolicyDiagnostic {
   EvaluateResult result = 3;
   terraform1.Diagnostic diagnostic = 4;
   PolicySnippet policy_snippet = 5;
-  terraform1.SourceRange policy_range = 6;
+  PolicyRange policy_range = 6;
   repeated ExpressionValue expression_values = 7;
 }
 
@@ -1177,4 +1192,19 @@ enum EvaluateResult {
 message ExpressionValue {
   AttributePath traversal = 1;
   bytes value = 2;
+}
+
+// PolicyRange is similar to terraform1.SourceRange but is separated to avoid confusion because
+// policies are not included in the source bundle, which results in them having a file path rather
+// than a full source address.
+message PolicyRange {
+    string filename = 1;
+    terraform1.SourcePos start = 2;
+    terraform1.SourcePos end = 3;
+}
+
+message PolicyEntitlement { 
+  string host  = 1;
+  string token = 2;
+  string org   = 3;
 }

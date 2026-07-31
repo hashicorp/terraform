@@ -135,7 +135,8 @@ func Connect(ctx context.Context, policyPluginPath string) (Client, error) {
 		Plugins: map[string]plugin.Plugin{
 			"policy": new(policy),
 		},
-		Cmd: cmd,
+		Cmd:      cmd,
+		AutoMTLS: true,
 		AllowedProtocols: []plugin.Protocol{
 			plugin.ProtocolGRPC,
 		},

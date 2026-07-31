@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
-// ProviderInstaller is an interface that describes the methods required by a view that's used
+// ProviderInstallationLogger is an interface that describes the methods required by a view that's used
 // with provider installation methods.
 //
 // The `Output` method is a constraint from the Init view interface, which will be refactored away soon.
-type ProviderInstaller interface {
+type ProviderInstallationLogger interface {
 	Output(messageCode InitMessageCode, params ...any)
 
 	// LogProviderVersionSuccess describes a successfully installed provider along with its version
@@ -25,7 +25,7 @@ type ProviderInstaller interface {
 	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogReusingPreviousProviderVersion indicates a provider is locked to a specific version during installation
-	LogReusingPreviousProviderVersion(providerAddr addrs.Provider)
+	LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogFindingMatchingVersion indicates that Terraform is looking for a provider version that matches the constraint during installation.
 	LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints)
@@ -46,7 +46,7 @@ type ProviderInstaller interface {
 	LogPartnerAndCommunityProviders()
 
 	// LogInitializingStateStoreProviderPlugin indicates progress during installation of a state store provider plugin
-	LogInitializingStateStoreProviderPlugin(storeType string)
+	LogInitializingStateStoreProviderPlugin(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
