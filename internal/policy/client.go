@@ -81,13 +81,13 @@ func isPluginCrashError(err error) bool {
 		// the server process died, the connection was reset, etc.
 		return true
 	case grpccodes.Internal:
-		// Internal can carry "EOF" or "broken pipe" when the transport closes
-		// mid-message.
+		// Internal can carry "EOF", "unexpected eof", or "broken pipe" when
+		// the transport closes mid-message. msg is already lowercased so the
+		// "eof" check subsumes "unexpected eof".
 		msg := strings.ToLower(st.Message())
 		return strings.Contains(msg, "eof") ||
 			strings.Contains(msg, "broken pipe") ||
-			strings.Contains(msg, "connection reset") ||
-			strings.Contains(msg, "unexpected EOF")
+			strings.Contains(msg, "connection reset")
 	case grpccodes.Unknown:
 		// Unknown wraps raw errors from the transport layer; check for the
 		// same keywords.

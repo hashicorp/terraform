@@ -597,6 +597,7 @@ func TestIsPluginCrashError(t *testing.T) {
 	})
 
 	t.Run("grpc_internal_unexpected_eof_returns_true", func(t *testing.T) {
+		// "unexpected EOF" is matched by the "eof" check (after lowercasing).
 		err := grpcstatus.Error(grpccodes.Internal, "unexpected EOF")
 		if !isPluginCrashError(err) {
 			t.Error("expected true for Internal/unexpected EOF")
