@@ -145,6 +145,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 		actual = strings.TrimSpace(output.Stdout())
 		expected = strings.TrimSpace(`
 {
+  "format_version": "1.0",
   "terraform_version": "4.5.6-foo",
   "platform": "aros_riscv64",
   "provider_selections": {},
@@ -279,6 +280,7 @@ func TestVersion_json(t *testing.T) {
 	actual := strings.TrimSpace(done(t).All())
 	expected := strings.TrimSpace(`
 {
+  "format_version": "1.0",
   "terraform_version": "4.5.6",
   "platform": "aros_riscv64",
   "provider_selections": {},
@@ -325,6 +327,7 @@ func TestVersion_json(t *testing.T) {
 	actual = strings.TrimSpace(done(t).All())
 	expected = strings.TrimSpace(`
 {
+  "format_version": "1.0",
   "terraform_version": "4.5.6-foo",
   "platform": "aros_riscv64",
   "provider_selections": {
@@ -357,7 +360,7 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(done(t).All())
-	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
+	expected := "{\n  \"format_version\": \"1.0\",\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
