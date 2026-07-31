@@ -9,7 +9,9 @@ import (
 )
 
 // Set is a set data structure.
-type Set map[any]any
+type Set = setMap[Vertex]
+
+type setMap[T any] map[any]T
 
 // Hashable is the interface used by set to get the hash code of a value.
 // If this isn't given, then the value of the item being added to the set
@@ -28,24 +30,24 @@ func hashcode(v any) any {
 }
 
 // Add adds an item to the set
-func (s Set) Add(v any) {
+func (s setMap[T]) Add(v T) {
 	s[hashcode(v)] = v
 }
 
 // Delete removes an item from the set.
-func (s Set) Delete(v any) {
+func (s setMap[T]) Delete(v any) {
 	delete(s, hashcode(v))
 }
 
 // Include returns true/false of whether a value is in the set.
-func (s Set) Include(v any) bool {
+func (s setMap[T]) Include(v any) bool {
 	_, ok := s[hashcode(v)]
 	return ok
 }
 
 // Intersection computes the set intersection with other.
-func (s Set) Intersection(other Set) Set {
-	result := make(Set)
+func (s setMap[T]) Intersection(other setMap[T]) setMap[T] {
+	result := make(setMap[T])
 	if s == nil || other == nil {
 		return result
 	}
@@ -63,12 +65,12 @@ func (s Set) Intersection(other Set) Set {
 
 // Difference returns a set with the elements that s has but
 // other doesn't.
-func (s Set) Difference(other Set) Set {
+func (s setMap[T]) Difference(other setMap[T]) setMap[T] {
 	if other == nil || other.Len() == 0 {
 		return s.Copy()
 	}
 
-	result := make(Set)
+	result := make(setMap[T])
 	for k, v := range s {
 		if _, ok := other[k]; !ok {
 			result.Add(v)
@@ -80,7 +82,7 @@ func (s Set) Difference(other Set) Set {
 
 // Filter returns a set that contains the elements from the receiver
 // where the given callback returns true.
-func (s Set) Filter(cb func(any) bool) Set {
+func (s setMap[T]) Filter(cb func(any) bool) Set {
 	result := make(Set)
 
 	for _, v := range s {
@@ -93,12 +95,12 @@ func (s Set) Filter(cb func(any) bool) Set {
 }
 
 // Len is the number of items in the set.
-func (s Set) Len() int {
+func (s setMap[T]) Len() int {
 	return len(s)
 }
 
 // List returns the sequence of set elements.
-func (s Set) List() iter.Seq[any] {
+func (s setMap[T]) List() iter.Seq[any] {
 	return func(yield func(any) bool) {
 		for _, v := range s {
 			if !yield(v) {
@@ -109,6 +111,6 @@ func (s Set) List() iter.Seq[any] {
 }
 
 // Copy returns a shallow copy of the set.
-func (s Set) Copy() Set {
+func (s setMap[T]) Copy() setMap[T] {
 	return maps.Clone(s)
 }
