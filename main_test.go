@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/ui"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -346,17 +347,87 @@ func TestMain_autoComplete(t *testing.T) {
 	}
 }
 
+func TestMain_commandHelpOutput(t *testing.T) {
+	oldArgs := os.Args
+	oldCommands := Commands
+	t.Cleanup(func() {
+		os.Args = oldArgs
+		Commands = oldCommands
+	})
+
+	testCommandName := "unit-test-command-help-output"
+	Commands = map[string]cli.CommandFactory{
+		testCommandName: func() (cli.Command, error) {
+			return &testCommandCLI{
+				HelpText:  "command help",
+				RunResult: cli.RunResultHelp,
+			}, nil
+		},
+	}
+
+	tests := []struct {
+		Name       string
+		Args       []string
+		WantExit   int
+		WantStdout string
+		WantStderr string
+	}{
+		{
+			Name:       "explicit help",
+			Args:       []string{testCommandName, "-help"},
+			WantExit:   0,
+			WantStdout: "command help\n",
+		},
+		{
+			Name:       "command requests help",
+			Args:       []string{testCommandName, "invalid"},
+			WantExit:   1,
+			WantStderr: "command help\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			oldStdout := os.Stdout
+			oldStderr := os.Stderr
+			streams, done := terminal.StreamsForTesting(t)
+			os.Stdout = streams.Stdout.File
+			os.Stderr = streams.Stderr.File
+			defer func() {
+				os.Stdout = oldStdout
+				os.Stderr = oldStderr
+			}()
+
+			os.Args = append([]string{"terraform"}, test.Args...)
+			exit := realMain()
+			output := done(t)
+
+			if exit != test.WantExit {
+				t.Errorf("unexpected exit status %d; want %d", exit, test.WantExit)
+			}
+			if got := output.Stdout(); got != test.WantStdout {
+				t.Errorf("unexpected stdout %q; want %q", got, test.WantStdout)
+			}
+			if got := output.Stderr(); got != test.WantStderr {
+				t.Errorf("unexpected stderr %q; want %q", got, test.WantStderr)
+			}
+		})
+	}
+}
+
 type testCommandCLI struct {
-	Args []string
+	Args      []string
+	HelpText  string
+	RunResult int
 }
 
 func (c *testCommandCLI) Run(args []string) int {
 	c.Args = args
-	return 0
+	return c.RunResult
 }
 
 func (c *testCommandCLI) Synopsis() string { return "" }
-func (c *testCommandCLI) Help() string     { return "" }
+func (c *testCommandCLI) Help() string     { return c.HelpText }
 
 func TestWarnOutput(t *testing.T) {
 	mock := cli.NewMockUi()

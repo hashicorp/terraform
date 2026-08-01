@@ -286,11 +286,12 @@ func realMain() int {
 	// Rebuild the CLI with any modified args.
 	log.Printf("[INFO] CLI command args: %#v", args)
 	cliRunner = &cli.CLI{
-		Name:       binName,
-		Args:       args,
-		Commands:   Commands,
-		HelpFunc:   helpFunc,
-		HelpWriter: os.Stdout,
+		Name:        binName,
+		Args:        args,
+		Commands:    Commands,
+		HelpFunc:    helpFunc,
+		HelpWriter:  os.Stdout,
+		ErrorWriter: os.Stderr,
 
 		Autocomplete:          true,
 		AutocompleteInstall:   "install-autocomplete",

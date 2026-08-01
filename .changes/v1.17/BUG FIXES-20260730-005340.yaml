@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed an issue where usage information for invalid nested subcommands was written to stdout instead of stderr
+time: 2026-07-30T00:53:40+09:00
+custom:
+    Issue: "38957"
