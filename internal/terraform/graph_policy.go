@@ -69,7 +69,7 @@ func (ps *policySubgraph) graphCopyLocked() Graph {
 		g.Add(v)
 	}
 	for _, e := range ps.graph.Edges() {
-		g.Connect(e.Source(), e.Target())
+		g.Connect(e.S, e.T)
 	}
 	return g
 }

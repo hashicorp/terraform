@@ -234,7 +234,7 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 			dependee := &stmts[dependeeI]
 
 			if statementDependsOn(depender, dependee) {
-				g.Connect(dag.BasicEdge(depender, dependee))
+				g.Connect(depender, dependee)
 			}
 		}
 	}

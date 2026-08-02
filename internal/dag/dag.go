@@ -274,9 +274,9 @@ func (g *AcyclicGraph) Validate() error {
 
 	// Look for cycles to self
 	for _, e := range g.Edges() {
-		if e.Source() == e.Target() {
+		if e.S == e.T {
 			err = errors.Join(err, fmt.Errorf(
-				"Self reference: %s", VertexName(e.Source())))
+				"Self reference: %s", VertexName(e.S)))
 		}
 	}
 

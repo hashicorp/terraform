@@ -210,14 +210,13 @@ func validateMoveStatementGraph(g *dag.AcyclicGraph) tfdiags.Diagnostics {
 	// A user shouldn't be able to create self-references, but we cannot
 	// correctly process a graph with them.
 	for _, e := range g.Edges() {
-		src := e.Source()
-		if src == e.Target() {
+		if e.S == e.T {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Self reference in move statements",
 				fmt.Sprintf(
 					"The move statement %s refers to itself the move dependency graph, which is invalid. This is a bug in Terraform; please report it!",
-					src.(*MoveStatement).Name(),
+					e.S.(*MoveStatement).Name(),
 				),
 			))
 		}

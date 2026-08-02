@@ -49,7 +49,7 @@ type Walker struct {
 	// serious problems.
 	changeLock sync.Mutex
 	vertices   Set
-	edges      EdgeSet
+	edges      edgeSet
 	vertexMap  map[Vertex]*walkerVertex
 
 	// wait is done when all vertices have executed. It may become "undone"
@@ -87,7 +87,7 @@ func (w *Walker) init() {
 		w.vertices = make(Set)
 	}
 	if w.edges == nil {
-		w.edges = make(EdgeSet)
+		w.edges = make(edgeSet)
 	}
 }
 
@@ -172,9 +172,9 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 func (w *Walker) Update(g *AcyclicGraph) {
 	w.init()
 	v := make(Set)
-	e := make(EdgeSet)
+	e := make(edgeSet)
 	if g != nil {
-		v, e = g.vertices, g.EdgeSet()
+		v, e = g.vertices, g.edgeSet()
 	}
 
 	// Grab the change lock so no more updates happen but also so that
@@ -195,14 +195,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	oldVerts := w.vertices.Difference(v)
 
 	// Add the new vertices
-	for _, raw := range newVerts {
-		v := raw.(Vertex)
-
+	for _, v := range newVerts {
 		// Add to the waitgroup so our walk is not done until everything finishes
 		w.wait.Add(1)
 
 		// Add to our own set so we know about it already
-		w.vertices.Add(raw)
+		w.vertices.Add(v)
 
 		// Initialize the vertex info
 		info := &walkerVertex{
@@ -216,9 +214,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Remove the old vertices
-	for _, raw := range oldVerts {
-		v := raw.(Vertex)
-
+	for _, v := range oldVerts {
 		// Get the vertex info so we can cancel it
 		info, ok := w.vertexMap[v]
 		if !ok {
@@ -232,14 +228,13 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Delete it out of the map
 		delete(w.vertexMap, v)
-		w.vertices.Delete(raw)
+		w.vertices.Delete(v)
 	}
 
 	// Add the new edges
 	changedDeps := make(Set)
-	for _, raw := range newEdges {
-		edge := raw.(Edge)
-		waiter, dep := w.edgeParts(edge)
+	for _, edge := range newEdges {
+		waiter, dep := w.waitOrder(edge)
 
 		// Get the info for the waiter
 		waiterInfo, ok := w.vertexMap[waiter]
@@ -260,13 +255,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-		w.edges.Add(raw)
+		w.edges.Add(edge)
 	}
 
 	// Process removed edges
-	for _, raw := range oldEdges {
-		edge := raw.(Edge)
-		waiter, dep := w.edgeParts(edge)
+	for _, edge := range oldEdges {
+		waiter, dep := w.waitOrder(edge)
 
 		// Get the info for the waiter
 		waiterInfo, ok := w.vertexMap[waiter]
@@ -280,13 +274,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-		w.edges.Delete(raw)
+		w.edges.Delete(edge)
 	}
 
 	// For each vertex with changed dependencies, we need to kick off
 	// a new waiter and notify the vertex of the changes.
-	for _, raw := range changedDeps {
-		v := raw.(Vertex)
+	for _, v := range changedDeps {
 		info, ok := w.vertexMap[v]
 		if !ok {
 			// Vertex doesn't exist... shouldn't be possible but ignore.
@@ -326,20 +319,19 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are set up above.
-	for _, raw := range newVerts {
-		v := raw.(Vertex)
+	for _, v := range newVerts {
 		go w.walkVertex(v, w.vertexMap[v])
 	}
 }
 
-// edgeParts returns the waiter and the dependency, in that order.
+// waitOrder returns the waiter and the dependency, in that order.
 // The waiter is waiting on the dependency.
-func (w *Walker) edgeParts(e Edge) (Vertex, Vertex) {
+func (w *Walker) waitOrder(e Edge) (Vertex, Vertex) {
 	if w.Reverse {
-		return e.Source(), e.Target()
+		return e.S, e.T
 	}
 
-	return e.Target(), e.Source()
+	return e.T, e.S
 }
 
 // walkVertex walks a single vertex, waiting for any dependencies before

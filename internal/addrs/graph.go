@@ -95,7 +95,7 @@ func (g DirectedGraph[T]) AllNodes() Set[T] {
 func (g DirectedGraph[T]) AddDependency(dependent, dependency T) {
 	g.Add(dependent)
 	g.Add(dependency)
-	g.g.Connect(dag.BasicEdge(keyVertex{dependent.UniqueKey()}, keyVertex{dependency.UniqueKey()}))
+	g.g.Connect(keyVertex{dependent.UniqueKey()}, keyVertex{dependency.UniqueKey()})
 }
 
 // DirectDependenciesOf returns only the direct dependencies of the given

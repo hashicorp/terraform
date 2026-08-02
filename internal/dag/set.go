@@ -11,7 +11,7 @@ import (
 // Set is a set data structure.
 type Set = setMap[Vertex]
 
-type EdgeSet = setMap[Edge]
+type edgeSet = setMap[Edge]
 
 type setMap[T any] map[any]T
 
