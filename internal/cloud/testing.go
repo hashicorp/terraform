@@ -510,7 +510,7 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
 	// Respond to the initial query to read the hashicorp org entitlements.
 	"/api/v2/organizations/hashicorp/entitlement-set": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
-		io.WriteString(w, `{
+		tmpl := template.Must(template.New("hashicorp-entitlement-set").Parse(`{
   "data": {
     "id": "org-GExadygjSbKP8hsY",
     "type": "entitlement-sets",
@@ -523,7 +523,8 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
       "vcs-integrations": true
     }
   }
-}`)
+}`))
+		tmpl.Execute(w, nil)
 	},
 
 	// Respond to the initial query to read the no-operations org entitlements.
