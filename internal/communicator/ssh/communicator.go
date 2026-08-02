@@ -7,12 +7,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"math/rand"
+	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -37,13 +38,6 @@ const (
 )
 
 var (
-	// randShared is a global random generator object that is shared.  This must be
-	// shared since it is seeded by the current time and creating multiple can
-	// result in the same values. By using a shared RNG we assure different numbers
-	// per call.
-	randLock   sync.Mutex
-	randShared *rand.Rand
-
 	// enable ssh keeplive probes by default
 	keepAliveInterval = 2 * time.Second
 
@@ -98,19 +92,6 @@ func New(v cty.Value) (*Communicator, error) {
 	config, err := prepareSSHConfig(connInfo)
 	if err != nil {
 		return nil, err
-	}
-
-	// Set up the random number generator once. The seed value is the
-	// time multiplied by the PID. This can overflow the int64 but that
-	// is okay. We multiply by the PID in case we have multiple processes
-	// grabbing this at the same time. This is possible with Terraform and
-	// if we communicate to the same host at the same instance, we could
-	// overwrite the same files. Multiplying by the PID prevents this.
-	randLock.Lock()
-	defer randLock.Unlock()
-	if randShared == nil {
-		randShared = rand.New(rand.NewSource(
-			time.Now().UnixNano() * int64(os.Getpid())))
 	}
 
 	comm := &Communicator{
@@ -342,12 +323,15 @@ func (c *Communicator) Timeout() time.Duration {
 
 // ScriptPath implementation of communicator.Communicator interface
 func (c *Communicator) ScriptPath() string {
-	randLock.Lock()
-	defer randLock.Unlock()
-
+	// Use crypto/rand for a cryptographically secure random number.
+	// Int31 range: [0, 2^31)
+	n, err := rand.Int(rand.Reader, big.NewInt(1<<31))
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate secure random number for script path: %s", err))
+	}
 	return strings.Replace(
 		c.connInfo.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(randShared.Int31()), 10), -1)
+		strconv.FormatInt(n.Int64(), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface
