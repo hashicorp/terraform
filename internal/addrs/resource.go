@@ -4,11 +4,10 @@
 package addrs
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 // Resource is an address for a resource block within configuration, which
@@ -602,15 +601,16 @@ type DeposedKey string
 // key.
 const NotDeposed = DeposedKey("")
 
-var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// NewDeposedKey generates a pseudo-random deposed key. Because of the short
-// length of these keys, uniqueness is not a natural consequence and so the
-// caller should test to see if the generated key is already in use and generate
-// another if so, until a unique key is found.
+// NewDeposedKey generates a cryptographically random deposed key. Because of
+// the short length of these keys, uniqueness is not a natural consequence and
+// so the caller should test to see if the generated key is already in use and
+// generate another if so, until a unique key is found.
 func NewDeposedKey() DeposedKey {
-	v := deposedKeyRand.Uint32()
-	return DeposedKey(fmt.Sprintf("%08x", v))
+	var buf [4]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		panic(fmt.Sprintf("failed to generate deposed key: %s", err))
+	}
+	return DeposedKey(fmt.Sprintf("%08x", buf))
 }
 
 // ParseDeposedKey parses a string that is expected to be a deposed key,
