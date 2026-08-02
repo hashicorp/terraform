@@ -5,7 +5,7 @@ package oss
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -122,7 +122,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 		}
 	}
 
-	sum := md5.Sum(data)
+	sum := sha256.Sum256(data)
 	if err := c.putMD5(sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
@@ -243,8 +243,8 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 	}
 
 	sum, err := hex.DecodeString(val)
-	if err != nil || len(sum) != md5.Size {
-		return nil, errors.New("invalid md5")
+	if err != nil || len(sum) != sha256.Size {
+		return nil, errors.New("invalid digest")
 	}
 
 	return sum, nil
@@ -256,8 +256,8 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		return nil
 	}
 
-	if len(sum) != md5.Size {
-		return errors.New("invalid payload md5")
+	if len(sum) != sha256.Size {
+		return errors.New("invalid payload digest")
 	}
 
 	putParams := &tablestore.PutRowChange{
@@ -432,7 +432,7 @@ func (c *RemoteClient) getObj() (*remote.Payload, error) {
 	if _, err := io.Copy(buf, output); err != nil {
 		return nil, fmt.Errorf("failed to read remote state: %s", err)
 	}
-	sum := md5.Sum(buf.Bytes())
+	sum := sha256.Sum256(buf.Bytes())
 	payload := &remote.Payload{
 		Data: buf.Bytes(),
 		MD5:  sum[:],
