@@ -56,4 +56,6 @@ COPY LICENSE "/usr/share/doc/${BIN_NAME}/LICENSE.txt"
 # other official release channels.
 COPY ["dist/linux/${TARGETARCH}/terraform", "/bin/terraform"]
 
+USER nobody
+
 ENTRYPOINT ["/bin/terraform"]
