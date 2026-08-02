@@ -35,7 +35,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	targetedNodes := t.selectTargetedNodes(g, t.Targets)
 	for _, v := range g.Vertices() {
 		if !targetedNodes.Include(v) {
-			log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+			log.Printf("[DEBUG] Removing %q, filtered by targeting.", v.Name())
 			g.Remove(v)
 		}
 	}

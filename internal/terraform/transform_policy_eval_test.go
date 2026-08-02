@@ -131,7 +131,7 @@ func TestPolicyEvalTransformer_QueryMode(t *testing.T) {
 	// Managed resource must NOT be a (transitive) ancestor of the policy node.
 	policyNode := nodes[0]
 	for _, anc := range g.Ancestors(policyNode) {
-		if dag.VertexName(anc) == managedRes.Name() {
+		if anc.Name() == managedRes.Name() {
 			t.Errorf("policy node should not depend on managed resource in query mode, but %q is an ancestor", managedRes.Name())
 		}
 	}

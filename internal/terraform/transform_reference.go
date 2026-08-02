@@ -127,15 +127,15 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		referencedNodes := m.References(v)
 		refDbg := make([]string, len(referencedNodes))
 		for i, v := range referencedNodes {
-			refDbg[i] = dag.VertexName(v)
+			refDbg[i] = v.Name()
 		}
 		log.Printf(
 			"[DEBUG] ReferenceTransformer: %q references: %v",
-			dag.VertexName(v), refDbg)
+			v.Name(), refDbg)
 
 		for _, referenced := range referencedNodes {
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, referenced) {
-				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(referenced))
+				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", v.Name(), referenced.Name())
 				g.Connect(v, referenced)
 			}
 		}
@@ -159,7 +159,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				caller, ok := ref.(GraphNodeActionCaller)
 				if !ok {
 					// this node cannot call any actions
-					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
+					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), ref.Name())
 				}
 
 				// The reference can call actions, and we'll allow it if it
@@ -169,11 +169,11 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 						continue ACTIONREFS
 					}
 				}
-				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
+				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), ref.Name())
 			}
 
 			g.Connect(actionConfig, ref)
-			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(actionConfig), dag.VertexName(ref))
+			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", actionConfig.Name(), ref.Name())
 		}
 	}
 
@@ -309,7 +309,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			return deps[i].String() < deps[j].String()
 		})
 
-		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", dag.VertexName(v), deps)
+		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", v.Name(), deps)
 		attacher.AttachDependencies(deps)
 	}
 

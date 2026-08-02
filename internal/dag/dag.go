@@ -239,7 +239,7 @@ func (g *AcyclicGraph) Validate() error {
 		for _, cycle := range cycles {
 			cycleStr := make([]string, len(cycle))
 			for j, vertex := range cycle {
-				cycleStr[j] = VertexName(vertex)
+				cycleStr[j] = vertex.Name()
 			}
 
 			// Reverse the cycle string so readers can interpret it
@@ -276,7 +276,7 @@ func (g *AcyclicGraph) Validate() error {
 	for _, e := range g.Edges() {
 		if e.S == e.T {
 			err = errors.Join(err, fmt.Errorf(
-				"Self reference: %s", VertexName(e.S)))
+				"Self reference: %s", e.S.Name()))
 		}
 	}
 
@@ -519,6 +519,6 @@ func testAppendNextSorted(frontier []vertexAtDepth, edges Set, depth int) []vert
 }
 func testSortFrontier(f []vertexAtDepth) {
 	sort.Slice(f, func(i, j int) bool {
-		return VertexName(f[i].Vertex) < VertexName(f[j].Vertex)
+		return f[i].Vertex.Name() < f[j].Vertex.Name()
 	})
 }

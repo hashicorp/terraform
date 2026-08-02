@@ -208,7 +208,7 @@ func TestReferenceMapReferences(t *testing.T) {
 
 			var resultStr []string
 			for _, v := range result {
-				resultStr = append(resultStr, dag.VertexName(v))
+				resultStr = append(resultStr, v.Name())
 			}
 
 			sort.Strings(resultStr)

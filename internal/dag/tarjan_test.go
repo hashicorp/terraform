@@ -64,7 +64,7 @@ func testSCCStr(list [][]Vertex) string {
 	for _, vs := range list {
 		result := make([]string, len(vs))
 		for i, v := range vs {
-			result[i] = VertexName(v)
+			result[i] = v.Name()
 		}
 
 		sort.Strings(result)

@@ -275,7 +275,7 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 		for _, dep := range downEdges {
 			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
-					node.Name(), dag.VertexName(dep))
+					node.Name(), dep.Name())
 			}
 		}
 
@@ -283,7 +283,7 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 		for _, dep := range upEdges {
 			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
-					dag.VertexName(dep), node.Name())
+					dep.Name(), node.Name())
 			}
 		}
 	}
@@ -294,7 +294,7 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 	if len(edges) != 0 {
 		t.Errorf("expected 0 edges between policy nodes in subgraph, got %d edges", len(edges))
 		for _, edge := range edges {
-			t.Logf("  edge: %s -> %s", dag.VertexName(edge.S), dag.VertexName(edge.T))
+			t.Logf("  edge: %s -> %s", edge.S.Name(), edge.T.Name())
 		}
 	}
 }

@@ -47,7 +47,7 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 			// If there are no CBD decendant (dependent nodes), then we
 			// do nothing here.
 			if !t.hasCBDDescendant(g, v) {
-				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", dag.VertexName(v), v)
+				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", v.Name(), v)
 				continue
 			}
 
@@ -55,10 +55,10 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 			// and we need to auto-upgrade this node to CBD. We do this because
 			// a CBD node depending on non-CBD will result in cycles. To avoid this,
 			// we always attempt to upgrade it.
-			log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q (%T)", dag.VertexName(v), v)
+			log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q (%T)", v.Name(), v)
 			dn.ForceCreateBeforeDestroy()
 		} else {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) already has create_before_destroy set", dag.VertexName(v), v)
+			log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) already has create_before_destroy set", v.Name(), v)
 		}
 	}
 	return nil
@@ -72,7 +72,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
 		dn, ok := ov.(GraphNodeCreateBeforeDestroy)
 		if ok && dn.CreateBeforeDestroy() {
 			// some descendant is CreateBeforeDestroy, so we need to follow suit
-			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", dag.VertexName(v), dag.VertexName(ov))
+			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", v.Name(), ov.Name())
 			return true
 		}
 		return false
@@ -89,7 +89,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
 
 		dn, ok := dep.(GraphNodeCreateBeforeDestroy)
 		if ok && dn.CreateBeforeDestroy() {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q depends on CBD destroy node %q", dag.VertexName(v), dag.VertexName(dep))
+			log.Printf("[TRACE] ForcedCBDTransformer: %q depends on CBD destroy node %q", v.Name(), dep.Name())
 			return true
 		}
 	}
@@ -150,7 +150,7 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 			// This covers both the node's own creator, as well as reversing
 			// any dependants' edges.
 			if _, ok := src.(GraphNodeCreator); ok {
-				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", dag.VertexName(src), dag.VertexName(v))
+				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", src.Name(), v.Name())
 				g.RemoveEdge(src, v)
 				g.Connect(v, src)
 			}

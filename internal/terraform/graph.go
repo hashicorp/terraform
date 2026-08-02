@@ -48,14 +48,14 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
 
-		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", v.Name(), v)
 
 		defer func() {
 			if r := recover(); r != nil {
 				// If the walkFn panics, we get confusing logs about how the
 				// visit was complete. To stop this, we'll catch the panic log
 				// that the vertex panicked without finishing and re-panic.
-				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				log.Printf("[ERROR] vertex %q panicked", v.Name())
 				panic(r) // re-panic
 			}
 
@@ -63,12 +63,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				for _, diag := range diags {
 					if diag.Severity() == tfdiags.Error {
 						desc := diag.Description()
-						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
+						log.Printf("[ERROR] vertex %q error: %s", v.Name(), desc.Summary)
 					}
 				}
-				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
+				log.Printf("[TRACE] vertex %q: visit complete, with errors", v.Name())
 			} else {
-				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+				log.Printf("[TRACE] vertex %q: visit complete", v.Name())
 			}
 		}()
 
@@ -115,12 +115,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		vertexCtx := ctx
 		if pn, ok := v.(graphNodeEvalContextScope); ok {
 			scope := pn.Path()
-			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), scope)
+			log.Printf("[TRACE] vertex %q: belongs to %s", v.Name(), scope)
 			vertexCtx = walker.enterScope(scope)
 			defer walker.exitScope(scope)
 		} else if pn, ok := v.(GraphNodeModuleInstance); ok {
 			moduleAddr := pn.Path() // An addrs.ModuleInstance
-			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), moduleAddr)
+			log.Printf("[TRACE] vertex %q: belongs to %s", v.Name(), moduleAddr)
 			scope := evalContextModuleInstance{
 				Addr: moduleAddr,
 			}
@@ -128,14 +128,14 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			defer walker.exitScope(scope)
 		} else if pn, ok := v.(GraphNodePartialExpandedModule); ok {
 			moduleAddr := pn.Path() // An addrs.PartialExpandedModule
-			log.Printf("[TRACE] vertex %q: belongs to all of %s", dag.VertexName(v), moduleAddr)
+			log.Printf("[TRACE] vertex %q: belongs to all of %s", v.Name(), moduleAddr)
 			scope := evalContextPartialExpandedModule{
 				Addr: moduleAddr,
 			}
 			vertexCtx = walker.enterScope(scope)
 			defer walker.exitScope(scope)
 		} else {
-			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
+			log.Printf("[TRACE] vertex %q: does not belong to any module instance", v.Name())
 		}
 
 		// If the node is exec-able, then execute it.
@@ -148,12 +148,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// If the node is dynamically expanded, then expand it
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
-			log.Printf("[TRACE] vertex %q: expanding dynamic subgraph", dag.VertexName(v))
+			log.Printf("[TRACE] vertex %q: expanding dynamic subgraph", v.Name())
 
 			g, moreDiags := ev.DynamicExpand(vertexCtx)
 			diags = diags.Append(moreDiags)
 			if diags.HasErrors() {
-				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", dag.VertexName(v), diags.Err())
+				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", v.Name(), diags.Err())
 				return
 			}
 			if g != nil {
@@ -163,7 +163,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Graph node has invalid dynamic subgraph",
-						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: %s.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), err),
+						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: %s.\n\nThis is a bug in Terraform. Please report it!", v.Name(), err),
 					))
 					return
 				}
@@ -174,13 +174,13 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Graph node has invalid dynamic subgraph",
-						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), n),
+						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", v.Name(), n),
 					))
 					return
 				}
 
 				// Walk the subgraph
-				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
+				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", v.Name())
 				subDiags := g.walk(walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
@@ -188,12 +188,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					for _, d := range subDiags {
 						errs = append(errs, d.Description().Summary)
 					}
-					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors: %s", dag.VertexName(v), strings.Join(errs, ","))
+					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors: %s", v.Name(), strings.Join(errs, ","))
 					return
 				}
-				log.Printf("[TRACE] vertex %q: dynamic subgraph completed successfully", dag.VertexName(v))
+				log.Printf("[TRACE] vertex %q: dynamic subgraph completed successfully", v.Name())
 			} else {
-				log.Printf("[TRACE] vertex %q: produced no dynamic subgraph", dag.VertexName(v))
+				log.Printf("[TRACE] vertex %q: produced no dynamic subgraph", v.Name())
 			}
 		}
 		return
