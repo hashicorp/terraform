@@ -13,8 +13,8 @@ import (
 // Graph is used to represent a dependency graph.
 type Graph struct {
 	vertices  Set
-	downEdges map[Vertex]Set
-	upEdges   map[Vertex]Set
+	edgesFrom map[Vertex]Set
+	edgesTo   map[Vertex]Set
 }
 
 // Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
@@ -60,7 +60,7 @@ func (g *Graph) Vertices() []Vertex {
 
 func (g *Graph) edgeSet() edgeSet {
 	edges := make(edgeSet)
-	for from, tos := range g.downEdges {
+	for from, tos := range g.edgesFrom {
 		for _, to := range tos {
 			edges.Add(Edge{from, to})
 		}
@@ -70,9 +70,9 @@ func (g *Graph) edgeSet() edgeSet {
 
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
-	result := make([]Edge, 0, len(g.upEdges)+len(g.downEdges))
+	result := make([]Edge, 0, len(g.edgesTo)+len(g.edgesFrom))
 
-	for from, tos := range g.downEdges {
+	for from, tos := range g.edgesFrom {
 		for _, to := range tos {
 			result = append(result, Edge{from, to})
 		}
@@ -88,7 +88,7 @@ func (g *Graph) HasVertex(v Vertex) bool {
 
 // HasEdge checks if the given Edge is present in the graph.
 func (g *Graph) HasEdge(from, to Vertex) bool {
-	tos, hasFrom := g.downEdges[from]
+	tos, hasFrom := g.edgesFrom[from]
 	if !hasFrom {
 		return false
 	}
@@ -110,10 +110,10 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	g.vertices.Delete(v)
 
 	// Delete the edges to non-existent things
-	for _, target := range g.downEdgesNoCopy(v) {
+	for _, target := range g.edgesFromNoCopy(v) {
 		g.RemoveEdge(v, target)
 	}
-	for _, source := range g.upEdgesNoCopy(v) {
+	for _, source := range g.edgesToNoCopy(v) {
 		g.RemoveEdge(source, v)
 	}
 
@@ -136,10 +136,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
-	for _, target := range g.downEdgesNoCopy(original) {
+	for _, target := range g.edgesFromNoCopy(original) {
 		g.Connect(replacement, target)
 	}
-	for _, source := range g.upEdgesNoCopy(original) {
+	for _, source := range g.edgesToNoCopy(original) {
 		g.Connect(source, replacement)
 	}
 
@@ -154,10 +154,10 @@ func (g *Graph) RemoveEdge(from, to Vertex) {
 	g.init()
 
 	// Delete the up/down edges
-	if s, ok := g.downEdges[from]; ok {
+	if s, ok := g.edgesFrom[from]; ok {
 		s.Delete(to)
 	}
-	if s, ok := g.upEdges[from]; ok {
+	if s, ok := g.edgesTo[from]; ok {
 		// FIXME: is the correct and is there a test?
 		s.Delete(from)
 	}
@@ -166,29 +166,29 @@ func (g *Graph) RemoveEdge(from, to Vertex) {
 // UpEdges returns the vertices that are *sources* of edges that target the
 // destination Vertex v.
 func (g *Graph) UpEdges(v Vertex) Set {
-	return g.upEdgesNoCopy(v).Copy()
+	return g.edgesToNoCopy(v).Copy()
 }
 
 // DownEdges returns the vertices that are *targets* of edges that originate
 // from the source Vertex v.
 func (g *Graph) DownEdges(v Vertex) Set {
-	return g.downEdgesNoCopy(v).Copy()
+	return g.edgesFromNoCopy(v).Copy()
 }
 
-// downEdgesNoCopy returns the vertices targeted by edges from the source Vertex
+// edgesFromNoCopy returns the vertices targeted by edges from the source Vertex
 // v as a Set. This Set is the same as used internally by the Graph to prevent a
 // copy, and must not be modified by the caller.
-func (g *Graph) downEdgesNoCopy(v Vertex) Set {
+func (g *Graph) edgesFromNoCopy(v Vertex) Set {
 	g.init()
-	return g.downEdges[v]
+	return g.edgesFrom[v]
 }
 
-// upEdgesNoCopy returns the vertices that are sources of edges targeting the
+// edgesToNoCopy returns the vertices that are sources of edges targeting the
 // destination Vertex v as a Set. This Set is the same as used internally by the
 // Graph to prevent a copy, and must not be modified by the caller.
-func (g *Graph) upEdgesNoCopy(v Vertex) Set {
+func (g *Graph) edgesToNoCopy(v Vertex) Set {
 	g.init()
-	return g.upEdges[v]
+	return g.edgesTo[v]
 }
 
 // Connect adds an edge with the given source and target. This is safe to
@@ -197,23 +197,23 @@ func (g *Graph) Connect(source, target Vertex) {
 	g.init()
 
 	// Do we have this already? If so, don't add it again.
-	if s, ok := g.downEdges[source]; ok && s.Include(target) {
+	if s, ok := g.edgesFrom[source]; ok && s.Include(target) {
 		return
 	}
 
 	// Add the down edge
-	s, ok := g.downEdges[source]
+	s, ok := g.edgesFrom[source]
 	if !ok {
 		s = make(Set)
-		g.downEdges[source] = s
+		g.edgesFrom[source] = s
 	}
 	s.Add(target)
 
 	// Add the up edge
-	s, ok = g.upEdges[target]
+	s, ok = g.edgesTo[target]
 	if !ok {
 		s = make(Set)
-		g.upEdges[target] = s
+		g.edgesTo[target] = s
 	}
 	s.Add(source)
 }
@@ -228,11 +228,11 @@ func (g *Graph) Subsume(other *Graph) {
 	g.init()
 	maps.Insert(g.vertices, maps.All(other.vertices))
 
-	for v := range other.downEdges {
-		g.downEdges[v] = other.DownEdges(v)
+	for v := range other.edgesFrom {
+		g.edgesFrom[v] = other.DownEdges(v)
 	}
-	for v := range other.upEdges {
-		g.upEdges[v] = other.UpEdges(v)
+	for v := range other.edgesTo {
+		g.edgesTo[v] = other.UpEdges(v)
 	}
 }
 
@@ -255,7 +255,7 @@ func (g *Graph) StringWithNodeTypes() string {
 	// Write each node in order...
 	for _, name := range names {
 		v := mapping[name]
-		targets := g.downEdges[v]
+		targets := g.edgesFrom[v]
 
 		buf.WriteString(fmt.Sprintf("%s - %T\n", name, v))
 
@@ -297,7 +297,7 @@ func (g *Graph) String() string {
 	// Write each node in order...
 	for _, name := range names {
 		v := mapping[name]
-		targets := g.downEdges[v]
+		targets := g.edgesFrom[v]
 
 		buf.WriteString(fmt.Sprintf("%s\n", name))
 
@@ -321,11 +321,11 @@ func (g *Graph) init() {
 	if g.vertices == nil {
 		g.vertices = make(Set)
 	}
-	if g.downEdges == nil {
-		g.downEdges = make(map[Vertex]Set)
+	if g.edgesFrom == nil {
+		g.edgesFrom = make(map[Vertex]Set)
 	}
-	if g.upEdges == nil {
-		g.upEdges = make(map[Vertex]Set)
+	if g.edgesTo == nil {
+		g.edgesTo = make(map[Vertex]Set)
 	}
 }
 
