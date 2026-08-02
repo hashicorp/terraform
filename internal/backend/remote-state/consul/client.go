@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -114,15 +114,15 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 		}
 	}
 
-	md5 := md5.Sum(payload)
+	digest := sha256.Sum256(payload)
 
-	if hash != "" && fmt.Sprintf("%x", md5) != hash {
+	if hash != "" && fmt.Sprintf("%x", digest) != hash {
 		return nil, diags.Append(fmt.Errorf("The remote state does not match the expected hash"))
 	}
 
 	return &remote.Payload{
 		Data: payload,
-		MD5:  md5[:],
+		MD5:  digest[:],
 	}, diags
 }
 
@@ -269,13 +269,13 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 
 	// The payload was too large so we split it in multiple chunks
 
-	md5 := md5.Sum(data)
+	digest := sha256.Sum256(data)
 	chunks := split(payload, 524288)
 	chunkPaths := make([]string, 0)
 
 	// First we write the new chunks
 	for i, p := range chunks {
-		path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%x/%d", md5, i)
+		path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%x/%d", digest, i)
 		chunkPaths = append(chunkPaths, path)
 		_, err := kv.Put(&consulapi.KVPair{
 			Key:   path,
@@ -289,7 +289,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 
 	// Then we update the link to point to the new chunks
 	payload, err = json.Marshal(map[string]interface{}{
-		"current-hash": fmt.Sprintf("%x", md5),
+		"current-hash": fmt.Sprintf("%x", digest),
 		"chunks":       chunkPaths,
 	})
 	if err != nil {
