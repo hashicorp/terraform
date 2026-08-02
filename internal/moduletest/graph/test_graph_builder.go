@@ -54,7 +54,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestVariablesTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			cleanup := &TeardownSubgraph{opts: opts, parent: g, mode: b.CommandMode}
+			cleanup := &TeardownSubgraph{opts: opts, runGraph: g, mode: b.CommandMode}
 			g.Add(cleanup)
 
 			// ensure that the teardown node runs after all the run nodes
