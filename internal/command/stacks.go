@@ -104,10 +104,16 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		return ExitPluginError
 	}
 
+	pluginCmd, err := safePluginCommand(c.pluginBinary)
+	if err != nil {
+		fmt.Fprintf(stderr, "Stacks plugin binary validation failed: %s", err)
+		return ExitPluginError
+	}
+
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  StacksHandshake,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Cmd:              exec.Command(c.pluginBinary),
+		Cmd:              pluginCmd,
 		Logger:           logging.NewStacksLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
