@@ -12,7 +12,9 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	"google.golang.org/grpc/metadata"
 
@@ -69,6 +71,45 @@ var (
 	CloudPluginDataDir = "cloudplugin"
 )
 
+// safePluginCommand validates the plugin binary path before use in exec.Command
+// to prevent code injection via a non-static, potentially user-influenced path.
+// It requires the path to be absolute and resolves any symlinks so that the
+// final target is confirmed to be a regular executable file.
+func safePluginCommand(binaryPath string) (*exec.Cmd, error) {
+	// Normalise the path to eliminate any ".." traversal components.
+	cleaned := filepath.Clean(binaryPath)
+
+	// Require an absolute path; relative paths could resolve differently
+	// depending on the working directory and are therefore unsafe.
+	if !filepath.IsAbs(cleaned) {
+		return nil, fmt.Errorf("plugin binary path must be absolute, got: %q", cleaned)
+	}
+
+	// Resolve all symlinks so the final target can be inspected.
+	resolved, err := filepath.EvalSymlinks(cleaned)
+	if err != nil {
+		return nil, fmt.Errorf("could not resolve plugin binary path %q: %w", cleaned, err)
+	}
+
+	// Guard against symlink-based escapes: the resolved path must still share
+	// the same absolute prefix as the cleaned path's parent directory.
+	expectedDir := filepath.Dir(cleaned)
+	if !strings.HasPrefix(resolved, expectedDir+string(filepath.Separator)) && resolved != cleaned {
+		return nil, fmt.Errorf("plugin binary path %q resolves outside its expected directory", binaryPath)
+	}
+
+	// Confirm the resolved path is a regular file (not a directory or device).
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return nil, fmt.Errorf("could not stat plugin binary %q: %w", resolved, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("plugin binary path %q is not a regular file", resolved)
+	}
+
+	return exec.Command(resolved), nil
+}
+
 func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	args = c.Meta.process(args)
 
@@ -80,10 +121,16 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		return ExitPluginError
 	}
 
+	pluginCmd, err := safePluginCommand(c.pluginBinary)
+	if err != nil {
+		fmt.Fprintf(stderr, "Cloud plugin binary validation failed: %s", err)
+		return ExitPluginError
+	}
+
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Cmd:              exec.Command(c.pluginBinary),
+		Cmd:              pluginCmd,
 		Logger:           logging.NewCloudLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
