@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -239,7 +239,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	}
 	client := s.(*remote.State).Client.(*RemoteClient)
 
-	sum := md5.Sum([]byte("test"))
+	sum := sha256.Sum256([]byte("test"))
 
 	if err := client.putMD5(sum[:]); err != nil {
 		t.Fatal(err)
