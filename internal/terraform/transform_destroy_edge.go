@@ -86,8 +86,7 @@ destroyA ------------->  destroyB
 // destroyed. This is where these cross-provider edges are still required to
 // ensure the correct order.
 func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
-	e := dag.BasicEdge(from, to)
-	g.Connect(e)
+	g.Connect(from, to)
 
 	// If this is a complete destroy operation, then there are no create/update
 	// nodes to worry about and we can accept the edge without deeper inspection.
@@ -120,7 +119,7 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	if fromProvider != toProvider && g.Ancestors(to).Include(from) {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
 			dag.VertexName(from), dag.VertexName(to))
-		g.RemoveEdge(e)
+		g.RemoveEdge(from, to)
 	}
 }
 
