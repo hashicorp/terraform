@@ -6,6 +6,8 @@ package pg
 import (
 	"fmt"
 
+	"github.com/lib/pq"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -17,7 +19,7 @@ func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	query := `SELECT name FROM %s.%s WHERE name != 'default' ORDER BY name`
-	rows, err := b.db.Query(fmt.Sprintf(query, b.schemaName, statesTableName))
+	rows, err := b.db.Query(fmt.Sprintf(query, pq.QuoteIdentifier(b.schemaName), pq.QuoteIdentifier(statesTableName)))
 	if err != nil {
 		return nil, diags.Append(err)
 	}
@@ -49,7 +51,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	}
 
 	query := `DELETE FROM %s.%s WHERE name = $1`
-	_, err := b.db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName), name)
+	_, err := b.db.Exec(fmt.Sprintf(query, pq.QuoteIdentifier(b.schemaName), pq.QuoteIdentifier(statesTableName)), name)
 	if err != nil {
 		return diags.Append(err)
 	}
