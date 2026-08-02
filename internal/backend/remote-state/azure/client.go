@@ -55,7 +55,7 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	ctx := newCtx()
 	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, options)
 	if err != nil {
-		if response.WasNotFound(blob.HttpResponse) {
+		if blob != nil && response.WasNotFound(blob.HttpResponse) {
 			return nil, nil
 		}
 		return nil, diags.Append(err)
