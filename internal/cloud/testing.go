@@ -484,9 +484,10 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
 	// Respond to service discovery calls.
 	"/well-known/terraform.json": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, `{
+		tmpl := template.Must(template.New("").Parse(`{
   "tfe.v2": "/api/v2/",
-}`)
+}`))
+		tmpl.Execute(w, nil)
 	},
 
 	// Respond to service version constraints calls.
