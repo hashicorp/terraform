@@ -89,9 +89,9 @@ func (g *Graph) Edges() []Edge {
 // EdgesFrom returns the list of edges from the given source.
 func (g *Graph) EdgesFrom(v Vertex) []Edge {
 	var result []Edge
-	from := hashcode(v)
+	from := v
 	for _, e := range g.Edges() {
-		if hashcode(e.Source()) == from {
+		if e.Source() == from {
 			result = append(result, e)
 		}
 	}
@@ -103,9 +103,9 @@ func (g *Graph) EdgesFrom(v Vertex) []Edge {
 // FIXME: this duplicates up edges
 func (g *Graph) EdgesTo(v Vertex) []Edge {
 	var result []Edge
-	search := hashcode(v)
+	search := v
 	for _, e := range g.Edges() {
-		if hashcode(e.Target()) == search {
+		if e.Target() == search {
 			result = append(result, e)
 		}
 	}
@@ -187,10 +187,10 @@ func (g *Graph) RemoveEdge(edge Edge) {
 	g.init()
 
 	// Delete the up/down edges
-	if s, ok := g.downEdges[hashcode(edge.Source())]; ok {
+	if s, ok := g.downEdges[edge.Source()]; ok {
 		s.Delete(edge.Target())
 	}
-	if s, ok := g.upEdges[hashcode(edge.Target())]; ok {
+	if s, ok := g.upEdges[edge.Target()]; ok {
 		s.Delete(edge.Source())
 	}
 }
@@ -212,7 +212,7 @@ func (g *Graph) DownEdges(v Vertex) Set {
 // copy, and must not be modified by the caller.
 func (g *Graph) downEdgesNoCopy(v Vertex) Set {
 	g.init()
-	return g.downEdges[hashcode(v)]
+	return g.downEdges[v]
 }
 
 // upEdgesNoCopy returns the vertices that are sources of edges targeting the
@@ -220,7 +220,7 @@ func (g *Graph) downEdgesNoCopy(v Vertex) Set {
 // Graph to prevent a copy, and must not be modified by the caller.
 func (g *Graph) upEdgesNoCopy(v Vertex) Set {
 	g.init()
-	return g.upEdges[hashcode(v)]
+	return g.upEdges[v]
 }
 
 // Connect adds an edge with the given source and target. This is safe to
@@ -232,8 +232,8 @@ func (g *Graph) Connect(edge Edge) {
 
 	source := edge.Source()
 	target := edge.Target()
-	sourceCode := hashcode(source)
-	targetCode := hashcode(target)
+	sourceCode := source
+	targetCode := target
 
 	// Do we have this already? If so, don't add it again.
 	if s, ok := g.downEdges[sourceCode]; ok && s.Include(target) {
@@ -294,7 +294,7 @@ func (g *Graph) StringWithNodeTypes() string {
 	// Write each node in order...
 	for _, name := range names {
 		v := mapping[name]
-		targets := g.downEdges[hashcode(v)]
+		targets := g.downEdges[v]
 
 		buf.WriteString(fmt.Sprintf("%s - %T\n", name, v))
 
@@ -336,7 +336,7 @@ func (g *Graph) String() string {
 	// Write each node in order...
 	for _, name := range names {
 		v := mapping[name]
-		targets := g.downEdges[hashcode(v)]
+		targets := g.downEdges[v]
 
 		buf.WriteString(fmt.Sprintf("%s\n", name))
 

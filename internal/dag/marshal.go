@@ -168,13 +168,6 @@ func marshalVertexID(v Vertex) string {
 		return fmt.Sprintf("%#v", val.Interface())
 	}
 
-	if v, ok := v.(Hashable); ok {
-		h := v.Hashcode()
-		if h, ok := h.(string); ok {
-			return h
-		}
-	}
-
 	// fallback to a name, which we hope is unique.
 	return VertexName(v)
 

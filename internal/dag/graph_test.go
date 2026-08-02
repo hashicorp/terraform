@@ -83,24 +83,6 @@ func TestGraph_replaceSelf(t *testing.T) {
 	}
 }
 
-// This tests that connecting edges works based on custom Hashcode
-// implementations for uniqueness.
-func TestGraph_hashcode(t *testing.T) {
-	var g Graph
-	g.Add(&hashVertex{code: 1})
-	g.Add(&hashVertex{code: 2})
-	g.Add(&hashVertex{code: 3})
-	g.Connect(BasicEdge(
-		&hashVertex{code: 1},
-		&hashVertex{code: 3}))
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testGraphBasicStr)
-	if actual != expected {
-		t.Fatalf("bad: %s", actual)
-	}
-}
-
 func TestGraphHasVertex(t *testing.T) {
 	var g Graph
 	g.Add(1)
@@ -169,6 +151,7 @@ func TestGraphEdgesTo(t *testing.T) {
 	}
 
 	if s.Intersection(expected).Len() != expected.Len() {
+		fmt.Printf("%#v\n", s)
 		t.Fatalf("bad: %#v", edges)
 	}
 }
