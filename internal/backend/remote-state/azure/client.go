@@ -107,7 +107,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
 	if err != nil {
-		if !response.WasNotFound(blob.HttpResponse) {
+		if blob == nil || !response.WasNotFound(blob.HttpResponse) {
 			return diags.Append(err)
 		}
 	}
@@ -115,7 +115,9 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	contentType := "application/json"
 	putOptions.Content = &data
 	putOptions.ContentType = &contentType
-	putOptions.MetaData = blob.MetaData
+	if blob != nil {
+		putOptions.MetaData = blob.MetaData
+	}
 	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions)
 
 	return diags.Append(err)
