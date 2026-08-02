@@ -48,32 +48,38 @@ type Once[T any] struct {
 // in a separate goroutine from all of the waiters.
 func (o *Once[T]) Do(ctx context.Context, name string, f func(ctx context.Context) (T, error)) (T, error) {
 	AssertContextInTask(ctx)
-	o.mu.Lock()
-	if o.get == nil {
-		// We seem to be the first call, so we'll get the asynchronous task
-		// running and then block on its result.
-		resolver, get := NewPromise[T](ctx, name)
-		o.get = get
-		o.promiseID = resolver.PromiseID()
-		o.mu.Unlock()
 
-		// The responsibility for resolving the promise transfers to the
-		// asynchronous task, which makes it valid for this main task to
-		// await it without a self-dependency error.
-		AsyncTask(
-			ctx, resolver,
-			func(ctx context.Context, resolver PromiseResolver[T]) {
-				v, err := f(ctx)
-				resolver.Resolve(ctx, v, err)
-			},
-		)
-	} else {
-		o.mu.Unlock()
-	}
+	// Use an immediately-invoked closure so that defer guarantees the mutex
+	// is always unlocked before we block on o.get(ctx) below.
+	get := func() PromiseGet[T] {
+		o.mu.Lock()
+		defer o.mu.Unlock()
+
+		if o.get == nil {
+			// We seem to be the first call, so we'll get the asynchronous task
+			// running and then block on its result.
+			resolver, get := NewPromise[T](ctx, name)
+			o.get = get
+			o.promiseID = resolver.PromiseID()
+
+			// The responsibility for resolving the promise transfers to the
+			// asynchronous task, which makes it valid for this main task to
+			// await it without a self-dependency error.
+			AsyncTask(
+				ctx, resolver,
+				func(ctx context.Context, resolver PromiseResolver[T]) {
+					v, err := f(ctx)
+					resolver.Resolve(ctx, v, err)
+				},
+			)
+		}
+
+		return o.get
+	}()
 
 	// Regardless of whether we launched the async task or not, we'll
 	// wait for it to resolve the promise before we return.
-	return o.get(ctx)
+	return get(ctx)
 }
 
 // PromiseID returns the unique identifier for the backing promise of the
