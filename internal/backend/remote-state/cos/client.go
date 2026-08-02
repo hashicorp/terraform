@@ -56,9 +56,12 @@ func (c *remoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	}
 
 	sum := sha256.Sum256(data)
-	payload := &remote.Payload{
+	// NOTE: Despite the field name, no MD5 is used here. remote.Payload.MD5 is a legacy
+	// interface field whose name predates the switch to SHA-256. The value assigned is a
+	// SHA-256 digest produced by crypto/sha256 above.
+	payload := &remote.Payload{ //nolint:use-of-md5 // false positive: SHA-256 is used, not MD5
 		Data: data,
-		MD5:  sum[:], // SHA-256 checksum; field name is a legacy artifact of the remote.Payload interface
+		MD5:  sum[:],
 	}
 
 	return payload, diags
