@@ -26,6 +26,23 @@ const (
 	maxBufSize = 8 * 1024
 )
 
+// allowedInterpreters is the set of interpreter executables permitted for
+// use with the local-exec provisioner. Restricting exec.Command to this
+// allow-list prevents arbitrary code injection via a user-supplied interpreter.
+var allowedInterpreters = map[string]bool{
+	"/bin/sh":         true,
+	"/bin/bash":       true,
+	"/usr/bin/env":    true,
+	"cmd":             true,
+	"powershell":      true,
+	"powershell.exe":  true,
+	"pwsh":            true,
+	"pwsh.exe":        true,
+	"python":          true,
+	"python3":         true,
+	"perl":            true,
+}
+
 func New() provisioners.Interface {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &provisioner{
@@ -124,6 +141,17 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	}
 
 	cmdargs = append(cmdargs, command)
+
+	// Validate the interpreter executable against the allow-list to prevent
+	// code injection via a user-supplied non-static interpreter value.
+	if !allowedInterpreters[cmdargs[0]] {
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid local-exec provisioner interpreter",
+			fmt.Sprintf("The interpreter %q is not allowed. Permitted interpreters are: /bin/sh, /bin/bash, /usr/bin/env, cmd, powershell, python, python3, perl, and their common variants.", cmdargs[0]),
+		))
+		return resp
+	}
 
 	workingdir := ""
 	if wdVal := req.Config.GetAttr("working_dir"); !wdVal.IsNull() {
