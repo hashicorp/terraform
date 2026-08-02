@@ -194,7 +194,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				dag.VertexName(creator), dag.VertexName(destroyer))
 
-			g.Connect(dag.BasicEdge(creator, destroyer))
+			g.Connect(creator, destroyer)
 		}
 	}
 
@@ -210,7 +210,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				for _, desDep := range destroyersByResource.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
 						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-						g.Connect(dag.BasicEdge(c, desDep))
+						g.Connect(c, desDep)
 					} else {
 						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
 					}

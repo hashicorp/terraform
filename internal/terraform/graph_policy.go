@@ -6,7 +6,6 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/dag"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -56,7 +55,7 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 			continue
 		}
 		// finish depends on pn, so pn runs first and finish runs after.
-		g.Connect(dag.BasicEdge(finish, pn))
+		g.Connect(finish, pn)
 	}
 
 	// ensure the graph has a single root

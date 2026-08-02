@@ -288,7 +288,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			pv.SetProvider(target.ProviderAddr())
 		}
-		g.Connect(dag.BasicEdge(v, target))
+		g.Connect(v, target)
 	}
 
 	for v, refs := range forActions {
@@ -298,7 +298,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				return diags.Err()
 			}
 			log.Printf("[DEBUG] ProviderTransformer: %q (%T) actions need %s", dag.VertexName(v), v, dag.VertexName(target))
-			g.Connect(dag.BasicEdge(v, target))
+			g.Connect(v, target)
 		}
 	}
 
@@ -335,7 +335,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		// this is added unconditionally, so it will connect to all instances
 		// of the provider. Extra edges will be removed by transitive
 		// reduction.
-		g.Connect(dag.BasicEdge(closer, p))
+		g.Connect(closer, p)
 	}
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
@@ -360,7 +360,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 			if !ok {
 				return fmt.Errorf("no graphNodeCloseProvider for %s", ref)
 			}
-			g.Connect(dag.BasicEdge(closer, v))
+			g.Connect(closer, v)
 		}
 	}
 

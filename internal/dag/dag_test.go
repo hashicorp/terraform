@@ -42,8 +42,8 @@ func TestAcyclicGraphRoot(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(3), testV(2)))
-	g.Connect(BasicEdge(testV(3), testV(1)))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(3), testV(1))
 
 	if root, err := g.Root(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -57,9 +57,9 @@ func TestAcyclicGraphRoot_cycle(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(1)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(3), testV(1))
 
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
@@ -71,7 +71,7 @@ func TestAcyclicGraphRoot_multiple(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(3), testV(2)))
+	g.Connect(testV(3), testV(2))
 
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
@@ -83,9 +83,9 @@ func TestAyclicGraphTransReduction(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(1), testV(3)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(2), testV(3))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -101,12 +101,12 @@ func TestAyclicGraphTransReduction_more(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(testV(3))
 	g.Add(testV(4))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(1), testV(3)))
-	g.Connect(BasicEdge(testV(1), testV(4)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(2), testV(4)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(1), testV(4))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(2), testV(4))
+	g.Connect(testV(3), testV(4))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -122,23 +122,23 @@ func TestAyclicGraphTransReduction_multipleRoots(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(testV(3))
 	g.Add(testV(4))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(1), testV(3)))
-	g.Connect(BasicEdge(testV(1), testV(4)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(2), testV(4)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(1), testV(4))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(2), testV(4))
+	g.Connect(testV(3), testV(4))
 
 	g.Add(testV(5))
 	g.Add(testV(6))
 	g.Add(testV(7))
 	g.Add(testV(8))
-	g.Connect(BasicEdge(testV(5), testV(6)))
-	g.Connect(BasicEdge(testV(5), testV(7)))
-	g.Connect(BasicEdge(testV(5), testV(8)))
-	g.Connect(BasicEdge(testV(6), testV(7)))
-	g.Connect(BasicEdge(testV(6), testV(8)))
-	g.Connect(BasicEdge(testV(7), testV(8)))
+	g.Connect(testV(5), testV(6))
+	g.Connect(testV(5), testV(7))
+	g.Connect(testV(5), testV(8))
+	g.Connect(testV(6), testV(7))
+	g.Connect(testV(6), testV(8))
+	g.Connect(testV(7), testV(8))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -184,7 +184,7 @@ func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
 			if i == j {
 				continue
 			}
-			g.Connect(BasicEdge(nodes[i], nodes[j]))
+			g.Connect(nodes[i], nodes[j])
 		}
 	}
 
@@ -212,8 +212,8 @@ func TestAcyclicGraphValidate(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(3), testV(2)))
-	g.Connect(BasicEdge(testV(3), testV(1)))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(3), testV(1))
 
 	if err := g.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -225,10 +225,10 @@ func TestAcyclicGraphValidate_cycle(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(3), testV(2)))
-	g.Connect(BasicEdge(testV(3), testV(1)))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(3), testV(1))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
 
 	if err := g.Validate(); err == nil {
 		t.Fatal("should error")
@@ -239,7 +239,7 @@ func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(1)))
+	g.Connect(testV(1), testV(1))
 
 	if err := g.Validate(); err == nil {
 		t.Fatal("should error")
@@ -253,11 +253,11 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	g.Add(testV(3))
 	g.Add(testV(4))
 	g.Add(testV(5))
-	g.Connect(BasicEdge(testV(0), testV(1)))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
-	g.Connect(BasicEdge(testV(4), testV(5)))
+	g.Connect(testV(0), testV(1))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(3), testV(4))
+	g.Connect(testV(4), testV(5))
 
 	actual := g.Ancestors(testV(2))
 
@@ -281,11 +281,11 @@ func TestAcyclicGraphDescendants(t *testing.T) {
 	g.Add(testV(3))
 	g.Add(testV(4))
 	g.Add(testV(5))
-	g.Connect(BasicEdge(testV(0), testV(1)))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
-	g.Connect(BasicEdge(testV(4), testV(5)))
+	g.Connect(testV(0), testV(1))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(3), testV(4))
+	g.Connect(testV(4), testV(5))
 
 	actual := g.Descendants(testV(2))
 
@@ -311,12 +311,12 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 	g.Add(testV(4))
 	g.Add(testV(5))
 	g.Add(testV(6))
-	g.Connect(BasicEdge(testV(0), testV(1)))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(6)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
-	g.Connect(BasicEdge(testV(4), testV(5)))
-	g.Connect(BasicEdge(testV(5), testV(6)))
+	g.Connect(testV(0), testV(1))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(6))
+	g.Connect(testV(3), testV(4))
+	g.Connect(testV(4), testV(5))
+	g.Connect(testV(5), testV(6))
 
 	actual := g.FirstDescendantsWith(testV(6), func(v Vertex) bool {
 		// looking for first odd descendants
@@ -362,12 +362,12 @@ func TestAcyclicGraphFindAncestors(t *testing.T) {
 	g.Add(testV(4))
 	g.Add(testV(5))
 	g.Add(testV(6))
-	g.Connect(BasicEdge(testV(1), testV(0)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
-	g.Connect(BasicEdge(testV(6), testV(2)))
-	g.Connect(BasicEdge(testV(4), testV(3)))
-	g.Connect(BasicEdge(testV(5), testV(4)))
-	g.Connect(BasicEdge(testV(6), testV(5)))
+	g.Connect(testV(1), testV(0))
+	g.Connect(testV(2), testV(1))
+	g.Connect(testV(6), testV(2))
+	g.Connect(testV(4), testV(3))
+	g.Connect(testV(5), testV(4))
+	g.Connect(testV(6), testV(5))
 
 	actual := g.FirstAncestorsWith(testV(6), func(v Vertex) bool {
 		// looking for first odd ancestors
@@ -409,8 +409,8 @@ func TestAcyclicGraphWalk(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(3), testV(2)))
-	g.Connect(BasicEdge(testV(3), testV(1)))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(3), testV(1))
 
 	var visits []Vertex
 	var lock sync.Mutex
@@ -443,9 +443,9 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(testV(3))
 	g.Add(testV(4))
-	g.Connect(BasicEdge(testV(4), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
+	g.Connect(testV(4), testV(3))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(2), testV(1))
 
 	var visits []Vertex
 	var lock sync.Mutex
@@ -491,7 +491,7 @@ func BenchmarkDAG(b *testing.B) {
 			B := testNamedString(fmt.Sprintf("B%d", i))
 			g.Add(B)
 			for j := range count {
-				g.Connect(BasicEdge(B, testNamedString(fmt.Sprintf("A%d", j))))
+				g.Connect(B, testNamedString(fmt.Sprintf("A%d", j)))
 			}
 		}
 
@@ -501,8 +501,8 @@ func BenchmarkDAG(b *testing.B) {
 			g.Add(c)
 			for j := range count {
 				// connect them to previous layers so we have something that requires reduction
-				g.Connect(BasicEdge(c, testNamedString(fmt.Sprintf("A%d", j))))
-				g.Connect(BasicEdge(c, testNamedString(fmt.Sprintf("B%d", j))))
+				g.Connect(c, testNamedString(fmt.Sprintf("A%d", j)))
+				g.Connect(c, testNamedString(fmt.Sprintf("B%d", j)))
 			}
 		}
 
@@ -511,9 +511,9 @@ func BenchmarkDAG(b *testing.B) {
 			d := testNamedString(fmt.Sprintf("D%d", i))
 			g.Add(d)
 			for j := range count {
-				g.Connect(BasicEdge(d, testNamedString(fmt.Sprintf("A%d", j))))
-				g.Connect(BasicEdge(d, testNamedString(fmt.Sprintf("B%d", j))))
-				g.Connect(BasicEdge(d, testNamedString(fmt.Sprintf("C%d", j))))
+				g.Connect(d, testNamedString(fmt.Sprintf("A%d", j)))
+				g.Connect(d, testNamedString(fmt.Sprintf("B%d", j)))
+				g.Connect(d, testNamedString(fmt.Sprintf("C%d", j)))
 			}
 		}
 
@@ -546,19 +546,19 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 	for i := 1; i <= 11; i++ {
 		g.Add(testV(i))
 	}
-	g.Connect(BasicEdge(testV(1), testV(3)))
-	g.Connect(BasicEdge(testV(1), testV(4)))
-	g.Connect(BasicEdge(testV(2), testV(4)))
-	g.Connect(BasicEdge(testV(2), testV(5)))
-	g.Connect(BasicEdge(testV(3), testV(6)))
-	g.Connect(BasicEdge(testV(4), testV(7)))
-	g.Connect(BasicEdge(testV(5), testV(7)))
-	g.Connect(BasicEdge(testV(7), testV(8)))
-	g.Connect(BasicEdge(testV(7), testV(9)))
-	g.Connect(BasicEdge(testV(7), testV(10)))
-	g.Connect(BasicEdge(testV(8), testV(11)))
-	g.Connect(BasicEdge(testV(9), testV(11)))
-	g.Connect(BasicEdge(testV(10), testV(11)))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(1), testV(4))
+	g.Connect(testV(2), testV(4))
+	g.Connect(testV(2), testV(5))
+	g.Connect(testV(3), testV(6))
+	g.Connect(testV(4), testV(7))
+	g.Connect(testV(5), testV(7))
+	g.Connect(testV(7), testV(8))
+	g.Connect(testV(7), testV(9))
+	g.Connect(testV(7), testV(10))
+	g.Connect(testV(8), testV(11))
+	g.Connect(testV(9), testV(11))
+	g.Connect(testV(10), testV(11))
 
 	start := make(Set)
 	start.Add(testV(2))

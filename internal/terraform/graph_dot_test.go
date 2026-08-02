@@ -50,7 +50,7 @@ digraph {
 					v := levelOne[i]
 
 					g.Add(v)
-					g.Connect(dag.BasicEdge(v, root))
+					g.Connect(v, root)
 				}
 
 				levelTwo := []string{"baz", "qux"}
@@ -60,7 +60,7 @@ digraph {
 					}
 
 					g.Add(v)
-					g.Connect(dag.BasicEdge(v, levelOne[i]))
+					g.Connect(v, levelOne[i])
 				}
 
 				return &g
@@ -106,10 +106,10 @@ digraph {
 					VertexName: "C",
 				})
 
-				g.Connect(dag.BasicEdge(vA, root))
-				g.Connect(dag.BasicEdge(vA, vC))
-				g.Connect(dag.BasicEdge(vB, vA))
-				g.Connect(dag.BasicEdge(vC, vB))
+				g.Connect(vA, root)
+				g.Connect(vA, vC)
+				g.Connect(vB, vA)
+				g.Connect(vC, vB)
 
 				return &g
 			},
@@ -159,8 +159,8 @@ digraph {
 					SubgraphMock: &sub,
 				})
 
-				g.Connect(dag.BasicEdge(vSub, root))
-				sub.Connect(dag.BasicEdge(vSubV, vSubRoot))
+				g.Connect(vSub, root)
+				sub.Connect(vSubV, vSubRoot)
 
 				return &g
 			},
@@ -212,8 +212,8 @@ digraph {
 					SubgraphMock: &sub,
 				})
 
-				g.Connect(dag.BasicEdge(vSub, root))
-				sub.Connect(dag.BasicEdge(subV, rootSub))
+				g.Connect(vSub, root)
+				sub.Connect(subV, rootSub)
 				return &g
 			},
 			Expect: `

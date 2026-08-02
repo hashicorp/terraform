@@ -40,7 +40,7 @@ func addRootNodeToGraph(g *Graph) {
 		}
 
 		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(rootNode, v))
+			g.Connect(rootNode, v)
 		}
 	}
 }
@@ -77,7 +77,7 @@ func (t *CloseRootModuleTransformer) Transform(g *Graph) error {
 		// since this is closing the root module,  and must be last, we can
 		// connect to anything that doesn't have any up edges.
 		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(closeRoot, v))
+			g.Connect(closeRoot, v)
 		}
 	}
 

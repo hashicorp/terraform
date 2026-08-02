@@ -136,7 +136,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		for _, referenced := range referencedNodes {
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, referenced) {
 				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(referenced))
-				g.Connect(dag.BasicEdge(v, referenced))
+				g.Connect(v, referenced)
 			}
 		}
 	}
@@ -172,7 +172,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
 			}
 
-			g.Connect(dag.BasicEdge(actionConfig, ref))
+			g.Connect(actionConfig, ref)
 			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(actionConfig), dag.VertexName(ref))
 		}
 	}
