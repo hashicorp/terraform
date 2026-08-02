@@ -109,6 +109,7 @@ func TestGraphHasEdge(t *testing.T) {
 	}
 }
 
+/* TODO: move to dag_test with up and down edges
 func TestGraphEdgesFrom(t *testing.T) {
 	var g Graph
 	g.Add(1)
@@ -155,6 +156,7 @@ func TestGraphEdgesTo(t *testing.T) {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
+*/
 
 func TestGraphUpdownEdges(t *testing.T) {
 	// Verify that we can't inadvertently modify the internal graph sets

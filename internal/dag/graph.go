@@ -63,8 +63,8 @@ func (g *Graph) Vertices() []Vertex {
 	return result
 }
 
-func (g *Graph) EdgeSet() Set {
-	edges := make(Set)
+func (g *Graph) EdgeSet() EdgeSet {
+	edges := make(EdgeSet)
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
 			edges.Add(BasicEdge(from, to))
@@ -80,33 +80,6 @@ func (g *Graph) Edges() []Edge {
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
 			result = append(result, BasicEdge(from, to))
-		}
-	}
-
-	return result
-}
-
-// EdgesFrom returns the list of edges from the given source.
-func (g *Graph) EdgesFrom(v Vertex) []Edge {
-	var result []Edge
-	from := v
-	for _, e := range g.Edges() {
-		if e.Source() == from {
-			result = append(result, e)
-		}
-	}
-
-	return result
-}
-
-// EdgesTo returns the list of edges to the given target.
-// FIXME: this duplicates up edges
-func (g *Graph) EdgesTo(v Vertex) []Edge {
-	var result []Edge
-	search := v
-	for _, e := range g.Edges() {
-		if e.Target() == search {
-			result = append(result, e)
 		}
 	}
 
