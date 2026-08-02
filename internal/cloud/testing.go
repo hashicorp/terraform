@@ -46,7 +46,7 @@ const (
 
 var (
 	tfeHost  = svchost.Hostname(defaultHostname)
-	credsSrc = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+	credsSrc = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]string{
 		tfeHost: {"token": testCred},
 	})
 	testBackendSingleWorkspaceName = "app-prod"
@@ -601,7 +601,7 @@ func mockSROWorkspace(t *testing.T, b *Cloud, workspaceName string) {
 // testDisco returns a *disco.Disco mapping app.terraform.io and
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
-	services := map[string]interface{}{
+	services := map[string]string{
 		"tfe.v2": fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
