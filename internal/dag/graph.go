@@ -56,17 +56,17 @@ func (g *Graph) DirectedGraph() Grapher {
 func (g *Graph) Vertices() []Vertex {
 	result := make([]Vertex, 0, len(g.vertices))
 	for _, v := range g.vertices {
-		result = append(result, v.(Vertex))
+		result = append(result, v)
 	}
 
 	return result
 }
 
-func (g *Graph) EdgeSet() EdgeSet {
-	edges := make(EdgeSet)
+func (g *Graph) edgeSet() edgeSet {
+	edges := make(edgeSet)
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
-			edges.Add(basicEdge{from, to})
+			edges.Add(Edge{from, to})
 		}
 	}
 	return edges
@@ -78,7 +78,7 @@ func (g *Graph) Edges() []Edge {
 
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
-			result = append(result, basicEdge{from, to})
+			result = append(result, Edge{from, to})
 		}
 	}
 

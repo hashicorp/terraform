@@ -102,9 +102,9 @@ type marshalEdge struct {
 
 func newMarshalEdge(e Edge) *marshalEdge {
 	return &marshalEdge{
-		Name:   fmt.Sprintf("%s|%s", VertexName(e.Source()), VertexName(e.Target())),
-		Source: marshalVertexID(e.Source()),
-		Target: marshalVertexID(e.Target()),
+		Name:   fmt.Sprintf("%s|%s", VertexName(e.S), VertexName(e.T)),
+		Source: marshalVertexID(e.S),
+		Target: marshalVertexID(e.T),
 		Attrs:  make(map[string]string),
 	}
 }
