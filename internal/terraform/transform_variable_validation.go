@@ -88,7 +88,7 @@ func (t *variableValidationTransformer) Transform(g *Graph) error {
 		if len(rules) != 0 {
 			log.Printf("[TRACE] variableValidationTransformer: %s has %d validation rule(s)", configAddr, len(rules))
 			g.Add(newV)
-			g.Connect(dag.BasicEdge(newV, v))
+			g.Connect(newV, v)
 		} else {
 			log.Printf("[TRACE] variableValidationTransformer: %s has no validation rules", configAddr)
 		}

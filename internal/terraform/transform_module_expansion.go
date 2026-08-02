@@ -66,7 +66,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
-			g.Connect(dag.BasicEdge(closer, v))
+			g.Connect(closer, v)
 		}
 	}
 
@@ -75,7 +75,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	for _, c := range t.closers {
 		for _, d := range t.closers {
 			if len(d.Addr) > len(c.Addr) && c.Addr.Equal(d.Addr[:len(c.Addr)]) {
-				g.Connect(dag.BasicEdge(c, d))
+				g.Connect(c, d)
 			}
 		}
 	}
@@ -103,7 +103,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 	if parentNode != nil {
 		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(expander), dag.VertexName(parentNode))
-		g.Connect(dag.BasicEdge(expander, parentNode))
+		g.Connect(expander, parentNode)
 	}
 
 	// Add the closer (which acts as the root module node) to provide a
@@ -112,7 +112,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Addr: c.Path,
 	}
 	g.Add(closer)
-	g.Connect(dag.BasicEdge(closer, expander))
+	g.Connect(closer, expander)
 	t.closers[c.Path.String()] = closer
 
 	for _, childV := range g.Vertices() {
@@ -135,7 +135,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 		if path.Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
-			g.Connect(dag.BasicEdge(childV, expander))
+			g.Connect(childV, expander)
 		}
 	}
 

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -65,7 +64,7 @@ func filterInstances(g *Graph) *Graph {
 			// connect around the node to remove it without breaking deps
 			for _, down := range g.DownEdges(v) {
 				for _, up := range g.UpEdges(v) {
-					g.Connect(dag.BasicEdge(up, down))
+					g.Connect(up, down)
 				}
 			}
 

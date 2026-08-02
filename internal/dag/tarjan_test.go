@@ -13,8 +13,8 @@ func TestGraphStronglyConnected(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
 	expected := strings.TrimSpace(testGraphStronglyConnectedStr)
@@ -27,8 +27,8 @@ func TestGraphStronglyConnected_two(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
 	g.Add(testV(3))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
@@ -42,15 +42,15 @@ func TestGraphStronglyConnected_three(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(1)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
 	g.Add(testV(3))
 	g.Add(testV(4))
 	g.Add(testV(5))
 	g.Add(testV(6))
-	g.Connect(BasicEdge(testV(4), testV(5)))
-	g.Connect(BasicEdge(testV(5), testV(6)))
-	g.Connect(BasicEdge(testV(6), testV(4)))
+	g.Connect(testV(4), testV(5))
+	g.Connect(testV(5), testV(6))
+	g.Connect(testV(6), testV(4))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
 	expected := strings.TrimSpace(testGraphStronglyConnectedThreeStr)

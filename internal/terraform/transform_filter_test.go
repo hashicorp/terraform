@@ -33,8 +33,8 @@ func TestTransformFilter(t *testing.T) {
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -63,8 +63,8 @@ c
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -88,8 +88,8 @@ c
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -121,8 +121,8 @@ c
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -148,8 +148,8 @@ c
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -180,10 +180,10 @@ c
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
 		g.Add(stringV("d"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("c")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("d")))
-		g.Connect(dag.BasicEdge(stringV("c"), stringV("d")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("a"), stringV("c"))
+		g.Connect(stringV("b"), stringV("d"))
+		g.Connect(stringV("c"), stringV("d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -220,10 +220,10 @@ d
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
 		g.Add(stringV("d"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("c")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("d")))
-		g.Connect(dag.BasicEdge(stringV("c"), stringV("d")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("a"), stringV("c"))
+		g.Connect(stringV("b"), stringV("d"))
+		g.Connect(stringV("c"), stringV("d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -253,7 +253,7 @@ d
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
+		g.Connect(stringV("a"), stringV("b"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -285,9 +285,9 @@ b
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
 		g.Add(stringV("d"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("b")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("d")))
-		g.Connect(dag.BasicEdge(stringV("c"), stringV("d")))
+		g.Connect(stringV("a"), stringV("b"))
+		g.Connect(stringV("b"), stringV("d"))
+		g.Connect(stringV("c"), stringV("d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -322,8 +322,8 @@ d
 		g.Add(stringV("a"))
 		g.Add(stringV("b"))
 		g.Add(stringV("c"))
-		g.Connect(dag.BasicEdge(stringV("a"), stringV("c")))
-		g.Connect(dag.BasicEdge(stringV("b"), stringV("c")))
+		g.Connect(stringV("a"), stringV("c"))
+		g.Connect(stringV("b"), stringV("c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {

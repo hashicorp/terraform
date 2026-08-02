@@ -27,7 +27,7 @@ func TestGraph_basic(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(3)))
+	g.Connect(testV(1), testV(3))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphBasicStr)
@@ -41,7 +41,7 @@ func TestGraph_remove(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(3)))
+	g.Connect(testV(1), testV(3))
 	g.Remove(testV(3))
 
 	actual := strings.TrimSpace(g.String())
@@ -56,8 +56,8 @@ func TestGraph_replace(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
 	g.Replace(testV(2), testV(42))
 
 	actual := strings.TrimSpace(g.String())
@@ -72,8 +72,8 @@ func TestGraph_replaceSelf(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
 	g.Replace(testV(2), testV(2))
 
 	actual := strings.TrimSpace(g.String())
@@ -99,12 +99,12 @@ func TestGraphHasEdge(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
-	if !g.HasEdge(BasicEdge(testV(1), testV(2))) {
+	if !g.HasEdge(testV(1), testV(2)) {
 		t.Fatal("should have 1,2")
 	}
-	if g.HasEdge(BasicEdge(testV(2), testV(3))) {
+	if g.HasEdge(testV(2), testV(3)) {
 		t.Fatal("should not have 2,3")
 	}
 }
@@ -164,8 +164,8 @@ func TestGraphUpdownEdges(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
 
 	up := g.UpEdges(testV(2))
 	if up.Len() != 1 || !up.Include(testV(1)) {

@@ -117,11 +117,11 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 		// Finally, connect everything up so it all executes in order.
 
 		for _, vertex := range nested {
-			graph.Connect(dag.BasicEdge(vertex, check))
+			graph.Connect(vertex, check)
 		}
 
 		for _, vertex := range resources {
-			graph.Connect(dag.BasicEdge(check, vertex))
+			graph.Connect(check, vertex)
 		}
 	}
 

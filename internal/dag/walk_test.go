@@ -17,7 +17,7 @@ func TestWalker_basic(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
 	// Run it a bunch of times since it is timing dependent
 	for range 50 {
@@ -42,7 +42,7 @@ func TestWalker_updateNilGraph(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
 	// Run it a bunch of times since it is timing dependent
 	for range 50 {
@@ -64,9 +64,9 @@ func TestWalker_error(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(testV(3))
 	g.Add(testV(4))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(4)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
+	g.Connect(testV(3), testV(4))
 
 	// Record function
 	var order []any
@@ -102,7 +102,7 @@ func TestWalker_newVertex(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
 	// Record function
 	var order []any
@@ -148,7 +148,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
 	// Record function
 	var order []any
@@ -184,7 +184,7 @@ func TestWalker_newEdge(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
 	g.Add(testV(2))
-	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(testV(1), testV(2))
 
 	// Record function
 	var order []any
@@ -198,7 +198,7 @@ func TestWalker_newEdge(t *testing.T) {
 
 		if v == testV(1) {
 			g.Add(testV(3))
-			g.Connect(BasicEdge(testV(3), testV(2)))
+			g.Connect(testV(3), testV(2))
 			w.Update(&g)
 		}
 		return diags
@@ -236,9 +236,9 @@ func TestWalker_tolerantVertex(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(tolerantTestVertex("t"))
 	g.Add(testV(4))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(2), tolerantTestVertex("t")))
-	g.Connect(BasicEdge(tolerantTestVertex("t"), testV(4)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), tolerantTestVertex("t"))
+	g.Connect(tolerantTestVertex("t"), testV(4))
 
 	var order []any
 
@@ -268,9 +268,9 @@ func TestWalker_removeEdge(t *testing.T) {
 	g.Add(testV(1))
 	g.Add(testV(2))
 	g.Add(testV(3))
-	g.Connect(BasicEdge(testV(1), testV(2)))
-	g.Connect(BasicEdge(testV(1), testV(3)))
-	g.Connect(BasicEdge(testV(3), testV(2)))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(3), testV(2))
 
 	// Record function
 	var order []any
@@ -289,7 +289,7 @@ func TestWalker_removeEdge(t *testing.T) {
 		t.Logf("visit vertex %#v", v)
 		switch v {
 		case testV(1):
-			g.RemoveEdge(BasicEdge(testV(3), testV(2)))
+			g.RemoveEdge(testV(3), testV(2))
 			w.Update(&g)
 			t.Logf("removed edge from 3 to 2")
 

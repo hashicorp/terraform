@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -80,7 +79,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 			// Also connect the deferred instance node to the underlying
 			// resource node to make sure any expansion happens first.
 			for _, resourceNode := range resourceNodes.Get(node.Addr.ConfigResource()) {
-				g.Connect(dag.BasicEdge(node, resourceNode))
+				g.Connect(node, resourceNode)
 			}
 
 			continue
@@ -92,7 +91,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 		// Still connect the deferred instance node to the underlying resource
 		// node.
 		for _, resourceNode := range resourceNodes.Get(node.Addr.ConfigResource()) {
-			g.Connect(dag.BasicEdge(node, resourceNode))
+			g.Connect(node, resourceNode)
 		}
 	}
 

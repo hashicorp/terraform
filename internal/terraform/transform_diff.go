@@ -197,7 +197,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 			g.Add(node)
 			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
-				g.Connect(dag.BasicEdge(node, rsrcNode))
+				g.Connect(node, rsrcNode)
 			}
 		}
 

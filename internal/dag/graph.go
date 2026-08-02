@@ -115,10 +115,10 @@ func (g *Graph) Remove(v Vertex) Vertex {
 
 	// Delete the edges to non-existent things
 	for _, target := range g.downEdgesNoCopy(v) {
-		g.RemoveEdge(BasicEdge(v, target))
+		g.RemoveEdge(v, target)
 	}
 	for _, source := range g.upEdgesNoCopy(v) {
-		g.RemoveEdge(BasicEdge(source, v))
+		g.RemoveEdge(source, v)
 	}
 
 	return nil
@@ -141,10 +141,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
 	for _, target := range g.downEdgesNoCopy(original) {
-		g.Connect(BasicEdge(replacement, target))
+		g.Connect(replacement, target)
 	}
 	for _, source := range g.upEdgesNoCopy(original) {
-		g.Connect(BasicEdge(source, replacement))
+		g.Connect(source, replacement)
 	}
 
 	// Remove our old vertex, which will also remove all the edges

@@ -151,8 +151,8 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 			// any dependants' edges.
 			if _, ok := src.(GraphNodeCreator); ok {
 				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", dag.VertexName(src), dag.VertexName(v))
-				g.RemoveEdge(dag.BasicEdge(src, v))
-				g.Connect(dag.BasicEdge(v, src))
+				g.RemoveEdge(src, v)
+				g.Connect(v, src)
 			}
 		}
 	}

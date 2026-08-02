@@ -45,7 +45,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		}
 		log.Printf("[TRACE] ephemeralResourceCloseTransformer: adding close node for %s", addr)
 		g.Add(closeNode)
-		g.Connect(dag.BasicEdge(closeNode, v))
+		g.Connect(closeNode, v)
 
 		// Now we have an ephemeral resource, and we need to depend on all
 		// dependents of that resource. Rather than connect directly to them all
@@ -77,7 +77,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		})
 
 		for last := range lastReferences.List() {
-			g.Connect(dag.BasicEdge(closeNode, last))
+			g.Connect(closeNode, last)
 		}
 	}
 	return nil
