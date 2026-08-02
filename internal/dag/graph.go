@@ -13,8 +13,8 @@ import (
 // Graph is used to represent a dependency graph.
 type Graph struct {
 	vertices  Set
-	downEdges map[any]Set
-	upEdges   map[any]Set
+	downEdges map[Vertex]Set
+	upEdges   map[Vertex]Set
 }
 
 // Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
@@ -30,12 +30,11 @@ type Grapher interface {
 }
 
 // Vertex of the graph.
-type Vertex any
+type Vertex = NamedVertex
 
 // NamedVertex is an optional interface that can be implemented by Vertex
 // to give it a human-friendly name that is used for outputting the graph.
 type NamedVertex interface {
-	Vertex
 	Name() string
 }
 
@@ -334,10 +333,10 @@ func (g *Graph) init() {
 		g.vertices = make(Set)
 	}
 	if g.downEdges == nil {
-		g.downEdges = make(map[any]Set)
+		g.downEdges = make(map[Vertex]Set)
 	}
 	if g.upEdges == nil {
-		g.upEdges = make(map[any]Set)
+		g.upEdges = make(map[Vertex]Set)
 	}
 }
 

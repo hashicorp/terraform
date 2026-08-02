@@ -11,34 +11,34 @@ import (
 func TestSetDifference(t *testing.T) {
 	cases := []struct {
 		Name     string
-		A, B     []any
-		Expected []any
+		A, B     []testV
+		Expected []testV
 	}{
 		{
 			"same",
-			[]any{1, 2, 3},
-			[]any{3, 1, 2},
-			[]any{},
+			[]testV{1, 2, 3},
+			[]testV{3, 1, 2},
+			[]testV{},
 		},
 
 		{
 			"A has extra elements",
-			[]any{1, 2, 3},
-			[]any{3, 2},
-			[]any{1},
+			[]testV{1, 2, 3},
+			[]testV{3, 2},
+			[]testV{1},
 		},
 
 		{
 			"B has extra elements",
-			[]any{1, 2, 3},
-			[]any{3, 2, 1, 4},
-			[]any{},
+			[]testV{1, 2, 3},
+			[]testV{3, 2, 1, 4},
+			[]testV{},
 		},
 		{
 			"B is nil",
-			[]any{1, 2, 3},
+			[]testV{1, 2, 3},
 			nil,
-			[]any{1, 2, 3},
+			[]testV{1, 2, 3},
 		},
 	}
 
@@ -71,22 +71,22 @@ func TestSetDifference(t *testing.T) {
 
 func TestSetFilter(t *testing.T) {
 	cases := []struct {
-		Input    []any
-		Expected []any
+		Input    []testV
+		Expected []testV
 	}{
 		{
-			[]any{1, 2, 3},
-			[]any{1, 2, 3},
+			[]testV{1, 2, 3},
+			[]testV{1, 2, 3},
 		},
 
 		{
-			[]any{4, 5, 6},
-			[]any{4},
+			[]testV{4, 5, 6},
+			[]testV{4},
 		},
 
 		{
-			[]any{7, 8, 9},
-			[]any{},
+			[]testV{7, 8, 9},
+			[]testV{},
 		},
 	}
 
@@ -102,7 +102,7 @@ func TestSetFilter(t *testing.T) {
 			}
 
 			actual := input.Filter(func(v Vertex) bool {
-				return v.(int) < 5
+				return v.(testV) < 5
 			})
 			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
@@ -114,11 +114,11 @@ func TestSetFilter(t *testing.T) {
 
 func TestSetCopy(t *testing.T) {
 	a := make(Set)
-	a.Add(1)
-	a.Add(2)
+	a.Add(testV(1))
+	a.Add(testV(2))
 
 	b := a.Copy()
-	b.Add(3)
+	b.Add(testV(3))
 
 	diff := b.Difference(a)
 
@@ -126,7 +126,7 @@ func TestSetCopy(t *testing.T) {
 		t.Fatalf("expected single diff value, got %#v", diff)
 	}
 
-	if !diff.Include(3) {
+	if !diff.Include(testV(3)) {
 		t.Fatalf("diff does not contain 3, got %#v", diff)
 	}
 
@@ -135,7 +135,7 @@ func TestSetCopy(t *testing.T) {
 func makeSet(n int) Set {
 	ret := make(Set, n)
 	for i := range n {
-		ret.Add(i)
+		ret.Add(testV(i))
 	}
 	return ret
 }
