@@ -5,7 +5,7 @@ package http
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -62,10 +62,10 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 		req.Header.Set("Content-Type", "application/json")
 		req.ContentLength = int64(len(*data))
 
-		// Generate the MD5
-		hash := md5.Sum(*data)
+		// Generate the SHA256
+		hash := sha256.Sum256(*data)
 		b64 := base64.StdEncoding.EncodeToString(hash[:])
-		req.Header.Set("Content-MD5", b64)
+		req.Header.Set("Content-SHA256", b64)
 	}
 
 	// Make the request
@@ -184,18 +184,18 @@ func (c *httpClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	// Check for the MD5
-	if raw := resp.Header.Get("Content-MD5"); raw != "" {
-		md5, err := base64.StdEncoding.DecodeString(raw)
+	// Check for the SHA256
+	if raw := resp.Header.Get("Content-SHA256"); raw != "" {
+		checksum, err := base64.StdEncoding.DecodeString(raw)
 		if err != nil {
 			return nil, diags.Append(fmt.Errorf(
-				"Failed to decode Content-MD5 '%s': %s", raw, err))
+				"Failed to decode Content-SHA256 '%s': %s", raw, err))
 		}
 
-		payload.MD5 = md5
+		payload.MD5 = checksum
 	} else {
-		// Generate the MD5
-		hash := md5.Sum(payload.Data)
+		// Generate the SHA256
+		hash := sha256.Sum256(payload.Data)
 		payload.MD5 = hash[:]
 	}
 
