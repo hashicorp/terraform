@@ -110,12 +110,12 @@ func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 ) {
 	resultProvider, waitResult := promising.NewPromise[withDiagnostics[*ComponentInstanceApplyResult]](ctx, "resultProvider")
 	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.results.componentInstances.HasKey(addr) {
 		// This is always a bug in the caller.
 		panic(fmt.Sprintf("duplicate change task registration for %s", addr))
 	}
 	r.results.componentInstances.Put(addr, waitResult)
-	r.mu.Unlock()
 
 	// The asynchronous execution task is responsible for resolving waitResult
 	// through resultProvider.
