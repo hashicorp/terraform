@@ -192,11 +192,17 @@ func (c *httpClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 				"Failed to decode Content-SHA256 '%s': %s", raw, err))
 		}
 
-		payload.MD5 = checksum
+		// NOTE: Despite the field name, no MD5 is used here. remote.Payload.MD5 is a legacy
+		// interface field whose name predates the switch to SHA-256. The value assigned is a
+		// SHA-256 digest decoded from the Content-SHA256 response header.
+		payload.MD5 = checksum //nolint:use-of-md5 // false positive: SHA-256 is used, not MD5
 	} else {
 		// Generate the SHA256
 		hash := sha256.Sum256(payload.Data)
-		payload.MD5 = hash[:]
+		// NOTE: Despite the field name, no MD5 is used here. remote.Payload.MD5 is a legacy
+		// interface field whose name predates the switch to SHA-256. The value assigned is a
+		// SHA-256 digest produced by crypto/sha256 above.
+		payload.MD5 = hash[:] //nolint:use-of-md5 // false positive: SHA-256 is used, not MD5
 	}
 
 	return payload, diags
