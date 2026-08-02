@@ -267,25 +267,39 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Validate that every executable we are about to run lives inside our
+	// controlled working directory. This prevents a malicious or accidental
+	// baseDir argument from redirecting execution to an arbitrary binary.
+	absWorkDir, err := filepath.Abs(workDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, execPath := range []string{protocExec, protocGenGoExec, protocGenGoGrpcExec} {
+		if !strings.HasPrefix(execPath, absWorkDir+string(filepath.Separator)) {
+			log.Fatalf("executable path %q is outside the expected working directory %q; refusing to execute", execPath, absWorkDir)
+		}
+	}
+
 	// For all of our steps we'll run our localized protoc with our localized
 	// protoc-gen-go.
-	baseCmdLine := []string{protocExec, "--plugin=" + protocGenGoExec, "--plugin=" + protocGenGoGrpcExec}
+	extraArgs := []string{"--plugin=" + protocGenGoExec, "--plugin=" + protocGenGoGrpcExec}
 
 	for _, step := range protocSteps {
 		log.Printf("working on %s", step.DisplayName)
 
-		cmdLine := make([]string, 0, len(baseCmdLine)+len(step.Args))
-		cmdLine = append(cmdLine, baseCmdLine...)
-		cmdLine = append(cmdLine, step.Args...)
+		// Build the argument list (everything after the executable itself).
+		args := make([]string, 0, len(extraArgs)+len(step.Args))
+		args = append(args, extraArgs...)
+		args = append(args, step.Args...)
 
-		cmd := &exec.Cmd{
-			Path:   cmdLine[0],
-			Args:   cmdLine,
-			Dir:    step.WorkDir,
-			Env:    os.Environ(),
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-		}
+		// Use exec.Command so that Path and Args are set by the standard
+		// library rather than constructed manually from non-static input.
+		cmd := exec.Command(protocExec, args...)
+		cmd.Dir = step.WorkDir
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
 		log.Printf("running command: %s", cmd.String())
 		wd, _ := os.Getwd()
 		log.Printf("from directory: %s", wd)
