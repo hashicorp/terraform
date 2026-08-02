@@ -320,6 +320,14 @@ func (b *Local) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 
 	// Lock
 	b.opLock.Lock()
+	// Ensure the lock is released if we return before successfully launching
+	// the goroutine (e.g. due to a panic between here and the go statement).
+	opStarted := false
+	defer func() {
+		if !opStarted {
+			b.opLock.Unlock()
+		}
+	}()
 
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
@@ -340,6 +348,7 @@ func (b *Local) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 	op.StateLocker = op.StateLocker.WithContext(stopCtx)
 
 	// Do it
+	opStarted = true
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
