@@ -13,6 +13,7 @@ import (
 
 // GraphNodeDestroyer must be implemented by nodes that destroy resources.
 type GraphNodeDestroyer interface {
+	dag.Vertex
 	// DestroyAddr is the address of the resource that is being
 	// destroyed by this node. If this returns nil, then this node
 	// is not destroying anything.
@@ -21,6 +22,7 @@ type GraphNodeDestroyer interface {
 
 // GraphNodeCreator must be implemented by nodes that create OR update resources.
 type GraphNodeCreator interface {
+	dag.Vertex
 	// CreateAddr is the address of the resource being created or updated
 	CreateAddr() *addrs.AbsResourceInstance
 }

@@ -629,6 +629,10 @@ type nodeOutputInPartialModule struct {
 	RefreshOnly bool
 }
 
+func (n *nodeOutputInPartialModule) Name() string {
+	return n.Addr.String()
+}
+
 // Path implements [GraphNodePartialExpandedModule], meaning that the
 // Execute method receives an [EvalContext] that's set up for partial-expanded
 // evaluation instead of full evaluation.
