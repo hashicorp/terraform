@@ -40,7 +40,7 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
 
 	start := make(Set)
 	for _, v := range vs {
-		for _, dep := range g.downEdgesNoCopy(v) {
+		for _, dep := range g.edgesFromNoCopy(v) {
 			start.Add(dep)
 		}
 	}
@@ -68,7 +68,7 @@ func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set
 	}
 
 	start := make(Set)
-	for _, dep := range g.downEdgesNoCopy(v) {
+	for _, dep := range g.edgesFromNoCopy(v) {
 		start.Add(dep)
 	}
 
@@ -92,7 +92,7 @@ func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
 	}
 
 	start := make(Set)
-	for _, dep := range g.downEdgesNoCopy(v) {
+	for _, dep := range g.edgesFromNoCopy(v) {
 		start.Add(dep)
 	}
 
@@ -112,7 +112,7 @@ func (g *AcyclicGraph) Descendants(v Vertex) Set {
 	}
 
 	start := make(Set)
-	for _, dep := range g.upEdgesNoCopy(v) {
+	for _, dep := range g.edgesToNoCopy(v) {
 		start.Add(dep)
 	}
 
@@ -138,7 +138,7 @@ func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) S
 	}
 
 	start := make(Set)
-	for _, dep := range g.upEdgesNoCopy(v) {
+	for _, dep := range g.edgesToNoCopy(v) {
 		start.Add(dep)
 	}
 
@@ -162,7 +162,7 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 	}
 
 	start := make(Set)
-	for _, dep := range g.upEdgesNoCopy(v) {
+	for _, dep := range g.edgesToNoCopy(v) {
 		start.Add(dep)
 	}
 
@@ -178,7 +178,7 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 func (g *AcyclicGraph) Root() (Vertex, error) {
 	roots := make([]Vertex, 0, 1)
 	for _, v := range g.Vertices() {
-		if g.upEdgesNoCopy(v).Len() == 0 {
+		if g.edgesToNoCopy(v).Len() == 0 {
 			roots = append(roots, v)
 		}
 	}
@@ -212,10 +212,10 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
 	for _, u := range g.Vertices() {
-		uTargets := g.downEdgesNoCopy(u)
+		uTargets := g.edgesFromNoCopy(u)
 
-		g.DepthFirstWalk(g.downEdgesNoCopy(u), func(v Vertex, d int) error {
-			shared := uTargets.Intersection(g.downEdgesNoCopy(v))
+		g.DepthFirstWalk(g.edgesFromNoCopy(u), func(v Vertex, d int) error {
+			shared := uTargets.Intersection(g.edgesFromNoCopy(v))
 			for _, vPrime := range shared {
 				g.RemoveEdge(u, vPrime)
 			}
@@ -351,9 +351,9 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 		var next Set
 		switch {
 		case order&downOrder != 0:
-			next = g.downEdgesNoCopy(v)
+			next = g.edgesFromNoCopy(v)
 		case order&upOrder != 0:
-			next = g.upEdgesNoCopy(v)
+			next = g.edgesToNoCopy(v)
 		default:
 			panic(fmt.Sprintln("invalid order", order))
 		}
@@ -471,9 +471,9 @@ func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFun
 		var edges Set
 		switch {
 		case order&downOrder != 0:
-			edges = g.downEdgesNoCopy(current.Vertex)
+			edges = g.edgesFromNoCopy(current.Vertex)
 		case order&upOrder != 0:
-			edges = g.upEdgesNoCopy(current.Vertex)
+			edges = g.edgesToNoCopy(current.Vertex)
 		default:
 			panic(fmt.Sprint("invalid walk order", order))
 		}
