@@ -225,6 +225,7 @@ func newHandleWithDependency[ObjT, DepT any](t *handleTable, obj ObjT, dep handl
 	} else if depObject, ok := depObjectI.(DepT); !ok {
 		// It's caller's responsibility to ensure that it's passing in valid handles.
 		// (This will typically be ensured by our type-safe wrapper methods)
+		t.mu.Unlock()
 		panic(fmt.Sprintf("dependency handle %d is %T, not %T", int64(dep), depObjectI, depObject))
 	}
 	hnd := t.nextHandle
