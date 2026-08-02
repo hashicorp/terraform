@@ -29,6 +29,10 @@ type TeardownSubgraph struct {
 	mode   moduletest.CommandMode
 }
 
+func (g *TeardownSubgraph) Name() string {
+	return "TeardownSubgraph"
+}
+
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
@@ -135,7 +139,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			continue
 		}
 		refNode := cleanupNodes[refStateKey]
-		g.Connect(dag.BasicEdge(refNode, node))
+		g.Connect(refNode, node)
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
 }

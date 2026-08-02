@@ -21,7 +21,7 @@ func (t *CloseTestGraphTransformer) Transform(g *terraform.Graph) error {
 		// of the graph, and since they are now siblings of the closing root node,
 		// they are allowed to run in parallel.
 		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(closeRoot, v))
+			g.Connect(closeRoot, v)
 		}
 	}
 

@@ -10,10 +10,12 @@ import (
 )
 
 type GraphNodeReferenceable interface {
+	dag.Vertex
 	Referenceable() addrs.Referenceable
 }
 
 type GraphNodeReferencer interface {
+	dag.Vertex
 	References() []*addrs.Reference
 }
 
@@ -31,7 +33,7 @@ func (r *ReferenceTransformer) Transform(graph *terraform.Graph) error {
 		for _, reference := range referencer.References() {
 
 			if target, ok := nodes.GetOk(reference.Subject); ok {
-				graph.Connect(dag.BasicEdge(referencer, target))
+				graph.Connect(referencer, target)
 			}
 		}
 	}
