@@ -6,8 +6,6 @@ package oci
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"sync"
@@ -213,7 +211,6 @@ func (ctx *objectStorageMultiPartUploadContext) uploadPartsWorker() {
 			return
 		}
 		tmpLength := int64(len(buffer))
-		sum := md5.Sum(buffer)
 		uploadPartRequest := &objectstorage.UploadPartRequest{
 			UploadId:       ctx.multipartUploadResponse.UploadId,
 			ObjectName:     ctx.multipartUploadResponse.Object,
@@ -222,7 +219,6 @@ func (ctx *objectStorageMultiPartUploadContext) uploadPartsWorker() {
 			ContentLength:  &tmpLength,
 			UploadPartBody: io.NopCloser(bytes.NewReader(buffer)),
 			UploadPartNum:  block.blockNumber,
-			ContentMD5:     common.String(base64.StdEncoding.EncodeToString(sum[:])),
 			RequestMetadata: common.RequestMetadata{
 				RetryPolicy: getDefaultRetryPolicy(),
 			},
