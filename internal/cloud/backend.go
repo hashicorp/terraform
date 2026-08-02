@@ -934,9 +934,6 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			"\n\n%s does not support the %q operation.", b.appName, op.Type)
 	}
 
-	// Lock
-	b.opLock.Lock()
-
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
@@ -960,6 +957,10 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 		defer stop()
 		defer cancel()
 
+		// Lock is acquired and released entirely within the goroutine so that
+		// the Operation() caller never holds the mutex on return, preventing
+		// deadlocks or panics from a subsequent double-lock.
+		b.opLock.Lock()
 		defer b.opLock.Unlock()
 
 		r, opErr := f(stopCtx, cancelCtx, op, w)
