@@ -37,7 +37,7 @@ type ForcedCBDTransformer struct {
 }
 
 func (t *ForcedCBDTransformer) Transform(g *Graph) error {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		dn, ok := v.(GraphNodeCreateBeforeDestroy)
 		if !ok {
 			continue
@@ -130,7 +130,7 @@ type CBDEdgeTransformer struct {
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 	// Go through and reverse any destroy edges
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		dn, ok := v.(GraphNodeCreateBeforeDestroy)
 		if !ok {
 			continue

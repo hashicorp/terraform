@@ -65,7 +65,7 @@ var _ GraphTransformer = (*variableValidationTransformer)(nil)
 
 func (t *variableValidationTransformer) Transform(g *Graph) error {
 	log.Printf("[TRACE] variableValidationTransformer: adding validation nodes for any existing variable evaluation nodes")
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		v, ok := v.(graphNodeValidatableVariable)
 		if !ok {
 			continue // irrelevant node

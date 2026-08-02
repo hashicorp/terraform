@@ -234,7 +234,7 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 
 	log.Printf("[TRACE] ResourceGraph: creating address graph\n")
 	ret := addrs.NewDirectedGraph[addrs.ConfigResource]()
-	for _, n := range tmpG.Vertices() {
+	for n := range tmpG.VerticesSeq() {
 		sourceR := n.(GraphNodeConfigResource)
 		sourceAddr := sourceR.ResourceAddr()
 		ret.Add(sourceAddr)
@@ -253,7 +253,7 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 // edges to preserve the dependency relationships for all of the nodes
 // that still remain.
 func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
-	for _, n := range g.Vertices() {
+	for n := range g.VerticesSeq() {
 		if keepNode(n) {
 			continue
 		}

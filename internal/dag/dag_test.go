@@ -519,7 +519,7 @@ func BenchmarkDAG(b *testing.B) {
 
 		b.StartTimer()
 		// Find dependencies for every node
-		for _, v := range g.Vertices() {
+		for v := range g.VerticesSeq() {
 			_ = g.Ancestors(v)
 		}
 

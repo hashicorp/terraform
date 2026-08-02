@@ -66,7 +66,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 		return fmt.Errorf("AttachSchemaTransformer used with nil Plugins")
 	}
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 
 		if tv, ok := v.(GraphNodeAttachResourceSchema); ok {
 			addr := tv.ResourceAddr()

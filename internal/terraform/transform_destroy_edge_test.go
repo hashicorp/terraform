@@ -410,7 +410,7 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 
 	nodesByName := make(map[string]dag.Vertex)
 	nodesByResourceExpand := make(map[string]dag.Vertex)
-	for _, n := range graph.Vertices() {
+	for n := range graph.VerticesSeq() {
 		name := n.Name()
 		if _, exists := nodesByName[name]; exists {
 			t.Fatalf("multiple nodes have name %q", name)

@@ -177,7 +177,7 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 // Complexity: O(V)
 func (g *AcyclicGraph) Root() (Vertex, error) {
 	roots := make([]Vertex, 0, 1)
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if g.edgesToNoCopy(v).Len() == 0 {
 			roots = append(roots, v)
 		}
@@ -211,7 +211,7 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	// v such that the edge (u,v) exists (v is a direct descendant of u).
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
-	for _, u := range g.Vertices() {
+	for u := range g.VerticesSeq() {
 		uTargets := g.edgesFromNoCopy(u)
 
 		g.DepthFirstWalk(g.edgesFromNoCopy(u), func(v Vertex, d int) error {
@@ -368,7 +368,7 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 		sorted = append(sorted, v)
 	}
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		visit(v)
 	}
 

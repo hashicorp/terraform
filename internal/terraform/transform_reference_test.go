@@ -203,7 +203,12 @@ func TestReferenceMapReferences(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			rm := NewReferenceMap(tc.Nodes)
+			var g Graph
+			for _, node := range tc.Nodes {
+				g.Add(node)
+			}
+
+			rm := NewReferenceMap(&g)
 			result := rm.References(tc.Check)
 
 			var resultStr []string
@@ -385,7 +390,7 @@ resource "test_resource" "in_modc" {
 	tfdiags.AssertNoErrors(t, diags)
 
 	// find the data resource node
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		data, ok := v.(*nodeExpandPlannableResource)
 		if !ok || data.Addr.Resource.Mode != addrs.DataResourceMode {
 			continue

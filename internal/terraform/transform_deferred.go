@@ -29,7 +29,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 	// graph, we must ensure they get evaluated before any of the corresponding
 	// instances by creating dependency edges.
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
-	for _, node := range g.Vertices() {
+	for node := range g.VerticesSeq() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -68,7 +68,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 			// Now we want to find the expansion node that would be applied for
 			// this resource, and tell it that it is performing a partial
 			// expansion.
-			for _, v := range g.Vertices() {
+			for v := range g.VerticesSeq() {
 				if n, ok := v.(*nodeExpandApplyableResource); ok {
 					if per.ConfigResource().Equal(n.Addr) {
 						n.PartialExpansions = append(n.PartialExpansions, per)

@@ -59,7 +59,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[
 
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := dag.NewSet()
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if g.EdgesFrom(v).Len() == 0 {
 			startNodes.Add(v)
 		}

@@ -61,7 +61,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 	// action nodes must be embedded along with the configured action refs, so
 	// first find any action nodes that have already been inserted
 	actionConfigNodes := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		switch v := v.(type) {
 		case *NodeActionConfig:
 			actionConfigNodes.Put(v.ActionAddr(), v)
@@ -69,7 +69,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through and find GraphNodeAttachResource
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		arn, ok := v.(GraphNodeAttachResourceConfig)
 		if !ok {
 			continue

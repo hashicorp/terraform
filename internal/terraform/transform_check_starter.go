@@ -36,7 +36,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 
 	// We're going to step through all the vertices and pull out the relevant
 	// resources and data sources.
-	for _, vertex := range graph.Vertices() {
+	for vertex := range graph.VerticesSeq() {
 		if node, isResource := vertex.(GraphNodeCreator); isResource {
 			addr := node.CreateAddr()
 

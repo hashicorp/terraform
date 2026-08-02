@@ -137,7 +137,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// resources and have no index or module instance information, but we will
 	// want to connect all the individual instances for correct ordering.
 	destroyersByResource := addrs.MakeMap[addrs.ConfigResource, []GraphNodeDestroyer]()
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		switch n := v.(type) {
 		case GraphNodeDestroyer:
 			addrP := n.DestroyAddr()
@@ -178,7 +178,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through and connect creators to destroyers.
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		creator, ok := v.(GraphNodeCreator)
 		if !ok {
 			continue
@@ -300,7 +300,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 	// Only keep destroyers, their providers, and anything the providers need
 	// for configuration. Since the destroyer should already be hooked up to the
 	// provider, keeping all the destroyer dependencies should suffice.
-	for _, n := range g.Vertices() {
+	for n := range g.VerticesSeq() {
 		// a special case of destroyer, is that by convention Terraform expects
 		// root outputs to be "destroyed", and the output node is what writes
 		// the nil state. A root module output currently identifies itself as a
@@ -326,7 +326,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	for _, n := range g.Vertices() {
+	for n := range g.VerticesSeq() {
 		if !keep.Include(n) {
 			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", n.Name())
 			g.Remove(n)

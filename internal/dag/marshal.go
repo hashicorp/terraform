@@ -124,7 +124,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 		Attrs: make(map[string]string),
 	}
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		id := marshalVertexID(v)
 		if sg, ok := marshalSubgrapher(v); ok {
 			smg := newMarshalGraph(v.Name(), sg)

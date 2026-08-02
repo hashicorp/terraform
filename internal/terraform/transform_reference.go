@@ -111,11 +111,10 @@ type ReferenceTransformer struct{}
 
 func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Build a reference map so we can efficiently look up the references
-	vertices := g.Vertices()
-	m := NewReferenceMap(vertices)
+	m := NewReferenceMap(g)
 
 	// Find the things that reference things and connect them
-	for _, v := range vertices {
+	for v := range g.VerticesSeq() {
 		if _, ok := v.(GraphNodeConfigAction); ok {
 			// Because actions were allowed to reference the calling resource in
 			// configuration, we need to deal with the resulting cycles. Skip
@@ -142,7 +141,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	}
 
 	// now we can go back and connect the action configs to their dependencies
-	for _, v := range vertices {
+	for v := range g.VerticesSeq() {
 		actionConfig, ok := v.(GraphNodeConfigAction)
 		if !ok {
 			continue
@@ -207,10 +206,9 @@ func (t attachDataResourceDependsOnTransformer) Transform(g *Graph) error {
 	// First we need to make a map of referenceable addresses to their vertices.
 	// This is very similar to what's done in ReferenceTransformer, but we keep
 	// implementation separate as they may need to change independently.
-	vertices := g.Vertices()
-	refMap := NewReferenceMap(vertices)
+	refMap := NewReferenceMap(g)
 
-	for _, v := range vertices {
+	for v := range g.VerticesSeq() {
 		depender, ok := v.(graphNodeAttachDataResourceDependsOn)
 		if !ok {
 			continue
@@ -249,7 +247,7 @@ type AttachDependenciesTransformer struct {
 }
 
 func (t AttachDependenciesTransformer) Transform(g *Graph) error {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		attacher, ok := v.(GraphNodeAttachDependencies)
 		if !ok {
 			continue
@@ -612,10 +610,10 @@ func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceabl
 
 // NewReferenceMap is used to create a new reference map for the
 // given set of vertices.
-func NewReferenceMap(vs []dag.Vertex) ReferenceMap {
+func NewReferenceMap(g *Graph) ReferenceMap {
 	// Build the lookup table
 	m := make(ReferenceMap)
-	for _, v := range vs {
+	for v := range g.VerticesSeq() {
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {

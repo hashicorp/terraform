@@ -182,7 +182,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// resolution of the resource's own provider.
 	forActions := map[dag.Vertex][]ProviderRef{}
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
 			forActions[v] = pv.ActionProviders()
 		}
@@ -339,7 +339,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	}
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		var refs []ProviderRef
 
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
@@ -399,7 +399,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 	var err error
 	m := providerVertexMap(g)
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
@@ -443,7 +443,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 type PruneProviderTransformer struct{}
 
 func (t *PruneProviderTransformer) Transform(g *Graph) error {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		// We only care about providers
 		_, ok := v.(GraphNodeProvider)
 		if !ok {
@@ -468,7 +468,7 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 
 func providerVertexMap(g *Graph) map[string]GraphNodeProvider {
 	m := make(map[string]GraphNodeProvider)
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if pv, ok := v.(GraphNodeProvider); ok {
 			addr := pv.ProviderAddr()
 			m[addr.String()] = pv
@@ -784,7 +784,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 }
 
 func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		// Only care about GraphNodeAttachProvider implementations
 		apn, ok := v.(GraphNodeAttachProvider)
 		if !ok {

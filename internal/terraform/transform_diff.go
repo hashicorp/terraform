@@ -66,7 +66,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// dependency edges, so we'll do some prep work here to ensure we'll only
 	// create connections to nodes that existed before we started here.
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
-	for _, node := range g.Vertices() {
+	for node := range g.VerticesSeq() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
