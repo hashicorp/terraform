@@ -102,7 +102,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, expander)
 
 	if parentNode != nil {
-		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(expander), dag.VertexName(parentNode))
+		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", expander.Name(), parentNode.Name())
 		g.Connect(expander, parentNode)
 	}
 
@@ -134,7 +134,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		}
 
 		if path.Equal(c.Path) {
-			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
+			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", childV.Name(), c.Path)
 			g.Connect(childV, expander)
 		}
 	}

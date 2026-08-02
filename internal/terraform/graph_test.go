@@ -13,7 +13,7 @@ import (
 // NOT contained in the graph.
 func testGraphNotContains(t *testing.T, g *Graph, name string) {
 	for _, v := range g.Vertices() {
-		if dag.VertexName(v) == name {
+		if v.Name() == name {
 			t.Fatalf(
 				"Expected %q to NOT be in:\n\n%s",
 				name, g.String())
@@ -28,7 +28,7 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 	// Find the B vertex
 	var vertexB dag.Vertex
 	for _, v := range g.Vertices() {
-		if dag.VertexName(v) == B {
+		if v.Name() == B {
 			vertexB = v
 			break
 		}
@@ -42,7 +42,7 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 	// Look at ancestors
 	// Make sure B is in there
 	for _, v := range g.Ancestors(vertexB) {
-		if dag.VertexName(v) == A {
+		if v.Name() == A {
 			// Success
 			return
 		}

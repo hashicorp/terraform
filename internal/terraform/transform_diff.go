@@ -190,9 +190,9 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				if dn, ok := node.(GraphNodeDeposer); ok {
 					dn.SetPreallocatedDeposedKey(dk)
 				}
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, dag.VertexName(node), dk)
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, node.Name(), dk)
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, node.Name())
 			}
 
 			g.Add(node)
@@ -218,9 +218,9 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 			if dk == states.NotDeposed {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, node.Name())
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, node.Name())
 			}
 			g.Add(node)
 		}
@@ -239,7 +239,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 
-			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
+			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, node.Name())
 			g.Add(node)
 		}
 

@@ -71,7 +71,7 @@ func newMarshalVertex(v Vertex) *marshalVertex {
 
 	// the name will be quoted again later, so we need to ensure it's properly
 	// escaped without quotes.
-	name := strconv.Quote(VertexName(v))
+	name := strconv.Quote(v.Name())
 	name = name[1 : len(name)-1]
 
 	return &marshalVertex{
@@ -102,7 +102,7 @@ type marshalEdge struct {
 
 func newMarshalEdge(e Edge) *marshalEdge {
 	return &marshalEdge{
-		Name:   fmt.Sprintf("%s|%s", VertexName(e.S), VertexName(e.T)),
+		Name:   fmt.Sprintf("%s|%s", e.S.Name(), e.T.Name()),
 		Source: marshalVertexID(e.S),
 		Target: marshalVertexID(e.T),
 		Attrs:  make(map[string]string),
@@ -127,7 +127,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 	for _, v := range g.Vertices() {
 		id := marshalVertexID(v)
 		if sg, ok := marshalSubgrapher(v); ok {
-			smg := newMarshalGraph(VertexName(v), sg)
+			smg := newMarshalGraph(v.Name(), sg)
 			smg.ID = id
 			mg.Subgraphs = append(mg.Subgraphs, smg)
 		}
@@ -169,7 +169,7 @@ func marshalVertexID(v Vertex) string {
 	}
 
 	// fallback to a name, which we hope is unique.
-	return VertexName(v)
+	return v.Name()
 
 	// we could try harder by attempting to read the arbitrary value from the
 	// interface, but we shouldn't get here from terraform right now.

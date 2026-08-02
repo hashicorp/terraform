@@ -216,12 +216,12 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		_, ok := v.(GraphNodeModulePath)
 		if !ok && target == nil {
 			// No target and no path to traverse up from
-			diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), absProvider))
+			diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", v.Name(), absProvider))
 			return nil
 		}
 
 		if target != nil {
-			log.Printf("[TRACE] ProviderTransformer: exact match for %s serving %s", absProvider, dag.VertexName(v))
+			log.Printf("[TRACE] ProviderTransformer: exact match for %s serving %s", absProvider, v.Name())
 		}
 
 		// if we don't have a provider at this level, walk up the path looking for one,
@@ -231,10 +231,10 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key := pp.String()
 				target = m[key]
 				if target != nil {
-					log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", dag.VertexName(v), pp)
+					log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", v.Name(), pp)
 					break
 				}
-				log.Printf("[TRACE] ProviderTransformer: looking for %s to serve %s", pp, dag.VertexName(v))
+				log.Printf("[TRACE] ProviderTransformer: looking for %s to serve %s", pp, v.Name())
 			}
 		}
 
@@ -263,7 +263,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				"Provider configuration not present",
 				fmt.Sprintf(
 					"To work with %s its original provider configuration at %s is required, but it has been removed. This occurs when a provider configuration is removed while objects created by that provider still exist in the state. Re-add the provider configuration to destroy %s, after which you can remove the provider configuration again.",
-					dag.VertexName(v), absProvider, dag.VertexName(v),
+					v.Name(), absProvider, v.Name(),
 				),
 			))
 			return nil
@@ -284,7 +284,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			return diags.Err()
 		}
 
-		log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
+		log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", v.Name(), v, target.Name())
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			pv.SetProvider(target.ProviderAddr())
 		}
@@ -297,7 +297,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			if target == nil {
 				return diags.Err()
 			}
-			log.Printf("[DEBUG] ProviderTransformer: %q (%T) actions need %s", dag.VertexName(v), v, dag.VertexName(target))
+			log.Printf("[DEBUG] ProviderTransformer: %q (%T) actions need %s", v.Name(), v, target.Name())
 			g.Connect(v, target)
 		}
 	}
@@ -422,7 +422,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, dag.VertexName(v))
+		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, v.Name())
 
 		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
@@ -452,13 +452,13 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 
 		// ProxyProviders will have up edges, but we're now done with them in the graph
 		if _, ok := v.(*graphNodeProxyProvider); ok {
-			log.Printf("[DEBUG] pruning proxy %s", dag.VertexName(v))
+			log.Printf("[DEBUG] pruning proxy %s", v.Name())
 			g.Remove(v)
 		}
 
 		// Remove providers with no dependencies.
 		if g.UpEdges(v).Len() == 0 {
-			log.Printf("[DEBUG] pruning unused %s", dag.VertexName(v))
+			log.Printf("[DEBUG] pruning unused %s", v.Name())
 			g.Remove(v)
 		}
 	}
@@ -807,7 +807,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
 			if p.Name == localName && p.Alias == addr.Alias {
-				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
+				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", v.Name(), p.DeclRange)
 				apn.AttachProvider(p)
 				break
 			}

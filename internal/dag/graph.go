@@ -30,11 +30,7 @@ type Grapher interface {
 }
 
 // Vertex of the graph.
-type Vertex = NamedVertex
-
-// NamedVertex is an optional interface that can be implemented by Vertex
-// to give it a human-friendly name that is used for outputting the graph.
-type NamedVertex interface {
+type Vertex = interface {
 	Name() string
 }
 
@@ -250,7 +246,7 @@ func (g *Graph) StringWithNodeTypes() string {
 	names := make([]string, 0, len(vertices))
 	mapping := make(map[string]Vertex, len(vertices))
 	for _, v := range vertices {
-		name := VertexName(v)
+		name := v.Name()
 		names = append(names, name)
 		mapping[name] = v
 	}
@@ -267,7 +263,7 @@ func (g *Graph) StringWithNodeTypes() string {
 		deps := make([]string, 0, targets.Len())
 		targetNodes := make(map[string]Vertex)
 		for _, target := range targets {
-			dep := VertexName(target)
+			dep := target.Name()
 			deps = append(deps, dep)
 			targetNodes[dep] = target
 		}
@@ -292,7 +288,7 @@ func (g *Graph) String() string {
 	names := make([]string, 0, len(vertices))
 	mapping := make(map[string]Vertex, len(vertices))
 	for _, v := range vertices {
-		name := VertexName(v)
+		name := v.Name()
 		names = append(names, name)
 		mapping[name] = v
 	}
@@ -308,7 +304,7 @@ func (g *Graph) String() string {
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
 		for _, target := range targets {
-			deps = append(deps, VertexName(target))
+			deps = append(deps, target.Name())
 		}
 		sort.Strings(deps)
 
@@ -341,16 +337,4 @@ func (g *Graph) Dot(opts *DotOpts) []byte {
 // Mermaid returns a Mermaid flowchart formatted representation of the Graph.
 func (g *Graph) Mermaid(opts *DotOpts) []byte {
 	return newMarshalGraph("", g).Mermaid(opts)
-}
-
-// VertexName returns the name of a vertex.
-func VertexName(raw Vertex) string {
-	switch v := raw.(type) {
-	case NamedVertex:
-		return v.Name()
-	case fmt.Stringer:
-		return v.String()
-	default:
-		return fmt.Sprintf("%v", v)
-	}
 }

@@ -406,7 +406,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// We note that our upstream failed if the result is hard failure or soft failure.
 	if depsSuccess == DependencyResultHardFailure || depsSuccess == DependencyResultSoftFailure {
-		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))
+		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", v.Name())
 		// This won't be displayed to the user because we'll set upstreamFailed,
 		// but we need to ensure there's at least one error in here so that
 		// the failures will cascade downstream.
@@ -453,7 +453,7 @@ func (w *Walker) waitDeps(
 
 			case <-time.After(time.Second * 5):
 				log.Printf("[TRACE] dag/walk: vertex %q is waiting for %q",
-					VertexName(v), VertexName(dep))
+					v.Name(), dep.Name())
 			}
 		}
 	}
