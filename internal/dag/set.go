@@ -86,8 +86,8 @@ func (s setMap[T]) Len() int {
 }
 
 // List returns the sequence of set elements.
-func (s setMap[T]) List() iter.Seq[any] {
-	return func(yield func(any) bool) {
+func (s setMap[T]) List() iter.Seq[T] {
+	return func(yield func(T) bool) {
 		for _, v := range s {
 			if !yield(v) {
 				return

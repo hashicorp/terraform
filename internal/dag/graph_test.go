@@ -11,9 +11,9 @@ import (
 
 func TestGraph_empty(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphEmptyStr)
@@ -24,10 +24,10 @@ func TestGraph_empty(t *testing.T) {
 
 func TestGraph_basic(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 3))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(BasicEdge(testV(1), testV(3)))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphBasicStr)
@@ -38,11 +38,11 @@ func TestGraph_basic(t *testing.T) {
 
 func TestGraph_remove(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 3))
-	g.Remove(3)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(BasicEdge(testV(1), testV(3)))
+	g.Remove(testV(3))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphRemoveStr)
@@ -53,12 +53,12 @@ func TestGraph_remove(t *testing.T) {
 
 func TestGraph_replace(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 3))
-	g.Replace(2, 42)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Replace(testV(2), testV(42))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphReplaceStr)
@@ -69,12 +69,12 @@ func TestGraph_replace(t *testing.T) {
 
 func TestGraph_replaceSelf(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 3))
-	g.Replace(2, 2)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(BasicEdge(testV(2), testV(3)))
+	g.Replace(testV(2), testV(2))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphReplaceSelfStr)
@@ -85,26 +85,26 @@ func TestGraph_replaceSelf(t *testing.T) {
 
 func TestGraphHasVertex(t *testing.T) {
 	var g Graph
-	g.Add(1)
+	g.Add(testV(1))
 
-	if !g.HasVertex(1) {
+	if !g.HasVertex(testV(1)) {
 		t.Fatal("should have 1")
 	}
-	if g.HasVertex(2) {
+	if g.HasVertex(testV(2)) {
 		t.Fatal("should not have 2")
 	}
 }
 
 func TestGraphHasEdge(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Connect(BasicEdge(1, 2))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Connect(BasicEdge(testV(1), testV(2)))
 
-	if !g.HasEdge(BasicEdge(1, 2)) {
+	if !g.HasEdge(BasicEdge(testV(1), testV(2))) {
 		t.Fatal("should have 1,2")
 	}
-	if g.HasVertex(BasicEdge(2, 3)) {
+	if g.HasEdge(BasicEdge(testV(2), testV(3))) {
 		t.Fatal("should not have 2,3")
 	}
 }
@@ -161,45 +161,41 @@ func TestGraphEdgesTo(t *testing.T) {
 func TestGraphUpdownEdges(t *testing.T) {
 	// Verify that we can't inadvertently modify the internal graph sets
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 3))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(BasicEdge(testV(1), testV(2)))
+	g.Connect(BasicEdge(testV(2), testV(3)))
 
-	up := g.UpEdges(2)
-	if up.Len() != 1 || !up.Include(1) {
+	up := g.UpEdges(testV(2))
+	if up.Len() != 1 || !up.Include(testV(1)) {
 		t.Fatalf("expected only an up edge of '1', got %#v", up)
 	}
 	// modify the up set
-	up.Add(9)
+	up.Add(testV(9))
 
-	orig := g.UpEdges(2)
+	orig := g.UpEdges(testV(2))
 	diff := up.Difference(orig)
-	if diff.Len() != 1 || !diff.Include(9) {
+	if diff.Len() != 1 || !diff.Include(testV(9)) {
 		t.Fatalf("expected a diff of only '9', got %#v", diff)
 	}
 
-	down := g.DownEdges(2)
-	if down.Len() != 1 || !down.Include(3) {
+	down := g.DownEdges(testV(2))
+	if down.Len() != 1 || !down.Include(testV(3)) {
 		t.Fatalf("expected only a down edge of '3', got %#v", down)
 	}
 	// modify the down set
-	down.Add(8)
+	down.Add(testV(8))
 
-	orig = g.DownEdges(2)
+	orig = g.DownEdges(testV(2))
 	diff = down.Difference(orig)
-	if diff.Len() != 1 || !diff.Include(8) {
+	if diff.Len() != 1 || !diff.Include(testV(8)) {
 		t.Fatalf("expected a diff of only '8', got %#v", diff)
 	}
 }
 
 type hashVertex struct {
 	code any
-}
-
-func (v *hashVertex) Hashcode() any {
-	return v.code
 }
 
 func (v *hashVertex) Name() string {

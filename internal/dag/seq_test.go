@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -12,12 +13,20 @@ type MockVertex struct {
 	id int
 }
 
+func (v MockVertex) Name() string {
+	return fmt.Sprintf("MockVertex(%d)", v.id)
+}
+
 func (v MockVertex) ZeroValue() any {
 	return MockVertex{}
 }
 
 type MockVertex2 struct {
 	id int
+}
+
+func (v MockVertex2) Name() string {
+	return fmt.Sprintf("MockVertex2(%d)", v.id)
 }
 
 func TestSelectSeq(t *testing.T) {
@@ -44,7 +53,11 @@ func TestSelectSeq(t *testing.T) {
 	})
 
 	t.Run("Select objects of given interface", func(t *testing.T) {
-		seq := SelectSeq[interface{ ZeroValue() any }](graph.VerticesSeq())
+		type zeroValuer interface {
+			Vertex
+			ZeroValue() any
+		}
+		seq := SelectSeq[zeroValuer](graph.VerticesSeq())
 		count := len(seq.Collect())
 		if count != 2 {
 			t.Errorf("Expected 1, got %d", count)
@@ -76,7 +89,11 @@ func TestExcludeSeq(t *testing.T) {
 	})
 
 	t.Run("Exclude objects of given interface", func(t *testing.T) {
-		seq := ExcludeSeq[interface{ ZeroValue() any }](graph.VerticesSeq())
+		type zeroValuer interface {
+			Vertex
+			ZeroValue() any
+		}
+		seq := ExcludeSeq[zeroValuer](graph.VerticesSeq())
 		count := len(seq.Collect())
 		if count != 1 {
 			t.Errorf("Expected 1, got %d", count)
