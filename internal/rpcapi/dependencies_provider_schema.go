@@ -6,6 +6,7 @@ package rpcapi
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"sort"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -72,6 +73,9 @@ func unconfiguredProviderPluginInstance(cached *providercache.CachedProvider) (p
 	execFile, err := cached.ExecutableFile()
 	if err != nil {
 		return nil, err
+	}
+	if !filepath.IsAbs(execFile) {
+		return nil, fmt.Errorf("provider executable path must be absolute to prevent path injection, got: %s", execFile)
 	}
 
 	config := &plugin.ClientConfig{
