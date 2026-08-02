@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	tfe "github.com/hashicorp/go-tfe"
 	uuid "github.com/hashicorp/go-uuid"
@@ -673,7 +673,15 @@ func tfeOutputToCtyValue(output tfe.StateVersionOutput) (cty.Value, error) {
 		return result, fmt.Errorf("could not interpret output %s type: %w", output.ID, err)
 	}
 
-	result, err = gocty.ToCtyValue(output.Value, ctype)
+	// Marshal output.Value to JSON bytes first so that deserialization is
+	// performed into a concrete cty.Type rather than into interface{}, which
+	// would allow arbitrary data structures and types (CWE-502).
+	bufVal, err := json.Marshal(output.Value)
+	if err != nil {
+		return result, fmt.Errorf("could not marshal output %s value: %w", output.ID, err)
+	}
+
+	result, err = ctyjson.Unmarshal(bufVal, ctype)
 	if err != nil {
 		return result, fmt.Errorf("could not interpret value %v as type %s for output %s: %w", result, ctype.FriendlyName(), output.ID, err)
 	}
