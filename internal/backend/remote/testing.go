@@ -6,6 +6,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -219,12 +220,13 @@ func testServer(t *testing.T) *httptest.Server {
 	// Respond to service version constraints calls.
 	mux.HandleFunc("/v1/versions/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, fmt.Sprintf(`{
-  "service": "%s",
+		tmpl := template.Must(template.New("versions").Parse(`{
+  "service": "{{.Service}}",
   "product": "terraform",
   "minimum": "0.1.0",
   "maximum": "10.0.0"
-}`, path.Base(r.URL.Path)))
+}`))
+		tmpl.Execute(w, struct{ Service string }{Service: path.Base(r.URL.Path)})
 	})
 
 	// Respond to pings to get the API version header.
