@@ -5,7 +5,9 @@ package mocking
 
 import (
 	"fmt"
-	"math/rand"
+	"math/big"
+	crand "crypto/rand"
+	mrand "math/rand"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -19,7 +21,7 @@ var (
 	//
 	// If testRand is null, then the global random is used. This allows us to
 	// seed tests for repeatable results.
-	testRand *rand.Rand
+	testRand *mrand.Rand
 	chars    = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 )
 
@@ -118,7 +120,11 @@ func str(n int) string {
 		if testRand != nil {
 			b[i] = chars[testRand.Intn(len(chars))]
 		} else {
-			b[i] = chars[rand.Intn(len(chars))]
+			idx, err := crand.Int(crand.Reader, big.NewInt(int64(len(chars))))
+			if err != nil {
+				panic(fmt.Errorf("failed to generate random index: %w", err))
+			}
+			b[i] = chars[idx.Int64()]
 		}
 	}
 	return string(b)
