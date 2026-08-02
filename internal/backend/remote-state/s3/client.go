@@ -740,7 +740,7 @@ func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
 
-func (c *RemoteClient) getSSECustomerKeyMD5() string {
+func (c *RemoteClient) getSSECustomerKeyMD5() string { //nolint:gosec // nosemgrep: use-of-md5
 	// AWS SSE-C protocol requires an MD5 digest of the customer-provided
 	// encryption key as a mandatory transport integrity check (see
 	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html).
