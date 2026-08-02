@@ -33,7 +33,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	}
 
 	targetedNodes := t.selectTargetedNodes(g, t.Targets)
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if !targetedNodes.Include(v) {
 			log.Printf("[DEBUG] Removing %q, filtered by targeting.", v.Name())
 			g.Remove(v)
@@ -52,9 +52,9 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 		return targetedNodes
 	}
 
-	vertices := g.Vertices()
+	vertices := g.VerticesSeq()
 
-	for _, v := range vertices {
+	for v := range vertices {
 		if t.nodeIsTarget(v, addrs) {
 			// We need to add everything this node depends on or that is closely associated with
 			// this node. In case of resource nodes, action triggers are considered closely related
@@ -75,7 +75,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	// side effects from the targeted nodes, these are added because outputs
 	// cannot be targeted on their own.
 	// Start by finding the root module output nodes themselves
-	for _, v := range vertices {
+	for v := range vertices {
 		// outputs are all temporary value types
 		tv, ok := v.(graphNodeTemporaryValue)
 		if !ok {

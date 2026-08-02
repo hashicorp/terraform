@@ -50,14 +50,8 @@ func (g *Graph) DirectedGraph() Grapher {
 	return g
 }
 
-// Vertices returns the list of all the vertices in the graph.
-func (g *Graph) Vertices() []Vertex {
-	result := make([]Vertex, 0, g.vertices.Len())
-	for v := range g.vertices.List() {
-		result = append(result, v)
-	}
-
-	return result
+func (g *Graph) VertexCount() int {
+	return g.vertices.Len()
 }
 
 func (g *Graph) edgeSet() edgeSet {
@@ -244,10 +238,9 @@ func (g *Graph) StringWithNodeTypes() string {
 
 	// Build the list of node names and a mapping so that we can more
 	// easily alphabetize the output to remain deterministic.
-	vertices := g.Vertices()
-	names := make([]string, 0, len(vertices))
-	mapping := make(map[string]Vertex, len(vertices))
-	for _, v := range vertices {
+	names := make([]string, 0, g.vertices.Len())
+	mapping := make(map[string]Vertex, g.vertices.Len())
+	for v := range g.VerticesSeq() {
 		name := v.Name()
 		names = append(names, name)
 		mapping[name] = v
@@ -286,10 +279,9 @@ func (g *Graph) String() string {
 
 	// Build the list of node names and a mapping so that we can more
 	// easily alphabetize the output to remain deterministic.
-	vertices := g.Vertices()
-	names := make([]string, 0, len(vertices))
-	mapping := make(map[string]Vertex, len(vertices))
-	for _, v := range vertices {
+	names := make([]string, 0, g.vertices.Len())
+	mapping := make(map[string]Vertex, g.vertices.Len())
+	for v := range g.VerticesSeq() {
 		name := v.Name()
 		names = append(names, name)
 		mapping[name] = v

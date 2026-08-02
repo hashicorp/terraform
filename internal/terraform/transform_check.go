@@ -22,7 +22,7 @@ type checkTransformer struct {
 var _ GraphTransformer = (*checkTransformer)(nil)
 
 func (t *checkTransformer) Transform(graph *Graph) error {
-	return t.transform(graph, t.Config, graph.Vertices())
+	return t.transform(graph, t.Config, graph.VerticesSeq().Collect())
 }
 
 func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []dag.Vertex) error {

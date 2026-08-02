@@ -26,8 +26,8 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	verts := g.Vertices()
-	for _, v := range verts {
+	verts := g.VerticesSeq()
+	for v := range verts {
 		// find any ephemeral resource nodes
 		v, ok := v.(GraphNodeConfigResource)
 		if !ok {

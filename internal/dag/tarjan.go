@@ -10,12 +10,11 @@ import "slices"
 // for cycle detection, but strongly connected components have widespread
 // use.
 func StronglyConnected(g *Graph) [][]Vertex {
-	vs := g.Vertices()
 	acct := sccAcct{
 		NextIndex:   1,
-		VertexIndex: make(map[Vertex]int, len(vs)),
+		VertexIndex: make(map[Vertex]int, g.VertexCount()),
 	}
-	for _, v := range vs {
+	for v := range g.VerticesSeq() {
 		// Recurse on any non-visited nodes
 		if acct.VertexIndex[v] == 0 {
 			stronglyConnected(&acct, g, v)

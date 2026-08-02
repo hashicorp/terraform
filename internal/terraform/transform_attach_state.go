@@ -38,7 +38,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		// Nodes implement this interface to request state attachment.
 		an, ok := v.(GraphNodeAttachResourceState)
 		if !ok {

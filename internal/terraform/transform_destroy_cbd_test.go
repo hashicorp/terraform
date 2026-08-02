@@ -59,7 +59,7 @@ func cbdTestSteps(steps []GraphTransformer) []GraphTransformer {
 
 // remove extra nodes for easier test comparisons
 func filterInstances(g *Graph) *Graph {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if _, ok := v.(GraphNodeResourceInstance); !ok {
 			// connect around the node to remove it without breaking deps
 			for to := range g.EdgesFrom(v).All() {

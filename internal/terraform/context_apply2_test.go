@@ -3863,7 +3863,7 @@ resource "test_object" "c" {
 	tfdiags.AssertNoErrors(t, diags)
 
 	// the destroy node for "a" must depend on the destroy node for "c"
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if v.Name() != "test_object.a (destroy)" {
 			continue
 		}

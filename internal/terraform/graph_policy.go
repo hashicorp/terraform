@@ -65,7 +65,7 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 
 func (ps *policySubgraph) graphCopyLocked() Graph {
 	var g Graph
-	for _, v := range ps.graph.Vertices() {
+	for v := range ps.graph.VerticesSeq() {
 		g.Add(v)
 	}
 	for _, e := range ps.graph.Edges() {

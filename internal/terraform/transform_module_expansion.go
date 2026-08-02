@@ -45,7 +45,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// This is done all at once here, because orphaned modules were already
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		switch v.(type) {
 		case GraphNodeDestroyer:
 			// Destroy nodes can only be ordered relative to other resource
@@ -115,7 +115,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	g.Connect(closer, expander)
 	t.closers[c.Path.String()] = closer
 
-	for _, childV := range g.Vertices() {
+	for childV := range g.VerticesSeq() {
 		// don't connect a node to itself
 		if childV == expander {
 			continue
