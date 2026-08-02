@@ -11,6 +11,17 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
+// keyVertex wraps a UniqueKey so it satisfies dag.Vertex (= dag.NamedVertex).
+// The dag graph requires vertices to have a Name() method, but UniqueKey is a
+// private opaque type, so we wrap it here.
+type keyVertex struct {
+	key UniqueKey
+}
+
+func (v keyVertex) Name() string {
+	return fmt.Sprintf("%v", v.key)
+}
+
 // DirectedGraph represents a directed graph whose nodes are addresses of
 // type T.
 //
@@ -54,7 +65,7 @@ func NewDirectedGraph[T UniqueKeyer]() DirectedGraph[T] {
 func (g DirectedGraph[T]) Add(addr T) {
 	k := addr.UniqueKey()
 	g.nodes[k] = addr
-	g.g.Add(k)
+	g.g.Add(keyVertex{k})
 }
 
 func (g DirectedGraph[T]) Has(addr T) bool {
@@ -65,7 +76,7 @@ func (g DirectedGraph[T]) Has(addr T) bool {
 
 func (g DirectedGraph[T]) Remove(addr T) {
 	k := addr.UniqueKey()
-	g.g.Remove(k)
+	g.g.Remove(keyVertex{k})
 	delete(g.nodes, k)
 }
 
@@ -84,7 +95,7 @@ func (g DirectedGraph[T]) AllNodes() Set[T] {
 func (g DirectedGraph[T]) AddDependency(dependent, dependency T) {
 	g.Add(dependent)
 	g.Add(dependency)
-	g.g.Connect(dag.BasicEdge(dependent.UniqueKey(), dependency.UniqueKey()))
+	g.g.Connect(dag.BasicEdge(keyVertex{dependent.UniqueKey()}, keyVertex{dependency.UniqueKey()}))
 }
 
 // DirectDependenciesOf returns only the direct dependencies of the given
@@ -92,9 +103,9 @@ func (g DirectedGraph[T]) AddDependency(dependent, dependency T) {
 func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw := g.g.DownEdges(k)
+	raw := g.g.DownEdges(keyVertex{k})
 	for otherKI := range raw {
-		ret.Add(g.nodes[otherKI.(UniqueKey)])
+		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
 }
@@ -107,8 +118,8 @@ func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	for otherKI := range g.g.Ancestors(k) {
-		ret.Add(g.nodes[otherKI.(UniqueKey)])
+	for otherKI := range g.g.Ancestors(keyVertex{k}) {
+		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
 }
@@ -118,9 +129,9 @@ func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw := g.g.UpEdges(k)
+	raw := g.g.UpEdges(keyVertex{k})
 	for otherKI := range raw {
-		ret.Add(g.nodes[otherKI.(UniqueKey)])
+		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
 }
@@ -133,8 +144,8 @@ func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	for otherKI := range g.g.Descendants(k) {
-		ret.Add(g.nodes[otherKI.(UniqueKey)])
+	for otherKI := range g.g.Descendants(keyVertex{k}) {
+		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
 }
@@ -152,7 +163,7 @@ func (g DirectedGraph[T]) TopologicalOrder() []T {
 	}
 	ret := make([]T, len(raw))
 	for i, k := range raw {
-		ret[i] = g.nodes[k.(UniqueKey)]
+		ret[i] = g.nodes[k.(keyVertex).key]
 	}
 	return ret
 }
