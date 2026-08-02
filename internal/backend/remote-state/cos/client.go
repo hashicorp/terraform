@@ -198,7 +198,7 @@ func (c *remoteClient) getObject(cosFile string) (exists bool, data []byte, chec
 		return
 	}
 
-	checksum = rsp.Header.Get("X-Cos-Meta-Md5")
+	checksum = rsp.Header.Get("X-Cos-Meta-Sha256")
 	log.Printf("[DEBUG] getObject %s: checksum: %s", cosFile, checksum)
 	if len(checksum) != 64 {
 		err = fmt.Errorf("failed to open file at %v: checksum %s invalid", cosFile, checksum)
@@ -228,7 +228,7 @@ func (c *remoteClient) putObject(cosFile string, data []byte) error {
 	opt := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			XCosMetaXXX: &http.Header{
-				"X-Cos-Meta-Md5": []string{fmt.Sprintf("%x", sha256.Sum256(data))},
+				"X-Cos-Meta-Sha256": []string{fmt.Sprintf("%x", sha256.Sum256(data))},
 			},
 		},
 		ACLHeaderOptions: &cos.ACLHeaderOptions{
