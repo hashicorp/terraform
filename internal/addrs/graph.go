@@ -103,7 +103,7 @@ func (g DirectedGraph[T]) AddDependency(dependent, dependency T) {
 func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw := g.g.DownEdges(keyVertex{k})
+	raw := g.g.EdgesFrom(keyVertex{k})
 	for otherKI := range raw {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
@@ -129,7 +129,7 @@ func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw := g.g.UpEdges(keyVertex{k})
+	raw := g.g.EdgesTo(keyVertex{k})
 	for otherKI := range raw {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}

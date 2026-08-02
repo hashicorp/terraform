@@ -59,7 +59,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 
 			// ensure that the teardown node runs after all the run nodes
 			for v := range dag.ExcludeSeq[*TeardownSubgraph](g.VerticesSeq()) {
-				if g.UpEdges(v).Len() == 0 {
+				if g.EdgesTo(v).Len() == 0 {
 					g.Connect(cleanup, v)
 				}
 			}

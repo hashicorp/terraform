@@ -470,7 +470,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to
 	// look one step away.
-	for _, v := range g.DownEdges(depender) {
+	for _, v := range g.EdgesFrom(depender) {
 		// we're only concerned with module expansion nodes here.
 		mod, ok := v.(*nodeExpandModule)
 		if !ok {

@@ -65,7 +65,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 				return false
 			}
 
-			up := g.UpEdges(v)
+			up := g.EdgesTo(v)
 			up = up.Filter(func(v dag.Vertex) bool {
 				_, ok := v.(GraphNodeReferencer)
 				return ok

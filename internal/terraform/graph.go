@@ -238,7 +238,7 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 		sourceR := n.(GraphNodeConfigResource)
 		sourceAddr := sourceR.ResourceAddr()
 		ret.Add(sourceAddr)
-		for _, dn := range tmpG.DownEdges(n) {
+		for _, dn := range tmpG.EdgesFrom(n) {
 			targetR := dn.(GraphNodeConfigResource)
 
 			ret.AddDependency(sourceAddr, targetR.ResourceAddr())
@@ -264,8 +264,8 @@ func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
 		// However, this will often generate more edges than are strictly
 		// required and so it could be productive to run a transitive
 		// reduction afterwards.
-		dependents := g.UpEdges(n)
-		dependencies := g.DownEdges(n)
+		dependents := g.EdgesTo(n)
+		dependencies := g.EdgesFrom(n)
 		for _, dependent := range dependents {
 			for _, dependency := range dependencies {
 				g.Connect(dependent, dependency)

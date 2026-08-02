@@ -62,8 +62,8 @@ func filterInstances(g *Graph) *Graph {
 	for _, v := range g.Vertices() {
 		if _, ok := v.(GraphNodeResourceInstance); !ok {
 			// connect around the node to remove it without breaking deps
-			for _, down := range g.DownEdges(v) {
-				for _, up := range g.UpEdges(v) {
+			for _, down := range g.EdgesFrom(v) {
+				for _, up := range g.EdgesTo(v) {
 					g.Connect(up, down)
 				}
 			}

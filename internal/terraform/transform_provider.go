@@ -457,7 +457,7 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// Remove providers with no dependencies.
-		if g.UpEdges(v).Len() == 0 {
+		if g.EdgesTo(v).Len() == 0 {
 			log.Printf("[DEBUG] pruning unused %s", v.Name())
 			g.Remove(v)
 		}
