@@ -807,6 +807,17 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 	// Lock
 	b.opLock.Lock()
 
+	// lockReleased tracks whether the goroutine below has taken ownership of
+	// the lock. If anything causes the outer function to return before the
+	// goroutine is launched (or if the goroutine is never started), the
+	// deferred unlock below ensures the mutex is always released.
+	lockReleased := false
+	defer func() {
+		if !lockReleased {
+			b.opLock.Unlock()
+		}
+	}()
+
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
@@ -823,6 +834,9 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 	// indicating that the process is exiting.
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	runningOp.Cancel = cancel
+
+	// Hand off lock ownership to the goroutine before launching it.
+	lockReleased = true
 
 	// Do it.
 	go func() {
