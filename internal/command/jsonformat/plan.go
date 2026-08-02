@@ -601,18 +601,24 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			// which module instance keys are actually declared.
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", resource.ModuleAddress))
 		case jsonplan.ResourceInstanceDeleteBecauseWrongRepetition:
-			var index interface{}
+			// Determine the index type from the raw JSON token to avoid
+			// deserializing into interface{} (CWE-502). The index can only be
+			// null (no repetition key), a JSON number (count index), or a JSON
+			// string (for_each key).
+			var indexToken json.Token
 			if resource.Index != nil {
-				if err := json.Unmarshal(resource.Index, &index); err != nil {
+				var err error
+				indexToken, err = json.NewDecoder(bytes.NewReader(resource.Index)).Token()
+				if err != nil {
 					panic(err)
 				}
 			}
 
 			// We have some different variations of this one
-			switch index.(type) {
+			switch indexToken.(type) {
 			case nil:
 				buf.WriteString("\n  # (because resource uses count or for_each)")
-			case float64:
+			case json.Number, float64:
 				buf.WriteString("\n  # (because resource does not use count)")
 			case string:
 				buf.WriteString("\n  # (because resource does not use for_each)")
