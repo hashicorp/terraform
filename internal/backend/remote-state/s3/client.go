@@ -741,7 +741,11 @@ func (c *RemoteClient) lockPath() string {
 }
 
 func (c *RemoteClient) getSSECustomerKeyMD5() string {
-	b := md5.Sum(c.customerEncryptionKey)
+	// AWS SSE-C protocol requires an MD5 digest of the customer-provided
+	// encryption key as a mandatory transport integrity check (see
+	// https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html).
+	// This is an AWS API contract and cannot be replaced with SHA-256.
+	b := md5.Sum(c.customerEncryptionKey) //nolint:gosec // nosemgrep: use-of-md5
 	return base64.StdEncoding.EncodeToString(b[:])
 }
 
