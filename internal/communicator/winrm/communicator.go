@@ -4,10 +4,12 @@
 package winrm
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
+	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +26,6 @@ type Communicator struct {
 	connInfo *connectionInfo
 	client   *winrm.Client
 	endpoint *winrm.Endpoint
-	rand     *rand.Rand
 }
 
 // New creates a new communicator implementation over WinRM.
@@ -48,8 +49,6 @@ func New(v cty.Value) (*Communicator, error) {
 	comm := &Communicator{
 		connInfo: connInfo,
 		endpoint: endpoint,
-		// Seed our own rand source so that script paths are not deterministic
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	return comm, nil
@@ -129,9 +128,13 @@ func (c *Communicator) Timeout() time.Duration {
 
 // ScriptPath implementation of communicator.Communicator interface
 func (c *Communicator) ScriptPath() string {
+	n, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt32))
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate random script path: %s", err))
+	}
 	return strings.Replace(
 		c.connInfo.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(c.rand.Int31()), 10), -1)
+		strconv.FormatInt(n.Int64(), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface
