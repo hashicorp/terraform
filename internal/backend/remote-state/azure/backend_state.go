@@ -76,8 +76,9 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 		return diags.Append(err)
 	}
 
-	if resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
-		if !response.WasNotFound(resp.HttpResponse) {
+	resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{})
+	if err != nil {
+		if resp == nil || !response.WasNotFound(resp.HttpResponse) {
 			return diags.Append(err)
 		}
 	}
