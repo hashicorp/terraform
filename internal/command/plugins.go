@@ -6,7 +6,6 @@ package command
 import (
 	"fmt"
 	"log"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -130,8 +129,12 @@ func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
 
 func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
+		cmd, err := safePluginCommand(meta.Path)
+		if err != nil {
+			return nil, fmt.Errorf("invalid provisioner plugin binary %q: %w", meta.Path, err)
+		}
 		cfg := &plugin.ClientConfig{
-			Cmd:              exec.Command(meta.Path),
+			Cmd:              cmd,
 			HandshakeConfig:  tfplugin.Handshake,
 			VersionedPlugins: tfplugin.VersionedPlugins,
 			Managed:          true,
