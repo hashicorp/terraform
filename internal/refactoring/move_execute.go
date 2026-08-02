@@ -58,9 +58,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[
 	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
-	startNodes := make(dag.Set, len(stmts))
+	startNodes := dag.NewSet()
 	for _, v := range g.Vertices() {
-		if len(g.EdgesFrom(v)) == 0 {
+		if g.EdgesFrom(v).Len() == 0 {
 			startNodes.Add(v)
 		}
 	}

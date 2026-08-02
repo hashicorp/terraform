@@ -73,10 +73,10 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 
 			// if there are no references connected to this node, then we can be
 			// sure it's the last referencer in the chain.
-			return len(up) == 0
+			return up.Len() == 0
 		})
 
-		for last := range lastReferences.List() {
+		for last := range lastReferences.All() {
 			g.Connect(closeNode, last)
 		}
 	}

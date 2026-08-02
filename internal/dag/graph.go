@@ -6,13 +6,15 @@ package dag
 import (
 	"bytes"
 	"fmt"
-	"maps"
 	"sort"
 )
 
 // Graph is used to represent a dependency graph.
 type Graph struct {
-	vertices  Set
+	vertices Set
+
+	// The information here is redundant, but because we traverse the graph so
+	// frequently the duplication pays off in much better performance
 	edgesFrom map[Vertex]Set
 	edgesTo   map[Vertex]Set
 }
@@ -50,8 +52,8 @@ func (g *Graph) DirectedGraph() Grapher {
 
 // Vertices returns the list of all the vertices in the graph.
 func (g *Graph) Vertices() []Vertex {
-	result := make([]Vertex, 0, len(g.vertices))
-	for _, v := range g.vertices {
+	result := make([]Vertex, 0, g.vertices.Len())
+	for v := range g.vertices.List() {
 		result = append(result, v)
 	}
 
@@ -59,9 +61,9 @@ func (g *Graph) Vertices() []Vertex {
 }
 
 func (g *Graph) edgeSet() edgeSet {
-	edges := make(edgeSet)
+	edges := edgeSet{make(map[Edge]Edge)}
 	for from, tos := range g.edgesFrom {
-		for _, to := range tos {
+		for to := range tos.All() {
 			edges.Add(Edge{from, to})
 		}
 	}
@@ -70,10 +72,10 @@ func (g *Graph) edgeSet() edgeSet {
 
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
-	result := make([]Edge, 0, len(g.edgesTo)+len(g.edgesFrom))
+	result := make([]Edge, 0, len(g.edgesFrom))
 
 	for from, tos := range g.edgesFrom {
-		for _, to := range tos {
+		for to := range tos.All() {
 			result = append(result, Edge{from, to})
 		}
 	}
@@ -110,10 +112,10 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	g.vertices.Delete(v)
 
 	// Delete the edges to non-existent things
-	for _, target := range g.edgesFromNoCopy(v) {
+	for target := range g.edgesFromNoCopy(v).All() {
 		g.RemoveEdge(v, target)
 	}
-	for _, source := range g.edgesToNoCopy(v) {
+	for source := range g.edgesToNoCopy(v).All() {
 		g.RemoveEdge(source, v)
 	}
 
@@ -136,10 +138,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
-	for _, target := range g.edgesFromNoCopy(original) {
+	for target := range g.edgesFromNoCopy(original).All() {
 		g.Connect(replacement, target)
 	}
-	for _, source := range g.edgesToNoCopy(original) {
+	for source := range g.edgesToNoCopy(original).All() {
 		g.Connect(source, replacement)
 	}
 
@@ -166,13 +168,13 @@ func (g *Graph) RemoveEdge(from, to Vertex) {
 // EdgesTo returns the vertices that are *sources* of edges that target the
 // destination Vertex v.
 func (g *Graph) EdgesTo(v Vertex) Set {
-	return g.edgesToNoCopy(v).Copy()
+	return g.edgesToNoCopy(v).Clone()
 }
 
 // EdgesFrom returns the vertices that are *targets* of edges that originate
 // from the source Vertex v.
 func (g *Graph) EdgesFrom(v Vertex) Set {
-	return g.edgesFromNoCopy(v).Copy()
+	return g.edgesFromNoCopy(v).Clone()
 }
 
 // edgesFromNoCopy returns the vertices targeted by edges from the source Vertex
@@ -204,7 +206,7 @@ func (g *Graph) Connect(source, target Vertex) {
 	// Add the down edge
 	s, ok := g.edgesFrom[source]
 	if !ok {
-		s = make(Set)
+		s = NewSet()
 		g.edgesFrom[source] = s
 	}
 	s.Add(target)
@@ -212,7 +214,7 @@ func (g *Graph) Connect(source, target Vertex) {
 	// Add the up edge
 	s, ok = g.edgesTo[target]
 	if !ok {
-		s = make(Set)
+		s = NewSet()
 		g.edgesTo[target] = s
 	}
 	s.Add(source)
@@ -226,7 +228,7 @@ func (g *Graph) Connect(source, target Vertex) {
 // graph will be connected with it.
 func (g *Graph) Subsume(other *Graph) {
 	g.init()
-	maps.Insert(g.vertices, maps.All(other.vertices))
+	g.vertices = g.vertices.Union(other.vertices)
 
 	for v := range other.edgesFrom {
 		g.edgesFrom[v] = other.EdgesFrom(v)
@@ -262,7 +264,7 @@ func (g *Graph) StringWithNodeTypes() string {
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
 		targetNodes := make(map[string]Vertex)
-		for _, target := range targets {
+		for target := range targets.All() {
 			dep := target.Name()
 			deps = append(deps, dep)
 			targetNodes[dep] = target
@@ -303,7 +305,7 @@ func (g *Graph) String() string {
 
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
-		for _, target := range targets {
+		for target := range targets.All() {
 			deps = append(deps, target.Name())
 		}
 		sort.Strings(deps)
@@ -318,8 +320,8 @@ func (g *Graph) String() string {
 }
 
 func (g *Graph) init() {
-	if g.vertices == nil {
-		g.vertices = make(Set)
+	if g.vertices.m == nil {
+		g.vertices = NewSet()
 	}
 	if g.edgesFrom == nil {
 		g.edgesFrom = make(map[Vertex]Set)

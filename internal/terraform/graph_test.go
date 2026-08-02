@@ -41,7 +41,7 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 
 	// Look at ancestors
 	// Make sure B is in there
-	for _, v := range g.Ancestors(vertexB) {
+	for v := range g.Ancestors(vertexB).All() {
 		if v.Name() == A {
 			// Success
 			return

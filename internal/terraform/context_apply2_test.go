@@ -3869,7 +3869,7 @@ resource "test_object" "c" {
 		}
 
 		// make sure the "c" destroy node is a dependency
-		for _, dep := range g.Ancestors(v) {
+		for dep := range g.Ancestors(v).All() {
 			if dep.Name() == "test_object.c (destroy)" {
 				// OK!
 				return

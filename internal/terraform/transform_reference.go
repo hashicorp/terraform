@@ -281,7 +281,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		// since we need to type-switch over the nodes anyway, we're going to
 		// insert the address directly into depMap and forget about the returned
 		// set.
-		for _, d := range g.Ancestors(v) {
+		for d := range g.Ancestors(v).All() {
 			var addr addrs.ConfigResource
 
 			switch d := d.(type) {
@@ -370,7 +370,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 // dependencies are declared, hence everything else is resolved via the normal
 // reference mechanism.
 func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	res := make(dag.Set)
+	res := dag.NewSet()
 
 	refs := depender.DependsOn()
 
@@ -404,7 +404,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			// sources aren't just tracking this for graph edges, but rather
 			// they need to look for changes during the plan.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				for _, v := range g.Ancestors(rv) {
+				for v := range g.Ancestors(rv).All() {
 					if isDependableResource(v) {
 						res.Add(v)
 					}
@@ -414,15 +414,12 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 	}
 
 	parentDeps := m.parentModuleDependsOn(g, depender)
-	// dag.Set doesn't have an insert/union method, but they are simple maps
-	for k, v := range parentDeps {
-		res[k] = v
-	}
+	res = res.Union(parentDeps)
 
 	// Now we need to convert the set back to our slice type, because Set.List()
 	// returns []any.
 	vertices := make([]dag.Vertex, 0, res.Len())
-	for _, v := range res {
+	for v := range res.All() {
 		vertices = append(vertices, v)
 	}
 	return vertices
@@ -465,12 +462,12 @@ func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Refere
 // parentModuleDependsOn returns the set of vertices that a data sources parent
 // module references through the module call's depends_on.
 func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.Set {
-	res := make(dag.Set)
+	res := dag.NewSet()
 
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to
 	// look one step away.
-	for _, v := range g.EdgesFrom(depender) {
+	for v := range g.EdgesFrom(depender).All() {
 		// we're only concerned with module expansion nodes here.
 		mod, ok := v.(*nodeExpandModule)
 		if !ok {
@@ -487,7 +484,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 		// We need to descend through all ancestors here, because data sources
 		// aren't just tracking this for graph edges, but rather they need to
 		// look for changes during the plan.
-		for _, v := range g.Ancestors(deps...) {
+		for v := range g.Ancestors(deps...).All() {
 			if isDependableResource(v) {
 				res.Add(v)
 			}

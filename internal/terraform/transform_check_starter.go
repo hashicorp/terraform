@@ -52,7 +52,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 				// about the referencing resource.
 
 				leafResource := true
-				for _, other := range graph.EdgesTo(vertex) {
+				for other := range graph.EdgesTo(vertex).All() {
 					if otherResource, isResource := other.(GraphNodeCreator); isResource {
 						otherAddr := otherResource.CreateAddr()
 						if otherAddr.Resource.Resource.Mode == addrs.ManagedResourceMode {

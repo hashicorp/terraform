@@ -27,7 +27,7 @@ func (seq VertexSeq[T]) AsGeneric() VertexSeq[Vertex] {
 // Vertices returns an iterator over all the vertices in the graph.
 func (g *Graph) VerticesSeq() VertexSeq[Vertex] {
 	return func(yield func(v Vertex) bool) {
-		for _, v := range g.vertices {
+		for v := range g.vertices.All() {
 			v, ok := v.(Vertex)
 			if !ok {
 				continue

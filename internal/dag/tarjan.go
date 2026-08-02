@@ -29,7 +29,7 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	index := acct.visit(v)
 	minIdx := index
 
-	for _, raw := range g.edgesFromNoCopy(v) {
+	for raw := range g.edgesFromNoCopy(v).All() {
 		target := raw.(Vertex)
 		targetIdx := acct.VertexIndex[target]
 

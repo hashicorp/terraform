@@ -82,21 +82,17 @@ const (
 	DependencyResultSoftFailure DependencyResult = "soft-failure"
 )
 
-func (w *Walker) init() {
-	if w.vertices == nil {
-		w.vertices = make(Set)
-	}
-	if w.edges == nil {
-		w.edges = make(edgeSet)
-	}
-}
-
 // NewWalker creates a new walker with the given callback function.
 func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
-	w := &Walker{Callback: cb}
+	w := &Walker{
+		Callback: cb,
+		vertices: NewSet(),
+		edges:    newEdgeSet(),
+	}
 	for _, opt := range opts {
 		opt(w)
 	}
+
 	return w
 }
 
@@ -170,9 +166,8 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
-	w.init()
-	v := make(Set)
-	e := make(edgeSet)
+	v := NewSet()
+	e := newEdgeSet()
 	if g != nil {
 		v, e = g.vertices, g.edgeSet()
 	}
@@ -195,7 +190,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	oldVerts := w.vertices.Difference(v)
 
 	// Add the new vertices
-	for _, v := range newVerts {
+	for v := range newVerts.All() {
 		// Add to the waitgroup so our walk is not done until everything finishes
 		w.wait.Add(1)
 
@@ -214,7 +209,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Remove the old vertices
-	for _, v := range oldVerts {
+	for v := range oldVerts.All() {
 		// Get the vertex info so we can cancel it
 		info, ok := w.vertexMap[v]
 		if !ok {
@@ -232,8 +227,8 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Add the new edges
-	changedDeps := make(Set)
-	for _, edge := range newEdges {
+	changedDeps := NewSet()
+	for edge := range newEdges.All() {
 		waiter, dep := w.waitOrder(edge)
 
 		// Get the info for the waiter
@@ -259,7 +254,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Process removed edges
-	for _, edge := range oldEdges {
+	for edge := range oldEdges.All() {
 		waiter, dep := w.waitOrder(edge)
 
 		// Get the info for the waiter
@@ -279,7 +274,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 	// For each vertex with changed dependencies, we need to kick off
 	// a new waiter and notify the vertex of the changes.
-	for _, v := range changedDeps {
+	for v := range changedDeps.All() {
 		info, ok := w.vertexMap[v]
 		if !ok {
 			// Vertex doesn't exist... shouldn't be possible but ignore.
@@ -319,7 +314,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are set up above.
-	for _, v := range newVerts {
+	for v := range newVerts.All() {
 		go w.walkVertex(v, w.vertexMap[v])
 	}
 }
