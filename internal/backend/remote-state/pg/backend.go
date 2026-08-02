@@ -104,17 +104,9 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	// Note: DDL statements (CREATE SCHEMA/TABLE/INDEX) do not support
 	// parameterized placeholders ($1, $2, …) for identifiers in PostgreSQL.
 	// The schema name is therefore embedded via fmt.Sprintf, but only after
-	// being sanitised with pq.QuoteIdentifier at each call site below.
+	// being sanitised with pq.QuoteIdentifier inline at each call site below,
+	// which prevents SQL injection by escaping and double-quoting the identifier.
 	// Data values continue to use parameterized queries.
-
-	// quotedSchema holds the safely-quoted schema identifier used in all DDL below.
-	// quotedTable and quotedIndex hold the safely-quoted constant identifiers.
-	// All three are passed through pq.QuoteIdentifier so that every identifier
-	// embedded via fmt.Sprintf is explicitly sanitised, even though statesTableName
-	// and statesIndexName are package-level constants with no injection risk.
-	quotedSchema := pq.QuoteIdentifier(b.schemaName)
-	quotedTable := pq.QuoteIdentifier(statesTableName)
-	quotedIndex := pq.QuoteIdentifier(statesIndexName)
 
 	if !data.Bool("skip_schema_creation") {
 		// list all schemas to see if it exists
@@ -130,9 +122,9 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 		// `CREATE SCHEMA IF NOT EXISTS` is to be avoided if ever
 		// a user hasn't been granted the `CREATE SCHEMA` privilege
 		if count < 1 {
-			// quotedSchema is sanitised with pq.QuoteIdentifier; safe to embed.
+			// pq.QuoteIdentifier sanitises b.schemaName before embedding it in the DDL.
 			if _, err := db.Exec(
-				fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS %s`, quotedSchema),
+				fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS %s`, pq.QuoteIdentifier(b.schemaName)),
 			); err != nil {
 				return backendbase.ErrorAsDiagnostics(err)
 			}
@@ -144,24 +136,24 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 
-		// quotedSchema and quotedTable are both sanitised with pq.QuoteIdentifier; safe to embed.
+		// pq.QuoteIdentifier sanitises b.schemaName and statesTableName before embedding them in the DDL.
 		if _, err := db.Exec(fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s.%s (
 			id bigint NOT NULL DEFAULT nextval('public.global_states_id_seq') PRIMARY KEY,
 			name text UNIQUE,
 			data text
 			)`,
-			quotedSchema, quotedTable,
+			pq.QuoteIdentifier(b.schemaName), pq.QuoteIdentifier(statesTableName),
 		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
 
 	if !data.Bool("skip_index_creation") {
-		// quotedIndex, quotedSchema, and quotedTable are all sanitised with pq.QuoteIdentifier; safe to embed.
+		// pq.QuoteIdentifier sanitises statesIndexName, b.schemaName, and statesTableName before embedding them in the DDL.
 		if _, err := db.Exec(fmt.Sprintf(
 			`CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`,
-			quotedIndex, quotedSchema, quotedTable,
+			pq.QuoteIdentifier(statesIndexName), pq.QuoteIdentifier(b.schemaName), pq.QuoteIdentifier(statesTableName),
 		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
