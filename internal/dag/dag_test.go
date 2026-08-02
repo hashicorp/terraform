@@ -323,7 +323,7 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 		return v.(testV)%2 != 0
 	})
 
-	expected := make(Set)
+	expected := NewSet()
 	expected.Add(testV(1))
 	expected.Add(testV(5))
 
@@ -374,7 +374,7 @@ func TestAcyclicGraphFindAncestors(t *testing.T) {
 		return v.(testV)%2 != 0
 	})
 
-	expected := make(Set)
+	expected := NewSet()
 	expected.Add(testV(1))
 	expected.Add(testV(5))
 
@@ -560,10 +560,10 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 	g.Connect(testV(9), testV(11))
 	g.Connect(testV(10), testV(11))
 
-	start := make(Set)
+	start := NewSet()
 	start.Add(testV(2))
 	start.Add(testV(1))
-	reverse := make(Set)
+	reverse := NewSet()
 	reverse.Add(testV(11))
 	reverse.Add(testV(6))
 
@@ -633,7 +633,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		completed := map[Vertex]bool{}
 		for _, v := range order {
 			deps := g.EdgesFrom(v)
-			for _, dep := range deps {
+			for dep := range deps.All() {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
 				}
@@ -650,7 +650,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		completed := map[Vertex]bool{}
 		for _, v := range order {
 			deps := g.EdgesTo(v)
-			for _, dep := range deps {
+			for dep := range deps.All() {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
 				}

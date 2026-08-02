@@ -32,21 +32,21 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
 func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
-	s := make(Set)
+	s := NewSet()
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	start := make(Set)
+	start := NewSet()
 	for _, v := range vs {
-		for _, dep := range g.edgesFromNoCopy(v) {
+		for dep := range g.edgesFromNoCopy(v).All() {
 			start.Add(dep)
 		}
 	}
 
 	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
-		return nil
+		return NewSet()
 	}
 
 	return s
@@ -57,7 +57,7 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
 // match returns true. This will return the set of all first ancestors
 // encountered which match some criteria.
 func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set {
-	s := make(Set)
+	s := NewSet()
 	searchFunc := func(v Vertex, d int) error {
 		if match(v) {
 			s.Add(v)
@@ -67,8 +67,8 @@ func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set
 		return nil
 	}
 
-	start := make(Set)
-	for _, dep := range g.edgesFromNoCopy(v) {
+	start := NewSet()
+	for dep := range g.edgesFromNoCopy(v).All() {
 		start.Add(dep)
 	}
 
@@ -91,8 +91,8 @@ func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
 		return nil
 	}
 
-	start := make(Set)
-	for _, dep := range g.edgesFromNoCopy(v) {
+	start := NewSet()
+	for dep := range g.edgesFromNoCopy(v).All() {
 		start.Add(dep)
 	}
 
@@ -105,14 +105,14 @@ func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
 // Descendants returns a Set that includes every Vertex yielded by walking up
 // from the provided starting Vertex v.
 func (g *AcyclicGraph) Descendants(v Vertex) Set {
-	s := make(Set)
+	s := NewSet()
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	start := make(Set)
-	for _, dep := range g.edgesToNoCopy(v) {
+	start := NewSet()
+	for dep := range g.edgesToNoCopy(v).All() {
 		start.Add(dep)
 	}
 
@@ -127,7 +127,7 @@ func (g *AcyclicGraph) Descendants(v Vertex) Set {
 // match returns true. This will return the set of all first descendants
 // encountered which match some criteria.
 func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) Set {
-	s := make(Set)
+	s := NewSet()
 	searchFunc := func(v Vertex, d int) error {
 		if match(v) {
 			s.Add(v)
@@ -137,8 +137,8 @@ func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) S
 		return nil
 	}
 
-	start := make(Set)
-	for _, dep := range g.edgesToNoCopy(v) {
+	start := NewSet()
+	for dep := range g.edgesToNoCopy(v).All() {
 		start.Add(dep)
 	}
 
@@ -161,8 +161,8 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 		return nil
 	}
 
-	start := make(Set)
-	for _, dep := range g.edgesToNoCopy(v) {
+	start := NewSet()
+	for dep := range g.edgesToNoCopy(v).All() {
 		start.Add(dep)
 	}
 
@@ -216,7 +216,7 @@ func (g *AcyclicGraph) TransitiveReduction() {
 
 		g.DepthFirstWalk(g.edgesFromNoCopy(u), func(v Vertex, d int) error {
 			shared := uTargets.Intersection(g.edgesFromNoCopy(v))
-			for _, vPrime := range shared {
+			for vPrime := range shared.All() {
 				g.RemoveEdge(u, vPrime)
 			}
 
@@ -299,7 +299,8 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // This will walk nodes in parallel if it can. The resulting diagnostics
 // contains problems from all graphs visited, in no particular order.
 func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
-	w := &Walker{Callback: cb, Reverse: true}
+	w := NewWalker(cb)
+	w.Reverse = true
 	w.Update(g)
 	return w.Wait()
 }
@@ -328,7 +329,7 @@ func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 	// Use a dfs-based sorting algorithm, similar to that used in
 	// TransitiveReduction.
-	sorted := make([]Vertex, 0, len(g.vertices))
+	sorted := make([]Vertex, 0, g.vertices.Len())
 
 	// tmp track the current working node to check for cycles
 	tmp := map[Vertex]bool{}
@@ -358,7 +359,7 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 			panic(fmt.Sprintln("invalid order", order))
 		}
 
-		for _, u := range next {
+		for u := range next.All() {
 			visit(u)
 		}
 
@@ -421,8 +422,9 @@ func (g *AcyclicGraph) ReverseBreadthFirstWalk(start Set, f DepthWalkFunc) error
 // deterministic testing.
 func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
-	frontier := make([]vertexAtDepth, 0, len(start))
-	for _, v := range start {
+	var frontier []vertexAtDepth
+
+	for v := range start.All() {
 		frontier = append(frontier, vertexAtDepth{
 			Vertex: v,
 			Depth:  0,
@@ -488,7 +490,7 @@ func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFun
 }
 
 func appendNext(frontier []vertexAtDepth, next Set, depth int) []vertexAtDepth {
-	for _, v := range next {
+	for v := range next.All() {
 		frontier = append(frontier, vertexAtDepth{
 			Vertex: v,
 			Depth:  depth,
@@ -499,7 +501,7 @@ func appendNext(frontier []vertexAtDepth, next Set, depth int) []vertexAtDepth {
 
 func testAppendNextSorted(frontier []vertexAtDepth, edges Set, depth int) []vertexAtDepth {
 	var newEdges []vertexAtDepth
-	for _, v := range edges {
+	for v := range edges.All() {
 		newEdges = append(newEdges, vertexAtDepth{
 			Vertex: v,
 			Depth:  depth,

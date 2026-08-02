@@ -104,7 +104,7 @@ func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
 	raw := g.g.EdgesFrom(keyVertex{k})
-	for otherKI := range raw {
+	for otherKI := range raw.All() {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
@@ -118,7 +118,7 @@ func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	for otherKI := range g.g.Ancestors(keyVertex{k}) {
+	for otherKI := range g.g.Ancestors(keyVertex{k}).All() {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
@@ -130,7 +130,7 @@ func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
 	raw := g.g.EdgesTo(keyVertex{k})
-	for otherKI := range raw {
+	for otherKI := range raw.All() {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret
@@ -144,7 +144,7 @@ func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	for otherKI := range g.g.Descendants(keyVertex{k}) {
+	for otherKI := range g.g.Descendants(keyVertex{k}).All() {
 		ret.Add(g.nodes[otherKI.(keyVertex).key])
 	}
 	return ret

@@ -288,7 +288,7 @@ list "test_resource" "mylist" {
 	testGraphHappensBefore(t, g, "list.test_resource.mylist (expand)", "(evaluate policies)")
 
 	policyNode := nodes[0]
-	for _, dep := range g.EdgesFrom(policyNode) {
+	for dep := range g.EdgesFrom(policyNode).All() {
 		if res, ok := dep.(GraphNodeConfigResource); ok && res.ResourceAddr().Resource.Mode != addrs.ListResourceMode {
 			t.Errorf("policy node should not directly depend on non-list resource %q in query mode", dep.Name())
 		}

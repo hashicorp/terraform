@@ -82,7 +82,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
 
 	// It's also possible that there are some orphaned CBD nodes from dependents
 	// that no longer exist. These will be directly connected destroy nodes.
-	for _, dep := range g.EdgesFrom(v) {
+	for dep := range g.EdgesFrom(v).All() {
 		if _, destroyer := dep.(GraphNodeDestroyer); !destroyer {
 			continue
 		}
@@ -144,7 +144,7 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		// Find the resource edges
-		for _, src := range g.EdgesTo(v) {
+		for src := range g.EdgesTo(v).All() {
 
 			// If source is a create node, invert the edge.
 			// This covers both the node's own creator, as well as reversing

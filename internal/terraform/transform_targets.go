@@ -47,7 +47,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
 func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
-	targetedNodes := make(dag.Set)
+	targetedNodes := dag.NewSet()
 	if len(addrs) == 0 {
 		return targetedNodes
 	}
@@ -92,7 +92,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 		// will keep it
 		deps := g.Ancestors(v)
 		found := 0
-		for _, d := range deps {
+		for d := range deps.All() {
 			switch d.(type) {
 			case GraphNodeResourceInstance:
 			case GraphNodeConfigResource:
@@ -113,7 +113,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 		if found > 0 {
 			// we found an output we can keep; add it, and all it's dependencies
 			targetedNodes.Add(v)
-			for _, d := range deps {
+			for d := range deps.All() {
 				targetedNodes.Add(d)
 			}
 		}
@@ -195,7 +195,7 @@ func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v da
 	}
 	targetedNodes.Add(v)
 
-	for _, d := range g.Ancestors(v) {
+	for d := range g.Ancestors(v).All() {
 		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
 	}
 }

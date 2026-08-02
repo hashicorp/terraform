@@ -44,9 +44,9 @@ func TestSetDifference(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			one := make(Set)
-			two := make(Set)
-			expected := make(Set)
+			one := NewSet()
+			two := NewSet()
+			expected := NewSet()
 			for _, v := range tc.A {
 				one.Add(v)
 			}
@@ -54,7 +54,7 @@ func TestSetDifference(t *testing.T) {
 				two.Add(v)
 			}
 			if tc.B == nil {
-				two = nil
+				two.m = nil
 			}
 			for _, v := range tc.Expected {
 				expected.Add(v)
@@ -63,7 +63,7 @@ func TestSetDifference(t *testing.T) {
 			actual := one.Difference(two)
 			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
-				t.Fatalf("bad: %#v", actual.List())
+				t.Fatalf("bad: %#v", actual.All())
 			}
 		})
 	}
@@ -92,8 +92,8 @@ func TestSetFilter(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%#v", i, tc.Input), func(t *testing.T) {
-			input := make(Set)
-			expected := make(Set)
+			input := NewSet()
+			expected := NewSet()
 			for _, v := range tc.Input {
 				input.Add(v)
 			}
@@ -106,18 +106,18 @@ func TestSetFilter(t *testing.T) {
 			})
 			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
-				t.Fatalf("bad: %#v", actual.List())
+				t.Fatalf("bad: %#v", actual.All())
 			}
 		})
 	}
 }
 
 func TestSetCopy(t *testing.T) {
-	a := make(Set)
+	a := NewSet()
 	a.Add(testV(1))
 	a.Add(testV(2))
 
-	b := a.Copy()
+	b := a.Clone()
 	b.Add(testV(3))
 
 	diff := b.Difference(a)
@@ -133,7 +133,7 @@ func TestSetCopy(t *testing.T) {
 }
 
 func makeSet(n int) Set {
-	ret := make(Set, n)
+	ret := NewSet()
 	for i := range n {
 		ret.Add(testV(i))
 	}

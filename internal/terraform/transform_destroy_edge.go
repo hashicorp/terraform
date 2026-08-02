@@ -295,7 +295,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 
 	// we need to track nodes to keep, because the dependency trees can overlap,
 	// so we can't just remove all dependencies of nodes we don't want.
-	keep := make(dag.Set)
+	keep := dag.NewSet()
 
 	// Only keep destroyers, their providers, and anything the providers need
 	// for configuration. Since the destroyer should already be hooked up to the
@@ -320,7 +320,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping destroy node %s", n.Name())
 		keep.Add(n)
 
-		for _, anc := range g.Ancestors(n) {
+		for anc := range g.Ancestors(n).All() {
 			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping %s as dependency of %s", anc.Name(), n.Name())
 			keep.Add(anc)
 		}

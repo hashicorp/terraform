@@ -271,16 +271,14 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 
 	// Verify no edges exist between any pair of nodeQueryResourcePolicy nodes
 	for _, node := range nodes {
-		downEdges := ps.graph.EdgesFrom(node)
-		for _, dep := range downEdges {
+		for dep := range ps.graph.EdgesFrom(node).All() {
 			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
 					node.Name(), dep.Name())
 			}
 		}
 
-		upEdges := ps.graph.EdgesTo(node)
-		for _, dep := range upEdges {
+		for dep := range ps.graph.EdgesTo(node).All() {
 			if _, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("found edge from %s to %s; policy nodes must be independent with no inter-node edges",
 					dep.Name(), node.Name())

@@ -33,7 +33,10 @@ func TestSelectSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
 	v2 := MockVertex2{id: 2}
-	vertices := Set{v1: v1, v11: v11, v2: v2}
+	vertices := NewSet()
+	vertices.Add(v1)
+	vertices.Add(v2)
+	vertices.Add(v11)
 
 	graph := &Graph{vertices: vertices}
 	seq := SelectSeq[MockVertex](graph.VerticesSeq())
@@ -69,7 +72,10 @@ func TestExcludeSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
 	v2 := MockVertex2{id: 2}
-	vertices := Set{v1: v1, v11: v11, v2: v2}
+	vertices := NewSet()
+	vertices.Add(v1)
+	vertices.Add(v2)
+	vertices.Add(v11)
 
 	graph := &Graph{vertices: vertices}
 	seq := ExcludeSeq[MockVertex](graph.VerticesSeq())
