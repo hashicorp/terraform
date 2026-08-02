@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -79,10 +79,10 @@ func (c *RemoteClient) Get() (payload *remote.Payload, diags tfdiags.Diagnostics
 		return nil, diags.Append(err)
 	}
 
-	md5 := md5.Sum(state)
+	checksum := sha256.Sum256(state)
 	p := &remote.Payload{
 		Data: state,
-		MD5:  md5[:],
+		MD5:  checksum[:],
 	}
 	return p, diags
 }
