@@ -4,7 +4,7 @@
 package pg
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 
@@ -37,10 +37,10 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	case err != nil:
 		return nil, diags.Append(err)
 	default:
-		md5 := md5.Sum(data)
+		checksum := sha256.Sum256(data)
 		return &remote.Payload{
 			Data: data,
-			MD5:  md5[:],
+			MD5:  checksum[:],
 		}, diags
 	}
 }
