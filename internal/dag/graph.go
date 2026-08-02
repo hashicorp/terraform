@@ -66,7 +66,7 @@ func (g *Graph) EdgeSet() EdgeSet {
 	edges := make(EdgeSet)
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
-			edges.Add(BasicEdge(from, to))
+			edges.Add(basicEdge{from, to})
 		}
 	}
 	return edges
@@ -78,7 +78,7 @@ func (g *Graph) Edges() []Edge {
 
 	for from, tos := range g.downEdges {
 		for _, to := range tos {
-			result = append(result, BasicEdge(from, to))
+			result = append(result, basicEdge{from, to})
 		}
 	}
 
@@ -91,8 +91,7 @@ func (g *Graph) HasVertex(v Vertex) bool {
 }
 
 // HasEdge checks if the given Edge is present in the graph.
-func (g *Graph) HasEdge(e Edge) bool {
-	from, to := e.Source(), e.Target()
+func (g *Graph) HasEdge(from, to Vertex) bool {
 	tos, hasFrom := g.downEdges[from]
 	if !hasFrom {
 		return false
@@ -155,15 +154,16 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 }
 
 // RemoveEdge removes an edge from the graph.
-func (g *Graph) RemoveEdge(edge Edge) {
+func (g *Graph) RemoveEdge(from, to Vertex) {
 	g.init()
 
 	// Delete the up/down edges
-	if s, ok := g.downEdges[edge.Source()]; ok {
-		s.Delete(edge.Target())
+	if s, ok := g.downEdges[from]; ok {
+		s.Delete(to)
 	}
-	if s, ok := g.upEdges[edge.Target()]; ok {
-		s.Delete(edge.Source())
+	if s, ok := g.upEdges[from]; ok {
+		// FIXME: is the correct and is there a test?
+		s.Delete(from)
 	}
 }
 
@@ -196,35 +196,28 @@ func (g *Graph) upEdgesNoCopy(v Vertex) Set {
 }
 
 // Connect adds an edge with the given source and target. This is safe to
-// call multiple times with the same value. Note that the same value is
-// verified through pointer equality of the vertices, not through the
-// value of the edge itself.
-func (g *Graph) Connect(edge Edge) {
+// call multiple times with the same value.
+func (g *Graph) Connect(source, target Vertex) {
 	g.init()
 
-	source := edge.Source()
-	target := edge.Target()
-	sourceCode := source
-	targetCode := target
-
 	// Do we have this already? If so, don't add it again.
-	if s, ok := g.downEdges[sourceCode]; ok && s.Include(target) {
+	if s, ok := g.downEdges[source]; ok && s.Include(target) {
 		return
 	}
 
 	// Add the down edge
-	s, ok := g.downEdges[sourceCode]
+	s, ok := g.downEdges[source]
 	if !ok {
 		s = make(Set)
-		g.downEdges[sourceCode] = s
+		g.downEdges[source] = s
 	}
 	s.Add(target)
 
 	// Add the up edge
-	s, ok = g.upEdges[targetCode]
+	s, ok = g.upEdges[target]
 	if !ok {
 		s = make(Set)
-		g.upEdges[targetCode] = s
+		g.upEdges[target] = s
 	}
 	s.Add(source)
 }
