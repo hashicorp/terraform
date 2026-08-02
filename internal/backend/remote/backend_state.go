@@ -90,7 +90,7 @@ func (r *remoteClient) uploadStateFallback(ctx context.Context, stateFile *state
 		Serial:  tfe.Int64(int64(stateFile.Serial)),
 		// MD5 is required by the Terraform Enterprise API protocol; this is an API-mandated
 		// field and cannot be replaced with a stronger hash without breaking API compatibility.
-		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))), //nolint:use-of-md5 // required by TFE API
+		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))), //nolint:use-of-md5 // nosemgrep: use-of-md5 -- required by TFE API protocol; cannot substitute a stronger hash without breaking API compatibility
 		Force:            tfe.Bool(r.forcePush),
 		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
 		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(jsonStateOutputs)),
@@ -137,7 +137,7 @@ func (r *remoteClient) Put(state []byte) tfdiags.Diagnostics {
 			Serial:  tfe.Int64(int64(stateFile.Serial)),
 			// MD5 is required by the Terraform Enterprise API protocol; this is an API-mandated
 			// field and cannot be replaced with a stronger hash without breaking API compatibility.
-			MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))), //nolint:use-of-md5 // required by TFE API
+			MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))), //nolint:use-of-md5 // nosemgrep: use-of-md5 -- required by TFE API protocol; cannot substitute a stronger hash without breaking API compatibility
 			Force:            tfe.Bool(r.forcePush),
 			JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(o)),
 		},
