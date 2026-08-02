@@ -204,8 +204,8 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 		DetailedType: "string",
 	})
 
-	var dt interface{}
-	var val interface{}
+	var dt json.RawMessage
+	var val json.RawMessage
 	err := json.Unmarshal([]byte(`["object", {"foo":"string"}]`), &dt)
 	if err != nil {
 		t.Fatalf("could not unmarshal detailed type: %s", err)
