@@ -49,7 +49,7 @@ type Walker struct {
 	// serious problems.
 	changeLock sync.Mutex
 	vertices   Set
-	edges      Set
+	edges      EdgeSet
 	vertexMap  map[Vertex]*walkerVertex
 
 	// wait is done when all vertices have executed. It may become "undone"
@@ -87,7 +87,7 @@ func (w *Walker) init() {
 		w.vertices = make(Set)
 	}
 	if w.edges == nil {
-		w.edges = make(Set)
+		w.edges = make(EdgeSet)
 	}
 }
 
@@ -172,7 +172,7 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 func (w *Walker) Update(g *AcyclicGraph) {
 	w.init()
 	v := make(Set)
-	e := make(Set)
+	e := make(EdgeSet)
 	if g != nil {
 		v, e = g.vertices, g.EdgeSet()
 	}

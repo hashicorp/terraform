@@ -144,15 +144,14 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		// Find the resource edges
-		for _, e := range g.EdgesTo(v) {
-			src := e.Source()
+		for _, src := range g.UpEdges(v) {
 
 			// If source is a create node, invert the edge.
 			// This covers both the node's own creator, as well as reversing
 			// any dependants' edges.
 			if _, ok := src.(GraphNodeCreator); ok {
 				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", dag.VertexName(src), dag.VertexName(v))
-				g.RemoveEdge(e)
+				g.RemoveEdge(dag.BasicEdge(src, v))
 				g.Connect(dag.BasicEdge(v, src))
 			}
 		}

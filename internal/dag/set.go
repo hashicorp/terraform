@@ -11,6 +11,8 @@ import (
 // Set is a set data structure.
 type Set = setMap[Vertex]
 
+type EdgeSet = setMap[Edge]
+
 type setMap[T any] map[any]T
 
 // Add adds an item to the set
@@ -66,8 +68,8 @@ func (s setMap[T]) Difference(other setMap[T]) setMap[T] {
 
 // Filter returns a set that contains the elements from the receiver
 // where the given callback returns true.
-func (s setMap[T]) Filter(cb func(any) bool) Set {
-	result := make(Set)
+func (s setMap[T]) Filter(cb func(T) bool) setMap[T] {
+	result := make(setMap[T])
 
 	for _, v := range s {
 		if cb(v) {

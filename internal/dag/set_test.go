@@ -101,7 +101,7 @@ func TestSetFilter(t *testing.T) {
 				expected.Add(v)
 			}
 
-			actual := input.Filter(func(v any) bool {
+			actual := input.Filter(func(v Vertex) bool {
 				return v.(int) < 5
 			})
 			match := actual.Intersection(expected)
