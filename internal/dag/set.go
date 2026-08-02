@@ -13,7 +13,7 @@ type Set = setMap[Vertex]
 
 type edgeSet = setMap[Edge]
 
-type setMap[T any] map[any]T
+type setMap[T comparable] map[T]T
 
 // Add adds an item to the set
 func (s setMap[T]) Add(v T) {
@@ -21,12 +21,12 @@ func (s setMap[T]) Add(v T) {
 }
 
 // Delete removes an item from the set.
-func (s setMap[T]) Delete(v any) {
+func (s setMap[T]) Delete(v T) {
 	delete(s, v)
 }
 
 // Include returns true/false of whether a value is in the set.
-func (s setMap[T]) Include(v any) bool {
+func (s setMap[T]) Include(v T) bool {
 	_, ok := s[v]
 	return ok
 }
