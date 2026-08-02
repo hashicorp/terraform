@@ -136,7 +136,7 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	//  - chunked mode with plain JSON: the JSON payload is split in pieces and
 	//    stored like so:
 	//       - "tfstate/my_project" -> a JSON payload that contains the path of
-	//         the chunks and an MD5 sum like so:
+	//         the chunks and a SHA-256 hash like so:
 	//              {
 	//              	"current-hash": "abcdef1234",
 	//              	"chunks": [
