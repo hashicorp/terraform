@@ -55,9 +55,10 @@ func (c *remoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
+	sum := sha256.Sum256(data)
 	payload := &remote.Payload{
 		Data: data,
-		MD5:  []byte(checksum),
+		MD5:  sum[:], // SHA-256 checksum; field name is a legacy artifact of the remote.Payload interface
 	}
 
 	return payload, diags
