@@ -135,7 +135,13 @@ func (b *binary) RemoveEnv(name string) {
 // The returned object can be mutated by the caller to customize how the
 // process will be run, before calling Run.
 func (b *binary) Cmd(args ...string) *exec.Cmd {
-	cmd := exec.Command(b.binPath, args...)
+	// Validate binPath to prevent command injection: clean the path to remove
+	// any traversal sequences and ensure it is an absolute path before use.
+	cleanPath := filepath.Clean(b.binPath)
+	if !filepath.IsAbs(cleanPath) {
+		panic(fmt.Sprintf("e2e: binary path must be absolute, got %q", b.binPath))
+	}
+	cmd := exec.Command(cleanPath, args...)
 	cmd.Dir = b.workDir
 	cmd.Env = os.Environ()
 
