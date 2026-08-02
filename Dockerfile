@@ -23,4 +23,9 @@ COPY . .
 RUN /bin/bash ./scripts/build.sh
 
 WORKDIR $GOPATH
+
+RUN addgroup -S terraform && adduser -S -G terraform terraform \
+    && chown -R terraform:terraform $GOPATH
+
+USER terraform
 ENTRYPOINT ["terraform"]
