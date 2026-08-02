@@ -4,7 +4,7 @@
 package cos
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"testing"
@@ -318,5 +318,5 @@ func teardownBackend(t *testing.T, b backend.Backend) {
 
 func bucketName(t *testing.T) string {
 	unique := fmt.Sprintf("%s-%x", t.Name(), time.Now().UnixNano())
-	return fmt.Sprintf("terraform-test-%s-%s", fmt.Sprintf("%x", md5.Sum([]byte(unique)))[:10], "")
+	return fmt.Sprintf("terraform-test-%s-%s", fmt.Sprintf("%x", sha256.Sum256([]byte(unique)))[:10], "")
 }
