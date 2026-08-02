@@ -287,6 +287,10 @@ var _ GraphNodeResourceInstance = (*graphNodeFakeResourceInstance)(nil)
 var _ GraphNodeReferenceable = (*graphNodeFakeResourceInstance)(nil)
 var _ GraphNodeReferencer = (*graphNodeFakeResourceInstance)(nil)
 
+func (n *graphNodeFakeResourceInstance) Name() string {
+	return n.String()
+}
+
 func (n *graphNodeFakeResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
 	return n.Addr
 }

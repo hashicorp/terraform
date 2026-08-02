@@ -266,8 +266,8 @@ func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
 		// reduction afterwards.
 		dependents := g.UpEdges(n)
 		dependencies := g.DownEdges(n)
-		for dependent := range dependents {
-			for dependency := range dependencies {
+		for _, dependent := range dependents {
+			for _, dependency := range dependencies {
 				edge := dag.BasicEdge(dependent, dependency)
 				g.Connect(edge)
 			}

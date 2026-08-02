@@ -18,6 +18,8 @@ import (
 // nodes created alongside them to verify that the final value matches
 // the author's validation rules.
 type graphNodeValidatableVariable interface {
+	dag.Vertex
+
 	// variableValidationRules returns the information required to validate
 	// the final value produced by the implementing node.
 	//

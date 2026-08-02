@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
+type stringV string
+
+func (v stringV) Name() string {
+	return string(v)
+}
+
 func TestGraphDot(t *testing.T) {
 	cases := []struct {
 		Name   string
@@ -36,10 +42,10 @@ digraph {
 				root := &testDrawableOrigin{"root"}
 				g.Add(root)
 
-				levelOne := []interface{}{"foo", "bar"}
+				levelOne := []dag.Vertex{stringV("foo"), stringV("bar")}
 				for i, s := range levelOne {
 					levelOne[i] = &testDrawable{
-						VertexName: s.(string),
+						VertexName: s.Name(),
 					}
 					v := levelOne[i]
 

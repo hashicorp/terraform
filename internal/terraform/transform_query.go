@@ -39,7 +39,7 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 		if v.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
 			keep.Add(v)
 			deps := g.Ancestors(v)
-			for node := range deps {
+			for _, node := range deps {
 				keep.Add(node)
 			}
 		}
