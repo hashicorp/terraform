@@ -219,6 +219,7 @@ func newHandle[ObjT any](t *handleTable, obj ObjT) handle[ObjT] {
 // returned error will be [newHandleErrorNoParent].
 func newHandleWithDependency[ObjT, DepT any](t *handleTable, obj ObjT, dep handle[DepT]) (handle[ObjT], error) {
 	t.mu.Lock()
+	defer t.mu.Unlock()
 	if depObjectI, exists := t.handleObjs[int64(dep)]; !exists {
 		return handle[ObjT](0), newHandleErrorNoParent
 	} else if depObject, ok := depObjectI.(DepT); !ok {
@@ -233,7 +234,6 @@ func newHandleWithDependency[ObjT, DepT any](t *handleTable, obj ObjT, dep handl
 		t.handleDeps[int64(dep)] = make(map[int64]struct{})
 	}
 	t.handleDeps[int64(dep)][hnd] = struct{}{}
-	t.mu.Unlock()
 	return handle[ObjT](hnd), nil
 }
 
