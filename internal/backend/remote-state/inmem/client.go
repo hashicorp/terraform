@@ -4,7 +4,7 @@
 package inmem
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -33,10 +33,10 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	md5 := md5.Sum(data)
+	hash := sha256.Sum256(data)
 
 	c.Data = data
-	c.MD5 = md5[:]
+	c.MD5 = hash[:]
 	return diags
 }
 
