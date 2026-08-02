@@ -177,7 +177,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		// error if we had issues getting the blob
-		if !response.WasNotFound(properties.HttpResponse) {
+		if !response.WasNotFound(err) {
 			return "", getLockInfoErr(err)
 		}
 		// if we don't find the blob, we need to build it
@@ -191,11 +191,11 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
-	}
-
-	// if the blob is already locked then error
-	if properties.LeaseStatus == blobs.Locked {
-		return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
+	} else {
+		// if the blob is already locked then error
+		if properties.LeaseStatus == blobs.Locked {
+			return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
+		}
 	}
 
 	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
