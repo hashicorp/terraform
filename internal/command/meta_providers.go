@@ -460,12 +460,19 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			return nil, err
 		}
 
+		// Resolve and validate the executable path before use to prevent
+		// code injection via a non-static or attacker-influenced path value.
+		resolvedExec, err := exec.LookPath(execFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not resolve provider executable %q: %w", execFile, err)
+		}
+
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
 			Logger:           logging.NewProviderLogger(""),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
-			Cmd:              exec.Command(execFile),
+			Cmd:              exec.Command(resolvedExec),
 			AutoMTLS:         enableProviderAutoMTLS,
 			VersionedPlugins: tfplugin.VersionedPlugins,
 			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", meta.Provider)),
