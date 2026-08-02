@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -450,7 +451,14 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 
 			resp.Header().Add("Content-Type", "text/html")
 			resp.WriteHeader(200)
-			resp.Write([]byte(callbackSuccessMessage))
+			tmpl, err := template.New("callback").Parse(callbackSuccessMessage)
+			if err != nil {
+				log.Printf("[ERROR] login: failed to parse callback success template: %s", err)
+				return
+			}
+			if err := tmpl.Execute(resp, nil); err != nil {
+				log.Printf("[ERROR] login: failed to render callback success template: %s", err)
+			}
 		}),
 	}
 	go func() {
