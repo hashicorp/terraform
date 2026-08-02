@@ -432,7 +432,7 @@ func (s *State) getStatePayload() (*remote.Payload, error) {
 
 	return &remote.Payload{
 		Data: state,
-		MD5:  sum[:],
+		MD5:  sum[:], // nosemgrep: use-of-md5 -- field name is a remote.Payload API contract; SHA256 is the actual hash algorithm used
 	}, nil
 }
 
