@@ -46,13 +46,13 @@ type MockClient struct {
 	StopFn     func()
 }
 
-func (p *MockClient) beginWrite() func() {
+func (p *MockClient) beginWrite() {
 	p.mu.Lock()
-	return p.mu.Unlock
+	defer p.mu.Unlock()
 }
 
 func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupResponse) {
-	defer p.beginWrite()()
+	p.beginWrite()
 
 	p.SetupCalled = true
 	p.SetupRequest = req
@@ -68,7 +68,7 @@ func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupRes
 }
 
 func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
+	p.beginWrite()
 
 	p.EvaluateCalled = true
 	p.EvaluateRequest = r
@@ -84,7 +84,7 @@ func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*
 }
 
 func (p *MockClient) EvaluateProvider(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
+	p.beginWrite()
 
 	p.EvaluateProviderCalled = true
 	p.EvaluateProviderRequest = r
@@ -100,7 +100,7 @@ func (p *MockClient) EvaluateProvider(ctx context.Context, r EvaluationRequest[*
 }
 
 func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) (resp EvaluationResponse) {
-	defer p.beginWrite()()
+	p.beginWrite()
 
 	p.EvaluateModuleCalled = true
 	p.EvaluateModuleRequest = r
@@ -116,7 +116,7 @@ func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*pr
 }
 
 func (p *MockClient) Stop() {
-	defer p.beginWrite()()
+	p.beginWrite()
 	p.StopCalled = true
 	if p.StopFn != nil {
 		p.StopFn()
