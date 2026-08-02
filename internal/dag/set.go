@@ -13,35 +13,19 @@ type Set = setMap[Vertex]
 
 type setMap[T any] map[any]T
 
-// Hashable is the interface used by set to get the hash code of a value.
-// If this isn't given, then the value of the item being added to the set
-// itself is used as the comparison value.
-type Hashable interface {
-	Hashcode() any
-}
-
-// hashcode returns the hashcode used for set elements.
-func hashcode(v any) any {
-	if h, ok := v.(Hashable); ok {
-		return h.Hashcode()
-	}
-
-	return v
-}
-
 // Add adds an item to the set
 func (s setMap[T]) Add(v T) {
-	s[hashcode(v)] = v
+	s[v] = v
 }
 
 // Delete removes an item from the set.
 func (s setMap[T]) Delete(v any) {
-	delete(s, hashcode(v))
+	delete(s, v)
 }
 
 // Include returns true/false of whether a value is in the set.
 func (s setMap[T]) Include(v any) bool {
-	_, ok := s[hashcode(v)]
+	_, ok := s[v]
 	return ok
 }
 
