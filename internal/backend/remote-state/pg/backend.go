@@ -107,8 +107,14 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	// being sanitised with pq.QuoteIdentifier at each call site below.
 	// Data values continue to use parameterized queries.
 
-	// quotedSchema holds the safely-quoted identifier used in all DDL below.
+	// quotedSchema holds the safely-quoted schema identifier used in all DDL below.
+	// quotedTable and quotedIndex hold the safely-quoted constant identifiers.
+	// All three are passed through pq.QuoteIdentifier so that every identifier
+	// embedded via fmt.Sprintf is explicitly sanitised, even though statesTableName
+	// and statesIndexName are package-level constants with no injection risk.
 	quotedSchema := pq.QuoteIdentifier(b.schemaName)
+	quotedTable := pq.QuoteIdentifier(statesTableName)
+	quotedIndex := pq.QuoteIdentifier(statesIndexName)
 
 	if !data.Bool("skip_schema_creation") {
 		// list all schemas to see if it exists
@@ -138,26 +144,24 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 
-		// quotedSchema is sanitised with pq.QuoteIdentifier; safe to embed.
-		// statesTableName is a package-level constant; safe to embed.
+		// quotedSchema and quotedTable are both sanitised with pq.QuoteIdentifier; safe to embed.
 		if _, err := db.Exec(fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s.%s (
 			id bigint NOT NULL DEFAULT nextval('public.global_states_id_seq') PRIMARY KEY,
 			name text UNIQUE,
 			data text
 			)`,
-			quotedSchema, statesTableName,
+			quotedSchema, quotedTable,
 		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
 
 	if !data.Bool("skip_index_creation") {
-		// quotedSchema is sanitised with pq.QuoteIdentifier; safe to embed.
-		// statesIndexName and statesTableName are package-level constants; safe to embed.
+		// quotedIndex, quotedSchema, and quotedTable are all sanitised with pq.QuoteIdentifier; safe to embed.
 		if _, err := db.Exec(fmt.Sprintf(
 			`CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`,
-			statesIndexName, quotedSchema, statesTableName,
+			quotedIndex, quotedSchema, quotedTable,
 		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
