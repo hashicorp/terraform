@@ -530,5 +530,5 @@ func (s *Filesystem) writeLockInfo(info *LockInfo) error {
 
 func (s *Filesystem) mutex() func() {
 	s.mu.Lock()
-	return s.mu.Unlock
+	return func() { s.mu.Unlock() }
 }
