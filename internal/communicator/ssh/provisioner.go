@@ -327,32 +327,32 @@ type sshClientConfigOpts struct {
 }
 
 func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
-	hkCallback := ssh.InsecureIgnoreHostKey()
+	if opts.hostKey == "" {
+		return nil, fmt.Errorf("host_key must be set to enable host key verification; omitting host key verification exposes connections to man-in-the-middle attacks")
+	}
 
-	if opts.hostKey != "" {
-		// The knownhosts package only takes paths to files, but terraform
-		// generally wants to handle config data in-memory. Rather than making
-		// the known_hosts file an exception, write out the data to a temporary
-		// file to create the HostKeyCallback.
-		tf, err := ioutil.TempFile("", "tf-known_hosts")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create temp known_hosts file: %s", err)
-		}
-		defer tf.Close()
-		defer os.RemoveAll(tf.Name())
+	// The knownhosts package only takes paths to files, but terraform
+	// generally wants to handle config data in-memory. Rather than making
+	// the known_hosts file an exception, write out the data to a temporary
+	// file to create the HostKeyCallback.
+	tf, err := ioutil.TempFile("", "tf-known_hosts")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp known_hosts file: %s", err)
+	}
+	defer tf.Close()
+	defer os.RemoveAll(tf.Name())
 
-		// we mark this as a CA as well, but the host key fallback will still
-		// use it as a direct match if the remote host doesn't return a
-		// certificate.
-		if _, err := tf.WriteString(fmt.Sprintf("@cert-authority %s %s\n", opts.host, opts.hostKey)); err != nil {
-			return nil, fmt.Errorf("failed to write temp known_hosts file: %s", err)
-		}
-		tf.Sync()
+	// we mark this as a CA as well, but the host key fallback will still
+	// use it as a direct match if the remote host doesn't return a
+	// certificate.
+	if _, err := tf.WriteString(fmt.Sprintf("@cert-authority %s %s\n", opts.host, opts.hostKey)); err != nil {
+		return nil, fmt.Errorf("failed to write temp known_hosts file: %s", err)
+	}
+	tf.Sync()
 
-		hkCallback, err = knownhosts.New(tf.Name())
-		if err != nil {
-			return nil, err
-		}
+	hkCallback, err := knownhosts.New(tf.Name())
+	if err != nil {
+		return nil, err
 	}
 
 	conf := &ssh.ClientConfig{
