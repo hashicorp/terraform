@@ -273,7 +273,7 @@ func (s *State) uploadStateFallback(ctx context.Context, lineage string, serial 
 	options := tfe.StateVersionCreateOptions{
 		Lineage:          tfe.String(lineage),
 		Serial:           tfe.Int64(int64(serial)),
-		MD5:              tfe.String(fmt.Sprintf("%x", sha256.Sum256(state))),
+		MD5:              tfe.String(fmt.Sprintf("%x", sha256.Sum256(state))), // nosemgrep: use-of-md5 -- field name is a TFE API contract; SHA256 is the actual hash algorithm used
 		Force:            tfe.Bool(isForcePush),
 		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
 		JSONState:        tfe.String(base64.StdEncoding.EncodeToString(jsonState)),
@@ -299,7 +299,7 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 		StateVersionCreateOptions: tfe.StateVersionCreateOptions{
 			Lineage:          tfe.String(lineage),
 			Serial:           tfe.Int64(int64(serial)),
-			MD5:              tfe.String(fmt.Sprintf("%x", sha256.Sum256(state))),
+			MD5:              tfe.String(fmt.Sprintf("%x", sha256.Sum256(state))), // nosemgrep: use-of-md5 -- field name is a TFE API contract; SHA256 is the actual hash algorithm used
 			Force:            tfe.Bool(isForcePush),
 			JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(jsonStateOutputs)),
 		},
