@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -420,7 +421,8 @@ func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server
 			w.Header().Set("content-type", "application/json")
 			w.Header().Set("content-length", strconv.FormatInt(int64(len(respBody)), 10))
 			w.WriteHeader(http.StatusOK)
-			w.Write(respBody)
+			tmpl := template.Must(template.New("").Parse(string(respBody)))
+			tmpl.Execute(w, nil)
 			return
 		}
 
@@ -468,7 +470,8 @@ func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write(fakeBodyRaw)
+		tmpl := template.Must(template.New("").Parse(string(fakeBodyRaw)))
+		tmpl.Execute(w, nil)
 	}))
 	serverURL = server.URL
 	return server
