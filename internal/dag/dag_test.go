@@ -632,7 +632,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		// satisfied.
 		completed := map[Vertex]bool{}
 		for _, v := range order {
-			deps := g.DownEdges(v)
+			deps := g.EdgesFrom(v)
 			for _, dep := range deps {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
@@ -649,7 +649,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		// satisfied.
 		completed := map[Vertex]bool{}
 		for _, v := range order {
-			deps := g.UpEdges(v)
+			deps := g.EdgesTo(v)
 			for _, dep := range deps {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)

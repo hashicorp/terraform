@@ -167,27 +167,27 @@ func TestGraphUpdownEdges(t *testing.T) {
 	g.Connect(testV(1), testV(2))
 	g.Connect(testV(2), testV(3))
 
-	up := g.UpEdges(testV(2))
+	up := g.EdgesTo(testV(2))
 	if up.Len() != 1 || !up.Include(testV(1)) {
 		t.Fatalf("expected only an up edge of '1', got %#v", up)
 	}
 	// modify the up set
 	up.Add(testV(9))
 
-	orig := g.UpEdges(testV(2))
+	orig := g.EdgesTo(testV(2))
 	diff := up.Difference(orig)
 	if diff.Len() != 1 || !diff.Include(testV(9)) {
 		t.Fatalf("expected a diff of only '9', got %#v", diff)
 	}
 
-	down := g.DownEdges(testV(2))
+	down := g.EdgesFrom(testV(2))
 	if down.Len() != 1 || !down.Include(testV(3)) {
 		t.Fatalf("expected only a down edge of '3', got %#v", down)
 	}
 	// modify the down set
 	down.Add(testV(8))
 
-	orig = g.DownEdges(testV(2))
+	orig = g.EdgesFrom(testV(2))
 	diff = down.Difference(orig)
 	if diff.Len() != 1 || !diff.Include(testV(8)) {
 		t.Fatalf("expected a diff of only '8', got %#v", diff)

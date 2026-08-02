@@ -163,15 +163,15 @@ func (g *Graph) RemoveEdge(from, to Vertex) {
 	}
 }
 
-// UpEdges returns the vertices that are *sources* of edges that target the
+// EdgesTo returns the vertices that are *sources* of edges that target the
 // destination Vertex v.
-func (g *Graph) UpEdges(v Vertex) Set {
+func (g *Graph) EdgesTo(v Vertex) Set {
 	return g.edgesToNoCopy(v).Copy()
 }
 
-// DownEdges returns the vertices that are *targets* of edges that originate
+// EdgesFrom returns the vertices that are *targets* of edges that originate
 // from the source Vertex v.
-func (g *Graph) DownEdges(v Vertex) Set {
+func (g *Graph) EdgesFrom(v Vertex) Set {
 	return g.edgesFromNoCopy(v).Copy()
 }
 
@@ -229,10 +229,10 @@ func (g *Graph) Subsume(other *Graph) {
 	maps.Insert(g.vertices, maps.All(other.vertices))
 
 	for v := range other.edgesFrom {
-		g.edgesFrom[v] = other.DownEdges(v)
+		g.edgesFrom[v] = other.EdgesFrom(v)
 	}
 	for v := range other.edgesTo {
-		g.edgesTo[v] = other.UpEdges(v)
+		g.edgesTo[v] = other.EdgesTo(v)
 	}
 }
 
