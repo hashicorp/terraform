@@ -215,12 +215,14 @@ func collectScripts(v cty.Value) ([]io.ReadCloser, error) {
 	for _, s := range scripts {
 		fh, err := os.Open(s)
 		if err != nil {
-			for _, fh := range fhs {
-				fh.Close()
+			for _, openFh := range fhs {
+				openFh.Close()
 			}
 			return nil, fmt.Errorf("Failed to open script '%s': %v", s, err)
 		}
-		fhs = append(fhs, fh)
+		if fh != nil {
+			fhs = append(fhs, fh)
+		}
 	}
 
 	// Done, return the file handles
