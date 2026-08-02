@@ -204,38 +204,20 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 		DetailedType: "string",
 	})
 
-	var dt json.RawMessage
-	var val json.RawMessage
-	err := json.Unmarshal([]byte(`["object", {"foo":"string"}]`), &dt)
-	if err != nil {
-		t.Fatalf("could not unmarshal detailed type: %s", err)
-	}
-	err = json.Unmarshal([]byte(`{"foo":"bar"}`), &val)
-	if err != nil {
-		t.Fatalf("could not unmarshal value: %s", err)
-	}
 	mc.StateVersionOutputs.create("svo-efgh", &tfe.StateVersionOutput{
 		ID:           "svo-efgh",
-		Value:        val,
+		Value:        json.RawMessage(`{"foo":"bar"}`),
 		Type:         "object",
 		Name:         "object_output",
-		DetailedType: dt,
+		DetailedType: json.RawMessage(`["object", {"foo":"string"}]`),
 	})
 
-	err = json.Unmarshal([]byte(`["list", "bool"]`), &dt)
-	if err != nil {
-		t.Fatalf("could not unmarshal detailed type: %s", err)
-	}
-	err = json.Unmarshal([]byte(`[true, false, true, true]`), &val)
-	if err != nil {
-		t.Fatalf("could not unmarshal value: %s", err)
-	}
 	mc.StateVersionOutputs.create("svo-ijkl", &tfe.StateVersionOutput{
 		ID:           "svo-ijkl",
-		Value:        val,
+		Value:        json.RawMessage(`[true, false, true, true]`),
 		Type:         "array",
 		Name:         "list_output",
-		DetailedType: dt,
+		DetailedType: json.RawMessage(`["list", "bool"]`),
 	})
 
 	b.client.StateVersionOutputs = mc.StateVersionOutputs
