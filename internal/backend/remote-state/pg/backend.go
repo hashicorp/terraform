@@ -100,13 +100,20 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Prepare database schema, tables, & indexes.
-	var query string
+	//
+	// Note: DDL statements (CREATE SCHEMA/TABLE/INDEX) do not support
+	// parameterized placeholders ($1, $2, …) for identifiers in PostgreSQL.
+	// Schema and index names are therefore embedded via fmt.Sprintf, but only
+	// after being sanitised with pq.QuoteIdentifier (see b.schemaName
+	// assignment above).  Data values continue to use parameterized queries.
 
 	if !data.Bool("skip_schema_creation") {
 		// list all schemas to see if it exists
 		var count int
-		query = `select count(1) from information_schema.schemata where schema_name = $1`
-		if err := db.QueryRow(query, data.String("schema_name")).Scan(&count); err != nil {
+		if err := db.QueryRow(
+			`SELECT count(1) FROM information_schema.schemata WHERE schema_name = $1`,
+			data.String("schema_name"),
+		).Scan(&count); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 
@@ -114,9 +121,10 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 		// `CREATE SCHEMA IF NOT EXISTS` is to be avoided if ever
 		// a user hasn't been granted the `CREATE SCHEMA` privilege
 		if count < 1 {
-			// tries to create the schema
-			query = `CREATE SCHEMA IF NOT EXISTS %s`
-			if _, err := db.Exec(fmt.Sprintf(query, b.schemaName)); err != nil {
+			// b.schemaName is sanitised with pq.QuoteIdentifier; safe to embed.
+			if _, err := db.Exec(
+				fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS %s`, b.schemaName),
+			); err != nil {
 				return backendbase.ErrorAsDiagnostics(err)
 			}
 		}
@@ -127,19 +135,27 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 
-		query = `CREATE TABLE IF NOT EXISTS %s.%s (
+		// b.schemaName is sanitised with pq.QuoteIdentifier; safe to embed.
+		// statesTableName is a package-level constant; safe to embed.
+		if _, err := db.Exec(fmt.Sprintf(
+			`CREATE TABLE IF NOT EXISTS %s.%s (
 			id bigint NOT NULL DEFAULT nextval('public.global_states_id_seq') PRIMARY KEY,
 			name text UNIQUE,
 			data text
-			)`
-		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
+			)`,
+			b.schemaName, statesTableName,
+		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
 
 	if !data.Bool("skip_index_creation") {
-		query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
-		if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
+		// b.schemaName is sanitised with pq.QuoteIdentifier; safe to embed.
+		// statesIndexName and statesTableName are package-level constants; safe to embed.
+		if _, err := db.Exec(fmt.Sprintf(
+			`CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`,
+			statesIndexName, b.schemaName, statesTableName,
+		)); err != nil {
 			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
