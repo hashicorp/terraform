@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -173,7 +174,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
-	sum := md5.Sum(w.Bytes())
+	sum := sha256.Sum256(w.Bytes())
 	payload := &remote.Payload{
 		Data: w.Bytes(),
 		MD5:  sum[:],
@@ -201,7 +202,7 @@ func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 
 	contentType := "application/json"
 
-	sum := md5.Sum(data)
+	sum := sha256.Sum256(data)
 
 	input := &s3.PutObjectInput{
 		ContentType: aws.String(contentType),
@@ -617,8 +618,8 @@ func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
 	}
 
 	sum, err := hex.DecodeString(val)
-	if err != nil || len(sum) != md5.Size {
-		return nil, errors.New("invalid md5")
+	if err != nil || len(sum) != sha256.Size {
+		return nil, errors.New("invalid digest")
 	}
 
 	return sum, nil
@@ -630,8 +631,8 @@ func (c *RemoteClient) putMD5(ctx context.Context, sum []byte) error {
 		return nil
 	}
 
-	if len(sum) != md5.Size {
-		return errors.New("invalid payload md5")
+	if len(sum) != sha256.Size {
+		return errors.New("invalid payload digest")
 	}
 
 	putParams := &dynamodb.PutItemInput{
