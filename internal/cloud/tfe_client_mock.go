@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2604,7 +2605,11 @@ const alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 func GenerateID(s string) string {
 	b := make([]byte, 16)
 	for i := range b {
-		b[i] = alphanumeric[rand.Intn(len(alphanumeric))]
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphanumeric))))
+		if err != nil {
+			panic(err)
+		}
+		b[i] = alphanumeric[n.Int64()]
 	}
 	return s + string(b)
 }
