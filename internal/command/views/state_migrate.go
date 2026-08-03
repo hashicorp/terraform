@@ -35,7 +35,7 @@ If you can address the errors you can retry this command safely. Otherwise, plea
 
 	// Notify the user that the migration failed. This may be due to a misconfiguration, e.g. insufficient permissions to interact with a service.
 	// We expect these errors to either be actionable by users, or to originate from a state store provider (but reports shouldn't come to us unless due to a backend).
-	StateMigrationFailureMessage = `[reset][bold]Failed to migrate state from %s to %s.[reset]
+	stateMigrationFailureMessage = `[reset][bold]Failed to migrate state from %s to %s.[reset]
 
 Something went wrong while migrating the state. Please check the errors message(s) above for more information.
 
@@ -51,6 +51,7 @@ type StateMigrate interface {
 
 	LogMigrationStarted(source, destination string)
 	LogMigrationSucceeded(source, destination string)
+	LogMigrationFailedDuring(source, destination string)
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -88,6 +89,11 @@ func (s *StateMigrateHuman) LogMigrationStarted(source, destination string) {
 
 func (s *StateMigrateHuman) LogMigrationSucceeded(source, destination string) {
 	msg := fmt.Sprintf(stateMigrationCompletedMessage, source, destination)
+	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogMigrationFailedDuring(source, destination string) {
+	msg := fmt.Sprintf(stateMigrationFailureMessage, source, destination)
 	s.log(msg)
 }
 
