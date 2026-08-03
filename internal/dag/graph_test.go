@@ -51,6 +51,25 @@ func TestGraph_remove(t *testing.T) {
 	}
 }
 
+func TestGraph_removeEdges(t *testing.T) {
+	var g Graph
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
+
+	g.RemoveEdge(testV(1), testV(2))
+	g.RemoveEdge(testV(1), testV(3))
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphRemoveEdges)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestGraph_replace(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
@@ -218,6 +237,13 @@ const testGraphEmptyStr = `
 const testGraphRemoveStr = `
 1
 2
+`
+
+const testGraphRemoveEdges = `
+1
+2
+  3
+3
 `
 
 const testGraphReplaceStr = `
