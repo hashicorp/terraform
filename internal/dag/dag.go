@@ -398,18 +398,22 @@ func (g *AcyclicGraph) reverseDepthFirstWalk(start VertexSet, f depthWalkFunc) e
 	return g.walk(depthFirst|upOrder, false, start, f)
 }
 
-// breadthFirstWalk does a breadth-first walk of the graph starting from
-// the vertices in start.
-func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f depthWalkFunc) error {
-	return g.walk(breadthFirst|downOrder, false, start, f)
+/*
+These are currently unused outside of tests, and the linter does not like unused
+code. Leaving as example however to show how the walk function can be flexibly
+used.
+
+// breadthFirstWalk does a breadth-first walk of the graph starting from // the
+vertices in start. func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f
+depthWalkFunc) error { return g.walk(breadthFirst|downOrder, false, start, f)
 }
 
-// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
-// the vertices in start.
-func (g *AcyclicGraph) reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error {
-	return g.walk(breadthFirst|upOrder, false, start, f)
+// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting
+from // the vertices in start. func (g *AcyclicGraph)
+reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error { return
+g.walk(breadthFirst|upOrder, false, start, f)
 }
-
+*/
 type vertexAtDepth struct {
 	Vertex Vertex
 	Depth  int
