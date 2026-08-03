@@ -24,6 +24,7 @@ type Init interface {
 	Log(message string, params ...any)
 
 	ProviderInstallationLogger
+	DependencyLockingLogger
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -134,6 +135,16 @@ func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provid
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
 	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
+}
+
+func (v *InitHuman) LogDependencyLockfileCreated() {
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(LockInfo, params...))
+}
+
+func (v *InitHuman) LogDependencyLockfileUpdated() {
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo, params...))
 }
 
 // this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
@@ -316,6 +327,20 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(PartnerAndCommunityProvidersMessage)
+}
+
+func (v *InitJSON) LogDependencyLockfileCreated() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(LockInfo, params...)
+}
+
+func (v *InitJSON) LogDependencyLockfileUpdated() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(DependenciesLockChangesInfo, params...)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
@@ -623,23 +648,6 @@ see any changes that are required for your infrastructure.
 If you ever set or change modules or Terraform Settings, run "terraform init"
 again to reinitialize your working directory.
 `
-
-const previousLockInfoHuman = `
-Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.`
-
-const previousLockInfoJSON = `
-Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.`
-
-const dependenciesLockChangesInfo = `
-Terraform has made some changes to the provider dependency selections recorded
-in the .terraform.lock.hcl file. Review those changes and commit them to your
-version control system if they represent changes you intended to make.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
