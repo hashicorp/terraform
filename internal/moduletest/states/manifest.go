@@ -4,11 +4,12 @@
 package states
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"math/rand/v2"
+	"math/big"
 	"os"
 	"path/filepath"
 
@@ -490,8 +491,11 @@ func (manifest *TestManifest) generateID() string {
 	for ix := 0; ix < maxAttempts; ix++ {
 		var b [8]byte
 		for i := range b {
-			n := rand.IntN(len(alphanumeric))
-			b[i] = alphanumeric[n]
+			n, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphanumeric))))
+			if err != nil {
+				panic("failed to generate random number: " + err.Error())
+			}
+			b[i] = alphanumeric[n.Int64()]
 		}
 
 		id := string(b[:])
