@@ -8,43 +8,53 @@ import (
 
 	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/initwd"
 )
 
-type view interface {
-	Log(message string, params ...any)
-}
+// uiModuleInstallHooks is used to log during module download and installation.
+// Currently this occurs in both the init and get commands.
+// Those commands use the struct differently:
+// * get command: provides a cli.Ui only
+// * init command: provides a View only
 type uiModuleInstallHooks struct {
 	initwd.ModuleInstallHookImpl
 	Ui             cli.Ui
 	ShowLocalPaths bool
-	View           view
+	View           views.ModuleInstallationLogger
 }
 
 var _ initwd.ModuleInstallHook = uiModuleInstallHooks{}
 
 func (h uiModuleInstallHooks) Download(modulePath, packageAddr string, v *version.Version) {
+	var message string
 	if v != nil {
-		h.log(fmt.Sprintf("Downloading %s %s for %s...", packageAddr, v, modulePath))
+		message = fmt.Sprintf("Downloading %s %s for %s...", packageAddr, v, modulePath)
 	} else {
-		h.log(fmt.Sprintf("Downloading %s for %s...", packageAddr, modulePath))
+		message = fmt.Sprintf("Downloading %s for %s...", packageAddr, modulePath)
+	}
+
+	// TODO: Make the get command use views, so this can be simplified.
+	switch h.View.(type) {
+	case views.ModuleInstallationLogger:
+		h.View.LogModuleDownload(message)
+	default:
+		h.Ui.Info(message)
 	}
 }
 
 func (h uiModuleInstallHooks) Install(modulePath string, v *version.Version, localDir string) {
+	var message string
 	if h.ShowLocalPaths {
-		h.log(fmt.Sprintf("- %s in %s", modulePath, localDir))
+		message = fmt.Sprintf("- %s in %s", modulePath, localDir)
 	} else {
-		h.log(fmt.Sprintf("- %s", modulePath))
+		message = fmt.Sprintf("- %s", modulePath)
 	}
-}
 
-func (h uiModuleInstallHooks) log(message string) {
+	// TODO: Make the get command use views, so this can be simplified.
 	switch h.View.(type) {
-	case view:
-		// there is no unformatted option for the View interface, so we need to
-		// pass message as a parameter to avoid double escaping % characters
-		h.View.Log("%s", message)
+	case views.ModuleInstallationLogger:
+		h.View.LogModuleInstallation(message)
 	default:
 		h.Ui.Info(message)
 	}
