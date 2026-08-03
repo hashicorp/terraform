@@ -5,5 +5,5 @@ package dag
 
 // Edge represents an edge in the graph, with a source and target vertex.
 type Edge struct {
-	S, T Vertex
+	Source, Target Vertex
 }

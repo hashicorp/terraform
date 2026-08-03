@@ -268,7 +268,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	}
 
 	for _, e := range expected {
-		if !actual.Include(e) {
+		if !actual.Contains(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
 	}
@@ -296,7 +296,7 @@ func TestAcyclicGraphDescendants(t *testing.T) {
 	}
 
 	for _, e := range expected {
-		if !actual.Include(e) {
+		if !actual.Contains(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
 	}
@@ -323,7 +323,7 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 		return v.(testV)%2 != 0
 	})
 
-	expected := NewSet()
+	expected := NewVertexSet()
 	expected.Add(testV(1))
 	expected.Add(testV(5))
 
@@ -374,7 +374,7 @@ func TestAcyclicGraphFindAncestors(t *testing.T) {
 		return v.(testV)%2 != 0
 	})
 
-	expected := NewSet()
+	expected := NewVertexSet()
 	expected.Add(testV(1))
 	expected.Add(testV(5))
 
@@ -560,10 +560,10 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 	g.Connect(testV(9), testV(11))
 	g.Connect(testV(10), testV(11))
 
-	start := NewSet()
+	start := NewVertexSet()
 	start.Add(testV(2))
 	start.Add(testV(1))
-	reverse := NewSet()
+	reverse := NewVertexSet()
 	reverse.Add(testV(11))
 	reverse.Add(testV(6))
 

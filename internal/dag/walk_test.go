@@ -332,7 +332,7 @@ func TestWalker_removeEdge(t *testing.T) {
 }
 
 // walkCbRecord is a test helper callback that just records the order called.
-func walkCbRecord(order *[]any) WalkFunc {
+func walkCbRecord(order *[]any) walkFunc {
 	var l sync.Mutex
 	return func(v Vertex) tfdiags.Diagnostics {
 		l.Lock()

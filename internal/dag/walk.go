@@ -38,7 +38,7 @@ import (
 // deleted in case vertices or edges are changed.
 type Walker struct {
 	// Callback is what is called for each vertex
-	Callback WalkFunc
+	Callback walkFunc
 
 	// Reverse, if true, causes the source of an edge to depend on a target.
 	// When false (default), the target depends on the source.
@@ -48,7 +48,7 @@ type Walker struct {
 	// should modify these fields. Modifying them outside of Update can cause
 	// serious problems.
 	changeLock sync.Mutex
-	vertices   Set
+	vertices   VertexSet
 	edges      edgeSet
 	vertexMap  map[Vertex]*walkerVertex
 
@@ -83,10 +83,10 @@ const (
 )
 
 // NewWalker creates a new walker with the given callback function.
-func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
+func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
 	w := &Walker{
 		Callback: cb,
-		vertices: NewSet(),
+		vertices: NewVertexSet(),
 		edges:    newEdgeSet(),
 	}
 	for _, opt := range opts {
@@ -166,7 +166,7 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
-	v := NewSet()
+	v := NewVertexSet()
 	e := newEdgeSet()
 	if g != nil {
 		v, e = g.vertices, g.edgeSet()
@@ -227,7 +227,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Add the new edges
-	changedDeps := NewSet()
+	changedDeps := NewVertexSet()
 	for edge := range newEdges.All() {
 		waiter, dep := w.waitOrder(edge)
 
@@ -323,10 +323,10 @@ func (w *Walker) Update(g *AcyclicGraph) {
 // The waiter is waiting on the dependency.
 func (w *Walker) waitOrder(e Edge) (Vertex, Vertex) {
 	if w.Reverse {
-		return e.S, e.T
+		return e.Source, e.Target
 	}
 
-	return e.T, e.S
+	return e.Target, e.Source
 }
 
 // walkVertex walks a single vertex, waiting for any dependencies before

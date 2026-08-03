@@ -102,80 +102,49 @@ func TestGraph_replaceSelf(t *testing.T) {
 	}
 }
 
-func TestGraphHasVertex(t *testing.T) {
-	var g Graph
-	g.Add(testV(1))
-
-	if !g.HasVertex(testV(1)) {
-		t.Fatal("should have 1")
-	}
-	if g.HasVertex(testV(2)) {
-		t.Fatal("should not have 2")
-	}
-}
-
-func TestGraphHasEdge(t *testing.T) {
+func TestGraphEdgesFrom(t *testing.T) {
 	var g Graph
 	g.Add(testV(1))
 	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Add(testV(4))
+
+	g.Connect(testV(1), testV(3))
 	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
 
-	if !g.HasEdge(testV(1), testV(2)) {
-		t.Fatal("should have 1,2")
-	}
-	if g.HasEdge(testV(2), testV(3)) {
-		t.Fatal("should not have 2,3")
-	}
-}
+	edges := g.EdgesFrom(testV(1))
 
-/* TODO: move to dag_test with up and down edges
-func TestGraphEdgesFrom(t *testing.T) {
-	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 3))
-	g.Connect(BasicEdge(2, 3))
+	expected := NewVertexSet()
+	expected.Add(testV(3))
+	expected.Add(testV(2))
 
-	edges := g.EdgesFrom(1)
-
-	expected := make(Set)
-	expected.Add(BasicEdge(1, 3))
-
-	s := make(Set)
-	for _, e := range edges {
-		s.Add(e)
-	}
-
-	if s.Intersection(expected).Len() != expected.Len() {
+	if edges.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
 
 func TestGraphEdgesTo(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 3))
-	g.Connect(BasicEdge(1, 2))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Add(testV(4))
 
-	edges := g.EdgesTo(3)
+	g.Connect(testV(1), testV(3))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(3))
 
-	expected := make(Set)
-	expected.Add(BasicEdge(1, 3))
+	edges := g.EdgesTo(testV(3))
 
-	s := make(Set)
-	for _, e := range edges {
-		s.Add(e)
-	}
+	expected := NewVertexSet()
+	expected.Add(testV(1))
+	expected.Add(testV(2))
 
-	if s.Intersection(expected).Len() != expected.Len() {
-		fmt.Printf("%#v\n", s)
+	if edges.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
-*/
 
 func TestGraphUpdownEdges(t *testing.T) {
 	// Verify that we can't inadvertently modify the internal graph sets
@@ -187,7 +156,7 @@ func TestGraphUpdownEdges(t *testing.T) {
 	g.Connect(testV(2), testV(3))
 
 	up := g.EdgesTo(testV(2))
-	if up.Len() != 1 || !up.Include(testV(1)) {
+	if up.Len() != 1 || !up.Contains(testV(1)) {
 		t.Fatalf("expected only an up edge of '1', got %#v", up)
 	}
 	// modify the up set
@@ -195,12 +164,12 @@ func TestGraphUpdownEdges(t *testing.T) {
 
 	orig := g.EdgesTo(testV(2))
 	diff := up.Difference(orig)
-	if diff.Len() != 1 || !diff.Include(testV(9)) {
+	if diff.Len() != 1 || !diff.Contains(testV(9)) {
 		t.Fatalf("expected a diff of only '9', got %#v", diff)
 	}
 
 	down := g.EdgesFrom(testV(2))
-	if down.Len() != 1 || !down.Include(testV(3)) {
+	if down.Len() != 1 || !down.Contains(testV(3)) {
 		t.Fatalf("expected only a down edge of '3', got %#v", down)
 	}
 	// modify the down set
@@ -208,7 +177,7 @@ func TestGraphUpdownEdges(t *testing.T) {
 
 	orig = g.EdgesFrom(testV(2))
 	diff = down.Difference(orig)
-	if diff.Len() != 1 || !diff.Include(testV(8)) {
+	if diff.Len() != 1 || !diff.Contains(testV(8)) {
 		t.Fatalf("expected a diff of only '8', got %#v", diff)
 	}
 }

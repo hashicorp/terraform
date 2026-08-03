@@ -8,12 +8,11 @@ import (
 	"maps"
 )
 
-func NewSet() Set {
+func NewVertexSet() VertexSet {
 	return setMap[Vertex]{make(map[Vertex]Vertex)}
 }
 
-// Set is a set data structure.
-type Set = setMap[Vertex]
+type VertexSet = setMap[Vertex]
 
 func newEdgeSet() edgeSet {
 	return setMap[Edge]{make(map[Edge]Edge)}
@@ -21,6 +20,7 @@ func newEdgeSet() edgeSet {
 
 type edgeSet = setMap[Edge]
 
+// setMap is a set data structure, used to hold
 type setMap[T comparable] struct {
 	m map[T]T
 }
@@ -35,8 +35,8 @@ func (s setMap[T]) Delete(v T) {
 	delete(s.m, v)
 }
 
-// Include returns true/false of whether a value is in the set.
-func (s setMap[T]) Include(v T) bool {
+// Contains returns true/false of whether a value is in the set.
+func (s setMap[T]) Contains(v T) bool {
 	_, ok := s.m[v]
 	return ok
 }
@@ -52,7 +52,7 @@ func (s setMap[T]) Intersection(other setMap[T]) setMap[T] {
 		s, other = other, s
 	}
 	for _, v := range s.m {
-		if other.Include(v) {
+		if other.Contains(v) {
 			result.Add(v)
 		}
 	}

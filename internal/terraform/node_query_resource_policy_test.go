@@ -292,7 +292,7 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 	if len(edges) != 0 {
 		t.Errorf("expected 0 edges between policy nodes in subgraph, got %d edges", len(edges))
 		for _, edge := range edges {
-			t.Logf("  edge: %s -> %s", edge.S.Name(), edge.T.Name())
+			t.Logf("  edge: %s -> %s", edge.Source.Name(), edge.Target.Name())
 		}
 	}
 }

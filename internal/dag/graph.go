@@ -11,12 +11,12 @@ import (
 
 // Graph is used to represent a dependency graph.
 type Graph struct {
-	vertices Set
+	vertices VertexSet
 
 	// The information here is redundant, but because we traverse the graph so
 	// frequently the duplication pays off in much better performance
-	edgesFrom map[Vertex]Set
-	edgesTo   map[Vertex]Set
+	edgesFrom map[Vertex]VertexSet
+	edgesTo   map[Vertex]VertexSet
 }
 
 // Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
@@ -32,7 +32,7 @@ type Grapher interface {
 }
 
 // Vertex of the graph.
-type Vertex = interface {
+type Vertex interface {
 	Name() string
 }
 
@@ -54,6 +54,9 @@ func (g *Graph) VertexCount() int {
 	return g.vertices.Len()
 }
 
+// edgeSet is used to collect all dependencies for the concurrent graph walk.
+// Because the Walker allows dynamically updating the graph being walked, a set
+// data structure is useful to diff the two sets of dependencies.
 func (g *Graph) edgeSet() edgeSet {
 	edges := edgeSet{make(map[Edge]Edge)}
 	for from, tos := range g.edgesFrom {
@@ -77,20 +80,6 @@ func (g *Graph) Edges() []Edge {
 	return result
 }
 
-// HasVertex checks if the given Vertex is present in the graph.
-func (g *Graph) HasVertex(v Vertex) bool {
-	return g.vertices.Include(v)
-}
-
-// HasEdge checks if the given Edge is present in the graph.
-func (g *Graph) HasEdge(from, to Vertex) bool {
-	tos, hasFrom := g.edgesFrom[from]
-	if !hasFrom {
-		return false
-	}
-	return tos.Include(to)
-}
-
 // Add adds a vertex to the graph. This is safe to call multiple time with
 // the same Vertex.
 func (g *Graph) Add(v Vertex) Vertex {
@@ -101,19 +90,17 @@ func (g *Graph) Add(v Vertex) Vertex {
 
 // Remove removes a vertex from the graph. This will also remove any
 // edges with this vertex as a source or target.
-func (g *Graph) Remove(v Vertex) Vertex {
+func (g *Graph) Remove(v Vertex) {
 	// Delete the vertex itself
 	g.vertices.Delete(v)
 
 	// Delete the edges to non-existent things
-	for target := range g.edgesFromNoCopy(v).All() {
+	for target := range g.edgesFrom[v].All() {
 		g.RemoveEdge(v, target)
 	}
-	for source := range g.edgesToNoCopy(v).All() {
+	for source := range g.edgesTo[v].All() {
 		g.RemoveEdge(source, v)
 	}
-
-	return nil
 }
 
 // Replace replaces the original Vertex with replacement. If the original
@@ -121,7 +108,7 @@ func (g *Graph) Remove(v Vertex) Vertex {
 // is returned.
 func (g *Graph) Replace(original, replacement Vertex) bool {
 	// If we don't have the original, we can't do anything
-	if !g.vertices.Include(original) {
+	if !g.vertices.Contains(original) {
 		return false
 	}
 
@@ -132,10 +119,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
-	for target := range g.edgesFromNoCopy(original).All() {
+	for target := range g.edgesFrom[original].All() {
 		g.Connect(replacement, target)
 	}
-	for source := range g.edgesToNoCopy(original).All() {
+	for source := range g.edgesTo[original].All() {
 		g.Connect(source, replacement)
 	}
 
@@ -154,37 +141,20 @@ func (g *Graph) RemoveEdge(from, to Vertex) {
 		s.Delete(to)
 	}
 	if s, ok := g.edgesTo[from]; ok {
-		// FIXME: is the correct and is there a test?
 		s.Delete(from)
 	}
 }
 
 // EdgesTo returns the vertices that are *sources* of edges that target the
 // destination Vertex v.
-func (g *Graph) EdgesTo(v Vertex) Set {
-	return g.edgesToNoCopy(v).Clone()
+func (g *Graph) EdgesTo(v Vertex) VertexSet {
+	return g.edgesTo[v].Clone()
 }
 
 // EdgesFrom returns the vertices that are *targets* of edges that originate
 // from the source Vertex v.
-func (g *Graph) EdgesFrom(v Vertex) Set {
-	return g.edgesFromNoCopy(v).Clone()
-}
-
-// edgesFromNoCopy returns the vertices targeted by edges from the source Vertex
-// v as a Set. This Set is the same as used internally by the Graph to prevent a
-// copy, and must not be modified by the caller.
-func (g *Graph) edgesFromNoCopy(v Vertex) Set {
-	g.init()
-	return g.edgesFrom[v]
-}
-
-// edgesToNoCopy returns the vertices that are sources of edges targeting the
-// destination Vertex v as a Set. This Set is the same as used internally by the
-// Graph to prevent a copy, and must not be modified by the caller.
-func (g *Graph) edgesToNoCopy(v Vertex) Set {
-	g.init()
-	return g.edgesTo[v]
+func (g *Graph) EdgesFrom(v Vertex) VertexSet {
+	return g.edgesFrom[v].Clone()
 }
 
 // Connect adds an edge with the given source and target. This is safe to
@@ -193,14 +163,14 @@ func (g *Graph) Connect(source, target Vertex) {
 	g.init()
 
 	// Do we have this already? If so, don't add it again.
-	if s, ok := g.edgesFrom[source]; ok && s.Include(target) {
+	if s, ok := g.edgesFrom[source]; ok && s.Contains(target) {
 		return
 	}
 
 	// Add the down edge
 	s, ok := g.edgesFrom[source]
 	if !ok {
-		s = NewSet()
+		s = NewVertexSet()
 		g.edgesFrom[source] = s
 	}
 	s.Add(target)
@@ -208,7 +178,7 @@ func (g *Graph) Connect(source, target Vertex) {
 	// Add the up edge
 	s, ok = g.edgesTo[target]
 	if !ok {
-		s = NewSet()
+		s = NewVertexSet()
 		g.edgesTo[target] = s
 	}
 	s.Add(source)
@@ -225,10 +195,10 @@ func (g *Graph) Subsume(other *Graph) {
 	g.vertices = g.vertices.Union(other.vertices)
 
 	for v := range other.edgesFrom {
-		g.edgesFrom[v] = other.EdgesFrom(v)
+		g.edgesFrom[v] = other.edgesFrom[v].Clone()
 	}
 	for v := range other.edgesTo {
-		g.edgesTo[v] = other.EdgesTo(v)
+		g.edgesTo[v] = other.edgesTo[v].Clone()
 	}
 }
 
@@ -313,13 +283,13 @@ func (g *Graph) String() string {
 
 func (g *Graph) init() {
 	if g.vertices.m == nil {
-		g.vertices = NewSet()
+		g.vertices = NewVertexSet()
 	}
 	if g.edgesFrom == nil {
-		g.edgesFrom = make(map[Vertex]Set)
+		g.edgesFrom = make(map[Vertex]VertexSet)
 	}
 	if g.edgesTo == nil {
-		g.edgesTo = make(map[Vertex]Set)
+		g.edgesTo = make(map[Vertex]VertexSet)
 	}
 }
 

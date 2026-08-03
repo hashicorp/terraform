@@ -33,7 +33,7 @@ func TestSelectSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
 	v2 := MockVertex2{id: 2}
-	vertices := NewSet()
+	vertices := NewVertexSet()
 	vertices.Add(v1)
 	vertices.Add(v2)
 	vertices.Add(v11)
@@ -72,7 +72,7 @@ func TestExcludeSeq(t *testing.T) {
 	v1 := MockVertex{id: 1}
 	v11 := MockVertex{id: 11}
 	v2 := MockVertex2{id: 2}
-	vertices := NewSet()
+	vertices := NewVertexSet()
 	vertices.Add(v1)
 	vertices.Add(v2)
 	vertices.Add(v11)

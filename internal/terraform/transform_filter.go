@@ -33,7 +33,7 @@ func (t *TransformFilter) Transform(g *Graph) error {
 	// Remove every vertex that isn't explicitly kept and isn't an
 	// ancestor of a kept node.
 	for _, v := range removalCandidates {
-		if !ancestors.Include(v) {
+		if !ancestors.Contains(v) {
 			g.Remove(v)
 		}
 	}
