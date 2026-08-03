@@ -49,7 +49,8 @@ func doOnceWithDiags[T any](
 		}, nil
 	})
 	if err != nil {
-		ret.Diagnostics = ret.Diagnostics.Append(diagnosticsForPromisingTaskError(err))
+		var zero T
+		return zero, diagnosticsForPromisingTaskError(err)
 	}
 	return ret.Result, ret.Diagnostics
 }
