@@ -4,7 +4,6 @@
 package dag
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -180,14 +179,6 @@ func TestGraphUpdownEdges(t *testing.T) {
 	if diff.Len() != 1 || !diff.Contains(testV(8)) {
 		t.Fatalf("expected a diff of only '8', got %#v", diff)
 	}
-}
-
-type hashVertex struct {
-	code any
-}
-
-func (v *hashVertex) Name() string {
-	return fmt.Sprintf("%#v", v.code)
 }
 
 const testGraphBasicStr = `

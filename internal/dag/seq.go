@@ -28,10 +28,6 @@ func (seq VertexSeq[T]) AsGeneric() VertexSeq[Vertex] {
 func (g *Graph) VerticesSeq() VertexSeq[Vertex] {
 	return func(yield func(v Vertex) bool) {
 		for v := range g.vertices.All() {
-			v, ok := v.(Vertex)
-			if !ok {
-				continue
-			}
 			if !yield(v) {
 				return
 			}
