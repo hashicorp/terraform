@@ -453,7 +453,7 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.DependencyLockingLogger) (output bool, diags tfdiags.Diagnostics) {
 	// The state migrate command does not support the -lockfile=readonly flag
 	// This flag is specific to the init command, and can only take "" or "readonly" as values.
 	// As state migrate doesn't take this flag, we can safely set it to "" here.
