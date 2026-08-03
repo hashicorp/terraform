@@ -117,15 +117,15 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 }
 
 // RemoveEdge removes an edge from the graph.
-func (g *Graph) RemoveEdge(from, to Vertex) {
+func (g *Graph) RemoveEdge(source, target Vertex) {
 	g.init()
 
 	// Delete the up/down edges
-	if s, ok := g.edgesFrom[from]; ok {
-		s.Delete(to)
+	if s, ok := g.edgesFrom[source]; ok {
+		s.Delete(target)
 	}
-	if s, ok := g.edgesTo[from]; ok {
-		s.Delete(from)
+	if s, ok := g.edgesTo[target]; ok {
+		s.Delete(source)
 	}
 }
 

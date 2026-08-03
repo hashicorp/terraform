@@ -67,6 +67,14 @@ func TestGraph_removeEdges(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad: %s", actual)
 	}
+
+	if g.EdgesFrom(testV(1)).Len() != 0 {
+		t.Fatal("expected no edges from 1, got", g.EdgesFrom(testV(1)))
+	}
+
+	if g.EdgesTo(testV(3)).Len() != 1 {
+		t.Fatal("expected 1 edge to 3, got", g.EdgesTo(testV(3)))
+	}
 }
 
 func TestGraph_replace(t *testing.T) {
