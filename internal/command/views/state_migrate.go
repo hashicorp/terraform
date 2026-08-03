@@ -24,7 +24,7 @@ const (
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
-	StateMigrationPostStepsInterruptedMessage = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
+	stateMigrationPostStepsInterruptedMessage = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
 
 Your state has been copied to the new destination, but Terraform was unable to perform final operations to enable future commands to use your migrated state. Either Terraform was unable to record the new provider used for the destination state store to your dependency lock file, or the backend state file was unable to be updated. Please check the errors message(s) above for more information.
 
@@ -52,6 +52,7 @@ type StateMigrate interface {
 	LogMigrationStarted(source, destination string)
 	LogMigrationSucceeded(source, destination string)
 	LogMigrationFailedDuring(source, destination string)
+	LogMigrationFailedAfter(source, destination string, failOnDepLockUpdate, failOnBackendStateFile bool)
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -94,6 +95,11 @@ func (s *StateMigrateHuman) LogMigrationSucceeded(source, destination string) {
 
 func (s *StateMigrateHuman) LogMigrationFailedDuring(source, destination string) {
 	msg := fmt.Sprintf(stateMigrationFailureMessage, source, destination)
+	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogMigrationFailedAfter(source, destination string, _, _ bool) {
+	msg := fmt.Sprintf(stateMigrationPostStepsInterruptedMessage, source, destination)
 	s.log(msg)
 }
 

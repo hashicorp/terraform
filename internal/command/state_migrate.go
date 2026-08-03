@@ -325,6 +325,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
 			view.Diagnostics(diags)
+			view.LogMigrationFailedAfter(source, destination, true, false)
 			return 1
 		}
 
@@ -339,7 +340,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
 			view.Diagnostics(diags)
-			view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+			view.LogMigrationFailedAfter(source, destination, true, false)
 			return 1
 		}
 		if output {
@@ -353,7 +354,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
 		view.Diagnostics(diags)
-		view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+		view.LogMigrationFailedAfter(source, destination, false, true)
 		return 1
 	}
 
