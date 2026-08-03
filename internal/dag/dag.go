@@ -26,10 +26,6 @@ type walkFunc func(Vertex) tfdiags.Diagnostics
 // graph.
 type depthWalkFunc func(Vertex, int) error
 
-func (g *AcyclicGraph) DirectedGraph() Grapher {
-	return g
-}
-
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
 func (g *AcyclicGraph) Ancestors(vs ...Vertex) VertexSet {
