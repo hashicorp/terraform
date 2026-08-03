@@ -125,13 +125,6 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 	}
 
 	for v := range g.VerticesSeq() {
-		id := marshalVertexID(v)
-		if sg, ok := marshalSubgrapher(v); ok {
-			smg := newMarshalGraph(v.Name(), sg)
-			smg.ID = id
-			mg.Subgraphs = append(mg.Subgraphs, smg)
-		}
-
 		mv := newMarshalVertex(v)
 		mg.Vertices = append(mg.Vertices, mv)
 	}
@@ -173,21 +166,4 @@ func marshalVertexID(v Vertex) string {
 
 	// we could try harder by attempting to read the arbitrary value from the
 	// interface, but we shouldn't get here from terraform right now.
-}
-
-// check for a Subgrapher, and return the underlying *Graph.
-func marshalSubgrapher(v Vertex) (*Graph, bool) {
-	sg, ok := v.(Subgrapher)
-	if !ok {
-		return nil, false
-	}
-
-	switch g := sg.Subgraph().DirectedGraph().(type) {
-	case *Graph:
-		return g, true
-	case *AcyclicGraph:
-		return &g.Graph, true
-	}
-
-	return nil, false
 }

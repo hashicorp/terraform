@@ -27,10 +27,6 @@ type Graph struct {
 	Path addrs.ModuleInstance
 }
 
-func (g *Graph) DirectedGraph() dag.Grapher {
-	return &g.AcyclicGraph
-}
-
 // Walk walks the graph with the given walker for callbacks. The graph
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
