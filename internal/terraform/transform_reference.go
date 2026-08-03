@@ -149,7 +149,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	ACTIONREFS:
 		for _, ref := range m.References(actionConfig) {
-			if g.Ancestors(ref).Include(actionConfig) {
+			if g.Ancestors(ref).Contains(actionConfig) {
 				// this reference creates a cycle, because the action is already
 				// an ancestor of the reference. We need to allow these for the
 				// back-references to calling resources, but only direct
@@ -368,7 +368,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 // dependencies are declared, hence everything else is resolved via the normal
 // reference mechanism.
 func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	res := dag.NewSet()
+	res := dag.NewVertexSet()
 
 	refs := depender.DependsOn()
 
@@ -459,8 +459,8 @@ func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Refere
 
 // parentModuleDependsOn returns the set of vertices that a data sources parent
 // module references through the module call's depends_on.
-func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.Set {
-	res := dag.NewSet()
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.VertexSet {
+	res := dag.NewVertexSet()
 
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to

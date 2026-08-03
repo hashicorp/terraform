@@ -116,7 +116,7 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	// Check for cycles, and back out the edge if there are any.
 	// The cycles we are looking for only appears between providers, so don't
 	// waste time checking for cycles if both nodes use the same provider.
-	if fromProvider != toProvider && g.Ancestors(to).Include(from) {
+	if fromProvider != toProvider && g.Ancestors(to).Contains(from) {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
 			from.Name(), to.Name())
 		g.RemoveEdge(from, to)
@@ -295,7 +295,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 
 	// we need to track nodes to keep, because the dependency trees can overlap,
 	// so we can't just remove all dependencies of nodes we don't want.
-	keep := dag.NewSet()
+	keep := dag.NewVertexSet()
 
 	// Only keep destroyers, their providers, and anything the providers need
 	// for configuration. Since the destroyer should already be hooked up to the
@@ -327,7 +327,7 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 	}
 
 	for n := range g.VerticesSeq() {
-		if !keep.Include(n) {
+		if !keep.Contains(n) {
 			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", n.Name())
 			g.Remove(n)
 		}

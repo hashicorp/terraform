@@ -44,9 +44,9 @@ func TestSetDifference(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			one := NewSet()
-			two := NewSet()
-			expected := NewSet()
+			one := NewVertexSet()
+			two := NewVertexSet()
+			expected := NewVertexSet()
 			for _, v := range tc.A {
 				one.Add(v)
 			}
@@ -92,8 +92,8 @@ func TestSetFilter(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%#v", i, tc.Input), func(t *testing.T) {
-			input := NewSet()
-			expected := NewSet()
+			input := NewVertexSet()
+			expected := NewVertexSet()
 			for _, v := range tc.Input {
 				input.Add(v)
 			}
@@ -113,7 +113,7 @@ func TestSetFilter(t *testing.T) {
 }
 
 func TestSetCopy(t *testing.T) {
-	a := NewSet()
+	a := NewVertexSet()
 	a.Add(testV(1))
 	a.Add(testV(2))
 
@@ -126,14 +126,14 @@ func TestSetCopy(t *testing.T) {
 		t.Fatalf("expected single diff value, got %#v", diff)
 	}
 
-	if !diff.Include(testV(3)) {
+	if !diff.Contains(testV(3)) {
 		t.Fatalf("diff does not contain 3, got %#v", diff)
 	}
 
 }
 
-func makeSet(n int) Set {
-	ret := NewSet()
+func makeSet(n int) VertexSet {
+	ret := NewVertexSet()
 	for i := range n {
 		ret.Add(testV(i))
 	}

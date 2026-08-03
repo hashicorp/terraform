@@ -34,7 +34,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 	targetedNodes := t.selectTargetedNodes(g, t.Targets)
 	for v := range g.VerticesSeq() {
-		if !targetedNodes.Include(v) {
+		if !targetedNodes.Contains(v) {
 			log.Printf("[DEBUG] Removing %q, filtered by targeting.", v.Name())
 			g.Remove(v)
 		}
@@ -46,8 +46,8 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.Set {
-	targetedNodes := dag.NewSet()
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.VertexSet {
+	targetedNodes := dag.NewVertexSet()
 	if len(addrs) == 0 {
 		return targetedNodes
 	}
@@ -100,7 +100,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				continue
 			}
 
-			if !targetedNodes.Include(d) {
+			if !targetedNodes.Contains(d) {
 				// this dependency isn't being targeted, so we can't process this
 				// output
 				found = 0
@@ -189,8 +189,8 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 // triggering node has planned so that we can ensure the actions are only planned if the triggering
 // resource has an action (Create / Update) corresponding to one of the events in the action trigger
 // blocks event list.
-func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.Set, addrs []addrs.Targetable) {
-	if targetedNodes.Include(v) {
+func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.VertexSet, addrs []addrs.Targetable) {
+	if targetedNodes.Contains(v) {
 		return
 	}
 	targetedNodes.Add(v)
