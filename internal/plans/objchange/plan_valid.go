@@ -463,13 +463,19 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 		if !planned.IsNull() {
-			plannedVals = planned.AsValueMap()
+			if m := planned.AsValueMap(); m != nil {
+				plannedVals = m
+			}
 		}
 		if !config.IsNull() {
-			configVals = config.AsValueMap()
+			if m := config.AsValueMap(); m != nil {
+				configVals = m
+			}
 		}
 		if !prior.IsNull() {
-			priorVals = prior.AsValueMap()
+			if m := prior.AsValueMap(); m != nil {
+				priorVals = m
+			}
 		}
 
 		for k, plannedEV := range plannedVals {
