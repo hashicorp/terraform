@@ -26,8 +26,8 @@ type walkFunc func(Vertex) tfdiags.Diagnostics
 // graph.
 type depthWalkFunc func(Vertex, int) error
 
-// Returns a Set that includes every Vertex yielded by walking down from the
-// provided starting Vertex v.
+// Returns a VertexSet that includes every Vertex yielded by walking down from the
+// provided Vertices vs.
 func (g *AcyclicGraph) Ancestors(vs ...Vertex) VertexSet {
 	s := NewVertexSet()
 	memoFunc := func(v Vertex, d int) error {
