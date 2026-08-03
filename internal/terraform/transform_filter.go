@@ -18,7 +18,7 @@ func (t *TransformFilter) Transform(g *Graph) error {
 	// Partition vertices into kept and candidates for removal.
 	var kept []dag.Vertex
 	var removalCandidates []dag.Vertex
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		if t.Keep(v) {
 			kept = append(kept, v)
 		} else {
@@ -33,7 +33,7 @@ func (t *TransformFilter) Transform(g *Graph) error {
 	// Remove every vertex that isn't explicitly kept and isn't an
 	// ancestor of a kept node.
 	for _, v := range removalCandidates {
-		if !ancestors.Include(v) {
+		if !ancestors.Contains(v) {
 			g.Remove(v)
 		}
 	}

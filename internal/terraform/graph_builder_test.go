@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -16,10 +17,16 @@ func TestBasicGraphBuilder_impl(t *testing.T) {
 	var _ GraphBuilder = new(BasicGraphBuilder)
 }
 
+type testV int
+
+func (v testV) Name() string {
+	return fmt.Sprint(v)
+}
+
 func TestBasicGraphBuilder(t *testing.T) {
 	b := &BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&testBasicGraphBuilderTransform{1},
+			&testBasicGraphBuilderTransform{testV(1)},
 		},
 	}
 
@@ -42,8 +49,8 @@ func TestBasicGraphBuilder(t *testing.T) {
 func TestBasicGraphBuilder_validate(t *testing.T) {
 	b := &BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&testBasicGraphBuilderTransform{1},
-			&testBasicGraphBuilderTransform{2},
+			&testBasicGraphBuilderTransform{testV(1)},
+			&testBasicGraphBuilderTransform{testV(2)},
 		},
 	}
 

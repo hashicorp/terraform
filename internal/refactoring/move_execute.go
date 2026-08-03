@@ -58,9 +58,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[
 	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
-	startNodes := make(dag.Set, len(stmts))
-	for _, v := range g.Vertices() {
-		if len(g.DownEdges(v)) == 0 {
+	startNodes := dag.NewVertexSet()
+	for v := range g.VerticesSeq() {
+		if g.EdgesFrom(v).Len() == 0 {
 			startNodes.Add(v)
 		}
 	}
@@ -234,7 +234,7 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 			dependee := &stmts[dependeeI]
 
 			if statementDependsOn(depender, dependee) {
-				g.Connect(dag.BasicEdge(depender, dependee))
+				g.Connect(depender, dependee)
 			}
 		}
 	}

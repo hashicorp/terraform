@@ -368,6 +368,10 @@ type nodeModuleVariableInPartialModule struct {
 	DestroyApply bool
 }
 
+func (n *nodeModuleVariableInPartialModule) Name() string {
+	return n.Addr.String()
+}
+
 func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {
 	return n.Addr.Module
 }

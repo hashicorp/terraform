@@ -175,8 +175,7 @@ func TestNodePolicyEval_DynamicExpand_ConcurrentExecution(t *testing.T) {
 	// walker to execute all policy nodes in parallel.
 	for _, node := range policyNodes {
 		// Check upstream edges (what this node depends on)
-		upEdges := g.UpEdges(node)
-		for _, dep := range upEdges {
+		for dep := range g.EdgesTo(node).All() {
 			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("policy node %s has upstream dependency on another policy node %s; nodes must be independent for concurrent execution",
 					node.Name(), otherPolicy.Name())
@@ -184,8 +183,7 @@ func TestNodePolicyEval_DynamicExpand_ConcurrentExecution(t *testing.T) {
 		}
 
 		// Check downstream edges (what depends on this node)
-		downEdges := g.DownEdges(node)
-		for _, dep := range downEdges {
+		for dep := range g.EdgesFrom(node).All() {
 			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("policy node %s has downstream dependency on another policy node %s; nodes must be independent for concurrent execution",
 					node.Name(), otherPolicy.Name())
