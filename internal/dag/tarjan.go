@@ -28,8 +28,7 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	index := acct.visit(v)
 	minIdx := index
 
-	for raw := range g.edgesFrom[v].All() {
-		target := raw.(Vertex)
+	for target := range g.edgesFrom[v].All() {
 		targetIdx := acct.VertexIndex[target]
 
 		// Recurse on successor if not yet visited
