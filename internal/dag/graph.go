@@ -42,7 +42,7 @@ func (g *Graph) VertexCount() int {
 // Because the Walker allows dynamically updating the graph being walked, a set
 // data structure is useful to diff the two sets of dependencies.
 func (g *Graph) edgeSet() edgeSet {
-	edges := edgeSet{make(map[Edge]Edge)}
+	edges := edgeSet{make(map[Edge]bool)}
 	for from, tos := range g.edgesFrom {
 		for to := range tos.All() {
 			edges.Add(Edge{from, to})
