@@ -5,6 +5,7 @@ package pluginshared
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -56,7 +57,8 @@ type testHTTPHandler struct {
 func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 Not Found"))
+		tmpl := template.Must(template.New("notFound").Parse("{{.}}"))
+		tmpl.Execute(w, "404 Not Found")
 	}
 
 	switch r.URL.Path {
@@ -67,7 +69,9 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		if ifModifiedSince.Equal(testManifestLastModified) || testManifestLastModified.Before(ifModifiedSince) {
 			w.WriteHeader(http.StatusNotModified)
 		} else {
-			w.Write([]byte(testManifest))
+			w.Header().Set("Content-Type", "application/json")
+			tmpl := template.Must(template.New("manifest").Parse("{{.}}"))
+			tmpl.Execute(w, testManifest)
 		}
 	default:
 		path := filepath.FromSlash(path.Clean("/" + strings.Trim(r.URL.Path, "/")))
@@ -78,7 +82,8 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 Not Found"))
+		tmpl := template.Must(template.New("notFound").Parse("{{.}}"))
+		tmpl.Execute(w, "404 Not Found")
 	}
 }
 
